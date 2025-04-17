@@ -33,4 +33,4 @@
 
 # Project Specific
 .vs/
-.build/
+build/
