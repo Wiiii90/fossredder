@@ -43,7 +43,7 @@ fossredder/
 
 ## Build-Anleitung
 
-1. **vcpkg klonen und initialisieren**  
+1. vcpkg klonen und initialisieren 
    ```bash
    git clone https://github.com/microsoft/vcpkg.git
    ./vcpkg/bootstrap-vcpkg.bat
