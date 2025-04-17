@@ -1,25 +1,27 @@
 ﻿# FOSSredder
 
-**FOSSredder** ist eine spezialisierte Desktop-Anwendung zur lokalen Verwaltung von Ausgaben für einen privaten Vermieter mit mehreren Immobilien. Die Anwendung ermöglicht die Kategorisierung, Zuordnung und strukturierte Abrechnung sämtlicher Kosten. Zusätzlich unterstützt sie die Verarbeitung von Kontoauszügen im PDF-Format sowie den Import und Export von Excel- oder CSV-Dateien.
+**FOSSredder** ist eine spezialisierte Desktop-Anwendung zur lokalen Verwaltung von Ausgaben für private Vermieter mit mehreren Immobilien. Die Anwendung ermöglicht die Kategorisierung, Zuordnung und strukturierte Abrechnung sämtlicher Kosten. Zusätzlich unterstützt sie die Verarbeitung von Kontoauszügen im PDF-Format sowie den Import und Export von Excel- oder CSV-Dateien.
 
 ## Funktionen
 
-- Verwaltung mehrerer Immobilien mit spezifischen Attributen (z. B. Name, Adresse).
-- Erstellung von Abrechnungen (monatlich oder jährlich) für einzelne Immobilien oder alle Immobilien zusammen.
-- Kategorisierung von Ausgaben mit der Möglichkeit, Kategorien als „umlegbar“ oder „nicht umlegbar“ zu markieren.
-- Verarbeitung von PDF-Dateien (z. B. Kontoauszüge) mit automatischer Extraktion relevanter Daten (z. B. Betrag, Kategorie, Datum).
-- Import und Export von Excel- oder CSV-Dateien.
-- Backup- und Wiederherstellungsfunktionen für alle Systemdaten.
-- Moderne GUI mit Analyse-Tools zur Visualisierung von Daten (z. B. Diagramme, Plots).
-- Lokale Datenspeicherung (kein Cloud-Zwang).
+- Verwaltung mehrerer Immobilien mit spezifischen Attributen
+- Erstellung von Abrechnungen für einzelne oder alle Immobilien
+- Kategorisierung von Ausgaben mit Markierung als „umlegbar“ oder „nicht umlegbar“
+- Verarbeitung von PDF-Kontoauszügen mit heuristischer Extraktion von Beträgen und Kategorien
+- Visuelle Prüfung extrahierter Inhalte durch den Nutzer
+- Import/Export von CSV- oder Excel-Dateien
+- Backup- und Wiederherstellungsfunktionen
+- Analyse-Tools mit grafischer Auswertung
+- Lokale Datenspeicherung ohne Cloud-Anbindung
 
 ## Technologie-Stack
 
-- Programmiersprache: C++17 oder höher
-- GUI: Qt6
-- Buildsystem: CMake
-- Datenspeicherung: SQLite oder JSON (konfigurierbar)
-- Plattform: Windows 10+ (lokal, offline)
+- **Programmiersprache:** C++17 oder höher
+- **GUI:** Qt6
+- **Buildsystem:** CMake
+- **Abhängigkeitsverwaltung:** vcpkg
+- **Datenspeicherung:** SQLite oder JSON
+- **Plattform:** Windows 10+ (offline)
 
 ## Projektstruktur
 
@@ -41,15 +43,20 @@ fossredder/
 
 ## Build-Anleitung
 
-1. Qt6 installieren (z. B. via Qt Online Installer oder vcpkg)
-2. Projekt klonen:
+1. **vcpkg klonen und initialisieren**  
+   ```bash
+   git clone https://github.com/microsoft/vcpkg.git
+   ./vcpkg/bootstrap-vcpkg.bat
+   ```
+2. Qt6 installieren (z. B. via Qt Online Installer oder vcpkg)
+   ```bash
+   ./vcpkg/vcpkg install qt6-base
+   ```
+3. Projekt klonen und CMake konfigurieren:
    ```bash
    git clone https://github.com/dein-benutzername/fossredder.git
    cd fossredder
-   ```
-3. Mit CMake konfigurieren:
-   ```bash
-   cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+   cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
    ```
 4. Build starten:
    ```bash
