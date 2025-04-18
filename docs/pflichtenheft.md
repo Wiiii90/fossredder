@@ -96,18 +96,20 @@ Die Anwendung „FOSSredder“ dient der lokalen Verwaltung von Ausgaben für pr
 - Abhängigkeitsverwaltung: vcpkg
 - Datenhaltung: SQLite oder JSON
 - Projektstruktur:
-fossredder/ 
-├── build/ # Build-Ausgaben 
-├── docs/ # Dokumentation 
-├── include/ # Header-Dateien 
-│ ├── models/ # Datenmodelle 
-│ ├── views/ # GUI-Komponenten 
-│ └── controllers/ # Steuerung 
-├── src/ # Implementierungen 
-│ ├── models/ 
-│ ├── views/ 
-│ └── controllers/ 
-└── vcpkg.json # Abhängigkeitsdefinition
+```
+fossredder/
+├── docs/         # Dokumentation
+├── include/      # Header-Dateien
+│   ├── models/   # Datenmodelle (Property, Tenant, etc.)
+│   ├── views/    # GUI- oder Konsolenansichten
+│   └── controllers/ # Steuerungsklassen
+├── src/          # Quellcode
+│   ├── models/   # Implementierung der Datenmodelle
+│   ├── views/    # Implementierung der Ansichten
+│   └── controllers/ # Implementierung der Steuerung
+├── CMakeLists.txt
+└── README.md
+```
 
 
 ## 4. Benutzeroberfläche (Skizze)
