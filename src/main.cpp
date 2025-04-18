@@ -3,6 +3,7 @@
 #include <poppler-document.h>
 #include "controllers/PropertyController.h"
 #include "controllers/ExpenseController.h"
+#include "controllers/PdfImportController.h"
 #include "views/ConsoleView.h"
 
 int main() {
@@ -32,15 +33,15 @@ int main() {
     // Ausgaben anzeigen
     ConsoleView::displayExpenses(expenseController.getExpenses());
 
-    // Test Poppler
-    std::unique_ptr<poppler::document> doc(poppler::document::load_from_file("test.pdf"));
-    if (!doc) {
-        std::cerr << "Poppler is linked correctly, but the PDF file could not be opened." << std::endl;
+    // PDF-Verarbeitung
+    PdfImportController pdfController;
+    try {
+        auto pdfData = pdfController.extractData("C:\\coding\\fossredder\\test.pdf"); // Beispiel-PDF-Datei
+        ConsoleView::displayPdfData(pdfData); // Extrahierte Daten anzeigen
     }
-    else {
-        std::cout << "Poppler is linked correctly, and the PDF file was opened successfully." << std::endl;
+    catch (const std::exception& e) {
+        std::cerr << "Error during PDF processing: " << e.what() << std::endl;
     }
 
     return 0;
 }
-

@@ -9,6 +9,7 @@ add_executable(fossredder
     src/main.cpp
     src/controllers/PropertyController.cpp
     src/controllers/ExpenseController.cpp
+    src/controllers/PdfImportController.cpp
     src/views/ConsoleView.cpp
     src/models/Property.cpp
     src/models/Category.cpp

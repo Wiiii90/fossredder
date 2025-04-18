@@ -19,3 +19,14 @@ void ConsoleView::displayExpenses(const std::vector<std::shared_ptr<Expense>>& e
     }
 }
 
+void ConsoleView::displayPdfData(const std::shared_ptr<PdfExtractedData>& data) {
+    std::cout << "PDF Source File: " << data->sourceFile << std::endl;
+    std::cout << "Extracted Text Blocks:" << std::endl;
+
+    for (const auto& block : data->textBlocks) {
+        std::cout << "Text: " << block.text << std::endl;
+        std::cout << "Position: (x: " << block.x << ", y: " << block.y
+            << ", width: " << block.width << ", height: " << block.height << ")" << std::endl;
+        std::cout << "----------------------------------------" << std::endl;
+    }
+}
