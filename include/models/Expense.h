@@ -1,6 +1,5 @@
 #pragma once
-#include <string>
-#include <memory>
+#include "pch.h"
 #include "Property.h"
 #include "Category.h"
 

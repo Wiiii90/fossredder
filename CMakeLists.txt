@@ -10,10 +10,10 @@ add_executable(fossredder
     src/controllers/PropertyController.cpp
     src/controllers/ExpenseController.cpp
     src/controllers/PdfImportController.cpp
-    src/views/ConsoleView.cpp
     src/models/Property.cpp
     src/models/Category.cpp
     src/models/Expense.cpp
+    src/views/ConsoleView.cpp
 )
 
 # Set the output directory for binaries

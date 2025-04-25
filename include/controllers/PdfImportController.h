@@ -1,7 +1,7 @@
 #pragma once
-#include <string>
-#include <memory>
+#include "pch.h"
 #include "models/PdfExtractedData.h"
+#include "models/Transaction.h"
 
 class PdfImportController {
 public:

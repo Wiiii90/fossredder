@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "MinGW",
+            "includePath": [
+                "C:/coding/fossredder/**",
+                "C:/msys64/mingw64/include/c++/14.2.0",
+                "C:/msys64/mingw64/include/c++/14.2.0/x86_64-w64-mingw32",
+                "C:/msys64/mingw64/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "NOMINMAX"
+            ],
+            "intelliSenseMode": "windows-clang-x64",
+            "compilerPath": "C:/msys64/mingw64/bin/g++.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++20"
+        }
+    ],
+    "version": 4
+}

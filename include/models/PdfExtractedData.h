@@ -1,26 +1,17 @@
 #pragma once
-#include <string>
-#include <vector>
-
-// Struktur für einen Textblock mit Position
-struct TextBlock {
-    std::string text;
-    double x, y, width, height; // Position und Größe des Textblocks
-
-    TextBlock(const std::string& text, double x, double y, double width, double height)
-        : text(text), x(x), y(y), width(width), height(height) {}
-};
+#include "pch.h"
+#include "Booking.h"
 
 // Klasse für die extrahierten PDF-Daten
 class PdfExtractedData {
 public:
-    std::vector<TextBlock> textBlocks; // Liste der Textblöcke
     std::string sourceFile;            // Name der PDF-Datei
+    std::vector<std::shared_ptr<Booking>> bookings; // Liste der Buchungen
 
     PdfExtractedData(const std::string& file) : sourceFile(file) {}
 
-    // Methode zum Hinzufügen eines Textblocks
-    void addTextBlock(const std::string& text, double x, double y, double width, double height) {
-        textBlocks.emplace_back(text, x, y, width, height);
+    // Methode zum Hinzufügen einer Buchung
+    void addBooking(const std::shared_ptr<Booking>& booking) {
+        bookings.push_back(booking);
     }
 };

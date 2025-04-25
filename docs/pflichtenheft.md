@@ -30,17 +30,19 @@ Die Anwendung „FOSSredder“ dient der lokalen Verwaltung von Ausgaben für pr
 
 #### PDF-Verarbeitung
 - PDF-Dateien können importiert werden (z. B. Kontoauszüge)
-- Abschnittsweises Auslesen mit Texterkennung inkl. Textpositionen (z. B. via Poppler)
-- Heuristische Gruppierung von Textblöcken in Absätze:
-  - Berücksichtigung von vertikalem Abstand, Stil, Seitenstruktur
-- Extraktion potenziell relevanter Inhalte (z. B. „Hausmeisterkosten 202,32 €“)
-- Vorschläge zur Kategorie und zum Betrag durch System
+- Verarbeitung erfolgt in einer mehrstufigen Pipeline:
+  1. PDF zu Bild-Konvertierung: Mithilfe der Bibliothek **Poppler** werden PDF-Dokumente in Bildformate umgewandelt, um eine präzisere Verarbeitung zu ermöglichen.
+  2. Optische Zeichenerkennung (OCR): Die Bilder werden mit **Tesseract** analysiert, um Textinformationen zu extrahieren. Dies verbessert die Erkennung von Buchungsinformationen und bereitet die Daten für die nächste Verarbeitungsstufe vor.
+  3. Extraktion von Buchungsinformationen mit LLM: Ein leichtgewichtiges Sprachmodell (**TinyLLaMA**) wird verwendet, um die extrahierten Daten zu analysieren und Buchungsinformationen wie Betrag, Datum, Kategorie und zugehörige Immobilie zu identifizieren.
+     - Das Modell schlägt dem Nutzer eine mögliche Buchung vor.
+     - Der Nutzer kann die Vorschläge überprüfen, anpassen und final bestätigen, bevor die Daten gespeichert werden.
 - Benutzerprüfung mit Möglichkeit zur:
   - Bestätigung
   - Korrektur
   - Ignorieren
-- Jeder Eintrag bleibt nachvollziehbar auf ursprünglichen Textblock rückverfolgbar
-- Möglichkeit zur Markierung irrelevanter Textstellen durch Nutzer
+- Jeder Eintrag bleibt nachvollziehbar auf ursprünglichen Textblock rückverfolgbar.
+- Möglichkeit zur Markierung irrelevanter Textstellen durch Nutzer.
+
 
 #### Excel-/CSV-Verarbeitung
 - Import strukturierter Excel-/CSV-Dateien mit fixem Format

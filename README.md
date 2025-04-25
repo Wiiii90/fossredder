@@ -21,6 +21,7 @@
 - **Buildsystem:** CMake
 - **Abhängigkeitsverwaltung:** vcpkg
 - **Datenspeicherung:** SQLite oder JSON
+- **PDF-Verarbeitung**: Poppler, Tesseract, TinyLLaMA
 - **Plattform:** Windows 10+ (offline)
 
 ## Projektstruktur

@@ -1,33 +1,53 @@
+#include "pch.h"
 #include "controllers/PdfImportController.h"
-#include <poppler-document.h>
-#include <poppler-page.h>
-#include <stdexcept>
-#include <iostream>
+#include "models/PdfExtractedData.h"
+
+namespace fs = std::filesystem;
+
+// Helper function to check if a file exists
+bool fileExists(const std::string& filePath) {
+    return fs::exists(filePath);
+}
 
 std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::string& filePath) {
-    // Öffnet die PDF-Datei mit Poppler
-    auto document = poppler::document::load_from_file(filePath);
-    if (!document) {
-        throw std::runtime_error("Failed to open PDF file: " + filePath);
+    // Check if the input PDF file exists
+    if (!fileExists(filePath)) {
+        throw std::runtime_error("PDF file does not exist: " + filePath);
     }
 
-    // Erstellt ein PdfExtractedData-Objekt für die extrahierten Daten
+    // Create a PdfExtractedData object
     auto data = std::make_shared<PdfExtractedData>(filePath);
 
-    // Iteriert über alle Seiten der PDF-Datei
-    for (int i = 0; i < document->pages(); ++i) {
-        auto page = document->create_page(i);
-        if (page) {
-            // Extrahiert den Text der Seite
-            auto text = page->text();
+    // Define the output prefix for the generated image files
+    std::string outputPrefix = "page_";
 
-            // Beispiel: Fügen Sie den gesamten Text als einen Block hinzu
-            // (Positionen können später erweitert werden)
-            data->addTextBlock(text.to_latin1(), 0, 0, 0, 0);
+    // Construct the pdftoppm command
+    std::string command = "pdftoppm -png -r 300 \"" + filePath + "\" " + outputPrefix;
 
-            // Debug-Ausgabe
-            std::cout << "Extracted text from page " << i + 1 << ": " << text.to_latin1() << std::endl;
+    // Execute the pdftoppm command
+    int result = std::system(command.c_str());
+    if (result != 0) {
+        throw std::runtime_error("Failed to execute pdftoppm. Ensure it is installed and in your PATH.");
+    }
+
+    // Iterate over the generated image files
+    int pageIndex = 1;
+    while (true) {
+        // Construct the expected file name for the current page
+        std::string imageFilePath = outputPrefix + std::to_string(pageIndex) + ".png";
+
+        // Check if the file exists
+        if (!fileExists(imageFilePath)) {
+            break; // No more pages to process
         }
+
+        // Log the generated image file
+        std::cout << "Generated image file: " << imageFilePath << std::endl;
+
+        // Placeholder for further processing (e.g., OCR or adding to PdfExtractedData)
+        // You can extend this logic as needed
+
+        ++pageIndex;
     }
 
     return data;

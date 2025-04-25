@@ -35,3 +35,7 @@
 .vs/
 build/
 vcpkg_installed/
+
+# PDF Files
+   *.pdf
+   *.pdr
