@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(FossRedder)
 
 # Set the C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 # Add all source files
 add_executable(fossredder
@@ -28,11 +28,14 @@ target_include_directories(fossredder PRIVATE
     include/views
 )
 
-# Use vcpkg toolchain file (adjust the path to your vcpkg installation)
+# Use vcpkg toolchain file
 set(CMAKE_TOOLCHAIN_FILE "C:/coding/.libs/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 
-# Use PkgConfig to find and link Poppler
+# Link Poppler
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(POPPLER_CPP REQUIRED IMPORTED_TARGET poppler-cpp)
 target_link_libraries(fossredder PRIVATE PkgConfig::POPPLER_CPP)
 
+# Link Tesseract
+find_package(Tesseract REQUIRED CONFIG)
+target_link_libraries(fossredder PRIVATE Tesseract::libtesseract)
