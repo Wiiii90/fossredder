@@ -8,4 +8,3 @@ void ExpenseController::addExpense(double amount, const std::string& date, std::
 const std::vector<std::shared_ptr<Expense>>& ExpenseController::getExpenses() const {
     return expenses;
 }
-
