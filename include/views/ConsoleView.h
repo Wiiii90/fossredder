@@ -1,13 +1,10 @@
 #pragma once
-#include <iostream>
-#include <vector>
-#include <memory>
-#include "Property.h"
-#include "Expense.h"
-#include "PdfExtractedData.h"
-#include "Transaction.h"
+#include "pch.h"
+#include "models/PdfExtractedData.h"
 
 class ConsoleView {
 public:
-    static void displayPdfData(const std::shared_ptr<PdfExtractedData>& data);
+    void displayPdfData(const std::shared_ptr<PdfExtractedData>& data);
+    void displayBlocks(const std::vector<std::string>& blocks, int& globalBlockIndex);
+    void displayError(const std::string& errorMessage);
 };

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 4.0.1)
 project(FossRedder)
 
 # Set the C++ standard
@@ -8,11 +8,14 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(fossredder
     src/main.cpp
     src/controllers/PropertyController.cpp
-    src/controllers/ExpenseController.cpp
     src/controllers/PdfImportController.cpp
     src/models/Property.cpp
-    src/models/Category.cpp
-    src/models/Expense.cpp
+    src/models/PdfExtractedData.cpp
+    src/models/Block.cpp
+    src/models/Paragraph.cpp
+    src/models/Line.cpp
+    src/models/Word.cpp
+    src/models/TextElement.cpp
     src/views/ConsoleView.cpp
 )
 
@@ -39,3 +42,12 @@ target_link_libraries(fossredder PRIVATE PkgConfig::POPPLER_CPP)
 # Link Tesseract
 find_package(Tesseract REQUIRED CONFIG)
 target_link_libraries(fossredder PRIVATE Tesseract::libtesseract)
+
+# Link Fontconfig
+find_package(Fontconfig REQUIRED)
+target_include_directories(fossredder PRIVATE ${Fontconfig_INCLUDE_DIRS})
+target_link_libraries(fossredder PRIVATE ${Fontconfig_LIBRARIES})
+
+# Link tinyxml2
+find_package(tinyxml2 REQUIRED)
+target_link_libraries(fossredder PRIVATE tinyxml2::tinyxml2)

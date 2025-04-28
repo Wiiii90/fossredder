@@ -1,10 +1,11 @@
 #pragma once
 #include "pch.h"
 #include "models/PdfExtractedData.h"
-#include "models/Transaction.h"
+
+namespace fs = std::filesystem;
 
 class PdfImportController {
 public:
-    // Extrahiert Daten aus einer PDF-Datei und gibt ein PdfExtractedData-Objekt zurück
+    PdfImportController(); // Constructor
     std::shared_ptr<PdfExtractedData> extractData(const std::string& filePath);
 };
