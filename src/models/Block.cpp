@@ -2,27 +2,25 @@
 #include "models/Block.h"
 
 Block::Block(tinyxml2::XMLElement* element) : TextElement(element) {
-    if (!element) {
-        throw std::invalid_argument("Null XML element passed to Block constructor.");
+    if (!element) throw std::invalid_argument("Null XML element passed to Block constructor.");
+    for (tinyxml2::XMLElement* paragraphElem = element->FirstChildElement("Paragraph");
+        paragraphElem != nullptr;
+        paragraphElem = paragraphElem->NextSiblingElement("Paragraph")) {
+        paragraphs.emplace_back(paragraphElem);
     }
-
-    for (tinyxml2::XMLElement* textBlock = element->FirstChildElement("TextBlock");
-        textBlock != nullptr;
-        textBlock = textBlock->NextSiblingElement("TextBlock")) {
-        paragraphs.emplace_back(textBlock);
+    // If your ALTO XML does not use <Paragraph>, but only <TextLine>:
+    if (paragraphs.empty()) {
+        // Fallback: treat the Block as a single Paragraph
+        paragraphs.emplace_back(element);
     }
 }
-
 Block::~Block() {}
 
 std::string Block::getRawText() const {
-    return rawXml;
-}
-
-std::string Block::getFormattedText() const {
-    std::string formattedText;
+    std::string result;
     for (const auto& paragraph : paragraphs) {
-        formattedText += paragraph.getFormattedText() + "\n";
+        result += paragraph.getRawText() + "\n";
     }
-    return formattedText;
+    return result;
 }
+std::string Block::getFormattedText() const { return getRawText(); }

@@ -2,6 +2,7 @@
 #include "views/ConsoleView.h"
 
 void ConsoleView::displayPdfData(const std::shared_ptr<PdfExtractedData>& data) {
+    std::cout << "[DEBUG] ConsoleView::displayPdfData called." << std::endl;
     std::cout << "Displaying PDF Data:" << std::endl;
     for (const auto& element : data->getElements()) {
         std::cout << "-----------------------------\n";
@@ -12,6 +13,7 @@ void ConsoleView::displayPdfData(const std::shared_ptr<PdfExtractedData>& data) 
         std::cout << "-----------------------------\n";
     }
 }
+
 
 void ConsoleView::displayError(const std::string& errorMessage) {
     std::cerr << "Error: " << errorMessage << std::endl;

@@ -2,27 +2,20 @@
 #include "models/Paragraph.h"
 
 Paragraph::Paragraph(tinyxml2::XMLElement* element) : TextElement(element) {
-    if (!element) {
-        throw std::invalid_argument("Null XML element passed to Paragraph constructor.");
-    }
-
+    if (!element) throw std::invalid_argument("Null XML element passed to Paragraph constructor.");
     for (tinyxml2::XMLElement* textLine = element->FirstChildElement("TextLine");
         textLine != nullptr;
         textLine = textLine->NextSiblingElement("TextLine")) {
         lines.emplace_back(textLine);
     }
 }
-
 Paragraph::~Paragraph() {}
 
 std::string Paragraph::getRawText() const {
-    return rawXml;
-}
-
-std::string Paragraph::getFormattedText() const {
-    std::string formattedText;
+    std::string result;
     for (const auto& line : lines) {
-        formattedText += line.getFormattedText() + "\n";
+        result += line.getRawText() + "\n";
     }
-    return formattedText;
+    return result;
 }
+std::string Paragraph::getFormattedText() const { return getRawText(); }

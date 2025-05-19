@@ -2,22 +2,11 @@
 #include "models/Word.h"
 
 Word::Word(tinyxml2::XMLElement* element) : TextElement(element) {
-    if (!element) {
-        throw std::invalid_argument("Null XML element passed to Word constructor.");
-    }
-
+    if (!element) throw std::invalid_argument("Null XML element passed to Word constructor.");
     const char* content = element->Attribute("CONTENT");
-    if (content) {
-        rawXml = content;
-    }
+    rawXml = content ? content : "";
 }
-
 Word::~Word() {}
 
-std::string Word::getRawText() const {
-    return rawXml;
-}
-
-std::string Word::getFormattedText() const {
-    return rawXml;
-}
+std::string Word::getRawText() const { return rawXml; }
+std::string Word::getFormattedText() const { return rawXml; }
