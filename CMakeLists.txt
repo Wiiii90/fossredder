@@ -16,6 +16,7 @@ add_executable(fossredder
     src/models/Line.cpp
     src/models/Word.cpp
     src/models/TextElement.cpp
+    src/models/Header.cpp
     src/views/ConsoleView.cpp
 )
 
@@ -51,3 +52,7 @@ target_link_libraries(fossredder PRIVATE ${Fontconfig_LIBRARIES})
 # Link tinyxml2
 find_package(tinyxml2 REQUIRED)
 target_link_libraries(fossredder PRIVATE tinyxml2::tinyxml2)
+
+# Link ICU
+find_package(ICU REQUIRED COMPONENTS uc i18n)
+target_link_libraries(fossredder PRIVATE ICU::uc ICU::i18n)
