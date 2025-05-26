@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "pch.h"
 
 class Transaction {
@@ -6,7 +6,7 @@ public:
     std::string bookingDate;  // Buchungsdatum
     std::string valutaDate;   // Valuta
     std::string actor;        // Akteur (z. B. Alte Leipziger Versicherung)
-    std::string description;  // Beschreibung (z. B. Mandatsref, Gläubiger-ID)
+    std::string description;  // Beschreibung (z. B. Mandatsref, Glï¿½ubiger-ID)
     double amount;            // Betrag
     bool isDebit;             // Belastung (true) oder Gutschrift (false)
 

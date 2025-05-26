@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0.1)
+﻿cmake_minimum_required(VERSION 4.0.1)
 project(FossRedder)
 
 # Set the C++ standard
@@ -31,9 +31,6 @@ target_include_directories(fossredder PRIVATE
     include/controllers
     include/views
 )
-
-# Use vcpkg toolchain file
-set(CMAKE_TOOLCHAIN_FILE "C:/coding/.libs/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
 
 # Link Poppler
 find_package(PkgConfig REQUIRED)

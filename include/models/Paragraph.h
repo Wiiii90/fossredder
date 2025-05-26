@@ -1,8 +1,11 @@
-#pragma once
+﻿#pragma once
 #include "pch.h"
-#include "tinyxml2.h"
 #include "models/TextElement.h"
 #include "models/Line.h"
+#include "tinyxml2.h"
+#include <vector>
+#include <functional>
+#include <utility>
 
 class Paragraph : public TextElement {
 public:
@@ -14,7 +17,14 @@ public:
 
     std::vector<Line> lines;
 
+    std::vector<Paragraph> splitAtLine(size_t lineIdx) const;
+    static Paragraph mergeParagraphs(const std::vector<Paragraph>& paragraphs);
+
+    std::pair<Paragraph, Paragraph> splitByY(int y) const;
+    std::pair<Paragraph, Paragraph> splitByX(int x) const;
+    std::vector<Paragraph> splitByXRecursive(int x) const;
+    std::vector<Paragraph> splitByYRecursive(int y) const;
+
 private:
     std::string rawXml;
 };
-

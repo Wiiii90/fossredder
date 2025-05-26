@@ -18,6 +18,7 @@
 #include <unicode/unistr.h>
 #include <unicode/normalizer2.h>
 #include <cctype>
+#include "models/Transaction.h"
 
 PdfImportController::PdfImportController() {}
 
@@ -43,6 +44,87 @@ namespace {
         return na.caseCompare(nb, 0) == 0;
     }
 
+    std::vector<Transaction> extractTransactions(const std::vector<Header>& headers) {
+        const Header* valutaHeader = nullptr;
+        const Header* descriptionHeader = nullptr;
+        const Header* creditHeader = nullptr;
+        const Header* debitHeader = nullptr;
+
+        for (const auto& h : headers) {
+            std::string n = h.getName();
+            if (n == "Valuta") valutaHeader = &h;
+            else if (n == "Angaben zu den Umsätzen") descriptionHeader = &h;
+            else if (n == "zu Ihren Gunsten") creditHeader = &h;
+            else if (n == "zu Ihren Lasten") debitHeader = &h;
+        }
+
+        if (!valutaHeader || !descriptionHeader || (!creditHeader && !debitHeader)) {
+            std::cout << "[DEBUG] Required headers not found." << std::endl;
+            return {};
+        }
+
+        const auto& valutaBlocks = valutaHeader->getBlocks();
+        if (valutaBlocks.size() < 2) return {};
+
+        std::vector<Transaction> transactions;
+        for (size_t i = 1; i < valutaBlocks.size(); ++i) {
+            int vpos = valutaBlocks[i]->getY1();
+            std::string valuta = valutaBlocks[i]->getFormattedText();
+            std::string description, actor, bookingDate;
+            double amount = 0.0;
+            bool isDebit = false;
+
+            // Find description
+            for (const auto& block : descriptionHeader->getBlocks()) {
+                if (std::abs(block->getY1() - vpos) < 5) {
+                    description = block->getFormattedText();
+                    break;
+                }
+            }
+
+            // Find amount in credit or debit column
+            std::string amountStr;
+            if (creditHeader) {
+                for (const auto& block : creditHeader->getBlocks()) {
+                    if (std::abs(block->getY1() - vpos) < 5) {
+                        amountStr = block->getFormattedText();
+                        isDebit = false;
+                        break;
+                    }
+                }
+            }
+            if (amountStr.empty() && debitHeader) {
+                for (const auto& block : debitHeader->getBlocks()) {
+                    if (std::abs(block->getY1() - vpos) < 5) {
+                        amountStr = block->getFormattedText();
+                        isDebit = true;
+                        break;
+                    }
+                }
+            }
+
+            // Parse amount (handle minus sign and German format)
+            if (!amountStr.empty()) {
+                std::string clean = amountStr;
+                clean.erase(std::remove(clean.begin(), clean.end(), '.'), clean.end());
+                std::replace(clean.begin(), clean.end(), ',', '.');
+                try {
+                    amount = std::stod(clean);
+                    if (isDebit && amount > 0) amount = -amount;
+                }
+                catch (...) {
+                    std::cout << "[DEBUG] Could not parse amount: " << amountStr << std::endl;
+                }
+            }
+
+            if (i % 10 == 1) {
+                std::cout << "[DEBUG] Transaction: valuta=" << valuta << ", amount=" << amount << ", description=" << description << std::endl;
+            }
+
+            transactions.emplace_back(bookingDate, valuta, actor, description, amount, isDebit);
+        }
+        return transactions;
+    }
 
     // Find headers in the XML using the given keywords and store xmin/xmax using HPOS/WIDTH
     std::vector<Header> findHeaders(tinyxml2::XMLElement* printSpace, const std::vector<std::string>& headerKeywords) {
@@ -92,10 +174,6 @@ namespace {
                                 std::string ocrWord = trim(words[i + j].text);
                                 std::string headerWord = trim(headerWords[j]);
                                 if (!normalizedEquals(ocrWord, headerWord)) {
-                                    std::cout << "[DEBUG] No match at line VPOS=" << vpos
-                                        << " | OCR-Word[" << (i + j) << "]: '" << ocrWord
-                                        << "' vs Header-Word[" << j << "]: '" << headerWord << "'"
-                                        << std::endl;
                                     match = false;
                                     break;
                                 }
@@ -116,8 +194,7 @@ namespace {
                                     Header h(header, xmin, vpos);
                                     h.setXmin(xmin);
                                     h.setXmax(xmax);
-                                    headers.push_back(h);
-                                    std::cout << "[DEBUG] Found header: '" << header << "' at xmin=" << xmin << ", xmax=" << xmax << ", vpos=" << vpos << std::endl;
+                                    headers.push_back(h);                                    
                                 }
                                 break;
                             }
@@ -129,46 +206,88 @@ namespace {
         return headers;
     }
 
-    // Assign blocks to headers using header's xmin/xmax and vpos
+    // Assign blocks to headers based on their position
     void assignBlocksToHeaders(
-        const std::vector<Header>& headers,
-        std::vector<std::shared_ptr<Block>>& blocks,
-        std::unordered_map<std::string, std::vector<std::shared_ptr<Block>>>& headerToBlocks
+        std::vector<Header>& headers,
+        std::vector<std::shared_ptr<Block>>& blocks
     ) {
-        if (headers.empty()) {
-            std::cout << "[DEBUG] No headers found, skipping block assignment." << std::endl;
-            return;
+        if (headers.empty()) return;
+
+        // 1. Header nach X-Position sortieren (Angaben zu den Umsätzen immer links)
+        std::sort(headers.begin(), headers.end(), [](const Header& a, const Header& b) {
+            return a.getXmin() < b.getXmin();
+        });
+
+        // Header-Referenzen holen
+        Header* descHeader = nullptr;
+        Header* valutaHeader = nullptr;
+        Header* creditHeader = nullptr;
+        Header* debitHeader = nullptr;
+        for (auto& h : headers) {
+            if (h.getName() == "Angaben zu den Umsätzen") descHeader = &h;
+            else if (h.getName() == "Valuta") valutaHeader = &h;
+            else if (h.getName() == "zu Ihren Gunsten") creditHeader = &h;
+            else if (h.getName() == "zu Ihren Lasten") debitHeader = &h;
         }
+        if (!descHeader || !valutaHeader) return;
 
-        // Find the topmost header (for filtering)
-        int minHeaderVpos = std::numeric_limits<int>::max();
-        for (const auto& h : headers) minHeaderVpos = std::min(minHeaderVpos, h.getVpos());
+        int descXmin = descHeader->getXmin();
+        int valutaXmin = valutaHeader->getXmin();
 
-        // Remove blocks above the first header
-        blocks.erase(std::remove_if(blocks.begin(), blocks.end(),
-            [minHeaderVpos](const std::shared_ptr<Block>& block) {
-                return block->getY1() < minHeaderVpos;
-            }), blocks.end());
+        // 2. Blöcke für "Angaben zu den Umsätzen" sammeln und ggf. splitten
+        std::vector<Block> descBlocksToMerge;
+        std::vector<std::shared_ptr<Block>> blocksForOtherHeaders;
 
-        int assigned = 0;
-        for (auto& block : blocks) {
-            int x1 = block->getX1();
-            int x2 = block->getX2();
-            int y1 = block->getY1();
-            bool found = false;
-            for (const auto& h : headers) {
-                if (x2 > h.getXmin() && x1 < h.getXmax() && y1 > h.getVpos()) {
-                    headerToBlocks[h.getName()].push_back(block);
-                    found = true;
-                    ++assigned;
-                    break;
+        for (const auto& blockPtr : blocks) {
+            int x1 = blockPtr->getX1();
+            int x2 = blockPtr->getX2();
+            int y1 = blockPtr->getY1();
+
+            // Nur Blöcke unterhalb der Headerzeile
+            if (y1 <= descHeader->getVpos()) continue;
+
+            // Block liegt komplett links von Valuta -> zu "Angaben zu den Umsätzen"
+            if (x2 <= valutaXmin) {
+                descBlocksToMerge.push_back(*blockPtr);
+                continue;
+            }
+
+            // Block beginnt vor Valuta, reicht aber in Valuta hinein -> splitten
+            if (x1 < valutaXmin && x2 > valutaXmin) {
+                auto split = blockPtr->splitByXRecursive(valutaXmin);
+                for (const auto& part : split) {
+                    if (part.getX2() <= valutaXmin)
+                        descBlocksToMerge.push_back(part);
+                    else
+                        blocksForOtherHeaders.push_back(std::make_shared<Block>(part));
                 }
+                continue;
             }
-            if (!found) {
-                std::cout << "[DEBUG] Block at (" << x1 << "," << y1 << ") not assigned to any header." << std::endl;
-            }
+
+            // Block liegt komplett rechts von descHeader, also für andere Header
+            blocksForOtherHeaders.push_back(blockPtr);
         }
-        std::cout << "[DEBUG] Assigned " << assigned << " blocks to headers." << std::endl;
+
+        // 3. Alles links von Valuta mergen und "Angaben zu den Umsätzen" zuordnen
+        if (!descBlocksToMerge.empty()) {
+            Block merged = Block::mergeBlocks(descBlocksToMerge);
+            descHeader->clearBlocks();
+            descHeader->addBlock(std::make_shared<Block>(merged));
+        }
+
+        // 4. Restliche Blöcke den anderen Headern zuordnen (inkl. Überlappungen)
+        for (auto& blockPtr : blocksForOtherHeaders) {
+            int x1 = blockPtr->getX1();
+            int x2 = blockPtr->getX2();
+            int y1 = blockPtr->getY1();
+
+            if (valutaHeader && x2 > valutaHeader->getXmin() && x1 < valutaHeader->getXmax() && y1 > valutaHeader->getVpos())
+                valutaHeader->addBlock(blockPtr);
+            if (creditHeader && x2 > creditHeader->getXmin() && x1 < creditHeader->getXmax() && y1 > creditHeader->getVpos())
+                creditHeader->addBlock(blockPtr);
+            if (debitHeader && x2 > debitHeader->getXmin() && x1 < debitHeader->getXmax() && y1 > debitHeader->getVpos())
+                debitHeader->addBlock(blockPtr);
+        }
     }
 
     bool fileExists(const std::string& filePath) {
@@ -214,7 +333,7 @@ namespace {
 
     std::vector<std::shared_ptr<TextElement>> parseXmlToTextElements(
         const std::string& xmlContent,
-        std::unordered_map<std::string, std::vector<std::shared_ptr<Block>>>& headerToBlocks
+        std::vector<Header>& headers
     ) {
         std::vector<std::shared_ptr<TextElement>> elements;
         tinyxml2::XMLDocument doc;
@@ -230,7 +349,7 @@ namespace {
             "zu Ihren Lasten", "zu Ihren Gunsten", "Angaben zu den Umsätzen", "Valuta"
         };
 
-        std::vector<Header> headers = findHeaders(printSpace, headerKeywords);
+        headers = findHeaders(printSpace, headerKeywords);
 
         std::vector<std::shared_ptr<Block>> allBlocks;
         for (tinyxml2::XMLElement* composedBlock = printSpace->FirstChildElement("ComposedBlock");
@@ -246,7 +365,13 @@ namespace {
             }
         }
 
-        assignBlocksToHeaders(headers, allBlocks, headerToBlocks);
+        assignBlocksToHeaders(headers, allBlocks);
+
+        for (const auto& h : headers) {
+            std::cout << "[DEBUG] Header '" << h.getName() << "' hat " << h.getBlocks().size() << " Blöcke." << std::endl;
+        }
+
+        std::vector<Transaction> transactions = extractTransactions(headers);
 
         for (const auto& block : allBlocks) {
             elements.push_back(block);
@@ -257,6 +382,7 @@ namespace {
 } // namespace
 
 std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::string& filePath) {
+    std::vector<Transaction> allTransactions;
     ConsoleView consoleView;
     if (!fileExists(filePath)) {
         consoleView.displayError("PDF file does not exist: " + filePath);
@@ -266,19 +392,23 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
     const std::string outputPrefix = "page";
     convertPdfToImages(filePath, outputPrefix);
     std::vector<std::shared_ptr<TextElement>> allElements;
-    std::unordered_map<std::string, std::vector<std::shared_ptr<Block>>> headerToBlocks;
+    std::vector<Header> allHeaders; // <--- Sammle alle Header
     auto imageFiles = getGeneratedImageFiles(outputPrefix);
     for (const auto& imageFile : imageFiles) {
         try {
             std::string xmlContent = performOCR(imageFile, tessdataPath);
-            auto elements = parseXmlToTextElements(xmlContent, headerToBlocks);
+            // Passe parseXmlToTextElements an, sodass sie Header zurückgibt:
+            std::vector<Header> headers;
+            auto elements = parseXmlToTextElements(xmlContent, headers);
             allElements.insert(allElements.end(), elements.begin(), elements.end());
+            allHeaders.insert(allHeaders.end(), headers.begin(), headers.end());
         }
         catch (const std::exception& e) {
             consoleView.displayError(e.what());
         }
     }
-    // headerToBlocks enthält jetzt die Zuordnung Header -> Blöcke
-    auto pdfData = std::make_shared<PdfExtractedData>(filePath, allElements);
+    // Extrahiere Transaktionen aus allen gesammelten Headern
+    std::vector<Transaction> transactions = extractTransactions(allHeaders);
+    auto pdfData = std::make_shared<PdfExtractedData>(filePath, allElements, transactions);
     return pdfData;
 }
