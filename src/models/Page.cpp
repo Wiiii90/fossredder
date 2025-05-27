@@ -1,14 +1,10 @@
 ﻿#include "pch.h"
 #include "models/Page.h"
-#include "tinyxml2.h"
 #include "models/Header.h"
-#include <sstream>
-#include <unicode/unistr.h>
-#include <unicode/normalizer2.h>
-#include <cctype>
-#include <algorithm>
+#include "models/Block.h"
+#include "models/Word.h"
+#include "tinyxml2.h"
 
-// Hilfsfunktionen (könnten auch in ein Util-File)
 namespace {
     std::string trim(const std::string& s) {
         if (s.empty()) return s;
@@ -68,31 +64,20 @@ int Page::getWidth() const {
 
 std::vector<Header> Page::extractHeaders(const std::vector<std::string>& headerKeywords) const {
     std::vector<Header> headers;
-
     for (const auto& block : blocks) {
-        // Wir gehen jede Zeile (Line) im Block durch
         for (const auto& para : block->paragraphs) {
             for (const auto& line : para.lines) {
                 int vpos = line.getY1();
-
-                // Sammle alle Wörter der Zeile
-                struct WordInfo { std::string text; int hpos; int width; };
-                std::vector<WordInfo> words;
-                for (const auto& word : line.words) {
-                    words.push_back({word.getFormattedText(), word.getX1(), word.getWidth()});
-                }
-
-                // Für jede Header-Kombination prüfen
+                const auto& words = line.words;
                 for (const auto& header : headerKeywords) {
                     std::istringstream iss(header);
                     std::vector<std::string> headerWords;
                     std::string word;
                     while (iss >> word) headerWords.push_back(word);
-
                     for (size_t i = 0; i + headerWords.size() <= words.size(); ++i) {
                         bool match = true;
                         for (size_t j = 0; j < headerWords.size(); ++j) {
-                            std::string ocrWord = trim(words[i + j].text);
+                            std::string ocrWord = trim(words[i + j].getFormattedText());
                             std::string headerWord = trim(headerWords[j]);
                             if (!normalizedEquals(ocrWord, headerWord)) {
                                 match = false;
@@ -100,9 +85,8 @@ std::vector<Header> Page::extractHeaders(const std::vector<std::string>& headerK
                             }
                         }
                         if (match) {
-                            int xmin = words[i].hpos;
-                            int xmax = words[i + headerWords.size() - 1].hpos + words[i + headerWords.size() - 1].width;
-                            // Duplikate vermeiden
+                            int xmin = words[i].getX1();
+                            int xmax = words[i + headerWords.size() - 1].getX1() + words[i + headerWords.size() - 1].getWidth();
                             bool duplicate = false;
                             for (const auto& h : headers) {
                                 if (h.getName() == header && std::abs(h.getXmin() - xmin) < 5 && std::abs(h.getVpos() - vpos) < 5) {

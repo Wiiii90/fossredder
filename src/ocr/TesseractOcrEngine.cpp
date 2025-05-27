@@ -1,7 +1,7 @@
+#include "pch.h"
 #include "ocr/TesseractOcrEngine.h"
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
-#include <stdexcept>
 
 std::string TesseractOcrEngine::recognizeAltoXml(const std::string& imageFilePath, const std::string& tessdataPath) {
     tesseract::TessBaseAPI ocr;

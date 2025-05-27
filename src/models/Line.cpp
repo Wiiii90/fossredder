@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "models/Line.h"
+#include "models/Word.h"
 
 Line::Line(tinyxml2::XMLElement* element) : TextElement(element) {
     if (!element) throw std::invalid_argument("Null XML element passed to Line constructor.");
@@ -78,13 +79,10 @@ std::vector<Line> Line::splitByXRecursive(int x) const {
         int wx1 = word.getX1();
         int wx2 = word.getX2();
         if (wx2 <= x) {
-            // Wort komplett links
             leftWords.push_back(word);
         } else if (wx1 >= x) {
-            // Wort komplett rechts
             rightWords.push_back(word);
         } else {
-            // Wort überlappt die Grenze: in beide Richtungen aufnehmen
             leftWords.push_back(word);
             rightWords.push_back(word);
         }

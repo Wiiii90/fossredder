@@ -2,8 +2,9 @@
 #include <vector>
 #include <memory>
 #include <string>
-#include "models/Block.h"
-#include "models/Header.h"
+
+class Block;
+class Header;
 
 class Page {
 public:

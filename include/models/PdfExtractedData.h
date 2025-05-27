@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include "pch.h"
-#include "models/Page.h"
-#include "models/Transaction.h"
-#include <memory>
-#include <vector>
 #include <string>
+#include <vector>
+#include <memory>
+#include "models/Transaction.h"
+
+class Page;
 
 class PdfExtractedData {
 public:

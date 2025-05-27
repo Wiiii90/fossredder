@@ -1,7 +1,8 @@
+#include "pch.h"
 #include "poppler/PopplerPdfRenderer.h"
-#include <filesystem>
-#include <stdexcept>
-#include <cstdlib>
+#include <poppler-document.h>
+#include <poppler-page.h>
+#include <poppler-image.h>
 
 std::vector<std::string> PopplerPdfRenderer::renderToImages(const std::string& pdfPath, const std::string& outputPrefix) {
     std::string command = "pdftoppm -png -r 256 \"" + pdfPath + "\" " + outputPrefix;

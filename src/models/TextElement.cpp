@@ -1,4 +1,5 @@
-﻿#include "models/TextElement.h"
+﻿#include "pch.h"
+#include "models/TextElement.h"
 #include "models/Block.h"
 #include "models/Paragraph.h"
 #include "models/Line.h"
@@ -14,6 +15,8 @@ TextElement::TextElement(tinyxml2::XMLElement* element) {
     y1 = element->IntAttribute("VPOS", 0);
     width = element->IntAttribute("WIDTH", 0);
     height = element->IntAttribute("HEIGHT", 0);
+    x2 = x1 + width;
+    y2 = y1 + height;
 }
 
 TextElement::~TextElement() {}

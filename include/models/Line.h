@@ -1,11 +1,8 @@
 ﻿#pragma once
-#include "pch.h"
-#include "tinyxml2.h"
+#include <vector>
+#include <string>
 #include "models/TextElement.h"
 #include "models/Word.h"
-#include <vector>
-#include <functional>
-#include <utility>
 
 class Line : public TextElement {
 public:

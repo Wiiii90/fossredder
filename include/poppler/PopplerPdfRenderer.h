@@ -1,5 +1,7 @@
 #pragma once
 #include "poppler/IPdfRenderer.h"
+#include <string>
+#include <vector>
 
 class PopplerPdfRenderer : public IPdfRenderer {
 public:

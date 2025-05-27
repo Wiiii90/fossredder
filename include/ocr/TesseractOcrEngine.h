@@ -1,5 +1,6 @@
 #pragma once
-#include "IOcrEngine.h"
+#include "ocr/IOcrEngine.h"
+#include <string>
 
 class TesseractOcrEngine : public IOcrEngine {
 public:

@@ -1,6 +1,7 @@
 ﻿#pragma once
-#include "pch.h"
-#include "tinyxml2.h"
+#include <string>
+
+namespace tinyxml2 { class XMLElement; }
 
 class TextElement {
 public:

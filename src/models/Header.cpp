@@ -1,11 +1,7 @@
-﻿#define NOMINMAX
-#include "pch.h"
+﻿#include "pch.h"
 #include "models/Header.h"
 #include "models/Block.h"
 #include "models/Transaction.h"
-#include <algorithm>
-#include <iostream>
-#include <cmath>
 
 Header::Header(const std::string& name, int hpos, int vpos, int xmin, int xmax)
     : name(name), hpos(hpos), vpos(vpos), xmin(xmin), xmax(xmax) {}

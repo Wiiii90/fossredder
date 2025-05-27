@@ -1,5 +1,7 @@
 #pragma once
-#include "pch.h"
+#include <string>
+#include <memory>
+#include <vector>
 
 class IOcrEngine {
 public:

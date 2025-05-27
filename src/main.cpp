@@ -1,8 +1,9 @@
 ﻿#include "pch.h"
-#include "controllers/PdfImportController.h"
-#include "ocr/TesseractOcrEngine.h"
+#include "models/PdfExtractedData.h"
 #include "views/ConsoleView.h"
+#include "controllers/PdfImportController.h"
 #include "poppler/PopplerPdfRenderer.h"
+#include "ocr/TesseractOcrEngine.h"
 
 int main() {
     SetConsoleOutputCP(CP_UTF8);

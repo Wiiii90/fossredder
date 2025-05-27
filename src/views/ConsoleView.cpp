@@ -2,6 +2,8 @@
 #include "views/ConsoleView.h"
 #include "models/Transaction.h"
 #include "models/PdfExtractedData.h"
+#include "models/Page.h"
+#include "models/Block.h"
 
 void ConsoleView::displayPdfData(const std::shared_ptr<PdfExtractedData>& data) {
     std::cout << "[DEBUG] ConsoleView::displayPdfData called." << std::endl;

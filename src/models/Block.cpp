@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "models/Block.h"
+#include "models/Paragraph.h"
 
 Block::Block(tinyxml2::XMLElement* element) : TextElement(element) {
     if (!element) throw std::invalid_argument("Null XML element passed to Block constructor.");
@@ -14,12 +15,10 @@ Block::Block(tinyxml2::XMLElement* element) : TextElement(element) {
 }
 
 Block::Block(const Block& other)
-    : TextElement(other), // ruft Copy-Konstruktor der Basisklasse auf
+    : TextElement(other),
       paragraphs(other.paragraphs),
       rawXml(other.rawXml)
-{
-    // Nichts weiter nötig, da Paragraph einen eigenen Copy-Konstruktor hat
-}
+{}
 
 Block::~Block() {}
 
@@ -94,12 +93,10 @@ std::vector<Block> Block::splitByXRecursive(int x) const {
     std::vector<Paragraph> leftParagraphs, rightParagraphs;
     for (const auto& para : paragraphs) {
         auto splitParas = para.splitByXRecursive(x);
-        if (splitParas.size() == 2) {
-            // Erster Teil links, zweiter Teil rechts
+        if (splitParas.size() == 2) {            
             leftParagraphs.push_back(splitParas[0]);
             rightParagraphs.push_back(splitParas[1]);
         } else if (splitParas.size() == 1) {
-            // Entscheide anhand der X-Position
             if (splitParas[0].getX2() <= x) {
                 leftParagraphs.push_back(splitParas[0]);
             } else {

@@ -1,6 +1,9 @@
 #pragma once
-#include "pch.h"
-#include "Property.h"
+#include <memory>
+#include <string>
+#include <vector>
+
+class Property;
 
 class PropertyController {
 private:

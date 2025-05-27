@@ -1,23 +1,12 @@
-﻿#define NOMINMAX
-#include "pch.h"
-#include "controllers/PdfImportController.h"
-#include "views/ConsoleView.h"
+﻿#include "pch.h"
 #include "models/PdfExtractedData.h"
 #include "models/Header.h"
 #include "models/Page.h"
-#include <filesystem>
-#include <unordered_map>
-#include <vector>
-#include <algorithm>
-#include <memory>
-#include <string>
-#include <limits>
-#include <cmath>
-#include <sstream>
-#include <unicode/unistr.h>
-#include <unicode/normalizer2.h>
-#include <cctype>
 #include "models/Transaction.h"
+#include "views/ConsoleView.h"
+#include "controllers/PdfImportController.h"
+#include "poppler/IPdfRenderer.h"
+#include "ocr/IOcrEngine.h"
 
 PdfImportController::PdfImportController(std::shared_ptr<IOcrEngine> ocrEngine, std::shared_ptr<IPdfRenderer> pdfRenderer)
     : m_ocrEngine(std::move(ocrEngine)), m_pdfRenderer(std::move(pdfRenderer)) {}
@@ -46,8 +35,7 @@ namespace {
         }
         return imageFiles;
     }
-
-} // namespace
+}
 
 std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::string& filePath) {
     ConsoleView consoleView;

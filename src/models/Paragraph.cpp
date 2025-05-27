@@ -75,11 +75,9 @@ std::vector<Paragraph> Paragraph::splitByXRecursive(int x) const {
     for (const auto& line : lines) {
         auto splitLines = line.splitByXRecursive(x);
         if (splitLines.size() == 2) {
-            // Erster Teil links, zweiter Teil rechts
             leftLines.push_back(splitLines[0]);
             rightLines.push_back(splitLines[1]);
         } else if (splitLines.size() == 1) {
-            // Entscheide anhand der X-Position
             if (splitLines[0].getX2() <= x) {
                 leftLines.push_back(splitLines[0]);
             } else {

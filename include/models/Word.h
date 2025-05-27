@@ -1,7 +1,6 @@
 #pragma once
-#include "pch.h"
+#include <string>
 #include "models/TextElement.h"
-#include "tinyxml2.h"
 
 class Word : public TextElement {
 public:

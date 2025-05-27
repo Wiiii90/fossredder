@@ -1,9 +1,10 @@
 ﻿#pragma once
-#include "pch.h"
 #include <vector>
 #include <memory>
-#include "models/Block.h"
-#include "models/Transaction.h"
+#include <string>
+
+class Block;
+class Transaction;
 
 class Header {
 public:

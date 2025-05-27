@@ -1,5 +1,7 @@
 #pragma once
 
+#define NOMINMAX
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -9,17 +11,14 @@
 #include <filesystem>
 #include <algorithm>
 #include <windows.h>
-#include <regex> 
+#include <regex>
 #include <sstream>
+#include <cctype>
+#include <cmath>
 
-// Poppler headers
-#include <poppler-document.h>
-#include <poppler-page.h>
-#include <poppler-image.h>
+// ICU (Unicode)
+#include <unicode/unistr.h>
+#include <unicode/normalizer2.h>
 
-// Tesseract headers
-#include <tesseract/baseapi.h>
-#include <leptonica/allheaders.h>
-
-// Fontconfig header
-#include <fontconfig/fontconfig.h>
+// tinyxml2
+#include "tinyxml2.h"

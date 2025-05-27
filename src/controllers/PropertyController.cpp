@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "models/Property.h"
 #include "controllers/PropertyController.h"
 
 void PropertyController::addProperty(const std::string& name, const std::string& address, const std::string& description) {

@@ -1,16 +1,15 @@
 ﻿#pragma once
-#include "pch.h"
+#include <vector>
+#include <string>
 #include "models/TextElement.h"
 #include "models/Paragraph.h"
-#include "tinyxml2.h"
-#include <vector>
-#include <functional>
-#include <utility>
+
+namespace tinyxml2 { class XMLElement; }
 
 class Block : public TextElement {
 public:
     Block(tinyxml2::XMLElement* element);
-    Block(const Block& other); // <--- Copy-Konstruktor hinzufügen
+    Block(const Block& other);
     ~Block() override;
 
     std::string getRawText() const override;

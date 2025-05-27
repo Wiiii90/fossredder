@@ -1,7 +1,10 @@
 ﻿#pragma once
 #include <vector>
-#include "models/Transaction.h"
-#include "models/PdfExtractedData.h"
+#include <memory>
+#include <string>
+
+class PdfExtractedData;
+class Transaction;
 
 class ConsoleView {
 public:

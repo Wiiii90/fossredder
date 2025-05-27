@@ -18,6 +18,7 @@ add_executable(fossredder
     src/models/TextElement.cpp
     src/models/Header.cpp
     src/models/Page.cpp
+    src/models/Transaction.cpp
     src/views/ConsoleView.cpp
     src/ocr/TesseractOcrEngine.cpp
     src/poppler/PopplerPdfRenderer.cpp
