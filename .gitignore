@@ -41,3 +41,6 @@ LOCAL_APPDATA_FONTCONFIG_CACHE/
 # PDF Files
 *.pdf
 *.pdr
+
+# Images
+*.png

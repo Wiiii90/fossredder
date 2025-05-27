@@ -18,6 +18,7 @@ add_executable(fossredder
     src/models/TextElement.cpp
     src/models/Header.cpp
     src/models/Page.cpp
+    src/controllers/TesseractOcrEngine.cpp
     src/views/ConsoleView.cpp
 )
 
@@ -31,6 +32,7 @@ target_include_directories(fossredder PRIVATE
     include/models
     include/controllers
     include/views
+    include/ocr
 )
 
 # Link Poppler

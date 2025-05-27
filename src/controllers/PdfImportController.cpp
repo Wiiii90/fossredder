@@ -19,7 +19,8 @@
 #include <cctype>
 #include "models/Transaction.h"
 
-PdfImportController::PdfImportController() {}
+PdfImportController::PdfImportController(std::shared_ptr<IOcrEngine> ocrEngine)
+    : m_ocrEngine(std::move(ocrEngine)) {}
 
 namespace {
     
@@ -46,24 +47,6 @@ namespace {
         return imageFiles;
     }
 
-    std::string performOCR(const std::string& imageFilePath, const std::string& tessdataPath) {
-        tesseract::TessBaseAPI ocr;
-        ocr.SetVariable("TESSDATA_PREFIX", tessdataPath.c_str());
-        if (ocr.Init(tessdataPath.c_str(), "deu") != 0) {
-            throw std::runtime_error("Failed to initialize Tesseract OCR with German language.");
-        }
-        Pix* image = pixRead(imageFilePath.c_str());
-        if (!image) {
-            throw std::runtime_error("Failed to read image file: " + imageFilePath);
-        }
-        ocr.SetImage(image);
-        ocr.SetPageSegMode(tesseract::PSM_AUTO);
-        std::string extractedText = ocr.GetAltoText(0);
-        pixDestroy(&image);
-        ocr.End();
-        return extractedText;
-    }
-
 } // namespace
 
 std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::string& filePath) {
@@ -82,7 +65,7 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
     auto imageFiles = getGeneratedImageFiles(outputPrefix);
     for (const auto& imageFile : imageFiles) {
         try {
-            std::string xmlContent = performOCR(imageFile, tessdataPath);
+            std::string xmlContent = m_ocrEngine->recognizeAltoXml(imageFile, tessdataPath);
 
             auto page = std::make_shared<Page>(xmlContent);
             std::vector<std::string> headerKeywords = {
