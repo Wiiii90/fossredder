@@ -11,32 +11,6 @@
 PdfImportController::PdfImportController(std::shared_ptr<IOcrEngine> ocrEngine, std::shared_ptr<IPdfRenderer> pdfRenderer)
     : m_ocrEngine(std::move(ocrEngine)), m_pdfRenderer(std::move(pdfRenderer)) {}
 
-namespace {
-    
-    bool fileExists(const std::string& filePath) {
-        return std::filesystem::exists(filePath);
-    }
-
-    std::string convertPdfToImages(const std::string& filePath, const std::string& outputPrefix) {
-        std::string command = "pdftoppm -png -r 256 \"" + filePath + "\" " + outputPrefix;
-        if (std::system(command.c_str()) != 0) {
-            throw std::runtime_error("Failed to execute pdftoppm. Ensure it is installed and in your PATH.");
-        }
-        return outputPrefix;
-    }
-
-    std::vector<std::string> getGeneratedImageFiles(const std::string& outputPrefix) {
-        std::vector<std::string> imageFiles;
-        for (const auto& entry : std::filesystem::directory_iterator(".")) {
-            std::string fileName = entry.path().filename().string();
-            if (fileName.find(outputPrefix) == 0 && fileName.find(".png") != std::string::npos) {
-                imageFiles.push_back(fileName);
-            }
-        }
-        return imageFiles;
-    }
-}
-
 std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::string& filePath) {
     ConsoleView consoleView;
     if (!std::filesystem::exists(filePath)) {

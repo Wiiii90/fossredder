@@ -2,6 +2,7 @@
 #include "ocr/TesseractOcrEngine.h"
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
+#include <iostream>
 
 std::string TesseractOcrEngine::recognizeAltoXml(const std::string& imageFilePath, const std::string& tessdataPath) {
     tesseract::TessBaseAPI ocr;
@@ -15,6 +16,10 @@ std::string TesseractOcrEngine::recognizeAltoXml(const std::string& imageFilePat
     }
     ocr.SetImage(image);
     ocr.SetPageSegMode(tesseract::PSM_AUTO);
+
+    int conf = ocr.MeanTextConf();
+    std::cout << "[TESSERACT DEBUG] MeanTextConf für " << imageFilePath << ": " << conf << std::endl;
+
     std::string extractedText = ocr.GetAltoText(0);
     pixDestroy(&image);
     ocr.End();
