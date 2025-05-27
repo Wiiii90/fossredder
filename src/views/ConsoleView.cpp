@@ -5,14 +5,20 @@
 
 void ConsoleView::displayPdfData(const std::shared_ptr<PdfExtractedData>& data) {
     std::cout << "[DEBUG] ConsoleView::displayPdfData called." << std::endl;
-    std::cout << "Displaying PDF Data:" << std::endl;
-    for (const auto& element : data->getElements()) {
-        std::cout << "-----------------------------\n";
-        std::cout << "Element:\n";
-        std::cout << "Position: (" << element->getX1() << ", " << element->getY1() << ")\n";
-        std::cout << "Size: " << element->getWidth() << "x" << element->getHeight() << "\n";
-        std::cout << "Text:\n" << element->getFormattedText() << "\n";
-        std::cout << "-----------------------------\n";
+    std::cout << "Displaying PDF Data (seitenweise):" << std::endl;
+    int pageNum = 1;
+    for (const auto& page : data->getPages()) {
+        std::cout << "=============================" << std::endl;
+        std::cout << "Seite " << pageNum++ << std::endl;
+        int blockNum = 1;
+        for (const auto& block : page->getBlocks()) {
+            std::cout << "-----------------------------\n";
+            std::cout << "Block " << blockNum++ << ": ";
+            std::cout << "Pos (" << block->getX1() << "," << block->getY1() << "), "
+                      << "Größe " << block->getWidth() << "x" << block->getHeight() << "\n";
+            std::cout << "Text:\n" << block->getFormattedText() << "\n";
+            std::cout << "-----------------------------\n";
+        }
     }
 }
 

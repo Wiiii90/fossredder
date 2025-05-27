@@ -1,7 +1,9 @@
 {
     "configurations": [
         {
-            "compilerPath": "C:/msys64/mingw64/bin/g++.exe",
+            "name": "MSVC",
+            "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+            "intelliSenseMode": "windows-msvc-x64",
             "cppStandard": "c++20",
             "cStandard": "c17",
             "defines": [
@@ -12,12 +14,10 @@
             ],
             "includePath": [
                 "C:/coding/fossredder/**",
-                "C:/msys64/mingw64/include/c++/14.2.0",
-                "C:/msys64/mingw64/include/c++/14.2.0/x86_64-w64-mingw32",
-                "C:/msys64/mingw64/include"
-            ],
-            "intelliSenseMode": "windows-clang-x64",
-            "name": "MinGW"
+                "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/include",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/shared"
+            ]
         }
     ],
     "version": 4

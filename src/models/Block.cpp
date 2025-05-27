@@ -21,7 +21,15 @@ std::string Block::getRawText() const {
     }
     return result;
 }
-std::string Block::getFormattedText() const { return getRawText(); }
+
+std::string Block::getFormattedText() const {
+    std::string result;
+    for (const auto& para : paragraphs) {
+        result += para.getFormattedText();
+        result += "\n";
+    }
+    return result;
+}
 
 std::vector<Block> Block::splitAtParagraph(size_t paragraphIdx) const {
     std::vector<Block> result;

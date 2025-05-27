@@ -4,7 +4,7 @@ project(FossRedder)
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 20)
 
-# Add all source files
+# Add all source and header files
 add_executable(fossredder
     src/main.cpp
     src/controllers/PropertyController.cpp
@@ -17,6 +17,7 @@ add_executable(fossredder
     src/models/Word.cpp
     src/models/TextElement.cpp
     src/models/Header.cpp
+    src/models/Page.cpp
     src/views/ConsoleView.cpp
 )
 

@@ -2,8 +2,8 @@
 #include "pch.h"
 #include <vector>
 #include <memory>
-
-class Block;
+#include "models/Block.h"
+#include "models/Transaction.h"
 
 class Header {
 public:
@@ -19,8 +19,11 @@ public:
 
     void addBlock(const std::shared_ptr<Block>& block);
     const std::vector<std::shared_ptr<Block>>& getBlocks() const;
-
+    void sortBlocks();
     void clearBlocks();
+
+    static void assignBlocks(std::vector<Header>& headers, std::vector<std::shared_ptr<Block>>& blocks, int pageWidth);
+    static std::vector<Transaction> extractTransactions(const std::vector<Header>& headers);
 
 private:
     std::string name;

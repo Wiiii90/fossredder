@@ -3,9 +3,9 @@
 
 Line::Line(tinyxml2::XMLElement* element) : TextElement(element) {
     if (!element) throw std::invalid_argument("Null XML element passed to Line constructor.");
-    for (tinyxml2::XMLElement* wordElem = element->FirstChildElement("Word");
+    for (tinyxml2::XMLElement* wordElem = element->FirstChildElement("String");
         wordElem != nullptr;
-        wordElem = wordElem->NextSiblingElement("Word")) {
+        wordElem = wordElem->NextSiblingElement("String")) {
         words.emplace_back(wordElem);
     }
 }

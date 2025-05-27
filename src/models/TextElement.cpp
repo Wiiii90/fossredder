@@ -1,4 +1,9 @@
-#include "models/TextElement.h"
+﻿#include "models/TextElement.h"
+#include "models/Block.h"
+#include "models/Paragraph.h"
+#include "models/Line.h"
+#include "models/Word.h"
+#include "tinyxml2.h"
 
 TextElement::TextElement(tinyxml2::XMLElement* element) {
     if (!element) {
