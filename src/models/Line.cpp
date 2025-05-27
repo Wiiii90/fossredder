@@ -103,17 +103,6 @@ std::vector<Line> Line::splitByXRecursive(int x) const {
         result.push_back(rightLine);
     }
 
-    // Debug-Ausgabe
-    std::cout << "[DEBUG] Line::splitByXRecursive(" << x << ") erzeugt " << result.size() << " Lines:\n";
-    int idx = 0;
-    for (const auto& l : result) {
-        std::cout << "  [Split " << idx++ << "] X1=" << l.getX1()
-                  << " X2=" << l.getX2()
-                  << " Y1=" << l.getY1()
-                  << " Y2=" << l.getY2()
-                  << " Text: " << l.getFormattedText() << std::endl;
-    }
-
     return result;
 }
 

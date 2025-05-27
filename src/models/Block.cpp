@@ -120,15 +120,6 @@ std::vector<Block> Block::splitByXRecursive(int x) const {
         right.updateBoundingBox();
         result.push_back(right);
     }
-    std::cout << "[DEBUG] Block::splitByXRecursive(" << x << ") erzeugt " << result.size() << " Blöcke:\n";
-    int idx = 0;
-    for (const auto& b : result) {
-        std::cout << "  [Split " << idx++ << "] X1=" << b.getX1()
-                  << " X2=" << b.getX2()
-                  << " Y1=" << b.getY1()
-                  << " Y2=" << b.getY2()
-                  << " Text: " << b.getFormattedText() << std::endl;
-    }
     return result;
 }
 

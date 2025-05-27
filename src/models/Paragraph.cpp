@@ -100,7 +100,6 @@ std::vector<Paragraph> Paragraph::splitByXRecursive(int x) const {
         rightPara.updateBoundingBox();
         result.push_back(rightPara);
     }
-    std::cout << "[DEBUG] Paragraph::splitByXRecursive(" << x << ") erzeugt " << result.size() << " Paragraphen\n";
     return result;
 }
 

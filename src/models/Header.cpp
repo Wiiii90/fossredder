@@ -28,6 +28,18 @@ void Header::clearBlocks() {
     blocks.clear();
 }
 
+static double parseAmount(const std::string& text) {
+    std::string clean = text;
+    clean.erase(std::remove(clean.begin(), clean.end(), '.'), clean.end());
+    std::replace(clean.begin(), clean.end(), ',', '.');
+    try {
+        return std::stod(clean);
+    }
+    catch (...) {
+        return 0.0;
+    }
+}
+
 static std::vector<std::shared_ptr<Block>> splitBlockByX(const std::shared_ptr<Block>& block, const std::vector<int>& xCuts) {
     std::vector<std::shared_ptr<Block>> result;
     std::vector<Block> currentSplits = { *block };
@@ -143,38 +155,6 @@ void Header::assignBlocks(std::vector<Header>& headers, std::vector<std::shared_
         }
         toProcess = std::move(nextToProcess);
     }
-
-    // 6. Debug-Ausgabe
-    std::cout << "[DEBUG] " << croppedAway << " Blöcke oberhalb des Tabellenkopfs entfernt." << std::endl;
-    if (!toProcess.empty()) {
-        std::cout << "[DEBUG] " << toProcess.size() << " Blöcke konnten keinem Header zugeordnet werden." << std::endl;
-        int idx = 0;
-        for (const auto& b : toProcess) {
-            std::cout << "  [Unassigned Block " << idx++ << "] "
-                << "Y1=" << b->getY1()
-                << " Y2=" << b->getY2()
-                << " X1=" << b->getX1()
-                << " X2=" << b->getX2()
-                << " Text: " << b->getFormattedText() << std::endl;
-        }
-    }
-
-    for (const auto& h : headers) {
-        std::cout << "[DEBUG] Header '" << h.getName()
-            << "' Xmin=" << h.getXmin()
-            << " Xmax=" << h.getXmax()
-            << " Y1=" << h.getVpos()
-            << " Y2=" << (h.getVpos() + 20)
-            << " hat " << h.getBlocks().size() << " Blöcke." << std::endl;
-        int idx = 0;
-        for (const auto& b : h.getBlocks()) {
-            std::cout << "  [Block " << idx++ << "] Y1=" << b->getY1()
-                << " Y2=" << b->getY2()
-                << " X1=" << b->getX1()
-                << " X2=" << b->getX2()
-                << " Text: " << b->getFormattedText() << std::endl;
-        }
-    }
 }
 
 void Header::sortBlocks() {
@@ -186,80 +166,76 @@ void Header::sortBlocks() {
 }
 
 std::vector<Transaction> Header::extractTransactions(const std::vector<Header>& headers) {
+    // 1. Valuta-Header suchen (dynamisch, z. B. per Substring)
     const Header* valutaHeader = nullptr;
-    const Header* descriptionHeader = nullptr;
-    const Header* creditHeader = nullptr;
-    const Header* debitHeader = nullptr;
-
     for (const auto& h : headers) {
-        std::string n = h.getName();
-        if (n == "Valuta") valutaHeader = &h;
-        else if (n == "Angaben zu den Umsätzen") descriptionHeader = &h;
-        else if (n == "zu Ihren Gunsten") creditHeader = &h;
-        else if (n == "zu Ihren Lasten") debitHeader = &h;
+        if (h.getName().find("Valuta") != std::string::npos) {
+            valutaHeader = &h;
+            break;
+        }
     }
-
-    if (!valutaHeader || !descriptionHeader || (!creditHeader && !debitHeader)) {
-        std::cout << "[DEBUG] Required headers not found." << std::endl;
+    if (!valutaHeader || valutaHeader->getBlocks().size() < 2) {
+        std::cout << "[DEBUG] Kein Valuta-Header oder zu wenige Einträge gefunden.\n";
         return {};
     }
 
-    const auto& valutaBlocks = valutaHeader->getBlocks();
-    if (valutaBlocks.size() < 2) return {};
+    // 2. Alle anderen Header merken
+    std::vector<const Header*> otherHeaders;
+    for (const auto& h : headers) {
+        if (&h != valutaHeader)
+            otherHeaders.push_back(&h);
+    }
 
+    const auto& valutaBlocks = valutaHeader->getBlocks();
     std::vector<Transaction> transactions;
+
     for (size_t i = 1; i < valutaBlocks.size(); ++i) {
-        int vpos = valutaBlocks[i]->getY1();
+        int vposStart = valutaBlocks[i]->getY1();
+        int vposEnd = (i + 1 < valutaBlocks.size()) ? valutaBlocks[i + 1]->getY1() : std::numeric_limits<int>::max();
+
         std::string valuta = valutaBlocks[i]->getFormattedText();
         std::string description, actor, bookingDate;
         double amount = 0.0;
         bool isDebit = false;
 
-        // Find description
-        for (const auto& block : descriptionHeader->getBlocks()) {
-            if (std::abs(block->getY1() - vpos) < 5) {
-                description = block->getFormattedText();
-                break;
-            }
-        }
-
-        // Find amount in credit or debit column
-        std::string amountStr;
-        if (creditHeader) {
-            for (const auto& block : creditHeader->getBlocks()) {
-                if (std::abs(block->getY1() - vpos) < 5) {
-                    amountStr = block->getFormattedText();
-                    isDebit = false;
-                    break;
+        // 3. Für jeden anderen Header: Blöcke im Bereich suchen und mergen
+        for (const auto* header : otherHeaders) {
+            std::vector<std::shared_ptr<Block>> blocksInRange;
+            for (const auto& block : header->getBlocks()) {
+                int by1 = block->getY1();
+                // Block liegt (teilweise) im Bereich
+                if (by1 >= vposStart && by1 < vposEnd) {
+                    blocksInRange.push_back(block);
                 }
             }
-        }
-        if (amountStr.empty() && debitHeader) {
-            for (const auto& block : debitHeader->getBlocks()) {
-                if (std::abs(block->getY1() - vpos) < 5) {
-                    amountStr = block->getFormattedText();
+            if (blocksInRange.empty()) continue;
+
+            // Blöcke mergen
+            std::vector<Block> blocksToMerge;
+            for (const auto& b : blocksInRange) {
+                blocksToMerge.push_back(*b);
+            }
+            if (!blocksToMerge.empty()) {
+                Block merged = Block::mergeBlocks(blocksToMerge);
+                std::string headerName = header->getName();
+                std::string text = merged.getFormattedText();
+
+                // Heuristik: Zuordnung nach Header-Name
+                if (headerName.find("Angaben") != std::string::npos) {
+                    description = text;
+                } else if (headerName.find("Lasten") != std::string::npos) {
+                    amount = parseAmount(text);
                     isDebit = true;
-                    break;
+                } else if (headerName.find("Gunsten") != std::string::npos) {
+                    amount = parseAmount(text);
+                    isDebit = false;
+                } else if (headerName.find("Buchung") != std::string::npos) {
+                    bookingDate = text;
+                } else if (headerName.find("Akteur") != std::string::npos) {
+                    actor = text;
                 }
+                // ... ggf. weitere Zuordnungen
             }
-        }
-
-        // Parse amount (handle minus sign and German format)
-        if (!amountStr.empty()) {
-            std::string clean = amountStr;
-            clean.erase(std::remove(clean.begin(), clean.end(), '.'), clean.end());
-            std::replace(clean.begin(), clean.end(), ',', '.');
-            try {
-                amount = std::stod(clean);
-                if (isDebit && amount > 0) amount = -amount;
-            }
-            catch (...) {
-                std::cout << "[DEBUG] Could not parse amount: " << amountStr << std::endl;
-            }
-        }
-
-        if (i % 10 == 1) {
-            std::cout << "[DEBUG] Transaction: valuta=" << valuta << ", amount=" << amount << ", description=" << description << std::endl;
         }
 
         transactions.emplace_back(bookingDate, valuta, actor, description, amount, isDebit);

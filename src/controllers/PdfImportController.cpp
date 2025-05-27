@@ -19,8 +19,8 @@
 #include <cctype>
 #include "models/Transaction.h"
 
-PdfImportController::PdfImportController(std::shared_ptr<IOcrEngine> ocrEngine)
-    : m_ocrEngine(std::move(ocrEngine)) {}
+PdfImportController::PdfImportController(std::shared_ptr<IOcrEngine> ocrEngine, std::shared_ptr<IPdfRenderer> pdfRenderer)
+    : m_ocrEngine(std::move(ocrEngine)), m_pdfRenderer(std::move(pdfRenderer)) {}
 
 namespace {
     
@@ -29,7 +29,7 @@ namespace {
     }
 
     std::string convertPdfToImages(const std::string& filePath, const std::string& outputPrefix) {
-        std::string command = "pdftoppm -png -r 600 \"" + filePath + "\" " + outputPrefix;
+        std::string command = "pdftoppm -png -r 256 \"" + filePath + "\" " + outputPrefix;
         if (std::system(command.c_str()) != 0) {
             throw std::runtime_error("Failed to execute pdftoppm. Ensure it is installed and in your PATH.");
         }
@@ -51,22 +51,21 @@ namespace {
 
 std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::string& filePath) {
     ConsoleView consoleView;
-    if (!fileExists(filePath)) {
+    if (!std::filesystem::exists(filePath)) {
         consoleView.displayError("PDF file does not exist: " + filePath);
         throw std::runtime_error("PDF file does not exist: " + filePath);
     }
     const std::string tessdataPath = "C:/coding/fossredder/res/tessdata/";
     const std::string outputPrefix = "page";
-    convertPdfToImages(filePath, outputPrefix);
+
+    std::vector<std::string> imageFiles = m_pdfRenderer->renderToImages(filePath, outputPrefix);
 
     std::vector<std::shared_ptr<Page>> allPages;
-    std::vector<Header> allHeaders;
+    std::vector<Transaction> allTransactions;
 
-    auto imageFiles = getGeneratedImageFiles(outputPrefix);
     for (const auto& imageFile : imageFiles) {
         try {
             std::string xmlContent = m_ocrEngine->recognizeAltoXml(imageFile, tessdataPath);
-
             auto page = std::make_shared<Page>(xmlContent);
             std::vector<std::string> headerKeywords = {
                 "Angaben zu den Umsätzen", "Valuta", "zu Ihren Lasten", "zu Ihren Gunsten"
@@ -80,7 +79,9 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
                 h.sortBlocks();
             }
 
-            allHeaders.insert(allHeaders.end(), headers.begin(), headers.end());
+            std::vector<Transaction> pageTransactions = Header::extractTransactions(headers);
+            allTransactions.insert(allTransactions.end(), pageTransactions.begin(), pageTransactions.end());
+
             allPages.push_back(page);
         }
         catch (const std::exception& e) {
@@ -88,8 +89,6 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
         }
     }
 
-    std::vector<Transaction> transactions = Header::extractTransactions(allHeaders);
-
-    auto pdfData = std::make_shared<PdfExtractedData>(filePath, allPages, transactions);
+    auto pdfData = std::make_shared<PdfExtractedData>(filePath, allPages, allTransactions);
     return pdfData;
 }

@@ -20,6 +20,7 @@ add_executable(fossredder
     src/models/Page.cpp
     src/views/ConsoleView.cpp
     src/ocr/TesseractOcrEngine.cpp
+    src/poppler/PopplerPdfRenderer.cpp
 )
 
 # Set the output directory for binaries
@@ -33,6 +34,7 @@ target_include_directories(fossredder PRIVATE
     include/controllers
     include/views
     include/ocr
+    include/poppler
 )
 
 # Link Poppler
