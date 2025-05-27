@@ -74,24 +74,33 @@ std::vector<Paragraph> Paragraph::splitByXRecursive(int x) const {
     std::vector<Line> leftLines, rightLines;
     for (const auto& line : lines) {
         auto splitLines = line.splitByXRecursive(x);
-        for (const auto& l : splitLines) {
-            if (!l.words.empty() && l.words.front().getX1() <= x)
-                leftLines.push_back(l);
-            else
-                rightLines.push_back(l);
+        if (splitLines.size() == 2) {
+            // Erster Teil links, zweiter Teil rechts
+            leftLines.push_back(splitLines[0]);
+            rightLines.push_back(splitLines[1]);
+        } else if (splitLines.size() == 1) {
+            // Entscheide anhand der X-Position
+            if (splitLines[0].getX2() <= x) {
+                leftLines.push_back(splitLines[0]);
+            } else {
+                rightLines.push_back(splitLines[0]);
+            }
         }
     }
     std::vector<Paragraph> result;
     if (!leftLines.empty()) {
-        Paragraph left = *this;
-        left.lines = leftLines;
-        result.push_back(left);
+        Paragraph leftPara = *this;
+        leftPara.lines = leftLines;
+        leftPara.updateBoundingBox();
+        result.push_back(leftPara);
     }
     if (!rightLines.empty()) {
-        Paragraph right = *this;
-        right.lines = rightLines;
-        result.push_back(right);
+        Paragraph rightPara = *this;
+        rightPara.lines = rightLines;
+        rightPara.updateBoundingBox();
+        result.push_back(rightPara);
     }
+    std::cout << "[DEBUG] Paragraph::splitByXRecursive(" << x << ") erzeugt " << result.size() << " Paragraphen\n";
     return result;
 }
 
@@ -118,4 +127,23 @@ std::vector<Paragraph> Paragraph::splitByYRecursive(int y) const {
         result.push_back(lower);
     }
     return result;
+}
+
+void Paragraph::updateBoundingBox() {
+    if (lines.empty()) {
+        x1 = x2 = y1 = y2 = width = height = 0;
+        return;
+    }
+    x1 = lines.front().getX1();
+    x2 = lines.front().getX2();
+    y1 = lines.front().getY1();
+    y2 = lines.front().getY2();
+    for (const auto& l : lines) {
+        if (l.getX1() < x1) x1 = l.getX1();
+        if (l.getX2() > x2) x2 = l.getX2();
+        if (l.getY1() < y1) y1 = l.getY1();
+        if (l.getY2() > y2) y2 = l.getY2();
+    }
+    width = x2 - x1;
+    height = y2 - y1;
 }

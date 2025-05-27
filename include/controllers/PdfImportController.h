@@ -3,7 +3,7 @@
 #include <string>
 #include "pch.h"
 #include "models/PdfExtractedData.h"
-#include "controllers/IOcrEngine.h"
+#include "ocr/IOcrEngine.h"
 
 namespace fs = std::filesystem;
 

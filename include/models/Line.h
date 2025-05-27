@@ -25,6 +25,8 @@ public:
     std::vector<Line> splitByXRecursive(int x) const;
     std::vector<Line> splitByYRecursive(int y) const;
 
+    void updateBoundingBox();
+
 private:
     std::string rawXml;
 };

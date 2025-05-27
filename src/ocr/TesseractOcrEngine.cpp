@@ -1,4 +1,4 @@
-#include "controllers/TesseractOcrEngine.h"
+#include "ocr/TesseractOcrEngine.h"
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
 #include <stdexcept>

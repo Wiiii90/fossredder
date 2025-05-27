@@ -18,5 +18,5 @@ public:
     virtual std::string getFormattedText() const = 0;
 
 protected:
-    int x1, y1, width, height;
+    int x1, y1, x2, y2, width, height;
 };

@@ -12,6 +12,15 @@ Block::Block(tinyxml2::XMLElement* element) : TextElement(element) {
         paragraphs.emplace_back(element);
     }
 }
+
+Block::Block(const Block& other)
+    : TextElement(other), // ruft Copy-Konstruktor der Basisklasse auf
+      paragraphs(other.paragraphs),
+      rawXml(other.rawXml)
+{
+    // Nichts weiter nötig, da Paragraph einen eigenen Copy-Konstruktor hat
+}
+
 Block::~Block() {}
 
 std::string Block::getRawText() const {
@@ -85,23 +94,40 @@ std::vector<Block> Block::splitByXRecursive(int x) const {
     std::vector<Paragraph> leftParagraphs, rightParagraphs;
     for (const auto& para : paragraphs) {
         auto splitParas = para.splitByXRecursive(x);
-        for (const auto& p : splitParas) {
-            if (!p.lines.empty() && p.lines.front().getX1() <= x)
-                leftParagraphs.push_back(p);
-            else
-                rightParagraphs.push_back(p);
+        if (splitParas.size() == 2) {
+            // Erster Teil links, zweiter Teil rechts
+            leftParagraphs.push_back(splitParas[0]);
+            rightParagraphs.push_back(splitParas[1]);
+        } else if (splitParas.size() == 1) {
+            // Entscheide anhand der X-Position
+            if (splitParas[0].getX2() <= x) {
+                leftParagraphs.push_back(splitParas[0]);
+            } else {
+                rightParagraphs.push_back(splitParas[0]);
+            }
         }
     }
     std::vector<Block> result;
     if (!leftParagraphs.empty()) {
         Block left = *this;
         left.paragraphs = leftParagraphs;
+        left.updateBoundingBox();
         result.push_back(left);
     }
     if (!rightParagraphs.empty()) {
         Block right = *this;
         right.paragraphs = rightParagraphs;
+        right.updateBoundingBox();
         result.push_back(right);
+    }
+    std::cout << "[DEBUG] Block::splitByXRecursive(" << x << ") erzeugt " << result.size() << " Blöcke:\n";
+    int idx = 0;
+    for (const auto& b : result) {
+        std::cout << "  [Split " << idx++ << "] X1=" << b.getX1()
+                  << " X2=" << b.getX2()
+                  << " Y1=" << b.getY1()
+                  << " Y2=" << b.getY2()
+                  << " Text: " << b.getFormattedText() << std::endl;
     }
     return result;
 }
@@ -129,4 +155,23 @@ std::vector<Block> Block::splitByYRecursive(int y) const {
         result.push_back(lower);
     }
     return result;
+}
+
+void Block::updateBoundingBox() {
+    if (paragraphs.empty()) {
+        x1 = x2 = y1 = y2 = width = height = 0;
+        return;
+    }
+    x1 = paragraphs.front().getX1();
+    x2 = paragraphs.front().getX2();
+    y1 = paragraphs.front().getY1();
+    y2 = paragraphs.front().getY2();
+    for (const auto& p : paragraphs) {
+        if (p.getX1() < x1) x1 = p.getX1();
+        if (p.getX2() > x2) x2 = p.getX2();
+        if (p.getY1() < y1) y1 = p.getY1();
+        if (p.getY2() > y2) y2 = p.getY2();
+    }
+    width = x2 - x1;
+    height = y2 - y1;
 }

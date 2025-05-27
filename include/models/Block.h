@@ -10,6 +10,7 @@
 class Block : public TextElement {
 public:
     Block(tinyxml2::XMLElement* element);
+    Block(const Block& other); // <--- Copy-Konstruktor hinzufügen
     ~Block() override;
 
     std::string getRawText() const override;
@@ -24,6 +25,8 @@ public:
     std::pair<Block, Block> splitByX(int x) const;
     std::vector<Block> splitByXRecursive(int x) const;
     std::vector<Block> splitByYRecursive(int y) const;
+
+    void updateBoundingBox();
 
 private:
     std::string rawXml;

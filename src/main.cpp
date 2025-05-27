@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "controllers/PdfImportController.h"
-#include "controllers/TesseractOcrEngine.h"
+#include "ocr/TesseractOcrEngine.h"
 #include "views/ConsoleView.h"
 
 int main() {
