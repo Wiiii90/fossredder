@@ -3,6 +3,7 @@
 #include "models/Header.h"
 #include "models/Page.h"
 #include "models/Transaction.h"
+#include "models/BookingGroup.h"
 #include "views/ConsoleView.h"
 #include "controllers/PdfImportController.h"
 #include "poppler/IPdfRenderer.h"
@@ -41,7 +42,7 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
                 h.sortBlocks();
             }
 
-            std::vector<Transaction> pageTransactions = Header::extractTransactions(headers);
+            std::vector<Transaction> pageTransactions = BookingGroup::extractTransactions(headers);
             allTransactions.insert(allTransactions.end(), pageTransactions.begin(), pageTransactions.end());
 
             allPages.push_back(page);

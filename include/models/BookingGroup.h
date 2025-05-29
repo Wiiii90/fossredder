@@ -11,6 +11,7 @@ public:
     const std::vector<Transaction>& getTransactions() const;
 
     static double parseAmount(const std::string& text);
+    static std::vector<Transaction> extractTransactions(const std::vector<Header>& headers);
 
 private:
     std::string bookingDate;

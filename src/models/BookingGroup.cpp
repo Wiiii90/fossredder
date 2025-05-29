@@ -24,3 +24,7 @@ double BookingGroup::parseAmount(const std::string& text) {
         return 0.0;
     }
 }
+
+std::vector<Transaction> Header::extractTransactions(const std::vector<Header>& headers) {
+
+}

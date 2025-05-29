@@ -19,7 +19,6 @@ public:
     void clearBlocks();
 
     static void assignBlocks(std::vector<Header>& headers, std::vector<std::shared_ptr<Block>>& blocks);
-    static std::vector<Transaction> extractTransactions(const std::vector<Header>& headers);
 
     std::string getRawText() const override;
     std::string getFormattedText() const override;
