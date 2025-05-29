@@ -2,35 +2,29 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include "models/TextElement.h"
 
 class Block;
 class Transaction;
 
-class Header {
+class Header : public TextElement {
 public:
-    Header(const std::string& name, int hpos, int vpos, int xmin = -1, int xmax = -1);
+    Header(tinyxml2::XMLElement* element);
 
-    int getHpos() const;
-    int getVpos() const;
     const std::string& getName() const;
-    int getXmin() const;
-    int getXmax() const;
-    void setXmin(int x);
-    void setXmax(int x);
 
     void addBlock(const std::shared_ptr<Block>& block);
     const std::vector<std::shared_ptr<Block>>& getBlocks() const;
     void sortBlocks();
     void clearBlocks();
 
-    static void assignBlocks(std::vector<Header>& headers, std::vector<std::shared_ptr<Block>>& blocks, int pageWidth);
+    static void assignBlocks(std::vector<Header>& headers, std::vector<std::shared_ptr<Block>>& blocks);
     static std::vector<Transaction> extractTransactions(const std::vector<Header>& headers);
+
+    std::string getRawText() const override;
+    std::string getFormattedText() const override;
 
 private:
     std::string name;
-    int hpos;
-    int vpos;
-    int xmin;
-    int xmax;
     std::vector<std::shared_ptr<Block>> blocks;
 };

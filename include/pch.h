@@ -15,6 +15,7 @@
 #include <sstream>
 #include <cctype>
 #include <cmath>
+#include <set>
 
 // ICU (Unicode)
 #include <unicode/unistr.h>

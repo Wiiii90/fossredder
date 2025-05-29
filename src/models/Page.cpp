@@ -28,18 +28,28 @@ namespace {
 }
 
 Page::Page(const std::string& altoXml) {
-    tinyxml2::XMLDocument doc;
-    if (doc.Parse(altoXml.c_str()) != tinyxml2::XML_SUCCESS)
+    xmlDoc = new tinyxml2::XMLDocument();
+    if (xmlDoc->Parse(altoXml.c_str()) != tinyxml2::XML_SUCCESS) {
+        delete xmlDoc;
+        xmlDoc = nullptr;
         throw std::runtime_error("Failed to parse ALTO XML.");
+    }
 
-    tinyxml2::XMLElement* pageElem = doc.FirstChildElement("Page");
-    if (!pageElem)
+    tinyxml2::XMLElement* pageElem = xmlDoc->FirstChildElement("Page");
+    if (!pageElem) {
+        delete xmlDoc;
+        xmlDoc = nullptr;
         throw std::runtime_error("ALTO XML does not contain a valid Page element.");
+    }
     pageElem->QueryIntAttribute("WIDTH", &width);
+    pageElem->QueryIntAttribute("HEIGHT", &height);
 
     tinyxml2::XMLElement* printSpace = pageElem->FirstChildElement("PrintSpace");
-    if (!printSpace)
+    if (!printSpace) {
+        delete xmlDoc;
+        xmlDoc = nullptr;
         throw std::runtime_error("ALTO XML does not contain a valid PrintSpace element.");
+    }
 
     for (tinyxml2::XMLElement* composedBlock = printSpace->FirstChildElement("ComposedBlock");
          composedBlock != nullptr;
@@ -54,6 +64,13 @@ Page::Page(const std::string& altoXml) {
     }
 }
 
+Page::~Page() {
+    if (xmlDoc) {
+        delete xmlDoc;
+        xmlDoc = nullptr;
+    }
+}
+
 const std::vector<std::shared_ptr<Block>>& Page::getBlocks() const {
     return blocks;
 }
@@ -62,18 +79,28 @@ int Page::getWidth() const {
     return width;
 }
 
+int Page::getHeight() const {
+    return height;
+}
+
 std::vector<Header> Page::extractHeaders(const std::vector<std::string>& headerKeywords) const {
     std::vector<Header> headers;
+    std::set<std::string> foundHeaders;
+    
     for (const auto& block : blocks) {
         for (const auto& para : block->paragraphs) {
             for (const auto& line : para.lines) {
-                int vpos = line.getY1();
                 const auto& words = line.words;
-                for (const auto& header : headerKeywords) {
-                    std::istringstream iss(header);
+                for (const auto& headerText : headerKeywords) {
+                    if (foundHeaders.find(headerText) != foundHeaders.end()) {
+                        continue;
+                    }
+                    
+                    std::istringstream iss(headerText);
                     std::vector<std::string> headerWords;
                     std::string word;
                     while (iss >> word) headerWords.push_back(word);
+                    
                     for (size_t i = 0; i + headerWords.size() <= words.size(); ++i) {
                         bool match = true;
                         for (size_t j = 0; j < headerWords.size(); ++j) {
@@ -84,22 +111,22 @@ std::vector<Header> Page::extractHeaders(const std::vector<std::string>& headerK
                                 break;
                             }
                         }
+                        
                         if (match) {
-                            int xmin = words[i].getX1();
-                            int xmax = words[i + headerWords.size() - 1].getX1() + words[i + headerWords.size() - 1].getWidth();
-                            bool duplicate = false;
-                            for (const auto& h : headers) {
-                                if (h.getName() == header && std::abs(h.getXmin() - xmin) < 5 && std::abs(h.getVpos() - vpos) < 5) {
-                                    duplicate = true;
-                                    break;
-                                }
-                            }
-                            if (!duplicate) {
-                                Header h(header, xmin, vpos);
-                                h.setXmin(xmin);
-                                h.setXmax(xmax);
-                                headers.push_back(h);
-                            }
+                            tinyxml2::XMLElement* headerElement = xmlDoc->NewElement("Header");
+                            headerElement->SetAttribute("CONTENT", headerText.c_str());
+                            headerElement->SetAttribute("HPOS", words[i].getX1());
+                            headerElement->SetAttribute("VPOS", words[i].getY1());
+                            headerElement->SetAttribute("WIDTH", 
+                                words[i + headerWords.size() - 1].getX2() - words[i].getX1());
+                            headerElement->SetAttribute("HEIGHT", words[i].getHeight());
+                            
+                            Header h(headerElement);
+                            h.setPage(const_cast<Page*>(this));
+                            headers.push_back(h);
+                            
+                            foundHeaders.insert(headerText);
+                            std::cout << "[INFO] Found header: " << headerText << std::endl;
                             break;
                         }
                     }
@@ -107,5 +134,6 @@ std::vector<Header> Page::extractHeaders(const std::vector<std::string>& headerK
             }
         }
     }
+    
     return headers;
 }

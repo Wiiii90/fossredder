@@ -2,17 +2,17 @@
 #include "models/Header.h"
 #include "models/Block.h"
 #include "models/Transaction.h"
+#include "models/Page.h"
 
-Header::Header(const std::string& name, int hpos, int vpos, int xmin, int xmax)
-    : name(name), hpos(hpos), vpos(vpos), xmin(xmin), xmax(xmax) {}
+Header::Header(tinyxml2::XMLElement* element)
+    : TextElement(element) {
+    if (element) {
+        const char* content = element->Attribute("CONTENT");
+        name = content ? content : "";
+    }
+}
 
-int Header::getHpos() const { return hpos; }
-int Header::getVpos() const { return vpos; }
 const std::string& Header::getName() const { return name; }
-int Header::getXmin() const { return xmin; }
-int Header::getXmax() const { return xmax; }
-void Header::setXmin(int x) { xmin = x; }
-void Header::setXmax(int x) { xmax = x; }
 
 void Header::addBlock(const std::shared_ptr<Block>& block) {
     blocks.push_back(block);
@@ -22,6 +22,14 @@ const std::vector<std::shared_ptr<Block>>& Header::getBlocks() const {
 }
 void Header::clearBlocks() {
     blocks.clear();
+}
+
+std::string Header::getRawText() const {
+    return name;
+}
+
+std::string Header::getFormattedText() const {
+    return name;
 }
 
 static double parseAmount(const std::string& text) {
@@ -55,26 +63,23 @@ static std::vector<std::shared_ptr<Block>> splitBlockByX(const std::shared_ptr<B
     return result;
 }
 
-void Header::assignBlocks(std::vector<Header>& headers, std::vector<std::shared_ptr<Block>>& blocks, int pageWidth) {
+void Header::assignBlocks(std::vector<Header>& headers, std::vector<std::shared_ptr<Block>>& blocks) {
     if (headers.empty()) return;
 
-    // 1. Cropping wie gehabt
     int minTableY = std::numeric_limits<int>::max();
     for (const auto& h : headers) {
-        if (h.getVpos() < minTableY) minTableY = h.getVpos();
+        if (h.getY1() < minTableY) minTableY = h.getY1();
     }
     std::vector<std::shared_ptr<Block>> croppedBlocks;
     for (const auto& b : blocks) {
         if (b->getY1() >= minTableY)
             croppedBlocks.push_back(b);
     }
-    int croppedAway = static_cast<int>(blocks.size() - croppedBlocks.size());
     blocks = std::move(croppedBlocks);
 
-    // 2. Tabellenkopf abschneiden wie gehabt
     int maxHeaderY2 = 0;
     for (const auto& h : headers) {
-        int y2 = h.getVpos() + 20;
+        int y2 = h.getY1() + 20;
         if (y2 > maxHeaderY2) maxHeaderY2 = y2;
     }
     std::vector<std::shared_ptr<Block>> tableBlocks;
@@ -93,63 +98,51 @@ void Header::assignBlocks(std::vector<Header>& headers, std::vector<std::shared_
     }
     blocks = std::move(tableBlocks);
 
-    // 3. Header sortieren
+    // Sortiere Header mit vorhandener Funktion
     std::sort(headers.begin(), headers.end(), [](const Header& a, const Header& b) {
-        return a.getXmin() < b.getXmin();
-        });
+        return a.getX1() < b.getX1();
+    });
 
-    // 4. Headerbereiche bestimmen
-    struct HeaderRange {
-        Header* header;
-        int xMin;
-        int xMax;
-    };
-    std::vector<HeaderRange> headerRanges;
-    for (size_t i = 0; i < headers.size(); ++i) {
-        int xMin = headers[i].getXmin();
-        int xMax = (i + 1 < headers.size()) ? headers[i + 1].getXmin() : pageWidth;
-        headerRanges.push_back({ &headers[i], xMin, xMax });
-        headers[i].clearBlocks();
+    int pageWidth = 0;
+    if (!headers.empty() && headers[0].getPage()) {
+        pageWidth = headers[0].getPage()->getWidth();
     }
 
-    // 5. Header-zentrierte, rekursive Zuweisung
-    std::vector<std::shared_ptr<Block>> toProcess = blocks;
-    for (const auto& range : headerRanges) {
+    for (size_t i = 0; i < headers.size(); ++i) {
+        int xMin = headers[i].getX1();
+        int xMax = (i + 1 < headers.size()) ? headers[i + 1].getX1() : pageWidth;
+        headers[i].clearBlocks();
+
         std::vector<std::shared_ptr<Block>> nextToProcess;
-        for (const auto& block : toProcess) {
+        for (const auto& block : blocks) {
             int bx1 = block->getX1();
             int bx2 = block->getX2();
 
-            // Block liegt komplett außerhalb des Bereichs: weiterreichen
-            if (bx2 <= range.xMin || bx1 >= range.xMax) {
+            if (bx2 <= xMin || bx1 >= xMax) {
                 nextToProcess.push_back(block);
                 continue;
             }
-            // Block liegt komplett im Bereich: zuordnen
-            if (bx1 >= range.xMin && bx2 <= range.xMax) {
-                range.header->addBlock(block);
+            if (bx1 >= xMin && bx2 <= xMax) {
+                headers[i].addBlock(block);
                 continue;
             }
-            // Block überlappt: splitten an rechter Grenze
-            auto splitBlocks = block->splitByXRecursive(range.xMax);
+            auto splitBlocks = block->splitByXRecursive(xMax);
             if (splitBlocks.size() == 1) {
-                // Split hat nichts gebracht, trotzdem weiterreichen
                 nextToProcess.push_back(std::make_shared<Block>(splitBlocks[0]));
                 continue;
             }
-            // Linkes Teilstück zuordnen, rechtes weiterreichen
             for (const auto& split : splitBlocks) {
                 int sx1 = split.getX1();
                 int sx2 = split.getX2();
-                if (sx1 >= range.xMin && sx2 <= range.xMax) {
-                    range.header->addBlock(std::make_shared<Block>(split));
+                if (sx1 >= xMin && sx2 <= xMax) {
+                    headers[i].addBlock(std::make_shared<Block>(split));
                 }
                 else {
                     nextToProcess.push_back(std::make_shared<Block>(split));
                 }
             }
         }
-        toProcess = std::move(nextToProcess);
+        blocks = std::move(nextToProcess);
     }
 }
 
@@ -158,11 +151,10 @@ void Header::sortBlocks() {
         if (a->getY1() != b->getY1())
             return a->getY1() < b->getY1();
         return a->getX1() < b->getX1();
-    });
+        });
 }
 
 std::vector<Transaction> Header::extractTransactions(const std::vector<Header>& headers) {
-    // 1. Valuta-Header suchen (dynamisch, z. B. per Substring)
     const Header* valutaHeader = nullptr;
     for (const auto& h : headers) {
         if (h.getName().find("Valuta") != std::string::npos) {
@@ -175,7 +167,6 @@ std::vector<Transaction> Header::extractTransactions(const std::vector<Header>& 
         return {};
     }
 
-    // 2. Alle anderen Header merken
     std::vector<const Header*> otherHeaders;
     for (const auto& h : headers) {
         if (&h != valutaHeader)
@@ -194,19 +185,16 @@ std::vector<Transaction> Header::extractTransactions(const std::vector<Header>& 
         double amount = 0.0;
         bool isDebit = false;
 
-        // 3. Für jeden anderen Header: Blöcke im Bereich suchen und mergen
         for (const auto* header : otherHeaders) {
             std::vector<std::shared_ptr<Block>> blocksInRange;
             for (const auto& block : header->getBlocks()) {
                 int by1 = block->getY1();
-                // Block liegt (teilweise) im Bereich
                 if (by1 >= vposStart && by1 < vposEnd) {
                     blocksInRange.push_back(block);
                 }
             }
             if (blocksInRange.empty()) continue;
 
-            // Blöcke mergen
             std::vector<Block> blocksToMerge;
             for (const auto& b : blocksInRange) {
                 blocksToMerge.push_back(*b);
@@ -216,21 +204,23 @@ std::vector<Transaction> Header::extractTransactions(const std::vector<Header>& 
                 std::string headerName = header->getName();
                 std::string text = merged.getFormattedText();
 
-                // Heuristik: Zuordnung nach Header-Name
                 if (headerName.find("Angaben") != std::string::npos) {
                     description = text;
-                } else if (headerName.find("Lasten") != std::string::npos) {
+                }
+                else if (headerName.find("Lasten") != std::string::npos) {
                     amount = parseAmount(text);
                     isDebit = true;
-                } else if (headerName.find("Gunsten") != std::string::npos) {
+                }
+                else if (headerName.find("Gunsten") != std::string::npos) {
                     amount = parseAmount(text);
                     isDebit = false;
-                } else if (headerName.find("Buchung") != std::string::npos) {
+                }
+                else if (headerName.find("Buchung") != std::string::npos) {
                     bookingDate = text;
-                } else if (headerName.find("Akteur") != std::string::npos) {
+                }
+                else if (headerName.find("Akteur") != std::string::npos) {
                     actor = text;
                 }
-                // ... ggf. weitere Zuordnungen
             }
         }
 

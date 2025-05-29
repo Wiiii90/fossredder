@@ -35,7 +35,7 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
             std::vector<Header> headers = page->extractHeaders(headerKeywords);
 
             std::vector<std::shared_ptr<Block>> pageBlocks = page->getBlocks();
-            Header::assignBlocks(headers, pageBlocks, page->getWidth());
+            Header::assignBlocks(headers, pageBlocks);
 
             for (auto& h : headers) {
                 h.sortBlocks();

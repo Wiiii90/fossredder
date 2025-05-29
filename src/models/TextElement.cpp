@@ -4,6 +4,7 @@
 #include "models/Paragraph.h"
 #include "models/Line.h"
 #include "models/Word.h"
+#include "models/Header.h"
 #include "tinyxml2.h"
 
 TextElement::TextElement(tinyxml2::XMLElement* element) {
@@ -27,3 +28,6 @@ int TextElement::getWidth() const { return width; }
 int TextElement::getHeight() const { return height; }
 int TextElement::getX2() const { return x1 + width; }
 int TextElement::getY2() const { return y1 + height; }
+
+Page* TextElement::getPage() const { return page; }
+void TextElement::setPage(Page* p) { page = p; }
