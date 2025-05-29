@@ -138,7 +138,61 @@ std::vector<Header> Page::extractHeaders(const std::vector<std::string>& headerK
                 }
             }
         }
+    }    
+    return headers;
+}
+
+void Page::crop(CropDirection direction, int boundary) {
+    std::vector<std::shared_ptr<Block>> resultBlocks;
+    bool isHorizontalSplit = (direction == CropDirection::LEFT || direction == CropDirection::RIGHT);    
+    auto shouldKeepBlock = [direction, boundary](const Block& block) {
+        switch (direction) {
+            case CropDirection::LEFT:   return block.getX1() >= boundary;
+            case CropDirection::RIGHT:  return block.getX2() <= boundary;
+            case CropDirection::TOP:    return block.getY1() >= boundary;
+            case CropDirection::BOTTOM: return block.getY2() <= boundary;
+        }
+        return false;
+    };
+    
+    std::cout << "[DEBUG] Cropping " 
+              << (isHorizontalSplit ? "X" : "Y") << " at " << boundary 
+              << ", direction: " 
+              << (direction == CropDirection::LEFT ? "LEFT" :
+                  direction == CropDirection::RIGHT ? "RIGHT" :
+                  direction == CropDirection::TOP ? "TOP" : "BOTTOM")
+              << std::endl;
+    
+    for (const auto& block : blocks) {
+        if (shouldKeepBlock(*block)) {
+            resultBlocks.push_back(block);
+        } 
+        else {
+            bool needsSplit = false;
+            
+            switch (direction) {
+                case CropDirection::LEFT:   needsSplit = block->getX2() > boundary; break;
+                case CropDirection::RIGHT:  needsSplit = block->getX1() < boundary; break;
+                case CropDirection::TOP:    needsSplit = block->getY2() > boundary; break;
+                case CropDirection::BOTTOM: needsSplit = block->getY1() < boundary; break;
+            }
+            
+            if (needsSplit) {
+                std::vector<Block> splitResults = isHorizontalSplit ? 
+                    block->splitByXRecursive(boundary) : 
+                    block->splitByYRecursive(boundary);
+                
+                for (const auto& splitBlock : splitResults) {
+                    if (shouldKeepBlock(splitBlock)) {
+                        resultBlocks.push_back(std::make_shared<Block>(splitBlock));
+                    }
+                }
+            }
+        }
     }
     
-    return headers;
+    std::cout << "[DEBUG] After cropping: " << resultBlocks.size() 
+              << " of " << blocks.size() << " blocks remain" << std::endl;
+    
+    blocks = std::move(resultBlocks);
 }

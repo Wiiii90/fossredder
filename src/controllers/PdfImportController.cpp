@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "models/PdfExtractedData.h"
 #include "models/Header.h"
+#include "models/Block.h"
 #include "models/Page.h"
 #include "models/Transaction.h"
 #include "models/BookingGroup.h"
@@ -33,11 +34,75 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
             std::vector<std::string> headerKeywords = {
                 "Angaben zu den Umsätzen", "Valuta", "zu Ihren Lasten", "zu Ihren Gunsten"
             };
+            
+            // Extract headers
             std::vector<Header> headers = page->extractHeaders(headerKeywords);
+            
+            // Debug: Count blocks before cropping
+            std::cout << "[DEBUG] Before cropping: " << page->getBlocks().size() << " blocks on page " << page->getIndex() << std::endl;
+            
+            // Calculate min header Y position (top of all headers)
+            int minHeaderY = std::numeric_limits<int>::max();
+            for (const auto& h : headers) {
+                minHeaderY = std::min(minHeaderY, h.getY1());
+            }
+            
+            // Calculate max header Y2 position (bottom of all headers)
+            int maxHeaderY2 = 0;
+            for (const auto& h : headers) {
+                // Assuming header height of about 20px
+                int y2 = h.getY1() + 20;
+                maxHeaderY2 = std::max(maxHeaderY2, y2);
+            }
+            
+            // Crop blocks at header bottom line (single step)
+            if (maxHeaderY2 > 0) {
+                page->crop(Page::CropDirection::TOP, maxHeaderY2);
+            }
+            
+            // Debug: Count blocks after cropping
+            std::cout << "[DEBUG] After cropping: " << page->getBlocks().size() << " blocks on page " << page->getIndex() << std::endl;
+            
+            // Crop from the bottom based on footer keywords
+            std::vector<std::string> footerKeywords = {
+                "Folgeseite", "Neuer Kontostand", "Guthaben sind als Einlagen"
+            };
 
+            int minFooterY = std::numeric_limits<int>::max();
+
+            // Search in all blocks for footer keywords
+            for (const auto& block : page->getBlocks()) {
+                std::string text = block->getFormattedText();
+                for (const auto& keyword : footerKeywords) {
+                    if (text.find(keyword) != std::string::npos) {
+                        // Found a footer keyword, use this block's Y position
+                        minFooterY = std::min(minFooterY, block->getY1());
+                        std::cout << "[DEBUG] Found footer keyword: '" << keyword 
+                                  << "' at Y=" << block->getY1() << std::endl;
+                        break;
+                    }
+                }
+            }
+
+            // If a footer keyword was found, crop everything below it
+            if (minFooterY < std::numeric_limits<int>::max()) {
+                page->crop(Page::CropDirection::BOTTOM, minFooterY);
+                std::cout << "[DEBUG] Cropped bottom at Y=" << minFooterY << std::endl;
+            }
+            
+            // Now assign the cropped blocks to headers
             std::vector<std::shared_ptr<Block>> pageBlocks = page->getBlocks();
             Header::assignBlocks(headers, pageBlocks);
 
+            // Debug: Count assigned blocks
+            int totalAssignedBlocks = 0;
+            for (const auto& h : headers) {
+                totalAssignedBlocks += h.getBlocks().size();
+                std::cout << "[DEBUG] Header '" << h.getName() << "' has " << h.getBlocks().size() << " blocks" << std::endl;
+            }
+            std::cout << "[DEBUG] Total assigned blocks: " << totalAssignedBlocks << std::endl;
+            
+            // Sort blocks within each header
             for (auto& h : headers) {
                 h.sortBlocks();
             }

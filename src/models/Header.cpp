@@ -66,39 +66,6 @@ static std::vector<std::shared_ptr<Block>> splitBlockByX(const std::shared_ptr<B
 void Header::assignBlocks(std::vector<Header>& headers, std::vector<std::shared_ptr<Block>>& blocks) {
     if (headers.empty()) return;
 
-    int minTableY = std::numeric_limits<int>::max();
-    for (const auto& h : headers) {
-        if (h.getY1() < minTableY) minTableY = h.getY1();
-    }
-    std::vector<std::shared_ptr<Block>> croppedBlocks;
-    for (const auto& b : blocks) {
-        if (b->getY1() >= minTableY)
-            croppedBlocks.push_back(b);
-    }
-    blocks = std::move(croppedBlocks);
-
-    int maxHeaderY2 = 0;
-    for (const auto& h : headers) {
-        int y2 = h.getY1() + 20;
-        if (y2 > maxHeaderY2) maxHeaderY2 = y2;
-    }
-    std::vector<std::shared_ptr<Block>> tableBlocks;
-    for (const auto& b : blocks) {
-        if (b->getY2() <= maxHeaderY2) continue;
-        if (b->getY1() < maxHeaderY2 && b->getY2() > maxHeaderY2) {
-            auto splitParts = b->splitByYRecursive(maxHeaderY2);
-            for (const auto& part : splitParts) {
-                if (part.getY1() > maxHeaderY2)
-                    tableBlocks.push_back(std::make_shared<Block>(part));
-            }
-        }
-        else if (b->getY1() >= maxHeaderY2) {
-            tableBlocks.push_back(b);
-        }
-    }
-    blocks = std::move(tableBlocks);
-
-    // Sortiere Header mit vorhandener Funktion
     std::sort(headers.begin(), headers.end(), [](const Header& a, const Header& b) {
         return a.getX1() < b.getX1();
     });
