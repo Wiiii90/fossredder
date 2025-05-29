@@ -26,10 +26,10 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
     std::vector<std::shared_ptr<Page>> allPages;
     std::vector<Transaction> allTransactions;
 
-    for (const auto& imageFile : imageFiles) {
+    for (size_t i = 0; i < imageFiles.size(); ++i) {
         try {
-            std::string xmlContent = m_ocrEngine->recognizeAltoXml(imageFile, tessdataPath);
-            auto page = std::make_shared<Page>(xmlContent);
+            std::string xmlContent = m_ocrEngine->recognizeAltoXml(imageFiles[i], tessdataPath);
+            auto page = std::make_shared<Page>(xmlContent, static_cast<int>(i + 1));
             std::vector<std::string> headerKeywords = {
                 "Angaben zu den Umsätzen", "Valuta", "zu Ihren Lasten", "zu Ihren Gunsten"
             };
@@ -42,8 +42,8 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
                 h.sortBlocks();
             }
 
-            std::vector<Transaction> pageTransactions = BookingGroup::extractTransactions(headers);
-            allTransactions.insert(allTransactions.end(), pageTransactions.begin(), pageTransactions.end());
+            /*std::vector<Transaction> pageTransactions = BookingGroup::extractTransactions(headers);
+            allTransactions.insert(allTransactions.end(), pageTransactions.begin(), pageTransactions.end());*/
 
             allPages.push_back(page);
         }

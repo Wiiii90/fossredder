@@ -27,8 +27,9 @@ namespace {
     }
 }
 
-Page::Page(const std::string& altoXml) {
+Page::Page(const std::string& altoXml, int index) : index(index) {
     xmlDoc = new tinyxml2::XMLDocument();
+    
     if (xmlDoc->Parse(altoXml.c_str()) != tinyxml2::XML_SUCCESS) {
         delete xmlDoc;
         xmlDoc = nullptr;
@@ -81,6 +82,10 @@ int Page::getWidth() const {
 
 int Page::getHeight() const {
     return height;
+}
+
+int Page::getIndex() const {
+    return index;
 }
 
 std::vector<Header> Page::extractHeaders(const std::vector<std::string>& headerKeywords) const {
