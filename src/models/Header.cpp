@@ -11,14 +11,6 @@ Header::Header(tinyxml2::XMLElement* element, Page* page) : TextElement(element,
     }
 }
 
-Header::Header(tinyxml2::XMLElement* element)
-    : TextElement(element) {
-    if (element) {
-        const char* content = element->Attribute("CONTENT");
-        name = content ? content : "";
-    }
-}
-
 Header::Header(const Header& other) : TextElement(other),
     name(other.name)
 {}

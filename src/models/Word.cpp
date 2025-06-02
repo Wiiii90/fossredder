@@ -6,11 +6,6 @@ Word::Word(tinyxml2::XMLElement* element, Page* page) : TextElement(element, pag
     rawXml = content ? content : "";
 }
 
-Word::Word(tinyxml2::XMLElement* element) : TextElement(element) {
-    const char* content = element->Attribute("CONTENT");
-    rawXml = content ? content : "";
-}
-
 Word::Word(const Word& other)
     : TextElement(other),
     rawXml(other.rawXml)
@@ -66,13 +61,4 @@ std::vector<Word> Word::splitAt(SplitDirection direction, int coordinate) const 
     }
 
     return result;
-}
-
-// Backward compatibility methods
-std::vector<Word> Word::splitByXRecursive(int x) const {
-    return splitAt(SplitDirection::VERTICAL, x);
-}
-
-std::vector<Word> Word::splitByYRecursive(int y) const {
-    return splitAt(SplitDirection::HORIZONTAL, y);
 }

@@ -11,7 +11,6 @@ class Page;
 class Block : public TextElement {
 public:
     Block(tinyxml2::XMLElement* element, Page* page);
-    Block(tinyxml2::XMLElement* element);
     Block(const Block& other);
     ~Block() override;
 
@@ -20,15 +19,7 @@ public:
 
     std::vector<Paragraph> paragraphs;
 
-    // Neue vereinheitlichte Methode
     std::vector<Block> splitAt(SplitDirection direction, int coordinate) const;
-
-    // Optional: Für Rückwärtskompatibilität 
-    [[deprecated("Use splitAt(SplitDirection::VERTICAL, x) instead")]]
-    std::vector<Block> splitByXRecursive(int x) const;
-
-    [[deprecated("Use splitAt(SplitDirection::HORIZONTAL, y) instead")]]
-    std::vector<Block> splitByYRecursive(int y) const;
 
     void updateBoundingBox();
 

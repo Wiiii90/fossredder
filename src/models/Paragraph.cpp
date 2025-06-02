@@ -12,17 +12,6 @@ Paragraph::Paragraph(tinyxml2::XMLElement* element, Page* page) : TextElement(el
     }
 }
 
-Paragraph::Paragraph(tinyxml2::XMLElement* element) : TextElement(element) {
-    for (tinyxml2::XMLElement* lineElem = element->FirstChildElement("String");
-        lineElem != nullptr;
-        lineElem = lineElem->NextSiblingElement("String")) {
-        lines.emplace_back(lineElem);
-    }
-    if (lines.empty()) {
-        lines.emplace_back(element);
-    }
-}
-
 Paragraph::Paragraph(const Paragraph& other)
     : TextElement(other),
     lines(other.lines),
@@ -55,7 +44,6 @@ std::vector<Paragraph> Paragraph::splitAt(SplitDirection direction, int coordina
         }
         else if (splitLines.size() == 1) {
             if (isVertical) {
-                // Vertical splitting (X-coordinate)
                 if (splitLines[0].getX2() <= coordinate) {
                     firstLines.push_back(splitLines[0]);
                 }
@@ -64,7 +52,6 @@ std::vector<Paragraph> Paragraph::splitAt(SplitDirection direction, int coordina
                 }
             }
             else {
-                // Horizontal splitting (Y-coordinate)
                 if (!splitLines[0].words.empty() && splitLines[0].words.front().getY1() <= coordinate) {
                     firstLines.push_back(splitLines[0]);
                 }
@@ -89,15 +76,6 @@ std::vector<Paragraph> Paragraph::splitAt(SplitDirection direction, int coordina
         result.push_back(second);
     }
     return result;
-}
-
-// Backward compatibility methods
-std::vector<Paragraph> Paragraph::splitByXRecursive(int x) const {
-    return splitAt(SplitDirection::VERTICAL, x);
-}
-
-std::vector<Paragraph> Paragraph::splitByYRecursive(int y) const {
-    return splitAt(SplitDirection::HORIZONTAL, y);
 }
 
 void Paragraph::updateBoundingBox() {

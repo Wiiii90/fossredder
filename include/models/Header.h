@@ -10,7 +10,6 @@ class Transaction;
 class Header : public TextElement {
 public:
     Header(tinyxml2::XMLElement* element, Page* page);
-    Header(tinyxml2::XMLElement* element);
     Header(const Header& other);
     ~Header() override;
 
