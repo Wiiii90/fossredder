@@ -30,85 +30,39 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
     for (size_t i = 0; i < imageFiles.size(); ++i) {
         try {
             std::string xmlContent = m_ocrEngine->recognizeAltoXml(imageFiles[i], tessdataPath);
-            auto page = std::make_shared<Page>(xmlContent, static_cast<int>(i + 1));
+
             std::vector<std::string> headerKeywords = {
                 "Angaben zu den Umsätzen", "Valuta", "zu Ihren Lasten", "zu Ihren Gunsten"
             };
-            
-            // Extract headers
-            std::vector<Header> headers = page->extractHeaders(headerKeywords);
-            
-            // Debug: Count blocks before cropping
-            std::cout << "[DEBUG] Before cropping: " << page->getBlocks().size() << " blocks on page " << page->getIndex() << std::endl;
-            
-            // Calculate min header Y position (top of all headers)
-            int minHeaderY = std::numeric_limits<int>::max();
-            for (const auto& h : headers) {
-                minHeaderY = std::min(minHeaderY, h.getY1());
-            }
-            
-            // Calculate max header Y2 position (bottom of all headers)
-            int maxHeaderY2 = 0;
-            for (const auto& h : headers) {
-                // Assuming header height of about 20px
-                int y2 = h.getY1() + 20;
-                maxHeaderY2 = std::max(maxHeaderY2, y2);
-            }
-            
-            // Crop blocks at header bottom line (single step)
-            if (maxHeaderY2 > 0) {
-                page->crop(Page::CropDirection::TOP, maxHeaderY2);
-            }
-            
-            // Debug: Count blocks after cropping
-            std::cout << "[DEBUG] After cropping: " << page->getBlocks().size() << " blocks on page " << page->getIndex() << std::endl;
-            
-            // Crop from the bottom based on footer keywords
+
             std::vector<std::string> footerKeywords = {
                 "Folgeseite", "Neuer Kontostand", "Guthaben sind als Einlagen"
             };
 
-            int minFooterY = std::numeric_limits<int>::max();
+            auto page = std::make_shared<Page>(xmlContent, static_cast<int>(i + 1), headerKeywords, footerKeywords);
 
-            // Search in all blocks for footer keywords
-            for (const auto& block : page->getBlocks()) {
-                std::string text = block->getFormattedText();
-                for (const auto& keyword : footerKeywords) {
-                    if (text.find(keyword) != std::string::npos) {
-                        // Found a footer keyword, use this block's Y position
-                        minFooterY = std::min(minFooterY, block->getY1());
-                        std::cout << "[DEBUG] Found footer keyword: '" << keyword 
-                                  << "' at Y=" << block->getY1() << std::endl;
-                        break;
-                    }
+            // Debug output for header-block assignments
+            std::cout << "\n===== PAGE " << (i + 1) << " HEADER ANALYSIS =====\n";
+            std::cout << "Found " << page->getHeaders().size() << " headers on page.\n";
+
+            for (size_t h_idx = 0; h_idx < page->getHeaders().size(); h_idx++) {
+                auto& header = page->getHeaders()[h_idx];
+                std::cout << "\nHEADER #" << h_idx << " [" << header->getName() << "]"
+                    << "\nPosition: x1=" << header->getX1() << ", y1=" << header->getY1()
+                    << ", x2=" << header->getX2() << ", y2=" << header->getY2()
+                    << "\nAssigned Blocks: " << header->getBlocks().size() << "\n";
+
+                for (size_t b_idx = 0; b_idx < header->getBlocks().size(); b_idx++) {
+                    auto& block = header->getBlocks()[b_idx];
+                    std::cout << "  Block #" << b_idx
+                        << " [" << block->getX1() << "," << block->getY1()
+                        << " -> " << block->getX2() << "," << block->getY2() << "]"
+                        << " Text: " << block->getFormattedText().substr(0, 40);
+                    if (block->getFormattedText().length() > 40) std::cout << "...";
+                    std::cout << "\n";
                 }
             }
-
-            // If a footer keyword was found, crop everything below it
-            if (minFooterY < std::numeric_limits<int>::max()) {
-                page->crop(Page::CropDirection::BOTTOM, minFooterY);
-                std::cout << "[DEBUG] Cropped bottom at Y=" << minFooterY << std::endl;
-            }
-            
-            // Now assign the cropped blocks to headers
-            std::vector<std::shared_ptr<Block>> pageBlocks = page->getBlocks();
-            Header::assignBlocks(headers, pageBlocks);
-
-            // Debug: Count assigned blocks
-            int totalAssignedBlocks = 0;
-            for (const auto& h : headers) {
-                totalAssignedBlocks += h.getBlocks().size();
-                std::cout << "[DEBUG] Header '" << h.getName() << "' has " << h.getBlocks().size() << " blocks" << std::endl;
-            }
-            std::cout << "[DEBUG] Total assigned blocks: " << totalAssignedBlocks << std::endl;
-            
-            // Sort blocks within each header
-            for (auto& h : headers) {
-                h.sortBlocks();
-            }
-
-            /*std::vector<Transaction> pageTransactions = BookingGroup::extractTransactions(headers);
-            allTransactions.insert(allTransactions.end(), pageTransactions.begin(), pageTransactions.end());*/
+            std::cout << "=============================\n";
 
             allPages.push_back(page);
         }

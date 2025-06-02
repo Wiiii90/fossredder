@@ -9,19 +9,21 @@ class Transaction;
 
 class Header : public TextElement {
 public:
+    Header(tinyxml2::XMLElement* element, Page* page);
     Header(tinyxml2::XMLElement* element);
-
-    const std::string& getName() const;
+    Header(const Header& other);
+    ~Header() override;
 
     void addBlock(const std::shared_ptr<Block>& block);
     const std::vector<std::shared_ptr<Block>>& getBlocks() const;
-    void sortBlocks();
     void clearBlocks();
+    void sortBlocks();
 
-    static void assignBlocks(std::vector<Header>& headers, std::vector<std::shared_ptr<Block>>& blocks);
-
+    const std::string& getName() const;
     std::string getRawText() const override;
     std::string getFormattedText() const override;
+
+    static void sortHeaders(std::vector<Header>& headers);
 
 private:
     std::string name;

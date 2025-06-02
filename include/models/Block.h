@@ -2,12 +2,15 @@
 #include <vector>
 #include <string>
 #include "models/TextElement.h"
+#include "models/Page.h"
 #include "models/Paragraph.h"
 
 namespace tinyxml2 { class XMLElement; }
+class Page;
 
 class Block : public TextElement {
 public:
+    Block(tinyxml2::XMLElement* element, Page* page);
     Block(tinyxml2::XMLElement* element);
     Block(const Block& other);
     ~Block() override;
@@ -17,15 +20,19 @@ public:
 
     std::vector<Paragraph> paragraphs;
 
-    std::vector<Block> splitAtParagraph(size_t paragraphIdx) const;
-    static Block mergeBlocks(const std::vector<Block>& blocks);
+    // Neue vereinheitlichte Methode
+    std::vector<Block> splitAt(SplitDirection direction, int coordinate) const;
 
-    std::pair<Block, Block> splitByY(int y) const;
-    std::pair<Block, Block> splitByX(int x) const;
+    // Optional: Für Rückwärtskompatibilität 
+    [[deprecated("Use splitAt(SplitDirection::VERTICAL, x) instead")]]
     std::vector<Block> splitByXRecursive(int x) const;
+
+    [[deprecated("Use splitAt(SplitDirection::HORIZONTAL, y) instead")]]
     std::vector<Block> splitByYRecursive(int y) const;
 
     void updateBoundingBox();
+
+    static Block merge(const std::vector<Block>& blocks);
 
 private:
     std::string rawXml;

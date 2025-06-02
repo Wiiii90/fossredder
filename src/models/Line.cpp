@@ -1,15 +1,34 @@
 ﻿#include "pch.h"
 #include "models/Line.h"
-#include "models/Word.h"
 
-Line::Line(tinyxml2::XMLElement* element) : TextElement(element) {
-    if (!element) throw std::invalid_argument("Null XML element passed to Line constructor.");
-    for (tinyxml2::XMLElement* wordElem = element->FirstChildElement("String");
+Line::Line(tinyxml2::XMLElement* element, Page* page) : TextElement(element, page) {
+    for (tinyxml2::XMLElement* wordElem = element->FirstChildElement("Word");
         wordElem != nullptr;
-        wordElem = wordElem->NextSiblingElement("String")) {
-        words.emplace_back(wordElem);
+        wordElem = wordElem->NextSiblingElement("Word")) {
+        words.emplace_back(wordElem, page);
+    }
+    if (words.empty()) {
+        words.emplace_back(element, page);
     }
 }
+
+Line::Line(tinyxml2::XMLElement* element) : TextElement(element) {
+    for (tinyxml2::XMLElement* wordElem = element->FirstChildElement("Word");
+        wordElem != nullptr;
+        wordElem = wordElem->NextSiblingElement("Word")) {
+        words.emplace_back(wordElem);
+    }
+    if (words.empty()) {
+        words.emplace_back(element);
+    }
+}
+
+Line::Line(const Line& other)
+    : TextElement(other),
+    words(other.words),
+    rawXml(other.rawXml)
+{}
+
 Line::~Line() {}
 
 std::string Line::getRawText() const {
@@ -21,115 +40,64 @@ std::string Line::getRawText() const {
 }
 std::string Line::getFormattedText() const { return getRawText(); }
 
-std::vector<Line> Line::splitAtWord(size_t wordIdx) const {
+std::vector<Line> Line::splitAt(SplitDirection direction, int coordinate) const {
+    std::vector<Word> firstWords, secondWords;
+    bool isVertical = (direction == SplitDirection::VERTICAL);
+
+    for (const auto& word : words) {
+        auto splitWords = isVertical ?
+            word.splitAt(SplitDirection::VERTICAL, coordinate) :
+            word.splitAt(SplitDirection::HORIZONTAL, coordinate);
+
+        if (splitWords.size() == 2) {
+            firstWords.push_back(splitWords[0]);
+            secondWords.push_back(splitWords[1]);
+        }
+        else if (splitWords.size() == 1) {
+            if (isVertical) {
+                // Vertical splitting (X-coordinate)
+                if (splitWords[0].getX2() <= coordinate) {
+                    firstWords.push_back(splitWords[0]);
+                }
+                else {
+                    secondWords.push_back(splitWords[0]);
+                }
+            }
+            else {
+                // Horizontal splitting (Y-coordinate)
+                if (splitWords[0].getY1() <= coordinate) {
+                    firstWords.push_back(splitWords[0]);
+                }
+                else {
+                    secondWords.push_back(splitWords[0]);
+                }
+            }
+        }
+    }
+
     std::vector<Line> result;
-    if (wordIdx >= words.size()) return { *this };
-    if (wordIdx > 0) {
+    if (!firstWords.empty()) {
         Line first = *this;
-        first.words = std::vector<Word>(words.begin(), words.begin() + wordIdx);
+        first.words = firstWords;
+        first.updateBoundingBox();
         result.push_back(first);
     }
-    if (wordIdx < words.size()) {
+    if (!secondWords.empty()) {
         Line second = *this;
-        second.words = std::vector<Word>(words.begin() + wordIdx, words.end());
+        second.words = secondWords;
+        second.updateBoundingBox();
         result.push_back(second);
     }
     return result;
 }
 
-Line Line::mergeLines(const std::vector<Line>& lines) {
-    if (lines.empty()) throw std::invalid_argument("No lines to merge.");
-    Line merged = lines.front();
-    merged.words.clear();
-    for (const auto& line : lines) {
-        merged.words.insert(merged.words.end(), line.words.begin(), line.words.end());
-    }
-    return merged;
-}
-
-std::pair<Line, Line> Line::splitByY(int y) const {
-    Line upper = *this; upper.words.clear();
-    Line lower = *this; lower.words.clear();
-    for (const auto& word : words) {
-        if (word.getY1() <= y)
-            upper.words.push_back(word);
-        else
-            lower.words.push_back(word);
-    }
-    return { upper, lower };
-}
-
-std::pair<Line, Line> Line::splitByX(int x) const {
-    Line left = *this; left.words.clear();
-    Line right = *this; right.words.clear();
-    for (const auto& word : words) {
-        if (word.getX1() <= x)
-            left.words.push_back(word);
-        else
-            right.words.push_back(word);
-    }
-    return { left, right };
-}
-
+// Backward compatibility methods
 std::vector<Line> Line::splitByXRecursive(int x) const {
-    std::vector<Line> result;
-    std::vector<Word> leftWords, rightWords;
-
-    for (const auto& word : words) {
-        int wx1 = word.getX1();
-        int wx2 = word.getX2();
-        if (wx2 <= x) {
-            leftWords.push_back(word);
-        } else if (wx1 >= x) {
-            rightWords.push_back(word);
-        } else {
-            leftWords.push_back(word);
-            rightWords.push_back(word);
-        }
-    }
-
-    if (!leftWords.empty()) {
-        Line leftLine = *this;
-        leftLine.words = leftWords;
-        leftLine.updateBoundingBox();
-        result.push_back(leftLine);
-    }
-    if (!rightWords.empty()) {
-        Line rightLine = *this;
-        rightLine.words = rightWords;
-        rightLine.updateBoundingBox();
-        result.push_back(rightLine);
-    }
-
-    return result;
+    return splitAt(SplitDirection::VERTICAL, x);
 }
 
 std::vector<Line> Line::splitByYRecursive(int y) const {
-    std::vector<Line> result;
-    std::vector<Word> upperWords, lowerWords;
-    for (const auto& word : words) {
-        int wy1 = word.getY1();
-        int wy2 = word.getY2();
-        if (wy2 <= y) {
-            upperWords.push_back(word);
-        } else if (wy1 >= y) {
-            lowerWords.push_back(word);
-        } else {
-            upperWords.push_back(word);
-            lowerWords.push_back(word);
-        }
-    }
-    if (!upperWords.empty()) {
-        Line upperLine = *this;
-        upperLine.words = upperWords;
-        result.push_back(upperLine);
-    }
-    if (!lowerWords.empty()) {
-        Line lowerLine = *this;
-        lowerLine.words = lowerWords;
-        result.push_back(lowerLine);
-    }
-    return result;
+    return splitAt(SplitDirection::HORIZONTAL, y);
 }
 
 void Line::updateBoundingBox() {
@@ -149,4 +117,14 @@ void Line::updateBoundingBox() {
     }
     width = x2 - x1;
     height = y2 - y1;
+}
+
+Line Line::merge(const std::vector<Line>& lines) {
+    if (lines.empty()) throw std::invalid_argument("No lines to merge.");
+    Line merged = lines.front();
+    merged.words.clear();
+    for (const auto& line : lines) {
+        merged.words.insert(merged.words.end(), line.words.begin(), line.words.end());
+    }
+    return merged;
 }

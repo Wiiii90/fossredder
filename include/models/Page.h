@@ -9,35 +9,36 @@ class Header;
 
 class Page {
 public:
-    // Crop direction enum for specifying which parts to remove
     enum class CropDirection {
-        LEFT,    // Remove blocks to the left of X coordinate
-        RIGHT,   // Remove blocks to the right of X coordinate
-        TOP,     // Remove blocks above Y coordinate
-        BOTTOM   // Remove blocks below Y coordinate
+        LEFT,
+        RIGHT,
+        TOP,
+        BOTTOM
     };
-    
-    explicit Page(const std::string& altoXml, int index);
+
+    Page(const std::string& altoXml, int index,
+        const std::vector<std::string>& headerKeywords = {},
+        const std::vector<std::string>& footerKeywords = {});
+
     ~Page();
 
-    // Existing methods
-    const std::vector<std::shared_ptr<Block>>& getBlocks() const;
-    std::vector<Header> extractHeaders(const std::vector<std::string>& headerKeywords) const;
-
-    // Simplified crop function that does both splitting and removing in one operation
-    void crop(CropDirection direction, int boundary);
-    
-    // Utility method to split blocks at a coordinate
-    void splitBlocksAt(bool horizontal, int coordinate);
-
+    int getIndex() const;
     int getWidth() const;
     int getHeight() const;
-    int getIndex() const;
+    const std::vector<std::shared_ptr<Block>>& getBlocks() const;
+    const std::vector<std::shared_ptr<Header>>& getHeaders() const;
+
+    void crop(CropDirection direction, int boundary);
 
 private:
-    std::vector<std::shared_ptr<Block>> blocks;
+    int index = 0;
     int width = 0;
     int height = 0;
-    int index = 0;
     tinyxml2::XMLDocument* xmlDoc = nullptr;
+    std::vector<std::shared_ptr<Block>> blocks;
+    std::vector<std::shared_ptr<Header>> headers;
+
+    void extractTextElements(const std::string& altoXml);
+    void extractHeaders(const std::vector<std::string>& headerKeywords);
+    void associateBlocksWithHeaders();
 };

@@ -1,14 +1,34 @@
 ﻿#include "pch.h"
 #include "models/Paragraph.h"
 
-Paragraph::Paragraph(tinyxml2::XMLElement* element) : TextElement(element) {
-    if (!element) throw std::invalid_argument("Null XML element passed to Paragraph constructor.");
-    for (tinyxml2::XMLElement* lineElem = element->FirstChildElement("TextLine");
+Paragraph::Paragraph(tinyxml2::XMLElement* element, Page* page) : TextElement(element, page) {
+    for (tinyxml2::XMLElement* lineElem = element->FirstChildElement("String");
         lineElem != nullptr;
-        lineElem = lineElem->NextSiblingElement("TextLine")) {
-        lines.emplace_back(lineElem);
+        lineElem = lineElem->NextSiblingElement("String")) {
+        lines.emplace_back(lineElem, page);
+    }
+    if (lines.empty()) {
+        lines.emplace_back(element, page);
     }
 }
+
+Paragraph::Paragraph(tinyxml2::XMLElement* element) : TextElement(element) {
+    for (tinyxml2::XMLElement* lineElem = element->FirstChildElement("String");
+        lineElem != nullptr;
+        lineElem = lineElem->NextSiblingElement("String")) {
+        lines.emplace_back(lineElem);
+    }
+    if (lines.empty()) {
+        lines.emplace_back(element);
+    }
+}
+
+Paragraph::Paragraph(const Paragraph& other)
+    : TextElement(other),
+    lines(other.lines),
+    rawXml(other.rawXml)
+{}
+
 Paragraph::~Paragraph() {}
 
 std::string Paragraph::getRawText() const {
@@ -20,110 +40,64 @@ std::string Paragraph::getRawText() const {
 }
 std::string Paragraph::getFormattedText() const { return getRawText(); }
 
-std::vector<Paragraph> Paragraph::splitAtLine(size_t lineIdx) const {
+std::vector<Paragraph> Paragraph::splitAt(SplitDirection direction, int coordinate) const {
+    std::vector<Line> firstLines, secondLines;
+    bool isVertical = (direction == SplitDirection::VERTICAL);
+
+    for (const auto& line : lines) {
+        auto splitLines = isVertical ?
+            line.splitAt(SplitDirection::VERTICAL, coordinate) :
+            line.splitAt(SplitDirection::HORIZONTAL, coordinate);
+
+        if (splitLines.size() == 2) {
+            firstLines.push_back(splitLines[0]);
+            secondLines.push_back(splitLines[1]);
+        }
+        else if (splitLines.size() == 1) {
+            if (isVertical) {
+                // Vertical splitting (X-coordinate)
+                if (splitLines[0].getX2() <= coordinate) {
+                    firstLines.push_back(splitLines[0]);
+                }
+                else {
+                    secondLines.push_back(splitLines[0]);
+                }
+            }
+            else {
+                // Horizontal splitting (Y-coordinate)
+                if (!splitLines[0].words.empty() && splitLines[0].words.front().getY1() <= coordinate) {
+                    firstLines.push_back(splitLines[0]);
+                }
+                else {
+                    secondLines.push_back(splitLines[0]);
+                }
+            }
+        }
+    }
+
     std::vector<Paragraph> result;
-    if (lineIdx >= lines.size()) return { *this };
-    if (lineIdx > 0) {
+    if (!firstLines.empty()) {
         Paragraph first = *this;
-        first.lines = std::vector<Line>(lines.begin(), lines.begin() + lineIdx);
+        first.lines = firstLines;
+        first.updateBoundingBox();
         result.push_back(first);
     }
-    if (lineIdx < lines.size()) {
+    if (!secondLines.empty()) {
         Paragraph second = *this;
-        second.lines = std::vector<Line>(lines.begin() + lineIdx, lines.end());
+        second.lines = secondLines;
+        second.updateBoundingBox();
         result.push_back(second);
     }
     return result;
 }
 
-Paragraph Paragraph::mergeParagraphs(const std::vector<Paragraph>& paragraphs) {
-    if (paragraphs.empty()) throw std::invalid_argument("No paragraphs to merge.");
-    Paragraph merged = paragraphs.front();
-    merged.lines.clear();
-    for (const auto& para : paragraphs) {
-        merged.lines.insert(merged.lines.end(), para.lines.begin(), para.lines.end());
-    }
-    return merged;
-}
-
-std::pair<Paragraph, Paragraph> Paragraph::splitByY(int y) const {
-    Paragraph upper = *this; upper.lines.clear();
-    Paragraph lower = *this; lower.lines.clear();
-    for (const auto& line : lines) {
-        if (line.getY1() <= y)
-            upper.lines.push_back(line);
-        else
-            lower.lines.push_back(line);
-    }
-    return { upper, lower };
-}
-
-std::pair<Paragraph, Paragraph> Paragraph::splitByX(int x) const {
-    Paragraph left = *this; left.lines.clear();
-    Paragraph right = *this; right.lines.clear();
-    for (const auto& line : lines) {
-        if (line.getX1() <= x)
-            left.lines.push_back(line);
-        else
-            right.lines.push_back(line);
-    }
-    return { left, right };
-}
-
+// Backward compatibility methods
 std::vector<Paragraph> Paragraph::splitByXRecursive(int x) const {
-    std::vector<Line> leftLines, rightLines;
-    for (const auto& line : lines) {
-        auto splitLines = line.splitByXRecursive(x);
-        if (splitLines.size() == 2) {
-            leftLines.push_back(splitLines[0]);
-            rightLines.push_back(splitLines[1]);
-        } else if (splitLines.size() == 1) {
-            if (splitLines[0].getX2() <= x) {
-                leftLines.push_back(splitLines[0]);
-            } else {
-                rightLines.push_back(splitLines[0]);
-            }
-        }
-    }
-    std::vector<Paragraph> result;
-    if (!leftLines.empty()) {
-        Paragraph leftPara = *this;
-        leftPara.lines = leftLines;
-        leftPara.updateBoundingBox();
-        result.push_back(leftPara);
-    }
-    if (!rightLines.empty()) {
-        Paragraph rightPara = *this;
-        rightPara.lines = rightLines;
-        rightPara.updateBoundingBox();
-        result.push_back(rightPara);
-    }
-    return result;
+    return splitAt(SplitDirection::VERTICAL, x);
 }
 
 std::vector<Paragraph> Paragraph::splitByYRecursive(int y) const {
-    std::vector<Line> upperLines, lowerLines;
-    for (const auto& line : lines) {
-        auto splitLines = line.splitByYRecursive(y);
-        for (const auto& l : splitLines) {
-            if (!l.words.empty() && l.words.front().getY1() <= y)
-                upperLines.push_back(l);
-            else
-                lowerLines.push_back(l);
-        }
-    }
-    std::vector<Paragraph> result;
-    if (!upperLines.empty()) {
-        Paragraph upper = *this;
-        upper.lines = upperLines;
-        result.push_back(upper);
-    }
-    if (!lowerLines.empty()) {
-        Paragraph lower = *this;
-        lower.lines = lowerLines;
-        result.push_back(lower);
-    }
-    return result;
+    return splitAt(SplitDirection::HORIZONTAL, y);
 }
 
 void Paragraph::updateBoundingBox() {
@@ -143,4 +117,14 @@ void Paragraph::updateBoundingBox() {
     }
     width = x2 - x1;
     height = y2 - y1;
+}
+
+Paragraph Paragraph::merge(const std::vector<Paragraph>& paragraphs) {
+    if (paragraphs.empty()) throw std::invalid_argument("No paragraphs to merge.");
+    Paragraph merged = paragraphs.front();
+    merged.lines.clear();
+    for (const auto& para : paragraphs) {
+        merged.lines.insert(merged.lines.end(), para.lines.begin(), para.lines.end());
+    }
+    return merged;
 }
