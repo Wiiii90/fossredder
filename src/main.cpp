@@ -16,7 +16,7 @@ int main() {
 
     try {
         auto extractedData = controller.extractData("C:\\coding\\fossredder\\Januar 2025.pdf");
-        consoleView.displayTransactions(extractedData->getTransactions());
+        consoleView.displayPdfData(extractedData);
     }
     catch (const std::exception& e) {
         consoleView.displayError("Error during PDF processing: " + std::string(e.what()));

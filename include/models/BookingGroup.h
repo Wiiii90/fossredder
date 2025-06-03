@@ -21,10 +21,16 @@ public:
 
     static std::vector<BookingGroup> extractBookingGroups(const std::vector<std::shared_ptr<Page>>& pages);
 
+    const std::vector<Transaction>& getTransactions() const { return transactions; }
+
+    void extractTransactions();
+
 private:
     std::string bookingDate;
     std::vector<std::shared_ptr<Block>> detailsBlocks;
     std::vector<std::shared_ptr<Block>> valutaBlocks;
     std::vector<std::shared_ptr<Block>> debitBlocks;
     std::vector<std::shared_ptr<Block>> creditBlocks;
+
+    std::vector<Transaction> transactions;
 };

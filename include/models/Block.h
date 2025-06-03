@@ -25,6 +25,9 @@ public:
 
     static Block merge(const std::vector<Block>& blocks);
 
+    void setY1(int y1);
+    void setY2(int y2);
+
 private:
     std::string rawXml;
 };

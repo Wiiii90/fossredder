@@ -41,29 +41,6 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
 
             auto page = std::make_shared<Page>(xmlContent, static_cast<int>(i + 1), headerKeywords, footerKeywords);
 
-            // Debug output for header-block assignments
-            std::cout << "\n===== PAGE " << (i + 1) << " HEADER ANALYSIS =====\n";
-            std::cout << "Found " << page->getHeaders().size() << " headers on page.\n";
-
-            for (size_t h_idx = 0; h_idx < page->getHeaders().size(); h_idx++) {
-                auto& header = page->getHeaders()[h_idx];
-                std::cout << "\nHEADER #" << h_idx << " [" << header->getName() << "]"
-                    << "\nPosition: x1=" << header->getX1() << ", y1=" << header->getY1()
-                    << ", x2=" << header->getX2() << ", y2=" << header->getY2()
-                    << "\nAssigned Blocks: " << header->getBlocks().size() << "\n";
-
-                for (size_t b_idx = 0; b_idx < header->getBlocks().size(); b_idx++) {
-                    auto& block = header->getBlocks()[b_idx];
-                    std::cout << "  Block #" << b_idx
-                        << " [" << block->getX1() << "," << block->getY1()
-                        << " -> " << block->getX2() << "," << block->getY2() << "]"
-                        << " Text: " << block->getFormattedText().substr(0, 40);
-                    if (block->getFormattedText().length() > 40) std::cout << "...";
-                    std::cout << "\n";
-                }
-            }
-            std::cout << "=============================\n";
-
             allPages.push_back(page);
         }
         catch (const std::exception& e) {
@@ -73,42 +50,6 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
 
     std::vector<BookingGroup> bookingGroups = BookingGroup::extractBookingGroups(allPages);
 
-    std::cout << "\n===== BOOKING GROUPS =====\n";
-    std::cout << "Extracted " << bookingGroups.size() << " booking groups.\n";
-
-    for (const auto& bookingGroup : bookingGroups) {
-        std::cout << "\nBooking Date: " << bookingGroup.getBookingDate() << "\n";
-
-        std::cout << "Details Blocks: " << bookingGroup.getDetailsBlocks().size() << "\n";
-        for (const auto& block : bookingGroup.getDetailsBlocks()) {
-            std::string text = block->getFormattedText();
-            std::replace(text.begin(), text.end(), '\n', ' '); // Remove newlines
-            std::cout << "  " << text << "\n";
-        }
-
-        std::cout << "Valuta Blocks: " << bookingGroup.getValutaBlocks().size() << "\n";
-        for (const auto& block : bookingGroup.getValutaBlocks()) {
-            std::string text = block->getFormattedText();
-            std::replace(text.begin(), text.end(), '\n', ' '); // Remove newlines
-            std::cout << "  " << text << "\n";
-        }
-
-        std::cout << "Debit Blocks: " << bookingGroup.getDebitBlocks().size() << "\n";
-        for (const auto& block : bookingGroup.getDebitBlocks()) {
-            std::string text = block->getFormattedText();
-            std::replace(text.begin(), text.end(), '\n', ' '); // Remove newlines
-            std::cout << "  " << text << "\n";
-        }
-
-        std::cout << "Credit Blocks: " << bookingGroup.getCreditBlocks().size() << "\n";
-        for (const auto& block : bookingGroup.getCreditBlocks()) {
-            std::string text = block->getFormattedText();
-            std::replace(text.begin(), text.end(), '\n', ' '); // Remove newlines
-            std::cout << "  " << text << "\n";
-        }
-    }
-    std::cout << "===========================\n";
-
-    auto pdfData = std::make_shared<PdfExtractedData>(filePath, allPages, allTransactions);
+    auto pdfData = std::make_shared<PdfExtractedData>(filePath, allPages, bookingGroups);
     return pdfData;
 }

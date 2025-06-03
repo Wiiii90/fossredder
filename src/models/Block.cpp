@@ -114,3 +114,11 @@ Block Block::merge(const std::vector<Block>& blocks) {
     }
     return merged;
 }
+
+void Block::setY1(int y1) {
+    this->y1 = y1;
+}
+
+void Block::setY2(int y2) {
+    this->y2 = y2;
+}
