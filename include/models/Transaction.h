@@ -1,16 +1,15 @@
 ﻿#pragma once
 #include <string>
+#include "models/BookingGroup.h" 
+
+class BookingGroup;
 
 class Transaction {
 public:
+    Transaction(const BookingGroup* bookingGroup);
+
     std::string bookingDate;
     std::string valutaDate;
-    std::string actor;
-    std::string description;
+    std::string details;
     double amount;
-    bool isDebit;
-
-    Transaction(const std::string& bookingDate, const std::string& valutaDate,
-                const std::string& actor, const std::string& description,
-                double amount, bool isDebit);
 };

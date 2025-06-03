@@ -71,6 +71,44 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::st
         }
     }
 
+    std::vector<BookingGroup> bookingGroups = BookingGroup::extractBookingGroups(allPages);
+
+    std::cout << "\n===== BOOKING GROUPS =====\n";
+    std::cout << "Extracted " << bookingGroups.size() << " booking groups.\n";
+
+    for (const auto& bookingGroup : bookingGroups) {
+        std::cout << "\nBooking Date: " << bookingGroup.getBookingDate() << "\n";
+
+        std::cout << "Details Blocks: " << bookingGroup.getDetailsBlocks().size() << "\n";
+        for (const auto& block : bookingGroup.getDetailsBlocks()) {
+            std::string text = block->getFormattedText();
+            std::replace(text.begin(), text.end(), '\n', ' '); // Remove newlines
+            std::cout << "  " << text << "\n";
+        }
+
+        std::cout << "Valuta Blocks: " << bookingGroup.getValutaBlocks().size() << "\n";
+        for (const auto& block : bookingGroup.getValutaBlocks()) {
+            std::string text = block->getFormattedText();
+            std::replace(text.begin(), text.end(), '\n', ' '); // Remove newlines
+            std::cout << "  " << text << "\n";
+        }
+
+        std::cout << "Debit Blocks: " << bookingGroup.getDebitBlocks().size() << "\n";
+        for (const auto& block : bookingGroup.getDebitBlocks()) {
+            std::string text = block->getFormattedText();
+            std::replace(text.begin(), text.end(), '\n', ' '); // Remove newlines
+            std::cout << "  " << text << "\n";
+        }
+
+        std::cout << "Credit Blocks: " << bookingGroup.getCreditBlocks().size() << "\n";
+        for (const auto& block : bookingGroup.getCreditBlocks()) {
+            std::string text = block->getFormattedText();
+            std::replace(text.begin(), text.end(), '\n', ' '); // Remove newlines
+            std::cout << "  " << text << "\n";
+        }
+    }
+    std::cout << "===========================\n";
+
     auto pdfData = std::make_shared<PdfExtractedData>(filePath, allPages, allTransactions);
     return pdfData;
 }

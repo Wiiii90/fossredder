@@ -26,17 +26,15 @@ void ConsoleView::displayPdfData(const std::shared_ptr<PdfExtractedData>& data) 
 
 void ConsoleView::displayTransactions(const std::vector<Transaction>& transactions) {
     std::cout << "=== Extracted Transactions ===" << std::endl;
-    std::cout << "Idx | BookingDate | ValutaDate | Actor | Description | Amount | Type" << std::endl;
+    std::cout << "Idx | BookingDate | ValutaDate | Details | Amount | Type" << std::endl;
     std::cout << "---------------------------------------------------------------------" << std::endl;
     int idx = 1;
     for (const auto& t : transactions) {
         std::cout << idx++ << " | "
             << t.bookingDate << " | "
             << t.valutaDate << " | "
-            << t.actor << " | "
-            << t.description << " | "
-            << t.amount << " | "
-            << (t.isDebit ? "Debit" : "Credit") << std::endl;
+            << t.details << " | "
+            << t.amount << " | " << std::endl;
     }
     std::cout << "---------------------------------------------------------------------" << std::endl;
 }

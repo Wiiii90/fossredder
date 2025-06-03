@@ -45,18 +45,62 @@ Page::Page(const std::string& altoXml, int index,
     }
 
     if (!footerKeywords.empty()) {
-        int minFooterY = std::numeric_limits<int>::max();
+        std::vector<std::pair<Word, std::shared_ptr<Block>>> allWords;
         for (const auto& block : blocks) {
-            std::string text = block->getFormattedText();
-            for (const auto& keyword : footerKeywords) {
-                if (text.find(keyword) != std::string::npos) {
-                    minFooterY = std::min(minFooterY, block->getY1());
-                    break;
+            for (const auto& para : block->paragraphs) {
+                for (const auto& line : para.lines) {
+                    for (const auto& word : line.words) {
+                        allWords.emplace_back(word, block);
+                    }
                 }
             }
         }
-        if (minFooterY < std::numeric_limits<int>::max()) {
-            crop(CropDirection::BOTTOM, minFooterY);
+
+        std::vector<std::vector<std::string>> footerWordsList;
+        footerWordsList.reserve(footerKeywords.size());
+
+        for (const auto& footerText : footerKeywords) {
+            std::istringstream iss(footerText);
+            std::vector<std::string> words;
+            std::string word;
+            while (iss >> word) {
+                words.push_back(trim(word));
+            }
+            footerWordsList.push_back(std::move(words));
+        }
+
+        int cropY = -1;
+        for (size_t i = 0; i < allWords.size(); ++i) {
+            for (size_t footerIdx = 0; footerIdx < footerKeywords.size(); ++footerIdx) {
+                const auto& footerWords = footerWordsList[footerIdx];
+
+                if (i + footerWords.size() > allWords.size()) {
+                    continue;
+                }
+
+                bool match = true;
+                for (size_t j = 0; j < footerWords.size(); ++j) {
+                    std::string ocrWord = trim(allWords[i + j].first.getFormattedText());
+
+                    if (!normalizedEquals(ocrWord, footerWords[j])) {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match) {
+                    const Word& firstWord = allWords[i].first;
+                    cropY = firstWord.getY1();
+                    break;
+                }
+            }
+            if (cropY != -1) {
+                break;
+            }
+        }
+
+        if (cropY != -1) {
+            crop(CropDirection::BOTTOM, cropY);
         }
     }
 
