@@ -17,6 +17,7 @@
 #include <cmath>
 #include <set>
 #include <map>
+#include <iomanip>
 
 // ICU (Unicode)
 #include <unicode/unistr.h>

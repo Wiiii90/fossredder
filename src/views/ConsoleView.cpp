@@ -4,8 +4,6 @@
 #include "models/PdfExtractedData.h"
 #include "models/Page.h"
 #include "models/BookingGroup.h"
-#include <iomanip>
-#include <sstream>
 
 void ConsoleView::displayPdfData(const std::shared_ptr<PdfExtractedData>& data) {
     if (!data) {
@@ -13,7 +11,6 @@ void ConsoleView::displayPdfData(const std::shared_ptr<PdfExtractedData>& data) 
         return;
     }
 
-    // Übersicht zu den Seiten
     const auto& pages = data->getPages();
     std::cout << "\n====================[ PDF SEITEN ]====================\n";
     std::cout << "Anzahl Seiten: " << pages.size() << "\n";
@@ -26,7 +23,6 @@ void ConsoleView::displayPdfData(const std::shared_ptr<PdfExtractedData>& data) 
     }
     std::cout << "======================================================\n";
 
-    // Übersicht zu den Buchungsgruppen und Transaktionen
     const auto& bookingGroups = data->getBookingGroups();
     std::cout << "\n====================[ BUCHUNGSGRUPPEN & TRANSAKTIONEN ]====================\n";
     std::cout << "Anzahl Buchungsgruppen: " << bookingGroups.size() << "\n";
@@ -50,27 +46,66 @@ void ConsoleView::displayPdfData(const std::shared_ptr<PdfExtractedData>& data) 
             std::cout << "  │  Transaktion #" << txIdx++ << "\n";
             std::cout << "  ├────────────────────────────────────────────────────────────────────┤\n";
             std::cout << "  │  Buchungsdatum : " << t.getBookingDate() << "\n";
-            std::cout << "  │  Valuta        : " << t.valutaDate << "\n";
 
-            // Betrag ggf. Zeilenumbrüche entfernen
+            std::istringstream valutaStream(t.valutaDate);
+            std::string valutaLine;
+            bool firstValuta = true;
+            while (std::getline(valutaStream, valutaLine)) {
+                if (firstValuta) {
+                    std::cout << "  │  Valuta        : " << valutaLine << "\n";
+                    firstValuta = false;
+                }
+                else if (!valutaLine.empty()) {
+                    std::cout << "  │                 " << valutaLine << "\n";
+                }
+            }
+            std::cout << "  │\n";
+
             std::string amountText = t.amountText;
             amountText.erase(std::remove(amountText.begin(), amountText.end(), '\n'), amountText.end());
-            std::cout << "  │  Betrag        : " << std::fixed << std::setprecision(2) << t.amount << " (" << amountText << ")\n";
+            std::cout << "  │  Betrag        : " << std::fixed << std::setprecision(2) << t.amount << " ( " << amountText << ")\n";
 
-            // Details
             std::cout << "  │  Details       :";
             std::istringstream detailsStream(t.details);
             std::string line;
-            bool hasDetails = false;
+            std::vector<std::string> compactLines;
             while (std::getline(detailsStream, line)) {
+                line.erase(0, line.find_first_not_of(" \t\r\n"));
+                line.erase(line.find_last_not_of(" \t\r\n") + 1);
                 if (!line.empty()) {
-                    if (!hasDetails) std::cout << "\n";
-                    std::cout << "  │    " << line << "\n";
-                    hasDetails = true;
+                    while (line.find("  ") != std::string::npos)
+                        line.replace(line.find("  "), 2, " ");
+                    compactLines.push_back(line);
                 }
             }
-            if (!hasDetails) {
+            if (compactLines.empty()) {
                 std::cout << " [keine Details]\n";
+            }
+            else {
+                std::cout << "\n";
+                std::string buffer;
+                for (size_t i = 0; i < compactLines.size(); ++i) {
+                    const std::string& l = compactLines[i];
+                    if (l.size() <= 3 && i + 1 < compactLines.size()) {
+                        buffer += l + " ";
+                        continue;
+                    }
+                    if (!buffer.empty()) {
+                        buffer += l;
+                        std::cout << "  │    " << buffer << "\n";
+                        buffer.clear();
+                    }
+                    else if (l.size() <= 10 && i + 1 < compactLines.size() && compactLines[i + 1].size() <= 10) {
+                        buffer = l + " ";
+                        continue;
+                    }
+                    else {
+                        std::cout << "  │    " << l << "\n";
+                    }
+                }
+                if (!buffer.empty()) {
+                    std::cout << "  │    " << buffer << "\n";
+                }
             }
             std::cout << "  └────────────────────────────────────────────────────────────────────┘\n";
         }

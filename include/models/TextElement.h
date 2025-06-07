@@ -6,13 +6,8 @@ class Page;
 
 class TextElement {
 public:
-    // Constructor with both element and page
     TextElement(tinyxml2::XMLElement* element, Page* page);
 
-    // Original constructor for backward compatibility
-    TextElement(tinyxml2::XMLElement* element);
-
-    // Copy constructor
     TextElement(const TextElement& other);
 
     virtual ~TextElement();

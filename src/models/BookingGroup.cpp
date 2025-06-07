@@ -164,37 +164,127 @@ std::vector<BookingGroup> BookingGroup::extractBookingGroups(const std::vector<s
 
 void BookingGroup::extractTransactions() {
     transactions.clear();
+
+    auto byPageAndY1 = [](const std::shared_ptr<Block>& a, const std::shared_ptr<Block>& b) {
+        int pageA = a && a->getPage() ? a->getPage()->getIndex() : 0;
+        int pageB = b && b->getPage() ? b->getPage()->getIndex() : 0;
+        if (pageA != pageB)
+            return pageA < pageB;
+        return a->getY1() < b->getY1();
+        };
+
     std::vector<std::shared_ptr<Block>> sortedValuta = valutaBlocks;
-    std::sort(sortedValuta.begin(), sortedValuta.end(),
-        [](const std::shared_ptr<Block>& a, const std::shared_ptr<Block>& b) {
-            return a->getY1() < b->getY1();
-        });
-    for (size_t i = 0; i < sortedValuta.size(); ++i) {
-        int startY = sortedValuta[i]->getY1();
-        int endY = (i + 1 < sortedValuta.size()) ? sortedValuta[i + 1]->getY1() : INT_MAX;
-        std::string valutaDate = sortedValuta[i]->getFormattedText();
-        std::string detailsText;
-        for (const auto& block : detailsBlocks) {
-            if (block->getY1() >= startY && block->getY1() < endY) {
-                detailsText += block->getFormattedText();
-                detailsText += "\n";
+    std::vector<std::shared_ptr<Block>> sortedDetails = detailsBlocks;
+    std::vector<std::shared_ptr<Block>> sortedDebit = debitBlocks;
+    std::vector<std::shared_ptr<Block>> sortedCredit = creditBlocks;
+
+    std::sort(sortedValuta.begin(), sortedValuta.end(), byPageAndY1);
+    std::sort(sortedDetails.begin(), sortedDetails.end(), byPageAndY1);
+    std::sort(sortedDebit.begin(), sortedDebit.end(), byPageAndY1);
+    std::sort(sortedCredit.begin(), sortedCredit.end(), byPageAndY1);
+
+    std::vector<std::string> detailsPerTransaction(sortedValuta.size());
+    std::vector<bool> blockUsed(sortedDetails.size(), false);
+
+    for (int d = static_cast<int>(sortedDetails.size()) - 1; d >= 0; --d) {
+        auto& block = sortedDetails[d];
+        int blockPage = block->getPage() ? block->getPage()->getIndex() : 0;
+        int blockY1 = block->getY1();
+        int blockY2 = block->getY2();
+
+        for (int i = static_cast<int>(sortedValuta.size()) - 1; i >= 0; --i) {
+            int startPage = sortedValuta[i]->getPage() ? sortedValuta[i]->getPage()->getIndex() : 0;
+            int startY = sortedValuta[i]->getY1();
+            int endPage = (i + 1 < sortedValuta.size() && sortedValuta[i + 1]->getPage()) ? sortedValuta[i + 1]->getPage()->getIndex() : startPage;
+            int endY = (i + 1 < sortedValuta.size()) ? sortedValuta[i + 1]->getY1() : INT_MAX;
+
+            bool inRange = false;
+            if (startPage == endPage) {
+                if (blockPage == startPage) {
+                    inRange = (blockY2 > startY && blockY1 < endY);
+                }
+            }
+            else {
+                if (blockPage == startPage) {
+                    inRange = (blockY2 > startY);
+                }
+                else if (blockPage == endPage) {
+                    inRange = (blockY1 < endY);
+                }
+                else if (blockPage > startPage && blockPage < endPage) {
+                    inRange = true;
+                }
+            }
+            if (inRange) {
+                detailsPerTransaction[i] = block->getFormattedText() + "\n" + detailsPerTransaction[i];
+                blockUsed[d] = true;
+                break;
             }
         }
+    }
+
+    for (size_t i = 0; i < sortedValuta.size(); ++i) {
+        int startPage = sortedValuta[i]->getPage() ? sortedValuta[i]->getPage()->getIndex() : 0;
+        int startY = sortedValuta[i]->getY1();
+        int endPage = (i + 1 < sortedValuta.size() && sortedValuta[i + 1]->getPage()) ? sortedValuta[i + 1]->getPage()->getIndex() : startPage;
+        int endY = (i + 1 < sortedValuta.size()) ? sortedValuta[i + 1]->getY1() : INT_MAX;
+
         std::string amountText;
-        for (const auto& block : debitBlocks) {
-            if (block->getY1() >= startY && block->getY1() < endY) {
+        for (const auto& block : sortedDebit) {
+            int blockPage = block->getPage() ? block->getPage()->getIndex() : 0;
+            int blockY1 = block->getY1();
+            int blockY2 = block->getY2();
+            bool inRange = false;
+            if (startPage == endPage) {
+                if (blockPage == startPage) {
+                    inRange = (blockY2 > startY && blockY1 < endY);
+                }
+            }
+            else {
+                if (blockPage == startPage) {
+                    inRange = (blockY2 > startY);
+                }
+                else if (blockPage == endPage) {
+                    inRange = (blockY1 < endY);
+                }
+                else if (blockPage > startPage && blockPage < endPage) {
+                    inRange = true;
+                }
+            }
+            if (inRange) {
                 amountText = block->getFormattedText();
                 break;
             }
         }
         if (amountText.empty()) {
-            for (const auto& block : creditBlocks) {
-                if (block->getY1() >= startY && block->getY1() < endY) {
+            for (const auto& block : sortedCredit) {
+                int blockPage = block->getPage() ? block->getPage()->getIndex() : 0;
+                int blockY1 = block->getY1();
+                int blockY2 = block->getY2();
+                bool inRange = false;
+                if (startPage == endPage) {
+                    if (blockPage == startPage) {
+                        inRange = (blockY2 > startY && blockY1 < endY);
+                    }
+                }
+                else {
+                    if (blockPage == startPage) {
+                        inRange = (blockY2 > startY);
+                    }
+                    else if (blockPage == endPage) {
+                        inRange = (blockY1 < endY);
+                    }
+                    else if (blockPage > startPage && blockPage < endPage) {
+                        inRange = true;
+                    }
+                }
+                if (inRange) {
                     amountText = block->getFormattedText();
                     break;
                 }
             }
         }
-        transactions.emplace_back(bookingDate, valutaDate, detailsText, amountText);
+        std::string valutaDate = sortedValuta[i]->getFormattedText();
+        transactions.emplace_back(bookingDate, valutaDate, detailsPerTransaction[i], amountText);
     }
 }

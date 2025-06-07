@@ -24,19 +24,6 @@ TextElement::TextElement(tinyxml2::XMLElement* element, Page* page) {
     this->page = page;
 }
 
-TextElement::TextElement(tinyxml2::XMLElement* element) {
-    if (!element) {
-        throw std::invalid_argument("Null XML element passed to TextElement constructor.");
-    }
-
-    x1 = element->IntAttribute("HPOS", 0);
-    y1 = element->IntAttribute("VPOS", 0);
-    width = element->IntAttribute("WIDTH", 0);
-    height = element->IntAttribute("HEIGHT", 0);
-    x2 = x1 + width;
-    y2 = y1 + height;
-}
-
 TextElement::TextElement(const TextElement& other)
     : x1(other.x1), y1(other.y1), x2(other.x2), y2(other.y2),
     width(other.width), height(other.height), page(other.page)

@@ -13,8 +13,6 @@ public:
 
     std::vector<Word> splitAt(SplitDirection direction, int coordinate) const;
 
-    //static Line merge(const std::vector<Line>& lines);
-
 private:
     std::string rawXml;
 };
