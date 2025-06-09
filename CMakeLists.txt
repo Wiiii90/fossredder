@@ -30,8 +30,25 @@ add_executable(fossredder
     src/views/ConsoleView.cpp
     src/ocr/TesseractOcrEngine.cpp
     src/poppler/PopplerPdfRenderer.cpp
-    include/views/MainWindow.h
 
+    # UI Widgets
+    src/views/ManageStatementsWidget.cpp
+    src/views/ManageActorsWidget.cpp
+    src/views/ManageCategoriesWidget.cpp
+    src/views/ManagePropertiesWidget.cpp
+    src/views/DashboardWidget.cpp
+    src/views/ManageAnnualCostWidget.cpp
+    src/views/ImportDialog.cpp
+
+    # Headers (optional, for IDEs)
+    include/views/MainWindow.h
+    include/views/ManageStatementsWidget.h
+    include/views/ManageActorsWidget.h
+    include/views/ManageCategoriesWidget.h
+    include/views/ManagePropertiesWidget.h
+    include/views/DashboardWidget.h
+    include/views/ManageAnnualCostWidget.h
+    include/views/ImportDialog.h
 )
 
 # Set the output directory for binaries
