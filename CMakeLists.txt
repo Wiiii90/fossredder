@@ -4,6 +4,12 @@ project(FossRedder)
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 20)
 
+# Qt Integration (Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+
 # Add all source and header files
 add_executable(fossredder
     src/main.cpp
@@ -60,3 +66,6 @@ target_link_libraries(fossredder PRIVATE tinyxml2::tinyxml2)
 # Link ICU
 find_package(ICU REQUIRED COMPONENTS uc i18n)
 target_link_libraries(fossredder PRIVATE ICU::uc ICU::i18n)
+
+# Link Qt6 Widgets
+target_link_libraries(fossredder PRIVATE Qt6::Widgets)

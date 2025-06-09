@@ -1,14 +1,16 @@
 {
-    "name": "fossredder",
-    "version": "1.0.0",
-    "dependencies": [
-        "poppler",
-        "pkgconf",
-        "tesseract",
-        "fontconfig",
-        "tinyxml2",
-        "leptonica",
-        "icu"
-    ],
-    "builtin-baseline": "0c4cf19224a049cf82f4521e29e39f7bd680440c"
+  "name": "fossredder",
+  "version": "1.0.0",
+  "dependencies": [
+    "poppler",
+    "pkgconf",
+    "tesseract",
+    "fontconfig",
+    "tinyxml2",
+    "leptonica",
+    "icu",
+    "qtbase"
+
+  ],
+  "builtin-baseline": "984f9232b2fe0eb94f5e9f161d6c632c581fff0c"
 }

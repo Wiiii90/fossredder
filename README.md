@@ -8,20 +8,23 @@
 - Erstellung von Abrechnungen für einzelne oder alle Immobilien
 - Kategorisierung von Ausgaben mit Markierung als „umlegbar“ oder „nicht umlegbar“
 - Verarbeitung von PDF-Kontoauszügen mit heuristischer Extraktion von Beträgen und Kategorien
-- Visuelle Prüfung extrahierter Inhalte durch den Nutzer
+- KI-gestützte Extraktion und Kategorisierung von Buchungsinformationen (TinyLLaMA, optional)
+- Visuelle Prüfung extrahierter Inhalte durch den Nutzer, inkl. Bestätigung, Korrektur oder Ignorieren
 - Import/Export von CSV- oder Excel-Dateien
 - Backup- und Wiederherstellungsfunktionen
 - Analyse-Tools mit grafischer Auswertung
+- Umschaltbarer Dark-/Lightmode
 - Lokale Datenspeicherung ohne Cloud-Anbindung
 
 ## Technologie-Stack
 
-- **Programmiersprache:** C++17 oder höher
+- **Programmiersprache:** C++20
 - **GUI:** Qt6
-- **Buildsystem:** CMake
+- **Buildsystem:** CMake (Generator: Ninja)
 - **Abhängigkeitsverwaltung:** vcpkg
 - **Datenspeicherung:** SQLite oder JSON
-- **PDF-Verarbeitung**: Poppler, Tesseract, TinyLLaMA
+- **PDF-Verarbeitung:** Poppler, Tesseract, Leptonica
+- **KI/LLM-Integration:** TinyLLaMA (optional)
 - **Plattform:** Windows 10+ (offline)
 
 ## Projektstruktur
@@ -29,40 +32,56 @@
 
 ```
 fossredder/
-├── docs/         # Dokumentation
-├── include/      # Header-Dateien
-│   ├── models/   # Datenmodelle (Property, Tenant, etc.)
-│   ├── views/    # GUI- oder Konsolenansichten
-│   └── controllers/ # Steuerungsklassen
-├── src/          # Quellcode
-│   ├── models/   # Implementierung der Datenmodelle
-│   ├── views/    # Implementierung der Ansichten
-│   └── controllers/ # Implementierung der Steuerung
+├── docs/               # Dokumentation
+├── include/            # Header-Dateien
+│   ├── models/         # Datenmodelle (Property, Tenant, etc.)
+│   ├── views/          # GUI- oder Konsolenansichten
+│   ├── controllers/    # Steuerungsklassen
+│   ├── ocr/            # OCR-Schnittstellen (z.B. IOcrEngine)
+│   └── poppler/        # PDF-Renderer-Schnittstellen (z.B. IPdfRenderer)
+├── src/                # Quellcode
+│   ├── models/         # Implementierung der Datenmodelle
+│   ├── views/          # Implementierung der Ansichten
+│   ├── controllers/    # Implementierung der Steuerung
+│   ├── ocr/            # Implementierung der OCR-Logik (z.B. TesseractOcrEngine)
+│   └── poppler/        # Implementierung der PDF-Renderer (z.B. PopplerPdfRenderer)
 ├── CMakeLists.txt
 └── README.md
 ```
 
 ## Build-Anleitung
 
-1. vcpkg klonen und initialisieren 
+1. **vcpkg klonen und initialisieren**  
+   *(Nur nötig, wenn vcpkg noch nicht vorhanden ist. Überspringen, falls bereits vorhanden oder das Projekt inkl. vcpkg geklont wurde.)*
    ```bash
    git clone https://github.com/microsoft/vcpkg.git
-   ./vcpkg/bootstrap-vcpkg.bat
+   cd vcpkg
+   ./bootstrap-vcpkg.bat
    ```
-2. Qt6 installieren (z. B. via Qt Online Installer oder vcpkg)
-   ```bash
-   ./vcpkg/vcpkg install qt6-base
-   ```
-3. Projekt klonen und CMake konfigurieren:
+2. **Projekt klonen**
    ```bash
    git clone https://github.com/dein-benutzername/fossredder.git
    cd fossredder
-   cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
    ```
-4. Build starten:
+3. **Abhängigkeiten installieren**  
+   *(Alle benötigten Bibliotheken werden automatisch anhand der `vcpkg.json` installiert.)*
    ```bash
-   cmake --build build
+   ../vcpkg/vcpkg install
    ```
+   **Hinweis:** Stelle sicher, dass die Umgebungsvariable oder der CMake-Parameter `CMAKE_TOOLCHAIN_FILE` auf `../vcpkg/scripts/buildsystems/vcpkg.cmake` zeigt.  
+   In Visual Studio 2022 wird dies bei Verwendung von CMake-Projekten und einer vorhandenen `CMakeSettings.json` in der Regel automatisch erkannt.
+
+4. **Projekt mit CMake konfigurieren und bauen**  
+   - **Kommandozeile:**
+     ```bash
+     cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
+     cmake --build build
+     ```
+   - **Visual Studio 2022:**  
+     Öffne das Projektordner direkt in Visual Studio. Die CMake-Integration erkennt die `CMakeSettings.json` und verwendet automatisch die vcpkg-Toolchain.
+
+**Tipp:**  
+Für weitere Details zur Einrichtung siehe die [offizielle vcpkg-Dokumentation](https://learn.microsoft.com/en-us/vcpkg/).
 
 ## Dokumentation
 
