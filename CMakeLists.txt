@@ -26,9 +26,12 @@ add_executable(fossredder
     src/models/Page.cpp
     src/models/BookingGroup.cpp
     src/models/Transaction.cpp
+    src/views/MainWindow.cpp
     src/views/ConsoleView.cpp
     src/ocr/TesseractOcrEngine.cpp
     src/poppler/PopplerPdfRenderer.cpp
+    include/views/MainWindow.h
+
 )
 
 # Set the output directory for binaries
@@ -69,3 +72,14 @@ target_link_libraries(fossredder PRIVATE ICU::uc ICU::i18n)
 
 # Link Qt6 Widgets
 target_link_libraries(fossredder PRIVATE Qt6::Widgets)
+
+# Setze Zielverzeichnis für die Plugins
+set(QT_PLUGINS_DIR "${CMAKE_SOURCE_DIR}/out/build/x64-Release-vcpkg/vcpkg_installed/x64-windows/Qt6/plugins/platforms")
+set(DEPLOY_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/platforms")
+
+add_custom_command(TARGET fossredder POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPLOY_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${QT_PLUGINS_DIR}/qwindows.dll"
+        "${DEPLOY_DIR}/qwindows.dll"
+)
