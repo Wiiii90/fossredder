@@ -44,3 +44,6 @@ LOCAL_APPDATA_FONTCONFIG_CACHE/
 
 # Images
 *.png
+
+# llms
+res/llms/mistral-7b*

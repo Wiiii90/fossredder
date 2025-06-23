@@ -80,11 +80,8 @@ add_executable(fossredder
 
 # === Llama.cpp einbinden ===
 add_subdirectory(extern/llama.cpp)
+set_target_properties(llama PROPERTIES CXX_STANDARD 17)
 target_link_libraries(fossredder PRIVATE llama)
-
-# Set the output directory for binaries
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/build)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/build)
 
 # Include directories
 target_include_directories(fossredder PRIVATE
@@ -92,8 +89,10 @@ target_include_directories(fossredder PRIVATE
     include/models
     include/controllers
     include/views
+    include/managers
     include/ocr
     include/poppler
+    extern/llama.cpp/include
 )
 
 # Link Poppler
@@ -122,8 +121,8 @@ target_link_libraries(fossredder PRIVATE ICU::uc ICU::i18n)
 target_link_libraries(fossredder PRIVATE Qt6::Widgets)
 
 # Setze Zielverzeichnis für die Plugins
-set(QT_PLUGINS_DIR "${CMAKE_SOURCE_DIR}/out/build/x64-Release-vcpkg/vcpkg_installed/x64-windows/Qt6/plugins/platforms")
-set(DEPLOY_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/platforms")
+set(QT_PLUGINS_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/Qt6/plugins/platforms")
+set(DEPLOY_DIR "${CMAKE_BINARY_DIR}/platforms")
 
 add_custom_command(TARGET fossredder POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPLOY_DIR}"
