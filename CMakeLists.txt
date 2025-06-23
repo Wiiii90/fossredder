@@ -78,6 +78,10 @@ add_executable(fossredder
     include/managers/IPropertyManager.h
 )
 
+# === Llama.cpp einbinden ===
+add_subdirectory(extern/llama.cpp)
+target_link_libraries(fossredder PRIVATE llama)
+
 # Set the output directory for binaries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/build)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/build)
