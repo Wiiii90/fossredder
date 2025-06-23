@@ -5,9 +5,9 @@
 
 class Property;
 
-class IPropertyController {
+class IPropertyManager {
 public:
-    virtual ~IPropertyController() = default;
+    virtual ~IPropertyManager() = default;
     virtual void addProperty(const std::string& name, const std::string& address, const std::string& description) = 0;
     virtual std::vector<std::shared_ptr<Property>> getProperties() const = 0;
     virtual void removeProperty(const std::string& name) = 0;

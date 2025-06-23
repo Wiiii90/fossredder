@@ -1,12 +1,12 @@
 #pragma once
-#include "controllers/ICategoryController.h"
+#include "managers/ICategoryManager.h"
 #include <vector>
 #include <memory>
 #include <string>
 
 class Category;
 
-class CategoryController : public ICategoryController {
+class CategoryManager : public ICategoryManager {
 public:
     void addCategory(const std::string& name, bool isAllocatable, const std::string& description = "") override;
     std::vector<std::shared_ptr<Category>> getCategories() const override;

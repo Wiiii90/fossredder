@@ -15,10 +15,7 @@ add_executable(fossredder
     src/main.cpp
 
     # Controllers
-    src/controllers/PropertyController.cpp
     src/controllers/PdfImportController.cpp
-    src/controllers/ActorController.cpp
-    src/controllers/CategoryController.cpp
     src/controllers/CsvImportController.cpp
 
     # Models
@@ -53,6 +50,9 @@ add_executable(fossredder
     src/managers/TransactionManager.cpp
     src/managers/ConfigManager.cpp
     src/managers/BookingGroupManager.cpp
+    src/managers/ActorManager.cpp
+    src/managers/CategoryManager.cpp
+    src/managers/PropertyManager.cpp
 
     # Persistence
     src/persistence/JsonSaver.cpp
@@ -70,6 +70,12 @@ add_executable(fossredder
     include/views/DashboardWidget.h
     include/views/ManageAnnualCostWidget.h
     include/views/ImportDialog.h
+    include/managers/ActorManager.h
+    include/managers/IActorManager.h
+    include/managers/CategoryManager.h
+    include/managers/ICategoryManager.h
+    include/managers/PropertyManager.h
+    include/managers/IPropertyManager.h
 )
 
 # Set the output directory for binaries
