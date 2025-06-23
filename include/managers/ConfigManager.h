@@ -1,6 +1,8 @@
 #pragma once
 #include "managers/IConfigManager.h"
+#include "models/Config.h"
 #include <unordered_map>
+#include <memory>
 
 class ConfigManager : public IConfigManager {
 public:
@@ -12,7 +14,12 @@ public:
     std::optional<std::shared_ptr<Config>> getDefaultConfig() const override;
     std::string getDefaultConfigName() const override;
 
+    void setConfig(const std::shared_ptr<Config>& config);
+    std::shared_ptr<Config> getConfig() const;
+    void clearConfig();
+
 private:
     std::unordered_map<std::string, std::shared_ptr<Config>> configs_;
     std::string defaultConfigName_;
+    std::shared_ptr<Config> config_;
 };

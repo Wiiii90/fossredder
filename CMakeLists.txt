@@ -13,8 +13,15 @@ set(CMAKE_AUTORCC ON)
 # Add all source and header files
 add_executable(fossredder
     src/main.cpp
+
+    # Controllers
     src/controllers/PropertyController.cpp
     src/controllers/PdfImportController.cpp
+    src/controllers/ActorController.cpp
+    src/controllers/CategoryController.cpp
+    src/controllers/CsvImportController.cpp
+
+    # Models
     src/models/Property.cpp
     src/models/PdfExtractedData.cpp
     src/models/Block.cpp
@@ -26,12 +33,13 @@ add_executable(fossredder
     src/models/Page.cpp
     src/models/BookingGroup.cpp
     src/models/Transaction.cpp
+    src/models/Actor.cpp
+    src/models/Category.cpp
+    src/models/Statement.cpp
+
+    # Views
     src/views/MainWindow.cpp
     src/views/ConsoleView.cpp
-    src/ocr/TesseractOcrEngine.cpp
-    src/poppler/PopplerPdfRenderer.cpp
-
-    # UI Widgets
     src/views/ManageStatementsWidget.cpp
     src/views/ManageActorsWidget.cpp
     src/views/ManageCategoriesWidget.cpp
@@ -40,7 +48,20 @@ add_executable(fossredder
     src/views/ManageAnnualCostWidget.cpp
     src/views/ImportDialog.cpp
 
-    # Headers (optional, for IDEs)
+    # Managers
+    src/managers/StatementManager.cpp
+    src/managers/TransactionManager.cpp
+    src/managers/ConfigManager.cpp
+    src/managers/BookingGroupManager.cpp
+
+    # Persistence
+    src/persistence/JsonSaver.cpp
+
+    # OCR & PDF
+    src/ocr/TesseractOcrEngine.cpp
+    src/poppler/PopplerPdfRenderer.cpp
+
+    # Optional: Header-Dateien für IDEs
     include/views/MainWindow.h
     include/views/ManageStatementsWidget.h
     include/views/ManageActorsWidget.h

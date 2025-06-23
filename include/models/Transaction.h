@@ -16,4 +16,5 @@ public:
 
     double parseAmount(const std::string& text) const;
     std::string getBookingDate() const { return bookingDate; }
+    double getAmount() const { return amount; }
 };

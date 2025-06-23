@@ -1,7 +1,7 @@
 #pragma once
-#include "persistence/ISaveManager.h"
+#include "persistence/ISaver.h"
 
-class JsonSaveManager : public ISaveManager {
+class JsonSaver : public ISaver {
 public:
     bool saveToFile(const std::string& path, const AppState& state) override;
     std::optional<AppState> loadFromFile(const std::string& path) override;

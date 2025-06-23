@@ -11,9 +11,14 @@
 #include "ocr/IOcrEngine.h"
 
 PdfImportController::PdfImportController(std::shared_ptr<IOcrEngine> ocrEngine, std::shared_ptr<IPdfRenderer> pdfRenderer)
-    : m_ocrEngine(std::move(ocrEngine)), m_pdfRenderer(std::move(pdfRenderer)) {}
+    : m_ocrEngine(std::move(ocrEngine)), m_pdfRenderer(std::move(pdfRenderer)) {
+}
 
-std::shared_ptr<PdfExtractedData> PdfImportController::extractData(const std::string& filePath) {
+std::shared_ptr<void> PdfImportController::extractData(const std::string& filePath) {
+    return extractPdfData(filePath);
+}
+
+std::shared_ptr<PdfExtractedData> PdfImportController::extractPdfData(const std::string& filePath) {
     ConsoleView consoleView;
     if (!std::filesystem::exists(filePath)) {
         consoleView.displayError("PDF file does not exist: " + filePath);
