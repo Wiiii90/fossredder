@@ -5,6 +5,9 @@
 #include "views/ManageCategoriesWidget.h"
 #include "views/ManagePropertiesWidget.h"
 #include "views/ManageAnnualCostWidget.h"
+#include "managers/ActorManager.h"
+#include "managers/CategoryManager.h"
+#include "managers/PropertyManager.h"
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
@@ -76,14 +79,19 @@ MainWindow::MainWindow(QWidget* parent)
     // Manage Statements view
     ManageStatementsWidget* manageStatementsWidget = new ManageStatementsWidget(this);
 
+    // Manager creation
+    auto actorManager = std::make_shared<ActorManager>();
+    auto categoryManager = std::make_shared<CategoryManager>();
+    auto propertyManager = std::make_shared<PropertyManager>();
+
     // Manage Actors view
-    ManageActorsWidget* manageActorsWidget = new ManageActorsWidget(this);
+    ManageActorsWidget* manageActorsWidget = new ManageActorsWidget(actorManager, this);
 
     // Manage Categories view
-    ManageCategoriesWidget* manageCategoriesWidget = new ManageCategoriesWidget(this);
+    ManageCategoriesWidget* manageCategoriesWidget = new ManageCategoriesWidget(categoryManager, this);
 
     // Manage Properties view
-    ManagePropertiesWidget* managePropertiesWidget = new ManagePropertiesWidget(this);
+    ManagePropertiesWidget* managePropertiesWidget = new ManagePropertiesWidget(propertyManager, this);
 
     // Manage Annual Cost Statements view
     ManageAnnualCostWidget* manageAnnualCostWidget = new ManageAnnualCostWidget(this);
