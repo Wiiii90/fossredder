@@ -8,6 +8,9 @@
 #include "managers/ActorManager.h"
 #include "managers/CategoryManager.h"
 #include "managers/PropertyManager.h"
+#include "controllers/PdfImportController.h"
+#include "ocr/TesseractOcrEngine.h"
+#include "poppler/PopplerPdfRenderer.h"
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
@@ -76,13 +79,18 @@ MainWindow::MainWindow(QWidget* parent)
     // Dashboard view
     DashboardWidget* dashboardWidget = new DashboardWidget(this);
 
-    // Manage Statements view
-    ManageStatementsWidget* manageStatementsWidget = new ManageStatementsWidget(this);
-
     // Manager creation
     auto actorManager = std::make_shared<ActorManager>();
     auto categoryManager = std::make_shared<CategoryManager>();
     auto propertyManager = std::make_shared<PropertyManager>();
+
+    // PDF Controller creation
+    auto ocrEngine = std::make_shared<TesseractOcrEngine>();
+    auto pdfRenderer = std::make_shared<PopplerPdfRenderer>();
+    auto pdfController = std::make_shared<PdfImportController>(ocrEngine, pdfRenderer);
+
+    // Manage Statements view
+    ManageStatementsWidget* manageStatementsWidget = new ManageStatementsWidget(pdfController, this);
 
     // Manage Actors view
     ManageActorsWidget* manageActorsWidget = new ManageActorsWidget(actorManager, this);

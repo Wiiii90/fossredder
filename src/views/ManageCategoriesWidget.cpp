@@ -17,9 +17,9 @@
 namespace {
 struct CategoryDialogResult {
     QString name;
-    bool isAllocatable;
+    bool isAllocatable = true;
     QString description;
-    bool accepted;
+    bool accepted = false;
 };
 
 CategoryDialogResult showCategoryDialog(QWidget* parent, const QString& title, const Category* existing = nullptr) {

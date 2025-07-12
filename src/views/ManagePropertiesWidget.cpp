@@ -18,7 +18,7 @@ struct PropertyDialogResult {
     QString name;
     QString address;
     QString description;
-    bool accepted;
+    bool accepted = false;
 };
 
 PropertyDialogResult showPropertyDialog(QWidget* parent, const QString& title, const Property* existing = nullptr) {

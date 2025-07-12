@@ -19,6 +19,7 @@ struct ActorDialogResult {
     QString type;
     QString description;
     bool accepted;
+    ActorDialogResult() : accepted(false) {}
 };
 
 ActorDialogResult showActorDialog(QWidget* parent, const QString& title, const Actor* existing = nullptr) {

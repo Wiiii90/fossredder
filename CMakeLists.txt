@@ -44,6 +44,7 @@ add_executable(fossredder
     src/views/DashboardWidget.cpp
     src/views/ManageAnnualCostWidget.cpp
     src/views/ImportDialog.cpp
+    src/views/TransactionReviewDialog.cpp
 
     # Managers
     src/managers/StatementManager.cpp
@@ -70,6 +71,7 @@ add_executable(fossredder
     include/views/DashboardWidget.h
     include/views/ManageAnnualCostWidget.h
     include/views/ImportDialog.h
+    include/views/TransactionReviewDialog.h
     include/managers/ActorManager.h
     include/managers/IActorManager.h
     include/managers/CategoryManager.h
@@ -78,10 +80,6 @@ add_executable(fossredder
     include/managers/IPropertyManager.h
 )
 
-# === Llama.cpp einbinden ===
-add_subdirectory(extern/llama.cpp)
-set_target_properties(llama PROPERTIES CXX_STANDARD 17)
-target_link_libraries(fossredder PRIVATE llama)
 
 # Include directories
 target_include_directories(fossredder PRIVATE
@@ -92,7 +90,6 @@ target_include_directories(fossredder PRIVATE
     include/managers
     include/ocr
     include/poppler
-    extern/llama.cpp/include
 )
 
 # Link Poppler

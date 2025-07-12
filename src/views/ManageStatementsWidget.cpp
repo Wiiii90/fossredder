@@ -1,5 +1,13 @@
+#include "models/PdfExtractedData.h"
+#include "models/BookingGroup.h"
 #include "views/ManageStatementsWidget.h"
 #include "views/ImportDialog.h"
+#include "views/TransactionReviewDialog.h"
+#include "controllers/PdfImportController.h"
+#include <QApplication>
+#include <QProgressDialog>
+#include <QMessageBox>
+#include <QFileDialog>
 #include <QComboBox>
 #include <QLineEdit>
 #include <QPushButton>
@@ -9,8 +17,8 @@
 #include <QHBoxLayout>
 #include <QTableWidget>
 
-ManageStatementsWidget::ManageStatementsWidget(QWidget* parent)
-    : QWidget(parent)
+ManageStatementsWidget::ManageStatementsWidget(std::shared_ptr<PdfImportController> pdfController, QWidget* parent)
+    : QWidget(parent), pdfController_(std::move(pdfController))
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
@@ -95,9 +103,46 @@ ManageStatementsWidget::ManageStatementsWidget(QWidget* parent)
 
     // Import button opens ImportDialog
     connect(importStatementBtn_, &QPushButton::clicked, this, [this]() {
-        ImportDialog dlg(this);
-        if (dlg.exec() == QDialog::Accepted) {
-            // TODO: Start import process with dlg.selectedFile(), dlg.selectedType(), etc.
+        QString filePath = QFileDialog::getOpenFileName(this, tr("Select PDF"), QString(), tr("PDF Files (*.pdf)"));
+        if (filePath.isEmpty())
+            return;
+
+        // Show loading bar
+        QProgressDialog progress(tr("Importing PDF..."), tr("Cancel"), 0, 0, this);
+        progress.setWindowModality(Qt::WindowModal);
+        progress.show();
+        QApplication::processEvents();
+
+        try {
+            auto pdfData = pdfController_->extractPdfData(filePath.toStdString());
+            progress.close();
+
+            auto pages = pdfData->getPages();
+            auto groups = pdfData->getBookingGroups();
+            int transactionCount = 0;
+            for (const auto& group : groups) {
+                transactionCount += group.getTransactions().size();
+            }
+            QMessageBox::information(this, tr("Import Success"),
+                tr("PDF import completed.\n"
+                   "Pages: %1\n"
+                   "Booking Groups: %2\n"
+                   "Transactions: %3")
+                    .arg(pages.size())
+                    .arg(groups.size())
+                    .arg(transactionCount));
+
+            QVector<Transaction> allTransactions;
+            for (const auto& group : groups) {
+                for (const auto& t : group.getTransactions()) {
+                    allTransactions.append(t);
+                }
+            }
+            TransactionReviewDialog dlg(allTransactions, this);
+            dlg.exec();
+        } catch (const std::exception& ex) {
+            progress.close();
+            QMessageBox::critical(this, tr("Import Error"), QString::fromStdString(ex.what()));
         }
-        });
+    });
 }
