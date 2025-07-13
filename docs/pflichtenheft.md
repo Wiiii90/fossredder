@@ -33,16 +33,19 @@ Die Anwendung „FOSSredder“ dient der lokalen Verwaltung von Ausgaben für pr
 - Verarbeitung erfolgt in einer mehrstufigen Pipeline:
   1. PDF zu Bild-Konvertierung: Mithilfe der Bibliothek **Poppler** werden PDF-Dokumente in Bildformate umgewandelt, um eine präzisere Verarbeitung zu ermöglichen.
   2. Optische Zeichenerkennung (OCR): Die Bilder werden mit **Tesseract** analysiert, um Textinformationen zu extrahieren. Dies verbessert die Erkennung von Buchungsinformationen und bereitet die Daten für die nächste Verarbeitungsstufe vor.
-  3. Extraktion von Buchungsinformationen mit LLM: Ein leichtgewichtiges Sprachmodell (**TinyLLaMA**) wird verwendet, um die extrahierten Daten zu analysieren und Buchungsinformationen wie Betrag, Datum, Kategorie und zugehörige Immobilie zu identifizieren.
+  3. Extraktion von Buchungsinformationen mit LLM: Ein leistungsfähiges Sprachmodell (**Mistral**) wird verwendet, um die extrahierten Daten zu analysieren und Buchungsinformationen wie Betrag, Datum, Kategorie und zugehörige Immobilie zu identifizieren.
      - Das Modell schlägt dem Nutzer eine mögliche Buchung vor.
      - Der Nutzer kann die Vorschläge überprüfen, anpassen und final bestätigen, bevor die Daten gespeichert werden.
+- Die Integration des Mistral-Modells erfolgt über die Bibliothek **llama.cpp** (siehe `extern/llama.cpp`), die eine flexible und skalierbare Einbindung verschiedener LLMs ermöglicht.
+  - Die Modellwahl ist konfigurierbar; weitere Modelle können bei Bedarf eingebunden werden.
+  - Die Architektur unterstützt sowohl lokale als auch serverbasierte Inferenz, wodurch eine spätere Skalierung (z. B. für größere Datenmengen oder parallele Verarbeitung) möglich ist.
+  - Die Kommunikation mit dem Modell erfolgt über klar definierte Schnittstellen (`include/llama/ILlamaEngine.h`, `src/llama/LlamaEngine.cpp`), die eine einfache Erweiterung und Anpassung erlauben.
 - Benutzerprüfung mit Möglichkeit zur:
   - Bestätigung
   - Korrektur
   - Ignorieren
 - Jeder Eintrag bleibt nachvollziehbar auf ursprünglichen Textblock rückverfolgbar.
 - Möglichkeit zur Markierung irrelevanter Textstellen durch Nutzer.
-
 
 #### Excel-/CSV-Verarbeitung
 - Import strukturierter Excel-/CSV-Dateien mit fixem Format
@@ -82,47 +85,60 @@ Die Anwendung „FOSSredder“ dient der lokalen Verwaltung von Ausgaben für pr
 - Sprache:
   - GUI: Deutsch
   - Codebasis: Englisch
-- Datenspeicherung lokal (SQLite oder JSON)
+- Datenspeicherung lokal (JSON)
 - Erweiterbarkeit:
   - Grafische Auswertungen (z. B. interaktive Diagramme)
-  - Scanner-Integration
-  - Optionale Cloud-Anbindung
 - Kein automatisches Buchen: Nutzer bestätigt jede Ausgabe
 - Kein regex-basierter Parser: Stattdessen adaptive Heuristik
 
 ## 3. Systemarchitektur (geplant)
 
-- Programmiersprache: C++17 oder höher
+- Programmiersprache: C++20
 - GUI-Toolkit: Qt6
-- Buildsystem: CMake
+- Buildsystem: CMake (ab Version 3.15, Generator: Ninja)
 - Abhängigkeitsverwaltung: vcpkg
-- Datenhaltung: SQLite oder JSON
+- Datenhaltung: JSON
+- KI-Integration: 
+  - Die LLM-Komponente ist modular aufgebaut und befindet sich im Ordner `extern/llama.cpp`.
+  - Die Schnittstellen zur KI sind in `include/llama/ILlamaEngine.h` und `src/llama/LlamaEngine.cpp` implementiert.
+  - Die Modellkonfiguration und -auswahl erfolgt über die Projektkonfiguration und kann flexibel angepasst werden.
+  - Die Architektur erlaubt den Austausch des Modells (z. B. Wechsel von Mistral zu Llama 3 oder anderen GGUF-kompatiblen Modellen) ohne größere Codeänderungen.
 - Projektstruktur:
 ```
-fossredder/
-├── docs/         # Dokumentation
-├── include/      # Header-Dateien
-│   ├── models/   # Datenmodelle (Property, Tenant, etc.)
-│   ├── views/    # GUI- oder Konsolenansichten
-│   └── controllers/ # Steuerungsklassen
-├── src/          # Quellcode
-│   ├── models/   # Implementierung der Datenmodelle
-│   ├── views/    # Implementierung der Ansichten
-│   └── controllers/ # Implementierung der Steuerung
-├── CMakeLists.txt
+fossredder/ 
+├── docs/             # Dokumentation 
+├── include/          # Header-Dateien 
+│   ├── models/       # Datenmodelle (Property, Tenant, etc.) 
+│   ├── views/        # GUI- oder Konsolenansichten 
+│   ├── controllers/  # Steuerungsklassen 
+│   ├── managers/     # Datenmanagement (z. B. für Immobilien, Auszüge)
+│   ├── persistence/  # Persistenzschicht (JSON)
+│   ├── poppler/      # Schnittstellen für PDF-Verarbeitung
+│   ├── ocr/          # Schnittstellen für OCR-Verarbeitung
+│   └── llama/        # Schnittstellen und Engines für LLM-Integration 
+├── src/              # Quellcode 
+│   ├── models/       # Implementierung der Datenmodelle 
+│   ├── views/        # Implementierung der Ansichten 
+│   ├── controllers/  # Implementierung der Steuerung 
+│   ├── managers/     # Implementierung der Datenmanagement-Klassen
+│   ├── persistence/  # Implementierung der Persistenzschicht
+│   ├── poppler/      # Implementierung der PDF-Verarbeitung
+│   ├── ocr/          # Implementierung der OCR-Verarbeitung
+│   └── llama/        # Implementierung der LLM-Engine 
+├── extern/llama.cpp/ # Externe Bibliothek für LLMs (z. B. Mistral, Llama, etc.) 
+├── CMakeLists.txt 
 └── README.md
 ```
-
 
 ## 4. Benutzeroberfläche (Skizze)
 
 - Dashboard mit Übersicht aktueller Einnahmen/Ausgaben
 - Navigationsleiste mit Zugriff auf:
-- Immobilien
-- Import
-- Kategorien
-- Abrechnungen
-- Analysen
+  - Immobilien
+  - Import
+  - Kategorien
+  - Abrechnungen
+  - Analysen
 - Export-/Backup-Schaltflächen oben rechts
 - Filter- und Suchfunktionen in allen Datenansichten
 
@@ -135,10 +151,10 @@ fossredder/
 
 ## 6. Weiteres
 
-- FOSS-Lizenzierung (MIT oder GPLv3)
+- FOSS-Lizenzierung (MIT)
 - Fokus auf Transparenz und Sicherheit
 - Volle lokale Kontrolle über Daten
 - Datenschutz: Keine Netzübertragung, keine Cloudbindung
 - Nachvollziehbarkeit: Jeder Verarbeitungsschritt einsehbar und rückverfolgbar
 
-Letzte Aktualisierung: 2025-04-18
+Letzte Aktualisierung: 2025-07-13
