@@ -62,6 +62,9 @@ add_executable(fossredder
     src/ocr/TesseractOcrEngine.cpp
     src/poppler/PopplerPdfRenderer.cpp
 
+    # Llama
+    src/llama/LlamaEngine.cpp
+
     # Optional: Header-Dateien für IDEs
     include/views/MainWindow.h
     include/views/ManageStatementsWidget.h
@@ -80,7 +83,6 @@ add_executable(fossredder
     include/managers/IPropertyManager.h
 )
 
-
 # Include directories
 target_include_directories(fossredder PRIVATE
     include
@@ -90,6 +92,7 @@ target_include_directories(fossredder PRIVATE
     include/managers
     include/ocr
     include/poppler
+    extern/llama.cpp/include
 )
 
 # Link Poppler
@@ -116,6 +119,13 @@ target_link_libraries(fossredder PRIVATE ICU::uc ICU::i18n)
 
 # Link Qt6 Widgets
 target_link_libraries(fossredder PRIVATE Qt6::Widgets)
+qt6_wrap_cpp(MOC_SRCS include/controllers/PdfImportController.h)
+target_sources(fossredder PRIVATE ${MOC_SRCS})
+
+# Link Llama
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(extern/llama.cpp)
+target_link_libraries(fossredder PRIVATE llama)
 
 # Setze Zielverzeichnis für die Plugins
 set(QT_PLUGINS_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/Qt6/plugins/platforms")
@@ -127,3 +137,4 @@ add_custom_command(TARGET fossredder POST_BUILD
         "${QT_PLUGINS_DIR}/qwindows.dll"
         "${DEPLOY_DIR}/qwindows.dll"
 )
+

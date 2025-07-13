@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "controllers/PdfImportController.h"
 #include "models/PdfExtractedData.h"
 #include "models/Header.h"
 #include "models/Block.h"
@@ -6,12 +7,22 @@
 #include "models/Transaction.h"
 #include "models/BookingGroup.h"
 #include "views/ConsoleView.h"
-#include "controllers/PdfImportController.h"
 #include "poppler/IPdfRenderer.h"
 #include "ocr/IOcrEngine.h"
+#include "llama/ILlamaEngine.h"
+#include <QDebug>
+#include <filesystem>
 
-PdfImportController::PdfImportController(std::shared_ptr<IOcrEngine> ocrEngine, std::shared_ptr<IPdfRenderer> pdfRenderer)
-    : m_ocrEngine(std::move(ocrEngine)), m_pdfRenderer(std::move(pdfRenderer)) {
+PdfImportController::PdfImportController(
+    std::shared_ptr<IOcrEngine> ocrEngine,
+    std::shared_ptr<IPdfRenderer> pdfRenderer,
+    std::shared_ptr<ILlamaEngine> llamaEngine,
+    QObject* parent)
+    : QObject(parent),
+      ocrEngine_(std::move(ocrEngine)),
+      pdfRenderer_(std::move(pdfRenderer)),
+      llamaEngine_(std::move(llamaEngine))
+{
 }
 
 std::shared_ptr<void> PdfImportController::extractData(const std::string& filePath) {
@@ -27,25 +38,21 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractPdfData(const std:
     const std::string tessdataPath = "C:/coding/fossredder/res/tessdata/";
     const std::string outputPrefix = "page";
 
-    std::vector<std::string> imageFiles = m_pdfRenderer->renderToImages(filePath, outputPrefix);
+    std::vector<std::string> imageFiles = pdfRenderer_->renderToImages(filePath, outputPrefix);
 
     std::vector<std::shared_ptr<Page>> allPages;
-    std::vector<Transaction> allTransactions;
-
     for (size_t i = 0; i < imageFiles.size(); ++i) {
         try {
-            std::string xmlContent = m_ocrEngine->recognizeAltoXml(imageFiles[i], tessdataPath);
+            std::string xmlContent = ocrEngine_->recognizeAltoXml(imageFiles[i], tessdataPath);
 
             std::vector<std::string> headerKeywords = {
                 "Angaben zu den Umsätzen", "Valuta", "zu Ihren Lasten", "zu Ihren Gunsten"
             };
-
             std::vector<std::string> footerKeywords = {
                 "Folgeseite", "Neuer Kontostand", "Guthaben sind als Einlagen"
             };
 
             auto page = std::make_shared<Page>(xmlContent, static_cast<int>(i + 1), headerKeywords, footerKeywords);
-
             allPages.push_back(page);
         }
         catch (const std::exception& e) {
@@ -55,6 +62,53 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractPdfData(const std:
 
     std::vector<BookingGroup> bookingGroups = BookingGroup::extractBookingGroups(allPages);
 
+    std::vector<std::shared_ptr<Transaction>> allTransactions;
+    for (auto& group : bookingGroups) {
+        for (const auto& tx : group.getTransactions()) {
+            allTransactions.push_back(std::make_shared<Transaction>(tx));
+        }
+    }
+
+    // Debug-Ausgabe vor Signal
+    qDebug() << "PdfImportController: Anzahl Transaktionen:" << allTransactions.size();
+    for (size_t i = 0; i < allTransactions.size(); ++i) {
+        if (!allTransactions[i]) {
+            qDebug() << "Transaktion" << i << "ist nullptr!";
+        } else {
+            qDebug() << "Transaktion" << i
+                     << "BookingDate:" << QString::fromStdString(allTransactions[i]->bookingDate)
+                     << "AmountText:" << QString::fromStdString(allTransactions[i]->amountText);
+        }
+    }
+    emit transactionsExtracted(allTransactions);
+
     auto pdfData = std::make_shared<PdfExtractedData>(filePath, allPages, bookingGroups);
+
+    qDebug() << "[DEBUG] Vor Llama: Anzahl Transaktionen:" << allTransactions.size();
+    for (size_t i = 0; i < allTransactions.size(); ++i) {
+        if (!allTransactions[i]) {
+            qDebug() << "[DEBUG] Vor Llama: Transaktion" << i << "ist nullptr!";
+        } else {
+            qDebug() << "[DEBUG] Vor Llama: Transaktion" << i
+                     << "BookingDate:" << QString::fromStdString(allTransactions[i]->bookingDate)
+                     << "AmountText:" << QString::fromStdString(allTransactions[i]->amountText);
+        }
+    }
+
+    if (llamaEngine_) {
+        llamaEngine_->enrichTransactions(allTransactions);
+    }
+
+    qDebug() << "[DEBUG] Nach Llama: Anzahl Transaktionen:" << allTransactions.size();
+    for (size_t i = 0; i < allTransactions.size(); ++i) {
+        if (!allTransactions[i]) {
+            qDebug() << "[DEBUG] Nach Llama: Transaktion" << i << "ist nullptr!";
+        } else {
+            qDebug() << "[DEBUG] Nach Llama: Transaktion" << i
+                     << "BookingDate:" << QString::fromStdString(allTransactions[i]->bookingDate)
+                     << "AmountText:" << QString::fromStdString(allTransactions[i]->amountText);
+        }
+    }
+
     return pdfData;
 }

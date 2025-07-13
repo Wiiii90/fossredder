@@ -2,6 +2,8 @@
 #include "models/Transaction.h"
 #include "models/BookingGroup.h"
 
+Transaction::Transaction() : amount(0.0) {}
+
 Transaction::Transaction(const std::string& bookingDate,
     const std::string& valutaDate,
     const std::string& details,
@@ -10,7 +12,18 @@ Transaction::Transaction(const std::string& bookingDate,
     valutaDate(valutaDate),
     details(details),
     amountText(amountText),
-    amount(parseAmount(amountText))
+    amount(0.0),
+    extractedFields()
+{
+}
+
+Transaction::Transaction(const Transaction& other)
+    : bookingDate(other.bookingDate),
+    valutaDate(other.valutaDate),
+    details(other.details),
+    amountText(other.amountText),
+    amount(other.amount),
+    extractedFields(other.extractedFields)
 {
 }
 
@@ -45,4 +58,12 @@ double Transaction::parseAmount(const std::string& text) const
     }
     if (negative) value = -value;
     return value;
+}
+
+double Transaction::getAmount() const {
+    return amount;
+}
+
+std::string Transaction::getBookingDate() const {
+    return bookingDate;
 }

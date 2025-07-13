@@ -11,6 +11,7 @@
 #include "controllers/PdfImportController.h"
 #include "ocr/TesseractOcrEngine.h"
 #include "poppler/PopplerPdfRenderer.h"
+#include "llama/LlamaEngine.h"
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
@@ -87,7 +88,8 @@ MainWindow::MainWindow(QWidget* parent)
     // PDF Controller creation
     auto ocrEngine = std::make_shared<TesseractOcrEngine>();
     auto pdfRenderer = std::make_shared<PopplerPdfRenderer>();
-    auto pdfController = std::make_shared<PdfImportController>(ocrEngine, pdfRenderer);
+    auto llamaEngine = std::make_shared<LlamaEngine>("C:/coding/fossredder/res/llms/mistral-7b-v0.1.Q4_K_M.gguf");
+    auto pdfController = std::make_shared<PdfImportController>(ocrEngine, pdfRenderer, llamaEngine);
 
     // Manage Statements view
     ManageStatementsWidget* manageStatementsWidget = new ManageStatementsWidget(pdfController, this);

@@ -1,6 +1,7 @@
 #pragma once
 #include <QDialog>
-#include <QVector>
+#include <vector>
+#include <memory>
 #include "models/Transaction.h"
 
 class QLabel;
@@ -9,16 +10,19 @@ class QPushButton;
 class TransactionReviewDialog : public QDialog {
     Q_OBJECT
 public:
-    TransactionReviewDialog(const QVector<Transaction>& transactions, QWidget* parent = nullptr);
-
+    TransactionReviewDialog(const std::vector<std::shared_ptr<Transaction>>& transactions, QWidget* parent = nullptr);
 private:
-    int currentIndex_;
-    QVector<Transaction> transactions_;
-    QLabel* detailsLabel_;
-    QPushButton* nextBtn_;
-    QPushButton* prevBtn_;
-    QPushButton* acceptBtn_;
-    QPushButton* ignoreBtn_;
+    std::vector<std::shared_ptr<Transaction>> transactions_;
+    int currentIndex_ = 0; // NEU: Index für Navigation
 
-    void updateView();
+    // UI-Elemente für Navigation
+    QWidget* transactionWidget_ = nullptr;
+    QPushButton* prevBtn_ = nullptr;
+    QPushButton* nextBtn_ = nullptr;
+    QPushButton* okBtn_ = nullptr;
+
+    void showTransaction(int index);
+private slots:
+    void onPrev();
+    void onNext();
 };

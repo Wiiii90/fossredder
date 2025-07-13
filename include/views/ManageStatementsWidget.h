@@ -1,24 +1,27 @@
 #pragma once
-#include "controllers/PdfImportController.h"
 #include <QWidget>
+#include <QComboBox>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QListWidget>
+#include <QLabel>
+#include <QTableWidget>
 #include <memory>
+#include <vector>
+#include "models/Transaction.h"
+#include "controllers/PdfImportController.h"
 
-class QComboBox;
-class QLineEdit;
-class QPushButton;
-class QListWidget;
-class QLabel;
-class QTableWidget;
-
-class ManageStatementsWidget : public QWidget
-{
+class ManageStatementsWidget : public QWidget {
     Q_OBJECT
-
 public:
     explicit ManageStatementsWidget(std::shared_ptr<PdfImportController> pdfController, QWidget* parent = nullptr);
 
+private slots:
+    void onTransactionsExtracted(const std::vector<std::shared_ptr<Transaction>>& transactions);
+
 private:
     std::shared_ptr<PdfImportController> pdfController_;
+
     QComboBox* propertyFilter_;
     QComboBox* actorFilter_;
     QLineEdit* searchEdit_;
