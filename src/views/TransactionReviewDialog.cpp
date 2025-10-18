@@ -1,12 +1,11 @@
 #include "views/TransactionReviewDialog.h"
 #include <QFormLayout>
+#include <QTextEdit>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QInputDialog>
-#include <QMessageBox>
 #include "models/Transaction.h"
 
 TransactionReviewDialog::TransactionReviewDialog(
@@ -39,7 +38,6 @@ TransactionReviewDialog::TransactionReviewDialog(
 }
 
 void TransactionReviewDialog::showTransaction(int index) {
-    // Lösche alten Inhalt
     delete transactionWidget_->layout();
     QVBoxLayout* layout = new QVBoxLayout(transactionWidget_);
 
@@ -55,73 +53,35 @@ void TransactionReviewDialog::showTransaction(int index) {
 
     QFormLayout* form = new QFormLayout();
 
-    auto addField = [&](const QString& label, std::string& value) {
-        QLineEdit* edit = new QLineEdit(QString::fromStdString(value), transactionWidget_);
-        form->addRow(label, edit);
-        connect(edit, &QLineEdit::textChanged, this, [tx, &value](const QString& text) {
-            value = text.toStdString();
-            });
-        };
-    addField(tr("Booking Date"), tx->bookingDate);
-    addField(tr("Valuta Date"), tx->valutaDate);
-    addField(tr("Amount"), tx->amountText);
-    addField(tr("Details"), tx->details);
+    // Standardfelder mit QLineEdit
+    QLineEdit* bookingDateEdit = new QLineEdit(QString::fromStdString(tx->bookingDate), transactionWidget_);
+    form->addRow(tr("Booking Date"), bookingDateEdit);
+    connect(bookingDateEdit, &QLineEdit::textChanged, this, [tx](const QString& text) {
+        tx->bookingDate = text.toStdString();
+    });
 
-    // Dynamisch extrahierte Felder
-    for (auto it = tx->extractedFields.begin(); it != tx->extractedFields.end(); ++it) {
-        QString key = QString::fromStdString(it->first);
-        QLineEdit* edit = new QLineEdit(QString::fromStdString(it->second), transactionWidget_);
-        form->addRow(key, edit);
-        connect(edit, &QLineEdit::textChanged, this, [tx, key](const QString& text) {
-            tx->extractedFields[key.toStdString()] = text.toStdString();
-            });
-    }
+    QLineEdit* valutaDateEdit = new QLineEdit(QString::fromStdString(tx->valutaDate), transactionWidget_);
+    form->addRow(tr("Valuta Date"), valutaDateEdit);
+    connect(valutaDateEdit, &QLineEdit::textChanged, this, [tx](const QString& text) {
+        tx->valutaDate = text.toStdString();
+    });
 
-    // Buttons für Feld hinzufügen/entfernen
-    QHBoxLayout* fieldButtons = new QHBoxLayout();
-    QPushButton* addFieldBtn = new QPushButton(tr("Feld hinzufügen"), transactionWidget_);
-    QPushButton* removeFieldBtn = new QPushButton(tr("Feld entfernen"), transactionWidget_);
-    fieldButtons->addWidget(addFieldBtn);
-    fieldButtons->addWidget(removeFieldBtn);
-    form->addRow(fieldButtons);
+    QLineEdit* amountEdit = new QLineEdit(QString::fromStdString(tx->amountText), transactionWidget_);
+    form->addRow(tr("Amount"), amountEdit);
+    connect(amountEdit, &QLineEdit::textChanged, this, [tx](const QString& text) {
+        tx->amountText = text.toStdString();
+    });
 
-    connect(addFieldBtn, &QPushButton::clicked, this, [form, tx, transactionWidget_ = transactionWidget_]() {
-        bool ok;
-        QString key = QInputDialog::getText(transactionWidget_, tr("Feld hinzufügen"), tr("Feldname:"), QLineEdit::Normal, "", &ok);
-        if (ok && !key.isEmpty()) {
-            QLineEdit* edit = new QLineEdit(transactionWidget_);
-            form->addRow(key, edit);
-            tx->extractedFields[key.toStdString()] = "";
-            QObject::connect(edit, &QLineEdit::textChanged, transactionWidget_, [tx, key](const QString& text) {
-                tx->extractedFields[key.toStdString()] = text.toStdString();
-                });
-        }
-        });
-
-    connect(removeFieldBtn, &QPushButton::clicked, this, [form, tx, transactionWidget_ = transactionWidget_]() {
-        bool ok;
-        QString key = QInputDialog::getText(transactionWidget_, tr("Feld entfernen"), tr("Feldname zum Entfernen:"), QLineEdit::Normal, "", &ok);
-        if (ok && !key.isEmpty()) {
-            tx->extractedFields.erase(key.toStdString());
-            // UI-Entfernung: Findet das passende Widget und entfernt es
-            for (int i = 0; i < form->rowCount(); ++i) {
-                if (form->itemAt(i, QFormLayout::LabelRole)) {
-                    QLabel* label = qobject_cast<QLabel*>(form->itemAt(i, QFormLayout::LabelRole)->widget());
-                    if (label && label->text() == key) {
-                        QWidget* field = form->itemAt(i, QFormLayout::FieldRole)->widget();
-                        form->removeRow(i);
-                        if (field) field->deleteLater();
-                        if (label) label->deleteLater();
-                        break;
-                    }
-                }
-            }
-        }
-        });
+    // Details-Feld: mehrzeilig und größer
+    QTextEdit* detailsEdit = new QTextEdit(QString::fromStdString(tx->details), transactionWidget_);
+    detailsEdit->setMinimumHeight(120);
+    form->addRow(tr("Details"), detailsEdit);
+    connect(detailsEdit, &QTextEdit::textChanged, this, [tx, detailsEdit]() {
+        tx->details = detailsEdit->toPlainText().toStdString();
+    });
 
     layout->addLayout(form);
 
-    // Navigation Buttons aktivieren/deaktivieren
     prevBtn_->setEnabled(currentIndex_ > 0);
     nextBtn_->setEnabled(currentIndex_ < static_cast<int>(transactions_.size()) - 1);
 }

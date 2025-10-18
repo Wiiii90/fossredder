@@ -1,122 +1,107 @@
 #include "llama/LlamaEngine.h"
+#include "llama/prompts/Prompts.h"
 #include "models/Transaction.h"
 #include "llama.h"
-#include <map>
+#include "util/OutputParser.h"
+#include <QDebug>
 #include <string>
-#include <regex>
-#include <memory>
-#include <stdexcept>
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <random>
+#include <algorithm>
+
+llama_sampler* sampler_ = nullptr;
 
 LlamaEngine::LlamaEngine(const std::string& modelPath)
-    : model_(nullptr), ctx_(nullptr), modelPath_(modelPath)
-{
-    model_ = llama_load_model_from_file(modelPath_.c_str(), llama_model_default_params());
-    if (!model_) {
-        throw std::runtime_error("Failed to load Llama model: " + modelPath_);
-    }
-    ctx_ = llama_new_context_with_model(model_, llama_context_default_params());
-    if (!ctx_) {
-        llama_free_model(model_);
-        throw std::runtime_error("Failed to create Llama context with model: " + modelPath_);
-    }
+	: model_(nullptr), ctx_(nullptr), modelPath_(modelPath) {
+	llama_backend_init();
+	model_ = llama_load_model_from_file(modelPath.c_str(), llama_model_default_params());
+	if (!model_) throw std::runtime_error("Failed to load model: " + modelPath);
+
+	llama_context_params params = llama_context_default_params();
+	params.n_ctx = 4096;
+	params.n_threads = 8;
+	ctx_ = llama_new_context_with_model(model_, params);
+	if (!ctx_) throw std::runtime_error("Failed to create context with model: " + modelPath);
+
+	llama_memory_clear(llama_get_memory(ctx_), false);
+
+	llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
+	sampler_ = llama_sampler_chain_init(sparams);
+	llama_sampler_chain_add(sampler_, llama_sampler_init_top_k(60));
+	llama_sampler_chain_add(sampler_, llama_sampler_init_top_p(0.95f, 1));
+	llama_sampler_chain_add(sampler_, llama_sampler_init_temp(0.9f));
+	llama_sampler_chain_add(sampler_, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
+
+	qDebug() << "LlamaEngine: loaded model and context from" << QString::fromStdString(modelPath);
+	qDebug() << "LlamaEngine: n_ctx=" << params.n_ctx << ", n_threads=" << params.n_threads;
 }
 
 LlamaEngine::~LlamaEngine() {
-    if (ctx_) {
-        llama_free(ctx_);
-        ctx_ = nullptr;
-    }
-    if (model_) {
-        llama_free_model(model_);
-        model_ = nullptr;
-    }
+	if (sampler_) llama_sampler_free(sampler_);
+	if (ctx_) llama_free(ctx_);
+	if (model_) llama_free_model(model_);
+	llama_backend_free();
 }
 
-static std::string runLlamaPrompt(llama_context* ctx, const std::string& prompt) {
-    if (!ctx) throw std::runtime_error("Llama context is not initialized!");
-
-    const llama_model* model = llama_get_model(ctx);
-    const llama_vocab* vocab = llama_model_get_vocab(model);
-
-    // Tokenize prompt
-    std::vector<llama_token> tokens(prompt.size() + 8);
-    int n_tokens = llama_tokenize(
-        vocab,
-        prompt.c_str(),
-        static_cast<int32_t>(prompt.size()),
-        tokens.data(),
-        static_cast<int32_t>(tokens.size()),
-        true,
-        false
-    );
-    if (n_tokens < 0) n_tokens = -n_tokens;
-    tokens.resize(n_tokens);
-
-    // Prepare batch
-    llama_batch batch = llama_batch_init(static_cast<int32_t>(tokens.size()), 0, 1);
-    for (int i = 0; i < n_tokens; ++i) {
-        batch.token[i] = tokens[i];
-        batch.pos[i] = i;
-        batch.seq_id[i] = 0;
-        batch.n_tokens++;
-    }
-
-    int ret = llama_decode(ctx, batch);
-    if (ret != 0) {
-        throw std::runtime_error("llama_decode failed, ret = " + std::to_string(ret));
-    }
-
-    // Greedy decoding
-    std::string output;
-    int n_vocab = llama_vocab_n_tokens(vocab);
-    llama_token eos_token = llama_vocab_eos(vocab);
-
-    char piece_buf[512];
-    for (int step = 0; step < 256; ++step) {
-        const float* logits = llama_get_logits(ctx);
-        llama_token next_token = static_cast<llama_token>(std::max_element(logits, logits + n_vocab) - logits);
-        if (next_token == eos_token) break;
-
-        // Token to text
-        int n = llama_token_to_piece(vocab, next_token, piece_buf, sizeof(piece_buf), 0, true);
-        if (n > 0) output.append(piece_buf, n);
-
-        // Feed token back for next step
-        llama_batch next_batch = llama_batch_init(1, 0, 1);
-        next_batch.token[0] = next_token;
-        next_batch.pos[0] = step + n_tokens;
-        next_batch.seq_id[0] = 0;
-        next_batch.n_tokens = 1;
-        int ret2 = llama_decode(ctx, next_batch);
-        if (ret2 != 0) break;
-    }
-    return output;
+std::string LlamaEngine::buildPrompt(const std::string& system, const std::string& user) {
+	return "<|im_start|>system\n" + system + "<|im_end|>\n" +
+		"<|im_start|>user\n" + user + "<|im_end|>\n" +
+		"<|im_start|>assistant\n";
 }
 
-static std::map<std::string, std::string> parseLlamaOutput(const std::string& llamaOutput) {
-    std::map<std::string, std::string> fields;
-    std::regex re(R"(([\w\s]+):\s*([^\n]+))");
-    std::smatch match;
-    std::string::const_iterator searchStart(llamaOutput.cbegin());
-    while (std::regex_search(searchStart, llamaOutput.cend(), match, re)) {
-        std::string key = match[1].str();
-        std::string value = match[2].str();
-        key.erase(0, key.find_first_not_of(" \t\r\n"));
-        key.erase(key.find_last_not_of(" \t\r\n") + 1);
-        value.erase(0, value.find_first_not_of(" \t\r\n"));
-        value.erase(value.find_last_not_of(" \t\r\n") + 1);
-        fields[key] = value;
-        searchStart = match.suffix().first;
-    }
-    return fields;
+std::string LlamaEngine::runPrompt(const std::string& prompt, int maxTokens,
+	int top_k, float top_p, float temperature, float repeat_penalty) {
+	if (!ctx_ || prompt.empty()) return "";
+	const llama_model* model = llama_get_model(ctx_);
+	const llama_vocab* vocab = llama_model_get_vocab(model);
+	std::vector<llama_token> prompt_tokens(prompt.size() + 32);
+	int n_prompt = llama_tokenize(vocab, prompt.c_str(), (int)prompt.size(), prompt_tokens.data(), (int)prompt_tokens.size(), false, true);
+	if (n_prompt <= 0) return "";
+	prompt_tokens.resize(n_prompt);
+	llama_batch batch = llama_batch_init(n_prompt, 0, 1);
+	for (int i = 0; i < n_prompt; ++i) {
+		batch.token[i] = prompt_tokens[i];
+		batch.pos[i] = i;
+		batch.n_seq_id[i] = 1;
+		batch.seq_id[i][0] = 0;
+		batch.logits[i] = (i == n_prompt - 1) ? 1 : 0;
+	}
+	batch.n_tokens = n_prompt;
+	llama_decode(ctx_, batch);
+	llama_batch_free(batch);
+	std::vector<llama_token> generated;
+	llama_token eos = llama_vocab_eos(vocab);
+	const std::string stop_token = "<|im_end|>";
+	for (int i = 0; i < maxTokens; ++i) {
+		llama_token next = llama_sampler_sample(sampler_, ctx_, -1);
+		llama_sampler_accept(sampler_, next);
+		if (next == eos) break;
+		char token_buf[64];
+		int len = llama_detokenize(vocab, &next, 1, token_buf, sizeof(token_buf), true, true);
+		std::string token_str = (len > 0) ? std::string(token_buf, len) : "";
+		if (!token_str.empty() && token_str.find(stop_token) != std::string::npos)
+			break;
+		generated.push_back(next);
+		llama_batch next_batch = llama_batch_init(1, 0, 1);
+		next_batch.token[0] = next;
+		next_batch.pos[0] = n_prompt + generated.size() - 1;
+		next_batch.n_seq_id[0] = 1;
+		next_batch.seq_id[0][0] = 0;
+		next_batch.n_tokens = 1;
+		next_batch.logits[0] = 1;
+		llama_decode(ctx_, next_batch);
+		llama_batch_free(next_batch);
+	}
+	std::vector<char> out_buf(8192);
+	int out_len = llama_detokenize(vocab, generated.data(), (int)generated.size(), out_buf.data(), out_buf.size(), true, true);
+	return (out_len > 0) ? std::string(out_buf.data(), out_len) : "";
 }
 
-void LlamaEngine::enrichTransactions(std::vector<std::shared_ptr<Transaction>>& transactions) {
-    for (auto& tx : transactions) {
-        std::string prompt =
-            "Extract all key-value fields from the following transaction details. "
-            "Return the result as lines in the format 'Field: Value'.\n\nDetails:\n" + tx->details;
-        std::string llamaOutput = runLlamaPrompt(ctx_, prompt);
-        tx->extractedFields = parseLlamaOutput(llamaOutput);
-    }
+void LlamaEngine::resetContext() {
+	if (ctx_) {
+		llama_memory_clear(llama_get_memory(ctx_), false);
+	}
 }

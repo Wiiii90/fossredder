@@ -4,6 +4,9 @@ project(FossRedder)
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 20)
 
+# 🔧 Erzwinge konsistente CRT unter MSVC
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 # Qt Integration (Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 set(CMAKE_AUTOMOC ON)
@@ -17,6 +20,7 @@ add_executable(fossredder
     # Controllers
     src/controllers/PdfImportController.cpp
     src/controllers/CsvImportController.cpp
+    src/controllers/LlamaController.cpp
 
     # Models
     src/models/Property.cpp
@@ -65,6 +69,9 @@ add_executable(fossredder
     # Llama
     src/llama/LlamaEngine.cpp
 
+    # Utils
+    src/util/OutputParser.cpp
+
     # Optional: Header-Dateien für IDEs
     include/views/MainWindow.h
     include/views/ManageStatementsWidget.h
@@ -81,6 +88,9 @@ add_executable(fossredder
     include/managers/ICategoryManager.h
     include/managers/PropertyManager.h
     include/managers/IPropertyManager.h
+    include/controllers/LlamaController.h
+    include/util/OutputParser.h
+    include/llama/prompts/Prompts.h
 )
 
 # Include directories
@@ -127,6 +137,28 @@ set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(extern/llama.cpp)
 target_link_libraries(fossredder PRIVATE llama)
 
+# LlamaModelTest (Standalone Test für LLM)
+add_executable(LlamaModelTest src/llama/LlamaModelTest.cpp src/llama/LlamaEngine.cpp)
+target_include_directories(LlamaModelTest PRIVATE
+    include
+    include/models
+    include/controllers
+    include/views
+    include/managers
+    include/ocr
+    include/poppler
+    extern/llama.cpp/include
+)
+target_link_libraries(LlamaModelTest PRIVATE
+    llama
+    Qt6::Widgets
+    Tesseract::libtesseract
+    tinyxml2::tinyxml2
+    ICU::uc ICU::i18n
+    PkgConfig::POPPLER_CPP
+    ${Fontconfig_LIBRARIES}
+)
+
 # Setze Zielverzeichnis für die Plugins
 set(QT_PLUGINS_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/Qt6/plugins/platforms")
 set(DEPLOY_DIR "${CMAKE_BINARY_DIR}/platforms")
@@ -137,4 +169,3 @@ add_custom_command(TARGET fossredder POST_BUILD
         "${QT_PLUGINS_DIR}/qwindows.dll"
         "${DEPLOY_DIR}/qwindows.dll"
 )
-

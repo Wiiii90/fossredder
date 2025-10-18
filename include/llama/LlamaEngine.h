@@ -10,7 +10,10 @@ public:
     explicit LlamaEngine(const std::string& modelPath);
     ~LlamaEngine() override;
 
-    void enrichTransactions(std::vector<std::shared_ptr<Transaction>>& transactions) override;
+    std::string buildPrompt(const std::string& system, const std::string& user);
+    std::string runPrompt(const std::string& prompt, int maxTokens = 128,
+        int top_k = 40, float top_p = 0.9f, float temperature = 0.7f, float repeat_penalty = 1.1f);
+    void resetContext(); // Kontext/KV-Cache zurücksetzen
 
 private:
     llama_model* model_;

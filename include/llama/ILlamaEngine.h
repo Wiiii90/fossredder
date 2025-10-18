@@ -6,5 +6,4 @@
 class ILlamaEngine {
 public:
     virtual ~ILlamaEngine() = default;
-    virtual void enrichTransactions(std::vector<std::shared_ptr<Transaction>>& transactions) = 0;
 };

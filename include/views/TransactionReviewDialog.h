@@ -13,9 +13,8 @@ public:
     TransactionReviewDialog(const std::vector<std::shared_ptr<Transaction>>& transactions, QWidget* parent = nullptr);
 private:
     std::vector<std::shared_ptr<Transaction>> transactions_;
-    int currentIndex_ = 0; // NEU: Index für Navigation
+    int currentIndex_ = 0;
 
-    // UI-Elemente für Navigation
     QWidget* transactionWidget_ = nullptr;
     QPushButton* prevBtn_ = nullptr;
     QPushButton* nextBtn_ = nullptr;
