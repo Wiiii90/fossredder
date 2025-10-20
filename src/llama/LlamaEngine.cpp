@@ -30,9 +30,9 @@ LlamaEngine::LlamaEngine(const std::string& modelPath)
 
 	llama_sampler_chain_params sparams = llama_sampler_chain_default_params();
 	sampler_ = llama_sampler_chain_init(sparams);
-	llama_sampler_chain_add(sampler_, llama_sampler_init_top_k(60));
-	llama_sampler_chain_add(sampler_, llama_sampler_init_top_p(0.95f, 1));
-	llama_sampler_chain_add(sampler_, llama_sampler_init_temp(0.9f));
+	llama_sampler_chain_add(sampler_, llama_sampler_init_top_k(50));
+	llama_sampler_chain_add(sampler_, llama_sampler_init_top_p(0.3f, 1));
+	llama_sampler_chain_add(sampler_, llama_sampler_init_temp(0.3f));
 	llama_sampler_chain_add(sampler_, llama_sampler_init_dist(LLAMA_DEFAULT_SEED));
 
 	qDebug() << "LlamaEngine: loaded model and context from" << QString::fromStdString(modelPath);
@@ -44,12 +44,6 @@ LlamaEngine::~LlamaEngine() {
 	if (ctx_) llama_free(ctx_);
 	if (model_) llama_free_model(model_);
 	llama_backend_free();
-}
-
-std::string LlamaEngine::buildPrompt(const std::string& system, const std::string& user) {
-	return "<|im_start|>system\n" + system + "<|im_end|>\n" +
-		"<|im_start|>user\n" + user + "<|im_end|>\n" +
-		"<|im_start|>assistant\n";
 }
 
 std::string LlamaEngine::runPrompt(const std::string& prompt, int maxTokens,

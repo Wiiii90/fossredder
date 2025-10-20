@@ -70,6 +70,12 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractPdfData(const std:
 		}
 	}
 
+	// PDF-Daten-Objekt erstellen
+	auto pdfData = std::make_shared<PdfExtractedData>(filePath, allPages, bookingGroups);
+
+	// Extrahierte Daten vor LLM-Anreicherung anzeigen
+	consoleView.displayPdfData(pdfData);
+
 	qDebug() << "Vor enrichTransactions: Anzahl Transaktionen:" << allTransactions.size();
 	for (size_t i = 0; i < allTransactions.size(); ++i) {
 		if (!allTransactions[i]) qDebug() << "Transaktion" << i << "ist nullptr!";
@@ -85,7 +91,6 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractPdfData(const std:
 	}
 
 	emit transactionsExtracted(allTransactions);
-	auto pdfData = std::make_shared<PdfExtractedData>(filePath, allPages, bookingGroups);
 
 	return pdfData;
 }
