@@ -11,7 +11,8 @@
 #include "controllers/PdfImportController.h"
 #include "ocr/TesseractOcrEngine.h"
 #include "poppler/PopplerPdfRenderer.h"
-#include "llama/LlamaEngine.h"
+#include "onnx/OnnxTextCleaner.h"
+#include "onnx/OnnxConfigFactory.h"
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
@@ -88,8 +89,19 @@ MainWindow::MainWindow(QWidget* parent)
     // PDF Controller creation
     auto ocrEngine = std::make_shared<TesseractOcrEngine>();
     auto pdfRenderer = std::make_shared<PopplerPdfRenderer>();
-    auto llamaEngine = std::make_shared<LlamaEngine>("C:/coding/fossredder/res/llms/em_german_7b_v01.Q5_K_M.gguf");
-    auto pdfController = std::make_shared<PdfImportController>(ocrEngine, pdfRenderer, llamaEngine);
+
+    // Modell/Tokenizer-Auswahl jetzt über .env
+    std::shared_ptr<ITextCleaner> textCleaner;
+    {
+        auto modelPaths = make_model_paths_from_env();
+        if (!modelPaths.encoder.empty() && !modelPaths.decoder.empty() && !modelPaths.init_decoder.empty()) {
+            textCleaner = std::make_shared<OnnxTextCleaner>(modelPaths);
+        } else {
+            textCleaner = nullptr; // Kein Cleaner, falls Pfade fehlen
+        }
+    }
+
+    auto pdfController = std::make_shared<PdfImportController>(ocrEngine, pdfRenderer, textCleaner);
 
     // Manage Statements view
     ManageStatementsWidget* manageStatementsWidget = new ManageStatementsWidget(pdfController, this);

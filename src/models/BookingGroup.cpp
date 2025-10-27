@@ -2,20 +2,19 @@
 #include "models/BookingGroup.h"
 #include "models/Header.h"
 #include "models/Block.h"
-#include "models/Transaction.h"
 #include <regex>
 
 // Hilfsfunktion zur Bereinigung von Transaktionstexten
 static std::string cleanTransactionText(const std::string& input) {
 	std::string out = input;
 	// Mehrfache Zeilenumbrüche zu einem reduzieren
-	out = std::regex_replace(out, std::regex("(\n\s*){2,}"), "\n");
+	out = std::regex_replace(out, std::regex("(\\n\\s*){2,}"), "\n");
 	// Mehrfache Leerzeichen zu einem reduzieren
 	out = std::regex_replace(out, std::regex("[ ]{2,}"), " ");
 	// Leerzeilen am Anfang/Ende entfernen
-	out = std::regex_replace(out, std::regex("^\s+|\s+$"), "");
+	out = std::regex_replace(out, std::regex("^\\s+|\\s+$"), "");
 	// Alle Zeilenumbrüche durch Leerzeichen ersetzen
-	out = std::regex_replace(out, std::regex("\n"), " ");
+	out = std::regex_replace(out, std::regex("\\n"), " ");
 	return out;
 }
 
@@ -301,5 +300,19 @@ void BookingGroup::extractTransactions() {
 		}
 		std::string valutaDate = cleanTransactionText(sortedValuta[i]->getFormattedText());
 		transactions.emplace_back(bookingDate, valutaDate, cleanTransactionText(detailsPerTransaction[i]), amountText);
+	}
+}
+
+void BookingGroup::transformTransactionDetails(const std::function<std::string(const std::string&)>& transform) {
+	if (!transform) return;
+	for (auto& t : transactions) {
+		if (!t.details.empty()) {
+			try {
+				t.details = transform(t.details);
+			}
+			catch (...) {
+				// ignore transform errors
+			}
+		}
 	}
 }

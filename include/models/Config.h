@@ -7,5 +7,9 @@ struct Config {
     std::string ocrLanguage = "deu";
     std::string bankTemplate = "default";
     int ocrDpi = 300;
-    // Weitere Felder nach Bedarf
+
+    // ONNX model paths (set via .env or UI)
+    std::string byt5_encoder;
+    std::string byt5_decoder_init;
+    std::string byt5_decoder;
 };

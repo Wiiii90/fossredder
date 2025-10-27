@@ -8,7 +8,7 @@
 
 class IOcrEngine;
 class IPdfRenderer;
-class LlamaEngine;
+class ITextCleaner;
 class PdfExtractedData;
 class Transaction;
 
@@ -18,7 +18,7 @@ public:
     PdfImportController(
         std::shared_ptr<IOcrEngine> ocrEngine,
         std::shared_ptr<IPdfRenderer> pdfRenderer,
-        std::shared_ptr<LlamaEngine> llamaEngine,
+        std::shared_ptr<ITextCleaner> textCleaner, // optional ONNX cleaner
         QObject* parent = nullptr);
 
     std::shared_ptr<void> extractData(const std::string& filePath) override;
@@ -30,5 +30,5 @@ signals:
 private:
     std::shared_ptr<IOcrEngine> ocrEngine_;
     std::shared_ptr<IPdfRenderer> pdfRenderer_;
-    std::shared_ptr<LlamaEngine> llamaEngine_;
+    std::shared_ptr<ITextCleaner> textCleaner_; // may be null
 };

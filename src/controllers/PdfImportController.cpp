@@ -9,25 +9,40 @@
 #include "views/ConsoleView.h"
 #include "poppler/IPdfRenderer.h"
 #include "ocr/IOcrEngine.h"
-#include "llama/LlamaEngine.h"
-#include "controllers/LlamaController.h"
+#include "onnx/ITextCleaner.h"
 #include <QDebug>
 #include <filesystem>
+#include <codecvt>
+#include <locale>
 
 PdfImportController::PdfImportController(
 	std::shared_ptr<IOcrEngine> ocrEngine,
 	std::shared_ptr<IPdfRenderer> pdfRenderer,
-	std::shared_ptr<LlamaEngine> llamaEngine,
+	std::shared_ptr<ITextCleaner> textCleaner,
 	QObject* parent)
 	: QObject(parent),
 	ocrEngine_(std::move(ocrEngine)),
 	pdfRenderer_(std::move(pdfRenderer)),
-	llamaEngine_(std::move(llamaEngine))
+	textCleaner_(std::move(textCleaner))
 {
 }
 
 std::shared_ptr<void> PdfImportController::extractData(const std::string& filePath) {
 	return extractPdfData(filePath);
+}
+
+// Hilfsfunktion: Entfernt ungültige UTF-8-Sequenzen
+static std::string sanitize_utf8(const std::string& input) {
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> conv;
+    try {
+        auto wstr = conv.from_bytes(input); // ungültige Sequenzen werden zu U+FFFD
+        return conv.to_bytes(wstr);
+    } catch (...) {
+        // Fallback: Entferne alle nicht-ASCII-Zeichen
+        std::string out;
+        for (char c : input) if ((unsigned char)c < 128) out += c;
+        return out;
+    }
 }
 
 std::shared_ptr<PdfExtractedData> PdfImportController::extractPdfData(const std::string& filePath) {
@@ -45,6 +60,7 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractPdfData(const std:
 	for (size_t i = 0; i < imageFiles.size(); ++i) {
 		try {
 			std::string xmlContent = ocrEngine_->recognizeAltoXml(imageFiles[i], tessdataPath);
+			xmlContent = sanitize_utf8(xmlContent); // <--- UTF-8-Säuberung
 
 			std::vector<std::string> headerKeywords = {
 				"Angaben zu den Umsätzen", "Valuta", "zu Ihren Lasten", "zu Ihren Gunsten"
@@ -63,6 +79,13 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractPdfData(const std:
 
 	std::vector<BookingGroup> bookingGroups = BookingGroup::extractBookingGroups(allPages);
 
+	// Apply cleaner directly to groups so ConsoleView shows cleaned details
+	if (textCleaner_) {
+		for (auto& group : bookingGroups) {
+			group.transformTransactionDetails([&](const std::string& s){ return textCleaner_->clean(s); });
+		}
+	}
+
 	std::vector<std::shared_ptr<Transaction>> allTransactions;
 	for (auto& group : bookingGroups) {
 		for (const auto& tx : group.getTransactions()) {
@@ -70,25 +93,32 @@ std::shared_ptr<PdfExtractedData> PdfImportController::extractPdfData(const std:
 		}
 	}
 
+	// Optional: ONNX-based text cleaning applied here (redundant, keeps compatibility)
+	qDebug() << "[ONNX] textCleaner_ is" << (textCleaner_ ? "set" : "NOT set");
+	int txWithDetails = 0;
+	for (const auto& tx : allTransactions) {
+		if (tx && !tx->details.empty()) ++txWithDetails;
+	}
+	qDebug() << "[ONNX] Transactions with non-empty details:" << txWithDetails;
+	if (textCleaner_) {
+		for (auto& tx : allTransactions) {
+			if (tx && !tx->details.empty()) {
+				try {
+					qDebug() << "[ONNX] Before cleaning:" << QString::fromStdString(tx->details);
+					tx->details = textCleaner_->clean(tx->details);
+					qDebug() << "[ONNX] After cleaning:" << QString::fromStdString(tx->details);
+				} catch (const std::exception& e) {
+					qDebug() << "ONNX clean failed:" << e.what();
+				}
+			}
+		}
+	}
+
 	// PDF-Daten-Objekt erstellen
 	auto pdfData = std::make_shared<PdfExtractedData>(filePath, allPages, bookingGroups);
 
-	// Extrahierte Daten vor LLM-Anreicherung anzeigen
+	// Extrahierte Daten vor evtl. weiterer Anreicherung anzeigen
 	consoleView.displayPdfData(pdfData);
-
-	qDebug() << "Vor enrichTransactions: Anzahl Transaktionen:" << allTransactions.size();
-	for (size_t i = 0; i < allTransactions.size(); ++i) {
-		if (!allTransactions[i]) qDebug() << "Transaktion" << i << "ist nullptr!";
-	}
-
-	if (llamaEngine_) {
-		LlamaController::enrichTransactions(*llamaEngine_, allTransactions);
-	}
-
-	qDebug() << "Nach enrichTransactions: Anzahl Transaktionen:" << allTransactions.size();
-	for (size_t i = 0; i < allTransactions.size(); ++i) {
-		if (!allTransactions[i]) qDebug() << "Transaktion" << i << "ist nullptr!";
-	}
 
 	emit transactionsExtracted(allTransactions);
 

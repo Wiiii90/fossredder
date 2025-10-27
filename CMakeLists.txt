@@ -71,6 +71,13 @@ add_executable(fossredder
 
     # Utils
     src/util/OutputParser.cpp
+    src/util/Env.cpp
+
+    # ONNX Cleaner
+    src/onnx/OnnxTextCleaner.cpp
+    src/onnx/Byt5Tokenizer.cpp
+    src/onnx/FlanT5Tokenizer.cpp
+    src/onnx/OnnxConfigFactory.cpp
 
     # Optional: Header-Dateien für IDEs
     include/views/MainWindow.h
@@ -91,7 +98,9 @@ add_executable(fossredder
     include/controllers/LlamaController.h
     include/util/OutputParser.h
     include/llama/prompts/Prompts.h
-)
+    include/onnx/ITextCleaner.h
+    include/onnx/OnnxTextCleaner.h
+    include/onnx/OnnxConfigFactory.h)
 
 # Include directories
 target_include_directories(fossredder PRIVATE
@@ -102,6 +111,7 @@ target_include_directories(fossredder PRIVATE
     include/managers
     include/ocr
     include/poppler
+    include/onnx
     extern/llama.cpp/include
 )
 
@@ -137,8 +147,29 @@ set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(extern/llama.cpp)
 target_link_libraries(fossredder PRIVATE llama)
 
+# nlohmann_json for FlanT5Tokenizer
+find_package(nlohmann_json CONFIG REQUIRED)
+target_link_libraries(fossredder PRIVATE nlohmann_json::nlohmann_json)
+
+# ==========================
+# ONNX Runtime (manual link via vcpkg)
+# ==========================
+set(_ORT_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
+find_path(ONNXRUNTIME_INCLUDE_DIR
+    NAMES onnxruntime_cxx_api.h
+    PATHS "${_ORT_ROOT}/include" "${_ORT_ROOT}/include/onnxruntime"
+    NO_DEFAULT_PATH REQUIRED)
+find_library(ONNXRUNTIME_LIBRARY
+    NAMES onnxruntime
+    PATHS "${_ORT_ROOT}/lib" "${_ORT_ROOT}/lib/manual-link"
+    NO_DEFAULT_PATH REQUIRED)
+message(STATUS "ONNX Runtime include: ${ONNXRUNTIME_INCLUDE_DIR}")
+message(STATUS "ONNX Runtime lib    : ${ONNXRUNTIME_LIBRARY}")
+target_include_directories(fossredder PRIVATE "${ONNXRUNTIME_INCLUDE_DIR}")
+target_link_libraries(fossredder PRIVATE "${ONNXRUNTIME_LIBRARY}")
+
 # LlamaModelTest (Standalone Test für LLM)
-add_executable(LlamaModelTest src/llama/LlamaModelTest.cpp src/llama/LlamaEngine.cpp)
+add_executable(LlamaModelTest src/llama/LlamaModelTest.cpp src/llama/LlamaEngine.cpp include/onnx/OnnxConfigFactory.h)
 target_include_directories(LlamaModelTest PRIVATE
     include
     include/models

@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <functional>
 #include "models/Page.h"
 #include "models/Transaction.h"
 
@@ -24,6 +25,9 @@ public:
     const std::vector<Transaction>& getTransactions() const { return transactions; }
 
     void extractTransactions();
+
+    // Apply a transformation to each transaction's details (e.g., ONNX text cleaner)
+    void transformTransactionDetails(const std::function<std::string(const std::string&)>& transform);
 
 private:
     std::string bookingDate;

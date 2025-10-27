@@ -48,3 +48,6 @@ LOCAL_APPDATA_FONTCONFIG_CACHE/
 # llms
 res/llms/
 test.txt
+
+# Environment variables
+.env

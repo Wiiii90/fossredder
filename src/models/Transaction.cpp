@@ -14,6 +14,8 @@ Transaction::Transaction(const std::string& bookingDate,
 	amountText(amountText),
 	amount(0.0)
 {
+	// Parse numeric amount from the textual representation immediately
+	amount = parseAmount(this->amountText);
 }
 
 Transaction::Transaction(const Transaction& other)
