@@ -8,19 +8,19 @@
 #include <QTableWidget>
 #include <memory>
 #include <vector>
-#include "models/Transaction.h"
-#include "controllers/PdfImportController.h"
+#include "models/layout/Transaction.h"
+#include "controllers/StatementController.h"
 
 class ManageStatementsWidget : public QWidget {
     Q_OBJECT
 public:
-    explicit ManageStatementsWidget(std::shared_ptr<PdfImportController> pdfController, QWidget* parent = nullptr);
+    explicit ManageStatementsWidget(std::shared_ptr<StatementController> pdfController, QWidget* parent = nullptr);
 
 private slots:
     void onTransactionsExtracted(const std::vector<std::shared_ptr<Transaction>>& transactions);
 
 private:
-    std::shared_ptr<PdfImportController> pdfController_;
+    std::shared_ptr<StatementController> pdfController_;
 
     QComboBox* propertyFilter_;
     QComboBox* actorFilter_;

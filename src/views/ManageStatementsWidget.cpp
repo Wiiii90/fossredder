@@ -1,8 +1,8 @@
 #include "views/ManageStatementsWidget.h"
 #include "views/TransactionReviewDialog.h"
-#include "models/PdfExtractedData.h"
-#include "models/BookingGroup.h"
-#include "controllers/PdfImportController.h"
+#include "models/StatementData.h"
+#include "models/layout/BookingGroup.h"
+#include "controllers/StatementController.h"
 #include <QApplication>
 #include <QProgressDialog>
 #include <QMessageBox>
@@ -12,7 +12,7 @@
 #include <QLabel>
 
 ManageStatementsWidget::ManageStatementsWidget(
-    std::shared_ptr<PdfImportController> pdfController,
+    std::shared_ptr<StatementController> pdfController,
     QWidget* parent)
     : QWidget(parent), pdfController_(std::move(pdfController))
 {
@@ -97,7 +97,7 @@ ManageStatementsWidget::ManageStatementsWidget(
         QApplication::processEvents();
 
         try {
-            pdfController_->extractData(filePath.toStdString());
+            pdfController_->importStatement(filePath.toStdString());
             progress.close();
         } catch (const std::exception& ex) {
             progress.close();
@@ -105,7 +105,7 @@ ManageStatementsWidget::ManageStatementsWidget(
         }
     });
 
-    connect(pdfController_.get(), &PdfImportController::transactionsExtracted,
+    connect(pdfController_.get(), &StatementController::transactionsExtracted,
             this, &ManageStatementsWidget::onTransactionsExtracted);
 }
 
@@ -116,7 +116,8 @@ void ManageStatementsWidget::onTransactionsExtracted(const std::vector<std::shar
             qDebug() << "Transaktion" << i << "ist nullptr!";
         } else {
             qDebug() << "Transaktion" << i << "BookingDate:" << QString::fromStdString(transactions[i]->bookingDate)
-                     << "AmountText:" << QString::fromStdString(transactions[i]->amountText);
+                     << "Amount:" << transactions[i]->amount
+                     << "Actor:" << QString::fromStdString(transactions[i]->actor);
         }
     }
     TransactionReviewDialog dlg(transactions, this);

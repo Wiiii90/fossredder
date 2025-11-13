@@ -6,7 +6,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include "models/Transaction.h"
+#include "models/layout/Transaction.h"
 
 TransactionReviewDialog::TransactionReviewDialog(
     const std::vector<std::shared_ptr<Transaction>>& transactions,
@@ -37,8 +37,37 @@ TransactionReviewDialog::TransactionReviewDialog(
     showTransaction(currentIndex_);
 }
 
+static inline QString joinMetadata(const std::map<std::string,std::string>& md) {
+    QStringList lines;
+    for (const auto& kv : md) {
+        QString k = QString::fromStdString(kv.first);
+        QString v = QString::fromStdString(kv.second);
+        lines << (k + ":" + v);
+    }
+    return lines.join('\n');
+}
+
+static inline std::map<std::string,std::string> parseMetadata(const QString& text) {
+    std::map<std::string,std::string> md;
+    auto lines = text.split('\n');
+    for (const auto& l : lines) {
+        QString line = l.trimmed();
+        if (line.isEmpty()) continue;
+        int idx = line.indexOf(':');
+        if (idx <= 0) continue;
+        QString k = line.left(idx).trimmed();
+        QString v = line.mid(idx+1).trimmed();
+        md.emplace(k.toStdString(), v.toStdString());
+    }
+    return md;
+}
+
 void TransactionReviewDialog::showTransaction(int index) {
-    delete transactionWidget_->layout();
+    if (transactionWidget_->layout()) {
+        // delete existing layout to recreate
+        auto old = transactionWidget_->layout();
+        delete old;
+    }
     QVBoxLayout* layout = new QVBoxLayout(transactionWidget_);
 
     if (index < 0 || index >= static_cast<int>(transactions_.size()))
@@ -53,31 +82,42 @@ void TransactionReviewDialog::showTransaction(int index) {
 
     QFormLayout* form = new QFormLayout();
 
-    // Standardfelder mit QLineEdit
+    // Booking date
     QLineEdit* bookingDateEdit = new QLineEdit(QString::fromStdString(tx->bookingDate), transactionWidget_);
     form->addRow(tr("Booking Date"), bookingDateEdit);
     connect(bookingDateEdit, &QLineEdit::textChanged, this, [tx](const QString& text) {
         tx->bookingDate = text.toStdString();
     });
 
-    QLineEdit* valutaDateEdit = new QLineEdit(QString::fromStdString(tx->valutaDate), transactionWidget_);
-    form->addRow(tr("Valuta Date"), valutaDateEdit);
-    connect(valutaDateEdit, &QLineEdit::textChanged, this, [tx](const QString& text) {
-        tx->valutaDate = text.toStdString();
+    // Value / Valuta date
+    QLineEdit* valueDateEdit = new QLineEdit(QString::fromStdString(tx->valueDate), transactionWidget_);
+    form->addRow(tr("Valuta Date"), valueDateEdit);
+    connect(valueDateEdit, &QLineEdit::textChanged, this, [tx](const QString& text) {
+        tx->valueDate = text.toStdString();
     });
 
-    QLineEdit* amountEdit = new QLineEdit(QString::fromStdString(tx->amountText), transactionWidget_);
+    // Amount (signed)
+    QLineEdit* amountEdit = new QLineEdit(QString::number(tx->amount), transactionWidget_);
     form->addRow(tr("Amount"), amountEdit);
     connect(amountEdit, &QLineEdit::textChanged, this, [tx](const QString& text) {
-        tx->amountText = text.toStdString();
+        bool ok = false;
+        double v = text.toDouble(&ok);
+        if (ok) tx->amount = v;
     });
 
-    // Details-Feld: mehrzeilig und größer
-    QTextEdit* detailsEdit = new QTextEdit(QString::fromStdString(tx->details), transactionWidget_);
-    detailsEdit->setMinimumHeight(120);
-    form->addRow(tr("Details"), detailsEdit);
-    connect(detailsEdit, &QTextEdit::textChanged, this, [tx, detailsEdit]() {
-        tx->details = detailsEdit->toPlainText().toStdString();
+    // Actor (payee/payer)
+    QLineEdit* actorEdit = new QLineEdit(QString::fromStdString(tx->actor), transactionWidget_);
+    form->addRow(tr("Actor"), actorEdit);
+    connect(actorEdit, &QLineEdit::textChanged, this, [tx](const QString& text) {
+        tx->actor = text.toStdString();
+    });
+
+    // Metadata: show as key:value per line
+    QTextEdit* metadataEdit = new QTextEdit(joinMetadata(tx->metadata), transactionWidget_);
+    metadataEdit->setMinimumHeight(120);
+    form->addRow(tr("Metadata (key:value per line)"), metadataEdit);
+    connect(metadataEdit, &QTextEdit::textChanged, this, [tx, metadataEdit]() {
+        tx->metadata = parseMetadata(metadataEdit->toPlainText());
     });
 
     layout->addLayout(form);

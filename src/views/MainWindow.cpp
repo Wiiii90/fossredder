@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "views/MainWindow.h"
 #include "views/DashboardWidget.h"
 #include "views/ManageStatementsWidget.h"
@@ -8,11 +9,16 @@
 #include "managers/ActorManager.h"
 #include "managers/CategoryManager.h"
 #include "managers/PropertyManager.h"
-#include "controllers/PdfImportController.h"
-#include "ocr/TesseractOcrEngine.h"
-#include "poppler/PopplerPdfRenderer.h"
-#include "onnx/OnnxTextCleaner.h"
-#include "onnx/OnnxConfigFactory.h"
+#include "controllers/StatementController.h"
+#include "services/IStatementExtractionService.h"
+#include "services/tesseract/ITesseractService.h"
+#include "services/tesseract/ITesseractAdapter.h"
+#include "services/poppler/IPopplerAdapter.h"
+#include "services/poppler/IPopplerService.h"
+#include "services/opencv/IOpenCvAdapter.h"
+#include "services/opencv/IOpenCvService.h"
+#include "debug/FileDebugger.h"
+#include "debug/SpdlogDebugger.h"
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
@@ -23,6 +29,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QWidget>
+#include <chrono>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -87,21 +94,30 @@ MainWindow::MainWindow(QWidget* parent)
     auto propertyManager = std::make_shared<PropertyManager>();
 
     // PDF Controller creation
-    auto ocrEngine = std::make_shared<TesseractOcrEngine>();
-    auto pdfRenderer = std::make_shared<PopplerPdfRenderer>();
+    // Create a FileDebugger for this application run (timestamped folder)
+    auto now = std::chrono::system_clock::now();
+    auto t = std::chrono::system_clock::to_time_t(now);
+    std::tm tm; localtime_s(&tm, &t);
+    char buf[64]; strftime(buf, sizeof(buf), "debug/%Y%m%d_%H%M%S", &tm);
+    auto fileDebugger = std::make_shared<FileDebugger>(std::string(buf));
 
-    // Modell/Tokenizer-Auswahl jetzt über .env
-    std::shared_ptr<ITextCleaner> textCleaner;
-    {
-        auto modelPaths = make_model_paths_from_env();
-        if (!modelPaths.encoder.empty() && !modelPaths.decoder.empty() && !modelPaths.init_decoder.empty()) {
-            textCleaner = std::make_shared<OnnxTextCleaner>(modelPaths);
-        } else {
-            textCleaner = nullptr; // Kein Cleaner, falls Pfade fehlen
-        }
-    }
+    // Create SpdlogDebugger with FileDebugger as backend
+    auto spdDebugger = std::make_shared<SpdlogDebugger>("fossredder", fileDebugger);
 
-    auto pdfController = std::make_shared<PdfImportController>(ocrEngine, pdfRenderer, textCleaner);
+    // Create Tesseract adapter and service
+    auto tesseractAdapter = createTesseractAdapter(spdDebugger);
+    auto tesseractService = createTesseractService(tesseractAdapter);
+
+    auto popplerAdapter = createPopplerAdapter(spdDebugger);
+    auto popplerService = createPopplerService(popplerAdapter);
+
+    // Create OpenCV adapter and service
+    auto openCvAdapter = createOpenCvAdapter(spdDebugger);
+    auto openCvService = createOpenCvService(openCvAdapter);
+
+    // Create statement extraction service
+    auto extractionService = createStatementExtractionService(popplerService, openCvService, tesseractService);
+    auto pdfController = std::make_shared<StatementController>(extractionService, this);
 
     // Manage Statements view
     ManageStatementsWidget* manageStatementsWidget = new ManageStatementsWidget(pdfController, this);

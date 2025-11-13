@@ -17,26 +17,17 @@ set(CMAKE_AUTORCC ON)
 add_executable(fossredder
     src/main.cpp
 
-    # Controllers
-    src/controllers/PdfImportController.cpp
-    src/controllers/CsvImportController.cpp
-    src/controllers/LlamaController.cpp
-
     # Models
     src/models/Property.cpp
-    src/models/PdfExtractedData.cpp
-    src/models/Block.cpp
-    src/models/Paragraph.cpp
-    src/models/Line.cpp
-    src/models/Word.cpp
-    src/models/TextElement.cpp
-    src/models/Header.cpp
-    src/models/Page.cpp
-    src/models/BookingGroup.cpp
-    src/models/Transaction.cpp
+    src/models/StatementData.cpp
+    
+    src/models/layout/BookingGroup.cpp
+    src/models/layout/Header.cpp
+    src/models/layout/Statement.cpp
+    src/models/layout/Transaction.cpp
+
     src/models/Actor.cpp
     src/models/Category.cpp
-    src/models/Statement.cpp
 
     # Views
     src/views/MainWindow.cpp
@@ -50,7 +41,10 @@ add_executable(fossredder
     src/views/ImportDialog.cpp
     src/views/TransactionReviewDialog.cpp
 
-    # Managers
+    # Controllers
+    src/controllers/StatementController.cpp
+
+    # Persistence
     src/managers/StatementManager.cpp
     src/managers/TransactionManager.cpp
     src/managers/ConfigManager.cpp
@@ -59,25 +53,42 @@ add_executable(fossredder
     src/managers/CategoryManager.cpp
     src/managers/PropertyManager.cpp
 
-    # Persistence
     src/persistence/JsonSaver.cpp
 
-    # OCR & PDF
-    src/ocr/TesseractOcrEngine.cpp
-    src/poppler/PopplerPdfRenderer.cpp
+    # Services
+    src/services/tesseract/TesseractAdapter.cpp
+    src/services/tesseract/TesseractService.cpp
+    src/services/tesseract/TesseractEngine.cpp
+
+    src/services/poppler/PopplerAdapter.cpp
+    src/services/poppler/PopplerService.cpp
+    src/services/poppler/PopplerEngine.cpp
+
+    src/services/opencv/OpenCvAdapter.cpp
+    src/services/opencv/OpenCvService.cpp
+    src/services/opencv/OpenCvEngine.cpp
+
+    # Statement extraction service & strategy
+    src/services/StatementExtractionService.cpp
+    src/services/DefaultExtractionStrategy.cpp
 
     # Llama
     src/llama/LlamaEngine.cpp
 
     # Utils
-    src/util/OutputParser.cpp
-    src/util/Env.cpp
+    src/utils/OutputParser.cpp
+    src/utils/Env.cpp
+    src/utils/RuleBasedStatementParser.cpp
 
     # ONNX Cleaner
     src/onnx/OnnxTextCleaner.cpp
     src/onnx/Byt5Tokenizer.cpp
     src/onnx/FlanT5Tokenizer.cpp
     src/onnx/OnnxConfigFactory.cpp
+
+    # Debug
+    src/debug/FileDebugger.cpp
+    src/debug/SpdlogDebugger.cpp
 
     # Optional: Header-Dateien für IDEs
     include/views/MainWindow.h
@@ -94,23 +105,47 @@ add_executable(fossredder
     include/managers/CategoryManager.h
     include/managers/ICategoryManager.h
     include/managers/PropertyManager.h
-    include/managers/IPropertyManager.h
-    include/controllers/LlamaController.h
-    include/util/OutputParser.h
+    include/utils/OutputParser.h
+    include/utils/Env.h
+    include/utils/StatementParser.h
     include/llama/prompts/Prompts.h
     include/onnx/ITextCleaner.h
     include/onnx/OnnxTextCleaner.h
-    include/onnx/OnnxConfigFactory.h)
+    include/onnx/OnnxConfigFactory.h
+    include/models/StatementData.h    
+    include/models/layout/BookingGroup.h
+    include/models/layout/Header.h    
+    include/models/layout/Transaction.h
+    include/models/layout/Statement.h
+    include/services/tesseract/ITesseractAdapter.h
+    include/services/tesseract/ITesseractService.h
+    include/services/tesseract/TesseractEngine.h
+    include/services/tesseract/TesseractDTO.h
+    include/services/poppler/IPopplerAdapter.h
+    include/services/poppler/IPopplerService.h
+    include/services/poppler/PopplerEngine.h
+    include/services/poppler/PopplerDTO.h
+    include/services/poppler/PopplerServiceTypes.h
+    include/services/opencv/IOpenCvAdapter.h
+    include/services/opencv/IOpenCvService.h
+    include/services/opencv/OpenCvEngine.h
+    include/services/opencv/OpenCvDTO.h
+    include/debug/IDebugger.h
+    include/debug/FileDebugger.h
+    include/debug/SpdlogDebugger.h
+)
 
 # Include directories
 target_include_directories(fossredder PRIVATE
     include
     include/models
+    include/models/layout
     include/controllers
     include/views
     include/managers
-    include/ocr
-    include/poppler
+    include/services/tesseract
+    include/services/poppler
+    include/services/opencv
     include/onnx
     extern/llama.cpp/include
 )
@@ -139,7 +174,7 @@ target_link_libraries(fossredder PRIVATE ICU::uc ICU::i18n)
 
 # Link Qt6 Widgets
 target_link_libraries(fossredder PRIVATE Qt6::Widgets)
-qt6_wrap_cpp(MOC_SRCS include/controllers/PdfImportController.h)
+qt6_wrap_cpp(MOC_SRCS include/controllers/StatementController.h)
 target_sources(fossredder PRIVATE ${MOC_SRCS})
 
 # Link Llama
@@ -150,6 +185,10 @@ target_link_libraries(fossredder PRIVATE llama)
 # nlohmann_json for FlanT5Tokenizer
 find_package(nlohmann_json CONFIG REQUIRED)
 target_link_libraries(fossredder PRIVATE nlohmann_json::nlohmann_json)
+
+# spdlog (vcpkg)
+find_package(spdlog CONFIG REQUIRED)
+target_link_libraries(fossredder PRIVATE spdlog::spdlog)
 
 # ==========================
 # ONNX Runtime (manual link via vcpkg)
@@ -176,7 +215,9 @@ target_include_directories(LlamaModelTest PRIVATE
     include/controllers
     include/views
     include/managers
-    include/ocr
+    include/tesseract
+    include/poppler
+    include/services/poppler
     include/poppler
     extern/llama.cpp/include
 )
@@ -189,6 +230,13 @@ target_link_libraries(LlamaModelTest PRIVATE
     PkgConfig::POPPLER_CPP
     ${Fontconfig_LIBRARIES}
 )
+
+# OpenCV einbinden
+find_package(OpenCV REQUIRED)
+target_link_libraries(fossredder PRIVATE ${OpenCV_LIBS})
+target_include_directories(fossredder PRIVATE ${OpenCV_INCLUDE_DIRS})
+# expose service includes
+target_include_directories(fossredder PRIVATE include/services/opencv)
 
 # Setze Zielverzeichnis für die Plugins
 set(QT_PLUGINS_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/Qt6/plugins/platforms")

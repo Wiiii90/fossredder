@@ -1,9 +1,10 @@
 #pragma once
 #include "managers/IBookingGroupManager.h"
-#include "models/BookingGroup.h"
 #include <vector>
 #include <memory>
 #include <string>
+
+class BookingGroup; // forward declaration
 
 class BookingGroupManager : public IBookingGroupManager {
 public:

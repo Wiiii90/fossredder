@@ -2,7 +2,7 @@
 #include <QDialog>
 #include <vector>
 #include <memory>
-#include "models/Transaction.h"
+#include "models/layout/Transaction.h"
 
 class QLabel;
 class QPushButton;

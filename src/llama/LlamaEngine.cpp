@@ -1,8 +1,8 @@
 #include "llama/LlamaEngine.h"
 #include "llama/prompts/Prompts.h"
-#include "models/Transaction.h"
+#include "models/layout/Transaction.h"
 #include "llama.h"
-#include "util/OutputParser.h"
+#include "utils/OutputParser.h"
 #include <QDebug>
 #include <string>
 #include <vector>

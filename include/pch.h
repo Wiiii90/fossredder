@@ -18,10 +18,3 @@
 #include <set>
 #include <map>
 #include <iomanip>
-
-// ICU (Unicode)
-#include <unicode/unistr.h>
-#include <unicode/normalizer2.h>
-
-// tinyxml2
-#include "tinyxml2.h"

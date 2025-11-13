@@ -1,6 +1,8 @@
 #pragma once
 #include "managers/ITransactionManager.h"
 
+class Transaction; // forward declaration - avoid including models headers here
+
 class TransactionManager : public ITransactionManager {
 public:
     void addTransaction(const std::shared_ptr<Transaction>& transaction) override;

@@ -1,0 +1,5 @@
+- poppler bilder wieder in build ordner und nicht in den debug ordner
+- spd als debugger implementieren
+- architektur umgestalten in core (businesslogik), ui (views und viewcontroller für qt), services (externe service mit adapter abkapselung)
+- eigenen parser ordner (ggf. unter core und services unterschiedliche)
+- ggf. änderung von statementextractionservice in einen anderen ordner wie etwa im model einen extractor oder ähnliches, sodass dies klar der core logik zugeordnet ist

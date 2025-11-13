@@ -3,11 +3,11 @@
 #include <memory>
 #include <string>
 
-class PdfExtractedData;
+class StatementData;
 class Transaction;
 
 class ConsoleView {
 public:
-    void displayPdfData(const std::shared_ptr<PdfExtractedData>& data);
+    void displayPdfData(const std::shared_ptr<StatementData>& data);
     void displayError(const std::string& errorMessage);
 };

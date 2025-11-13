@@ -1,6 +1,5 @@
 #pragma once
 #include "llama/ILlamaEngine.h"
-#include "models/Transaction.h"
 #include "llama.h"
 #include <memory>
 #include <string>
