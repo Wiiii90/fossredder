@@ -13,238 +13,59 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-# Add all source and header files
-add_executable(fossredder
-    src/main.cpp
+# API module must be available early
+add_subdirectory(api)
 
-    # Models
-    src/models/Property.cpp
-    src/models/StatementData.cpp
-    
-    src/models/layout/BookingGroup.cpp
-    src/models/layout/Header.cpp
-    src/models/layout/Statement.cpp
-    src/models/layout/Transaction.cpp
+# Add core and debug modules early
+add_subdirectory(core)
+add_subdirectory(debug)
 
-    src/models/Actor.cpp
-    src/models/Category.cpp
+# Add service modules
+add_subdirectory(services/poppler)
+add_subdirectory(services/opencv)
+add_subdirectory(services/tesseract)
 
-    # Views
-    src/views/MainWindow.cpp
-    src/views/ConsoleView.cpp
-    src/views/ManageStatementsWidget.cpp
-    src/views/ManageActorsWidget.cpp
-    src/views/ManageCategoriesWidget.cpp
-    src/views/ManagePropertiesWidget.cpp
-    src/views/DashboardWidget.cpp
-    src/views/ManageAnnualCostWidget.cpp
-    src/views/ImportDialog.cpp
-    src/views/TransactionReviewDialog.cpp
+# Add persistence and ui modules
+add_subdirectory(persistence)
+add_subdirectory(ui)
 
-    # Controllers
-    src/controllers/StatementController.cpp
+# Add app subdirectory
+add_subdirectory(app)
 
-    # Persistence
-    src/managers/StatementManager.cpp
-    src/managers/TransactionManager.cpp
-    src/managers/ConfigManager.cpp
-    src/managers/BookingGroupManager.cpp
-    src/managers/ActorManager.cpp
-    src/managers/CategoryManager.cpp
-    src/managers/PropertyManager.cpp
+# Third-party llama (moved to third_party)
+if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/llama.cpp/CMakeLists.txt")
+    add_subdirectory(third_party/llama.cpp)
+elseif(EXISTS "${CMAKE_SOURCE_DIR}/extern/llama.cpp/CMakeLists.txt")
+    add_subdirectory(extern/llama.cpp)
+endif()
 
-    src/persistence/JsonSaver.cpp
+# Third-party packages
+find_package(Tesseract QUIET CONFIG)
+find_package(Fontconfig QUIET)
+find_package(tinyxml2 QUIET)
+find_package(ICU QUIET COMPONENTS uc i18n)
+find_package(nlohmann_json QUIET CONFIG)
+find_package(spdlog QUIET CONFIG)
+find_package(OpenCV QUIET)
 
-    # Services
-    src/services/tesseract/TesseractAdapter.cpp
-    src/services/tesseract/TesseractService.cpp
-    src/services/tesseract/TesseractEngine.cpp
-
-    src/services/poppler/PopplerAdapter.cpp
-    src/services/poppler/PopplerService.cpp
-    src/services/poppler/PopplerEngine.cpp
-
-    src/services/opencv/OpenCvAdapter.cpp
-    src/services/opencv/OpenCvService.cpp
-    src/services/opencv/OpenCvEngine.cpp
-
-    # Statement extraction service & strategy
-    src/services/StatementExtractionService.cpp
-    src/services/DefaultExtractionStrategy.cpp
-
-    # Llama
-    src/llama/LlamaEngine.cpp
-
-    # Utils
-    src/utils/OutputParser.cpp
-    src/utils/Env.cpp
-    src/utils/RuleBasedStatementParser.cpp
-
-    # ONNX Cleaner
-    src/onnx/OnnxTextCleaner.cpp
-    src/onnx/Byt5Tokenizer.cpp
-    src/onnx/FlanT5Tokenizer.cpp
-    src/onnx/OnnxConfigFactory.cpp
-
-    # Debug
-    src/debug/FileDebugger.cpp
-    src/debug/SpdlogDebugger.cpp
-
-    # Optional: Header-Dateien für IDEs
-    include/views/MainWindow.h
-    include/views/ManageStatementsWidget.h
-    include/views/ManageActorsWidget.h
-    include/views/ManageCategoriesWidget.h
-    include/views/ManagePropertiesWidget.h
-    include/views/DashboardWidget.h
-    include/views/ManageAnnualCostWidget.h
-    include/views/ImportDialog.h
-    include/views/TransactionReviewDialog.h
-    include/managers/ActorManager.h
-    include/managers/IActorManager.h
-    include/managers/CategoryManager.h
-    include/managers/ICategoryManager.h
-    include/managers/PropertyManager.h
-    include/utils/OutputParser.h
-    include/utils/Env.h
-    include/utils/StatementParser.h
-    include/llama/prompts/Prompts.h
-    include/onnx/ITextCleaner.h
-    include/onnx/OnnxTextCleaner.h
-    include/onnx/OnnxConfigFactory.h
-    include/models/StatementData.h    
-    include/models/layout/BookingGroup.h
-    include/models/layout/Header.h    
-    include/models/layout/Transaction.h
-    include/models/layout/Statement.h
-    include/services/tesseract/ITesseractAdapter.h
-    include/services/tesseract/ITesseractService.h
-    include/services/tesseract/TesseractEngine.h
-    include/services/tesseract/TesseractDTO.h
-    include/services/poppler/IPopplerAdapter.h
-    include/services/poppler/IPopplerService.h
-    include/services/poppler/PopplerEngine.h
-    include/services/poppler/PopplerDTO.h
-    include/services/poppler/PopplerServiceTypes.h
-    include/services/opencv/IOpenCvAdapter.h
-    include/services/opencv/IOpenCvService.h
-    include/services/opencv/OpenCvEngine.h
-    include/services/opencv/OpenCvDTO.h
-    include/debug/IDebugger.h
-    include/debug/FileDebugger.h
-    include/debug/SpdlogDebugger.h
-)
-
-# Include directories
-target_include_directories(fossredder PRIVATE
-    include
-    include/models
-    include/models/layout
-    include/controllers
-    include/views
-    include/managers
-    include/services/tesseract
-    include/services/poppler
-    include/services/opencv
-    include/onnx
-    extern/llama.cpp/include
-)
-
-# Link Poppler
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(POPPLER_CPP REQUIRED IMPORTED_TARGET poppler-cpp)
-target_link_libraries(fossredder PRIVATE PkgConfig::POPPLER_CPP)
-
-# Link Tesseract
-find_package(Tesseract REQUIRED CONFIG)
-target_link_libraries(fossredder PRIVATE Tesseract::libtesseract)
-
-# Link Fontconfig
-find_package(Fontconfig REQUIRED)
-target_include_directories(fossredder PRIVATE ${Fontconfig_INCLUDE_DIRS})
-target_link_libraries(fossredder PRIVATE ${Fontconfig_LIBRARIES})
-
-# Link tinyxml2
-find_package(tinyxml2 REQUIRED)
-target_link_libraries(fossredder PRIVATE tinyxml2::tinyxml2)
-
-# Link ICU
-find_package(ICU REQUIRED COMPONENTS uc i18n)
-target_link_libraries(fossredder PRIVATE ICU::uc ICU::i18n)
-
-# Link Qt6 Widgets
-target_link_libraries(fossredder PRIVATE Qt6::Widgets)
-qt6_wrap_cpp(MOC_SRCS include/controllers/StatementController.h)
-target_sources(fossredder PRIVATE ${MOC_SRCS})
-
-# Link Llama
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(extern/llama.cpp)
-target_link_libraries(fossredder PRIVATE llama)
-
-# nlohmann_json for FlanT5Tokenizer
-find_package(nlohmann_json CONFIG REQUIRED)
-target_link_libraries(fossredder PRIVATE nlohmann_json::nlohmann_json)
-
-# spdlog (vcpkg)
-find_package(spdlog CONFIG REQUIRED)
-target_link_libraries(fossredder PRIVATE spdlog::spdlog)
-
-# ==========================
 # ONNX Runtime (manual link via vcpkg)
-# ==========================
 set(_ORT_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 find_path(ONNXRUNTIME_INCLUDE_DIR
     NAMES onnxruntime_cxx_api.h
     PATHS "${_ORT_ROOT}/include" "${_ORT_ROOT}/include/onnxruntime"
-    NO_DEFAULT_PATH REQUIRED)
+    NO_DEFAULT_PATH)
 find_library(ONNXRUNTIME_LIBRARY
     NAMES onnxruntime
     PATHS "${_ORT_ROOT}/lib" "${_ORT_ROOT}/lib/manual-link"
-    NO_DEFAULT_PATH REQUIRED)
-message(STATUS "ONNX Runtime include: ${ONNXRUNTIME_INCLUDE_DIR}")
-message(STATUS "ONNX Runtime lib    : ${ONNXRUNTIME_LIBRARY}")
-target_include_directories(fossredder PRIVATE "${ONNXRUNTIME_INCLUDE_DIR}")
-target_link_libraries(fossredder PRIVATE "${ONNXRUNTIME_LIBRARY}")
-
-# LlamaModelTest (Standalone Test für LLM)
-add_executable(LlamaModelTest src/llama/LlamaModelTest.cpp src/llama/LlamaEngine.cpp include/onnx/OnnxConfigFactory.h)
-target_include_directories(LlamaModelTest PRIVATE
-    include
-    include/models
-    include/controllers
-    include/views
-    include/managers
-    include/tesseract
-    include/poppler
-    include/services/poppler
-    include/poppler
-    extern/llama.cpp/include
-)
-target_link_libraries(LlamaModelTest PRIVATE
-    llama
-    Qt6::Widgets
-    Tesseract::libtesseract
-    tinyxml2::tinyxml2
-    ICU::uc ICU::i18n
-    PkgConfig::POPPLER_CPP
-    ${Fontconfig_LIBRARIES}
-)
-
-# OpenCV einbinden
-find_package(OpenCV REQUIRED)
-target_link_libraries(fossredder PRIVATE ${OpenCV_LIBS})
-target_include_directories(fossredder PRIVATE ${OpenCV_INCLUDE_DIRS})
-# expose service includes
-target_include_directories(fossredder PRIVATE include/services/opencv)
+    NO_DEFAULT_PATH)
 
 # Setze Zielverzeichnis für die Plugins
 set(QT_PLUGINS_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/Qt6/plugins/platforms")
 set(DEPLOY_DIR "${CMAKE_BINARY_DIR}/platforms")
 
-add_custom_command(TARGET fossredder POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPLOY_DIR}"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${QT_PLUGINS_DIR}/qwindows.dll"
-        "${DEPLOY_DIR}/qwindows.dll"
-)
+# Dummy LlamaModelTest post-build
+if(TARGET LlamaModelTest)
+    add_custom_command(TARGET LlamaModelTest POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "LlamaModelTest built"
+    )
+endif()

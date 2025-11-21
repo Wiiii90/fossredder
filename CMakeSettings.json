@@ -4,8 +4,8 @@
       "name": "x64-Debug-vcpkg",
       "generator": "Ninja",
       "configurationType": "Debug",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "buildRoot": "${projectDir}\\build\\${name}",
+      "installRoot": "${projectDir}\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
@@ -13,7 +13,8 @@
       "variables": [
         {
           "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "C:/coding/.libs/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          "value": "C:/coding/.libs/vcpkg/scripts/buildsystems/vcpkg.cmake",
+          "type": "STRING"
         }
       ]
     },
@@ -21,8 +22,8 @@
       "name": "x64-Release-vcpkg",
       "generator": "Ninja",
       "configurationType": "Release",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "buildRoot": "${projectDir}\\build\\${name}",
+      "installRoot": "${projectDir}\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
@@ -30,7 +31,8 @@
       "variables": [
         {
           "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "C:/coding/.libs/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          "value": "C:/coding/.libs/vcpkg/scripts/buildsystems/vcpkg.cmake",
+          "type": "STRING"
         }
       ]
     }
