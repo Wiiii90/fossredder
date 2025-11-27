@@ -1,17 +1,15 @@
 #pragma once
 
-#include <QWidget>
-#include <QList>
-#include <QString>
+#include "ui/views/BaseView.h"
 
 namespace ui {
 
-class BookingGroupView : public QWidget {
+class BookingGroupView : public BaseView {
     Q_OBJECT
 public:
     explicit BookingGroupView(QWidget* parent = nullptr);
 public slots:
-    void setContext(const QList<QString>& ids);
+    void setContext(const QList<QString>& ids, ContextLevel level) override;
 };
 
 }

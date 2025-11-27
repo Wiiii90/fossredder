@@ -80,3 +80,12 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -P "${_copy_script}"
     )
 endif()
+
+# Copy QSS to runtime directory so the app loads the filesystem stylesheet during development
+set(_qss_src "${CMAKE_SOURCE_DIR}/ui/res/styles/app.qss")
+set(_qss_dest "${CMAKE_BINARY_DIR}/bin/ui/res/styles/app.qss")
+add_custom_command(TARGET fossredder POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/bin/ui/res/styles"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_qss_src}" "${_qss_dest}"
+    COMMENT "Copy app.qss to output directory for runtime stylesheet"
+)

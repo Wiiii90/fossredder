@@ -1,10 +1,16 @@
 #include "ui/windows/MainWindow.h"
-#include "ui/widgets/StatementTreeWidget.h"
+#include "ui/windows/Workspace.h"
+#include "ui/widgets/TreeWidget.h"
+#include "ui/controllers/QTMainWindowController.h"
 #include "ui/controllers/QTMainController.h"
 #include "ui/views/StatementsView.h"
 #include "ui/views/TransactionView.h"
 #include "ui/views/BookingGroupView.h"
-#include "ui/views/YearlyStatementView.h"
+#include "ui/views/AnnualView.h"
+#include "ui/actions/ActionRegistry.h"
+#include "ui/widgets/ToolBarWidget.h"
+#include "ui/views/ViewFactory.h"
+#include "ui/widgets/BackgroundWidget.h"
 
 #include <QStackedWidget>
 #include <QSplitter>
@@ -15,7 +21,13 @@
 #include <QAction>
 #include <QDockWidget>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QSettings>
+#include <QPushButton>
+#include <QFrame>
+#include <QDebug>
+#include <QGraphicsDropShadowEffect>
+#include <QColor>
 
 namespace ui {
 
@@ -29,40 +41,81 @@ MainWindow::MainWindow(std::shared_ptr<StatementController> /*statementControlle
                        QWidget* parent)
     : QMainWindow(parent)
 {
-    m_controller = new QTMainController(this);
-    setup_ui();
-    setup_menus();
-    setup_toolbar();
-    setup_central_stack();
+    // MainWindow now defers to QTMainWindowController for wiring and view creation
+    m_controller = nullptr;
+    m_action_registry = nullptr;
 
-    // connect tree selection to controller
-    connect(m_statement_tree, &StatementTreeWidget::selectionContextChanged,
-            m_controller, &QTMainController::onTreeSelectionChanged);
+    // create UI shell
+    Workspace* workspace = new Workspace(this);
+    setCentralWidget(workspace);
 
-    // controller updates context
-    connect(m_controller, &QTMainController::contextChanged, this, [this](ContextLevel level, const QList<QString>& ids){
-        int index = 0;
-        switch (level) {
-            case ContextLevel::Root: index = 0; break;
-            case ContextLevel::Statement: index = 1; break;
-            case ContextLevel::BookingGroup: index = 2; break;
-            case ContextLevel::Transaction: index = 3; break;
-        }
-        if (m_stack) m_stack->setCurrentIndex(index);
+    // create controller which will create domain controller and views
+    QTMainWindowController* ctrl = new QTMainWindowController(this, this);
+    // adopt references from controller
+    m_controller = ctrl->qtController();
+    m_action_registry = ctrl->actionRegistry();
+    m_views = ctrl->views();
 
-        // update view context
-        QWidget* w = m_stack->currentWidget();
-        if (auto v = qobject_cast<StatementsView*>(w)) v->setContext(ids);
-        if (auto v = qobject_cast<BookingGroupView*>(w)) v->setContext(ids);
-        if (auto v = qobject_cast<TransactionView*>(w)) v->setContext(ids);
-        if (auto v = qobject_cast<YearlyStatementView*>(w)) v->setContext(ids);
+    // let controller build menus and toolbar now that it has action registry and views
+    ctrl->setupMenus(this);
+    ctrl->setupToolbar(this);
 
-        statusBar()->showMessage(QString("Context: %1, items: %2").arg(static_cast<int>(level)).arg(ids.size()));
-    });
+    // connect controller's domain controller
+    if (m_controller) {
+        connect(workspace->treeWidget(), &TreeWidget::selectionContextChanged,
+                m_controller, &QTMainController::onTreeSelectionChanged);
+
+        connect(m_controller, &QTMainController::contextChanged, this, [this, workspace](ContextLevel level, const QList<QString>& ids){
+            int stackIndex = 0;
+            switch (level) {
+                case ContextLevel::Root:
+                    stackIndex = 0;
+                    break;
+                case ContextLevel::Annual:
+                    stackIndex = 0;
+                    break;
+                case ContextLevel::Statement:
+                    stackIndex = 1;
+                    break;
+                case ContextLevel::BookingGroup:
+                    stackIndex = 2;
+                    break;
+                case ContextLevel::Transaction:
+                    stackIndex = 3;
+                    break;
+                default:
+                    stackIndex = 0;
+                    break;
+            }
+
+            workspace->setCurrentIndex(stackIndex);
+
+            QWidget* w = nullptr;
+            // find current widget from workspace stacked widget
+            QWidget* central = workspace->centralWidget();
+            if (central) w = central->findChild<QStackedWidget*>()->currentWidget();
+            if (auto v = qobject_cast<AnnualView*>(w)) v->setContext(ids, level);
+            if (auto v = qobject_cast<StatementsView*>(w)) v->setContext(ids, level);
+            if (auto v = qobject_cast<BookingGroupView*>(w)) v->setContext(ids, level);
+            if (auto v = qobject_cast<TransactionView*>(w)) v->setContext(ids, level);
+
+            statusBar()->showMessage(QString("Context: %1").arg(static_cast<int>(level)));
+        });
+    }
+
+    workspace->setViews(m_views);
 
     QSettings settings;
     restoreGeometry(settings.value("mainwindow/geometry").toByteArray());
     restoreState(settings.value("mainwindow/state").toByteArray());
+
+    resize(1200, 800);
+    showMaximized();
+}
+
+void MainWindow::onViewActionsChanged(const QStringList& labels) {
+    Q_UNUSED(labels);
+    // Currently no-op; placeholder to satisfy moc linkage and allow future wiring
 }
 
 MainWindow::~MainWindow() {
@@ -71,71 +124,4 @@ MainWindow::~MainWindow() {
     settings.setValue("mainwindow/state", saveState());
 }
 
-void MainWindow::setup_ui() {
-    QSplitter* splitter = new QSplitter(this);
-
-    m_statement_tree = new StatementTreeWidget(splitter);
-
-    m_stack = new QStackedWidget(splitter);
-
-    splitter->addWidget(m_statement_tree);
-    splitter->addWidget(m_stack);
-    splitter->setStretchFactor(0, 0);
-    splitter->setStretchFactor(1, 1);
-
-    setCentralWidget(splitter);
-
-    QDockWidget* rightDock = new QDockWidget(tr("Analytics"), this);
-    rightDock->setAllowedAreas(Qt::RightDockWidgetArea);
-    rightDock->setVisible(false);
-    addDockWidget(Qt::RightDockWidgetArea, rightDock);
-}
-
-void MainWindow::setup_menus() {
-    QMenu* fileMenu = menuBar()->addMenu(tr("File"));
-    fileMenu->addAction(tr("Import Statement"));
-    fileMenu->addSeparator();
-    fileMenu->addAction(tr("Exit"), this, &MainWindow::close);
-
-    QMenu* viewMenu = menuBar()->addMenu(tr("View"));
-    m_toggle_left_tree = viewMenu->addAction(tr("Show Left Tree"));
-    m_toggle_left_tree->setCheckable(true);
-    m_toggle_left_tree->setChecked(true);
-    connect(m_toggle_left_tree, &QAction::toggled, m_statement_tree, &QWidget::setVisible);
-
-    m_toggle_right_dock = viewMenu->addAction(tr("Show Right Sidebar"));
-    m_toggle_right_dock->setCheckable(true);
-    m_toggle_right_dock->setChecked(false);
-    connect(m_toggle_right_dock, &QAction::toggled, this, [this](bool visible){
-        for (QDockWidget* dock : findChildren<QDockWidget*>()) dock->setVisible(visible);
-    });
-}
-
-void MainWindow::setup_toolbar() {
-    QToolBar* tb = addToolBar(tr("Main"));
-    tb->addAction(tr("Import"));
-    tb->addAction(tr("Zoom In"));
-    tb->addAction(tr("Zoom Out"));
-
-    // context area placeholder
-    QWidget* spacer = new QWidget(this);
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    tb->addWidget(spacer);
-
-    QLabel* ctxLabel = new QLabel(tr("Context Actions"), this);
-    tb->addWidget(ctxLabel);
-}
-
-void MainWindow::setup_central_stack() {
-    auto statements = new StatementsView(this);
-    auto booking = new BookingGroupView(this);
-    auto transactions = new TransactionView(this);
-    auto yearly = new YearlyStatementView(this);
-
-    m_stack->addWidget(statements);
-    m_stack->addWidget(booking);
-    m_stack->addWidget(transactions);
-    m_stack->addWidget(yearly);
-}
-
-}
+} // namespace ui

@@ -8,6 +8,7 @@ namespace ui {
 
 enum class ContextLevel {
     Root,
+    Annual,
     Statement,
     BookingGroup,
     Transaction

@@ -4,10 +4,10 @@
 
 namespace ui {
 
-class TransactionView : public BaseView {
+class AnnualView : public BaseView {
     Q_OBJECT
 public:
-    explicit TransactionView(QWidget* parent = nullptr);
+    explicit AnnualView(QWidget* parent = nullptr);
 public slots:
     void setContext(const QList<QString>& ids, ContextLevel level) override;
 };

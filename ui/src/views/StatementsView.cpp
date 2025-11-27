@@ -5,16 +5,18 @@
 namespace ui {
 
 StatementsView::StatementsView(QWidget* parent)
-    : QWidget(parent)
+    : BaseView(parent)
 {
-    QVBoxLayout* l = new QVBoxLayout(this);
-    QLabel* h = new QLabel(tr("Statements View"), this);
+    QVBoxLayout* l = new QVBoxLayout(content_area_);
+    QLabel* h = new QLabel(tr("Statements View Content"), content_area_);
     h->setAlignment(Qt::AlignCenter);
     l->addWidget(h);
 }
 
-void StatementsView::setContext(const QList<QString>& ids) {
+void StatementsView::setContext(const QList<QString>& ids, ContextLevel level) {
     Q_UNUSED(ids);
+    Q_UNUSED(level);
+    set_actions({tr("Import"), tr("New"), tr("Edit"), tr("Delete"), tr("Analyze"), tr("Settings")});
 }
 
 }

@@ -7,27 +7,34 @@ QTMainController::QTMainController(QObject* parent)
 {
 }
 
-void QTMainController::onTreeSelectionChanged(ContextLevel level, const QList<QString>& ids) {
-    // here we receive already computed level from widget
-    emit contextChanged(level, ids);
+void QTMainController::onTreeSelectionChanged(ContextLevel /*level*/, const QList<QString>& ids) {
+    // compute level centrally to ensure consistency across widgets
+    ContextLevel computed = compute_lca(ids);
+    emit contextChanged(computed, ids);
 }
 
 ContextLevel QTMainController::compute_lca(const QList<QString>& ids) const {
     if (ids.isEmpty()) return ContextLevel::Root;
-    // primitive heuristic: id prefix parsing
-    bool all_stmt = true;
-    bool all_bg = true;
-    bool all_tx = true;
+
+    bool any_year = false;
+    bool any_stmt = false;
+    bool any_bg = false;
+    bool any_tx = false;
+
     for (const QString& id : ids) {
-        if (!id.startsWith("stmt-")) all_stmt = false;
-        if (!id.startsWith("bg-")) all_bg = false;
-        if (!id.startsWith("tx-")) all_tx = false;
+        if (id.startsWith("year-")) any_year = true;
+        if (id.startsWith("stmt-")) any_stmt = true;
+        if (id.startsWith("bg-")) any_bg = true;
+        if (id.startsWith("tx-")) any_tx = true;
     }
-    if (all_tx) return ContextLevel::Transaction;
-    if (all_bg) return ContextLevel::BookingGroup;
-    if (all_stmt) return ContextLevel::Statement;
-    // mixed: pick highest common ancestor - crude fallback
-    return ContextLevel::BookingGroup;
+
+    // Prefer higher-level context if mixed selection includes higher levels (year > stmt > bg > tx)
+    if (any_year) return ContextLevel::Annual;
+    if (any_stmt) return ContextLevel::Statement;
+    if (any_bg) return ContextLevel::BookingGroup;
+    if (any_tx) return ContextLevel::Transaction;
+
+    return ContextLevel::Root;
 }
 
 }

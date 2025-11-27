@@ -1,17 +1,25 @@
 cmake_minimum_required(VERSION 3.15)
 project(ui)
 
-file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
-add_library(ui_lib STATIC ${SRCS})
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+
+file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/**/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/res/*.qrc
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.qrc)
+
+# Also include public headers so AUTOMOC picks up Q_OBJECT macros in headers
+file(GLOB_RECURSE HDRS CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/**/*.h)
+
+add_library(ui_lib STATIC ${SRCS} ${HDRS})
 
 target_include_directories(ui_lib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
 
 target_compile_features(ui_lib PUBLIC cxx_std_20)
 

@@ -5,16 +5,18 @@
 namespace ui {
 
 TransactionView::TransactionView(QWidget* parent)
-    : QWidget(parent)
+    : BaseView(parent)
 {
-    QVBoxLayout* l = new QVBoxLayout(this);
-    QLabel* h = new QLabel(tr("Transaction View"), this);
+    QVBoxLayout* l = new QVBoxLayout(content_area_);
+    QLabel* h = new QLabel(tr("Transaction View Content"), content_area_);
     h->setAlignment(Qt::AlignCenter);
     l->addWidget(h);
 }
 
-void TransactionView::setContext(const QList<QString>& ids) {
+void TransactionView::setContext(const QList<QString>& ids, ContextLevel level) {
     Q_UNUSED(ids);
+    Q_UNUSED(level);
+    set_actions({tr("New"), tr("Edit"), tr("Settings")});
 }
 
 }
