@@ -51,3 +51,10 @@ test.txt
 
 # Environment variables
 .env
+
+# Debug and temporary
+dumpbin_dependencies.txt
+
+# IDE
+*.suo
+*.user

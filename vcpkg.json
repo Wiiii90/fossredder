@@ -5,15 +5,19 @@
     "poppler",
     "pkgconf",
     "tesseract",
-    "fontconfig",
-    "tinyxml2",
     "leptonica",
     "icu",
     "qtbase",
+    "qtdeclarative",
+    "qtquickcontrols2",
+    "qttools",
+    "qtimageformats",
+    "qtshadertools",
     "onnxruntime-gpu",
     "nlohmann-json",
     "opencv",
-    "spdlog"
+    "spdlog",
+    "protobuf"
   ],
   "builtin-baseline": "984f9232b2fe0eb94f5e9f161d6c632c581fff0c"
 }

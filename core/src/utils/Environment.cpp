@@ -34,16 +34,53 @@ namespace env {
             trim(key);
             trim(val);
             if (key.empty()) continue;
-    #ifdef _WIN32
+#ifdef _WIN32
+            // perform case-insensitive comparison for PATH
+            std::string keyUpper = key;
+            std::transform(keyUpper.begin(), keyUpper.end(), keyUpper.begin(), ::toupper);
             if (!overwrite) {
                 DWORD len = GetEnvironmentVariableA(key.c_str(), nullptr, 0);
-                if (len != 0) continue;
+                if (len != 0) {
+                    // If key is PATH, merge new entries instead of skipping/overwriting
+                    if (keyUpper == "PATH") {
+                        // read existing PATH
+                        std::string buf(len, '\0');
+                        GetEnvironmentVariableA(key.c_str(), &buf[0], len);
+                        if (!buf.empty() && buf.back() == '\0') buf.pop_back();
+                        std::string existing = buf;
+                        if (!val.empty()) {
+                            // if val already contains existing prefix, avoid duplication
+                            if (existing.find(val) == std::string::npos) {
+                                std::string merged = val;
+                                if (!merged.empty() && merged.back() != ';') merged.push_back(';');
+                                merged += existing;
+                                SetEnvironmentVariableA(key.c_str(), merged.c_str());
+                            }
+                        }
+                    }
+                    continue;
+                }
             }
             SetEnvironmentVariableA(key.c_str(), val.c_str());
-    #else
-            if (!overwrite && getenv(key.c_str()) != nullptr) continue;
+#else
+            // POSIX: merge PATH when appropriate
+            std::string keyUpper = key;
+            std::transform(keyUpper.begin(), keyUpper.end(), keyUpper.begin(), ::toupper);
+            if (!overwrite && getenv(key.c_str()) != nullptr) {
+                if (keyUpper == "PATH") {
+                    const char* cur = getenv("PATH");
+                    std::string existing = cur ? std::string(cur) : std::string();
+                    if (existing.find(val) == std::string::npos) {
+                        std::string merged = val;
+                        if (!merged.empty() && merged.back() != ':') merged.push_back(':');
+                        merged += existing;
+                        setenv(key.c_str(), merged.c_str(), 1);
+                    }
+                }
+                continue;
+            }
             setenv(key.c_str(), val.c_str(), 1);
-    #endif
+#endif
         }
         return true;
     }

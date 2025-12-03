@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/qml">
+        <file>Main.qml</file>
+        <file>TransactionList.qml</file>
+        <file>TransactionView.qml</file>
+        <file>StatementsView.qml</file>
+        <file>AnnualView.qml</file>
+        <file>BookingGroupView.qml</file>
+        <!-- add other qml files as needed -->
+    </qresource>
+</RCC>

@@ -7,11 +7,18 @@
 #include "core/models/Config.h"
 #include "core/managers/ConfigManager.h"
 #include "core/controllers/StatementController.h"
-#include "ui/windows/MainWindow.h"
 
 #include <QFile>
 #include <QDir>
 #include <QDebug>
+
+#ifdef USE_QML
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QQuickView>
+#include <QQuickWindow>
+#include "ui/qml_models/TransactionGroupModel.h"
+#endif
 
 int main(int argc, char* argv[]) {
     bool loaded = env::load_dotenv(".env", false);
@@ -32,56 +39,134 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     app.setStyle("Fusion");
 
-    QString qss;
+#ifdef USE_QML
+    // --- Debug: print environment to verify PATH and QT_DEBUG_PLUGINS are visible here
+    QString appDir = QCoreApplication::applicationDirPath();
+    qDebug() << "[ENV CHECK] Application dir:" << appDir;
+    QByteArray pathEnv = qgetenv("PATH");
+    QByteArray qtDebugEnv = qgetenv("QT_DEBUG_PLUGINS");
+    QByteArray vcpkgEnv = qgetenv("VCPKG_INSTALLED_DIR");
+    qDebug() << "[ENV CHECK] PATH (prefix):" << QString(pathEnv).left(512);
+    qDebug() << "[ENV CHECK] QT_DEBUG_PLUGINS:" << qtDebugEnv;
+    qDebug() << "[ENV CHECK] VCPKG_INSTALLED_DIR env:" << vcpkgEnv;
 
-    // Prefer loading stylesheet from the filesystem (for development/hot-reload).
-    // If not found, fall back to the embedded resource compiled into the binary.
-    QDir dir(QCoreApplication::applicationDirPath());
-    bool found = false;
-    QStringList candidatesRel = {
-        "ui/res/styles/app.qss",
-        "ui/resources/styles/app.qss",
-        "ui/styles/app.qss",
-        "resources/styles/app.qss",
-        "styles/app.qss",
-        "ui/resources/app.qss",
-    };
-    for (int depth = 0; depth < 8 && !found; ++depth) {
-        for (const QString& rel : candidatesRel) {
-            QString p = dir.filePath(rel);
-            QFile ff(p);
-            if (ff.open(QFile::ReadOnly | QFile::Text)) {
-                qss = QString::fromUtf8(ff.readAll());
-                ff.close();
-                qDebug() << "Loaded application stylesheet from file:" << p;
-                found = true;
-                break;
+    // check expected vcpkg debug bin and plugin DLL presence
+    // appDir is .../build/x64-Debug-vcpkg/bin -> vcpkg_installed is at project root P:/fossredder/vcpkg_installed
+    // go up two levels from bin to repository root, unless VCPKG_INSTALLED_DIR env is set
+    QString vcpkgDebugBin;
+    if (!vcpkgEnv.isEmpty()) {
+        vcpkgDebugBin = QDir(QString::fromUtf8(vcpkgEnv)).filePath("x64-windows/debug/bin");
+    } else {
+        // appDir is .../build/x64-Debug-vcpkg/bin -> go up three levels to reach repo root
+        vcpkgDebugBin = QDir(appDir).filePath("..\\..\\..\\vcpkg_installed\\x64-windows\\debug\\bin");
+    }
+    QString pluginDll = QDir(appDir).filePath("qml/QtQuick/qtquick2plugind.dll");
+    qDebug() << "[ENV CHECK] vcpkg debug bin exists:" << QDir(vcpkgDebugBin).exists() << vcpkgDebugBin;
+    qDebug() << "[ENV CHECK] qtquick2plugind.dll exists in runtime qml path:" << QFile::exists(pluginDll) << pluginDll;
+    // Also check in vcpkg debug location
+    QString pluginInVcpkg = QDir(vcpkgDebugBin).filePath("../Qt6/qml/QtQuick/qtquick2plugind.dll");
+    qDebug() << "[ENV CHECK] qtquick2plugind.dll exists in vcpkg debug qml:" << QFile::exists(pluginInVcpkg) << pluginInVcpkg;
+
+    // If Visual Studio didn't provide the debugger environment, ensure required DLL locations
+    // are present in PATH at runtime so QML plugins can be loaded.
+    QStringList prefixes;
+    // Try to detect MSVC debug CRT dir under ProgramFiles
+    QString msvcDebugDir;
+    QString progFiles = QString::fromLocal8Bit(qgetenv("ProgramFiles"));
+    if (!progFiles.isEmpty()) {
+        QDir redistDir(progFiles + "/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC");
+        if (redistDir.exists()) {
+            QStringList versions = redistDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+            for (const QString &v : versions) {
+                QString candidate = redistDir.filePath(v + "/debug_nonredist/x64/Microsoft.VC143.DebugCRT");
+                if (QFile::exists(QDir::toNativeSeparators(candidate + "/vcruntime140d.dll"))) {
+                    msvcDebugDir = QDir::toNativeSeparators(candidate);
+                    break;
+                }
             }
         }
-        if (!found) {
-            if (!dir.cdUp()) break;
+    }
+    // Try ProgramFiles(x86) as fallback
+    if (msvcDebugDir.isEmpty()) {
+        QString progFilesX86 = QString::fromLocal8Bit(qgetenv("ProgramFiles(x86)"));
+        if (!progFilesX86.isEmpty()) {
+            QDir redistDir(progFilesX86 + "/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC");
+            if (redistDir.exists()) {
+                QStringList versions = redistDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+                for (const QString &v : versions) {
+                    QString candidate = redistDir.filePath(v + "/debug_nonredist/x64/Microsoft.VC143.DebugCRT");
+                    if (QFile::exists(QDir::toNativeSeparators(candidate + "/vcruntime140d.dll"))) {
+                        msvcDebugDir = QDir::toNativeSeparators(candidate);
+                        break;
+                    }
+                }
+            }
         }
     }
 
-    if (!found) {
-        // No external stylesheet found — try embedded resource
-        Q_INIT_RESOURCE(resources);
-        QFile f(":/styles/app.qss");
-        if (f.open(QFile::ReadOnly | QFile::Text)) {
-            qss = QString::fromUtf8(f.readAll());
-            f.close();
-            qDebug() << "Loaded application stylesheet from resource";
+    if (!msvcDebugDir.isEmpty()) {
+        prefixes << msvcDebugDir;
+    }
+    if (!vcpkgDebugBin.isEmpty()) {
+        prefixes << QDir::toNativeSeparators(vcpkgDebugBin);
+        // set VCPKG_INSTALLED_DIR if not present
+        if (vcpkgEnv.isEmpty()) {
+            QString vcpkgRoot = QDir(appDir).filePath("..\\..\\..\\vcpkg_installed");
+            qputenv("VCPKG_INSTALLED_DIR", vcpkgRoot.toLocal8Bit());
+            qDebug() << "[ENV FIX] Set VCPKG_INSTALLED_DIR to" << vcpkgRoot;
+        }
+    }
+    if (!prefixes.isEmpty()) {
+        QByteArray currentPath = qgetenv("PATH");
+        QString newPath = prefixes.join(';') + ";" + QString::fromLocal8Bit(currentPath);
+        qputenv("PATH", newPath.toLocal8Bit());
+        qputenv("QT_DEBUG_PLUGINS", "1");
+        qDebug() << "[ENV FIX] Prepended to PATH:" << prefixes;
+    }
+
+    // Register and populate model
+    qmlRegisterType<ui::TransactionGroupModel>("FossRedder", 1, 0, "TransactionGroupModel");
+    ui::TransactionGroupModel listModel;
+    listModel.loadDemoData();
+
+    // Try to load QML POC
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("transactionModel", &listModel);
+    Q_INIT_RESOURCE(qml);
+
+    // Ensure engine can find QML modules copied to the runtime directory (bin/qml)
+    QString runtimeQmlPath = QDir(appDir).filePath("qml");
+    engine.addImportPath(runtimeQmlPath);
+    engine.addImportPath(runtimeQmlPath + "/QtQuick");
+    engine.addImportPath(runtimeQmlPath + "/QtQuick/Controls.2");
+
+    // Also try common vcpkg_installed locations inside project (release and debug)
+    QStringList candidates;
+    candidates << QDir::cleanPath(QDir(appDir).filePath("..\\vcpkg_installed\\x64-windows\\Qt6\\qml"))
+               << QDir::cleanPath(QDir(appDir).filePath("..\\vcpkg_installed\\x64-windows\\debug\\Qt6\\qml"))
+               << QDir::cleanPath("C:/coding/fossredder/vcpkg_installed/x64-windows/Qt6/qml")
+               << QDir::cleanPath("C:/coding/fossredder/vcpkg_installed/x64-windows/debug/Qt6/qml");
+
+    for (const QString &p : candidates) {
+        if (QDir(p).exists()) {
+            engine.addImportPath(p);
+            engine.addImportPath(p + "/QtQuick");
+            engine.addImportPath(p + "/QtQuick/Controls");
+            engine.addImportPath(p + "/QtQuick/Controls/Basic");
+            qDebug() << "Added QML import path:" << p;
         }
     }
 
-    if (!qss.isEmpty()) {
-        app.setStyleSheet(qss);
-        qDebug() << "Applied application stylesheet (length):" << qss.size();
-    } else {
-        qDebug() << "No application stylesheet loaded";
+    const QUrl url(QStringLiteral("qrc:/qml/Main.qml"));
+    engine.load(url);
+    if (engine.rootObjects().isEmpty()) {
+        qWarning() << "Failed to load QML UI";
+        return -1;
     }
 
-    ui::MainWindow mainWindow(nullptr, actorRepo, propRepo, stmtRepo, cfgRepo, txRepo, bgRepo);
-    mainWindow.show();
     return app.exec();
+#else
+    qWarning() << "QML support not enabled at build time";
+    return -1;
+#endif
 }

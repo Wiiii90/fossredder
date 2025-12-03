@@ -1,3 +1,5 @@
+File: .gitattributes
+````````
 ###############################################################################
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
@@ -61,3 +63,42 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# Explicit rules for source files, JSON, scripts, and line ending policies
+###############################################################################
+# Force text handling for common source file types and enforce LF for repo
+*.c     text eol=lf
+*.h     text eol=lf
+*.cpp   text eol=lf
+*.hpp   text eol=lf
+*.cc    text eol=lf
+*.hh    text eol=lf
+*.inl   text eol=lf
+*.mm    text eol=lf
+
+# Project files (prefer LF in repo)
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.md    text eol=lf
+
+# Scripts: force LF
+*.sh    text eol=lf
+*.py    text eol=lf
+
+# Windows batch and PowerShell: keep CRLF
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binary files
+*.png   binary
+*.jpg   binary
+*.dll   binary
+*.lib   binary
+*.zip   binary
+*.exe   binary
+
+# Keep the default for other files
+# End of .gitattributes

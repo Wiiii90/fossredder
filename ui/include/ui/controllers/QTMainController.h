@@ -24,9 +24,6 @@ public:
 signals:
     void contextChanged(ContextLevel level, const QList<QString>& ids);
 
-public slots:
-    void onTreeSelectionChanged(ContextLevel level, const QList<QString>& ids);
-
 private:
     ContextLevel compute_lca(const QList<QString>& ids) const;
 };

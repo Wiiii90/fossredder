@@ -4,14 +4,41 @@ project(FossRedder)
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 20)
 
+# Default vcpkg variables to repository-relative locations when not provided
+if(NOT DEFINED VCPKG_TARGET_TRIPLET)
+    set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "vcpkg target triplet")
+endif()
+if(NOT DEFINED VCPKG_INSTALLED_DIR)
+    set(VCPKG_INSTALLED_DIR "${CMAKE_SOURCE_DIR}/vcpkg_installed" CACHE PATH "vcpkg installed dir")
+endif()
+
+# Diagnostic messages to help with repository moves
+message(STATUS "CMake configure: CMAKE_SOURCE_DIR=${CMAKE_SOURCE_DIR}")
+message(STATUS "CMake configure: CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}")
+if(EXISTS "${CMAKE_BINARY_DIR}/CMakeCache.txt")
+    file(READ "${CMAKE_BINARY_DIR}/CMakeCache.txt" _cmake_cache_contents)
+    string(REPLACE "\\\\" "/" _cache_norm "${_cmake_cache_contents}")
+    string(REPLACE "\\" "/" _src_norm "${CMAKE_SOURCE_DIR}")
+    if(NOT _cache_norm MATCHES _src_norm)
+        message(WARNING "Existing CMakeCache.txt does not appear to reference the current source directory. If you moved the repository, remove the build directory and re-run CMake (or run bootstrap.ps1 -CleanBuild). This project will attempt to use repository-relative vcpkg paths by default.")
+    endif()
+endif()
+
 # 🔧 Erzwinge konsistente CRT unter MSVC
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-# Qt Integration (Widgets)
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+# Enable automatic Qt processing in case Qt is found by subprojects
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
+
+# Do not require Qt globally here; let UI module detect Quick/Qml/Widgets as needed
+find_package(Qt6 COMPONENTS Widgets QUIET)
+if(TARGET Qt6::Widgets)
+    message(STATUS "Top-level: Qt6::Widgets available (will be used by subprojects)")
+else()
+    message(STATUS "Top-level: Qt6::Widgets not found; UI module will attempt to locate Qt as needed")
+endif()
 
 # API module must be available early
 add_subdirectory(api)
@@ -46,8 +73,6 @@ endif()
 
 # Third-party packages
 find_package(Tesseract QUIET CONFIG)
-find_package(Fontconfig QUIET)
-find_package(tinyxml2 QUIET)
 find_package(ICU QUIET COMPONENTS uc i18n)
 find_package(nlohmann_json QUIET CONFIG)
 find_package(spdlog QUIET CONFIG)

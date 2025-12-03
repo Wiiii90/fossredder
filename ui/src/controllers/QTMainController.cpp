@@ -7,12 +7,6 @@ QTMainController::QTMainController(QObject* parent)
 {
 }
 
-void QTMainController::onTreeSelectionChanged(ContextLevel /*level*/, const QList<QString>& ids) {
-    // compute level centrally to ensure consistency across widgets
-    ContextLevel computed = compute_lca(ids);
-    emit contextChanged(computed, ids);
-}
-
 ContextLevel QTMainController::compute_lca(const QList<QString>& ids) const {
     if (ids.isEmpty()) return ContextLevel::Root;
 
