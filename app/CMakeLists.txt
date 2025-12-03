@@ -202,17 +202,6 @@ if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
         endforeach()
 
         set(_dbg_env "$<$<CONFIG:Debug>:PATH=${_vcpkg_debug_bin}$<SEMICOLON>QT_DEBUG_PLUGINS=1$<SEMICOLON>VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR}>")
-        if(NOT "${_msvc_debug_dir}" STREQUAL "")
-            # prepend MSVC debug CRT location to PATH in debug configuration
-            set(_dbg_env "$<$<CONFIG:Debug>:PATH=${_msvc_debug_dir}$<SEMICOLON>${_vcpkg_debug_bin}$<SEMICOLON>QT_DEBUG_PLUGINS=1$<SEMICOLON>VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR}>")
-
-            # Add a post-build step to copy the MSVC debug CRT DLLs into the target directory for debug runs
-            add_custom_command(TARGET fossredder POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E echo "Copying MSVC debug CRT DLLs from ${_msvc_debug_dir} into target directory"
-                COMMAND ${CMAKE_COMMAND} -E copy_directory "${_msvc_debug_dir}" "$<TARGET_FILE_DIR:fossredder>"
-                COMMENT "Deploy MSVC debug CRTs"
-            )
-        endif()
         set(_rel_env "$<$<CONFIG:Release>:PATH=${_vcpkg_release_bin}$<SEMICOLON>VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR}>")
 
         set_target_properties(fossredder PROPERTIES

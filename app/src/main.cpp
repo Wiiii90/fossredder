@@ -67,62 +67,7 @@ int main(int argc, char* argv[]) {
     QString pluginInVcpkg = QDir(vcpkgDebugBin).filePath("../Qt6/qml/QtQuick/qtquick2plugind.dll");
     qDebug() << "[ENV CHECK] qtquick2plugind.dll exists in vcpkg debug qml:" << QFile::exists(pluginInVcpkg) << pluginInVcpkg;
 
-    // If Visual Studio didn't provide the debugger environment, ensure required DLL locations
-    // are present in PATH at runtime so QML plugins can be loaded.
-    QStringList prefixes;
-    // Try to detect MSVC debug CRT dir under ProgramFiles
-    QString msvcDebugDir;
-    QString progFiles = QString::fromLocal8Bit(qgetenv("ProgramFiles"));
-    if (!progFiles.isEmpty()) {
-        QDir redistDir(progFiles + "/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC");
-        if (redistDir.exists()) {
-            QStringList versions = redistDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-            for (const QString &v : versions) {
-                QString candidate = redistDir.filePath(v + "/debug_nonredist/x64/Microsoft.VC143.DebugCRT");
-                if (QFile::exists(QDir::toNativeSeparators(candidate + "/vcruntime140d.dll"))) {
-                    msvcDebugDir = QDir::toNativeSeparators(candidate);
-                    break;
-                }
-            }
-        }
-    }
-    // Try ProgramFiles(x86) as fallback
-    if (msvcDebugDir.isEmpty()) {
-        QString progFilesX86 = QString::fromLocal8Bit(qgetenv("ProgramFiles(x86)"));
-        if (!progFilesX86.isEmpty()) {
-            QDir redistDir(progFilesX86 + "/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC");
-            if (redistDir.exists()) {
-                QStringList versions = redistDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-                for (const QString &v : versions) {
-                    QString candidate = redistDir.filePath(v + "/debug_nonredist/x64/Microsoft.VC143.DebugCRT");
-                    if (QFile::exists(QDir::toNativeSeparators(candidate + "/vcruntime140d.dll"))) {
-                        msvcDebugDir = QDir::toNativeSeparators(candidate);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    if (!msvcDebugDir.isEmpty()) {
-        prefixes << msvcDebugDir;
-    }
-    if (!vcpkgDebugBin.isEmpty()) {
-        prefixes << QDir::toNativeSeparators(vcpkgDebugBin);
-        // set VCPKG_INSTALLED_DIR if not present
-        if (vcpkgEnv.isEmpty()) {
-            QString vcpkgRoot = QDir(appDir).filePath("..\\..\\..\\vcpkg_installed");
-            qputenv("VCPKG_INSTALLED_DIR", vcpkgRoot.toLocal8Bit());
-            qDebug() << "[ENV FIX] Set VCPKG_INSTALLED_DIR to" << vcpkgRoot;
-        }
-    }
-    if (!prefixes.isEmpty()) {
-        QByteArray currentPath = qgetenv("PATH");
-        QString newPath = prefixes.join(';') + ";" + QString::fromLocal8Bit(currentPath);
-        qputenv("PATH", newPath.toLocal8Bit());
-        qputenv("QT_DEBUG_PLUGINS", "1");
-        qDebug() << "[ENV FIX] Prepended to PATH:" << prefixes;
-    }
+    // Runtime PATH/VCPKG fallback removed; rely on CMake and RunDebug.bat for debug environment
 
     // Register and populate model
     qmlRegisterType<ui::TransactionGroupModel>("FossRedder", 1, 0, "TransactionGroupModel");
