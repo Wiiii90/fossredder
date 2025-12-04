@@ -33,6 +33,7 @@
 
 # Project Specific
 .vs/
+docs/tmp.txt
 out/
 build/
 vcpkg_installed/
@@ -47,14 +48,19 @@ LOCAL_APPDATA_FONTCONFIG_CACHE/
 
 # llms
 res/llms/
-test.txt
 
 # Environment variables
 .env
 
-# Debug and temporary
-dumpbin_dependencies.txt
-
 # IDE
 *.suo
 *.user
+
+# Local runtime files
+fossredder.db
+logs/
+.vscode/
+
+# vcpkg buildtrees/downloads are handled externally
+third_party/vcpkg/buildtrees/
+third_party/vcpkg/downloads/

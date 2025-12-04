@@ -9,12 +9,12 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt6 COMPONENTS Quick Qml QUIET)
 
 file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/**/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/*.qrc)
 
 # Also include public headers so AUTOMOC picks up Q_OBJECT macros in headers
 file(GLOB_RECURSE HDRS CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/**/*.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 
 # Add QML resources if present
 set(QML_QRC "${CMAKE_CURRENT_SOURCE_DIR}/qml/qml.qrc")

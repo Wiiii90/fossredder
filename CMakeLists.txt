@@ -12,22 +12,14 @@ if(NOT DEFINED VCPKG_INSTALLED_DIR)
     set(VCPKG_INSTALLED_DIR "${CMAKE_SOURCE_DIR}/vcpkg_installed" CACHE PATH "vcpkg installed dir")
 endif()
 
-# Diagnostic messages to help with repository moves
+# Informative configure messages
 message(STATUS "CMake configure: CMAKE_SOURCE_DIR=${CMAKE_SOURCE_DIR}")
 message(STATUS "CMake configure: CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}")
-if(EXISTS "${CMAKE_BINARY_DIR}/CMakeCache.txt")
-    file(READ "${CMAKE_BINARY_DIR}/CMakeCache.txt" _cmake_cache_contents)
-    string(REPLACE "\\\\" "/" _cache_norm "${_cmake_cache_contents}")
-    string(REPLACE "\\" "/" _src_norm "${CMAKE_SOURCE_DIR}")
-    if(NOT _cache_norm MATCHES _src_norm)
-        message(WARNING "Existing CMakeCache.txt does not appear to reference the current source directory. If you moved the repository, remove the build directory and re-run CMake (or run bootstrap.ps1 -CleanBuild). This project will attempt to use repository-relative vcpkg paths by default.")
-    endif()
-endif()
 
-# 🔧 Erzwinge konsistente CRT unter MSVC
+# Ensure consistent MSVC runtime selection when using MSVC toolset
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-# Enable automatic Qt processing in case Qt is found by subprojects
+# Enable automatic Qt processing in subprojects
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
@@ -40,26 +32,17 @@ else()
     message(STATUS "Top-level: Qt6::Widgets not found; UI module will attempt to locate Qt as needed")
 endif()
 
-# API module must be available early
 add_subdirectory(api)
-
-# Add core and debug modules early
 add_subdirectory(core)
 add_subdirectory(debug)
-
-# Add service modules
 add_subdirectory(services/poppler)
 add_subdirectory(services/opencv)
 add_subdirectory(services/tesseract)
-
-# Add persistence and ui modules
 add_subdirectory(persistence)
 add_subdirectory(ui)
-
-# Add app subdirectory
 add_subdirectory(app)
 
-# Third-party llama (moved to third_party)
+# Third-party llama
 option(BUILD_THIRD_PARTY_LLAMACPP "Build third_party/llama.cpp subproject" OFF)
 if(BUILD_THIRD_PARTY_LLAMACPP)
     if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/llama.cpp/CMakeLists.txt")
@@ -88,14 +71,3 @@ find_library(ONNXRUNTIME_LIBRARY
     NAMES onnxruntime
     PATHS "${_ORT_ROOT}/lib" "${_ORT_ROOT}/lib/manual-link"
     NO_DEFAULT_PATH)
-
-# Setze Zielverzeichnis für die Plugins
-set(QT_PLUGINS_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/Qt6/plugins/platforms")
-set(DEPLOY_DIR "${CMAKE_BINARY_DIR}/platforms")
-
-# Dummy LlamaModelTest post-build
-if(TARGET LlamaModelTest)
-    add_custom_command(TARGET LlamaModelTest POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E echo "LlamaModelTest built"
-    )
-endif()
