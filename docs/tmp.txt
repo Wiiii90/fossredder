@@ -1,1 +1,1 @@
-er weitere bitte die readme_qt so, dass wir wirklich den kompletten launch.vs.json-code bereit haben zum copy pasten in die eigene launc.vs.json zb auf einem anderen endgerät.
+sollten wir toptoolbar nicht einfahc in toolbar umbenennen? :D es heißt ja im code auch toolbar und wäre es theoretisch sinnvoll eine sidebar datei zu haben und dann leftsidebar und rightsidebar als erbende klassen oder macht man sowas nicht bei qml? und appmenu heißt das wirklich so? klingt irngediwe unschön

@@ -5,8 +5,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-# Find Qt Quick/Qml only
-find_package(Qt6 COMPONENTS Quick Qml QUIET)
+# Find Qt Quick/Qml and Controls so QML modules are available
+find_package(Qt6 COMPONENTS Quick Qml QuickControls2 Widgets QuickWidgets QUIET)
 
 file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
@@ -16,7 +16,7 @@ file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS
 file(GLOB_RECURSE HDRS CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 
-# Add QML resources if present
+# Add QML resources if present (qml folder moved to ui/qml)
 set(QML_QRC "${CMAKE_CURRENT_SOURCE_DIR}/qml/qml.qrc")
 if(EXISTS ${QML_QRC})
     list(APPEND SRCS ${QML_QRC})
@@ -31,13 +31,31 @@ target_include_directories(ui_lib PUBLIC
 
 target_compile_features(ui_lib PUBLIC cxx_std_20)
 
-# Log which Qt components were found for easier debugging
+# Log which Qt components were found for easier debugging and link them
 if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
     message(STATUS "Qt6 Quick and Qml found; enabling USE_QML for ui_lib")
     target_link_libraries(ui_lib PUBLIC Qt6::Quick Qt6::Qml)
     target_compile_definitions(ui_lib PUBLIC USE_QML=1)
 else()
     message(STATUS "Qt6 Quick/Qml not found; QML features disabled in ui_lib")
+endif()
+
+# Link Quick Controls 2 so QML imports QtQuick.Controls and QtQuick.Layouts work
+if(TARGET Qt6::QuickControls2)
+    message(STATUS "Qt6 QuickControls2 found; linking to ui_lib")
+    target_link_libraries(ui_lib PUBLIC Qt6::QuickControls2)
+else()
+    message(WARNING "Qt6 QuickControls2 not found; QML Controls may be missing at runtime")
+endif()
+
+if(TARGET Qt6::Widgets)
+    message(STATUS "Qt6 Widgets found; linking Widgets to ui_lib")
+    target_link_libraries(ui_lib PUBLIC Qt6::Widgets)
+endif()
+
+if(TARGET Qt6::QuickWidgets)
+    message(STATUS "Qt6 QuickWidgets found; linking QuickWidgets to ui_lib")
+    target_link_libraries(ui_lib PUBLIC Qt6::QuickWidgets)
 endif()
 
 # link project libs

@@ -1,11 +1,16 @@
 <RCC>
     <qresource prefix="/qml">
         <file>Main.qml</file>
-        <file>TransactionList.qml</file>
-        <file>TransactionView.qml</file>
-        <file>StatementsView.qml</file>
-        <file>AnnualView.qml</file>
-        <file>BookingGroupView.qml</file>
-        <!-- add other qml files as needed -->
+        <file>components/Layout.qml</file>
+        <file>components/IconButton.qml</file>
+        <file>components/StatusBar.qml</file>
+        <file>components/Toolbar.qml</file>
+        <file>components/SidebarLeft.qml</file>
+        <file>components/SidebarRight.qml</file>
+        <file>components/ContentArea.qml</file>
+        <file>components/BottomBar.qml</file>
+        <file>assets/export.svg</file>
+        <file>assets/import.svg</file>
+        <file>assets/settings.svg</file>
     </qresource>
 </RCC>
