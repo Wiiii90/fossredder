@@ -16,7 +16,11 @@ Item {
             RowLayout { spacing: 12; Layout.alignment: Qt.AlignVCenter
                 Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\u2191"; item.label = qsTr("Import"); item.width = 100; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ if (typeof actionImport !== 'undefined' && actionImport) actionImport.trigger(); }); } }
                 Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\u2193"; item.label = qsTr("Export"); item.width = 100; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ if (typeof actionExport !== 'undefined' && actionExport) actionExport.trigger(); }); } }
-                Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\u2699"; item.label = qsTr("Settings"); item.width = 96; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ /* settings */ }); } }
+
+                Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\uD83D\uDC64"; item.label = qsTr("Actor"); item.width = 100; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ /* actor action */ }); } }
+                Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\uD83C\uDFE0"; item.label = qsTr("Property"); item.width = 100; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ /* property action */ }); } }
+
+                Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\u2699"; item.label = qsTr("Settings"); item.width = 100; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ /* settings */ }); } }
             }
 
             Item { Layout.fillWidth: true }
