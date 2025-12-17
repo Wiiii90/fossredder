@@ -9,7 +9,8 @@ if(NOT DEFINED VCPKG_TARGET_TRIPLET)
     set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "vcpkg target triplet")
 endif()
 if(NOT DEFINED VCPKG_INSTALLED_DIR)
-    set(VCPKG_INSTALLED_DIR "${CMAKE_SOURCE_DIR}/vcpkg_installed" CACHE PATH "vcpkg installed dir")
+    # Default to the bundled third_party vcpkg installation used in this workspace
+    set(VCPKG_INSTALLED_DIR "${CMAKE_SOURCE_DIR}/third_party/vcpkg/installed" CACHE PATH "vcpkg installed dir")
 endif()
 
 # Informative configure messages
@@ -23,6 +24,9 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
+
+# Generate QML lsp ini to help IDE/QML language server resolve imports
+set(QT_QML_GENERATE_QMLLS_INI ON)
 
 # Do not require Qt globally here; let UI module detect Quick/Qml/Widgets as needed
 find_package(Qt6 COMPONENTS Widgets QUIET)

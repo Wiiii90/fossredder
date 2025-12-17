@@ -43,9 +43,6 @@ LOCAL_APPDATA_FONTCONFIG_CACHE/
 *.pdf
 *.pdr
 
-# Images
-*.png
-
 # llms
 res/llms/
 

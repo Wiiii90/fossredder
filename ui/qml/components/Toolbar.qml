@@ -4,24 +4,26 @@ import QtQuick.Layouts 1.3
 
 Item {
     id: toolBar
+    implicitHeight: 64
 
     Rectangle {
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: toolBar.implicitHeight
         color: "#f6fbfd"
 
         RowLayout {
             anchors.fill: parent
             spacing: 12
+            Layout.alignment: Qt.AlignVCenter
 
-            RowLayout { spacing: 12; Layout.alignment: Qt.AlignVCenter
-                Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\u2191"; item.label = qsTr("Import"); item.width = 100; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ if (typeof actionImport !== 'undefined' && actionImport) actionImport.trigger(); }); } }
-                Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\u2193"; item.label = qsTr("Export"); item.width = 100; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ if (typeof actionExport !== 'undefined' && actionExport) actionExport.trigger(); }); } }
-
-                Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\uD83D\uDC64"; item.label = qsTr("Actor"); item.width = 100; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ /* actor action */ }); } }
-                Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\uD83C\uDFE0"; item.label = qsTr("Property"); item.width = 100; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ /* property action */ }); } }
-
-                Loader { source: "IconButton.qml"; asynchronous: false; onLoaded: { item.icon = "\u2699"; item.label = qsTr("Settings"); item.width = 100; item.height = toolBar.implicitHeight - 12; item.clicked.connect(function(){ /* settings */ }); } }
-            }
+            Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/import.svg"; item.label = qsTr("Import"); item.clicked.connect(function(){ if (typeof actionImport !== 'undefined' && actionImport) actionImport.trigger(); }) } }
+            Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/export.svg"; item.label = qsTr("Export"); item.clicked.connect(function(){ if (typeof actionExport !== 'undefined' && actionExport) actionExport.trigger(); }) } }
+            Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/actor.svg"; item.label = qsTr("Actor"); item.clicked.connect(function(){ if (typeof actionActor !== 'undefined' && actionActor) actionActor.trigger(); }) } }
+            Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/property.svg"; item.label = qsTr("Property"); item.clicked.connect(function(){ if (typeof actionProperty !== 'undefined' && actionProperty) actionProperty.trigger(); }) } }
+            Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/analysis.svg"; item.label = qsTr("Analysis"); item.clicked.connect(function(){ if (typeof actionAnalysis !== 'undefined' && actionAnalysis) actionAnalysis.trigger(); }) } }
+            Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/annual.svg"; item.label = qsTr("Annual"); item.clicked.connect(function(){ if (typeof actionAnnual !== 'undefined' && actionAnnual) actionAnnual.trigger(); }) } }
+            Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/settings.svg"; item.label = qsTr("Settings"); item.clicked.connect(function(){ if (typeof actionSettings !== 'undefined' && actionSettings) actionSettings.trigger(); }) } }
 
             Item { Layout.fillWidth: true }
         }

@@ -11,6 +11,7 @@
     "qtdeclarative",
     "qtquickcontrols2",
     "qttools",
+    "qtsvg",
     "qtimageformats",
     "qtshadertools",
     "onnxruntime-gpu",

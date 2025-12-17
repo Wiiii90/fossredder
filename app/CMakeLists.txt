@@ -72,7 +72,7 @@ if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
 
     add_custom_command(TARGET fossredder POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtimes and QML modules (qtdeploy)"
-        COMMAND ${CMAKE_COMMAND} -E env TARGET_DIR=$<TARGET_FILE_DIR:fossredder> TARGET_BINARY=$<TARGET_FILE:fossredder> QT_BIN_DEBUG=${_qt_bin_debug} QT_BIN_RELEASE=${_qt_bin_release} VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR} VCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET} BUILD_CONFIG=${CMAKE_BUILD_TYPE} ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/qtdeploy.cmake"
+        COMMAND ${CMAKE_COMMAND} -E env TARGET_DIR=$<TARGET_FILE_DIR:fossredder> TARGET_BINARY=$<TARGET_FILE:fossredder> QT_BIN_DEBUG=${_qt_bin_debug} QT_BIN_RELEASE=${_qt_bin_release} VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR} VCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET} BUILD_CONFIG=$<CONFIG> ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/qtdeploy.cmake"
         COMMENT "Deploy Qt runtimes and QML modules (windeployqt preferred)"
     )
 

@@ -9,8 +9,12 @@
         <file>components/SidebarRight.qml</file>
         <file>components/ContentArea.qml</file>
         <file>components/BottomBar.qml</file>
-        <file>assets/export.svg</file>
         <file>assets/import.svg</file>
+        <file>assets/export.svg</file>
+        <file>assets/actor.svg</file>
+        <file>assets/property.svg</file>
+        <file>assets/analysis.svg</file>
+        <file>assets/annual.svg</file>
         <file>assets/settings.svg</file>
     </qresource>
 </RCC>

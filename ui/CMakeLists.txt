@@ -6,7 +6,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
 # Find Qt Quick/Qml and Controls so QML modules are available
-find_package(Qt6 COMPONENTS Quick Qml QuickControls2 Widgets QuickWidgets QUIET)
+find_package(Qt6 COMPONENTS Quick Qml QuickControls2 Widgets QuickWidgets Svg QUIET)
 
 file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
@@ -56,6 +56,13 @@ endif()
 if(TARGET Qt6::QuickWidgets)
     message(STATUS "Qt6 QuickWidgets found; linking QuickWidgets to ui_lib")
     target_link_libraries(ui_lib PUBLIC Qt6::QuickWidgets)
+endif()
+
+if(TARGET Qt6::Svg)
+    message(STATUS "Qt6 Svg found; linking Svg to ui_lib")
+    target_link_libraries(ui_lib PUBLIC Qt6::Svg)
+else()
+    message(WARNING "Qt6 Svg not found; QML QtQuick.Svg module may be unavailable at runtime")
 endif()
 
 # link project libs

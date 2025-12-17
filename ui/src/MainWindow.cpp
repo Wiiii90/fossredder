@@ -19,6 +19,7 @@
 #include <QObject>
 #include <QLibraryInfo>
 #include <QDir>
+#include <QCoreApplication>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -60,38 +61,34 @@ MainWindow::MainWindow(QWidget* parent)
 
         m_quickWidget->rootContext()->setContextProperty("statusText", QStringLiteral("Ready"));
         m_quickWidget->rootContext()->setContextProperty("statusItems", 3);
+
+#ifdef _DEBUG
+        m_quickWidget->rootContext()->setContextProperty("isDebugBuild", true);
+#else
+        m_quickWidget->rootContext()->setContextProperty("isDebugBuild", false);
+#endif
     }
 
     setCentralWidget(m_quickWidget);
 
     Q_INIT_RESOURCE(qml);
 
-    // Register standard Qt QML import path if available (keeps Controls/Layouts available)
+    // Register standard Qt QML import path if available
     const QString qtImports = QLibraryInfo::path(QLibraryInfo::Qml2ImportsPath);
     if (!qtImports.isEmpty() && QDir(qtImports).exists()) {
         m_quickWidget->engine()->addImportPath(qtImports);
     }
 
-    // Add vcpkg / app-local qml paths if present (no debug output)
-    QString vcpkgInstalled = QString::fromUtf8(qgetenv("VCPKG_INSTALLED_DIR"));
-    QString triplet = QString::fromUtf8(qgetenv("VCPKG_TARGET_TRIPLET"));
-    QStringList candidates;
-    if (!vcpkgInstalled.isEmpty() && !triplet.isEmpty()) {
-        candidates << QDir::cleanPath(vcpkgInstalled + "/" + triplet + "/share/qt6/qml")
-                   << QDir::cleanPath(vcpkgInstalled + "/" + triplet + "/share/qt/qml")
-                   << QDir::cleanPath(vcpkgInstalled + "/" + triplet + "/plugins/qml")
-                   << QDir::cleanPath(vcpkgInstalled + "/" + triplet + "/qml")
-                   << QDir::cleanPath(vcpkgInstalled + "/share/qt6/qml")
-                   << QDir::cleanPath(vcpkgInstalled + "/qml");
+    // Add application-local qml path
+    const QString appQmlDir = QCoreApplication::applicationDirPath() + "/qml";
+    if (QDir(appQmlDir).exists()) {
+        m_quickWidget->engine()->addImportPath(appQmlDir);
     }
 
-    const QString appQmlDir = QCoreApplication::applicationDirPath() + "/qml";
-    candidates << appQmlDir;
-
-    for (const QString &p : candidates) {
-        if (!p.isEmpty() && QDir(p).exists()) {
-            m_quickWidget->engine()->addImportPath(p);
-        }
+    // Ensure application-local imageformats folder is considered
+    const QString imageFormatsDir = QCoreApplication::applicationDirPath() + "/imageformats";
+    if (QDir(imageFormatsDir).exists()) {
+        QCoreApplication::addLibraryPath(imageFormatsDir);
     }
 
     // Always ensure the embedded qrc import path is available
@@ -103,16 +100,7 @@ MainWindow::MainWindow(QWidget* parent)
         QObject* root = m_quickWidget->rootObject();
         root->setProperty("width", m_quickWidget->width());
         root->setProperty("height", m_quickWidget->height());
-        qDebug() << "Initialized QML root size to:" << m_quickWidget->width() << m_quickWidget->height();
     }
-    QTimer::singleShot(0, this, [this]() {
-        if (m_quickWidget && m_quickWidget->rootObject()) {
-            QObject* root = m_quickWidget->rootObject();
-            root->setProperty("width", m_quickWidget->width());
-            root->setProperty("height", m_quickWidget->height());
-            qDebug() << "Deferred QML root size update to:" << m_quickWidget->width() << m_quickWidget->height();
-        }
-    });
 }
 
 bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
@@ -124,7 +112,6 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
             int h = m_quickWidget->height();
             root->setProperty("width", w);
             root->setProperty("height", h);
-            qDebug() << "Updated QML root size to:" << w << h;
         }
     }
     return QMainWindow::eventFilter(obj, ev);
