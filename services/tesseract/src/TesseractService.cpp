@@ -18,6 +18,10 @@ private:
     std::shared_ptr<api::tesseract::ITesseractAdapter> adapter_;
 };
 
-std::shared_ptr<api::tesseract::ITesseractService> createTesseractService(std::shared_ptr<api::tesseract::ITesseractAdapter> adapter) {
+namespace api { namespace tesseract {
+
+std::shared_ptr<ITesseractService> createTesseractService(std::shared_ptr<ITesseractAdapter> adapter) {
     return std::make_shared<TesseractServiceImpl>(std::move(adapter));
 }
+
+}} // namespace api::tesseract

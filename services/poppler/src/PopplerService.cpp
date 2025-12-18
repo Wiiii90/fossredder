@@ -19,6 +19,10 @@ private:
     std::shared_ptr<api::poppler::IPopplerAdapter> adapter_;
 };
 
-std::shared_ptr<api::poppler::IPopplerService> createPopplerService(std::shared_ptr<api::poppler::IPopplerAdapter> adapter) {
+namespace api { namespace poppler {
+
+std::shared_ptr<IPopplerService> createPopplerService(std::shared_ptr<IPopplerAdapter> adapter) {
     return std::make_shared<PopplerServiceImpl>(std::move(adapter));
 }
+
+}} // namespace api::poppler

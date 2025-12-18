@@ -11,6 +11,9 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
+signals:
+    void importRequested(const QString& path);
+
 private slots:
     void onImport();
     void onExport();

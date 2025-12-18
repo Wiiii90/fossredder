@@ -22,6 +22,13 @@ public:
     virtual StatementExtractionResult extract(const StatementExtractionRequest& req) = 0;
 };
 
-std::shared_ptr<IStatementExtractionService> createStatementExtractionService(std::shared_ptr<class IPopplerService> poppler,
-                                                                              std::shared_ptr<class IOpenCvService> openCv,
-                                                                              std::shared_ptr<class ITesseractService> tesseract);
+// Forward-declare API service interfaces in their namespaces to avoid header dependency
+namespace api {
+namespace poppler { class IPopplerService; }
+namespace opencv { class IOpenCvService; }
+namespace tesseract { class ITesseractService; }
+}
+
+std::shared_ptr<IStatementExtractionService> createStatementExtractionService(std::shared_ptr<api::poppler::IPopplerService> poppler,
+                                                                              std::shared_ptr<api::opencv::IOpenCvService> openCv,
+                                                                              std::shared_ptr<api::tesseract::ITesseractService> tesseract);

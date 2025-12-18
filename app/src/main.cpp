@@ -13,6 +13,19 @@
 
 #ifdef USE_QML
 #include "MainWindow.h"
+#include "ui/controllers/QTStatementController.h"
+#include "debug/FileDebugger.h"
+#include "api/poppler/IPopplerService.h"
+#include "api/opencv/IOpenCvService.h"
+#include "api/tesseract/ITesseractService.h"
+#include "core/services/IStatementExtractionService.h"
+#include <QList>
+#include <QVariant>
+
+// Adapter factory functions are implemented in the services; declare them here
+std::shared_ptr<api::poppler::IPopplerAdapter> createPopplerAdapter(std::shared_ptr<IDebugger> dbg);
+std::shared_ptr<api::opencv::IOpenCvAdapter> createOpenCvAdapter(std::shared_ptr<IDebugger> dbg);
+std::shared_ptr<api::tesseract::ITesseractAdapter> createTesseractAdapter(std::shared_ptr<IDebugger> dbg);
 #endif
 
 // Simple message handler to ensure Qt messages (incl. QML warnings) are visible in the console
@@ -60,7 +73,33 @@ int main(int argc, char* argv[]) {
     app.setStyle("Fusion");
 
 #ifdef USE_QML
+    // Setup core services and controllers and wire to UI
     MainWindow w;
+
+    // Create debugger backend for services (writes debug artifacts to disk)
+    auto fileDbg = std::make_shared<FileDebugger>(std::string("debug_output"));
+
+    // Create adapters (implementations exist in services/*/Adapter.cpp)
+    auto popplerAdapter = createPopplerAdapter(fileDbg);
+    auto openCvAdapter = createOpenCvAdapter(fileDbg);
+    auto tesseractAdapter = createTesseractAdapter(fileDbg);
+
+    // Create service wrappers
+    auto popplerSvc = api::poppler::createPopplerService(popplerAdapter);
+    auto openCvSvc = api::opencv::createOpenCvService(openCvAdapter);
+    auto tesseractSvc = api::tesseract::createTesseractService(tesseractAdapter);
+
+    // Create extraction service and core controller
+    auto extractionSvc = createStatementExtractionService(popplerSvc, openCvSvc, tesseractSvc);
+    auto coreCtrl = std::make_shared<StatementController>(extractionSvc);
+
+    // Create QT wrapper controller and connect UI
+    auto qtCtrl = new QTStatementController(coreCtrl, &w);
+    QObject::connect(&w, &MainWindow::importRequested, qtCtrl, &QTStatementController::importStatement);
+    QObject::connect(qtCtrl, &QTStatementController::transactionsExtracted, [](const QList<QVariant>& tx){
+        qDebug() << "transactionsExtracted count:" << tx.size();
+    });
+
     w.show();
     int result = app.exec();
     return result;

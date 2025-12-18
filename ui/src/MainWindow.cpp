@@ -126,7 +126,8 @@ void MainWindow::onImport()
     QString file = QFileDialog::getOpenFileName(this, tr("Import File"));
     if (!file.isEmpty()) {
         if (m_quickWidget->rootContext()) m_quickWidget->rootContext()->setContextProperty("statusText", QString("Selected: %1").arg(file));
-        QMessageBox::information(this, tr("Import"), tr("Selected: %1").arg(file));
+        // Emit signal instead of showing modal QMessageBox so controllers can handle import
+        emit importRequested(file);
     }
 }
 

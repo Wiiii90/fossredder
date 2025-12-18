@@ -33,6 +33,10 @@ private:
     std::shared_ptr<api::opencv::IOpenCvAdapter> adapter_;
 };
 
-std::shared_ptr<api::opencv::IOpenCvService> createOpenCvService(std::shared_ptr<api::opencv::IOpenCvAdapter> adapter) {
+namespace api { namespace opencv {
+
+std::shared_ptr<IOpenCvService> createOpenCvService(std::shared_ptr<IOpenCvAdapter> adapter) {
     return std::make_shared<OpenCvServiceImpl>(std::move(adapter));
 }
+
+}} // namespace api::opencv
