@@ -16,6 +16,6 @@ public:
     void flush() override;
 
 private:
-    std::string baseDir_;
+    std::string baseDir_; // actual session directory used for writes
     std::mutex mtx_;
 };

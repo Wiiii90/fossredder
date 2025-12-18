@@ -3,9 +3,36 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
 
+static std::string make_session_dir(const std::string& base) {
+    try {
+        auto now = std::chrono::system_clock::now();
+        auto tt = std::chrono::system_clock::to_time_t(now);
+        std::tm tm;
+#if defined(_WIN32)
+        localtime_s(&tm, &tt);
+#else
+        localtime_r(&tt, &tm);
+#endif
+        char buf[128];
+        std::strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &tm);
+        std::string session = std::string(buf);
+        std::filesystem::path p(base);
+        p /= session;
+        std::filesystem::create_directories(p);
+        return p.string();
+    } catch (...) {
+        return base;
+    }
+}
+
 FileDebugger::FileDebugger(const std::string& baseDir) : baseDir_(baseDir) {
     try {
         std::filesystem::create_directories(baseDir_);
+    } catch (...) {}
+    // create a per-run session subdirectory so debug artifacts don't collide
+    try {
+        std::string sess = make_session_dir(baseDir_);
+        baseDir_ = sess;
     } catch (...) {}
 }
 

@@ -16,7 +16,9 @@ struct MaskResult {
 };
 
 struct DetectResult {
-    std::vector<Table> tables;
+    // return single table (or none) instead of list
+    Table table;
+    bool detected = false;
 };
 
 struct CropResult {

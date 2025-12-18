@@ -14,6 +14,7 @@
 #include <fstream>
 #include <memory>
 #include <iostream>
+#include <limits>
 
 class DefaultImportStatementStrategy : public IImportStatementStrategy {
 public:
@@ -51,11 +52,18 @@ public:
             dreq.imagePath = maskedImage;
             dreq.kind = api::opencv::DetectRequest::DetectKind::Tables;
             auto detectRes = opencv_->detect(dreq);
-            try { std::clog << "DefaultImportStatementStrategy: opencv detect done page=" << pi << " detections=" << detectRes.tables.size() << std::endl; } catch(...){}
+            try { std::clog << "DefaultImportStatementStrategy: opencv detect done page=" << pi << " detected=" << (detectRes.detected ? 1 : 0) << std::endl; } catch(...){}
+
+            // Only crop if a table was detected
+            if (!detectRes.detected) {
+                try { std::clog << "DefaultImportStatementStrategy: no table detected on page=" << pi << ", skipping crop and OCR." << std::endl; } catch(...){}
+                continue;
+            }
 
             try { std::clog << "DefaultImportStatementStrategy: opencv crop start page=" << pi << " image=" << maskedImage.string() << std::endl; } catch(...){}
             api::opencv::CropRequest cropReq;
             cropReq.imagePath = maskedImage;
+            cropReq.bbox = detectRes.table.bbox;
             auto cropRes = opencv_->crop(cropReq);
             try { std::clog << "DefaultImportStatementStrategy: opencv crop done page=" << pi << " crops=" << cropRes.croppedImagePaths.size() << std::endl; } catch(...){}
 

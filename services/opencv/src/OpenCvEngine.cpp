@@ -1,6 +1,5 @@
 #include "opencv/pch.h"
 #include "opencv/OpenCvEngine.h"
-#include "opencv/OpenCvDTO.h"
 #include "debug/IDebugger.h"
 #include <opencv2/opencv.hpp>
 #include <filesystem>
@@ -76,13 +75,15 @@ static void writeImageViaDebugger(std::shared_ptr<IDebugger> debugger, const std
     if (!debugger) return;
     std::vector<uint8_t> buf;
     try {
-        cv::imencode(".png", img, buf);
+        bool ok = cv::imencode(".png", img, buf);
+        if (!ok || buf.empty()) return;
         debugger->writeBytes(relPath + ".png", buf);
     } catch (...) {}
 }
 
-static Table detectTableGridHough(const cv::Mat& roiGray, const cv::Rect& roiOffset, const std::vector<cv::Rect>& pageTextBoxes, int& outCells, double& outQuality, std::shared_ptr<IDebugger> debugger) {
-    Table table;
+// include image stem so debug files are written under per-image subfolder
+static api::opencv::Table detectTableGridHough(const cv::Mat& roiGray, const cv::Rect& roiOffset, const std::vector<cv::Rect>& pageTextBoxes, int& outCells, double& outQuality, const std::string& imageStem, std::shared_ptr<IDebugger> debugger) {
+    api::opencv::Table table;
     outCells = 0; outQuality = 0.0;
     if (roiGray.empty()) return table;
 
@@ -140,11 +141,11 @@ static Table detectTableGridHough(const cv::Mat& roiGray, const cv::Rect& roiOff
             cv::Rect crel(x0, y0, w, h);
             crel &= cv::Rect(0, 0, roiGray.cols, roiGray.rows);
             if (crel.width <= 0 || crel.height <= 0) continue;
-            Cell cell;
-            cell.bbox = cv::Rect(crel.x + roiOffset.x, crel.y + roiOffset.y, crel.width, crel.height);
+            api::opencv::Cell cell;
+            cell.bbox.x = crel.x + roiOffset.x; cell.bbox.y = crel.y + roiOffset.y; cell.bbox.width = crel.width; cell.bbox.height = crel.height;
             cell.row = static_cast<int>(r);
             cell.col = static_cast<int>(c);
-            table.addCell(cell);
+            table.cells.push_back(cell);
         }
     }
 
@@ -158,7 +159,7 @@ static Table detectTableGridHough(const cv::Mat& roiGray, const cv::Rect& roiOff
     double lineScore = std::clamp((double)(xLines.size() + yLines.size()) / 20.0, 0.0, 1.0);
     outQuality = 0.6 * lineScore + 0.4 * sizeScore;
 
-    table.bbox = roiOffset;
+    table.bbox.x = roiOffset.x; table.bbox.y = roiOffset.y; table.bbox.width = roiOffset.width; table.bbox.height = roiOffset.height;
     if (!table.cells.empty()) {
         int minx = INT_MAX, miny = INT_MAX, maxx = 0, maxy = 0;
         for (const auto &c : table.cells) {
@@ -167,17 +168,19 @@ static Table detectTableGridHough(const cv::Mat& roiGray, const cv::Rect& roiOff
             maxx = std::max(maxx, c.bbox.x + c.bbox.width);
             maxy = std::max(maxy, c.bbox.y + c.bbox.height);
         }
-        if (minx < maxx && miny < maxy) table.bbox = cv::Rect(minx, miny, maxx - minx, maxy - miny);
+        if (minx < maxx && miny < maxy) { table.bbox.x = minx; table.bbox.y = miny; table.bbox.width = maxx - minx; table.bbox.height = maxy - miny; }
     }
 
     // debug outputs for this ROI
     if (debugger && debugger->enabled()) {
         try {
-            std::ostringstream oss; oss << "open_cv/roi_" << roiOffset.x << "_" << roiOffset.y << "_gray";
+            std::ostringstream base; base << "opencv/" << imageStem << "/roi_" << roiOffset.x << "_" << roiOffset.y;
+            std::ostringstream oss; oss << base.str() << "_gray";
+            // recreate cv::Mat for output if needed
             writeImageViaDebugger(debugger, oss.str(), roiGray);
             // Also dump edges/hough overlay
             cv::Mat edges; cv::Canny(roiGray, edges, 50, 150);
-            std::ostringstream oss2; oss2 << "open_cv/roi_" << roiOffset.x << "_" << roiOffset.y << "_edges";
+            std::ostringstream oss2; oss2 << base.str() << "_edges";
             writeImageViaDebugger(debugger, oss2.str(), edges);
         } catch (...) {}
     }
@@ -185,22 +188,25 @@ static Table detectTableGridHough(const cv::Mat& roiGray, const cv::Rect& roiOff
     return table;
 }
 
-static std::vector<Table> detectTablesFromImageImpl(const cv::Mat& img, const std::string& imagePath, int maxTables, std::shared_ptr<IDebugger> debugger) {
-    std::vector<Table> result;
-    if (img.empty()) { if (debugger && debugger->enabled()) debugger->writeText("open_cv/error.txt", "Empty image: " + imagePath); return result; }
+std::vector<api::opencv::Table> OpenCvEngine::detectTablesFromImage(const cv::Mat& img, const std::string& imagePath, int maxTables, std::shared_ptr<IDebugger> debugger) {
+    std::vector<api::opencv::Table> result;
+    if (img.empty()) { if (debugger && debugger->enabled()) debugger->writeText("opencv/error.txt", "Empty image: " + imagePath); return result; }
 
     auto pageTextBoxes = readTextBoxesFromJson(imagePath);
     auto blocks = findTextBlocksUsingMorphology(img);
 
-    struct Candidate { Table t; int cells; double q; };
+    struct Candidate { api::opencv::Table t; int cells; double q; };
     std::vector<Candidate> candidates;
     try { std::filesystem::path(imagePath).stem().string(); } catch (...) {}
+
+    std::string stem;
+    try { stem = std::filesystem::path(imagePath).stem().string(); } catch (...) { stem = "page"; }
 
     for (const auto& b : blocks) {
         if (b.width < img.cols * 0.12) continue;
         cv::Mat roi = img(b);
         int cells = 0; double q = 0.0;
-        auto tab = detectTableGridHough(roi, cv::Rect(b.x, b.y, b.width, b.height), pageTextBoxes, cells, q, debugger);
+        auto tab = detectTableGridHough(roi, cv::Rect(b.x, b.y, b.width, b.height), pageTextBoxes, cells, q, stem, debugger);
         if (cells > 0 && q > 0.05) candidates.push_back({ tab, cells, q });
     }
 
@@ -212,14 +218,70 @@ static std::vector<Table> detectTablesFromImageImpl(const cv::Mat& img, const st
         // write overall debug overlay
         try {
             cv::Mat vis; cv::cvtColor(img, vis, cv::COLOR_GRAY2BGR);
-            for (const auto &t : result) cv::rectangle(vis, t.bbox, cv::Scalar(0,255,0), 2);
-            writeImageViaDebugger(debugger, "open_cv/detected_tables", vis);
+            for (const auto &t : result) cv::rectangle(vis, cv::Rect(t.bbox.x, t.bbox.y, t.bbox.width, t.bbox.height), cv::Scalar(0,255,0), 2);
+            std::ostringstream oss; oss << "opencv/" << stem << "/detected_tables";
+            writeImageViaDebugger(debugger, oss.str(), vis);
         } catch (...) {}
     }
 
     return result;
 }
 
-std::vector<Table> OpenCvEngine::detectTablesFromImage(const cv::Mat& img, const std::string& imagePath, int maxTables, std::shared_ptr<IDebugger> debugger) {
-    return detectTablesFromImageImpl(img, imagePath, maxTables, debugger);
+static std::filesystem::path resolveCropOutputDir(const std::filesystem::path& outputDir, const std::string& stem) {
+    if (!outputDir.empty()) return outputDir;
+    try {
+        auto tmp = std::filesystem::temp_directory_path() / "fossredder" / "opencv" / "output" / stem;
+        std::filesystem::create_directories(tmp);
+        return tmp;
+    } catch (...) {
+        return std::filesystem::current_path();
+    }
+}
+
+std::vector<std::filesystem::path> OpenCvEngine::cropImages(const std::string& imagePath, const std::vector<api::opencv::Rect>& rects, const std::filesystem::path& outputDir, std::shared_ptr<IDebugger> debugger) {
+    std::vector<std::filesystem::path> outPaths;
+    if (rects.empty()) return outPaths;
+    try {
+        cv::Mat img = cv::imread(imagePath, cv::IMREAD_COLOR);
+        if (img.empty()) {
+            if (debugger && debugger->enabled()) debugger->writeText("opencv/error.txt", "Failed to load image for cropping: " + imagePath);
+            return outPaths;
+        }
+
+        std::string stem;
+        try { stem = std::filesystem::path(imagePath).stem().string(); } catch (...) { stem = "page"; }
+        auto outDir = resolveCropOutputDir(outputDir, stem);
+        std::filesystem::create_directories(outDir);
+
+        int idx = 0;
+        for (const auto &rct : rects) {
+            try {
+                cv::Rect r(rct.x, rct.y, rct.width, rct.height);
+                r &= cv::Rect(0, 0, img.cols, img.rows);
+                if (r.width <= 0 || r.height <= 0) { ++idx; continue; }
+                cv::Mat crop = img(r).clone();
+                std::ostringstream fname; fname << (outDir.string()) << "/" << (idx + 1) << ".png";
+                std::string filename = fname.str();
+                if (!cv::imwrite(filename, crop)) {
+                    if (debugger && debugger->enabled()) debugger->writeText("opencv/error.txt", "Failed to write crop: " + filename);
+                } else {
+                    outPaths.emplace_back(filename);
+                    if (debugger && debugger->enabled()) {
+                        try {
+                            std::ifstream ifs(filename, std::ios::binary);
+                            if (ifs) {
+                                std::vector<uint8_t> buf((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+                                // write debugger copy under opencv/output/<stem>/<page>.png
+                                std::ostringstream dbgRel;
+                                dbgRel << "opencv/" << stem << "/" << (idx + 1 + "_cropped");
+                                debugger->writeBytes(dbgRel.str() + ".png", buf);
+                            }
+                        } catch (...) {}
+                    }
+                }
+            } catch (...) {}
+            ++idx;
+        }
+    } catch (...) {}
+    return outPaths;
 }

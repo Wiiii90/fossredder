@@ -1,6 +1,5 @@
 #include "poppler/pch.h"
 #include "poppler/PopplerEngine.h"
-#include "poppler/PopplerDTO.h"
 #include "debug/IDebugger.h"
 #include <poppler-document.h>
 #include <poppler-page.h>
@@ -12,8 +11,8 @@
 
 using json = nlohmann::json;
 
-static PopplerRenderedPage extractPageMeta(poppler::page* page, int pageIndex, double dpi, std::shared_ptr<IDebugger> debugger) {
-    PopplerRenderedPage rp;
+static api::poppler::RenderedPage extractPageMeta(poppler::page* page, int pageIndex, double dpi, std::shared_ptr<IDebugger> debugger) {
+    api::poppler::RenderedPage rp;
     double pageWidthPts = 0.0, pageHeightPts = 0.0;
     try {
         auto rect = page->page_rect();
@@ -30,7 +29,7 @@ static PopplerRenderedPage extractPageMeta(poppler::page* page, int pageIndex, d
     try {
         auto tbl = page->text_list();
         for (const auto& tb : tbl) {
-            PopplerTextElement te;
+            api::poppler::TextElement te;
             try {
                 auto u = tb.text();
                 auto ba = u.to_utf8();
@@ -89,8 +88,8 @@ static std::filesystem::path resolveOutputDir(const std::filesystem::path& outpu
     }
 }
 
-std::vector<PopplerRenderedPage> PopplerEngine::extractDocumentMeta(const std::string& pdfPath, double dpi, const std::filesystem::path& outputDir, std::shared_ptr<IDebugger> debugger) {
-    std::vector<PopplerRenderedPage> result;
+std::vector<api::poppler::RenderedPage> PopplerEngine::extractDocumentMeta(const std::string& pdfPath, double dpi, const std::filesystem::path& outputDir, std::shared_ptr<IDebugger> debugger) {
+    std::vector<api::poppler::RenderedPage> result;
     if (!std::filesystem::exists(pdfPath)) throw std::runtime_error("PDF file does not exist: " + pdfPath);
 
     std::unique_ptr<poppler::document> doc(poppler::document::load_from_file(pdfPath));
@@ -105,8 +104,8 @@ std::vector<PopplerRenderedPage> PopplerEngine::extractDocumentMeta(const std::s
     return result;
 }
 
-std::vector<PopplerRenderedPage> PopplerEngine::renderDocument(const std::string& pdfPath, double dpi, const std::filesystem::path& outputDir, std::shared_ptr<IDebugger> debugger) {
-    std::vector<PopplerRenderedPage> result;
+std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std::string& pdfPath, double dpi, const std::filesystem::path& outputDir, std::shared_ptr<IDebugger> debugger) {
+    std::vector<api::poppler::RenderedPage> result;
     if (!std::filesystem::exists(pdfPath)) throw std::runtime_error("PDF file does not exist: " + pdfPath);
 
     std::unique_ptr<poppler::document> doc(poppler::document::load_from_file(pdfPath));
@@ -142,7 +141,7 @@ std::vector<PopplerRenderedPage> PopplerEngine::renderDocument(const std::string
 
         if (!img.save(filename, "png")) throw std::runtime_error("Failed to save image: " + filename);
 
-        PopplerRenderedPage rp; rp.imagePath = filename; rp.dpiX = dpi; rp.dpiY = dpi;
+        api::poppler::RenderedPage rp; rp.imagePath = filename; rp.dpiX = dpi; rp.dpiY = dpi;
 
         if (debugger && debugger->enabled()) {
             try {

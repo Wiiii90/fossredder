@@ -1,7 +1,7 @@
 #include "tesseract/pch.h"
 #include "tesseract/TesseractEngine.h"
 #include "debug/IDebugger.h"
-#include "tesseract/TesseractDTO.h"
+#include "api/tesseract/Types.h"
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
 #include <sstream>
@@ -16,8 +16,8 @@ static Pix* pixFromBytes(const std::vector<uint8_t>& data) {
     return p;
 }
 
-static Text recognizeTextFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, std::shared_ptr<IDebugger> dbg) {
-    Text out;
+static api::tesseract::Text recognizeTextFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, std::shared_ptr<IDebugger> dbg) {
+    api::tesseract::Text out;
     tesseract::TessBaseAPI ocr;
     ocr.SetVariable("TESSDATA_PREFIX", tessdataPath.c_str());
     if (ocr.Init(tessdataPath.c_str(), "deu") != 0) return out;
@@ -33,8 +33,8 @@ static Text recognizeTextFromBytes(const std::vector<uint8_t>& data, const std::
     return out;
 }
 
-static vector<Word> getWordsFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, std::shared_ptr<IDebugger> dbg) {
-    vector<Word> out;
+static vector<api::tesseract::Word> getWordsFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, std::shared_ptr<IDebugger> dbg) {
+    std::vector<api::tesseract::Word> out;
     Pix* pix = pixFromBytes(data);
     if (!pix) return out;
     tesseract::TessBaseAPI ocr; ocr.SetVariable("TESSDATA_PREFIX", tessdataPath.c_str()); if (ocr.Init(tessdataPath.c_str(), "deu") != 0) { pixDestroy(&pix); return out; }
@@ -52,14 +52,14 @@ static vector<Word> getWordsFromBytes(const std::vector<uint8_t>& data, const st
         if (cols.size() < 12) continue;
         int level = stoi(cols[0]); if (level != 5) continue;
         int left = stoi(cols[6]); int top = stoi(cols[7]); int width = stoi(cols[8]); int height = stoi(cols[9]); int conf = stoi(cols[10]); string text = cols[11];
-        Word w; w.bbox.x = left; w.bbox.y = top; w.bbox.width = width; w.bbox.height = height; w.text = text; w.confidence = conf;
+        api::tesseract::Word w; w.bbox.x = left; w.bbox.y = top; w.bbox.width = width; w.bbox.height = height; w.text = text; w.confidence = conf;
         out.push_back(move(w));
     }
     delete[] tsv; ocr.End(); pixDestroy(&pix); return out;
 }
 
-std::pair<Text, vector<Word>> TesseractEngine::extractFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, std::shared_ptr<IDebugger> dbg) {
-    Text t = recognizeTextFromBytes(data, tessdataPath, dbg);
-    vector<Word> w = getWordsFromBytes(data, tessdataPath, dbg);
+std::pair<api::tesseract::Text, std::vector<api::tesseract::Word>> TesseractEngine::extractFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, std::shared_ptr<IDebugger> dbg) {
+    api::tesseract::Text t = recognizeTextFromBytes(data, tessdataPath, dbg);
+    std::vector<api::tesseract::Word> w = getWordsFromBytes(data, tessdataPath, dbg);
     return {t, w};
 }
