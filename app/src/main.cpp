@@ -18,7 +18,7 @@
 #include "api/poppler/IPopplerService.h"
 #include "api/opencv/IOpenCvService.h"
 #include "api/tesseract/ITesseractService.h"
-#include "core/services/IStatementExtractionService.h"
+#include "core/import/IImportStatement.h"
 #include <QList>
 #include <QVariant>
 
@@ -90,8 +90,8 @@ int main(int argc, char* argv[]) {
     auto tesseractSvc = api::tesseract::createTesseractService(tesseractAdapter);
 
     // Create extraction service and core controller
-    auto extractionSvc = createStatementExtractionService(popplerSvc, openCvSvc, tesseractSvc);
-    auto coreCtrl = std::make_shared<StatementController>(extractionSvc);
+    auto importer = createImportStatement(popplerSvc, openCvSvc, tesseractSvc);
+    auto coreCtrl = std::make_shared<StatementController>(importer);
 
     // Create QT wrapper controller and connect UI
     auto qtCtrl = new QTStatementController(coreCtrl, &w);
