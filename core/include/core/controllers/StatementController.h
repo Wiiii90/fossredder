@@ -5,14 +5,14 @@
 #include <vector>
 #include <functional>
 
-class IStatementExtractionService;
+class IImportStatement;
 class StatementData;
 class Transaction;
 
 class StatementController {
 public:
-    explicit StatementController(std::shared_ptr<IStatementExtractionService> extractionService = nullptr)
-        : extractionService_(std::move(extractionService)) {}
+    explicit StatementController(std::shared_ptr<IImportStatement> importService = nullptr)
+        : importService_(std::move(importService)) {}
 
     std::shared_ptr<StatementData> importStatement(const std::string& filePath);
 
@@ -22,6 +22,6 @@ public:
     }
 
 private:
-    std::shared_ptr<IStatementExtractionService> extractionService_;
+    std::shared_ptr<IImportStatement> importService_;
     std::function<void(const std::vector<std::shared_ptr<Transaction>>&)> onTransactionsExtracted_;
 };
