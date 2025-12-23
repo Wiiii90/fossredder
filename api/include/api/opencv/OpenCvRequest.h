@@ -25,7 +25,6 @@ struct DetectRequest {
 
 struct CropRequest {
     std::filesystem::path imagePath;
-    // bbox to crop (in pixels, relative to the full image)
     Rect bbox;
 };
 

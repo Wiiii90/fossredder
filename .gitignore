@@ -1,63 +1,35 @@
-﻿# Prerequisites
-*.d
+﻿# Build output (CMake presets)
+.build/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Project Specific
+# Visual Studio / IDE
 .vs/
-docs/tmp.txt
-out/
-build/
-vcpkg_installed/
-LOCAL_APPDATA_FONTCONFIG_CACHE/
-
-# PDF Files
-*.pdf
-*.pdr
-
-# llms
-res/llms/
-
-# Environment variables
-.env
-
-# IDE
+.vscode/
 *.suo
 *.user
 
-# Local runtime files
-fossredder.db
-logs/
-.vscode/
+# Build artifacts
+*.obj
+*.o
+*.pch
+*.gch
+*.lib
+*.a
+*.so
+*.dylib
 
-# vcpkg buildtrees/downloads are handled externally
-third_party/vcpkg/buildtrees/
-third_party/vcpkg/downloads/
+# Runtime artifacts
+logs/
+fossredder.db
+
+# Local env
+.env
+
+# Extern
+third_party/
+
+# Misc
+LOCAL_APPDATA_FONTCONFIG_CACHE/
+
+# Large local resource folders
+tesseract/res/
+llama/res/

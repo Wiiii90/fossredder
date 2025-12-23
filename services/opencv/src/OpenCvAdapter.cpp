@@ -1,25 +1,37 @@
 #include "opencv/pch.h"
 #include "api/opencv/IOpenCvAdapter.h"
-#include "opencv/OpenCvEngine.h"
+#include "opencv/DenoiseEngine.h"
+#include "opencv/MaskEngine.h"
+#include "opencv/DetectEngine.h"
+#include "opencv/CropEngine.h"
 #include "debug/IDebugger.h"
 
 #include <opencv2/opencv.hpp>
 #include <filesystem>
+
+namespace {
+std::filesystem::path resolveCropOutputDir(const std::filesystem::path& outputDir, const std::string& stem) {
+    if (!outputDir.empty()) return outputDir;
+    try {
+        auto tmp = std::filesystem::temp_directory_path() / "fossredder" / "opencv" / "output" / stem;
+        std::filesystem::create_directories(tmp);
+        return tmp;
+    } catch (...) {
+        return std::filesystem::current_path();
+    }
+}
+}
 
 class OpenCvAdapterImpl : public api::opencv::IOpenCvAdapter {
 public:
     OpenCvAdapterImpl(std::shared_ptr<IDebugger> dbg = nullptr) : debugger(std::move(dbg)) {}
 
     api::opencv::DenoiseResult denoise(const api::opencv::DenoiseRequest& req) override {
-        api::opencv::DenoiseResult res;
-        res.denoisedImagePath = req.imagePath;
-        return res;
+        return opencv::DenoiseEngine::Denoise(req, debugger);
     }
 
     api::opencv::MaskResult mask(const api::opencv::MaskRequest& req) override {
-        api::opencv::MaskResult res;
-        res.maskedImagePath = req.imagePath;
-        return res;
+        return opencv::MaskEngine::MaskImage(req, debugger);
     }
 
     api::opencv::DetectResult detect(const api::opencv::DetectRequest& req) override {
@@ -31,7 +43,7 @@ public:
             cv::Mat img = cv::imread(p.string(), cv::IMREAD_GRAYSCALE);
             if (img.empty()) return res;
 
-            auto tables = OpenCvEngine::detectTablesFromImage(img, p.string(), 4, debugger);
+            auto tables = opencv::DetectEngine::DetectTables(img, p.string(), debugger);
             if (!tables.empty()) {
                 res.table = tables[0];
                 res.detected = true;
@@ -46,9 +58,13 @@ public:
             std::filesystem::path p = req.imagePath;
             if (!std::filesystem::exists(p)) return res;
 
-            // use bbox from req
+            std::string stem;
+            try { stem = p.stem().string(); } catch (...) { stem = "page"; }
+            auto outDir = resolveCropOutputDir(std::filesystem::path(), stem);
+            if (outDir.empty()) return res;
+
             std::vector<api::opencv::Rect> rects; rects.push_back(req.bbox);
-            auto paths = OpenCvEngine::cropImages(p.string(), rects, std::filesystem::path(), debugger);
+            auto paths = opencv::CropEngine::CropImages(p.string(), rects, outDir, debugger);
             res.croppedImagePaths = std::move(paths);
         } catch (...) {}
         return res;
