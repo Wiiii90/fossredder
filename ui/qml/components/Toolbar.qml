@@ -17,7 +17,17 @@ Item {
             spacing: 12
             Layout.alignment: Qt.AlignVCenter
 
-            Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/import.svg"; item.label = qsTr("Import"); item.clicked.connect(function(){ if (typeof actionImport !== 'undefined' && actionImport) actionImport.trigger(); }) } }
+            Loader {
+                source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
+                onLoaded: {
+                    item.svgSource = "qrc:/qml/assets/import.svg";
+                    item.label = qsTr("Import");
+                    item.clicked.connect(function(){
+                        if (typeof uiActions !== 'undefined' && uiActions) uiActions.importFile();
+                        else if (typeof actionImport !== 'undefined' && actionImport) actionImport.trigger();
+                    })
+                }
+            }
             Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/export.svg"; item.label = qsTr("Export"); item.clicked.connect(function(){ if (typeof actionExport !== 'undefined' && actionExport) actionExport.trigger(); }) } }
             Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/actor.svg"; item.label = qsTr("Actor"); item.clicked.connect(function(){ if (typeof actionActor !== 'undefined' && actionActor) actionActor.trigger(); }) } }
             Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/property.svg"; item.label = qsTr("Property"); item.clicked.connect(function(){ if (typeof actionProperty !== 'undefined' && actionProperty) actionProperty.trigger(); }) } }

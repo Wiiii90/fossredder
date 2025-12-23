@@ -20,6 +20,7 @@
 #include <QLibraryInfo>
 #include <QDir>
 #include <QCoreApplication>
+#include "ui/UiActions.h"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -58,6 +59,7 @@ MainWindow::MainWindow(QWidget* parent)
         m_quickWidget->rootContext()->setContextProperty("actionQuit", quit);
         m_quickWidget->rootContext()->setContextProperty("actionToggleSidebar", toggleSidebar);
         m_quickWidget->rootContext()->setContextProperty("actionAbout", about);
+        m_quickWidget->rootContext()->setContextProperty("uiActions", new UiActions(this));
 
         m_quickWidget->rootContext()->setContextProperty("statusText", QStringLiteral("Ready"));
         m_quickWidget->rootContext()->setContextProperty("statusItems", 3);

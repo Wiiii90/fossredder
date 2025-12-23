@@ -53,7 +53,7 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 onEntered: { button.iconScale = 1.2 }
                 onExited:  { button.iconScale = 1.0 }
-                onClicked: clicked()
+                onClicked: button.clicked()
             }
         }
 
