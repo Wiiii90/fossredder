@@ -63,7 +63,6 @@ int main(int argc, char* argv[]) {
     auto stmtRepo = createSqliteStatementRepository(dbPath);
     auto cfgRepo = createSqliteConfigRepository(dbPath);
     auto txRepo = createSqliteTransactionRepository(dbPath);
-    auto bgRepo = createSqliteBookingGroupRepository(dbPath);
 
     ConfigManager cfgMgr;
     if (auto def = cfgRepo->getDefaultConfig())

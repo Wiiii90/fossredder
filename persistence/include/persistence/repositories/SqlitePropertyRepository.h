@@ -9,10 +9,11 @@ public:
     explicit SqlitePropertyRepository(const std::string& dbPath);
     ~SqlitePropertyRepository() override;
 
-    void addProperty(const std::string& name, const std::string& address, const std::string& description) override;
+    void addProperty(const std::shared_ptr<Property>& property) override;
     std::vector<std::shared_ptr<Property>> getProperties() const override;
-    void removeProperty(const std::string& name) override;
-    void updateProperty(const std::string& name, const std::string& address, const std::string& description) override;
+    std::optional<std::shared_ptr<Property>> getPropertyById(const std::string& id) const override;
+    void removeProperty(const std::string& id) override;
+    void updateProperty(const std::shared_ptr<Property>& property) override;
 
 private:
     struct Impl;

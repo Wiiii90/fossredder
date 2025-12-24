@@ -1,27 +1,37 @@
 ﻿#pragma once
 
 #include <string>
-#include <map>
+
+class Actor;
+class Contract;
+class Statement;
 
 class Transaction {
 public:
     Transaction() noexcept = default;
-    Transaction(std::string bookingDate,
-                std::string valueDate,
+    Transaction(std::string name,
+                std::string bookingDate,
+                std::string valuta,
                 double amount,
-                std::string actor = {},
-                std::map<std::string, std::string> metadata = {});
-    Transaction(const Transaction&) = default;
-    Transaction& operator=(const Transaction&) = default;
+                Contract* contract = nullptr,
+                Actor* actor = nullptr,
+                std::string description = {});
 
+    std::string id;
+    std::string name;
     std::string bookingDate;
-    std::string valueDate;
+    std::string valuta;
     double amount = 0.0;
-    std::string actor;
-    std::map<std::string, std::string> metadata;
 
-    bool isDebit() const noexcept;
-    bool isCredit() const noexcept;
+    std::string contractId;
+    Contract* contract = nullptr;
 
-    std::string toString() const;
+    std::string actorId;
+    Actor* actor = nullptr;
+
+    std::string statementId;
+
+    std::string description;
+
+    bool operator==(const Transaction& other) const noexcept;
 };

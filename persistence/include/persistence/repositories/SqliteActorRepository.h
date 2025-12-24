@@ -9,12 +9,13 @@ public:
     explicit SqliteActorRepository(const std::string& dbPath);
     ~SqliteActorRepository() override;
 
-    void addActor(const std::string& name, const std::string& type = "", const std::string& description = "") override;
+    void addActor(const std::shared_ptr<Actor>& actor) override;
     std::vector<std::shared_ptr<Actor>> getActors() const override;
-    void removeActor(const std::string& name) override;
-    void updateActor(const std::string& name, const std::string& newName, const std::string& newType = "", const std::string& newDescription = "") override;
+    std::optional<std::shared_ptr<Actor>> getActorById(const std::string& id) const override;
+    void removeActor(const std::string& id) override;
+    void updateActor(const std::shared_ptr<Actor>& actor) override;
 
 private:
     struct Impl;
-    std::unique_ptr<Impl> pimpl_; // holds sqlite connection and prepared statements
+    std::unique_ptr<Impl> pimpl_;
 };

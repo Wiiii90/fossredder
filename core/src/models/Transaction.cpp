@@ -1,19 +1,32 @@
 #include "core/pch.h"
 #include "core/models/Transaction.h"
 
-Transaction::Transaction(std::string bookingDate,
-    std::string valueDate,
+Transaction::Transaction(std::string name,
+    std::string bookingDate,
+    std::string valuta,
     double amount,
-    std::string actor,
-    std::map<std::string, std::string> metadata)
-    : bookingDate(std::move(bookingDate)), valueDate(std::move(valueDate)), amount(amount), actor(std::move(actor)), metadata(std::move(metadata)) {
+    Contract* contract,
+    Actor* actor,
+    std::string description)
+    : name(std::move(name)),
+      bookingDate(std::move(bookingDate)),
+      valuta(std::move(valuta)),
+      amount(amount),
+      contract(contract),
+      actor(actor),
+      description(std::move(description)) {
 }
 
-bool Transaction::isDebit() const noexcept { return amount < 0.0; }
-bool Transaction::isCredit() const noexcept { return amount > 0.0; }
-
-std::string Transaction::toString() const {
-    std::ostringstream oss;
-    oss << "bookingDate=" << bookingDate << ", valueDate=" << valueDate << ", amount=" << amount << ", actor=" << actor;
-    return oss.str();
+bool Transaction::operator==(const Transaction& other) const noexcept {
+    return id == other.id &&
+           name == other.name &&
+           bookingDate == other.bookingDate &&
+           valuta == other.valuta &&
+           amount == other.amount &&
+           contractId == other.contractId &&
+           contract == other.contract &&
+           actorId == other.actorId &&
+           actor == other.actor &&
+           statementId == other.statementId &&
+           description == other.description;
 }

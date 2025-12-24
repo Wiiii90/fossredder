@@ -4,7 +4,7 @@
 #include "persistence/repositories/SqliteStatementRepository.h"
 #include "persistence/repositories/SqliteConfigRepository.h"
 #include "persistence/repositories/SqliteTransactionRepository.h"
-#include "persistence/repositories/SqliteBookingGroupRepository.h"
+#include "persistence/repositories/SqliteContractRepository.h"
 
 std::shared_ptr<IActorRepository> createSqliteActorRepository(const std::string& dbPath) {
     return std::make_shared<SqliteActorRepository>(dbPath);
@@ -26,6 +26,6 @@ std::shared_ptr<ITransactionRepository> createSqliteTransactionRepository(const 
     return std::make_shared<SqliteTransactionRepository>(dbPath);
 }
 
-std::shared_ptr<IBookingGroupRepository> createSqliteBookingGroupRepository(const std::string& dbPath) {
-    return std::make_shared<SqliteBookingGroupRepository>(dbPath);
+std::shared_ptr<IContractRepository> createSqliteContractRepository(const std::string& dbPath) {
+    return std::make_shared<SqliteContractRepository>(dbPath);
 }

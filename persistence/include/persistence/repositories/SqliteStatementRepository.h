@@ -11,6 +11,7 @@ public:
 
     void addStatement(const std::shared_ptr<Statement>& statement) override;
     std::vector<std::shared_ptr<Statement>> getStatements() const override;
+    std::optional<std::shared_ptr<Statement>> getStatementById(const std::string& id) const override;
     void removeStatement(const std::string& id) override;
     void updateStatement(const std::shared_ptr<Statement>& statement) override;
 
