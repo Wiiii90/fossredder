@@ -29,6 +29,11 @@ MainWindow::MainWindow(QWidget* parent)
     resize(1200, 800);
 
     QMenu* fileMenu = menuBar()->addMenu(tr("File"));
+    QAction* newFile = fileMenu->addAction(tr("New..."));
+    QAction* openFile = fileMenu->addAction(tr("Open..."));
+    QAction* saveFile = fileMenu->addAction(tr("Save"));
+    QAction* saveFileAs = fileMenu->addAction(tr("Save As..."));
+    fileMenu->addSeparator();
     QAction* imp = fileMenu->addAction(tr("Import..."));
     QAction* exp = fileMenu->addAction(tr("Export..."));
     fileMenu->addSeparator();
@@ -39,6 +44,11 @@ MainWindow::MainWindow(QWidget* parent)
 
     QMenu* helpMenu = menuBar()->addMenu(tr("Help"));
     QAction* about = helpMenu->addAction(tr("About"));
+
+    connect(newFile, &QAction::triggered, this, &MainWindow::onNewFile);
+    connect(openFile, &QAction::triggered, this, &MainWindow::onOpenFile);
+    connect(saveFile, &QAction::triggered, this, &MainWindow::onSaveFile);
+    connect(saveFileAs, &QAction::triggered, this, &MainWindow::onSaveFileAs);
 
     connect(imp, &QAction::triggered, this, &MainWindow::onImport);
     connect(exp, &QAction::triggered, this, &MainWindow::onExport);
@@ -145,4 +155,26 @@ void MainWindow::onExport()
 void MainWindow::onAbout()
 {
     QMessageBox::about(this, tr("About FOSSRedder"), tr("FOSSRedder - demo"));
+}
+
+void MainWindow::onNewFile() {
+    QString file = QFileDialog::getSaveFileName(this, tr("New File"), QString(), tr("Database (*.db)"));
+    if (file.isEmpty()) return;
+    emit newFileRequested(file);
+}
+
+void MainWindow::onOpenFile() {
+    QString file = QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Database (*.db)"));
+    if (file.isEmpty()) return;
+    emit openFileRequested(file);
+}
+
+void MainWindow::onSaveFile() {
+    emit saveFileRequested();
+}
+
+void MainWindow::onSaveFileAs() {
+    QString file = QFileDialog::getSaveFileName(this, tr("Save File As"), QString(), tr("Database (*.db)"));
+    if (file.isEmpty()) return;
+    emit saveFileAsRequested(file);
 }

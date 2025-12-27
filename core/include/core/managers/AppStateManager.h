@@ -24,6 +24,7 @@ public:
     explicit AppStateManager(Repositories repos);
 
     AppState load();
+    void save(const AppState& state);
 
     void setStrictValidation(bool enabled) noexcept { strictValidation_ = enabled; }
 

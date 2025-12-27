@@ -4,9 +4,12 @@
 #include <memory>
 #include <string>
 
+class SqliteDb;
+
 class SqliteConfigRepository : public IConfigRepository {
 public:
     explicit SqliteConfigRepository(const std::string& dbPath);
+    explicit SqliteConfigRepository(std::shared_ptr<SqliteDb> db);
     ~SqliteConfigRepository() override;
 
     bool saveConfig(const std::string& name, const std::shared_ptr<Config>& config) override;

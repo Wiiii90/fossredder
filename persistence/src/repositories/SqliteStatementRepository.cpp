@@ -3,42 +3,21 @@
 #include <stdexcept>
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
+#include "persistence/SqliteDb.h"
 
-struct SqliteStatementRepository::Impl { sqlite3* db = nullptr; };
+struct SqliteStatementRepository::Impl { std::shared_ptr<SqliteDb> db; };
 
-SqliteStatementRepository::SqliteStatementRepository(const std::string& dbPath) : pimpl_(std::make_unique<Impl>()) {
-    if (sqlite3_open(dbPath.c_str(), &pimpl_->db) != SQLITE_OK) throw std::runtime_error("Failed to open sqlite db");
-    const char* sqlStatements =
-        "PRAGMA foreign_keys = ON;"
-        "CREATE TABLE IF NOT EXISTS statements ("
-        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "name TEXT,"
-        "start_date TEXT,"
-        "end_date TEXT"
-        ");"
-        "CREATE TABLE IF NOT EXISTS transactions ("
-        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "name TEXT,"
-        "booking_date TEXT,"
-        "valuta TEXT,"
-        "amount REAL,"
-        "description TEXT,"
-        "actor_id INTEGER,"
-        "contract_id INTEGER,"
-        "statement_id INTEGER,"
-        "FOREIGN KEY(actor_id) REFERENCES actors(id) ON DELETE SET NULL,"
-        "FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE SET NULL,"
-        "FOREIGN KEY(statement_id) REFERENCES statements(id) ON DELETE CASCADE"
-        ");";
-    char* err = nullptr;
-    if (sqlite3_exec(pimpl_->db, sqlStatements, nullptr, nullptr, &err) != SQLITE_OK) {
-        std::string e = err ? err : "unknown";
-        if (err) sqlite3_free(err);
-        throw std::runtime_error(std::string("Failed to init schema: ") + e);
-    }
+SqliteStatementRepository::SqliteStatementRepository(const std::string& dbPath)
+    : SqliteStatementRepository(std::make_shared<SqliteDb>(dbPath)) {
 }
 
-SqliteStatementRepository::~SqliteStatementRepository(){ if (pimpl_ && pimpl_->db) sqlite3_close(pimpl_->db); }
+SqliteStatementRepository::SqliteStatementRepository(std::shared_ptr<SqliteDb> db)
+    : pimpl_(std::make_unique<Impl>()) {
+    if (!db) throw std::runtime_error("db is null");
+    pimpl_->db = std::move(db);
+}
+
+SqliteStatementRepository::~SqliteStatementRepository() = default;
 
 static long long lastInsertRowId(sqlite3* db) {
     return sqlite3_last_insert_rowid(db);
@@ -55,17 +34,10 @@ static long long parseId(const std::string& s) {
 
 void SqliteStatementRepository::addStatement(const std::shared_ptr<Statement>& statement) {
     if (!statement) return;
-    char* err = nullptr;
-
-    if (sqlite3_exec(pimpl_->db, "BEGIN TRANSACTION;", nullptr, nullptr, &err) != SQLITE_OK) {
-        if (err) sqlite3_free(err);
-        return;
-    }
 
     const char* insStmtSql = "INSERT INTO statements (name, start_date, end_date) VALUES (?, ?, ?);";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, insStmtSql, -1, &stmt, nullptr) != SQLITE_OK) {
-        sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), insStmtSql, -1, &stmt, nullptr) != SQLITE_OK) {
         return;
     }
     sqlite3_bind_text(stmt, 1, statement->name.c_str(), -1, SQLITE_TRANSIENT);
@@ -73,18 +45,16 @@ void SqliteStatementRepository::addStatement(const std::shared_ptr<Statement>& s
     sqlite3_bind_text(stmt, 3, statement->endDate.c_str(), -1, SQLITE_TRANSIENT);
     if (sqlite3_step(stmt) != SQLITE_DONE) {
         sqlite3_finalize(stmt);
-        sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
         return;
     }
     sqlite3_finalize(stmt);
 
-    long long statementId = lastInsertRowId(pimpl_->db);
+    long long statementId = lastInsertRowId(pimpl_->db->handle());
     statement->id = std::to_string(statementId);
 
     const char* insTxSql = "INSERT INTO transactions (statement_id, name, booking_date, valuta, amount, description) VALUES (?, ?, ?, ?, ?, ?);";
     sqlite3_stmt* txStmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, insTxSql, -1, &txStmt, nullptr) != SQLITE_OK) {
-        sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), insTxSql, -1, &txStmt, nullptr) != SQLITE_OK) {
         return;
     }
 
@@ -99,26 +69,19 @@ void SqliteStatementRepository::addStatement(const std::shared_ptr<Statement>& s
 
         if (sqlite3_step(txStmt) != SQLITE_DONE) {
             sqlite3_finalize(txStmt);
-            sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
             return;
         }
-        tx.id = std::to_string(lastInsertRowId(pimpl_->db));
+        tx.id = std::to_string(lastInsertRowId(pimpl_->db->handle()));
     }
 
     sqlite3_finalize(txStmt);
-
-    if (sqlite3_exec(pimpl_->db, "COMMIT;", nullptr, nullptr, &err) != SQLITE_OK) {
-        if (err) sqlite3_free(err);
-        sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
-        return;
-    }
 }
 
 std::vector<std::shared_ptr<Statement>> SqliteStatementRepository::getStatements() const {
     std::vector<std::shared_ptr<Statement>> out;
     const char* selStmtSql = "SELECT id, name, start_date, end_date FROM statements ORDER BY id;";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, selStmtSql, -1, &stmt, nullptr) != SQLITE_OK) return out;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), selStmtSql, -1, &stmt, nullptr) != SQLITE_OK) return out;
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         long long statementId = sqlite3_column_int64(stmt, 0);
@@ -134,7 +97,7 @@ std::vector<std::shared_ptr<Statement>> SqliteStatementRepository::getStatements
 
         const char* selTxSql = "SELECT id, name, booking_date, valuta, amount, description FROM transactions WHERE statement_id = ? ORDER BY id;";
         sqlite3_stmt* txStmt = nullptr;
-        if (sqlite3_prepare_v2(pimpl_->db, selTxSql, -1, &txStmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_prepare_v2(pimpl_->db->handle(), selTxSql, -1, &txStmt, nullptr) == SQLITE_OK) {
             sqlite3_bind_int64(txStmt, 1, statementId);
             while (sqlite3_step(txStmt) == SQLITE_ROW) {
                 long long txId = sqlite3_column_int64(txStmt, 0);
@@ -171,7 +134,7 @@ std::optional<std::shared_ptr<Statement>> SqliteStatementRepository::getStatemen
 
     const char* selStmtSql = "SELECT id, name, start_date, end_date FROM statements WHERE id = ?;";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, selStmtSql, -1, &stmt, nullptr) != SQLITE_OK) return std::nullopt;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), selStmtSql, -1, &stmt, nullptr) != SQLITE_OK) return std::nullopt;
     sqlite3_bind_int64(stmt, 1, sid);
 
     if (sqlite3_step(stmt) != SQLITE_ROW) {
@@ -193,7 +156,7 @@ std::optional<std::shared_ptr<Statement>> SqliteStatementRepository::getStatemen
 
     const char* selTxSql = "SELECT id, name, booking_date, valuta, amount, description FROM transactions WHERE statement_id = ? ORDER BY id;";
     sqlite3_stmt* txStmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, selTxSql, -1, &txStmt, nullptr) == SQLITE_OK) {
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), selTxSql, -1, &txStmt, nullptr) == SQLITE_OK) {
         sqlite3_bind_int64(txStmt, 1, statementId);
         while (sqlite3_step(txStmt) == SQLITE_ROW) {
             long long txId = sqlite3_column_int64(txStmt, 0);
@@ -227,7 +190,7 @@ void SqliteStatementRepository::removeStatement(const std::string& id) {
 
     sqlite3_stmt* stmt = nullptr;
     const char* sql = "DELETE FROM statements WHERE id = ?;";
-    if (sqlite3_prepare_v2(pimpl_->db, sql, -1, &stmt, nullptr) != SQLITE_OK) return;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
     sqlite3_bind_int64(stmt, 1, sid);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
@@ -241,43 +204,29 @@ void SqliteStatementRepository::updateStatement(const std::shared_ptr<Statement>
         return;
     }
 
-    char* err = nullptr;
-    if (sqlite3_exec(pimpl_->db, "BEGIN TRANSACTION;", nullptr, nullptr, &err) != SQLITE_OK) { if (err) sqlite3_free(err); return; }
-
     const char* updStmtSql = "UPDATE statements SET name = ?, start_date = ?, end_date = ? WHERE id = ?;";
     sqlite3_stmt* updStmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, updStmtSql, -1, &updStmt, nullptr) != SQLITE_OK) { sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr); return; }
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), updStmtSql, -1, &updStmt, nullptr) != SQLITE_OK) return;
     sqlite3_bind_text(updStmt, 1, statement->name.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(updStmt, 2, statement->startDate.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(updStmt, 3, statement->endDate.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int64(updStmt, 4, statementId);
-    if (sqlite3_step(updStmt) != SQLITE_DONE) { sqlite3_finalize(updStmt); sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr); return; }
+    sqlite3_step(updStmt);
     sqlite3_finalize(updStmt);
+}
 
-    const char* delTxSql = "DELETE FROM transactions WHERE statement_id = ?;";
-    sqlite3_stmt* delTx = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, delTxSql, -1, &delTx, nullptr) != SQLITE_OK) { sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr); return; }
-    sqlite3_bind_int64(delTx, 1, statementId);
-    if (sqlite3_step(delTx) != SQLITE_DONE) { sqlite3_finalize(delTx); sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr); return; }
-    sqlite3_finalize(delTx);
-
-    const char* insTxSql = "INSERT INTO transactions (statement_id, name, booking_date, valuta, amount, description) VALUES (?, ?, ?, ?, ?, ?);";
-    sqlite3_stmt* txStmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, insTxSql, -1, &txStmt, nullptr) != SQLITE_OK) { sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr); return; }
-
-    for (Transaction& tx : statement->transactions) {
-        sqlite3_reset(txStmt);
-        sqlite3_bind_int64(txStmt, 1, statementId);
-        sqlite3_bind_text(txStmt, 2, tx.name.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(txStmt, 3, tx.bookingDate.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(txStmt, 4, tx.valuta.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_double(txStmt, 5, tx.amount);
-        sqlite3_bind_text(txStmt, 6, tx.description.c_str(), -1, SQLITE_TRANSIENT);
-        if (sqlite3_step(txStmt) != SQLITE_DONE) { sqlite3_finalize(txStmt); sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr); return; }
-        tx.id = std::to_string(lastInsertRowId(pimpl_->db));
+void SqliteStatementRepository::upsertStatement(const std::shared_ptr<Statement>& statement) {
+    if (!statement) return;
+    long long sid = parseId(statement->id);
+    if (sid > 0) {
+        updateStatement(statement);
+        return;
     }
+    addStatement(statement);
+}
 
-    sqlite3_finalize(txStmt);
-
-    if (sqlite3_exec(pimpl_->db, "COMMIT;", nullptr, nullptr, &err) != SQLITE_OK) { if (err) sqlite3_free(err); sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr); return; }
+void SqliteStatementRepository::clearStatements() {
+    char* err = nullptr;
+    sqlite3_exec(pimpl_->db->handle(), "DELETE FROM statements;", nullptr, nullptr, &err);
+    if (err) sqlite3_free(err);
 }

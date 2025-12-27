@@ -3,53 +3,25 @@
 #include <stdexcept>
 
 #include "core/models/Contract.h"
+#include "persistence/SqliteDb.h"
 
-struct SqliteContractRepository::Impl { sqlite3* db = nullptr; };
+struct SqliteContractRepository::Impl { std::shared_ptr<SqliteDb> db; };
 
 static long long toLL(const std::string& s) {
     try { return std::stoll(s); } catch (...) { return -1; }
 }
 
-SqliteContractRepository::SqliteContractRepository(const std::string& dbPath) : pimpl_(std::make_unique<Impl>()) {
-    if (sqlite3_open(dbPath.c_str(), &pimpl_->db) != SQLITE_OK) throw std::runtime_error("Failed to open sqlite db");
-
-    const char* sql =
-        "PRAGMA foreign_keys = ON;"
-        "CREATE TABLE IF NOT EXISTS contracts ("
-        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "name TEXT,"
-        "type TEXT,"
-        "description TEXT,"
-        "start_date TEXT,"
-        "end_date TEXT,"
-        "base_price REAL,"
-        "consumption_price REAL,"
-        "monthly_advance REAL"
-        ");"
-        "CREATE TABLE IF NOT EXISTS contract_actors ("
-        "contract_id INTEGER NOT NULL,"
-        "actor_id INTEGER NOT NULL,"
-        "PRIMARY KEY(contract_id, actor_id),"
-        "FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE CASCADE,"
-        "FOREIGN KEY(actor_id) REFERENCES actors(id) ON DELETE CASCADE"
-        ");"
-        "CREATE TABLE IF NOT EXISTS contract_properties ("
-        "contract_id INTEGER NOT NULL,"
-        "property_id INTEGER NOT NULL,"
-        "PRIMARY KEY(contract_id, property_id),"
-        "FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE CASCADE,"
-        "FOREIGN KEY(property_id) REFERENCES properties(id) ON DELETE CASCADE"
-        ");";
-
-    char* err = nullptr;
-    if (sqlite3_exec(pimpl_->db, sql, nullptr, nullptr, &err) != SQLITE_OK) {
-        std::string e = err ? err : "unknown";
-        if (err) sqlite3_free(err);
-        throw std::runtime_error(std::string("Failed to init schema: ") + e);
-    }
+SqliteContractRepository::SqliteContractRepository(const std::string& dbPath)
+    : SqliteContractRepository(std::make_shared<SqliteDb>(dbPath)) {
 }
 
-SqliteContractRepository::~SqliteContractRepository(){ if (pimpl_ && pimpl_->db) sqlite3_close(pimpl_->db); }
+SqliteContractRepository::SqliteContractRepository(std::shared_ptr<SqliteDb> db)
+    : pimpl_(std::make_unique<Impl>()) {
+    if (!db) throw std::runtime_error("db is null");
+    pimpl_->db = std::move(db);
+}
+
+SqliteContractRepository::~SqliteContractRepository() = default;
 
 static void insertRelations(sqlite3* db, long long contractId, const Contract& c) {
     {
@@ -87,18 +59,9 @@ static void insertRelations(sqlite3* db, long long contractId, const Contract& c
 void SqliteContractRepository::addContract(const std::shared_ptr<Contract>& contract) {
     if (!contract) return;
 
-    char* err = nullptr;
-    if (sqlite3_exec(pimpl_->db, "BEGIN TRANSACTION;", nullptr, nullptr, &err) != SQLITE_OK) {
-        if (err) sqlite3_free(err);
-        return;
-    }
-
     const char* sql = "INSERT INTO contracts (name, type, description, start_date, end_date, base_price, consumption_price, monthly_advance) VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-        sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
-        return;
-    }
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
 
     sqlite3_bind_text(stmt, 1, contract->name.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 2, contract->type.c_str(), -1, SQLITE_TRANSIENT);
@@ -109,29 +72,20 @@ void SqliteContractRepository::addContract(const std::shared_ptr<Contract>& cont
     sqlite3_bind_double(stmt, 7, contract->consumptionPrice);
     sqlite3_bind_double(stmt, 8, contract->monthlyAdvance);
 
-    if (sqlite3_step(stmt) != SQLITE_DONE) {
-        sqlite3_finalize(stmt);
-        sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
-        return;
+    if (sqlite3_step(stmt) == SQLITE_DONE) {
+        long long cid = sqlite3_last_insert_rowid(pimpl_->db->handle());
+        contract->id = std::to_string(cid);
+        insertRelations(pimpl_->db->handle(), cid, *contract);
     }
+
     sqlite3_finalize(stmt);
-
-    long long cid = sqlite3_last_insert_rowid(pimpl_->db);
-    contract->id = std::to_string(cid);
-
-    insertRelations(pimpl_->db, cid, *contract);
-
-    if (sqlite3_exec(pimpl_->db, "COMMIT;", nullptr, nullptr, &err) != SQLITE_OK) {
-        if (err) sqlite3_free(err);
-        sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
-    }
 }
 
 std::vector<std::shared_ptr<Contract>> SqliteContractRepository::getContracts() const {
     std::vector<std::shared_ptr<Contract>> out;
     const char* sql = "SELECT id, name, type, description, start_date, end_date, base_price, consumption_price, monthly_advance FROM contracts ORDER BY id;";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, sql, -1, &stmt, nullptr) != SQLITE_OK) return out;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return out;
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         long long id = sqlite3_column_int64(stmt, 0);
@@ -158,7 +112,7 @@ std::vector<std::shared_ptr<Contract>> SqliteContractRepository::getContracts() 
         {
             const char* rel = "SELECT actor_id FROM contract_actors WHERE contract_id = ? ORDER BY actor_id;";
             sqlite3_stmt* relStmt = nullptr;
-            if (sqlite3_prepare_v2(pimpl_->db, rel, -1, &relStmt, nullptr) == SQLITE_OK) {
+            if (sqlite3_prepare_v2(pimpl_->db->handle(), rel, -1, &relStmt, nullptr) == SQLITE_OK) {
                 sqlite3_bind_int64(relStmt, 1, id);
                 while (sqlite3_step(relStmt) == SQLITE_ROW) {
                     long long aid = sqlite3_column_int64(relStmt, 0);
@@ -170,7 +124,7 @@ std::vector<std::shared_ptr<Contract>> SqliteContractRepository::getContracts() 
         {
             const char* rel = "SELECT property_id FROM contract_properties WHERE contract_id = ? ORDER BY property_id;";
             sqlite3_stmt* relStmt = nullptr;
-            if (sqlite3_prepare_v2(pimpl_->db, rel, -1, &relStmt, nullptr) == SQLITE_OK) {
+            if (sqlite3_prepare_v2(pimpl_->db->handle(), rel, -1, &relStmt, nullptr) == SQLITE_OK) {
                 sqlite3_bind_int64(relStmt, 1, id);
                 while (sqlite3_step(relStmt) == SQLITE_ROW) {
                     long long pid = sqlite3_column_int64(relStmt, 0);
@@ -193,7 +147,7 @@ std::optional<std::shared_ptr<Contract>> SqliteContractRepository::getContractBy
 
     const char* sql = "SELECT id, name, type, description, start_date, end_date, base_price, consumption_price, monthly_advance FROM contracts WHERE id = ?;";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, sql, -1, &stmt, nullptr) != SQLITE_OK) return std::nullopt;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return std::nullopt;
     sqlite3_bind_int64(stmt, 1, cid);
 
     if (sqlite3_step(stmt) != SQLITE_ROW) {
@@ -227,7 +181,7 @@ std::optional<std::shared_ptr<Contract>> SqliteContractRepository::getContractBy
     {
         const char* rel = "SELECT actor_id FROM contract_actors WHERE contract_id = ? ORDER BY actor_id;";
         sqlite3_stmt* relStmt = nullptr;
-        if (sqlite3_prepare_v2(pimpl_->db, rel, -1, &relStmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_prepare_v2(pimpl_->db->handle(), rel, -1, &relStmt, nullptr) == SQLITE_OK) {
             sqlite3_bind_int64(relStmt, 1, rid);
             while (sqlite3_step(relStmt) == SQLITE_ROW) {
                 long long aid = sqlite3_column_int64(relStmt, 0);
@@ -239,7 +193,7 @@ std::optional<std::shared_ptr<Contract>> SqliteContractRepository::getContractBy
     {
         const char* rel = "SELECT property_id FROM contract_properties WHERE contract_id = ? ORDER BY property_id;";
         sqlite3_stmt* relStmt = nullptr;
-        if (sqlite3_prepare_v2(pimpl_->db, rel, -1, &relStmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_prepare_v2(pimpl_->db->handle(), rel, -1, &relStmt, nullptr) == SQLITE_OK) {
             sqlite3_bind_int64(relStmt, 1, rid);
             while (sqlite3_step(relStmt) == SQLITE_ROW) {
                 long long pid = sqlite3_column_int64(relStmt, 0);
@@ -257,7 +211,7 @@ void SqliteContractRepository::removeContract(const std::string& id) {
     if (cid <= 0) return;
     const char* sql = "DELETE FROM contracts WHERE id = ?;";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, sql, -1, &stmt, nullptr) != SQLITE_OK) return;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
     sqlite3_bind_int64(stmt, 1, cid);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
@@ -268,18 +222,9 @@ void SqliteContractRepository::updateContract(const std::shared_ptr<Contract>& c
     long long cid = toLL(contract->id);
     if (cid <= 0) return;
 
-    char* err = nullptr;
-    if (sqlite3_exec(pimpl_->db, "BEGIN TRANSACTION;", nullptr, nullptr, &err) != SQLITE_OK) {
-        if (err) sqlite3_free(err);
-        return;
-    }
-
     const char* sql = "UPDATE contracts SET name = ?, type = ?, description = ?, start_date = ?, end_date = ?, base_price = ?, consumption_price = ?, monthly_advance = ? WHERE id = ?;";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-        sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
-        return;
-    }
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
 
     sqlite3_bind_text(stmt, 1, contract->name.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 2, contract->type.c_str(), -1, SQLITE_TRANSIENT);
@@ -291,33 +236,40 @@ void SqliteContractRepository::updateContract(const std::shared_ptr<Contract>& c
     sqlite3_bind_double(stmt, 8, contract->monthlyAdvance);
     sqlite3_bind_int64(stmt, 9, cid);
 
-    if (sqlite3_step(stmt) != SQLITE_DONE) {
-        sqlite3_finalize(stmt);
-        sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
-        return;
-    }
+    sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 
     {
         const char* delA = "DELETE FROM contract_actors WHERE contract_id = ?;";
         sqlite3_stmt* delStmt = nullptr;
-        if (sqlite3_prepare_v2(pimpl_->db, delA, -1, &delStmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_prepare_v2(pimpl_->db->handle(), delA, -1, &delStmt, nullptr) == SQLITE_OK) {
             sqlite3_bind_int64(delStmt, 1, cid);
             sqlite3_step(delStmt);
             sqlite3_finalize(delStmt);
         }
         const char* delP = "DELETE FROM contract_properties WHERE contract_id = ?;";
-        if (sqlite3_prepare_v2(pimpl_->db, delP, -1, &delStmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_prepare_v2(pimpl_->db->handle(), delP, -1, &delStmt, nullptr) == SQLITE_OK) {
             sqlite3_bind_int64(delStmt, 1, cid);
             sqlite3_step(delStmt);
             sqlite3_finalize(delStmt);
         }
     }
 
-    insertRelations(pimpl_->db, cid, *contract);
+    insertRelations(pimpl_->db->handle(), cid, *contract);
+}
 
-    if (sqlite3_exec(pimpl_->db, "COMMIT;", nullptr, nullptr, &err) != SQLITE_OK) {
-        if (err) sqlite3_free(err);
-        sqlite3_exec(pimpl_->db, "ROLLBACK;", nullptr, nullptr, nullptr);
+void SqliteContractRepository::upsertContract(const std::shared_ptr<Contract>& contract) {
+    if (!contract) return;
+    long long cid = toLL(contract->id);
+    if (cid > 0) {
+        updateContract(contract);
+        return;
     }
+    addContract(contract);
+}
+
+void SqliteContractRepository::clearContracts() {
+    char* err = nullptr;
+    sqlite3_exec(pimpl_->db->handle(), "DELETE FROM contracts;", nullptr, nullptr, &err);
+    if (err) sqlite3_free(err);
 }

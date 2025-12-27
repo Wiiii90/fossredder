@@ -16,4 +16,7 @@ public:
     virtual std::optional<std::shared_ptr<Transaction>> getTransactionById(const std::string& id) const = 0;
     virtual void removeTransaction(const std::string& id) = 0;
     virtual void updateTransaction(const std::shared_ptr<Transaction>& transaction) = 0;
+
+    virtual void upsertTransaction(const std::shared_ptr<Transaction>& transaction) = 0;
+    virtual void clearTransactions() = 0;
 };

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <vector>
-#include <string>
 #include <optional>
+#include <string>
+#include <vector>
 
 class Statement;
 
@@ -16,4 +16,7 @@ public:
     virtual std::optional<std::shared_ptr<Statement>> getStatementById(const std::string& id) const = 0;
     virtual void removeStatement(const std::string& id) = 0;
     virtual void updateStatement(const std::shared_ptr<Statement>& statement) = 0;
+
+    virtual void upsertStatement(const std::shared_ptr<Statement>& statement) = 0;
+    virtual void clearStatements() = 0;
 };

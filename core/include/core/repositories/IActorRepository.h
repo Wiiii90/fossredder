@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -15,4 +16,7 @@ public:
     virtual std::optional<std::shared_ptr<Actor>> getActorById(const std::string& id) const = 0;
     virtual void removeActor(const std::string& id) = 0;
     virtual void updateActor(const std::shared_ptr<Actor>& actor) = 0;
+
+    virtual void upsertActor(const std::shared_ptr<Actor>& actor) = 0;
+    virtual void clearActors() = 0;
 };

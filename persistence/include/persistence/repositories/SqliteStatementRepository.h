@@ -4,9 +4,12 @@
 #include <memory>
 #include <string>
 
+class SqliteDb;
+
 class SqliteStatementRepository : public IStatementRepository {
 public:
     explicit SqliteStatementRepository(const std::string& dbPath);
+    explicit SqliteStatementRepository(std::shared_ptr<SqliteDb> db);
     ~SqliteStatementRepository() override;
 
     void addStatement(const std::shared_ptr<Statement>& statement) override;
@@ -14,6 +17,9 @@ public:
     std::optional<std::shared_ptr<Statement>> getStatementById(const std::string& id) const override;
     void removeStatement(const std::string& id) override;
     void updateStatement(const std::shared_ptr<Statement>& statement) override;
+
+    void upsertStatement(const std::shared_ptr<Statement>& statement) override;
+    void clearStatements() override;
 
 private:
     struct Impl;

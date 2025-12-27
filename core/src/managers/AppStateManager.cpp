@@ -33,6 +33,40 @@ AppState AppStateManager::load() {
     return state;
 }
 
+void AppStateManager::save(const AppState& state) {
+    if (repos_.actors) {
+        for (const auto& a : state.actors) repos_.actors->upsertActor(a);
+    }
+
+    if (repos_.properties) {
+        for (const auto& p : state.properties) repos_.properties->upsertProperty(p);
+    }
+
+    if (repos_.contracts) {
+        for (const auto& c : state.contracts) {
+            if (!c) continue;
+            c->actorIds.clear();
+            for (auto* a : c->actors) { if (a && !a->id.empty()) c->actorIds.push_back(a->id); }
+            c->propertyIds.clear();
+            for (auto* p : c->properties) { if (p && !p->id.empty()) c->propertyIds.push_back(p->id); }
+            repos_.contracts->upsertContract(c);
+        }
+    }
+
+    if (repos_.statements) {
+        for (const auto& s : state.statements) repos_.statements->upsertStatement(s);
+    }
+
+    if (repos_.transactions) {
+        for (const auto& t : state.transactions) {
+            if (!t) continue;
+            if (t->actor && !t->actor->id.empty()) t->actorId = t->actor->id;
+            if (t->contract && !t->contract->id.empty()) t->contractId = t->contract->id;
+            repos_.transactions->upsertTransaction(t);
+        }
+    }
+}
+
 static void dedupStrings(std::vector<std::string>& v) {
     std::sort(v.begin(), v.end());
     v.erase(std::unique(v.begin(), v.end()), v.end());

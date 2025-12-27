@@ -7,6 +7,9 @@
 #include "core/models/Config.h"
 #include "core/managers/ConfigManager.h"
 #include "core/controllers/StatementController.h"
+#include "core/managers/FileManager.h"
+#include "core/controllers/FileController.h"
+#include "persistence/AppStateStore.h"
 
 #include <QDir>
 #include <QDebug>
@@ -22,13 +25,11 @@
 #include <QList>
 #include <QVariant>
 
-// Adapter factory functions are implemented in the services; declare them here
 std::shared_ptr<api::poppler::IPopplerAdapter> createPopplerAdapter(std::shared_ptr<IDebugger> dbg);
 std::shared_ptr<api::opencv::IOpenCvAdapter> createOpenCvAdapter(std::shared_ptr<IDebugger> dbg);
 std::shared_ptr<api::tesseract::ITesseractAdapter> createTesseractAdapter(std::shared_ptr<IDebugger> dbg);
 #endif
 
-// Simple message handler to ensure Qt messages (incl. QML warnings) are visible in the console
 static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
     QByteArray localMsg = msg.toLocal8Bit();
     const char *file = context.file ? context.file : "";
@@ -57,12 +58,35 @@ int main(int argc, char* argv[]) {
 
     env::load_dotenv(".env", false);
 
-    const std::string dbPath = "fossredder.db";
-    auto actorRepo = createSqliteActorRepository(dbPath);
-    auto propRepo = createSqlitePropertyRepository(dbPath);
-    auto stmtRepo = createSqliteStatementRepository(dbPath);
-    auto cfgRepo = createSqliteConfigRepository(dbPath);
-    auto txRepo = createSqliteTransactionRepository(dbPath);
+    auto cfgRepo = createSqliteConfigRepository("fossredder.db");
+
+    FileManager fm(QDir::homePath().toStdString() + std::string("/.fossredder"));
+    FileController fileCtrl(std::move(fm));
+    fileCtrl.setRepoFactory([](const std::string& dbPath) {
+        auto db = createSqliteDb(dbPath);
+        FileManager::Repositories r;
+        r.actors = createSqliteActorRepository(db);
+        r.properties = createSqlitePropertyRepository(db);
+        r.contracts = createSqliteContractRepository(db);
+        r.statements = createSqliteStatementRepository(db);
+        r.transactions = createSqliteTransactionRepository(db);
+        return r;
+    });
+    fileCtrl.setAtomicStoreLoad([](const std::string& dbPath) {
+        auto db = createSqliteDb(dbPath);
+        AppStateStore store(db);
+        return store.load();
+    });
+    fileCtrl.setAtomicStoreSave([](const std::string& dbPath, const AppState& state) {
+        auto db = createSqliteDb(dbPath);
+        AppStateStore store(db);
+        auto res = store.save(state);
+        return res.impact;
+    });
+    fileCtrl.openLatest();
+    if (fileCtrl.currentPath().empty()) {
+        fileCtrl.newFile("fossredder.db");
+    }
 
     ConfigManager cfgMgr;
     if (auto def = cfgRepo->getDefaultConfig())
@@ -72,27 +96,34 @@ int main(int argc, char* argv[]) {
     app.setStyle("Fusion");
 
 #ifdef USE_QML
-    // Setup core services and controllers and wire to UI
     MainWindow w;
 
-    // Create debugger backend for services (writes debug artifacts to disk)
+    QObject::connect(&w, &MainWindow::newFileRequested, [&](const QString& path){
+        fileCtrl.newFile(path.toStdString());
+    });
+    QObject::connect(&w, &MainWindow::openFileRequested, [&](const QString& path){
+        fileCtrl.openFile(path.toStdString());
+    });
+    QObject::connect(&w, &MainWindow::saveFileRequested, [&](){
+        try { fileCtrl.saveFile(); } catch (...) {}
+    });
+    QObject::connect(&w, &MainWindow::saveFileAsRequested, [&](const QString& path){
+        try { fileCtrl.saveFileAs(path.toStdString()); } catch (...) {}
+    });
+
     auto fileDbg = std::make_shared<FileDebugger>(std::string("debug_output"));
 
-    // Create adapters (implementations exist in services/*/Adapter.cpp)
     auto popplerAdapter = createPopplerAdapter(fileDbg);
     auto openCvAdapter = createOpenCvAdapter(fileDbg);
     auto tesseractAdapter = createTesseractAdapter(fileDbg);
 
-    // Create service wrappers
     auto popplerSvc = api::poppler::createPopplerService(popplerAdapter);
     auto openCvSvc = api::opencv::createOpenCvService(openCvAdapter);
     auto tesseractSvc = api::tesseract::createTesseractService(tesseractAdapter);
 
-    // Create extraction service and core controller
     auto importer = createImportStatement(popplerSvc, openCvSvc, tesseractSvc);
     auto coreCtrl = std::make_shared<StatementController>(importer);
 
-    // Create QT wrapper controller and connect UI
     auto qtCtrl = new QTStatementController(coreCtrl, &w);
     QObject::connect(&w, &MainWindow::importRequested, qtCtrl, &QTStatementController::importStatement);
     QObject::connect(qtCtrl, &QTStatementController::transactionsExtracted, [](const QList<QVariant>& tx){

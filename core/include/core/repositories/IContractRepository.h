@@ -16,4 +16,7 @@ public:
     virtual std::optional<std::shared_ptr<Contract>> getContractById(const std::string& id) const = 0;
     virtual void removeContract(const std::string& id) = 0;
     virtual void updateContract(const std::shared_ptr<Contract>& contract) = 0;
+
+    virtual void upsertContract(const std::shared_ptr<Contract>& contract) = 0;
+    virtual void clearContracts() = 0;
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -15,4 +16,7 @@ public:
     virtual std::optional<std::shared_ptr<Property>> getPropertyById(const std::string& id) const = 0;
     virtual void removeProperty(const std::string& id) = 0;
     virtual void updateProperty(const std::shared_ptr<Property>& property) = 0;
+
+    virtual void upsertProperty(const std::shared_ptr<Property>& property) = 0;
+    virtual void clearProperties() = 0;
 };
