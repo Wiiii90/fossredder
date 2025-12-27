@@ -1,23 +1,29 @@
 #include "MainWindow.h"
-
+#include <QMenuBar>
+#include <QMenu>
 #include <QAction>
-#include <QCloseEvent>
-#include <QCoreApplication>
-#include <QDir>
-#include <QEvent>
-#include <QFileDialog>
-#include <QLibraryInfo>
-#include <QMessageBox>
+#include <QToolBar>
+#include <QStatusBar>
+#include <QVBoxLayout>
+#include <QQuickWidget>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QQmlProperty>
 #include <QQuickItem>
-#include <QQuickWidget>
+#include <QDebug>
+#include <QFileDialog>
+#include <QMessageBox>
 #include <QSizePolicy>
-
+#include <QResizeEvent>
+#include <QTimer>
+#include <QObject>
+#include <QLibraryInfo>
+#include <QDir>
+#include <QCoreApplication>
 #include "ui/actions/UiActions.h"
 #include "ui/menus/NativeMenu.h"
-#include "ui/state/UiDataSession.h"
 #include "ui/state/UiNavigation.h"
+#include "ui/state/UiDataSession.h"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -32,22 +38,22 @@ MainWindow::MainWindow(QWidget* parent)
 
     m_quickWidget->installEventFilter(this);
 
-    // Ensure UiNavigation enums are visible in QML as UiNavigation.Actors/...
-    if (m_quickWidget->engine()) {
-        qmlRegisterUncreatableType<UiNavigation>("FossRedder", 1, 0, "UiNavigation",
-                                                "UiNavigation is exposed via context property 'uiNav'");
-    }
-
     auto actions = new UiActions(this);
     auto nav = new UiNavigation(this);
-    dataSession_ = new UiDataSession(this);
+    auto dataSession = new UiDataSession(this);
+
+    // Register enum container for QML (no object creation from QML)
+    if (m_quickWidget && m_quickWidget->engine()) {
+        qmlRegisterUncreatableType<UiNavigation>("FossRedder", 1, 0, "UiNavigation", "UiNavigation is exposed via context property 'uiNav'");
+    }
 
     if (m_quickWidget->rootContext()) {
         m_quickWidget->rootContext()->setContextProperty("uiActions", actions);
         m_quickWidget->rootContext()->setContextProperty("uiNav", nav);
-        m_quickWidget->rootContext()->setContextProperty("uiData", dataSession_);
+        m_quickWidget->rootContext()->setContextProperty("uiData", dataSession);
 
-        (void)new NativeMenu(this, actions, m_quickWidget->rootContext(), this);
+        m_quickWidget->rootContext()->setContextProperty("statusText", QStringLiteral("Ready"));
+        m_quickWidget->rootContext()->setContextProperty("statusItems", 3);
 
 #ifdef _DEBUG
         m_quickWidget->rootContext()->setContextProperty("isDebugBuild", true);
@@ -55,8 +61,7 @@ MainWindow::MainWindow(QWidget* parent)
         m_quickWidget->rootContext()->setContextProperty("isDebugBuild", false);
 #endif
 
-        m_quickWidget->rootContext()->setContextProperty("statusText", QStringLiteral("Ready"));
-        m_quickWidget->rootContext()->setContextProperty("statusItems", 3);
+        (void)new NativeMenu(this, actions, m_quickWidget->rootContext(), this);
     }
 
     connect(actions->newFileAction(), &QAction::triggered, this, &MainWindow::onNewFile);
@@ -73,24 +78,29 @@ MainWindow::MainWindow(QWidget* parent)
 
     Q_INIT_RESOURCE(qml);
 
+    // Register standard Qt QML import path if available
     const QString qtImports = QLibraryInfo::path(QLibraryInfo::Qml2ImportsPath);
     if (!qtImports.isEmpty() && QDir(qtImports).exists()) {
         m_quickWidget->engine()->addImportPath(qtImports);
     }
 
+    // Add application-local qml path
     const QString appQmlDir = QCoreApplication::applicationDirPath() + "/qml";
     if (QDir(appQmlDir).exists()) {
         m_quickWidget->engine()->addImportPath(appQmlDir);
     }
 
+    // Ensure application-local imageformats folder is considered
     const QString imageFormatsDir = QCoreApplication::applicationDirPath() + "/imageformats";
     if (QDir(imageFormatsDir).exists()) {
         QCoreApplication::addLibraryPath(imageFormatsDir);
     }
 
+    // Always ensure the embedded qrc import path is available
     m_quickWidget->engine()->addImportPath("qrc:/qml");
     m_quickWidget->setSource(QUrl("qrc:/qml/Main.qml"));
 
+    // Ensure QML root gets initial size so anchored loaders layout correctly
     if (m_quickWidget->rootObject()) {
         QObject* root = m_quickWidget->rootObject();
         root->setProperty("width", m_quickWidget->width());
@@ -98,7 +108,23 @@ MainWindow::MainWindow(QWidget* parent)
     }
 }
 
-MainWindow::~MainWindow() = default;
+bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
+{
+    if (obj == m_quickWidget && ev->type() == QEvent::Resize) {
+        if (m_quickWidget->rootObject()) {
+            QQuickItem* root = m_quickWidget->rootObject();
+            int w = m_quickWidget->width();
+            int h = m_quickWidget->height();
+            root->setProperty("width", w);
+            root->setProperty("height", h);
+        }
+    }
+    return QMainWindow::eventFilter(obj, ev);
+}
+
+MainWindow::~MainWindow()
+{
+}
 
 void MainWindow::setQmlContextProperty(const QString& name, QObject* value)
 {
@@ -107,31 +133,12 @@ void MainWindow::setQmlContextProperty(const QString& name, QObject* value)
     m_quickWidget->rootContext()->setContextProperty(name, value);
 }
 
-bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
-{
-    if (obj == m_quickWidget && ev->type() == QEvent::Resize) {
-        if (m_quickWidget->rootObject()) {
-            QQuickItem* root = m_quickWidget->rootObject();
-            root->setProperty("width", m_quickWidget->width());
-            root->setProperty("height", m_quickWidget->height());
-        }
-    }
-    return QMainWindow::eventFilter(obj, ev);
-}
-
-void MainWindow::closeEvent(QCloseEvent* event)
-{
-    emit saveFileRequested();
-    QMainWindow::closeEvent(event);
-}
-
 void MainWindow::onImport()
 {
     QString file = QFileDialog::getOpenFileName(this, tr("Import File"));
     if (!file.isEmpty()) {
-        if (m_quickWidget && m_quickWidget->rootContext()) {
-            m_quickWidget->rootContext()->setContextProperty("statusText", QString("Selected: %1").arg(file));
-        }
+        if (m_quickWidget->rootContext()) m_quickWidget->rootContext()->setContextProperty("statusText", QString("Selected: %1").arg(file));
+        // Emit signal instead of showing modal QMessageBox so controllers can handle import
         emit importRequested(file);
     }
 }
@@ -140,9 +147,7 @@ void MainWindow::onExport()
 {
     QString file = QFileDialog::getSaveFileName(this, tr("Export File"));
     if (!file.isEmpty()) {
-        if (m_quickWidget && m_quickWidget->rootContext()) {
-            m_quickWidget->rootContext()->setContextProperty("statusText", QString("Export path: %1").arg(file));
-        }
+        if (m_quickWidget->rootContext()) m_quickWidget->rootContext()->setContextProperty("statusText", QString("Export path: %1").arg(file));
         QMessageBox::information(this, tr("Export"), tr("Export path: %1").arg(file));
     }
 }
@@ -152,27 +157,23 @@ void MainWindow::onAbout()
     QMessageBox::about(this, tr("About FOSSRedder"), tr("FOSSRedder - demo"));
 }
 
-void MainWindow::onNewFile()
-{
+void MainWindow::onNewFile() {
     QString file = QFileDialog::getSaveFileName(this, tr("New File"), QString(), tr("Database (*.db)"));
     if (file.isEmpty()) return;
     emit newFileRequested(file);
 }
 
-void MainWindow::onOpenFile()
-{
+void MainWindow::onOpenFile() {
     QString file = QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Database (*.db)"));
     if (file.isEmpty()) return;
     emit openFileRequested(file);
 }
 
-void MainWindow::onSaveFile()
-{
+void MainWindow::onSaveFile() {
     emit saveFileRequested();
 }
 
-void MainWindow::onSaveFileAs()
-{
+void MainWindow::onSaveFileAs() {
     QString file = QFileDialog::getSaveFileName(this, tr("Save File As"), QString(), tr("Database (*.db)"));
     if (file.isEmpty()) return;
     emit saveFileAsRequested(file);

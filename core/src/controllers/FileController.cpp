@@ -31,6 +31,10 @@ void FileController::notify() {
     if (onStateChanged_) onStateChanged_(state_);
 }
 
+void FileController::commit() {
+    notify();
+}
+
 void FileController::openLatest() {
     if (auto latest = fileManager_.loadLatestPath()) {
         state_ = fileManager_.loadFrom(*latest);

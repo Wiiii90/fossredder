@@ -29,6 +29,8 @@ public:
     AppState& mutableState() noexcept { return state_; }
     const std::string& currentPath() const noexcept { return fileManager_.currentPath(); }
 
+    void commit();
+
 private:
     FileManager fileManager_;
     AppState state_;

@@ -18,6 +18,8 @@
 #include "MainWindow.h"
 #include "ui/controllers/UiStatementController.h"
 #include "ui/controllers/UiFileController.h"
+#include "ui/controllers/UiDomainController.h"
+#include "ui/state/UiDataSession.h"
 #include "debug/FileDebugger.h"
 #include "api/poppler/IPopplerService.h"
 #include "api/opencv/IOpenCvService.h"
@@ -102,6 +104,19 @@ int main(int argc, char* argv[]) {
     auto uiFileCtrl = new UiFileController(&fileCtrl, &w);
     w.setQmlContextProperty("uiFileController", uiFileCtrl);
 
+    auto uiDomain = new UiDomainController(&fileCtrl, &w);
+    w.setQmlContextProperty("uiDomain", uiDomain);
+
+    if (w.dataSession()) {
+        w.dataSession()->loadFromState(fileCtrl.state());
+    }
+
+    fileCtrl.setStateChangedCallback([&](const AppState& st) {
+        if (w.dataSession()) {
+            w.dataSession()->loadFromState(st);
+        }
+    });
+
     QObject::connect(&w, &MainWindow::newFileRequested, [&](const QString& path){
         uiFileCtrl->newFile(path);
     });
@@ -115,28 +130,8 @@ int main(int argc, char* argv[]) {
         uiFileCtrl->saveFileAs(path);
     });
 
-    auto fileDbg = std::make_shared<FileDebugger>(std::string("debug_output"));
-
-    auto popplerAdapter = createPopplerAdapter(fileDbg);
-    auto openCvAdapter = createOpenCvAdapter(fileDbg);
-    auto tesseractAdapter = createTesseractAdapter(fileDbg);
-
-    auto popplerSvc = api::poppler::createPopplerService(popplerAdapter);
-    auto openCvSvc = api::opencv::createOpenCvService(openCvAdapter);
-    auto tesseractSvc = api::tesseract::createTesseractService(tesseractAdapter);
-
-    auto importer = createImportStatement(popplerSvc, openCvSvc, tesseractSvc);
-    auto coreCtrl = std::make_shared<StatementController>(importer);
-
-    auto uiCtrl = new UiStatementController(coreCtrl, &w);
-    QObject::connect(&w, &MainWindow::importRequested, uiCtrl, &UiStatementController::importStatement);
-    QObject::connect(uiCtrl, &UiStatementController::transactionsExtracted, [](const QList<QVariant>& tx){
-        qDebug() << "transactionsExtracted count:" << tx.size();
-    });
-
     w.show();
-    int result = app.exec();
-    return result;
+    return app.exec();
 #else
     return -1;
 #endif

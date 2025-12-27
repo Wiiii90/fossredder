@@ -16,5 +16,15 @@
         <file>assets/analysis.svg</file>
         <file>assets/annual.svg</file>
         <file>assets/settings.svg</file>
+        <file>components/views/ActorsSidebar.qml</file>
+        <file>components/views/ActorsView.qml</file>
+        <file>components/views/ContractsView.qml</file>
+        <file>components/views/PlaceholderSidebar.qml</file>
+        <file>components/views/PlaceholderView.qml</file>
+        <file>components/views/PropertiesView.qml</file>
+        <file>components/views/PropertiesSidebar.qml</file>
+        <file>components/views/ContractsSidebar.qml</file>
+        <file>assets/contract.svg</file>
+        <file>assets/booking.svg</file>
     </qresource>
 </RCC>
