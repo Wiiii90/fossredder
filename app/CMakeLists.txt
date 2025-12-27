@@ -7,6 +7,12 @@ option(ENABLE_RUNTIME_FALLBACK "Enable runtime PATH/VCPKG fallback for debugging
 file(GLOB_RECURSE APP_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(fossredder ${APP_SRCS})
 
+set_target_properties(fossredder PROPERTIES
+    AUTOMOC ON
+    AUTOUIC ON
+    AUTORCC ON
+)
+
 # Require modern C++ standard for this target
 target_compile_features(fossredder PUBLIC cxx_std_20)
 

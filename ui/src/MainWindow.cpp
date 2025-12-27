@@ -20,40 +20,14 @@
 #include <QLibraryInfo>
 #include <QDir>
 #include <QCoreApplication>
-#include "ui/UiActions.h"
+#include "ui/actions/UiActions.h"
+#include "ui/menus/NativeMenu.h"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {
     setWindowTitle("FOSSRedder");
     resize(1200, 800);
-
-    QMenu* fileMenu = menuBar()->addMenu(tr("File"));
-    QAction* newFile = fileMenu->addAction(tr("New..."));
-    QAction* openFile = fileMenu->addAction(tr("Open..."));
-    QAction* saveFile = fileMenu->addAction(tr("Save"));
-    QAction* saveFileAs = fileMenu->addAction(tr("Save As..."));
-    fileMenu->addSeparator();
-    QAction* imp = fileMenu->addAction(tr("Import..."));
-    QAction* exp = fileMenu->addAction(tr("Export..."));
-    fileMenu->addSeparator();
-    QAction* quit = fileMenu->addAction(tr("Quit"));
-
-    QMenu* viewMenu = menuBar()->addMenu(tr("View"));
-    QAction* toggleSidebar = viewMenu->addAction(tr("Toggle Sidebar"));
-
-    QMenu* helpMenu = menuBar()->addMenu(tr("Help"));
-    QAction* about = helpMenu->addAction(tr("About"));
-
-    connect(newFile, &QAction::triggered, this, &MainWindow::onNewFile);
-    connect(openFile, &QAction::triggered, this, &MainWindow::onOpenFile);
-    connect(saveFile, &QAction::triggered, this, &MainWindow::onSaveFile);
-    connect(saveFileAs, &QAction::triggered, this, &MainWindow::onSaveFileAs);
-
-    connect(imp, &QAction::triggered, this, &MainWindow::onImport);
-    connect(exp, &QAction::triggered, this, &MainWindow::onExport);
-    connect(quit, &QAction::triggered, this, &QWidget::close);
-    connect(about, &QAction::triggered, this, &MainWindow::onAbout);
 
     m_quickWidget = new QQuickWidget(this);
     m_quickWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
@@ -62,14 +36,10 @@ MainWindow::MainWindow(QWidget* parent)
 
     m_quickWidget->installEventFilter(this);
 
+    auto actions = new UiActions(this);
+
     if (m_quickWidget->rootContext()) {
-        m_quickWidget->rootContext()->setContextProperty("useNativeMenu", true);
-        m_quickWidget->rootContext()->setContextProperty("actionImport", imp);
-        m_quickWidget->rootContext()->setContextProperty("actionExport", exp);
-        m_quickWidget->rootContext()->setContextProperty("actionQuit", quit);
-        m_quickWidget->rootContext()->setContextProperty("actionToggleSidebar", toggleSidebar);
-        m_quickWidget->rootContext()->setContextProperty("actionAbout", about);
-        m_quickWidget->rootContext()->setContextProperty("uiActions", new UiActions(this));
+        m_quickWidget->rootContext()->setContextProperty("uiActions", actions);
 
         m_quickWidget->rootContext()->setContextProperty("statusText", QStringLiteral("Ready"));
         m_quickWidget->rootContext()->setContextProperty("statusItems", 3);
@@ -79,7 +49,19 @@ MainWindow::MainWindow(QWidget* parent)
 #else
         m_quickWidget->rootContext()->setContextProperty("isDebugBuild", false);
 #endif
+
+        (void)new NativeMenu(this, actions, m_quickWidget->rootContext(), this);
     }
+
+    connect(actions->newFileAction(), &QAction::triggered, this, &MainWindow::onNewFile);
+    connect(actions->openFileAction(), &QAction::triggered, this, &MainWindow::onOpenFile);
+    connect(actions->saveFileAction(), &QAction::triggered, this, &MainWindow::onSaveFile);
+    connect(actions->saveFileAsAction(), &QAction::triggered, this, &MainWindow::onSaveFileAs);
+
+    connect(actions->importAction(), &QAction::triggered, this, &MainWindow::onImport);
+    connect(actions->exportAction(), &QAction::triggered, this, &MainWindow::onExport);
+    connect(actions->quitAction(), &QAction::triggered, this, &QWidget::close);
+    connect(actions->aboutAction(), &QAction::triggered, this, &MainWindow::onAbout);
 
     setCentralWidget(m_quickWidget);
 
@@ -131,6 +113,13 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::setQmlContextProperty(const QString& name, QObject* value)
+{
+    if (!m_quickWidget) return;
+    if (!m_quickWidget->rootContext()) return;
+    m_quickWidget->rootContext()->setContextProperty(name, value);
 }
 
 void MainWindow::onImport()

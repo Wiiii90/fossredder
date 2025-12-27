@@ -26,6 +26,7 @@ public:
     void saveFileAs(const std::string& path);
 
     const AppState& state() const noexcept { return state_; }
+    AppState& mutableState() noexcept { return state_; }
     const std::string& currentPath() const noexcept { return fileManager_.currentPath(); }
 
 private:

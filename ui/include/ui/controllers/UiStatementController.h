@@ -5,15 +5,13 @@
 #include <QString>
 #include <QList>
 #include <QVariant>
-#include <vector>
 
 class StatementController;
-class Transaction;
 
-class QTStatementController : public QObject {
+class UiStatementController : public QObject {
     Q_OBJECT
 public:
-    explicit QTStatementController(std::shared_ptr<StatementController> coreController, QObject* parent = nullptr);
+    explicit UiStatementController(std::shared_ptr<StatementController> coreController, QObject* parent = nullptr);
 
 public slots:
     void importStatement(const QString& path);

@@ -16,7 +16,8 @@
 
 #ifdef USE_QML
 #include "MainWindow.h"
-#include "ui/controllers/QTStatementController.h"
+#include "ui/controllers/UiStatementController.h"
+#include "ui/controllers/UiFileController.h"
 #include "debug/FileDebugger.h"
 #include "api/poppler/IPopplerService.h"
 #include "api/opencv/IOpenCvService.h"
@@ -98,17 +99,20 @@ int main(int argc, char* argv[]) {
 #ifdef USE_QML
     MainWindow w;
 
+    auto uiFileCtrl = new UiFileController(&fileCtrl, &w);
+    w.setQmlContextProperty("uiFileController", uiFileCtrl);
+
     QObject::connect(&w, &MainWindow::newFileRequested, [&](const QString& path){
-        fileCtrl.newFile(path.toStdString());
+        uiFileCtrl->newFile(path);
     });
     QObject::connect(&w, &MainWindow::openFileRequested, [&](const QString& path){
-        fileCtrl.openFile(path.toStdString());
+        uiFileCtrl->openFile(path);
     });
     QObject::connect(&w, &MainWindow::saveFileRequested, [&](){
-        try { fileCtrl.saveFile(); } catch (...) {}
+        uiFileCtrl->saveFile();
     });
     QObject::connect(&w, &MainWindow::saveFileAsRequested, [&](const QString& path){
-        try { fileCtrl.saveFileAs(path.toStdString()); } catch (...) {}
+        uiFileCtrl->saveFileAs(path);
     });
 
     auto fileDbg = std::make_shared<FileDebugger>(std::string("debug_output"));
@@ -124,9 +128,9 @@ int main(int argc, char* argv[]) {
     auto importer = createImportStatement(popplerSvc, openCvSvc, tesseractSvc);
     auto coreCtrl = std::make_shared<StatementController>(importer);
 
-    auto qtCtrl = new QTStatementController(coreCtrl, &w);
-    QObject::connect(&w, &MainWindow::importRequested, qtCtrl, &QTStatementController::importStatement);
-    QObject::connect(qtCtrl, &QTStatementController::transactionsExtracted, [](const QList<QVariant>& tx){
+    auto uiCtrl = new UiStatementController(coreCtrl, &w);
+    QObject::connect(&w, &MainWindow::importRequested, uiCtrl, &UiStatementController::importStatement);
+    QObject::connect(uiCtrl, &UiStatementController::transactionsExtracted, [](const QList<QVariant>& tx){
         qDebug() << "transactionsExtracted count:" << tx.size();
     });
 

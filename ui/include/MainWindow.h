@@ -10,6 +10,8 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
+    void setQmlContextProperty(const QString& name, QObject* value);
+
 signals:
     void importRequested(const QString& path);
 
