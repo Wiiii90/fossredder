@@ -43,6 +43,16 @@ Item {
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/booking.svg";
                     item.label = qsTr("Booking");
+                    item.clicked.connect(function(){
+                        if (uiData) {
+                            uiData.selectedStatementId = "";
+                            uiData.selectedTransactionId = "";
+                        }
+                        if (uiNav) {
+                            uiNav.bookingView = UiNavigation.Statements;
+                            uiNav.section = UiNavigation.Booking;
+                        }
+                    })
                 }
             }
             Loader {

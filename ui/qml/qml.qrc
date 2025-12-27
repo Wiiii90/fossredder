@@ -26,5 +26,10 @@
         <file>components/views/ContractsSidebar.qml</file>
         <file>assets/contract.svg</file>
         <file>assets/booking.svg</file>
+        <file>components/views/BookingSidebar.qml</file>
+        <file>components/views/BookingStatementsSidebar.qml</file>
+        <file>components/views/BookingStatementsView.qml</file>
+        <file>components/views/BookingView.qml</file>
+        <file>components/views/BookingTransactionsView.qml</file>
     </qresource>
 </RCC>

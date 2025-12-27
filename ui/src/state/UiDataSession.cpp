@@ -5,9 +5,13 @@ UiDataSession::UiDataSession(QObject* parent)
     , actors_(this)
     , properties_(this)
     , contracts_(this)
+    , statements_(this)
+    , transactions_(this)
     , selectedActor_(this)
     , selectedProperty_(this)
     , selectedContract_(this)
+    , selectedStatement_(this)
+    , selectedTransaction_(this)
 {
 }
 
@@ -16,10 +20,14 @@ void UiDataSession::loadFromState(const AppState& state)
     actors_.setActors(state.actors);
     properties_.setProperties(state.properties);
     contracts_.setContracts(state.contracts);
+    statements_.setStatements(state.statements);
+    transactions_.setTransactions(state.transactions);
 
     refreshSelectedActor();
     refreshSelectedProperty();
     refreshSelectedContract();
+    refreshSelectedStatement();
+    refreshSelectedTransaction();
 }
 
 void UiDataSession::setSelectedActorId(const QString& id)
@@ -44,6 +52,22 @@ void UiDataSession::setSelectedContractId(const QString& id)
     selectedContractId_ = id;
     refreshSelectedContract();
     emit selectedContractIdChanged();
+}
+
+void UiDataSession::setSelectedStatementId(const QString& id)
+{
+    if (selectedStatementId_ == id) return;
+    selectedStatementId_ = id;
+    refreshSelectedStatement();
+    emit selectedStatementIdChanged();
+}
+
+void UiDataSession::setSelectedTransactionId(const QString& id)
+{
+    if (selectedTransactionId_ == id) return;
+    selectedTransactionId_ = id;
+    refreshSelectedTransaction();
+    emit selectedTransactionIdChanged();
 }
 
 void UiDataSession::refreshSelectedActor()
@@ -112,4 +136,76 @@ void UiDataSession::refreshSelectedContract()
     }
 
     selectedContract_.clear();
+}
+
+void UiDataSession::refreshSelectedStatement()
+{
+    if (selectedStatementId_.isEmpty()) {
+        selectedStatement_.clear();
+        return;
+    }
+
+    for (const auto& s : statements_.statements()) {
+        if (s && QString::fromStdString(s->id) == selectedStatementId_) {
+            selectedStatement_.setStatement(QString::fromStdString(s->id),
+                                            QString::fromStdString(s->name),
+                                            QString::fromStdString(s->startDate),
+                                            QString::fromStdString(s->endDate));
+            return;
+        }
+    }
+
+    selectedStatement_.clear();
+}
+
+void UiDataSession::refreshSelectedTransaction()
+{
+    if (selectedTransactionId_.isEmpty()) {
+        selectedTransaction_.clear();
+        return;
+    }
+
+    for (const auto& t : transactions_.transactions()) {
+        if (t && QString::fromStdString(t->id) == selectedTransactionId_) {
+            selectedTransaction_.setTransaction(QString::fromStdString(t->id),
+                                                QString::fromStdString(t->name),
+                                                QString::fromStdString(t->bookingDate),
+                                                t->amount,
+                                                QString::fromStdString(t->description),
+                                                QString::fromStdString(t->statementId));
+            return;
+        }
+    }
+
+    selectedTransaction_.clear();
+}
+
+QVariantList UiDataSession::transactionIdsForStatement(const QString& statementId) const
+{
+    QVariantList out;
+    if (statementId.isEmpty()) return out;
+
+    for (const auto& t : transactions_.transactions()) {
+        if (!t) continue;
+        if (QString::fromStdString(t->statementId) == statementId) {
+            out.push_back(QString::fromStdString(t->id));
+        }
+    }
+    return out;
+}
+
+QObject* UiDataSession::transactionsForStatement(const QString& statementId)
+{
+    if (statementId.isEmpty()) return nullptr;
+
+    const auto key = statementId;
+    if (txByStatement_.contains(key)) {
+        return txByStatement_.value(key);
+    }
+
+    auto* proxy = new TransactionFilterModel(this);
+    proxy->setSourceModel(&transactions_);
+    proxy->setStatementId(statementId);
+    txByStatement_.insert(key, proxy);
+    return proxy;
 }

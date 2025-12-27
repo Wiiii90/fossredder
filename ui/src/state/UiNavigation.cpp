@@ -7,3 +7,10 @@ void UiNavigation::setSection(Section s) {
     section_ = s;
     emit sectionChanged();
 }
+
+void UiNavigation::setBookingView(BookingView v)
+{
+    if (bookingView_ == v) return;
+    bookingView_ = v;
+    emit bookingViewChanged();
+}

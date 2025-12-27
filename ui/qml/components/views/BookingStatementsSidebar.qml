@@ -1,0 +1,76 @@
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.3
+
+Item {
+    id: root
+
+    ListView {
+        id: statementList
+        anchors.fill: parent
+        clip: true
+        spacing: 8
+        model: uiData ? uiData.statements : null
+
+        delegate: Column {
+            width: statementList.width
+
+            property string statementId: (id !== undefined && id !== null) ? id : ""
+            property string statementName: (name !== undefined && name !== null) ? name : ""
+
+            Rectangle {
+                width: parent.width
+                height: 34
+                color: (uiData && statementId === uiData.selectedStatementId && (!uiData.selectedTransactionId || uiData.selectedTransactionId === ""))
+                           ? "#ffd39c" : "transparent"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    Label { text: statementName; Layout.fillWidth: true }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        if (!uiData) return
+                        uiData.selectedStatementId = statementId
+                        uiData.selectedTransactionId = ""
+                    }
+                }
+            }
+
+            ListView {
+                width: statementList.width
+                height: contentHeight
+                interactive: false
+                clip: true
+                spacing: 2
+                leftMargin: 14
+                model: (uiData && statementId.length > 0) ? uiData.transactionsForStatement(statementId) : null
+
+                delegate: Rectangle {
+                    width: statementList.width
+                    height: 30
+                    color: (uiData && id === uiData.selectedTransactionId) ? "#ffd39c" : "transparent"
+
+                    Label {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left
+                        anchors.leftMargin: 6
+                        text: name
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (!uiData) return
+                            uiData.selectedStatementId = statementId
+                            uiData.selectedTransactionId = id
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
