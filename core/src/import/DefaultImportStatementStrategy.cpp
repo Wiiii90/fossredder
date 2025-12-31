@@ -12,6 +12,7 @@
 #include "core/import/IImportStatement.h"
 #include "core/parser/DefaultStatementParser.h"
 #include "debug/IDebugger.h"
+#include "core/models/Statement.h"
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -30,6 +31,9 @@ public:
     ImportResult run(const ImportRequest& req) override {
         ImportResult out;
         if (!poppler_ || !opencv_ || !tesseract_) return out;
+
+        Statement stmt;
+        std::vector<Transaction> all;
 
         api::poppler::RenderRequest rreq;
         rreq.pdfPath = std::filesystem::path(req.sourcePath);
@@ -166,6 +170,10 @@ public:
                 auto parsed = DefaultStatementParser::parse(detectRes.table, ores, carriedBookingDate);
                 carriedBookingDate = parsed.lastBookingDate;
 
+                if (!parsed.transactions.empty()) {
+                    for (auto& tx : parsed.transactions) all.push_back(std::move(tx));
+                }
+
                 if (debugger_ && debugger_->enabled()) {
                     try {
                         if (!parsed.debugLines.empty()) {
@@ -199,6 +207,11 @@ public:
                     out.artifacts[cellsKey] = std::vector<uint8_t>(cellStr.begin(), cellStr.end());
                 }
             }
+        }
+
+        if (!all.empty()) {
+            stmt.transactions = std::move(all);
+            out.data = std::make_shared<Statement>(std::move(stmt));
         }
 
         return out;

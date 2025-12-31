@@ -54,11 +54,24 @@ Item {
                     height: 30
                     color: (uiData && id === uiData.selectedTransactionId) ? "#ffd39c" : "transparent"
 
-                    Label {
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left
+                    RowLayout {
+                        anchors.fill: parent
                         anchors.leftMargin: 6
-                        text: name
+                        anchors.rightMargin: 6
+
+                        Rectangle {
+                            width: 10
+                            height: 10
+                            radius: 5
+                            color: (status === 1) ? "#e74c3c" : ((status === 2) ? "#f1c40f" : ((status === 3) ? "#2ecc71" : "#9e9e9e"))
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: name
+                            elide: Label.ElideRight
+                        }
                     }
 
                     MouseArea {

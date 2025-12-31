@@ -26,6 +26,7 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case ValutaRole: return QString::fromStdString(t->valuta);
     case AmountRole: return t->amount;
     case DescriptionRole: return QString::fromStdString(t->description);
+    case StatusRole: return static_cast<int>(t->status);
     default: return {};
     }
 }
@@ -40,6 +41,7 @@ QHash<int, QByteArray> TransactionList::roleNames() const
     roles[ValutaRole] = "valuta";
     roles[AmountRole] = "amount";
     roles[DescriptionRole] = "description";
+    roles[StatusRole] = "status";
     return roles;
 }
 

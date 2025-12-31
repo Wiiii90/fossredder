@@ -6,6 +6,8 @@
 
 #include "core/controllers/ImportController.h"
 #include "ui/controllers/UiDomainController.h"
+#include "core/models/Statement.h"
+#include "core/models/Transaction.h"
 
 UiImportController::UiImportController(std::shared_ptr<ImportController> coreController, QObject* parent)
     : QObject(parent), coreController_(std::move(coreController))
@@ -73,17 +75,22 @@ void UiImportController::startStatementImport()
     const auto now = QDateTime::currentDateTime().toString(Qt::ISODate);
 
     try {
-        coreController_->import(ImportController::ImportType::Statement, p);
+        auto imported = coreController_->import(ImportController::ImportType::Statement, p);
 
-        if (domain_) {
+        if (domain_ && imported) {
             const QString statementName = QFileInfo(selectedFile_).baseName();
             const QString sid = domain_->addStatement(statementName, QString(), QString());
             if (!sid.isEmpty()) {
                 lastResultStatementId_ = sid;
 
-                domain_->addTransaction(QStringLiteral("Imported Tx 1"), QString(), -12.34, QStringLiteral("Placeholder transaction"), sid);
-                domain_->addTransaction(QStringLiteral("Imported Tx 2"), QString(), -56.78, QStringLiteral("Placeholder transaction"), sid);
-                domain_->addTransaction(QStringLiteral("Imported Tx 3"), QString(), 123.45, QStringLiteral("Placeholder transaction"), sid);
+                for (const auto& tx : imported->transactions) {
+                    domain_->addTransactionWithStatus(QString::fromStdString(tx.name),
+                                                      QString::fromStdString(tx.bookingDate),
+                                                      tx.amount,
+                                                      QString::fromStdString(tx.description.empty() ? tx.name : tx.description),
+                                                      sid,
+                                                      static_cast<int>(Transaction::Status::Unverified));
+                }
             }
         }
 

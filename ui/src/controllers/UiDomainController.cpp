@@ -87,6 +87,11 @@ QString UiDomainController::addStatement(const QString& name, const QString& sta
 
 QString UiDomainController::addTransaction(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId)
 {
+    return addTransactionWithStatus(name, bookingDate, amount, description, statementId, static_cast<int>(Transaction::Status::Neutral));
+}
+
+QString UiDomainController::addTransactionWithStatus(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, int status)
+{
     if (!core_) return {};
     if (statementId.trimmed().isEmpty()) return {};
 
@@ -97,6 +102,7 @@ QString UiDomainController::addTransaction(const QString& name, const QString& b
     t->amount = amount;
     t->description = description.toStdString();
     t->statementId = statementId.toStdString();
+    t->status = static_cast<Transaction::Status>(status);
 
     const auto id = QString::fromStdString(t->id);
     core_->mutableState().transactions.push_back(std::move(t));
@@ -196,6 +202,21 @@ void UiDomainController::updateTransaction(const QString& id, const QString& nam
             t->description = description.toStdString();
             t->statementId = statementId.toStdString();
             pruneInvalidTransactions();
+            core_->commit();
+            return;
+        }
+    }
+}
+
+void UiDomainController::updateTransactionStatus(const QString& id, int status)
+{
+    if (!core_) return;
+
+    const auto sid = id.toStdString();
+    for (auto& t : core_->mutableState().transactions) {
+        if (!t) continue;
+        if (t->id == sid) {
+            t->status = static_cast<Transaction::Status>(status);
             core_->commit();
             return;
         }

@@ -18,7 +18,8 @@ public:
         BookingDateRole,
         ValutaRole,
         AmountRole,
-        DescriptionRole
+        DescriptionRole,
+        StatusRole
     };
 
     explicit TransactionList(QObject* parent = nullptr);

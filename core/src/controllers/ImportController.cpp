@@ -1,6 +1,7 @@
 #include "core/controllers/ImportController.h"
 
 #include "core/controllers/StatementController.h"
+#include "core/models/Statement.h"
 
 namespace debug { std::string startRun(const std::string& processName); void endRun(); }
 
@@ -9,15 +10,17 @@ ImportController::ImportController(std::shared_ptr<StatementController> statemen
 {
 }
 
-void ImportController::import(ImportType type, const std::string& filePath)
+std::shared_ptr<Statement> ImportController::import(ImportType type, const std::string& filePath)
 {
     try { debug::startRun("import"); } catch (...) {}
+
+    std::shared_ptr<Statement> result;
 
     try {
         switch (type) {
         case ImportType::Statement:
             if (statementController_) {
-                (void)statementController_->importStatement(filePath);
+                result = statementController_->importStatement(filePath);
             }
             break;
         }
@@ -27,4 +30,5 @@ void ImportController::import(ImportType type, const std::string& filePath)
     }
 
     try { debug::endRun(); } catch (...) {}
+    return result;
 }

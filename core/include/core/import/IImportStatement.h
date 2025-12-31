@@ -5,14 +5,14 @@
 #include <map>
 #include <vector>
 
-class StatementData;
+class Statement;
 
 struct ImportRequest {
     std::string sourcePath;
 };
 
 struct ImportResult {
-    std::shared_ptr<StatementData> data;
+    std::shared_ptr<Statement> data;
     std::map<std::string, std::vector<uint8_t>> artifacts;
 };
 

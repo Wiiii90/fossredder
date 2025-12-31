@@ -8,6 +8,13 @@ class Statement;
 
 class Transaction {
 public:
+    enum class Status : int {
+        Neutral = 0,
+        Unverified = 1,
+        Verified = 2,
+        Completed = 3
+    };
+
     Transaction() noexcept = default;
     Transaction(std::string name,
                 std::string bookingDate,
@@ -22,6 +29,8 @@ public:
     std::string bookingDate;
     std::string valuta;
     double amount = 0.0;
+
+    Status status = Status::Neutral;
 
     std::string contractId;
     Contract* contract = nullptr;

@@ -18,6 +18,7 @@ public:
 
     Q_INVOKABLE QString addStatement(const QString& name, const QString& startDate, const QString& endDate);
     Q_INVOKABLE QString addTransaction(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId);
+    Q_INVOKABLE QString addTransactionWithStatus(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, int status);
 
     Q_INVOKABLE void updateActor(const QString& id, const QString& name, const QString& type, const QString& description);
     Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QString& address, const QString& description);
@@ -27,6 +28,7 @@ public:
 
     Q_INVOKABLE void updateStatement(const QString& id, const QString& name, const QString& startDate, const QString& endDate);
     Q_INVOKABLE void updateTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId);
+    Q_INVOKABLE void updateTransactionStatus(const QString& id, int status);
 
     Q_INVOKABLE void deleteActor(const QString& id);
     Q_INVOKABLE void deleteProperty(const QString& id);

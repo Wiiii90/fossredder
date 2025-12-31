@@ -1,9 +1,10 @@
 ﻿#include "core/pch.h"
 #include "core/controllers/StatementController.h"
 #include "core/import/IImportStatement.h"
+#include "core/models/Statement.h"
 #include <iostream>
 
-std::shared_ptr<StatementData> StatementController::importStatement(const std::string& filePath) {
+std::shared_ptr<Statement> StatementController::importStatement(const std::string& filePath) {
     if (!std::filesystem::exists(filePath)) {
         throw std::runtime_error("PDF datei existiert nicht: " + filePath);
     }
@@ -12,15 +13,14 @@ std::shared_ptr<StatementData> StatementController::importStatement(const std::s
         throw std::runtime_error("No import service configured");
     }
 
-    // Log before calling the import service
     try {
         std::clog << "StatementController::importStatement - starting import: " << filePath << std::endl;
     } catch (...) {}
 
-    ImportRequest req; req.sourcePath = filePath;
+    ImportRequest req;
+    req.sourcePath = filePath;
     ImportResult res = importService_->importStatement(req);
 
-    // Log after calling the import service
     try {
         std::clog << "StatementController::importStatement - import completed for: " << filePath
                   << ", data=" << (res.data ? "present" : "null")

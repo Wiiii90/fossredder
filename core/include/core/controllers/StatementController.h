@@ -6,7 +6,7 @@
 #include <functional>
 
 class IImportStatement;
-class StatementData;
+class Statement;
 class Transaction;
 
 class StatementController {
@@ -14,7 +14,7 @@ public:
     explicit StatementController(std::shared_ptr<IImportStatement> importService = nullptr)
         : importService_(std::move(importService)) {}
 
-    std::shared_ptr<StatementData> importStatement(const std::string& filePath);
+    std::shared_ptr<Statement> importStatement(const std::string& filePath);
 
     // Optional callback for notifying about extracted transactions
     void setTransactionsExtractedCallback(std::function<void(const std::vector<std::shared_ptr<Transaction>>&)> cb) {

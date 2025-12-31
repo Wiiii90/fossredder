@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+class Statement;
 class StatementController;
 
 class ImportController {
@@ -13,7 +14,7 @@ public:
 
     explicit ImportController(std::shared_ptr<StatementController> statementController);
 
-    void import(ImportType type, const std::string& filePath);
+    std::shared_ptr<Statement> import(ImportType type, const std::string& filePath);
 
 private:
     std::shared_ptr<StatementController> statementController_;
