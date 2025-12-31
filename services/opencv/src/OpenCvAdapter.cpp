@@ -43,6 +43,20 @@ public:
             cv::Mat img = cv::imread(p.string(), cv::IMREAD_GRAYSCALE);
             if (img.empty()) return res;
 
+            if (req.kind == api::opencv::DetectRequest::DetectKind::TextBlocks) {
+                auto blocks = opencv::DetectEngine::DetectTextBlocks(img, debugger);
+                if (!blocks.empty()) {
+                    res.detected = true;
+                    res.textBlocks.reserve(blocks.size());
+                    for (const auto &b : blocks) {
+                        api::opencv::Rect r;
+                        r.x = b.x; r.y = b.y; r.width = b.width; r.height = b.height;
+                        res.textBlocks.push_back(r);
+                    }
+                }
+                return res;
+            }
+
             auto tables = opencv::DetectEngine::DetectTables(img, p.string(), debugger);
             if (!tables.empty()) {
                 res.table = tables[0];

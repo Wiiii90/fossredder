@@ -1,25 +1,46 @@
 #include "opencv/pch.h"
 #include "opencv/MaskEngine.h"
+#include "opencv/DetectEngine.h"
 #include "debug/IDebugger.h"
 #include <opencv2/opencv.hpp>
 #include <filesystem>
+#include <sstream>
 
 namespace opencv {
 
-cv::Mat MaskEngine::ApplyTextMasks(const cv::Mat& gray, const std::vector<cv::Rect>& rects, int padX, int padY) {
-    if (gray.empty()) return gray;
-    cv::Mat masked = gray.clone();
-    if (masked.channels() > 1) {
-        cv::Mat tmp; cv::cvtColor(masked, tmp, cv::COLOR_BGR2GRAY); masked = tmp;
+cv::Mat MaskEngine::MakeLineMask(const cv::Mat& grayIn, bool horizontal) {
+    if (grayIn.empty()) return grayIn;
+    cv::Mat gray;
+    if (grayIn.type() == CV_8UC1) gray = grayIn;
+    else if (grayIn.channels() == 3) cv::cvtColor(grayIn, gray, cv::COLOR_BGR2GRAY);
+    else grayIn.convertTo(gray, CV_8U);
+
+    cv::Mat bin;
+    try {
+        cv::adaptiveThreshold(gray, bin, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 31, 10);
+    } catch (...) {
+        cv::threshold(gray, bin, 0, 255, cv::THRESH_BINARY_INV | cv::THRESH_OTSU);
     }
-    for (const auto& r : rects) {
-        cv::Rect roi(std::max(0, r.x - padX), std::max(0, r.y - padY), r.width + 2 * padX, r.height + 2 * padY);
-        roi &= cv::Rect(0, 0, masked.cols, masked.rows);
-        if (roi.width > 0 && roi.height > 0) {
-            cv::rectangle(masked, roi, cv::Scalar(255), cv::FILLED);
-        }
-    }
-    return masked;
+
+    const int span = horizontal ? std::max(40, gray.cols / 15) : std::max(40, gray.rows / 15);
+    const int thickness = 2;
+
+    cv::Mat k = horizontal
+        ? cv::getStructuringElement(cv::MORPH_RECT, cv::Size(span, thickness))
+        : cv::getStructuringElement(cv::MORPH_RECT, cv::Size(thickness, span));
+
+    cv::Mat m;
+    try { cv::erode(bin, m, k); } catch (...) { m = bin.clone(); }
+    try { cv::dilate(m, m, k); } catch (...) {}
+
+    try {
+        cv::Mat closeK = horizontal
+            ? cv::getStructuringElement(cv::MORPH_RECT, cv::Size(std::max(5, gray.cols / 120), 1))
+            : cv::getStructuringElement(cv::MORPH_RECT, cv::Size(1, std::max(5, gray.rows / 120)));
+        cv::morphologyEx(m, m, cv::MORPH_CLOSE, closeK);
+    } catch (...) {}
+
+    return m;
 }
 
 api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& req, std::shared_ptr<IDebugger> debugger) {
@@ -31,32 +52,91 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
         cv::Mat img = cv::imread(path.string(), cv::IMREAD_COLOR);
         if (img.empty()) return res;
 
-        cv::Mat mask(img.size(), CV_8UC1, cv::Scalar(0));
-        for (const auto& e : req.textElements) {
-            cv::Rect r(e.x, e.y, e.width, e.height);
-            r &= cv::Rect(0, 0, img.cols, img.rows);
-            if (r.width <= 0 || r.height <= 0) continue;
-            cv::rectangle(mask, r, cv::Scalar(255), cv::FILLED);
+        const double imgArea = static_cast<double>(img.cols) * static_cast<double>(img.rows);
+
+        std::vector<cv::Rect> boxes;
+        boxes.reserve(req.textElements.size());
+        for (const auto& e : req.textElements) boxes.emplace_back(e.x, e.y, e.width, e.height);
+
+        if (req.useMorphology) {
+            cv::Mat gray; cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+            auto blocks = opencv::DetectEngine::DetectTextBlocks(gray, debugger);
+            for (const auto &b : blocks) {
+                double area = static_cast<double>(b.width) * static_cast<double>(b.height);
+                if (area <= imgArea * 0.15) boxes.emplace_back(b.x, b.y, b.width, b.height);
+            }
         }
 
+        if (!req.tesseractTsv.empty()) {
+            std::istringstream iss(req.tesseractTsv);
+            std::string line;
+            while (std::getline(iss, line)) {
+                if (line.empty()) continue;
+                std::istringstream ls(line);
+                std::string text; int left, top, width, height; double conf;
+                if (!(ls >> text >> left >> top >> width >> height >> conf)) continue;
+                double area = static_cast<double>(width) * static_cast<double>(height);
+                if (area <= imgArea * 0.25) boxes.emplace_back(left, top, width, height);
+            }
+        }
+
+        cv::Mat mask(img.size(), CV_8UC1, cv::Scalar(0));
+
+        int padPx = std::max(6, img.cols / 400);
+        for (const auto &r : boxes) {
+            cv::Rect rr(r.x - padPx, r.y - padPx, r.width + 2 * padPx, r.height + 2 * padPx);
+            rr &= cv::Rect(0,0,img.cols,img.rows);
+            if (rr.width > 0 && rr.height > 0) cv::rectangle(mask, rr, cv::Scalar(255), cv::FILLED);
+        }
+
+        cv::Mat cleaned;
+        int dilateK = std::max(3, padPx / 2);
+        try { cv::dilate(mask, cleaned, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(dilateK, dilateK))); } catch(...) { cleaned = mask.clone(); }
+
+        int hKernel = std::max(25, img.cols / 100);
+        try { cv::morphologyEx(cleaned, cleaned, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(hKernel, 3))); } catch(...) {}
+        try { cv::morphologyEx(cleaned, cleaned, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5))); } catch(...) {}
+        try { cv::medianBlur(cleaned, cleaned, 3); } catch(...) {}
+
+        try { cv::threshold(cleaned, cleaned, 128, 255, cv::THRESH_BINARY); } catch(...) {}
+
+        double nonZero = static_cast<double>(cv::countNonZero(cleaned));
+        if (nonZero > imgArea * 0.4) cleaned = mask;
+
         cv::Mat out;
-        if (req.mode == api::opencv::MaskRequest::Mode::Whiteout) {
+        bool isWhiteout = (req.mode == api::opencv::MaskRequest::Mode::Whiteout);
+        if (isWhiteout) {
             out = img.clone();
-            img.copyTo(out);
-            out.setTo(cv::Scalar(255,255,255), mask);
-        } else { // Inpaint
-            cv::inpaint(img, mask, out, 3.0, cv::INPAINT_TELEA);
+            out.setTo(cv::Scalar(255,255,255), cleaned);
+        } else {
+            cv::inpaint(img, cleaned, out, 3.0, cv::INPAINT_TELEA);
         }
 
         auto stem = path.stem().string();
         auto parent = path.parent_path();
-        auto outPath = parent / (stem + "_masked.png");
+        std::string maskFilename = stem + std::string("_mask_binary.png");
+        std::string maskedFilename = stem + (isWhiteout ? std::string("_mask_whiteout.png") : std::string("_mask_inpaint.png"));
+        auto maskPath = parent / maskFilename;
+        auto outPath = parent / maskedFilename;
+
+        if (debugger && debugger->enabled()) {
+            try {
+                if (cv::imwrite(maskPath.string(), cleaned)) {
+                    res.maskImagePath = maskPath;
+                    try {
+                        std::vector<uint8_t> mbuf; cv::imencode(".png", cleaned, mbuf);
+                        debugger->writeBytes(std::string("opencv_mask_binary"), mbuf);
+                    } catch (...) {}
+                }
+            } catch (...) {}
+        }
+
         if (cv::imwrite(outPath.string(), out)) {
             res.maskedImagePath = outPath;
             if (debugger && debugger->enabled()) {
                 try {
                     std::vector<uint8_t> buf; cv::imencode(".png", out, buf);
-                    debugger->writeBytes("opencv/" + stem + "/masked.png", buf);
+                    debugger->writeBytes(isWhiteout ? std::string("opencv_mask_whiteout") : std::string("opencv_mask_inpaint"), buf);
                 } catch (...) {}
             }
         }

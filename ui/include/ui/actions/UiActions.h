@@ -36,6 +36,12 @@ public:
     Q_INVOKABLE void importFile();
     Q_INVOKABLE void exportFile();
 
+    Q_INVOKABLE void browseImportPdf();
+
+signals:
+    void importBrowseRequested(const QString& filter);
+    void importFileSelected(const QString& path);
+
 private:
     QAction* newFileAction_;
     QAction* openFileAction_;

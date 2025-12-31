@@ -69,6 +69,13 @@ MainWindow::MainWindow(QWidget* parent)
     connect(actions->quitAction(), &QAction::triggered, this, &QWidget::close);
     connect(actions->aboutAction(), &QAction::triggered, this, &MainWindow::onAbout);
 
+    connect(actions, &UiActions::importBrowseRequested, this, [this, actions](const QString& filter) {
+        const QString file = QFileDialog::getOpenFileName(this, tr("Select PDF"), QString(), filter);
+        if (!file.isEmpty()) {
+            emit actions->importFileSelected(file);
+        }
+    });
+
     setCentralWidget(m_quickWidget);
 
     Q_INIT_RESOURCE(qml);

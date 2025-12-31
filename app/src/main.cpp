@@ -16,21 +16,30 @@
 
 #ifdef USE_QML
 #include "MainWindow.h"
-#include "ui/controllers/UiStatementController.h"
+#include "ui/controllers/UiImportController.h"
 #include "ui/controllers/UiFileController.h"
 #include "ui/controllers/UiDomainController.h"
 #include "ui/state/UiDataSession.h"
 #include "debug/FileDebugger.h"
+#include "core/controllers/ImportController.h"
+#include "core/controllers/StatementController.h"
+#include "core/import/IImportStatement.h"
+#include "api/poppler/IPopplerAdapter.h"
+#include "api/opencv/IOpenCvAdapter.h"
+#include "api/tesseract/ITesseractAdapter.h"
 #include "api/poppler/IPopplerService.h"
 #include "api/opencv/IOpenCvService.h"
 #include "api/tesseract/ITesseractService.h"
-#include "core/import/IImportStatement.h"
 #include <QList>
 #include <QVariant>
 
 std::shared_ptr<api::poppler::IPopplerAdapter> createPopplerAdapter(std::shared_ptr<IDebugger> dbg);
 std::shared_ptr<api::opencv::IOpenCvAdapter> createOpenCvAdapter(std::shared_ptr<IDebugger> dbg);
 std::shared_ptr<api::tesseract::ITesseractAdapter> createTesseractAdapter(std::shared_ptr<IDebugger> dbg);
+
+namespace api { namespace poppler { std::shared_ptr<IPopplerService> createPopplerService(std::shared_ptr<IPopplerAdapter> adapter); } }
+namespace api { namespace opencv { std::shared_ptr<IOpenCvService> createOpenCvService(std::shared_ptr<IOpenCvAdapter> adapter); } }
+namespace api { namespace tesseract { std::shared_ptr<ITesseractService> createTesseractService(std::shared_ptr<ITesseractAdapter> adapter); } }
 #endif
 
 static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
@@ -106,6 +115,25 @@ int main(int argc, char* argv[]) {
 
     auto uiDomain = new UiDomainController(&fileCtrl, &w);
     w.setQmlContextProperty("uiDomain", uiDomain);
+
+    {
+        auto dbg = std::make_shared<FileDebugger>("", "import");
+        auto popplerAdapter = createPopplerAdapter(dbg);
+        auto opencvAdapter = createOpenCvAdapter(dbg);
+        auto tesseractAdapter = createTesseractAdapter(dbg);
+
+        auto poppler = api::poppler::createPopplerService(popplerAdapter);
+        auto opencv = api::opencv::createOpenCvService(opencvAdapter);
+        auto tesseract = api::tesseract::createTesseractService(tesseractAdapter);
+
+        auto importSvc = createImportStatement(poppler, opencv, tesseract, dbg);
+        auto stmtCtrl = std::make_shared<StatementController>(importSvc);
+        auto importCtrl = std::make_shared<ImportController>(stmtCtrl);
+
+        auto uiImport = new UiImportController(importCtrl, &w);
+        uiImport->setDomainController(uiDomain);
+        w.setQmlContextProperty("uiImport", uiImport);
+    }
 
     if (w.dataSession()) {
         w.dataSession()->loadFromState(fileCtrl.state());

@@ -4,7 +4,6 @@
 #include "debug/IDebugger.h"
 #include <opencv2/opencv.hpp>
 #include <filesystem>
-#include <fstream>
 #include <sstream>
 #include <algorithm>
 
@@ -15,145 +14,317 @@ void writeImageViaDebugger(std::shared_ptr<IDebugger> debugger, const std::strin
     if (!debugger) return;
     std::vector<uint8_t> buf;
     try {
-        cv::Mat out;
         if (img.empty()) return;
-        if (img.type() == CV_8UC1) {
-            cv::cvtColor(img, out, cv::COLOR_GRAY2BGR);
-        } else if (img.type() == CV_8UC3) {
-            out = img;
-        } else {
-            img.convertTo(out, CV_8U, 255.0);
-            if (out.channels() == 1) cv::cvtColor(out, out, cv::COLOR_GRAY2BGR);
-        }
+        cv::Mat out;
+        if (img.type() == CV_8UC1) cv::cvtColor(img, out, cv::COLOR_GRAY2BGR);
+        else if (img.type() == CV_8UC3) out = img;
+        else { img.convertTo(out, CV_8U, 255.0); if (out.channels() == 1) cv::cvtColor(out, out, cv::COLOR_GRAY2BGR); }
         bool ok = cv::imencode(".png", out, buf);
         if (!ok || buf.empty()) return;
         debugger->writeBytes(relPath + ".png", buf);
     } catch (...) {}
 }
 
-std::vector<cv::Rect> findTextBlocksUsingMorphology(const cv::Mat& gray, const std::string& imageStem = std::string(), std::shared_ptr<IDebugger> debugger = nullptr) {
+static cv::Mat ensureGrayLocal(const cv::Mat& in) {
+    if (in.empty()) return in;
+    if (in.type() == CV_8UC1) return in.clone();
+    cv::Mat out;
+    if (in.channels() == 3) cv::cvtColor(in, out, cv::COLOR_BGR2GRAY);
+    else in.convertTo(out, CV_8U);
+    return out;
+}
+
+std::vector<cv::Rect> findTextBlocksUsingMorphology(const cv::Mat& gray) {
     cv::Mat bin;
     cv::adaptiveThreshold(gray, bin, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 15, 10);
-    cv::Mat morph;
     cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(30, 3));
+    cv::Mat morph;
     cv::morphologyEx(bin, morph, cv::MORPH_CLOSE, kernel);
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(morph, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
     std::vector<cv::Rect> blocks;
     for (const auto& contour : contours) {
         cv::Rect rect = cv::boundingRect(contour);
-        if (rect.width > 50 && rect.height > 10) {
-            try {
-                cv::Rect rcl = rect & cv::Rect(0,0,bin.cols, bin.rows);
-                int white = cv::countNonZero(bin(rcl));
-                double whiteRatio = double(white) / double(rcl.area() + 1);
-                if (whiteRatio > 0.6) continue;
-            } catch (...) {}
-            blocks.push_back(rect);
-        }
+        if (rect.width > 50 && rect.height > 10) blocks.push_back(rect);
     }
     return blocks;
 }
 
-std::vector<int> clusterAndAverageCoordinates(const std::vector<int>& coords, int tolerance) {
-    std::vector<int> out;
-    if (coords.empty()) return out;
-    std::vector<int> s = coords;
-    std::sort(s.begin(), s.end());
-    int sum = s[0]; int cnt = 1;
-    for (size_t i = 1; i < s.size(); ++i) {
-        if (s[i] - s[i - 1] <= tolerance) { sum += s[i]; ++cnt; }
-        else { out.push_back(sum / cnt); sum = s[i]; cnt = 1; }
+static int snapYToEdge(const cv::Mat& gray, int y, int window) {
+    if (gray.empty()) return y;
+    int y0 = std::max(1, y - window);
+    int y1 = std::min(gray.rows - 2, y + window);
+    int bestY = y;
+    int bestScore = -1;
+    for (int yy = y0; yy <= y1; ++yy) {
+        const uint8_t* a = gray.ptr<uint8_t>(yy - 1);
+        const uint8_t* b = gray.ptr<uint8_t>(yy + 1);
+        int score = 0;
+        for (int x = 0; x < gray.cols; ++x) score += std::abs(int(b[x]) - int(a[x]));
+        if (score > bestScore) { bestScore = score; bestY = yy; }
     }
-    out.push_back(sum / cnt);
+    return bestY;
+}
+
+static int snapXToEdge(const cv::Mat& gray, int x, int window) {
+    if (gray.empty()) return x;
+    int x0 = std::max(1, x - window);
+    int x1 = std::min(gray.cols - 2, x + window);
+    int bestX = x;
+    int bestScore = -1;
+    for (int xx = x0; xx <= x1; ++xx) {
+        int score = 0;
+        for (int y = 0; y < gray.rows; ++y) score += std::abs(int(gray.at<uint8_t>(y, xx + 1)) - int(gray.at<uint8_t>(y, xx - 1)));
+        if (score > bestScore) { bestScore = score; bestX = xx; }
+    }
+    return bestX;
+}
+
+static int edgeScoreY(const cv::Mat& gray, int y) {
+    if (gray.empty() || y <= 0 || y >= gray.rows - 1) return 0;
+    const uint8_t* a = gray.ptr<uint8_t>(y - 1);
+    const uint8_t* b = gray.ptr<uint8_t>(y + 1);
+    int score = 0;
+    for (int x = 0; x < gray.cols; ++x) score += std::abs(int(b[x]) - int(a[x]));
+    return score;
+}
+
+static int edgeScoreX(const cv::Mat& gray, int x) {
+    if (gray.empty() || x <= 0 || x >= gray.cols - 1) return 0;
+    int score = 0;
+    for (int y = 0; y < gray.rows; ++y) score += std::abs(int(gray.at<uint8_t>(y, x + 1)) - int(gray.at<uint8_t>(y, x - 1)));
+    return score;
+}
+
+static std::vector<int> dedupeByScore(const std::vector<int>& in, int minDist, const cv::Mat& gray, bool horizontal) {
+    if (in.empty()) return {};
+    std::vector<int> s = in;
+    std::sort(s.begin(), s.end());
+
+    std::vector<int> out;
+    int best = s[0];
+    int bestScore = horizontal ? edgeScoreY(gray, best) : edgeScoreX(gray, best);
+
+    for (size_t i = 1; i < s.size(); ++i) {
+        if (std::abs(s[i] - best) < minDist) {
+            int sc = horizontal ? edgeScoreY(gray, s[i]) : edgeScoreX(gray, s[i]);
+            if (sc > bestScore) { best = s[i]; bestScore = sc; }
+        } else {
+            out.push_back(best);
+            best = s[i];
+            bestScore = horizontal ? edgeScoreY(gray, best) : edgeScoreX(gray, best);
+        }
+    }
+    out.push_back(best);
     return out;
 }
 
-api::opencv::Table detectTableGridHough(const cv::Mat& roiGray, const cv::Rect& roiOffset, const std::vector<cv::Rect>& pageTextBoxes, int& outCells, double& outQuality, const std::string& imageStem, std::shared_ptr<IDebugger> debugger) {
-    api::opencv::Table table;
-    outCells = 0; outQuality = 0.0;
-    if (roiGray.empty()) return table;
+static api::opencv::Rect bboxFromCells(const std::vector<api::opencv::Cell>& cells, const cv::Rect& fallback) {
+    api::opencv::Rect out;
+    out.x = fallback.x; out.y = fallback.y; out.width = fallback.width; out.height = fallback.height;
+    if (cells.empty()) return out;
 
-    std::vector<cv::Rect> overlappingBoxes;
-    for (const auto& tb : pageTextBoxes) {
-        cv::Rect rel = tb & cv::Rect(roiOffset.x, roiOffset.y, roiOffset.width, roiOffset.height);
-        if (rel.width > 0 && rel.height > 0) {
-            cv::Rect r(rel.x - roiOffset.x, rel.y - roiOffset.y, rel.width, rel.height);
-            overlappingBoxes.push_back(r);
+    int minx = INT_MAX, miny = INT_MAX, maxx = 0, maxy = 0;
+    for (const auto& c : cells) {
+        minx = std::min(minx, c.bbox.x);
+        miny = std::min(miny, c.bbox.y);
+        maxx = std::max(maxx, c.bbox.x + c.bbox.width);
+        maxy = std::max(maxy, c.bbox.y + c.bbox.height);
+    }
+
+    if (minx < maxx && miny < maxy) {
+        out.x = minx;
+        out.y = miny;
+        out.width = maxx - minx;
+        out.height = maxy - miny;
+    }
+
+    return out;
+}
+
+struct LineSeg {
+    bool horizontal = true;
+    int a = 0;
+    int b0 = 0;
+    int b1 = 0;
+    int len = 0;
+};
+
+static std::vector<LineSeg> extractLineSegsFromMask(const cv::Mat& mask, bool horizontal, int minLen, int maxThickness) {
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    std::vector<LineSeg> segs;
+    segs.reserve(contours.size());
+
+    for (const auto& c : contours) {
+        cv::Rect r = cv::boundingRect(c);
+        if (horizontal) {
+            if (r.width >= minLen && r.height <= maxThickness)
+                segs.push_back({ true, r.y + r.height / 2, r.x, r.x + r.width, r.width });
+        } else {
+            if (r.height >= minLen && r.width <= maxThickness)
+                segs.push_back({ false, r.x + r.width / 2, r.y, r.y + r.height, r.height });
         }
     }
 
-    int padX = std::max(2, std::max(1, roiGray.cols / 100));
-    int padY = std::max(1, std::max(1, roiGray.rows / 100));
-    cv::Mat work = MaskEngine::ApplyTextMasks(roiGray, overlappingBoxes, padX, padY);
+    return segs;
+}
 
-    if (debugger && debugger->enabled()) {
-        try {
-            std::ostringstream base; base << "opencv/" << imageStem << "/roi_" << roiOffset.x << "_" << roiOffset.y;
-            writeImageViaDebugger(debugger, base.str() + "_work_masked", work);
-            try {
-                std::ostringstream info;
-                info << "roiOffset=" << roiOffset.x << "," << roiOffset.y << "," << roiOffset.width << "x" << roiOffset.height << "\n";
-                info << "pageTextBoxes:\n";
-                for (const auto &tb : pageTextBoxes) info << tb.x << "," << tb.y << "," << tb.width << "x" << tb.height << "\n";
-                info << "overlappingBoxes (roi-local):\n";
-                for (const auto &ob : overlappingBoxes) info << ob.x << "," << ob.y << "," << ob.width << "x" << ob.height << "\n";
-                debugger->writeText(base.str() + "_debug_boxes.txt", info.str());
-            } catch (...) {}
-        } catch (...) {}
+static std::vector<int> collectAxisFromSegs(const std::vector<LineSeg>& segs) {
+    std::vector<int> out;
+    out.reserve(segs.size());
+    for (const auto& s : segs) out.push_back(s.a);
+    return out;
+}
+
+static bool overlaps(int a0, int a1, int b0, int b1, int minOverlap) {
+    int lo = std::max(a0, b0);
+    int hi = std::min(a1, b1);
+    return (hi - lo) >= minOverlap;
+}
+
+static bool isAnchoredToBorder(int v0, int border, int tol) {
+    return std::abs(v0 - border) <= tol;
+}
+
+static int nearestValue(const std::vector<int>& s, int v) {
+    if (s.empty()) return v;
+    auto it = std::lower_bound(s.begin(), s.end(), v);
+    if (it == s.begin()) return *it;
+    if (it == s.end()) return s.back();
+    int a = *(it - 1);
+    int b = *it;
+    return (std::abs(v - a) <= std::abs(v - b)) ? a : b;
+}
+
+static std::vector<int> completeAxisLinesFromSegments(
+    const std::vector<int>& primaryLines,
+    const std::vector<LineSeg>& partialSegs,
+    const std::vector<int>& orthogonalLines,
+    int primaryMinDist,
+    int orthoSnapTol,
+    int borderTol,
+    int minPartialLen,
+    const cv::Mat& gray,
+    bool horizontal) {
+
+    std::vector<int> out = primaryLines;
+
+    if (partialSegs.empty() || orthogonalLines.size() < 2) {
+        std::sort(out.begin(), out.end());
+        out = dedupeByScore(out, primaryMinDist, gray, horizontal);
+        std::sort(out.begin(), out.end());
+        return out;
     }
 
-    cv::Mat edges;
-    cv::Canny(work, edges, 50, 150);
-    double edgeDensity = static_cast<double>(cv::countNonZero(edges)) / static_cast<double>(roiGray.total());
+    const int borderStart = 0;
 
-    int minLenH = std::max(roiGray.cols / 6, 20);
-    int minLenV = std::max(roiGray.rows / 6, 20);
-    int thresh = std::max(50, std::min(roiGray.cols / 30, roiGray.rows / 30));
+    for (const auto& seg : partialSegs) {
+        if (seg.len < minPartialLen) continue;
+        if (!isAnchoredToBorder(seg.b0, borderStart, borderTol)) continue;
 
-    std::vector<cv::Vec4i> lines;
-    cv::HoughLinesP(edges, lines, 1, CV_PI / 180, thresh, std::min(minLenH, minLenV), std::max(1, std::min(roiGray.cols, roiGray.rows) / 200));
+        int snappedPrimary = seg.a;
+        snappedPrimary = horizontal ? snapYToEdge(gray, snappedPrimary, 4) : snapXToEdge(gray, snappedPrimary, 4);
 
-    std::vector<int> horizYs, vertXs;
-    for (auto& l : lines) {
-        int x1 = l[0], y1 = l[1], x2 = l[2], y2 = l[3];
-        double angle = std::atan2((double)(y2 - y1), (double)(x2 - x1));
-        double deg = std::abs(angle * 180.0 / CV_PI);
-        if (deg < 15.0 || deg > 165.0) horizYs.push_back((y1 + y2) / 2);
-        else if (std::abs(deg - 90.0) < 15.0) vertXs.push_back((x1 + x2) / 2);
+        int snappedEnd = nearestValue(orthogonalLines, seg.b1);
+        if (std::abs(snappedEnd - seg.b1) > orthoSnapTol) continue;
+
+        bool coversInterval = false;
+        for (size_t i = 0; i + 1 < orthogonalLines.size(); ++i) {
+            int o0 = orthogonalLines[i];
+            int o1 = orthogonalLines[i + 1];
+            if (o1 <= 0) continue;
+            if (overlaps(seg.b0, snappedEnd, o0, o1, std::max(12, (o1 - o0) / 2))) { coversInterval = true; break; }
+        }
+        if (!coversInterval) continue;
+
+        out.push_back(snappedPrimary);
     }
 
-    int totalHough = static_cast<int>(horizYs.size()) + static_cast<int>(vertXs.size());
-    if (totalHough < 4 && edgeDensity > 0.015) {
-        outQuality = 0.0;
-        return table;
+    std::sort(out.begin(), out.end());
+    out = dedupeByScore(out, primaryMinDist, gray, horizontal);
+    std::sort(out.begin(), out.end());
+
+    return out;
+}
+
+api::opencv::Table detectTableGridHough(const cv::Mat& roiGrayIn, const cv::Rect& roiOffset, const std::vector<cv::Rect>&, int& outCells, double& outQuality, const std::string&, std::shared_ptr<IDebugger> debugger) {
+    api::opencv::Table table;
+    outCells = 0; outQuality = 0.0;
+    if (roiGrayIn.empty()) return table;
+
+    cv::Mat roiGray = ensureGrayLocal(roiGrayIn);
+
+    cv::Mat hMask = MaskEngine::MakeLineMask(roiGray, true);
+    cv::Mat vMask = MaskEngine::MakeLineMask(roiGray, false);
+
+    const int minHorizW = std::max((roiGray.cols * 8) / 10, 160);
+    const int minVertH = std::max((roiGray.rows * 5) / 10, 100);
+    const int maxThickness = 12;
+
+    auto hFullSegs = extractLineSegsFromMask(hMask, true, minHorizW, maxThickness);
+    auto vFullSegs = extractLineSegsFromMask(vMask, false, minVertH, maxThickness);
+
+    auto yLines = collectAxisFromSegs(hFullSegs);
+    auto xLines = collectAxisFromSegs(vFullSegs);
+
+    auto hPartialSegs = extractLineSegsFromMask(hMask, true, std::max(roiGray.cols / 5, 80), maxThickness);
+    auto vPartialSegs = extractLineSegsFromMask(vMask, false, std::max(roiGray.rows / 6, 60), maxThickness);
+
+    for (auto& x : xLines) x = snapXToEdge(roiGray, x, 4);
+    for (auto& y : yLines) y = snapYToEdge(roiGray, y, 4);
+
+    const int xMinDist = std::max(4, roiGray.cols / 120);
+    const int yMinDist = std::max(4, roiGray.rows / 200);
+
+    xLines = dedupeByScore(xLines, xMinDist, roiGray, false);
+    yLines = dedupeByScore(yLines, yMinDist, roiGray, true);
+
+    std::sort(xLines.begin(), xLines.end());
+    std::sort(yLines.begin(), yLines.end());
+
+    if (!xLines.empty()) {
+        xLines.push_back(0);
+        xLines.push_back(roiGray.cols - 1);
+    }
+    if (!yLines.empty()) {
+        yLines.push_back(0);
+        yLines.push_back(roiGray.rows - 1);
     }
 
-    int tolX = std::max(2, roiGray.cols / 40);
-    int tolY = std::max(2, roiGray.rows / 40);
-    auto xLines = clusterAndAverageCoordinates(vertXs, tolX);
-    auto yLines = clusterAndAverageCoordinates(horizYs, tolY);
+    std::sort(xLines.begin(), xLines.end());
+    std::sort(yLines.begin(), yLines.end());
+
+    xLines = dedupeByScore(xLines, xMinDist, roiGray, false);
+    yLines = dedupeByScore(yLines, yMinDist, roiGray, true);
+
+    std::sort(xLines.begin(), xLines.end());
+    std::sort(yLines.begin(), yLines.end());
+
+    yLines = completeAxisLinesFromSegments(
+        yLines,
+        hPartialSegs,
+        xLines,
+        yMinDist,
+        std::max(12, roiGray.cols / 50),
+        std::max(12, roiGray.cols / 50),
+        std::max(40, roiGray.cols / 10),
+        roiGray,
+        true);
+
+    xLines = completeAxisLinesFromSegments(
+        xLines,
+        vPartialSegs,
+        yLines,
+        xMinDist,
+        std::max(12, roiGray.rows / 50),
+        std::max(12, roiGray.rows / 50),
+        std::max(40, roiGray.rows / 10),
+        roiGray,
+        false);
 
     if (xLines.size() < 2 || yLines.size() < 2) {
         outQuality = 0.0;
-        if (debugger && debugger->enabled()) {
-            try {
-                std::ostringstream base; base << "opencv/" << imageStem << "/roi_" << roiOffset.x << "_" << roiOffset.y;
-                std::ostringstream info;
-                info << "overlapping_boxes=" << overlappingBoxes.size() << "\n";
-                info << "raw_hough_lines=" << lines.size() << "\n";
-                info << "horizYs=" << horizYs.size() << "\n";
-                info << "vertXs=" << vertXs.size() << "\n";
-                info << "clustered_xLines=" << xLines.size() << "\n";
-                info << "clustered_yLines=" << yLines.size() << "\n";
-                info << "edgeDensity=" << edgeDensity << "\n";
-                info << "roiSize=" << roiGray.cols << "x" << roiGray.rows << "\n";
-                info << "outCells=" << 0 << "\n";
-                debugger->writeText(base.str() + "_debug.txt", info.str());
-                writeImageViaDebugger(debugger, base.str() + "_work", work);
-                writeImageViaDebugger(debugger, base.str() + "_edges", edges);
-            } catch (...) {}
-        }
         return table;
     }
 
@@ -181,104 +352,74 @@ api::opencv::Table detectTableGridHough(const cv::Mat& roiGray, const cv::Rect& 
     for (const auto& c : table.cells) { avgW += c.bbox.width; avgH += c.bbox.height; }
     avgW /= table.cells.size(); avgH /= table.cells.size();
     double sizeScore = std::clamp((avgW * avgH) / double(roiGray.cols * roiGray.rows), 0.0, 1.0);
-    double lineScore = std::clamp((double)(xLines.size() + yLines.size()) / 20.0, 0.0, 1.0);
+    double lineScore = std::clamp((double)(xLines.size() + yLines.size()) / 12.0, 0.0, 1.0);
     outQuality = 0.6 * lineScore + 0.4 * sizeScore;
 
-    table.bbox.x = roiOffset.x; table.bbox.y = roiOffset.y; table.bbox.width = roiOffset.width; table.bbox.height = roiOffset.height;
+    table.bbox = bboxFromCells(table.cells, roiOffset);
     if (!table.cells.empty()) {
-        int minx = INT_MAX, miny = INT_MAX, maxx = 0, maxy = 0;
-        for (const auto &c : table.cells) {
-            minx = std::min(minx, c.bbox.x);
-            miny = std::min(miny, c.bbox.y);
-            maxx = std::max(maxx, c.bbox.x + c.bbox.width);
-            maxy = std::max(maxy, c.bbox.y + c.bbox.height);
-        }
-        if (minx < maxx && miny < maxy) { table.bbox.x = minx; table.bbox.y = miny; table.bbox.width = maxx - minx; table.bbox.height = maxy - miny; }
         table.cols = static_cast<int>(xLines.size() > 0 ? xLines.size() - 1 : 0);
         table.rows = static_cast<int>(yLines.size() > 0 ? yLines.size() - 1 : 0);
-    }
-
-    if (debugger && debugger->enabled()) {
-        try {
-            std::ostringstream base; base << "opencv/" << imageStem << "/roi_" << roiOffset.x << "_" << roiOffset.y;
-            std::ostringstream info;
-            info << "overlapping_boxes=" << overlappingBoxes.size() << "\n";
-            info << "raw_hough_lines=" << lines.size() << "\n";
-            info << "horizYs=" << horizYs.size() << "\n";
-            info << "vertXs=" << vertXs.size() << "\n";
-            info << "clustered_xLines=" << xLines.size() << "\n";
-            info << "clustered_yLines=" << yLines.size() << "\n";
-            info << "edgeDensity=" << edgeDensity << "\n";
-            info << "roiSize=" << roiGray.cols << "x" << roiGray.rows << "\n";
-            info << "outCells=" << outCells << "\n";
-            info << "outQuality=" << outQuality << "\n";
-            debugger->writeText(base.str() + "_debug.txt", info.str());
-            writeImageViaDebugger(debugger, base.str() + "_work", work);
-            writeImageViaDebugger(debugger, base.str() + "_edges", edges);
-        } catch (...) {}
     }
 
     return table;
 }
 
-std::string computeStem(const std::string& imagePath) {
-    try { return std::filesystem::path(imagePath).stem().string(); } catch (...) { return "page"; }
-}
+} // anonymous namespace
 
-} // namespace
+// Expose DetectTextBlocks implementation
+std::vector<cv::Rect> DetectEngine::DetectTextBlocks(const cv::Mat& img, std::shared_ptr<IDebugger> debugger) {
+    try {
+        return findTextBlocksUsingMorphology(img);
+    } catch (...) {
+        return {};
+    }
+}
 
 std::vector<api::opencv::Table> DetectEngine::DetectTables(const cv::Mat& img, const std::string& imagePath, std::shared_ptr<IDebugger> debugger) {
     std::vector<api::opencv::Table> result;
-    if (img.empty()) { if (debugger && debugger->enabled()) debugger->writeText("opencv/error.txt", "Empty image: " + imagePath); return result; }
+    if (img.empty()) {
+        if (debugger && debugger->enabled()) debugger->writeText("opencv/error.txt", "Empty image: " + imagePath);
+        return result;
+    }
 
-    std::string stem = computeStem(imagePath);
-    auto blocks = findTextBlocksUsingMorphology(img, stem, debugger);
+    auto blocks = findTextBlocksUsingMorphology(img);
 
     struct Candidate { api::opencv::Table t; int cells; double q; };
     std::vector<Candidate> candidates;
-    std::vector<cv::Rect> allGeneratedTextBoxes;
 
     for (const auto& b : blocks) {
         if (b.width < img.cols * 0.12) continue;
         cv::Mat roi = img(b);
-        auto localBoxes = findTextBlocksUsingMorphology(roi, stem, debugger);
-        std::vector<cv::Rect> pageLocalBoxes;
-        pageLocalBoxes.reserve(localBoxes.size());
-        for (const auto &lb : localBoxes) {
-            if (lb.width >= static_cast<int>(roi.cols * 0.9) && lb.height >= static_cast<int>(roi.rows * 0.9)) continue;
-            int padx = std::max(0, lb.width / 30);
-            int pady = std::max(0, lb.height / 30);
-            cv::Rect lbShrunk(lb.x + padx, lb.y + pady, std::max(1, lb.width - 2 * padx), std::max(1, lb.height - 2 * pady));
-            cv::Rect pb(lbShrunk.x + b.x, lbShrunk.y + b.y, lbShrunk.width, lbShrunk.height);
-            pageLocalBoxes.push_back(pb);
-            allGeneratedTextBoxes.push_back(pb);
-        }
+        std::vector<cv::Rect> emptyBoxes;
 
         int cells = 0; double q = 0.0;
-        auto tab = detectTableGridHough(roi, cv::Rect(b.x, b.y, b.width, b.height), pageLocalBoxes, cells, q, stem, debugger);
+        auto tab = detectTableGridHough(roi, cv::Rect(b.x, b.y, b.width, b.height), emptyBoxes, cells, q, std::string(), debugger);
         if (cells > 0 && q > 0.05) candidates.push_back({ tab, cells, q });
     }
 
-    std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) { if (a.cells != b.cells) return a.cells > b.cells; return a.q > b.q; });
+    std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) {
+        if (a.cells != b.cells) return a.cells > b.cells;
+        return a.q > b.q;
+    });
+
     if (!candidates.empty()) result.push_back(candidates[0].t);
 
     if (debugger && debugger->enabled()) {
         try {
-            cv::Mat vis; cv::cvtColor(img, vis, cv::COLOR_GRAY2BGR);
-            for (const auto &t : result) cv::rectangle(vis, cv::Rect(t.bbox.x, t.bbox.y, t.bbox.width, t.bbox.height), cv::Scalar(0,255,0), 2);
-            std::ostringstream oss; oss << "opencv/" << stem << "/detected_tables";
-            writeImageViaDebugger(debugger, oss.str(), vis);
+            cv::Mat vis;
+            if (img.channels() == 1) cv::cvtColor(img, vis, cv::COLOR_GRAY2BGR);
+            else vis = img.clone();
 
-            if (!allGeneratedTextBoxes.empty()) {
-                cv::Mat visBoxes; cv::cvtColor(img, visBoxes, cv::COLOR_GRAY2BGR);
-                std::vector<cv::Scalar> colors = { cv::Scalar(0,0,255), cv::Scalar(0,255,0), cv::Scalar(255,0,0), cv::Scalar(0,255,255), cv::Scalar(255,0,255), cv::Scalar(255,255,0) };
-                for (size_t i = 0; i < allGeneratedTextBoxes.size(); ++i) {
-                    const auto &pb = allGeneratedTextBoxes[i];
-                    cv::rectangle(visBoxes, pb, colors[i % colors.size()], 2);
-                }
-                std::ostringstream oss2; oss2 << "opencv/" << stem << "/textboxes_overlay";
-                writeImageViaDebugger(debugger, oss2.str(), visBoxes);
+            for (const auto &t : result)
+                cv::rectangle(vis, cv::Rect(t.bbox.x, t.bbox.y, t.bbox.width, t.bbox.height), cv::Scalar(0,255,0), 2);
+
+            if (!result.empty()) {
+                const auto &t = result[0];
+                for (const auto &c : t.cells)
+                    cv::rectangle(vis, cv::Rect(c.bbox.x, c.bbox.y, c.bbox.width, c.bbox.height), cv::Scalar(255,0,0), 2);
             }
+
+            writeImageViaDebugger(debugger, "opencv/detect_table_with_cells", vis);
         } catch (...) {}
     }
 

@@ -10,6 +10,7 @@ struct ExtractResult {
     std::string text;
     std::string tsv;
     std::vector<Word> words;
+    std::vector<Table> tables;
 };
 
 }

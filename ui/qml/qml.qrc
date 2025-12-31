@@ -31,5 +31,8 @@
         <file>components/views/BookingStatementsView.qml</file>
         <file>components/views/BookingView.qml</file>
         <file>components/views/BookingTransactionsView.qml</file>
+        <file>components/views/ImportView.qml</file>
+        <file>components/views/ImportSidebar.qml</file>
+        <file>components/views/ImportRunsList.qml</file>
     </qresource>
 </RCC>

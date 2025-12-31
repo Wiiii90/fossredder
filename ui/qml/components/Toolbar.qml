@@ -24,7 +24,7 @@ Item {
                     item.svgSource = "qrc:/qml/assets/import.svg";
                     item.label = qsTr("Import");
                     item.clicked.connect(function(){
-                        if (uiActions) uiActions.importFile();
+                        if (uiNav) uiNav.section = UiNavigation.Import;
                     })
                 }
             }

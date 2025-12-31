@@ -12,7 +12,8 @@ public:
         Actors,
         Properties,
         Contracts,
-        Booking
+        Booking,
+        Import
     };
     Q_ENUM(Section)
 
@@ -36,6 +37,6 @@ signals:
     void bookingViewChanged();
 
 private:
-    Section section_ = Section::Actors;
+    Section section_ = Section::Import;
     BookingView bookingView_ = BookingView::Statements;
 };

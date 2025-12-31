@@ -1,5 +1,6 @@
 #include "debug/pch.h"
 #include "debug/FileDebugger.h"
+#include "debug/RunManager.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 
@@ -16,7 +17,7 @@ static std::string make_session_dir(const std::string& base) {
         char buf[128];
         std::strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &tm);
         std::string session = std::string(buf);
-        std::filesystem::path p(base);
+        std::filesystem::path p = base;
         p /= session;
         std::filesystem::create_directories(p);
         return p.string();
@@ -25,14 +26,21 @@ static std::string make_session_dir(const std::string& base) {
     }
 }
 
-FileDebugger::FileDebugger(const std::string& baseDir) : baseDir_(baseDir) {
+FileDebugger::FileDebugger(const std::string& baseOrProcess, const std::string& processName) : baseDir_(std::string()), processName_(std::string()) {
     try {
-        std::filesystem::create_directories(baseDir_);
-    } catch (...) {}
-    // create a per-run session subdirectory so debug artifacts don't collide
-    try {
-        std::string sess = make_session_dir(baseDir_);
+        std::filesystem::path base;
+        std::string proc;
+        if (processName.empty()) {
+            base = std::filesystem::current_path() / "debug_output";
+            proc = baseOrProcess;
+        } else {
+            base = baseOrProcess.empty() ? (std::filesystem::current_path() / "debug_output") : std::filesystem::path(baseOrProcess);
+            proc = processName;
+        }
+        std::filesystem::create_directories(base);
+        std::string sess = make_session_dir(base.string());
         baseDir_ = sess;
+        processName_ = proc;
     } catch (...) {}
 }
 
@@ -51,11 +59,46 @@ static std::filesystem::path safe_join(const std::filesystem::path& base, const 
     return base / clean;
 }
 
+static std::string make_timestamp_filename(const std::string& name, const std::string& suffix = "") {
+    try {
+        auto now = std::chrono::system_clock::now();
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+        auto tt = std::chrono::system_clock::to_time_t(now);
+        std::tm tm;
+#if defined(_WIN32)
+        localtime_s(&tm, &tt);
+#else
+        localtime_r(&tt, &tm);
+#endif
+        char buf[128];
+        std::strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &tm);
+        std::ostringstream oss;
+        oss << buf << "_" << std::setfill('0') << std::setw(3) << ms.count();
+        if (!name.empty()) oss << "_" << name;
+        return oss.str();
+    } catch (...) {
+        return name;
+    }
+}
+
 void FileDebugger::writeText(const std::string& relPath, const std::string& text) {
     std::lock_guard<std::mutex> g(mtx_);
-    auto outp = safe_join(baseDir_, relPath);
     try {
-        std::filesystem::create_directories(outp.parent_path());
+        // Do not persist short poppler log messages to files; they should appear on console only
+        try {
+            if (relPath.rfind("poppler/log", 0) == 0) return;
+        } catch (...) {}
+
+        auto runid = debug::currentRun();
+        if (runid.empty()) runid = debug::startRun(processName_);
+        auto rp = std::filesystem::path(relPath);
+        auto rundir = safe_join(baseDir_, runid);
+        std::filesystem::create_directories(rundir);
+
+        std::string fname = make_timestamp_filename(rp.filename().string());
+        auto outp = safe_join(rundir, fname);
+        if (!outp.has_extension()) outp += ".txt";
+
         std::string outText = text;
         bool tryPretty = false;
         if (outp.has_extension() && outp.extension() == ".json") tryPretty = true;
@@ -71,8 +114,7 @@ void FileDebugger::writeText(const std::string& relPath, const std::string& text
             try {
                 nlohmann::json j = nlohmann::json::parse(text);
                 outText = j.dump(4);
-            } catch (...) {
-            }
+            } catch (...) {}
         }
 
         std::ofstream ofs(outp, std::ios::binary);
@@ -82,9 +124,16 @@ void FileDebugger::writeText(const std::string& relPath, const std::string& text
 
 void FileDebugger::writeBytes(const std::string& relPath, const std::vector<uint8_t>& data) {
     std::lock_guard<std::mutex> g(mtx_);
-    auto outp = safe_join(baseDir_, relPath);
     try {
-        std::filesystem::create_directories(outp.parent_path());
+        auto runid = debug::currentRun();
+        if (runid.empty()) runid = debug::startRun(processName_);
+        auto rp = std::filesystem::path(relPath);
+        auto rundir = safe_join(baseDir_, runid);
+        std::filesystem::create_directories(rundir);
+
+        std::string fname = make_timestamp_filename(rp.filename().string());
+        auto outp = safe_join(rundir, fname);
+        if (!outp.has_extension()) outp += ".png";
         std::ofstream ofs(outp, std::ios::binary);
         if (ofs) ofs.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
     } catch (...) {}

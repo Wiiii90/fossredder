@@ -13,6 +13,7 @@ namespace opencv {
 class DetectEngine {
 public:
     static std::vector<api::opencv::Table> DetectTables(const cv::Mat& img, const std::string& imagePath, std::shared_ptr<IDebugger> debugger = nullptr);
+    static std::vector<cv::Rect> DetectTextBlocks(const cv::Mat& img, std::shared_ptr<IDebugger> debugger = nullptr);
 };
 
 } // namespace opencv

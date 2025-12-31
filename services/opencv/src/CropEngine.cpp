@@ -20,8 +20,6 @@ std::vector<std::filesystem::path> CropEngine::CropImages(const std::string& ima
         }
 
         std::filesystem::create_directories(outputDir);
-        std::string stem;
-        try { stem = std::filesystem::path(imagePath).stem().string(); } catch (...) { stem = "page"; }
 
         int idx = 0;
         for (const auto &rct : rects) {
@@ -41,9 +39,7 @@ std::vector<std::filesystem::path> CropEngine::CropImages(const std::string& ima
                             std::ifstream ifs(filename, std::ios::binary);
                             if (ifs) {
                                 std::vector<uint8_t> buf((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-                                std::ostringstream dbgRel;
-                                dbgRel << "opencv/" << stem << "/" << (idx + 1) << "_cropped";
-                                debugger->writeBytes(dbgRel.str() + ".png", buf);
+                                debugger->writeBytes(std::string("opencv_cropped"), buf);
                             }
                         } catch (...) {}
                     }

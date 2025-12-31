@@ -13,12 +13,14 @@ struct DenoiseResult {
 
 struct MaskResult {
     std::filesystem::path maskedImagePath;
+    std::filesystem::path maskImagePath;
 };
 
 struct DetectResult {
     // return single table (or none) instead of list
     Table table;
     bool detected = false;
+    std::vector<Rect> textBlocks; // detected text blocks (morphology)
 };
 
 struct CropResult {

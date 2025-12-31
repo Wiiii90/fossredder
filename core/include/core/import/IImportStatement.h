@@ -26,6 +26,9 @@ namespace api { namespace poppler { class IPopplerService; } }
 namespace api { namespace opencv { class IOpenCvService; } }
 namespace api { namespace tesseract { class ITesseractService; } }
 
+class IDebugger;
+
 std::shared_ptr<IImportStatement> createImportStatement(std::shared_ptr<api::poppler::IPopplerService> poppler,
                                                         std::shared_ptr<api::opencv::IOpenCvService> openCv,
-                                                        std::shared_ptr<api::tesseract::ITesseractService> tesseract);
+                                                        std::shared_ptr<api::tesseract::ITesseractService> tesseract,
+                                                        std::shared_ptr<IDebugger> debugger = nullptr);

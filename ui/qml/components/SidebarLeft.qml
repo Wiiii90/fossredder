@@ -16,6 +16,8 @@ Item {
                             ? "views/ContractsSidebar.qml"
                             : (uiNav && uiNav.section === UiNavigation.Booking)
                                 ? "views/BookingSidebar.qml"
-                                : "views/PlaceholderSidebar.qml"
+                                : (uiNav && uiNav.section === UiNavigation.Import)
+                                    ? "views/ImportSidebar.qml"
+                                    : "views/PlaceholderSidebar.qml"
     }
 }

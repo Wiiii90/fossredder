@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
-#include <nlohmann/json.hpp>
+#include "api/poppler/Types.h"
 
 namespace api::poppler {
 
@@ -12,7 +12,7 @@ struct RenderResult {
 };
 
 struct ExtractResult {
-    nlohmann::json metadata;
+    std::vector<RenderedPage> pages;
 };
 
 }

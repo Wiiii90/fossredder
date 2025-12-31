@@ -16,6 +16,10 @@ struct MaskRequest {
     std::filesystem::path imagePath;
     std::vector<Rect> textElements;
     enum class Mode { Whiteout, Inpaint } mode = Mode::Whiteout;
+    std::string tesseractTsv;
+    bool usePoppler = true;
+    bool useTesseract = false;
+    bool useMorphology = true;
 };
 
 struct DetectRequest {

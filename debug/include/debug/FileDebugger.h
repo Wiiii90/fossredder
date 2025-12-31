@@ -7,7 +7,8 @@
 
 class FileDebugger : public IDebugger {
 public:
-    explicit FileDebugger(const std::string& baseDir);
+    // baseOrProcess: if second arg empty, this is treated as processName and base dir is ./debug_output
+    explicit FileDebugger(const std::string& baseOrProcess, const std::string& processName = "");
     ~FileDebugger() override;
 
     bool enabled() const override { return true; }
@@ -17,5 +18,6 @@ public:
 
 private:
     std::string baseDir_; // actual session directory used for writes
+    std::string processName_;
     std::mutex mtx_;
 };

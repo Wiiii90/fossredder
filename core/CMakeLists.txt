@@ -8,10 +8,15 @@ add_library(core_lib STATIC ${CORE_SRCS})
 target_include_directories(core_lib PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/debug/include>
 )
 
 if(TARGET api)
     target_link_libraries(core_lib PUBLIC api)
+endif()
+
+if(TARGET debug_lib)
+    target_link_libraries(core_lib PUBLIC debug_lib)
 endif()
 
 target_compile_features(core_lib PUBLIC cxx_std_20)

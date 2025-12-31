@@ -118,14 +118,6 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std:
 
     int numPages = doc->pages();
 
-    if (debugger && debugger->enabled()) {
-        try {
-            std::ostringstream oss;
-            oss << "render:pages " << pdfPath << " total=" << numPages;
-            debugger->writeText("poppler/log", oss.str());
-        } catch (...) {}
-    }
-
     std::filesystem::path outDir = resolveOutputDir(outputDir);
 
     for (int i = 0; i < numPages; ++i) {
@@ -150,11 +142,6 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std:
                     std::vector<uint8_t> buf((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
                     debugger->writeBytes(std::string("poppler/output/") + std::filesystem::path(filename).stem().string() + std::string(".png"), buf);
                 }
-                try {
-                    std::ostringstream oss;
-                    oss << "render:page " << (i + 1) << " saved " << filename;
-                    debugger->writeText("poppler/log", oss.str());
-                } catch (...) {}
             } catch (...) {}
         }
 

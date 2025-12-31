@@ -33,21 +33,6 @@ class PopplerAdapterImpl : public api::poppler::IPopplerAdapter {
             }
 
             if (debugger && debugger->enabled()) {
-                for (size_t i = 0; i < pages.size(); ++i) {
-                    try {
-                        const std::string& filename = pages[i].imagePath;
-                        std::ifstream ifs(filename, std::ios::binary);
-                        if (ifs) {
-                            std::vector<uint8_t> buf((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-                            try { debugger->writeBytes(std::string("poppler/output/") + std::filesystem::path(filename).stem().string() + std::string(".png"), buf); } catch (...) {}
-                        }
-                        try {
-                            std::ostringstream oss;
-                            oss << "render:page " << (i + 1) << " saved " << pages[i].imagePath;
-                            debugger->writeText("poppler/log", oss.str());
-                        } catch (...) {}
-                    } catch (...) {}
-                }
                 try {
                     std::ostringstream oss;
                     oss << "render:done " << req.pdfPath.string() << " pages=" << pages.size() << " duration=" << dur.count();
@@ -74,27 +59,12 @@ class PopplerAdapterImpl : public api::poppler::IPopplerAdapter {
             auto t1 = std::chrono::steady_clock::now();
             std::chrono::duration<double> dur = t1 - t0;
 
-            nlohmann::json doc;
-            nlohmann::json arr = nlohmann::json::array();
-            for (size_t i = 0; i < pages.size(); ++i) {
-                try {
-                    if (!pages[i].metadataJson.empty()) {
-                        try { debugger->writeText(std::string("poppler/meta/") + std::to_string(i + 1) + std::string(".json"), pages[i].metadataJson); } catch (...) {}
-                        arr.push_back(nlohmann::json::parse(pages[i].metadataJson));
-                    } else {
-                        arr.push_back(nlohmann::json::object());
-                    }
-                } catch (...) {
-                    arr.push_back(nlohmann::json::object());
-                }
-            }
-            doc["pages"] = arr;
-            out.metadata = doc;
+            out.pages = std::move(pages);
 
             if (debugger && debugger->enabled()) {
                 try {
                     std::ostringstream oss;
-                    oss << "extract:done " << req.pdfPath.string() << " pages=" << pages.size() << " duration=" << dur.count();
+                    oss << "extract:done " << req.pdfPath.string() << " pages=" << out.pages.size() << " duration=" << dur.count();
                     debugger->writeText("poppler/log", oss.str());
                 } catch (...) {}
             }

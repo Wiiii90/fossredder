@@ -18,6 +18,8 @@ Item {
                             ? "views/ContractsView.qml"
                             : (uiNav && uiNav.section === UiNavigation.Booking)
                                 ? "views/BookingView.qml"
-                                : "views/PlaceholderView.qml"
+                                : (uiNav && uiNav.section === UiNavigation.Import)
+                                    ? "views/ImportView.qml"
+                                    : "views/PlaceholderView.qml"
     }
 }

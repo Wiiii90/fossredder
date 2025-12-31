@@ -42,3 +42,8 @@ void UiActions::saveFile() { if (saveFileAction_) saveFileAction_->trigger(); }
 void UiActions::saveFileAs() { if (saveFileAsAction_) saveFileAsAction_->trigger(); }
 void UiActions::importFile() { if (importAction_) importAction_->trigger(); }
 void UiActions::exportFile() { if (exportAction_) exportAction_->trigger(); }
+
+void UiActions::browseImportPdf()
+{
+    emit importBrowseRequested(tr("PDF Files (*.pdf)"));
+}
