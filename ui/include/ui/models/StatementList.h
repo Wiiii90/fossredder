@@ -13,9 +13,7 @@ class StatementList : public QAbstractListModel {
 public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
-        NameRole,
-        StartDateRole,
-        EndDateRole
+        NameRole
     };
 
     explicit StatementList(QObject* parent = nullptr);

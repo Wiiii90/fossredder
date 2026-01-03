@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "api/opencv/Types.h"
+#include "api/opencv/IOpenCvService.h"
 #include "api/tesseract/TesseractResponse.h"
 #include "core/models/Transaction.h"
 
@@ -13,7 +14,13 @@ public:
         std::vector<Transaction> transactions;
         std::vector<std::string> debugLines;
         std::string lastBookingDate;
+        int nextTransactionIndex = 1;
     };
 
-    static ParseResult parse(const api::opencv::Table& table, const api::tesseract::ExtractResult& ocr, std::string initialBookingDate = {});
+    static ParseResult parse(const api::opencv::Table& table,
+                            const api::tesseract::ExtractResult& ocr,
+                            const std::string& pageCropImagePath,
+                            std::shared_ptr<api::opencv::IOpenCvService> opencv,
+                            std::string initialBookingDate = {},
+                            int initialTransactionIndex = 1);
 };

@@ -148,9 +148,7 @@ void UiDataSession::refreshSelectedStatement()
     for (const auto& s : statements_.statements()) {
         if (s && QString::fromStdString(s->id) == selectedStatementId_) {
             selectedStatement_.setStatement(QString::fromStdString(s->id),
-                                            QString::fromStdString(s->name),
-                                            QString::fromStdString(s->startDate),
-                                            QString::fromStdString(s->endDate));
+                                            QString::fromStdString(s->name));
             return;
         }
     }
@@ -172,7 +170,9 @@ void UiDataSession::refreshSelectedTransaction()
                                                 QString::fromStdString(t->bookingDate),
                                                 t->amount,
                                                 QString::fromStdString(t->description),
-                                                QString::fromStdString(t->statementId));
+                                                QString::fromStdString(t->statementId),
+                                                QString::fromStdString(t->actorId),
+                                                QString::fromStdString(t->actorProposal));
             return;
         }
     }

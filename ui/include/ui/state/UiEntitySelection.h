@@ -15,12 +15,11 @@ class UiEntitySelection : public QObject {
     Q_PROPERTY(QStringList actorIds READ actorIds NOTIFY changed)
     Q_PROPERTY(QStringList propertyIds READ propertyIds NOTIFY changed)
 
-    Q_PROPERTY(QString startDate READ startDate NOTIFY changed)
-    Q_PROPERTY(QString endDate READ endDate NOTIFY changed)
-
     Q_PROPERTY(QString bookingDate READ bookingDate NOTIFY changed)
     Q_PROPERTY(double amount READ amount NOTIFY changed)
     Q_PROPERTY(QString statementId READ statementId NOTIFY changed)
+    Q_PROPERTY(QString actorId READ actorId NOTIFY changed)
+    Q_PROPERTY(QString actorProposal READ actorProposal NOTIFY changed)
 
 public:
     explicit UiEntitySelection(QObject* parent = nullptr);
@@ -30,8 +29,10 @@ public:
     void setActor(const QString& id, const QString& name, const QString& type, const QString& description);
     void setProperty(const QString& id, const QString& name, const QString& address, const QString& description);
 
-    void setStatement(const QString& id, const QString& name, const QString& startDate, const QString& endDate);
+    void setStatement(const QString& id, const QString& name);
     void setTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId);
+    void setTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, const QString& actorId);
+    void setTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, const QString& actorId, const QString& actorProposal);
 
     void setContract(const QString& id, const QString& name, const QString& type, const QString& description);
     void setContract(const QString& id, const QString& name, const QString& type, const QString& description,
@@ -46,12 +47,11 @@ public:
     QStringList actorIds() const { return actorIds_; }
     QStringList propertyIds() const { return propertyIds_; }
 
-    QString startDate() const { return startDate_; }
-    QString endDate() const { return endDate_; }
-
     QString bookingDate() const { return bookingDate_; }
     double amount() const { return amount_; }
     QString statementId() const { return statementId_; }
+    QString actorId() const { return actorId_; }
+    QString actorProposal() const { return actorProposal_; }
 
 signals:
     void changed();
@@ -66,10 +66,9 @@ private:
     QStringList actorIds_;
     QStringList propertyIds_;
 
-    QString startDate_;
-    QString endDate_;
-
     QString bookingDate_;
     double amount_ = 0.0;
     QString statementId_;
+    QString actorId_;
+    QString actorProposal_;
 };

@@ -3,9 +3,13 @@
 #include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
+#include <QDir>
+#include <QStandardPaths>
 
 #include "core/controllers/ImportController.h"
 #include "ui/controllers/UiDomainController.h"
+#include "ui/models/StatementDraft.h"
+#include "ui/models/TransactionDraft.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
 
@@ -47,6 +51,51 @@ void UiImportController::resetStatus()
     emit stateChanged();
 }
 
+void UiImportController::clearDraft()
+{
+    if (draft_) {
+        draft_->deleteLater();
+        draft_ = nullptr;
+    }
+    emit stateChanged();
+}
+
+static QString makeImportRunRootDir(QString* outRunIdPrefix)
+{
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QDir d(base);
+    d.mkpath(".");
+
+    const QString ts = QDateTime::currentDateTimeUtc().toString("yyyyMMddHHmmsszzz");
+    if (outRunIdPrefix) *outRunIdPrefix = ts;
+
+    int n = 1;
+    while (true) {
+        const QString name = QStringLiteral("%1_import_%2").arg(ts).arg(n);
+        if (!d.exists(name)) {
+            d.mkpath(name);
+            return d.filePath(name);
+        }
+        ++n;
+    }
+}
+
+static void cleanupOldImportRuns(int keep)
+{
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QDir d(base);
+    if (!d.exists()) return;
+
+    // match: <ts>_import_<n>
+    const QStringList dirs = d.entryList(QStringList() << "*_import_*", QDir::Dirs | QDir::NoDotAndDotDot, QDir::Time);
+    if (dirs.size() <= keep) return;
+
+    for (int i = keep; i < dirs.size(); ++i) {
+        QDir rm(d.filePath(dirs[i]));
+        rm.removeRecursively();
+    }
+}
+
 void UiImportController::startStatementImport()
 {
     if (isRunning_) return;
@@ -63,6 +112,8 @@ void UiImportController::startStatementImport()
         return;
     }
 
+    clearDraft();
+
     error_.clear();
     phase_ = QStringLiteral("Starting import...");
     progress_ = 0.1;
@@ -74,24 +125,42 @@ void UiImportController::startStatementImport()
 
     const auto now = QDateTime::currentDateTime().toString(Qt::ISODate);
 
+    cleanupOldImportRuns(20);
+
+    QString runIdPrefixQ;
+    const QString runRootQ = makeImportRunRootDir(&runIdPrefixQ);
+    const QByteArray runRootNative = QFile::encodeName(runRootQ);
+    std::string runRoot(runRootNative.constData(), static_cast<size_t>(runRootNative.size()));
+
+    const QByteArray runIdNative = runIdPrefixQ.toUtf8();
+    std::string runIdPrefix(runIdNative.constData(), static_cast<size_t>(runIdNative.size()));
+
     try {
-        auto imported = coreController_->import(ImportController::ImportType::Statement, p);
+        auto imported = coreController_->import(ImportController::ImportType::Statement, p, runRoot, runIdPrefix);
 
-        if (domain_ && imported) {
-            const QString statementName = QFileInfo(selectedFile_).baseName();
-            const QString sid = domain_->addStatement(statementName, QString(), QString());
-            if (!sid.isEmpty()) {
-                lastResultStatementId_ = sid;
+        if (imported) {
+            draft_ = new StatementDraft(this);
+            draft_->setName(QFileInfo(selectedFile_).baseName());
 
-                for (const auto& tx : imported->transactions) {
-                    domain_->addTransactionWithStatus(QString::fromStdString(tx.name),
-                                                      QString::fromStdString(tx.bookingDate),
-                                                      tx.amount,
-                                                      QString::fromStdString(tx.description.empty() ? tx.name : tx.description),
-                                                      sid,
-                                                      static_cast<int>(Transaction::Status::Unverified));
-                }
+            std::vector<TransactionDraft> txs;
+            txs.reserve(imported->transactions.size());
+            for (const auto& tx : imported->transactions) {
+                TransactionDraft d;
+                d.name = QString::fromStdString(tx.name);
+                d.bookingDate = QString::fromStdString(tx.bookingDate);
+                d.valuta = QString::fromStdString(tx.valuta);
+                d.amount = tx.amount;
+                d.description = QString::fromStdString(tx.description);
+                d.actorId = QString();
+                d.actorProposal = QString::fromStdString(tx.actorProposal);
+
+                d.metadata = QString::fromStdString(tx.metadata);
+                d.proofImagePath = QString::fromStdString(tx.proofImagePath);
+
+                d.status = static_cast<int>(Transaction::Status::Unverified);
+                txs.push_back(std::move(d));
             }
+            draft_->setDrafts(std::move(txs));
         }
 
         phase_ = QStringLiteral("Import finished");

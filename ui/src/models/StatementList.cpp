@@ -21,8 +21,6 @@ QVariant StatementList::data(const QModelIndex& index, int role) const
     switch (role) {
     case IdRole: return QString::fromStdString(s->id);
     case NameRole: return QString::fromStdString(s->name);
-    case StartDateRole: return QString::fromStdString(s->startDate);
-    case EndDateRole: return QString::fromStdString(s->endDate);
     default: return {};
     }
 }
@@ -32,8 +30,6 @@ QHash<int, QByteArray> StatementList::roleNames() const
     QHash<int, QByteArray> roles;
     roles[IdRole] = "id";
     roles[NameRole] = "name";
-    roles[StartDateRole] = "startDate";
-    roles[EndDateRole] = "endDate";
     return roles;
 }
 

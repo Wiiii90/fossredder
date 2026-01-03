@@ -1,4 +1,5 @@
 #include "core/pch.h"
+
 #include "core/import/IImportStatementStrategy.h"
 #include "api/poppler/PopplerRequest.h"
 #include "api/poppler/PopplerResponse.h"
@@ -11,8 +12,9 @@
 #include "api/tesseract/ITesseractService.h"
 #include "core/import/IImportStatement.h"
 #include "core/parser/DefaultStatementParser.h"
-#include "debug/IDebugger.h"
+#include "../../debug/include/debug/IDebugger.h"
 #include "core/models/Statement.h"
+#include "core/utils/UniqId.h"
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -31,6 +33,10 @@ public:
     ImportResult run(const ImportRequest& req) override {
         ImportResult out;
         if (!poppler_ || !opencv_ || !tesseract_) return out;
+        if (req.runRoot.empty()) return out;
+
+        const std::filesystem::path runRoot(req.runRoot);
+        try { std::filesystem::create_directories(runRoot); } catch (...) {}
 
         Statement stmt;
         std::vector<Transaction> all;
@@ -38,18 +44,23 @@ public:
         api::poppler::RenderRequest rreq;
         rreq.pdfPath = std::filesystem::path(req.sourcePath);
         rreq.dpi = 300.0;
+        rreq.outputDir = runRoot;
+        rreq.uniqIdPrefix = utils::makeUniqId();
+        rreq.filePrefix = "poppler_render";
 
-        try { std::clog << "DefaultImportStatementStrategy: poppler render start: " << rreq.pdfPath.string() << " dpi=" << rreq.dpi << std::endl; } catch(...){}
+        try { std::clog << "DefaultImportStatementStrategy: poppler render start: " << rreq.pdfPath.string() << " dpi=" << rreq.dpi << std::endl; } catch(...){ }
         auto renderRes = poppler_->render(rreq);
-        try { std::clog << "DefaultImportStatementStrategy: poppler render done, images=" << renderRes.images.size() << std::endl; } catch(...){}
-        if (renderRes.images.empty()) return out;
 
         api::poppler::ExtractRequest ereq;
         ereq.pdfPath = rreq.pdfPath;
         ereq.dpi = rreq.dpi;
+        ereq.outputDir = runRoot;
+        ereq.uniqIdPrefix = utils::makeUniqId();
+        ereq.filePrefix = "poppler_extract";
         auto extractRes = poppler_->extract(ereq);
 
         std::string carriedBookingDate;
+        int nextTxIndex = 1;
 
         for (size_t pi = 0; pi < renderRes.images.size(); ++pi) {
             const auto& pageImage = renderRes.images[pi];
@@ -57,6 +68,9 @@ public:
             try { std::clog << "DefaultImportStatementStrategy: opencv mask start page=" << pi << " image=" << pageImage.string() << std::endl; } catch(...){}
             api::opencv::MaskRequest mreq;
             mreq.imagePath = pageImage;
+            mreq.outputDir = runRoot;
+            mreq.uniqIdPrefix = utils::makeUniqId();
+            mreq.filePrefix = "opencv_mask_page" + std::to_string(pi + 1);
             mreq.usePoppler = true;
             mreq.useMorphology = true;
             mreq.useTesseract = false;
@@ -79,6 +93,9 @@ public:
             try {
                 api::opencv::DetectRequest tdreq;
                 tdreq.imagePath = pageImage;
+                tdreq.outputDir = runRoot;
+                tdreq.uniqIdPrefix = utils::makeUniqId();
+                tdreq.filePrefix = "opencv_detect_textblocks_page" + std::to_string(pi + 1);
                 tdreq.kind = api::opencv::DetectRequest::DetectKind::TextBlocks;
                 auto tdres = opencv_->detect(tdreq);
                 if (tdres.detected) {
@@ -126,6 +143,9 @@ public:
             try { std::clog << "DefaultImportStatementStrategy: opencv detect start page=" << pi << " image=" << maskedImage.string() << std::endl; } catch(...){}
             api::opencv::DetectRequest dreq;
             dreq.imagePath = maskedImage;
+            dreq.outputDir = runRoot;
+            dreq.uniqIdPrefix = utils::makeUniqId();
+            dreq.filePrefix = "opencv_detect_tables_page" + std::to_string(pi + 1);
             dreq.kind = api::opencv::DetectRequest::DetectKind::Tables;
             auto detectRes = opencv_->detect(dreq);
             try { std::clog << "DefaultImportStatementStrategy: opencv detect done page=" << pi << " detected=" << (detectRes.detected ? 1 : 0) << std::endl; } catch(...){}
@@ -135,9 +155,15 @@ public:
                 continue;
             }
 
-            try { std::clog << "DefaultImportStatementStrategy: opencv crop start page=" << pi << " image=" << pageImage.string() << std::endl; } catch(...){}
+            // Crop/OCR must use the original page image. The masked image is for detection only.
+            const std::filesystem::path cropSourceImage = pageImage;
+
+            try { std::clog << "DefaultImportStatementStrategy: opencv crop start page=" << pi << " image=" << cropSourceImage.string() << std::endl; } catch(...){ }
             api::opencv::CropRequest cropReq;
-            cropReq.imagePath = pageImage;
+            cropReq.imagePath = cropSourceImage;
+            cropReq.outputDir = runRoot;
+            cropReq.uniqIdPrefix = utils::makeUniqId();
+            cropReq.filePrefix = "opencv_crop_table_page" + std::to_string(pi + 1);
             cropReq.bbox = detectRes.table.bbox;
             auto cropRes = opencv_->crop(cropReq);
             try { std::clog << "DefaultImportStatementStrategy: opencv crop done page=" << pi << " crops=" << cropRes.croppedImagePaths.size() << std::endl; } catch(...){}
@@ -149,6 +175,9 @@ public:
                 api::tesseract::ExtractRequest oreq;
                 oreq.kind = api::tesseract::ExtractRequest::Kind::Table;
                 oreq.imagePath = cropPath;
+                oreq.outputDir = runRoot;
+                oreq.uniqIdPrefix = utils::makeUniqId();
+                oreq.filePrefix = "tesseract_extract_table_page" + std::to_string(pi + 1);
                 oreq.tessdataPath = "";
                 oreq.psm = 3;
 
@@ -167,29 +196,40 @@ public:
                 auto ores = tesseract_->extract(oreq);
                 try { std::clog << "DefaultImportStatementStrategy: tesseract extract done page=" << pi << " crop=" << ci << " words=" << ores.words.size() << " tsv_len=" << ores.tsv.size() << std::endl; } catch(...){ }
 
-                auto parsed = DefaultStatementParser::parse(detectRes.table, ores, carriedBookingDate);
+                auto parsed = DefaultStatementParser::parse(detectRes.table, ores, cropPath.string(), opencv_, carriedBookingDate, nextTxIndex);
                 carriedBookingDate = parsed.lastBookingDate;
-
-                if (!parsed.transactions.empty()) {
-                    for (auto& tx : parsed.transactions) all.push_back(std::move(tx));
-                }
+                nextTxIndex = parsed.nextTransactionIndex;
 
                 if (debugger_ && debugger_->enabled()) {
                     try {
-                        if (!parsed.debugLines.empty()) {
+                        {
                             std::ostringstream dbg;
-                            for (const auto& l : parsed.debugLines) dbg << l << "\n";
-                            debugger_->writeText("DefaultStatementParser_debug", dbg.str());
+                            if (!parsed.debugLines.empty()) {
+                                for (const auto& l : parsed.debugLines) dbg << l << "\n";
+                            } else {
+                                dbg << "(no debugLines)\n";
+                            }
+                            debugger_->writeText("DefaultStatementParser_debug.txt", dbg.str());
                         }
                         if (!parsed.transactions.empty()) {
                             std::ostringstream dbg;
-                            dbg << "bookingDate\tvaluta\tamount\tname\tdescription\n";
+                            dbg << "bookingDate\tvaluta\tamount\tname\tactorProposal\tmetadata\tproofImagePath\n";
                             for (const auto& tx : parsed.transactions) {
-                                dbg << tx.bookingDate << "\t" << tx.valuta << "\t" << tx.amount << "\t" << tx.name << "\t" << tx.description << "\n";
+                                dbg << tx.bookingDate << "\t"
+                                    << tx.valuta << "\t"
+                                    << tx.amount << "\t"
+                                    << tx.name << "\t"
+                                    << tx.actorProposal << "\t"
+                                    << tx.metadata << "\t"
+                                    << tx.proofImagePath << "\n";
                             }
-                            debugger_->writeText("DefaultStatementParser_transactions", dbg.str());
+                            debugger_->writeText("DefaultStatementParser_transactions.txt", dbg.str());
                         }
                     } catch (...) {}
+                }
+
+                if (!parsed.transactions.empty()) {
+                    for (auto& tx : parsed.transactions) all.push_back(std::move(tx));
                 }
 
                 std::string tsvKey = "tesseract/page_" + std::to_string(pi) + "_crop_" + std::to_string(ci) + ".tsv";

@@ -7,6 +7,7 @@
 #include <QPointer>
 
 #include "ui/models/ImportRunListModel.h"
+#include "ui/models/StatementDraft.h"
 
 class ImportController;
 class UiDomainController;
@@ -24,7 +25,8 @@ class UiImportController : public QObject {
     Q_PROPERTY(QString selectedProfile READ selectedProfile WRITE setSelectedProfile NOTIFY stateChanged)
 
     Q_PROPERTY(ImportRunListModel* runs READ runs CONSTANT)
-    Q_PROPERTY(QString lastResultStatementId READ lastResultStatementId NOTIFY stateChanged)
+
+    Q_PROPERTY(StatementDraft* draft READ draft NOTIFY stateChanged)
 
 public:
     explicit UiImportController(std::shared_ptr<ImportController> coreController, QObject* parent = nullptr);
@@ -43,10 +45,11 @@ public:
     QString selectedProfile() const { return selectedProfile_; }
     void setSelectedProfile(const QString& profile);
 
-    QString lastResultStatementId() const { return lastResultStatementId_; }
+    StatementDraft* draft() const noexcept { return draft_; }
 
     Q_INVOKABLE void startStatementImport();
     Q_INVOKABLE void resetStatus();
+    Q_INVOKABLE void clearDraft();
 
     ImportRunListModel* runs() noexcept { return &runs_; }
 
@@ -66,7 +69,8 @@ private:
 
     QString selectedFile_;
     QString selectedProfile_ = QStringLiteral("Default");
-    QString lastResultStatementId_;
 
     ImportRunListModel runs_;
+
+    StatementDraft* draft_ = nullptr;
 };

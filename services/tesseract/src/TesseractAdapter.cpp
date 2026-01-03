@@ -17,6 +17,8 @@ public:
 
     api::tesseract::ExtractResult extract(const api::tesseract::ExtractRequest& req) override {
         api::tesseract::ExtractResult out;
+        if (req.outputDir.empty()) return out;
+
         std::vector<uint8_t> bytes;
         if (!req.imagePath.empty()) {
             try {
@@ -25,7 +27,8 @@ public:
             } catch (...) {}
         }
 
-        auto [textDto, words] = TesseractEngine::extractFromBytes(bytes, req.tessdataPath, debugger);
+        int psm = req.psm;
+        auto [textDto, words] = TesseractEngine::extractFromBytes(bytes, req.tessdataPath, psm, debugger);
         out.text = textDto.text;
         try {
             std::ostringstream oss;
@@ -35,8 +38,11 @@ public:
             out.tsv = oss.str();
         } catch (...) { out.tsv.clear(); }
 
+        // Persist TSV to runRoot for traceability.
+        // NOTE: Keinen TSV als Datei im runRoot persistieren; TSV ist Debug/Artefakt und wird bei Bedarf über out.artifacts weitergereicht.
+
         out.words.reserve(words.size());
-        for (const auto &w : words) {
+        for (const auto& w : words) {
             api::tesseract::Word wr;
             wr.bbox.x = w.bbox.x;
             wr.bbox.y = w.bbox.y;

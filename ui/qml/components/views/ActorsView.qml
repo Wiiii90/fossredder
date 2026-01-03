@@ -8,10 +8,13 @@ Item {
     property var current: uiData ? uiData.selectedActor : null
     property bool isEdit: current && current.id && String(current.id).length > 0
 
+    property var aliases: []
+
     function clearFields() {
         nameField.text = ""
         typeField.text = ""
         descField.text = ""
+        aliases = []
     }
 
     function syncFields() {
@@ -22,6 +25,14 @@ Item {
         nameField.text = current.name || ""
         typeField.text = current.type || ""
         descField.text = current.description || ""
+
+        if (uiDomain && current.id) {
+            var a = uiDomain.getActorAliases(current.id)
+            aliases = a ? a : []
+        } else {
+            aliases = []
+        }
+        aliasesField.text = aliases.join("\n")
     }
 
     Connections {
@@ -57,8 +68,34 @@ Item {
             id: descField
             placeholderText: qsTr("Description")
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.preferredHeight: 120
             wrapMode: TextArea.Wrap
+        }
+
+        GroupBox {
+            title: qsTr("Aliases")
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 8
+                spacing: 6
+
+                Label {
+                    text: qsTr("One alias per line. Used for auto-matching during import.")
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+
+                TextArea {
+                    id: aliasesField
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    wrapMode: TextArea.Wrap
+                    placeholderText: qsTr("e.g.\nAMZN\nAmazon EU\nAmazon Payments")
+                }
+            }
         }
 
         RowLayout {
@@ -76,14 +113,22 @@ Item {
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: nameField.text.length > 0
                 onClicked: {
+                    if (!uiDomain) return
+
+                    var lines = aliasesField.text.split(/\r?\n/)
+                    var cleaned = []
+                    for (var i = 0; i < lines.length; ++i) {
+                        var t = lines[i].trim()
+                        if (t.length === 0) continue
+                        cleaned.push(t)
+                    }
+
                     if (isEdit) {
-                        if (uiDomain) uiDomain.updateActor(current.id, nameField.text, typeField.text, descField.text)
+                        uiDomain.updateActorWithAliases(current.id, nameField.text, typeField.text, descField.text, cleaned)
                     } else {
-                        if (uiDomain) {
-                            var id = uiDomain.addActor(nameField.text, typeField.text, descField.text)
-                            clearFields()
-                            if (uiData && id && id.length > 0) uiData.selectedActorId = id
-                        }
+                        var id = uiDomain.addActorWithAliases(nameField.text, typeField.text, descField.text, cleaned)
+                        clearFields()
+                        if (uiData && id && id.length > 0) uiData.selectedActorId = id
                     }
                 }
             }
@@ -101,4 +146,6 @@ Item {
             Item { Layout.fillWidth: true }
         }
     }
+
+    Component.onCompleted: syncFields()
 }

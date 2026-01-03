@@ -27,6 +27,10 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case AmountRole: return t->amount;
     case DescriptionRole: return QString::fromStdString(t->description);
     case StatusRole: return static_cast<int>(t->status);
+    case ActorIdRole: return QString::fromStdString(t->actorId);
+    case ActorProposalRole: return QString::fromStdString(t->actorProposal);
+    case MetadataRole: return QString::fromStdString(t->metadata);
+    case ProofImagePathRole: return QString::fromStdString(t->proofImagePath);
     default: return {};
     }
 }
@@ -42,6 +46,10 @@ QHash<int, QByteArray> TransactionList::roleNames() const
     roles[AmountRole] = "amount";
     roles[DescriptionRole] = "description";
     roles[StatusRole] = "status";
+    roles[ActorIdRole] = "actorId";
+    roles[ActorProposalRole] = "actorProposal";
+    roles[MetadataRole] = "metadata";
+    roles[ProofImagePathRole] = "proofImagePath";
     return roles;
 }
 

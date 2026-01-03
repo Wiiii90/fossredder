@@ -77,23 +77,34 @@ static api::poppler::RenderedPage extractPageMeta(poppler::page* page, int pageI
 }
 
 static std::filesystem::path resolveOutputDir(const std::filesystem::path& outputDir) {
-    if (!outputDir.empty()) return outputDir;
-    // fallback to a local temp dir if no outputDir provided
-    try {
-        auto tmp = std::filesystem::temp_directory_path() / "fossredder" / "poppler" / "output";
-        std::filesystem::create_directories(tmp);
-        return tmp;
-    } catch (...) {
-        return std::filesystem::current_path();
-    }
+    if (outputDir.empty()) throw std::runtime_error("PopplerEngine: outputDir must be set");
+    std::filesystem::create_directories(outputDir);
+    return outputDir;
 }
 
-std::vector<api::poppler::RenderedPage> PopplerEngine::extractDocumentMeta(const std::string& pdfPath, double dpi, const std::filesystem::path& outputDir, std::shared_ptr<IDebugger> debugger) {
+static std::string prefix_base(const std::string& uniqIdPrefix, const std::string& filePrefix)
+{
+    if (!uniqIdPrefix.empty() && !filePrefix.empty()) return uniqIdPrefix + "_" + filePrefix;
+    if (!uniqIdPrefix.empty()) return uniqIdPrefix;
+    if (!filePrefix.empty()) return filePrefix;
+    return "poppler";
+}
+
+std::vector<api::poppler::RenderedPage> PopplerEngine::extractDocumentMeta(const std::string& pdfPath,
+                                                                           double dpi,
+                                                                           const std::filesystem::path& outputDir,
+                                                                           const std::string& uniqIdPrefix,
+                                                                           const std::string& filePrefix,
+                                                                           std::shared_ptr<IDebugger> debugger) {
     std::vector<api::poppler::RenderedPage> result;
     if (!std::filesystem::exists(pdfPath)) throw std::runtime_error("PDF file does not exist: " + pdfPath);
 
     std::unique_ptr<poppler::document> doc(poppler::document::load_from_file(pdfPath));
     if (!doc) throw std::runtime_error("Failed to open PDF: " + pdfPath);
+
+    (void)resolveOutputDir(outputDir);
+    (void)uniqIdPrefix;
+    (void)filePrefix;
 
     int numPages = doc->pages();
     for (int i = 0; i < numPages; ++i) {
@@ -104,7 +115,12 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::extractDocumentMeta(const
     return result;
 }
 
-std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std::string& pdfPath, double dpi, const std::filesystem::path& outputDir, std::shared_ptr<IDebugger> debugger) {
+std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std::string& pdfPath,
+                                                                      double dpi,
+                                                                      const std::filesystem::path& outputDir,
+                                                                      const std::string& uniqIdPrefix,
+                                                                      const std::string& filePrefix,
+                                                                      std::shared_ptr<IDebugger> debugger) {
     std::vector<api::poppler::RenderedPage> result;
     if (!std::filesystem::exists(pdfPath)) throw std::runtime_error("PDF file does not exist: " + pdfPath);
 
@@ -119,6 +135,7 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std:
     int numPages = doc->pages();
 
     std::filesystem::path outDir = resolveOutputDir(outputDir);
+    const std::string base = prefix_base(uniqIdPrefix, filePrefix.empty() ? std::string("poppler_render") : filePrefix);
 
     for (int i = 0; i < numPages; ++i) {
         std::unique_ptr<poppler::page> page(doc->create_page(i));
@@ -127,8 +144,8 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std:
         poppler::image img = renderer.render_page(page.get(), dpi, dpi);
         if (!img.is_valid()) continue;
 
-        std::filesystem::create_directories(outDir);
-        std::ostringstream fname; fname << (outDir.string()) << "/" << (i + 1) << ".png";
+        std::ostringstream fname;
+        fname << outDir.string() << "/" << base << "_page" << (i + 1) << ".png";
         std::string filename = fname.str();
 
         if (!img.save(filename, "png")) throw std::runtime_error("Failed to save image: " + filename);

@@ -48,6 +48,7 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
     try {
         const auto path = std::filesystem::path(req.imagePath);
         if (!std::filesystem::exists(path)) return res;
+        if (req.outputDir.empty()) return res;
 
         cv::Mat img = cv::imread(path.string(), cv::IMREAD_COLOR);
         if (img.empty()) return res;
@@ -104,7 +105,7 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
         if (nonZero > imgArea * 0.4) cleaned = mask;
 
         cv::Mat out;
-        bool isWhiteout = (req.mode == api::opencv::MaskRequest::Mode::Whiteout);
+        const bool isWhiteout = (req.mode == api::opencv::MaskRequest::Mode::Whiteout);
         if (isWhiteout) {
             out = img.clone();
             out.setTo(cv::Scalar(255,255,255), cleaned);
@@ -112,29 +113,29 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
             cv::inpaint(img, cleaned, out, 3.0, cv::INPAINT_TELEA);
         }
 
-        auto stem = path.stem().string();
-        auto parent = path.parent_path();
-        std::string maskFilename = stem + std::string("_mask_binary.png");
-        std::string maskedFilename = stem + (isWhiteout ? std::string("_mask_whiteout.png") : std::string("_mask_inpaint.png"));
-        auto maskPath = parent / maskFilename;
-        auto outPath = parent / maskedFilename;
+        std::filesystem::create_directories(req.outputDir);
 
-        if (debugger && debugger->enabled()) {
-            try {
-                if (cv::imwrite(maskPath.string(), cleaned)) {
-                    res.maskImagePath = maskPath;
-                    try {
-                        std::vector<uint8_t> mbuf; cv::imencode(".png", cleaned, mbuf);
-                        debugger->writeBytes(std::string("opencv_mask_binary"), mbuf);
-                    } catch (...) {}
-                }
-            } catch (...) {}
+        std::string base;
+        if (!req.uniqIdPrefix.empty()) {
+            base = req.uniqIdPrefix;
+            if (!req.filePrefix.empty()) base += "_" + req.filePrefix;
+        } else {
+            base = req.filePrefix.empty() ? std::string("opencv_mask") : req.filePrefix;
         }
+
+        // Only persist the masked output used by the pipeline.
+        const auto outPath = std::filesystem::path(req.outputDir) / (base + ".png");
 
         if (cv::imwrite(outPath.string(), out)) {
             res.maskedImagePath = outPath;
             if (debugger && debugger->enabled()) {
                 try {
+                    // Debug-only artifacts: persist to debug_output via debugger (not into runRoot).
+                    try {
+                        std::vector<uint8_t> mbuf; cv::imencode(".png", cleaned, mbuf);
+                        debugger->writeBytes(std::string("opencv_mask_binary"), mbuf);
+                    } catch (...) {}
+
                     std::vector<uint8_t> buf; cv::imencode(".png", out, buf);
                     debugger->writeBytes(isWhiteout ? std::string("opencv_mask_whiteout") : std::string("opencv_mask_inpaint"), buf);
                 } catch (...) {}

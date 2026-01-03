@@ -9,6 +9,8 @@ class Statement;
 
 struct ImportRequest {
     std::string sourcePath;
+    std::string runRoot; // absolute directory for all artifacts of this import run
+    std::string runIdPrefix; // e.g. yyyyMMddHHmmsszzz (UTC)
 };
 
 struct ImportResult {

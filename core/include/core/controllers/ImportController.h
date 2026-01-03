@@ -14,7 +14,7 @@ public:
 
     explicit ImportController(std::shared_ptr<StatementController> statementController);
 
-    std::shared_ptr<Statement> import(ImportType type, const std::string& filePath);
+    std::shared_ptr<Statement> import(ImportType type, const std::string& filePath, const std::string& runRoot = {}, const std::string& runIdPrefix = {});
 
 private:
     std::shared_ptr<StatementController> statementController_;

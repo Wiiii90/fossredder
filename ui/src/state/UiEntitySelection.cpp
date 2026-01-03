@@ -14,11 +14,11 @@ void UiEntitySelection::clear()
     description_.clear();
     actorIds_.clear();
     propertyIds_.clear();
-    startDate_.clear();
-    endDate_.clear();
     bookingDate_.clear();
     amount_ = 0.0;
     statementId_.clear();
+    actorId_.clear();
+    actorProposal_.clear();
     emit changed();
 }
 
@@ -31,11 +31,11 @@ void UiEntitySelection::setActor(const QString& id, const QString& name, const Q
     description_ = description;
     actorIds_.clear();
     propertyIds_.clear();
-    startDate_.clear();
-    endDate_.clear();
     bookingDate_.clear();
     amount_ = 0.0;
     statementId_.clear();
+    actorId_.clear();
+    actorProposal_.clear();
     emit changed();
 }
 
@@ -48,15 +48,15 @@ void UiEntitySelection::setProperty(const QString& id, const QString& name, cons
     description_ = description;
     actorIds_.clear();
     propertyIds_.clear();
-    startDate_.clear();
-    endDate_.clear();
     bookingDate_.clear();
     amount_ = 0.0;
     statementId_.clear();
+    actorId_.clear();
+    actorProposal_.clear();
     emit changed();
 }
 
-void UiEntitySelection::setStatement(const QString& id, const QString& name, const QString& startDate, const QString& endDate)
+void UiEntitySelection::setStatement(const QString& id, const QString& name)
 {
     id_ = id;
     name_ = name;
@@ -65,15 +65,25 @@ void UiEntitySelection::setStatement(const QString& id, const QString& name, con
     description_.clear();
     actorIds_.clear();
     propertyIds_.clear();
-    startDate_ = startDate;
-    endDate_ = endDate;
     bookingDate_.clear();
     amount_ = 0.0;
     statementId_.clear();
+    actorId_.clear();
+    actorProposal_.clear();
     emit changed();
 }
 
 void UiEntitySelection::setTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId)
+{
+    setTransaction(id, name, bookingDate, amount, description, statementId, QString(), QString());
+}
+
+void UiEntitySelection::setTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, const QString& actorId)
+{
+    setTransaction(id, name, bookingDate, amount, description, statementId, actorId, QString());
+}
+
+void UiEntitySelection::setTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, const QString& actorId, const QString& actorProposal)
 {
     id_ = id;
     name_ = name;
@@ -82,11 +92,11 @@ void UiEntitySelection::setTransaction(const QString& id, const QString& name, c
     description_ = description;
     actorIds_.clear();
     propertyIds_.clear();
-    startDate_.clear();
-    endDate_.clear();
     bookingDate_ = bookingDate;
     amount_ = amount;
     statementId_ = statementId;
+    actorId_ = actorId;
+    actorProposal_ = actorProposal;
     emit changed();
 }
 
@@ -105,10 +115,10 @@ void UiEntitySelection::setContract(const QString& id, const QString& name, cons
     description_ = description;
     actorIds_ = actorIds;
     propertyIds_ = propertyIds;
-    startDate_.clear();
-    endDate_.clear();
     bookingDate_.clear();
     amount_ = 0.0;
     statementId_.clear();
+    actorId_.clear();
+    actorProposal_.clear();
     emit changed();
 }

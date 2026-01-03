@@ -15,7 +15,5 @@ public:
 
     std::string id;
     std::string name;
-    std::string startDate;
-    std::string endDate;
     std::vector<Transaction> transactions;
 };

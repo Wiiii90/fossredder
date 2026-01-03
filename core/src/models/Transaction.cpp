@@ -23,10 +23,12 @@ bool Transaction::operator==(const Transaction& other) const noexcept {
            bookingDate == other.bookingDate &&
            valuta == other.valuta &&
            amount == other.amount &&
+           status == other.status &&
            contractId == other.contractId &&
-           contract == other.contract &&
            actorId == other.actorId &&
-           actor == other.actor &&
            statementId == other.statementId &&
-           description == other.description;
+           description == other.description &&
+           actorProposal == other.actorProposal &&
+           metadata == other.metadata &&
+           proofImagePath == other.proofImagePath;
 }

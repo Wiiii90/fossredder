@@ -10,7 +10,7 @@ ImportController::ImportController(std::shared_ptr<StatementController> statemen
 {
 }
 
-std::shared_ptr<Statement> ImportController::import(ImportType type, const std::string& filePath)
+std::shared_ptr<Statement> ImportController::import(ImportType type, const std::string& filePath, const std::string& runRoot, const std::string& runIdPrefix)
 {
     try { debug::startRun("import"); } catch (...) {}
 
@@ -20,7 +20,7 @@ std::shared_ptr<Statement> ImportController::import(ImportType type, const std::
         switch (type) {
         case ImportType::Statement:
             if (statementController_) {
-                result = statementController_->importStatement(filePath);
+                result = statementController_->importStatement(filePath, runRoot, runIdPrefix);
             }
             break;
         }

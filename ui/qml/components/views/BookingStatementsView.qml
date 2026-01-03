@@ -10,8 +10,6 @@ Item {
 
     function clearFields() {
         nameField.text = ""
-        startDateField.text = ""
-        endDateField.text = ""
     }
 
     function syncFields() {
@@ -20,8 +18,6 @@ Item {
             return
         }
         nameField.text = current.name || ""
-        startDateField.text = current.startDate || ""
-        endDateField.text = current.endDate || ""
     }
 
     Connections { target: current; function onChanged() { syncFields() } }
@@ -38,8 +34,6 @@ Item {
         }
 
         TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
-        TextField { id: startDateField; placeholderText: qsTr("Start Date"); Layout.fillWidth: true }
-        TextField { id: endDateField; placeholderText: qsTr("End Date"); Layout.fillWidth: true }
 
         Item { Layout.fillHeight: true }
 
@@ -63,9 +57,9 @@ Item {
                 onClicked: {
                     if (!uiDomain) return
                     if (isEdit) {
-                        uiDomain.updateStatement(current.id, nameField.text, startDateField.text, endDateField.text)
+                        uiDomain.updateStatement(current.id, nameField.text)
                     } else {
-                        var id = uiDomain.addStatement(nameField.text, startDateField.text, endDateField.text)
+                        var id = uiDomain.addStatement(nameField.text)
                         clearFields()
                         if (uiData && id && id.length > 0) uiData.selectedStatementId = id
                     }

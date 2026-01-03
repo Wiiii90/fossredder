@@ -19,7 +19,12 @@ public:
         ValutaRole,
         AmountRole,
         DescriptionRole,
-        StatusRole
+        StatusRole,
+        ActorIdRole,
+        ActorProposalRole,
+        MetadataRole,
+        ProofImagePathRole
+        // PaymentSchemeRole removed
     };
 
     explicit TransactionList(QObject* parent = nullptr);

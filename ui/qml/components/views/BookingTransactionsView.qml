@@ -14,6 +14,8 @@ Item {
         bookingDateField.text = ""
         amountField.text = ""
         descField.text = ""
+        metadataField.text = ""
+        proofImage.source = ""
         statementIdField.text = (uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : ""
         quickStatementField.text = ""
     }
@@ -31,7 +33,15 @@ Item {
         bookingDateField.text = current.bookingDate || ""
         amountField.text = String(current.amount)
         descField.text = current.description || ""
+        metadataField.text = current.metadata || ""
+        proofImage.source = toFileUrl(current.proofImagePath || "")
         statementIdField.text = current.statementId || ""
+    }
+
+    function toFileUrl(p) {
+        if (!p || p.length === 0) return ""
+        if (p.indexOf("file://") === 0) return p
+        return "file:///" + String(p).replace(/\\/g, "/")
     }
 
     Connections { target: current; function onChanged() { syncFields() } }
@@ -48,6 +58,36 @@ Item {
         TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
         TextField { id: bookingDateField; placeholderText: qsTr("Booking Date"); Layout.fillWidth: true }
         TextField { id: amountField; placeholderText: qsTr("Amount"); Layout.fillWidth: true }
+
+        GroupBox {
+            title: qsTr("Imported metadata")
+            Layout.fillWidth: true
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 8
+                spacing: 6
+
+                TextArea {
+                    id: metadataField
+                    readOnly: true
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 140
+                    wrapMode: TextArea.Wrap
+                    placeholderText: qsTr("(no metadata)")
+                }
+
+                Image {
+                    id: proofImage
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 160
+                    fillMode: Image.PreserveAspectFit
+                    source: ""
+                    visible: source && source.length > 0
+                }
+            }
+        }
+
         TextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.preferredHeight: 120; wrapMode: TextArea.Wrap }
 
         GroupBox {
@@ -124,12 +164,21 @@ Item {
                     if (isNaN(amount)) amount = 0.0
 
                     if (isEdit) {
-                        uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amount, descField.text, statementIdField.text)
-                    } else {
-                        var id = uiDomain.addTransaction(nameField.text, bookingDateField.text, amount, descField.text, statementIdField.text)
-                        clearFields()
-                        if (uiData && id && id.length > 0) uiData.selectedTransactionId = id
-                    }
+                        uiDomain.updateTransaction(current.id,
+                                                  nameField.text,
+                                                  bookingDateField.text,
+                                                  amount,
+                                                  descField.text,
+                                                  statementIdField.text)
+                     } else {
+                        var id = uiDomain.addTransaction(nameField.text,
+                                                         bookingDateField.text,
+                                                         amount,
+                                                         descField.text,
+                                                         statementIdField.text)
+                         clearFields()
+                         if (uiData && id && id.length > 0) uiData.selectedTransactionId = id
+                     }
                 }
             }
 

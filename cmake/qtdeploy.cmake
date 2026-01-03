@@ -96,6 +96,10 @@ if(EXISTS "${_src_imageformats}/qsvg.dll")
     file(COPY "${_src_imageformats}/qsvg.dll" DESTINATION "${TARGET_DIR}/imageformats")
 endif()
 
+if(EXISTS "${_src_imageformats}/qjpeg.dll")
+    file(COPY "${_src_imageformats}/qjpeg.dll" DESTINATION "${TARGET_DIR}/imageformats")
+endif()
+
 # QML imports (+ plugin DLLs)
 if(EXISTS "${_src_qml}")
     file(GLOB_RECURSE _qml "${_src_qml}/*")

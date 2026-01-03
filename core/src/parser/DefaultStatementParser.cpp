@@ -1,171 +1,715 @@
 #include "core/pch.h"
+
 #include "core/parser/DefaultStatementParser.h"
+
+#include "core/parser/DefaultTransactionParser.h"
+#include "core/utils/Util.h"
+#include "core/utils/UniqId.h"
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
+#include <limits>
 #include <optional>
 #include <regex>
 #include <sstream>
 
+using core::parser::DefaultTransactionParser;
+using core::parser::OcrCell;
+using core::parser::OcrLine;
+using core::parser::TransactionBlock;
+using core::parser::TransactionMainRow;
+using utils::lowerAscii;
+using utils::trim;
+
 namespace {
 
-static std::string trim(std::string s) {
-    auto notSpace = [](unsigned char c) { return !std::isspace(c); };
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), notSpace));
-    s.erase(std::find_if(s.rbegin(), s.rend(), notSpace).base(), s.end());
-    return s;
-}
-
-static std::string lowerAscii(std::string s) {
-    for (auto& ch : s) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-    return s;
-}
-
-static std::optional<std::string> findBookingDate(const std::string& line) {
-    auto l = lowerAscii(line);
-    if (l.find("buchungsdatum") == std::string::npos) return std::nullopt;
-
-    std::regex re(R"((\d{2}\.\d{2}\.\d{4}|\d{2}\.\d{2}\.\d{2}|\d{2}\.\d{2}))");
-    std::smatch m;
-    if (std::regex_search(line, m, re)) return m.str(1);
-    return std::nullopt;
-}
-
-static std::optional<std::string> findValuta(const std::string& line) {
-    std::regex re(R"((\d{2}\.\d{2}))");
-    std::smatch m;
-    if (std::regex_search(line, m, re)) return m.str(1);
-    return std::nullopt;
-}
-
-static std::optional<double> parseAmountToken(const std::string& token) {
-    std::string t;
-    t.reserve(token.size());
-    for (char ch : token) {
-        if (std::isdigit(static_cast<unsigned char>(ch)) || ch == ',' || ch == '.' || ch == '-') t.push_back(ch);
+static std::string normalizeAlnumLower(const std::string& s) {
+    std::string o;
+    o.reserve(s.size());
+    for (unsigned char c : utils::lowerAscii(s)) {
+        if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) o.push_back(static_cast<char>(c));
     }
-    if (t.empty()) return std::nullopt;
-
-    bool negative = false;
-    if (!t.empty() && t.back() == '-') { negative = true; t.pop_back(); }
-
-    t.erase(std::remove(t.begin(), t.end(), '.'), t.end());
-    std::replace(t.begin(), t.end(), ',', '.');
-
-    try {
-        double v = std::stod(t);
-        if (negative) v = -v;
-        return v;
-    } catch (...) {
-        return std::nullopt;
-    }
+    return o;
 }
 
-static std::optional<double> findAmount(const std::string& line) {
-    // rightmost amount token
-    std::regex re(R"((\d{1,3}(?:[\.,]\d{3})*,\d{2})(-)?)");
-    std::smatch m;
-    std::string s = line;
-    std::optional<double> last;
-    while (std::regex_search(s, m, re)) {
-        std::string token = m.str(1);
-        if (m.size() > 2 && m.str(2) == "-") token += "-";
-        last = parseAmountToken(token);
-        s = m.suffix().str();
-    }
-    return last;
+static bool isValutaHeaderLine(const std::string& line) {
+    const auto n = normalizeAlnumLower(line);
+    return n.find("valuta") != std::string::npos;
 }
 
-struct Line {
+struct RawLine {
     int cy = 0;
+    int minX = std::numeric_limits<int>::max();
+    int maxX = std::numeric_limits<int>::min();
+    int minY = std::numeric_limits<int>::max();
+    int maxY = std::numeric_limits<int>::min();
+    std::vector<std::pair<int, int>> wordSpans;
     std::string text;
 };
 
-static std::vector<Line> buildLines(const std::vector<api::tesseract::Word>& words) {
-    std::vector<Line> out;
+struct ColumnModel {
+    int valutaX = -1;
+    int debitX = -1;
+    int creditX = -1;
+    bool hasValuta() const { return valutaX >= 0; }
+    bool hasDebit() const { return debitX >= 0; }
+    bool hasCredit() const { return creditX >= 0; }
+};
 
-    struct WRef { const api::tesseract::Word* w; int cy; };
-    std::vector<WRef> ws;
+struct RowModel {
+    bool inSection = false;
+};
+
+static bool hasTokenNearX(const RawLine& l, int x, int bandPx) {
+    if (x < 0) return false;
+    const auto toks = utils::splitWhitespace(l.text);
+    if (toks.size() != l.wordSpans.size() || toks.empty()) return false;
+
+    for (size_t i = 0; i < toks.size(); ++i) {
+        const auto& sp = l.wordSpans[i];
+        const int cx = (sp.first + sp.second) / 2;
+        if (std::abs(cx - x) <= bandPx) return true;
+    }
+    return false;
+}
+
+static bool isLikelyTransactionMainRowGeom(const RawLine& l, const ColumnModel& cols) {
+    if (!cols.hasValuta() || (!cols.hasDebit() && !cols.hasCredit())) return false;
+    const auto toks = utils::splitWhitespace(l.text);
+    if (toks.size() != l.wordSpans.size() || toks.size() < 3) return false;
+
+    const int band = 140;
+    const bool hasValuta = hasTokenNearX(l, cols.valutaX, band);
+    const bool hasDebit = cols.hasDebit() ? hasTokenNearX(l, cols.debitX, band) : false;
+    const bool hasCredit = cols.hasCredit() ? hasTokenNearX(l, cols.creditX, band) : false;
+
+    bool hasLeft = false;
+    for (size_t i = 0; i < toks.size(); ++i) {
+        const auto& sp = l.wordSpans[i];
+        const int cx = (sp.first + sp.second) / 2;
+        if (cx < cols.valutaX - 200) { hasLeft = true; break; }
+    }
+
+    return hasLeft && hasValuta && (hasDebit || hasCredit);
+}
+
+static std::vector<RawLine> buildOcrLines(const std::vector<api::tesseract::Word>& words) {
+    struct W {
+        const api::tesseract::Word* w;
+        int cy;
+        int top;
+        int bottom;
+        int left;
+    };
+
+    std::vector<W> ws;
     ws.reserve(words.size());
-    for (const auto& w : words) ws.push_back({ &w, w.bbox.y + w.bbox.height / 2 });
+    for (const auto& w : words) {
+        bool anyNonSpace = false;
+        for (unsigned char c : w.text) {
+            if (!std::isspace(c)) { anyNonSpace = true; break; }
+        }
+        if (!anyNonSpace) continue;
 
-    std::sort(ws.begin(), ws.end(), [](const WRef& a, const WRef& b) {
+        const int cy = w.bbox.y + w.bbox.height / 2;
+        ws.push_back(W{ &w, cy, w.bbox.y, w.bbox.y + w.bbox.height, w.bbox.x });
+    }
+
+    std::sort(ws.begin(), ws.end(), [](const W& a, const W& b) {
+        if (a.top != b.top) return a.top < b.top;
         if (a.cy != b.cy) return a.cy < b.cy;
-        return a.w->bbox.x < b.w->bbox.x;
+        return a.left < b.left;
     });
 
     int avgH = 0;
-    for (const auto& ww : ws) avgH += ww.w->bbox.height;
+    for (const auto& ww : ws) avgH += (ww.bottom - ww.top);
     avgH = ws.empty() ? 10 : std::max(1, avgH / static_cast<int>(ws.size()));
-    int tol = std::max(6, avgH / 2);
+    const int minOverlap = std::max(2, avgH / 3);
+
+    struct LineAcc {
+        int cy = 0;
+        int minX = std::numeric_limits<int>::max();
+        int maxX = std::numeric_limits<int>::min();
+        int minY = std::numeric_limits<int>::max();
+        int maxY = std::numeric_limits<int>::min();
+        std::vector<const api::tesseract::Word*> words;
+    };
+
+    std::vector<LineAcc> acc;
+    acc.reserve(std::max<size_t>(8, words.size() / 8));
 
     for (const auto& ww : ws) {
-        if (out.empty() || std::abs(ww.cy - out.back().cy) > tol) {
-            Line l;
-            l.cy = ww.cy;
-            l.text = ww.w->text;
-            out.push_back(std::move(l));
-        } else {
-            auto& l = out.back();
-            l.cy = (l.cy + ww.cy) / 2;
-            if (!l.text.empty()) l.text.push_back(' ');
-            l.text += ww.w->text;
+        const auto& w = *ww.w;
+        const int wMinX = w.bbox.x;
+        const int wMaxX = w.bbox.x + w.bbox.width;
+        const int wMinY = w.bbox.y;
+        const int wMaxY = w.bbox.y + w.bbox.height;
+
+        int bestIdx = -1;
+        int bestOverlap = -1;
+        for (int i = static_cast<int>(acc.size()) - 1; i >= 0; --i) {
+            const auto& l = acc[static_cast<size_t>(i)];
+            const int top = std::max(l.minY, wMinY);
+            const int bot = std::min(l.maxY, wMaxY);
+            const int ov = bot - top;
+            if (ov >= minOverlap && ov > bestOverlap) {
+                bestOverlap = ov;
+                bestIdx = i;
+            }
+            if (wMinY - l.maxY > avgH) break;
         }
+
+        if (bestIdx < 0) {
+            LineAcc nl;
+            nl.cy = ww.cy;
+            nl.minX = wMinX;
+            nl.maxX = wMaxX;
+            nl.minY = wMinY;
+            nl.maxY = wMaxY;
+            nl.words.push_back(&w);
+            acc.push_back(std::move(nl));
+            continue;
+        }
+
+        auto& l = acc[static_cast<size_t>(bestIdx)];
+        l.cy = (l.cy + ww.cy) / 2;
+        l.minX = std::min(l.minX, wMinX);
+        l.maxX = std::max(l.maxX, wMaxX);
+        l.minY = std::min(l.minY, wMinY);
+        l.maxY = std::max(l.maxY, wMaxY);
+        l.words.push_back(&w);
     }
+
+    std::vector<RawLine> out;
+    out.reserve(acc.size());
+
+    for (auto& l : acc) {
+        std::sort(l.words.begin(), l.words.end(), [](const api::tesseract::Word* a, const api::tesseract::Word* b) {
+            if (a->bbox.x != b->bbox.x) return a->bbox.x < b->bbox.x;
+            return a->bbox.y < b->bbox.y;
+        });
+
+        RawLine ol;
+        ol.cy = l.cy;
+        ol.minX = l.minX;
+        ol.maxX = l.maxX;
+        ol.minY = l.minY;
+        ol.maxY = l.maxY;
+
+        ol.wordSpans.reserve(l.words.size());
+        for (const auto* w : l.words) {
+            const int left = w->bbox.x;
+            const int right = w->bbox.x + w->bbox.width;
+            ol.wordSpans.emplace_back(left, right);
+        }
+
+        for (const auto* w : l.words) {
+            if (!ol.text.empty()) ol.text.push_back(' ');
+            ol.text += w->text;
+        }
+
+        ol.text = trim(std::move(ol.text));
+        out.push_back(std::move(ol));
+    }
+
     return out;
 }
 
+static bool containsAny(const std::string& hayLower, std::initializer_list<const char*> needlesLower) {
+    for (auto n : needlesLower) {
+        if (hayLower.find(n) != std::string::npos) return true;
+    }
+    return false;
+}
+
+static bool isHeaderNoiseLine(const std::string& line) {
+    const auto l = lowerAscii(line);
+    if (l.size() <= 2) return true;
+
+    return containsAny(l, {
+        "kontoauszug",
+        "auszug-nr",
+        "seite-nr",
+        "iban",
+        "bic",
+        "commerzbank",
+        "ust-idnr",
+        "hamburg",
+        "ihr ansprechpartner",
+        "telefonnummer",
+        "kontowährung",
+    });
+}
+
 static bool isFooterLine(const std::string& line) {
-    auto l = lowerAscii(line);
-    return l.find("folgeseite") != std::string::npos;
+    const auto l = lowerAscii(line);
+    return containsAny(l, { "folgeseite", "vsa000", "fil200", "ktea", "folgende seite" });
+}
+
+static bool isPostTransactionFootnote(const std::string& line) {
+    const auto l = lowerAscii(line);
+    if (!l.empty() && l.find("kontostand") != std::string::npos) return false;
+
+    return containsAny(l, {
+        "guthaben sind als",
+        "einlagensicherungsgesetzes",
+        "informationsbogen",
+        "der angegebene kontostand",
+        "wertstellung der buchungen",
+        "kontoüberziehung",
+        "neuer kontostand",
+        "alter kontostand",
+        "folgeseite",
+    });
+}
+
+static bool isTransactionsSectionHeader(const std::string& line) {
+    const auto l = lowerAscii(line);
+    if (l.find("angaben zu den umsätzen") != std::string::npos) return true;
+    const bool hasValuta = (l.find("valuta") != std::string::npos);
+    const bool hasUmsaetze = (l.find("umsätzen") != std::string::npos) || (l.find("umsaetzen") != std::string::npos);
+    const bool hasAngaben = (l.find("angaben") != std::string::npos);
+    return hasValuta && (hasUmsaetze || hasAngaben);
+}
+
+static bool isDebitCreditHeaderLine(const std::string& line) {
+    const auto n = normalizeAlnumLower(line);
+    return (n.find("zuihrenlasten") != std::string::npos) &&
+           (n.find("zuihrengunsten") != std::string::npos);
+}
+
+static std::optional<int> findTokenCenterX(const RawLine& l, const std::string& tokenLower) {
+    const auto toks = utils::splitWhitespace(l.text);
+    if (toks.size() != l.wordSpans.size()) return std::nullopt;
+
+    const auto want = normalizeAlnumLower(tokenLower);
+    for (size_t i = 0; i < toks.size(); ++i) {
+        if (normalizeAlnumLower(toks[i]) != want) continue;
+        const auto& sp = l.wordSpans[i];
+        return (sp.first + sp.second) / 2;
+    }
+
+    for (size_t i = 0; i < toks.size(); ++i) {
+        const auto n = normalizeAlnumLower(toks[i]);
+        if (n.find(want) == std::string::npos) continue;
+        const auto& sp = l.wordSpans[i];
+        return (sp.first + sp.second) / 2;
+    }
+
+    return std::nullopt;
+}
+
+static std::optional<int> findPhraseCenterX(const RawLine& l, std::initializer_list<const char*> phraseLower) {
+    const auto toks = utils::splitWhitespace(l.text);
+    if (toks.size() != l.wordSpans.size()) return std::nullopt;
+
+    std::string want;
+    for (auto w : phraseLower) want += normalizeAlnumLower(std::string(w));
+    if (want.empty() || toks.empty()) return std::nullopt;
+
+    for (size_t i = 0; i < toks.size(); ++i) {
+        std::string acc;
+        int left = l.wordSpans[i].first;
+        int right = l.wordSpans[i].second;
+
+        for (size_t j = i; j < toks.size() && (j - i) < 6; ++j) {
+            acc += normalizeAlnumLower(toks[j]);
+            right = l.wordSpans[j].second;
+            if (acc.find(want) != std::string::npos) {
+                return (left + right) / 2;
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
+static std::optional<std::string> extractBookingDateFromHeader(const std::string& line) {
+    const auto l = lowerAscii(trim(line));
+    if (l.rfind("buchungsdatum", 0) != 0) return std::nullopt;
+
+    static const std::regex re(R"(\b(\d{2}\.\d{2}\.\d{4})\b)");
+    std::sregex_iterator it(line.begin(), line.end(), re);
+    std::sregex_iterator end;
+    if (it == end) return std::nullopt;
+    const auto first = (*it).str(1);
+    ++it;
+    if (it != end) return std::nullopt;
+    return first;
+}
+
+static bool isLikelyTransactionMainRowText(const std::string& line) {
+    static const std::regex re(R"((\d{2}\.\d{2})\s+\d{1,3}(?:[\.,]\d{3})*,\d{2}-?(?:\s+.*)?\s*$)");
+    return std::regex_search(line, re);
+}
+
+static OcrLine toOcrLineFromWords(const RawLine& src, size_t i0, size_t i1) {
+    OcrLine out;
+    if (i0 >= i1 || i0 >= src.wordSpans.size()) return out;
+    i1 = std::min(i1, src.wordSpans.size());
+
+    out.minY = src.minY;
+    out.maxY = src.maxY;
+
+    out.minX = src.wordSpans[i0].first;
+    out.maxX = src.wordSpans[i0].second;
+    out.wordSpans.reserve(i1 - i0);
+
+    for (size_t i = i0; i < i1; ++i) {
+        const auto& sp = src.wordSpans[i];
+        out.minX = std::min(out.minX, sp.first);
+        out.maxX = std::max(out.maxX, sp.second);
+        out.wordSpans.push_back(sp);
+    }
+
+    const auto toks = utils::splitWhitespace(src.text);
+    std::string txt;
+    for (size_t i = i0; i < i1 && i < toks.size(); ++i) {
+        if (!txt.empty()) txt.push_back(' ');
+        txt += toks[i];
+    }
+    out.text = trim(std::move(txt));
+    return out;
+}
+
+static TransactionMainRow splitMainRow(const RawLine& src, const ColumnModel& cols) {
+    TransactionMainRow row;
+
+    const auto toks = utils::splitWhitespace(src.text);
+    if (toks.size() != src.wordSpans.size() || toks.empty()) {
+        row.left.line.text = src.text;
+        row.left.line.minX = src.minX;
+        row.left.line.maxX = src.maxX;
+        row.left.line.minY = src.minY;
+        row.left.line.maxY = src.maxY;
+        row.left.line.wordSpans = src.wordSpans;
+        return row;
+    }
+
+    auto cxAt = [&](size_t i) -> int {
+        const auto& sp = src.wordSpans[i];
+        return (sp.first + sp.second) / 2;
+    };
+
+    auto idxNearX = [&](int x, int skipIdx) -> int {
+        int bestIdx = -1;
+        int bestDist = std::numeric_limits<int>::max();
+        for (size_t i = 0; i < toks.size(); ++i) {
+            if (static_cast<int>(i) == skipIdx) continue;
+            const int cx = cxAt(i);
+            const int d = std::abs(cx - x);
+            if (d < bestDist) { bestDist = d; bestIdx = static_cast<int>(i); }
+        }
+        return bestIdx;
+    };
+
+    int valutaIdx = cols.hasValuta() ? idxNearX(cols.valutaX, -1) : -1;
+    int debitIdx = cols.hasDebit() ? idxNearX(cols.debitX, -1) : -1;
+    int creditIdx = cols.hasCredit() ? idxNearX(cols.creditX, -1) : -1;
+
+    if (valutaIdx >= 0) {
+        if (debitIdx == valutaIdx && cols.hasDebit()) debitIdx = idxNearX(cols.debitX, valutaIdx);
+        if (creditIdx == valutaIdx && cols.hasCredit()) creditIdx = idxNearX(cols.creditX, valutaIdx);
+    }
+    if (debitIdx >= 0) {
+        if (creditIdx == debitIdx && cols.hasCredit()) creditIdx = idxNearX(cols.creditX, debitIdx);
+    }
+
+    int firstRight = std::numeric_limits<int>::max();
+    if (valutaIdx >= 0) firstRight = std::min(firstRight, valutaIdx);
+    if (debitIdx >= 0) firstRight = std::min(firstRight, debitIdx);
+    if (creditIdx >= 0) firstRight = std::min(firstRight, creditIdx);
+    if (firstRight == std::numeric_limits<int>::max()) firstRight = static_cast<int>(toks.size());
+
+    row.left.line = toOcrLineFromWords(src, 0, static_cast<size_t>(std::max(0, firstRight)));
+
+    if (valutaIdx >= 0) {
+        size_t v0 = static_cast<size_t>(valutaIdx);
+        size_t v1 = v0 + 1;
+        if (cols.hasValuta() && v1 < toks.size()) {
+            const int cx1 = cxAt(v1);
+            if (std::abs(cx1 - cols.valutaX) <= 140) v1 = v1 + 1;
+        }
+        row.valuta.line = toOcrLineFromWords(src, v0, v1);
+    }
+    if (debitIdx >= 0) row.debit.line = toOcrLineFromWords(src, static_cast<size_t>(debitIdx), static_cast<size_t>(debitIdx + 1));
+    if (creditIdx >= 0) row.credit.line = toOcrLineFromWords(src, static_cast<size_t>(creditIdx), static_cast<size_t>(creditIdx + 1));
+
+    return row;
 }
 
 } // namespace
 
-DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::opencv::Table& /*table*/, const api::tesseract::ExtractResult& ocr, std::string initialBookingDate) {
+DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::opencv::Table& /*table*/,
+                                                                  const api::tesseract::ExtractResult& ocr,
+                                                                  const std::string& pageCropImagePath,
+                                                                  std::shared_ptr<api::opencv::IOpenCvService> opencv,
+                                                                  std::string initialBookingDate,
+                                                                  int initialTransactionIndex) {
     ParseResult out;
 
-    auto lines = buildLines(ocr.words);
-    out.debugLines.push_back("META\tlines\t" + std::to_string(lines.size()));
+    out.debugLines.push_back(std::string("pageCropImagePath\t") + pageCropImagePath);
+    out.debugLines.push_back(std::string("initialBookingDate\t") + initialBookingDate);
+    out.debugLines.push_back(std::string("initialTransactionIndex\t") + std::to_string(initialTransactionIndex));
 
-    std::string currentBookingDate = std::move(initialBookingDate);
-    bool inTransactions = !currentBookingDate.empty();
-    if (inTransactions) out.debugLines.push_back("CTX\tinitialBookingDate\t" + currentBookingDate);
+    const auto lines = buildOcrLines(ocr.words);
+    out.debugLines.push_back(std::string("ocr.words\t") + std::to_string(ocr.words.size()));
+    out.debugLines.push_back(std::string("ocr.lines\t") + std::to_string(lines.size()));
 
-    for (const auto& l : lines) {
-        auto txt = trim(l.text);
-        if (txt.empty() || isFooterLine(txt)) continue;
+    for (size_t li = 0; li < lines.size(); ++li) {
+        const auto& ln = lines[li];
+        std::ostringstream lns;
+        lns << "line." << li << "\tminX=" << ln.minX << "\tmaxX=" << ln.maxX << "\tminY=" << ln.minY << "\tmaxY=" << ln.maxY << "\ttext=" << ln.text;
+        out.debugLines.push_back(lns.str());
 
-        out.debugLines.push_back("LINE\t" + std::to_string(l.cy) + "\t" + txt);
-
-        if (auto bd = findBookingDate(txt)) {
-            currentBookingDate = *bd;
-            inTransactions = true;
-            out.debugLines.push_back("BOOKINGDATE\t" + currentBookingDate + "\tlineY\t" + std::to_string(l.cy));
-            continue;
-        }
-
-        if (!inTransactions) continue;
-
-        auto amount = findAmount(txt);
-        auto valuta = findValuta(txt);
-
-        if (amount && valuta) {
-            Transaction tx;
-            tx.bookingDate = currentBookingDate;
-            tx.valuta = *valuta;
-            tx.amount = *amount;
-            tx.name = txt;
-            out.transactions.push_back(std::move(tx));
-            out.debugLines.push_back("TX_START\tlineY\t" + std::to_string(l.cy) + "\tvaluta\t" + *valuta + "\tamount\t" + std::to_string(*amount));
-        } else if (!out.transactions.empty()) {
-            out.transactions.back().name += "\n" + txt;
-            out.debugLines.push_back("TX_CONT\tlineY\t" + std::to_string(l.cy));
+        const auto toks = utils::splitWhitespace(ln.text);
+        if (!toks.empty() && toks.size() == ln.wordSpans.size()) {
+            std::ostringstream tks;
+            tks << "line." << li << ".tokens";
+            for (size_t ti = 0; ti < toks.size(); ++ti) {
+                const auto& sp = ln.wordSpans[ti];
+                const int cx = (sp.first + sp.second) / 2;
+                tks << " \"" << toks[ti] << "\"@" << cx;
+            }
+            out.debugLines.push_back(tks.str());
         }
     }
 
+    std::string currentBookingDate = std::move(initialBookingDate);
+    int txIndex = std::max(1, initialTransactionIndex);
+
+    std::vector<TransactionBlock> blocks;
+    TransactionBlock cur;
+    cur.bookingDateGroup = currentBookingDate;
+
+    bool inTransactions = !currentBookingDate.empty();
+    ColumnModel cols;
+    RowModel rows;
+
+    const auto flush = [&]() {
+        if (cur.main.left.empty() && cur.detailLines.empty()) return;
+        blocks.push_back(std::move(cur));
+        cur = TransactionBlock{};
+        cur.bookingDateGroup = currentBookingDate;
+    };
+
+    std::string prevLine;
+
+    for (size_t li = 0; li < lines.size(); ++li) {
+        const auto& l = lines[li];
+        const auto txt = l.text;
+        if (txt.empty()) continue;
+
+        if (isFooterLine(txt)) { out.debugLines.push_back(std::string("stop.footer\t") + txt + "\tline=" + std::to_string(li)); break; }
+        if (isPostTransactionFootnote(txt)) { out.debugLines.push_back(std::string("stop.footnote\t") + txt + "\tline=" + std::to_string(li)); break; }
+
+        if ((!cols.hasDebit() || !cols.hasCredit()) && isDebitCreditHeaderLine(txt)) {
+            if (!cols.hasDebit()) {
+                if (auto dx = findPhraseCenterX(l, {"zu","ihren","lasten"})) cols.debitX = *dx;
+            }
+            if (!cols.hasCredit()) {
+                if (auto cx = findPhraseCenterX(l, {"zu","ihren","gunsten"})) cols.creditX = *cx;
+            }
+            out.debugLines.push_back(std::string("header.debitcredit\t") + txt + "\tline=" + std::to_string(li));
+            out.debugLines.push_back(std::string("cols.debitX\t") + std::to_string(cols.debitX) + "\tcols.creditX\t" + std::to_string(cols.creditX));
+            prevLine = txt;
+            continue;
+        }
+
+        const auto combined = prevLine.empty() ? txt : (prevLine + " " + txt);
+        if (!rows.inSection && (isTransactionsSectionHeader(txt) || isValutaHeaderLine(txt) || isTransactionsSectionHeader(combined))) {
+            rows.inSection = true;
+            if (!cols.hasValuta()) {
+                if (auto vx = findTokenCenterX(l, "valuta")) cols.valutaX = *vx;
+            }
+            out.debugLines.push_back(std::string("header.section\t") + combined + "\tline=" + std::to_string(li));
+            out.debugLines.push_back(std::string("cols.valutaX\t") + std::to_string(cols.valutaX));
+            prevLine = txt;
+            continue;
+        }
+
+        if (auto bd = extractBookingDateFromHeader(txt)) {
+            currentBookingDate = *bd;
+            out.debugLines.push_back(std::string("header.bookingDate\t") + currentBookingDate + "\tline=" + std::to_string(li));
+            flush();
+            cur.bookingDateGroup = currentBookingDate;
+            prevLine = txt;
+            continue;
+        }
+
+        if (!inTransactions && !isLikelyTransactionMainRowText(txt) && !isTransactionsSectionHeader(txt) && !isDebitCreditHeaderLine(txt) && isHeaderNoiseLine(txt)) {
+            out.debugLines.push_back(std::string("line.skip.headerNoise\t") + txt + "\tline=" + std::to_string(li));
+            prevLine = txt;
+            continue;
+        }
+
+        if (!inTransactions) {
+            const bool canStart = (!currentBookingDate.empty()) || (rows.inSection && cols.hasValuta());
+            if (canStart && (isLikelyTransactionMainRowText(txt) || isLikelyTransactionMainRowGeom(l, cols))) {
+                inTransactions = true;
+                out.debugLines.push_back(std::string("tx.start\tline=") + std::to_string(li) + "\ttext=" + txt);
+            } else {
+                out.debugLines.push_back(std::string("line.skip.notInTransactions\t") + txt + "\tline=" + std::to_string(li));
+                prevLine = txt;
+                continue;
+            }
+        }
+
+        const bool mainByRegex = isLikelyTransactionMainRowText(txt);
+        const bool mainByGeom = (!mainByRegex) && isLikelyTransactionMainRowGeom(l, cols);
+
+        if (mainByRegex || mainByGeom) {
+            if (!cur.main.left.empty() || !cur.detailLines.empty()) flush();
+            cur.bookingDateGroup = currentBookingDate;
+            cur.main = splitMainRow(l, cols);
+
+            if (mainByGeom) {
+                out.debugLines.push_back(std::string("tx.main.geom\t") + txt + "\tline=" + std::to_string(li));
+            }
+
+            {
+                const auto toks = utils::splitWhitespace(l.text);
+                if (toks.size() == l.wordSpans.size()) {
+                    auto idxNearX = [&](int x) -> int {
+                        int bestIdx = -1; int bestDist = std::numeric_limits<int>::max();
+                        for (size_t i = 0; i < toks.size(); ++i) {
+                            const auto& sp = l.wordSpans[i];
+                            const int cx = (sp.first + sp.second) / 2;
+                            const int d = std::abs(cx - x);
+                            if (d < bestDist) { bestDist = d; bestIdx = static_cast<int>(i); }
+                        }
+                        return bestIdx;
+                    };
+                    int valutaIdx = cols.hasValuta() ? idxNearX(cols.valutaX) : -1;
+                    int debitIdx = cols.hasDebit() ? idxNearX(cols.debitX) : -1;
+                    int creditIdx = cols.hasCredit() ? idxNearX(cols.creditX) : -1;
+
+                    std::ostringstream sel;
+                    sel << "tx.main.split\tline=" << li << "\tvalutaIdx=" << valutaIdx << "\tdebitIdx=" << debitIdx << "\tcreditIdx=" << creditIdx;
+                    out.debugLines.push_back(sel.str());
+
+                    std::ostringstream toksOut; toksOut << "tx.main.tokens\tline=" << li;
+                    for (size_t ti = 0; ti < toks.size(); ++ti) {
+                        const auto& sp = l.wordSpans[ti];
+                        const int cx = (sp.first + sp.second) / 2;
+                        toksOut << " \"" << toks[ti] << "\"@" << cx;
+                    }
+                    out.debugLines.push_back(toksOut.str());
+                }
+            }
+
+            out.debugLines.push_back(std::string("tx.main\t") + txt + "\tline=" + std::to_string(li));
+            out.debugLines.push_back(std::string("tx.main.left\t") + cur.main.left.line.text);
+            if (!cur.main.valuta.empty()) out.debugLines.push_back(std::string("tx.main.valuta\t") + cur.main.valuta.line.text);
+            if (!cur.main.debit.empty()) out.debugLines.push_back(std::string("tx.main.debit\t") + cur.main.debit.line.text);
+            if (!cur.main.credit.empty()) out.debugLines.push_back(std::string("tx.main.credit\t") + cur.main.credit.line.text);
+            prevLine = txt;
+            continue;
+        }
+
+        if (!cur.main.left.empty()) {
+            if (cols.hasValuta()) {
+                const auto toks = utils::splitWhitespace(l.text);
+                if (toks.size() == l.wordSpans.size()) {
+                    size_t cut = toks.size();
+                    for (size_t i = 0; i < toks.size(); ++i) {
+                        const auto& sp = l.wordSpans[i];
+                        const int cx = (sp.first + sp.second) / 2;
+                        if (cx >= cols.valutaX) { cut = i; break; }
+                    }
+                    OcrLine dl = toOcrLineFromWords(l, 0, cut);
+                    if (!trim(dl.text).empty()) {
+                        cur.detailLines.push_back(std::move(dl));
+                        out.debugLines.push_back(std::string("detail.append\tline=") + std::to_string(li) + "\ttext=" + l.text + "\tcut=" + std::to_string(cut));
+                    }
+                } else {
+                    OcrLine dl;
+                    dl.minX = l.minX; dl.maxX = l.maxX; dl.minY = l.minY; dl.maxY = l.maxY; dl.wordSpans = l.wordSpans;
+                    dl.text = l.text;
+                    cur.detailLines.push_back(std::move(dl));
+                    out.debugLines.push_back(std::string("detail.append.unknown\tline=") + std::to_string(li) + "\ttext=" + l.text);
+                }
+            } else {
+                OcrLine dl;
+                dl.minX = l.minX; dl.maxX = l.maxX; dl.minY = l.minY; dl.maxY = l.maxY; dl.wordSpans = l.wordSpans;
+                dl.text = l.text;
+                cur.detailLines.push_back(std::move(dl));
+                out.debugLines.push_back(std::string("detail.append.novaluta\tline=") + std::to_string(li) + "\ttext=" + l.text);
+            }
+        }
+
+        prevLine = txt;
+    }
+
+    flush();
+
+    out.debugLines.push_back(std::string("blocks\t") + std::to_string(blocks.size()));
+
+    for (const auto& b : blocks) {
+        if (b.main.left.empty()) continue;
+
+        const auto txp = DefaultTransactionParser::parseTransaction(b);
+
+        Transaction tx;
+        tx.name = "Transaction " + std::to_string(txIndex++);
+        tx.bookingDate = txp.bookingDate;
+        tx.valuta = txp.valuta;
+        tx.amount = txp.amount;
+        tx.description = txp.description;
+        tx.actorProposal = txp.actorProposal;
+        tx.metadata = txp.metadata;
+
+        if (opencv && !pageCropImagePath.empty()) {
+            int minX = std::numeric_limits<int>::max();
+            int maxX = std::numeric_limits<int>::min();
+            int minY = std::numeric_limits<int>::max();
+            int maxY = std::numeric_limits<int>::min();
+
+            auto accBounds = [&](const OcrLine& l) {
+                minX = std::min(minX, l.minX);
+                maxX = std::max(maxX, l.maxX);
+                minY = std::min(minY, l.minY);
+                maxY = std::max(maxY, l.maxY);
+            };
+
+            if (!b.main.left.empty()) accBounds(b.main.left.line);
+            for (const auto& l : b.detailLines) accBounds(l);
+
+            if (minX != std::numeric_limits<int>::max()) {
+                api::opencv::CropRequest creq;
+                creq.imagePath = std::filesystem::path(pageCropImagePath);
+                creq.outputDir = std::filesystem::path(pageCropImagePath).parent_path();
+                creq.uniqIdPrefix = std::string(utils::makeUniqId());
+                creq.filePrefix = std::string("opencv_proof_tx") + std::to_string(txIndex);
+                creq.outputFormat = api::opencv::CropRequest::OutputFormat::Jpg;
+                creq.jpegQuality = 92;
+
+                creq.bbox.x = 0;
+                creq.bbox.y = std::max(0, minY - 20);
+                creq.bbox.width = 1 << 30;
+
+                creq.bbox.height = std::max(1, (maxY - minY) + 24);
+                try {
+                    const auto cres = opencv->crop(creq);
+                    if (!cres.croppedImagePaths.empty()) {
+                        try { tx.proofImagePath = std::filesystem::absolute(cres.croppedImagePaths.front()).string(); }
+                        catch (...) { tx.proofImagePath = cres.croppedImagePaths.front().string(); }
+                    }
+                } catch (...) {
+                }
+            }
+        }
+
+        tx.status = static_cast<Transaction::Status>(txp.status);
+        out.transactions.push_back(std::move(tx));
+
+        out.lastBookingDate = b.bookingDateGroup;
+    }
+
+    out.debugLines.push_back(std::string("transactions\t") + std::to_string(out.transactions.size()));
+
     out.lastBookingDate = currentBookingDate;
-    out.debugLines.push_back("CTX\tlastBookingDate\t" + out.lastBookingDate);
-    out.debugLines.push_back("META\ttxCount\t" + std::to_string(out.transactions.size()));
+    out.nextTransactionIndex = txIndex;
     return out;
 }

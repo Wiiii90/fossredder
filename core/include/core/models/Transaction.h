@@ -40,7 +40,17 @@ public:
 
     std::string statementId;
 
+    // Raw/legacy free text (still kept for backward compatibility and UI display)
     std::string description;
+
+    // OCR/import suggestion
+    std::string actorProposal;
+
+    // Geometry-based OCR metadata block (read-only, derived during import).
+    std::string metadata;
+
+    // Optional image path for user verification (crop of the original statement page).
+    std::string proofImagePath;
 
     bool operator==(const Transaction& other) const noexcept;
 };

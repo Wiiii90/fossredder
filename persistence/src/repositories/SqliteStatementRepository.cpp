@@ -35,14 +35,12 @@ static long long parseId(const std::string& s) {
 void SqliteStatementRepository::addStatement(const std::shared_ptr<Statement>& statement) {
     if (!statement) return;
 
-    const char* insStmtSql = "INSERT INTO statements (name, start_date, end_date) VALUES (?, ?, ?);";
+    const char* insStmtSql = "INSERT INTO statements (name) VALUES (?);";
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(), insStmtSql, -1, &stmt, nullptr) != SQLITE_OK) {
         return;
     }
     sqlite3_bind_text(stmt, 1, statement->name.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, statement->startDate.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 3, statement->endDate.c_str(), -1, SQLITE_TRANSIENT);
     if (sqlite3_step(stmt) != SQLITE_DONE) {
         sqlite3_finalize(stmt);
         return;
@@ -79,21 +77,17 @@ void SqliteStatementRepository::addStatement(const std::shared_ptr<Statement>& s
 
 std::vector<std::shared_ptr<Statement>> SqliteStatementRepository::getStatements() const {
     std::vector<std::shared_ptr<Statement>> out;
-    const char* selStmtSql = "SELECT id, name, start_date, end_date FROM statements ORDER BY id;";
+    const char* selStmtSql = "SELECT id, name FROM statements ORDER BY id;";
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(), selStmtSql, -1, &stmt, nullptr) != SQLITE_OK) return out;
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         long long statementId = sqlite3_column_int64(stmt, 0);
         const unsigned char* name = sqlite3_column_text(stmt, 1);
-        const unsigned char* start = sqlite3_column_text(stmt, 2);
-        const unsigned char* end = sqlite3_column_text(stmt, 3);
 
         auto s = std::make_shared<Statement>();
         s->id = std::to_string(statementId);
         s->name = name ? reinterpret_cast<const char*>(name) : std::string();
-        s->startDate = start ? reinterpret_cast<const char*>(start) : std::string();
-        s->endDate = end ? reinterpret_cast<const char*>(end) : std::string();
 
         const char* selTxSql = "SELECT id, name, booking_date, valuta, amount, description FROM transactions WHERE statement_id = ? ORDER BY id;";
         sqlite3_stmt* txStmt = nullptr;
@@ -132,7 +126,7 @@ std::optional<std::shared_ptr<Statement>> SqliteStatementRepository::getStatemen
     long long sid = parseId(id);
     if (sid <= 0) return std::nullopt;
 
-    const char* selStmtSql = "SELECT id, name, start_date, end_date FROM statements WHERE id = ?;";
+    const char* selStmtSql = "SELECT id, name FROM statements WHERE id = ?;";
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(), selStmtSql, -1, &stmt, nullptr) != SQLITE_OK) return std::nullopt;
     sqlite3_bind_int64(stmt, 1, sid);
@@ -144,15 +138,11 @@ std::optional<std::shared_ptr<Statement>> SqliteStatementRepository::getStatemen
 
     long long statementId = sqlite3_column_int64(stmt, 0);
     const unsigned char* name = sqlite3_column_text(stmt, 1);
-    const unsigned char* start = sqlite3_column_text(stmt, 2);
-    const unsigned char* end = sqlite3_column_text(stmt, 3);
     sqlite3_finalize(stmt);
 
     auto s = std::make_shared<Statement>();
     s->id = std::to_string(statementId);
     s->name = name ? reinterpret_cast<const char*>(name) : std::string();
-    s->startDate = start ? reinterpret_cast<const char*>(start) : std::string();
-    s->endDate = end ? reinterpret_cast<const char*>(end) : std::string();
 
     const char* selTxSql = "SELECT id, name, booking_date, valuta, amount, description FROM transactions WHERE statement_id = ? ORDER BY id;";
     sqlite3_stmt* txStmt = nullptr;
@@ -204,13 +194,11 @@ void SqliteStatementRepository::updateStatement(const std::shared_ptr<Statement>
         return;
     }
 
-    const char* updStmtSql = "UPDATE statements SET name = ?, start_date = ?, end_date = ? WHERE id = ?;";
+    const char* updStmtSql = "UPDATE statements SET name = ? WHERE id = ?;";
     sqlite3_stmt* updStmt = nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(), updStmtSql, -1, &updStmt, nullptr) != SQLITE_OK) return;
     sqlite3_bind_text(updStmt, 1, statement->name.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(updStmt, 2, statement->startDate.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(updStmt, 3, statement->endDate.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int64(updStmt, 4, statementId);
+    sqlite3_bind_int64(updStmt, 2, statementId);
     sqlite3_step(updStmt);
     sqlite3_finalize(updStmt);
 }

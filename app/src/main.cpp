@@ -13,6 +13,7 @@
 
 #include <QDir>
 #include <QDebug>
+#include <QCoreApplication>
 
 #ifdef USE_QML
 #include "MainWindow.h"
@@ -106,6 +107,10 @@ int main(int argc, char* argv[]) {
 
     QApplication app(argc, argv);
     app.setStyle("Fusion");
+
+    // Ensure Qt finds deployed plugins next to the executable (qt.conf sets Plugins=./).
+    // Some run configurations still miss the runtime library path without this.
+    QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
 
 #ifdef USE_QML
     MainWindow w;

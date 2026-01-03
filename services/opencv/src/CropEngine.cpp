@@ -8,7 +8,13 @@
 
 namespace opencv {
 
-std::vector<std::filesystem::path> CropEngine::CropImages(const std::string& imagePath, const std::vector<api::opencv::Rect>& rects, const std::filesystem::path& outputDir, std::shared_ptr<IDebugger> debugger) {
+std::vector<std::filesystem::path> CropEngine::CropImages(const std::string& imagePath,
+                                                         const std::vector<api::opencv::Rect>& rects,
+                                                         const std::filesystem::path& outputDir,
+                                                         api::opencv::CropRequest::OutputFormat fmt,
+                                                         int jpegQuality,
+                                                         std::shared_ptr<IDebugger> debugger,
+                                                         const std::string& filePrefix) {
     std::vector<std::filesystem::path> outPaths;
     if (rects.empty()) return outPaths;
     if (outputDir.empty()) return outPaths;
@@ -28,9 +34,19 @@ std::vector<std::filesystem::path> CropEngine::CropImages(const std::string& ima
                 r &= cv::Rect(0, 0, img.cols, img.rows);
                 if (r.width <= 0 || r.height <= 0) { ++idx; continue; }
                 cv::Mat crop = img(r).clone();
-                std::ostringstream fname; fname << (outputDir.string()) << "/" << (idx + 1) << ".png";
+                const char* ext = (fmt == api::opencv::CropRequest::OutputFormat::Jpg) ? ".jpg" : ".png";
+                std::ostringstream fname;
+                fname << (outputDir.string()) << "/";
+                if (!filePrefix.empty()) fname << filePrefix << "_";
+                fname << (idx + 1) << ext;
                 std::string filename = fname.str();
-                if (!cv::imwrite(filename, crop)) {
+                std::vector<int> params;
+                if (fmt == api::opencv::CropRequest::OutputFormat::Jpg) {
+                    params.push_back(cv::IMWRITE_JPEG_QUALITY);
+                    params.push_back(std::max(1, std::min(100, jpegQuality)));
+                }
+
+                if (!cv::imwrite(filename, crop, params)) {
                     if (debugger && debugger->enabled()) debugger->writeText("opencv/error.txt", "Failed to write crop: " + filename);
                 } else {
                     outPaths.emplace_back(filename);

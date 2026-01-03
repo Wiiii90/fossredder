@@ -9,19 +9,6 @@
 #include <opencv2/opencv.hpp>
 #include <filesystem>
 
-namespace {
-std::filesystem::path resolveCropOutputDir(const std::filesystem::path& outputDir, const std::string& stem) {
-    if (!outputDir.empty()) return outputDir;
-    try {
-        auto tmp = std::filesystem::temp_directory_path() / "fossredder" / "opencv" / "output" / stem;
-        std::filesystem::create_directories(tmp);
-        return tmp;
-    } catch (...) {
-        return std::filesystem::current_path();
-    }
-}
-}
-
 class OpenCvAdapterImpl : public api::opencv::IOpenCvAdapter {
 public:
     OpenCvAdapterImpl(std::shared_ptr<IDebugger> dbg = nullptr) : debugger(std::move(dbg)) {}
@@ -31,6 +18,7 @@ public:
     }
 
     api::opencv::MaskResult mask(const api::opencv::MaskRequest& req) override {
+        if (req.outputDir.empty()) return {};
         return opencv::MaskEngine::MaskImage(req, debugger);
     }
 
@@ -68,17 +56,23 @@ public:
 
     api::opencv::CropResult crop(const api::opencv::CropRequest& req) override {
         api::opencv::CropResult res;
+        if (req.outputDir.empty()) return res;
         try {
             std::filesystem::path p = req.imagePath;
             if (!std::filesystem::exists(p)) return res;
 
-            std::string stem;
-            try { stem = p.stem().string(); } catch (...) { stem = "page"; }
-            auto outDir = resolveCropOutputDir(std::filesystem::path(), stem);
-            if (outDir.empty()) return res;
+            std::filesystem::create_directories(req.outputDir);
 
             std::vector<api::opencv::Rect> rects; rects.push_back(req.bbox);
-            auto paths = opencv::CropEngine::CropImages(p.string(), rects, outDir, debugger);
+            std::string prefix;
+            if (!req.uniqIdPrefix.empty()) {
+                prefix = req.uniqIdPrefix;
+                if (!req.filePrefix.empty()) prefix += "_" + req.filePrefix;
+            } else {
+                prefix = req.filePrefix.empty() ? std::string("opencv_crop") : req.filePrefix;
+            }
+
+            auto paths = opencv::CropEngine::CropImages(p.string(), rects, req.outputDir, req.outputFormat, req.jpegQuality, debugger, prefix);
             res.croppedImagePaths = std::move(paths);
         } catch (...) {}
         return res;
