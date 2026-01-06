@@ -1,0 +1,39 @@
+sequenceDiagram
+    participant User
+    participant UI as UiImportController / QML
+    participant ImportCtrl as ImportController
+    participant ImportImpl as IImportStatement (import impl)
+    participant Poppler as PopplerService
+    participant OpenCv as OpenCvService
+    participant Tesseract as TesseractService
+    participant Matcher as ActorMatcher
+    participant Persistence as AppStateStore
+
+    Note over UI,ImportCtrl: runRoot / runIdPrefix configured by UI/main
+
+    User->>UI: select file / trigger import
+    UI->>ImportCtrl: import(type, filePath, runRoot, runIdPrefix)
+    ImportCtrl->>ImportImpl: importStatement(ImportRequest)
+
+    ImportImpl->>Poppler: ExtractRequest (pdfPath, outputDir, uniqId)
+    Poppler-->>ImportImpl: ExtractResult (RenderedPage[], textElements)
+
+    ImportImpl->>OpenCv: DetectRequest / MaskRequest / CropRequest
+    OpenCv-->>ImportImpl: DetectResult / images
+
+    ImportImpl->>Tesseract: ExtractRequest (imagePath, outputDir, uniqId)
+    Tesseract-->>ImportImpl: ExtractResult (text, tsv, words, tables)
+
+    ImportImpl->>Matcher: match(text) [per candidate]
+    Matcher-->>ImportImpl: ActorMatch (suggested actor/property)
+
+    ImportImpl-->>ImportCtrl: ImportResult (Statement + artifacts)
+    ImportCtrl-->>UI: ImportResult
+
+    UI->>User: render review UI with candidates and suggestions
+    User->>UI: accept / edit / create actor or property
+
+    UI->>Persistence: request save (AppState / Statement)
+    Persistence-->>UI: save result / impact
+
+    Note right of ImportImpl: session artifacts stored under runRoot (rendered images, ocr tsv, extract/candidates.json, metadata)
