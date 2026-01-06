@@ -31,5 +31,5 @@ third_party/
 LOCAL_APPDATA_FONTCONFIG_CACHE/
 
 # Large local resource folders
-tesseract/res/
-llama/res/
+services/tesseract/res/
+services/llama/res/
