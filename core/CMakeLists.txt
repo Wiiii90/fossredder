@@ -27,31 +27,44 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
     endif()
 endif()
 
-# Option to build core unit tests (OFF by default)
-option(BUILD_CORE_TESTS "Build unit tests for core module" OFF)
+# Option to build core tests (OFF by default)
+option(BUILD_CORE_TESTS "Build tests for core module" OFF)
 if (BUILD_CORE_TESTS)
     find_package(GTest CONFIG REQUIRED)
-    file(GLOB TEST_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
 
-    add_executable(core_tests ${TEST_SRCS})
-
-    target_include_directories(core_tests PRIVATE
+    file(GLOB UNIT_TEST_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.cpp)
+    add_executable(core_unit_tests ${UNIT_TEST_SRCS})
+    target_include_directories(core_unit_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/include
         ${CMAKE_SOURCE_DIR}/core/include
         ${CMAKE_SOURCE_DIR}/persistence/include
     )
-
-    target_link_libraries(core_tests
+    target_link_libraries(core_unit_tests
         PRIVATE
             GTest::gtest_main
             core_lib
     )
-
-    target_compile_features(core_tests PRIVATE cxx_std_20)
-
+    target_compile_features(core_unit_tests PRIVATE cxx_std_20)
     include(GoogleTest)
-    gtest_discover_tests(core_tests
-        PROPERTIES LABELS "UNIT"
-    )
+    gtest_discover_tests(core_unit_tests PROPERTIES LABELS "UNIT")
+
+    file(GLOB INTERACTION_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tests/interaction/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/interaction/*.cc)
+    if (INTERACTION_SRCS)
+        add_executable(core_interaction_tests ${INTERACTION_SRCS})
+        target_include_directories(core_interaction_tests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/include
+            ${CMAKE_SOURCE_DIR}/core/include
+            ${CMAKE_SOURCE_DIR}/persistence/include
+        )
+        target_link_libraries(core_interaction_tests
+            PRIVATE
+                GTest::gmock_main
+                core_lib
+        )
+        target_compile_features(core_interaction_tests PRIVATE cxx_std_20)
+        include(GoogleTest)
+        gtest_discover_tests(core_interaction_tests PROPERTIES LABELS "INTERACTION")
+    endif()
 endif()
 
 install(TARGETS core_lib

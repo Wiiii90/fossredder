@@ -29,6 +29,7 @@ third_party/
 
 # Misc
 LOCAL_APPDATA_FONTCONFIG_CACHE/
+docs/todo.txt
 
 # Large local resource folders
 services/tesseract/res/
