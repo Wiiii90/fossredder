@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "core/repositories/ISqlConnectionProvider.h"
+#include "persistence/ISqlConnectionProvider.h"
 
 struct sqlite3;
 

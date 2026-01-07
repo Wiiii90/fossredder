@@ -1,4 +1,3 @@
-#ifdef USE_QML
 /**
  * @file main_qml.cpp
  * @brief QML startup implementation.
@@ -7,11 +6,11 @@
  * registers UI controllers and services, connects signals/slots and starts the Qt event loop.
  */
 
-#include "app/pch.h"
+#ifdef USE_QML
 #include <QApplication>
 #include "MainWindow.h"
 #include "ui/controllers/UiImportController.h"
-#include "ui/controllers/UiFileController.h"
+#include "ui/controllers/UiStorageController.h"
 #include "ui/controllers/UiDomainController.h"
 #include "ui/state/UiDataSession.h"
 #include "debug/FileDebugger.h"
@@ -38,16 +37,16 @@ namespace api { namespace tesseract { std::shared_ptr<ITesseractService> createT
 /**
  * @brief Initialize and run the QML-based UI.
  * @param app Reference to the already-created QApplication instance.
- * @param fileCtrl Reference to the FileController that manages application state.
+ * @param appStateCtrl Reference to the AppStateController that manages application state.
  * @return Return value from `QApplication::exec()`.
  */
-int startQmlApp(QApplication& app, FileController& fileCtrl) {
+int startQmlApp(QApplication& app, AppStateController& appStateCtrl) {
     MainWindow w;
 
-    auto uiFileCtrl = new UiFileController(&fileCtrl, &w);
+    auto uiFileCtrl = new UiStorageController(&appStateCtrl, &w);
     w.setQmlContextProperty("uiFileController", uiFileCtrl);
 
-    auto uiDomain = new UiDomainController(&fileCtrl, &w);
+    auto uiDomain = new UiDomainController(&appStateCtrl, &w);
     w.setQmlContextProperty("uiDomain", uiDomain);
 
     {
@@ -70,10 +69,10 @@ int startQmlApp(QApplication& app, FileController& fileCtrl) {
     }
 
     if (w.dataSession()) {
-        w.dataSession()->loadFromState(fileCtrl.state());
+        w.dataSession()->loadFromState(appStateCtrl.state());
     }
 
-    fileCtrl.setStateChangedCallback([&](const AppState& st) {
+    appStateCtrl.setStateChangedCallback([&](const AppState& st) {
         if (w.dataSession()) {
             w.dataSession()->loadFromState(st);
         }

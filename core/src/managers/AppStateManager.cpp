@@ -1,8 +1,14 @@
-#include "core/pch.h"
-#include "core/managers/AppStateManager.h"
+/**
+ * @file core/src/managers/AppStateManager.cpp
+ * @brief Implementation of AppStateManager.
+ *
+ * Implements loading, saving, rehydration and validation of the application
+ * state using the provided repository abstractions.
+ */
 
-#include <stdexcept>
-#include <unordered_map>
+#include "core/pch.h"
+
+#include "core/managers/AppStateManager.h"
 
 #include "core/models/Actor.h"
 #include "core/models/Contract.h"

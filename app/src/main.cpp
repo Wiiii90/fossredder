@@ -1,4 +1,8 @@
-﻿#include "app/pch.h"
+﻿/**
+ * @file main.cpp
+ * @brief Application bootstrap: environment, repositories and QApplication initialization.
+ */
+
 #include "core/utils/Environment.h"
 #include <QApplication>
 
@@ -6,18 +10,10 @@
 #include "persistence/AppStateStore.h"
 #include "core/repositories/IConfigRepository.h"
 #include "core/managers/ConfigManager.h"
-#include "core/managers/FileManager.h"
-#include "core/controllers/FileController.h"
+#include "core/managers/StorageManager.h"
+#include "core/controllers/AppStateController.h"
 
 #include <QDir>
-
-/**
- * @file main.cpp
- * @brief Application bootstrap: environment, repositories and QApplication initialization.
- *
- * This translation unit performs global startup tasks (load .env, initialize repositories
- * and file manager) and then delegates to the QML UI startup when compiled with USE_QML.
- */
 
 /**
  * @brief Global Qt message handler that redirects Qt logging to stderr with context.
@@ -51,7 +47,7 @@ static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, 
  *
  * Implemented in `main_qml.cpp`. Only available when built with USE_QML.
  */
-extern int startQmlApp(QApplication& app, FileController& fileCtrl);
+extern int startQmlApp(QApplication& app, AppStateController& appStateCtrl);
 #endif
 
 int main(int argc, char* argv[]) {
@@ -64,12 +60,14 @@ int main(int argc, char* argv[]) {
     // Initialize configuration repository (uses persistence factory)
     auto cfgRepo = createSqliteConfigRepository("fossredder.db");
 
-    // Setup file manager and controller (manages application state files)
-    FileManager fm(QDir::homePath().toStdString() + std::string("/.fossredder"));
-    FileController fileCtrl(std::move(fm));
-    fileCtrl.setRepoFactory([](const std::string& dbPath) {
+    // Setup storage manager and controller (manages application state files)
+    StorageManager sm(QDir::homePath().toStdString() + std::string("/.fossredder"));
+    auto smPtr = std::make_unique<StorageManager>(std::move(sm));
+    AppStateController appStateCtrl(std::move(smPtr));
+
+    appStateCtrl.setRepoFactory([](const std::string& dbPath) {
         auto db = createSqliteDb(dbPath);
-        FileManager::Repositories r;
+        IStorageManager::Repositories r;
         r.actors = createSqliteActorRepository(db);
         r.properties = createSqlitePropertyRepository(db);
         r.contracts = createSqliteContractRepository(db);
@@ -77,20 +75,20 @@ int main(int argc, char* argv[]) {
         r.transactions = createSqliteTransactionRepository(db);
         return r;
     });
-    fileCtrl.setAtomicStoreLoad([](const std::string& dbPath) {
+    appStateCtrl.setAtomicStoreLoad([](const std::string& dbPath) {
         auto db = createSqliteDb(dbPath);
         AppStateStore store(db);
         return store.load();
     });
-    fileCtrl.setAtomicStoreSave([](const std::string& dbPath, const AppState& state) {
+    appStateCtrl.setAtomicStoreSave([](const std::string& dbPath, const AppState& state) {
         auto db = createSqliteDb(dbPath);
         AppStateStore store(db);
         auto res = store.save(state);
         return res.impact;
     });
-    fileCtrl.openLatest();
-    if (fileCtrl.currentPath().empty()) {
-        fileCtrl.newFile("fossredder.db");
+    appStateCtrl.openLatest();
+    if (appStateCtrl.currentPath().empty()) {
+        appStateCtrl.newFile("fossredder.db");
     }
 
     // Apply default configuration if available
@@ -107,7 +105,7 @@ int main(int argc, char* argv[]) {
 
 #ifdef USE_QML
     // Delegate to QML-specific startup
-    return startQmlApp(app, fileCtrl);
+    return startQmlApp(app, appStateCtrl);
 #else
     // No UI available in this build configuration
     return 0;

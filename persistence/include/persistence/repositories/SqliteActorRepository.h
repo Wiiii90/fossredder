@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/repositories/IActorRepository.h"
-#include "core/repositories/ISqlConnectionProvider.h"
+#include "persistence/ISqlConnectionProvider.h"
 
 #include <memory>
 #include <string>

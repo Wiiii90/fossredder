@@ -1,5 +1,13 @@
+/**
+ * @file core/src/managers/StorageManager.cpp
+ * @brief Implementation of StorageManager.
+ *
+ * Implements registry handling (latest path), atomic save/load delegation and
+ * repository-based load/save via AppStateManager.
+ */
+
 #include "core/pch.h"
-#include "core/managers/FileManager.h"
+#include "core/managers/StorageManager.h"
 
 #include <filesystem>
 #include <fstream>
@@ -8,42 +16,28 @@
 
 #include "core/managers/AppStateManager.h"
 
-FileManager::FileManager(std::string appDataDir)
+StorageManager::StorageManager(std::string appDataDir)
     : appDataDir_(std::move(appDataDir)) {
     registryPath_ = (std::filesystem::path(appDataDir_) / "files.json").string();
 }
 
-void FileManager::setRepoFactory(RepoFactory factory) {
+void StorageManager::setRepoFactory(RepoFactory factory) {
     repoFactory_ = std::move(factory);
 }
 
-void FileManager::setAtomicStoreSave(AtomicStoreSave saveFn) {
+void StorageManager::setAtomicStoreSave(AtomicStoreSave saveFn) {
     atomicSave_ = std::move(saveFn);
 }
 
-void FileManager::setAtomicStoreLoad(AtomicStoreLoad loadFn) {
+void StorageManager::setAtomicStoreLoad(AtomicStoreLoad loadFn) {
     atomicLoad_ = std::move(loadFn);
 }
 
-void FileManager::setDeletionImpactCallback(DeletionImpactCallback cb) {
+void StorageManager::setDeletionImpactCallback(DeletionImpactCallback cb) {
     onDeletionImpact_ = std::move(cb);
 }
 
-void FileManager::ensureRegistryDir() const {
-    std::filesystem::path p(registryPath_);
-    auto dir = p.parent_path();
-    if (!dir.empty() && !std::filesystem::exists(dir)) {
-        std::filesystem::create_directories(dir);
-    }
-}
-
-FileManager::Repositories FileManager::reposForCurrent() const {
-    if (!repoFactory_) throw std::runtime_error("RepoFactory not configured");
-    if (currentPath_.empty()) throw std::runtime_error("No file opened");
-    return repoFactory_(currentPath_);
-}
-
-std::optional<std::string> FileManager::loadLatestPath() const {
+std::optional<std::string> StorageManager::loadLatestPath() const {
     std::ifstream in(registryPath_, std::ios::in);
     if (!in.good()) return std::nullopt;
 
@@ -62,7 +56,7 @@ std::optional<std::string> FileManager::loadLatestPath() const {
     return s.substr(pos + 1, end - pos - 1);
 }
 
-void FileManager::setLatestPath(const std::string& filePath) {
+void StorageManager::setLatestPath(const std::string& filePath) {
     ensureRegistryDir();
     std::ofstream out(registryPath_, std::ios::trunc);
     if (!out.good()) return;
@@ -76,12 +70,12 @@ void FileManager::setLatestPath(const std::string& filePath) {
     out.close();
 }
 
-AppState FileManager::load() {
+AppState StorageManager::load() {
     if (currentPath_.empty()) throw std::runtime_error("No file opened");
     return loadFrom(currentPath_);
 }
 
-AppState FileManager::loadFrom(const std::string& filePath) {
+AppState StorageManager::loadFrom(const std::string& filePath) {
     currentPath_ = filePath;
     setLatestPath(filePath);
 
@@ -102,12 +96,12 @@ AppState FileManager::loadFrom(const std::string& filePath) {
     return mgr.load();
 }
 
-void FileManager::save(const AppState& state) {
+void StorageManager::save(const AppState& state) {
     if (currentPath_.empty()) throw std::runtime_error("No file opened");
     saveAs(currentPath_, state);
 }
 
-void FileManager::saveAs(const std::string& filePath, const AppState& state) {
+void StorageManager::saveAs(const std::string& filePath, const AppState& state) {
     currentPath_ = filePath;
     setLatestPath(filePath);
 
@@ -130,7 +124,7 @@ void FileManager::saveAs(const std::string& filePath, const AppState& state) {
     mgr.save(state);
 }
 
-void FileManager::createNew(const std::string& filePath) {
+void StorageManager::createNew(const std::string& filePath) {
     std::filesystem::path p(filePath);
     auto dir = p.parent_path();
     if (!dir.empty() && !std::filesystem::exists(dir)) {
@@ -144,4 +138,18 @@ void FileManager::createNew(const std::string& filePath) {
     } else {
         (void)reposForCurrent();
     }
+}
+
+void StorageManager::ensureRegistryDir() const {
+    std::filesystem::path p(registryPath_);
+    auto dir = p.parent_path();
+    if (!dir.empty() && !std::filesystem::exists(dir)) {
+        std::filesystem::create_directories(dir);
+    }
+}
+
+StorageManager::Repositories StorageManager::reposForCurrent() const {
+    if (!repoFactory_) throw std::runtime_error("RepoFactory not configured");
+    if (currentPath_.empty()) throw std::runtime_error("No file opened");
+    return repoFactory_(currentPath_);
 }

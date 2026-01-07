@@ -13,7 +13,7 @@
 #include "core/import/ActorMatcher.h"
 #include "ui/models/StatementDraft.h"
 
-UiDomainController::UiDomainController(FileController* core, QObject* parent)
+UiDomainController::UiDomainController(AppStateController* core, QObject* parent)
     : QObject(parent), core_(core) {}
 
 QString UiDomainController::addActor(const QString& name, const QString& type, const QString& description)

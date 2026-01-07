@@ -1,3 +1,11 @@
+/**
+ * @file core/src/import/ImportStatement.cpp
+ * @brief Factory and thin implementation for IImportStatement using strategies.
+ *
+ * Provides a small concrete wrapper around an import strategy and a factory
+ * function to create a usable IImportStatement instance.
+ */
+
 #include "core/pch.h"
 #include "core/import/IImportStatement.h"
 #include "core/import/IImportStatementStrategy.h"

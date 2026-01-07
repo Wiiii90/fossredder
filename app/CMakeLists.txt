@@ -49,17 +49,11 @@ set_target_properties(fossredder PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release"
 )
 
-# Include directories used by the app target
+# Only expose the app's own public include dir; other modules should export
+# their include paths via their targets (core_lib, ui_lib, persistence_lib, etc.).
+# Rely on target_link_libraries to provide transitive include dirs.
 target_include_directories(fossredder PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/core/include>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/debug/include>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/services/poppler/include>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/services/opencv/include>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/services/tesseract/include>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/ui/include>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/persistence/include>
     third_party/llama.cpp/include
 )
 

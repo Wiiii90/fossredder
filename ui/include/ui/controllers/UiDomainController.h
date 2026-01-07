@@ -1,16 +1,15 @@
 #pragma once
 
 #include <QObject>
-#include <QString>
 
-#include "core/controllers/FileController.h"
+#include "core/controllers/AppStateController.h"
 
 class StatementDraft;
 
 class UiDomainController : public QObject {
     Q_OBJECT
 public:
-    explicit UiDomainController(FileController* core, QObject* parent = nullptr);
+    explicit UiDomainController(AppStateController* core, QObject* parent = nullptr);
 
     Q_INVOKABLE QString addActor(const QString& name, const QString& type, const QString& description);
     Q_INVOKABLE QString addActorWithAliases(const QString& name, const QString& type, const QString& description, const QStringList& aliases);
@@ -56,7 +55,7 @@ public:
     Q_INVOKABLE QString ensureStatementByName(const QString& name);
 
 private:
-    FileController* core_;
+    AppStateController* core_;
 
     void pruneInvalidContracts();
     void pruneInvalidTransactions();
