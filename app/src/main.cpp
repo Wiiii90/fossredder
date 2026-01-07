@@ -2,47 +2,26 @@
 #include "core/utils/Environment.h"
 #include <QApplication>
 
-#include "core/repositories/IConfigRepository.h"
 #include "persistence/Factory.h"
-#include "core/models/Config.h"
+#include "persistence/AppStateStore.h"
+#include "core/repositories/IConfigRepository.h"
 #include "core/managers/ConfigManager.h"
-#include "core/controllers/StatementController.h"
 #include "core/managers/FileManager.h"
 #include "core/controllers/FileController.h"
-#include "persistence/AppStateStore.h"
 
 #include <QDir>
-#include <QDebug>
-#include <QCoreApplication>
 
-#ifdef USE_QML
-#include "MainWindow.h"
-#include "ui/controllers/UiImportController.h"
-#include "ui/controllers/UiFileController.h"
-#include "ui/controllers/UiDomainController.h"
-#include "ui/state/UiDataSession.h"
-#include "debug/FileDebugger.h"
-#include "core/controllers/ImportController.h"
-#include "core/controllers/StatementController.h"
-#include "core/import/IImportStatement.h"
-#include "api/poppler/IPopplerAdapter.h"
-#include "api/opencv/IOpenCvAdapter.h"
-#include "api/tesseract/ITesseractAdapter.h"
-#include "api/poppler/IPopplerService.h"
-#include "api/opencv/IOpenCvService.h"
-#include "api/tesseract/ITesseractService.h"
-#include <QList>
-#include <QVariant>
+/**
+ * @file main.cpp
+ * @brief Application bootstrap: environment, repositories and QApplication initialization.
+ *
+ * This translation unit performs global startup tasks (load .env, initialize repositories
+ * and file manager) and then delegates to the QML UI startup when compiled with USE_QML.
+ */
 
-std::shared_ptr<api::poppler::IPopplerAdapter> createPopplerAdapter(std::shared_ptr<IDebugger> dbg);
-std::shared_ptr<api::opencv::IOpenCvAdapter> createOpenCvAdapter(std::shared_ptr<IDebugger> dbg);
-std::shared_ptr<api::tesseract::ITesseractAdapter> createTesseractAdapter(std::shared_ptr<IDebugger> dbg);
-
-namespace api { namespace poppler { std::shared_ptr<IPopplerService> createPopplerService(std::shared_ptr<IPopplerAdapter> adapter); } }
-namespace api { namespace opencv { std::shared_ptr<IOpenCvService> createOpenCvService(std::shared_ptr<IOpenCvAdapter> adapter); } }
-namespace api { namespace tesseract { std::shared_ptr<ITesseractService> createTesseractService(std::shared_ptr<ITesseractAdapter> adapter); } }
-#endif
-
+/**
+ * @brief Global Qt message handler that redirects Qt logging to stderr with context.
+ */
 static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
     QByteArray localMsg = msg.toLocal8Bit();
     const char *file = context.file ? context.file : "";
@@ -66,13 +45,26 @@ static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, 
     }
 }
 
+#ifdef USE_QML
+/**
+ * @brief Start the QML application UI.
+ *
+ * Implemented in `main_qml.cpp`. Only available when built with USE_QML.
+ */
+extern int startQmlApp(QApplication& app, FileController& fileCtrl);
+#endif
+
 int main(int argc, char* argv[]) {
+    // Install global Qt message handler early so startup logs are captured
     qInstallMessageHandler(qtMessageHandler);
 
+    // Load runtime environment from .env if present
     env::load_dotenv(".env", false);
 
+    // Initialize configuration repository (uses persistence factory)
     auto cfgRepo = createSqliteConfigRepository("fossredder.db");
 
+    // Setup file manager and controller (manages application state files)
     FileManager fm(QDir::homePath().toStdString() + std::string("/.fossredder"));
     FileController fileCtrl(std::move(fm));
     fileCtrl.setRepoFactory([](const std::string& dbPath) {
@@ -101,71 +93,23 @@ int main(int argc, char* argv[]) {
         fileCtrl.newFile("fossredder.db");
     }
 
+    // Apply default configuration if available
     ConfigManager cfgMgr;
     if (auto def = cfgRepo->getDefaultConfig())
         cfgMgr.setConfig(*def);
 
+    // Create the Qt application (manages event loop and GUI resources)
     QApplication app(argc, argv);
     app.setStyle("Fusion");
 
-    // Ensure Qt finds deployed plugins next to the executable (qt.conf sets Plugins=./).
-    // Some run configurations still miss the runtime library path without this.
+    // Ensure Qt finds deployed plugins and QML modules next to the executable
     QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
 
 #ifdef USE_QML
-    MainWindow w;
-
-    auto uiFileCtrl = new UiFileController(&fileCtrl, &w);
-    w.setQmlContextProperty("uiFileController", uiFileCtrl);
-
-    auto uiDomain = new UiDomainController(&fileCtrl, &w);
-    w.setQmlContextProperty("uiDomain", uiDomain);
-
-    {
-        auto dbg = std::make_shared<FileDebugger>("", "import");
-        auto popplerAdapter = createPopplerAdapter(dbg);
-        auto opencvAdapter = createOpenCvAdapter(dbg);
-        auto tesseractAdapter = createTesseractAdapter(dbg);
-
-        auto poppler = api::poppler::createPopplerService(popplerAdapter);
-        auto opencv = api::opencv::createOpenCvService(opencvAdapter);
-        auto tesseract = api::tesseract::createTesseractService(tesseractAdapter);
-
-        auto importSvc = createImportStatement(poppler, opencv, tesseract, dbg);
-        auto stmtCtrl = std::make_shared<StatementController>(importSvc);
-        auto importCtrl = std::make_shared<ImportController>(stmtCtrl);
-
-        auto uiImport = new UiImportController(importCtrl, &w);
-        uiImport->setDomainController(uiDomain);
-        w.setQmlContextProperty("uiImport", uiImport);
-    }
-
-    if (w.dataSession()) {
-        w.dataSession()->loadFromState(fileCtrl.state());
-    }
-
-    fileCtrl.setStateChangedCallback([&](const AppState& st) {
-        if (w.dataSession()) {
-            w.dataSession()->loadFromState(st);
-        }
-    });
-
-    QObject::connect(&w, &MainWindow::newFileRequested, [&](const QString& path){
-        uiFileCtrl->newFile(path);
-    });
-    QObject::connect(&w, &MainWindow::openFileRequested, [&](const QString& path){
-        uiFileCtrl->openFile(path);
-    });
-    QObject::connect(&w, &MainWindow::saveFileRequested, [&](){
-        uiFileCtrl->saveFile();
-    });
-    QObject::connect(&w, &MainWindow::saveFileAsRequested, [&](const QString& path){
-        uiFileCtrl->saveFileAs(path);
-    });
-
-    w.show();
-    return app.exec();
+    // Delegate to QML-specific startup
+    return startQmlApp(app, fileCtrl);
 #else
-    return -1;
+    // No UI available in this build configuration
+    return 0;
 #endif
 }
