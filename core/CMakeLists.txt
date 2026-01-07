@@ -27,6 +27,33 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
     endif()
 endif()
 
+# Option to build core unit tests (OFF by default)
+option(BUILD_CORE_TESTS "Build unit tests for core module" OFF)
+if (BUILD_CORE_TESTS)
+    find_package(GTest CONFIG REQUIRED)
+    file(GLOB TEST_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+
+    add_executable(core_tests ${TEST_SRCS})
+
+    target_include_directories(core_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/core/include
+        ${CMAKE_SOURCE_DIR}/persistence/include
+    )
+
+    target_link_libraries(core_tests
+        PRIVATE
+            GTest::gtest_main
+            core_lib
+    )
+
+    target_compile_features(core_tests PRIVATE cxx_std_20)
+
+    include(GoogleTest)
+    gtest_discover_tests(core_tests
+        PROPERTIES LABELS "UNIT"
+    )
+endif()
+
 install(TARGETS core_lib
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib

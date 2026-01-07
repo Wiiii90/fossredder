@@ -40,6 +40,8 @@ AppState AppStateManager::load() {
 }
 
 void AppStateManager::save(const AppState& state) {
+    validate(state);
+
     if (repos_.actors) {
         for (const auto& a : state.actors) repos_.actors->upsertActor(a);
     }
