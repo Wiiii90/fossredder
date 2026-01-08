@@ -67,7 +67,11 @@ void UiImportController::cancelImport()
 {
     if (!isRunning_) return;
     canceled_ = true;
-    phase_ = QStringLiteral("Cancel requested");
+    phase_ = QStringLiteral("Stopping...");
+    // signal cancel flag to core/services
+    if (cancelFlag_) {
+        try { cancelFlag_->store(true); } catch (...) {}
+    }
     emit stateChanged();
 }
 
@@ -155,12 +159,17 @@ void UiImportController::startStatementImport()
         QMetaObject::invokeMethod(this, "updateProgress", Qt::QueuedConnection, Q_ARG(double, p), Q_ARG(QString, phase));
     };
 
+    // create cancel flag
+    auto cancelFlag = std::make_shared<std::atomic<bool>>(false);
+    // store cancel flag so cancelImport can set it
+    cancelFlag_ = cancelFlag;
+
     // Run import on a worker thread and capture result or error message
-    importFuture_ = QtConcurrent::run([this, p, runRoot, runIdPrefix, progressCb]() -> std::pair<std::shared_ptr<Statement>, std::string> {
+    importFuture_ = QtConcurrent::run([this, p, runRoot, runIdPrefix, progressCb, cancelFlag]() -> std::pair<std::shared_ptr<Statement>, std::string> {
         try {
-            // call core ImportController with progress callback
+            // call core ImportController with progress callback and cancel flag
             auto imported = coreController_->import(ImportController::ImportType::Statement, p, runRoot, runIdPrefix,
-                                                   std::function<void(double, const std::string&)>(progressCb));
+                                                   std::function<void(double, const std::string&)>(progressCb), cancelFlag);
             return { imported, std::string() };
         } catch (const std::exception& e) {
             return { nullptr, std::string(e.what()) };
@@ -194,6 +203,8 @@ void UiImportController::onImportFutureFinished()
         error_ = QStringLiteral("");
         isRunning_ = false;
         progress_ = 0.0;
+        // clear cancel flag so subsequent imports start fresh
+        cancelFlag_.reset();
         runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Canceled"), QStringLiteral(""));
         emit stateChanged();
         emit importFailed(QStringLiteral("Canceled"));
@@ -205,6 +216,7 @@ void UiImportController::onImportFutureFinished()
         phase_ = QStringLiteral("Import failed");
         isRunning_ = false;
         progress_ = 0.0;
+        cancelFlag_.reset();
         runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Failed"), error_);
         emit stateChanged();
         emit importFailed(error_);
@@ -238,6 +250,7 @@ void UiImportController::onImportFutureFinished()
     phase_ = QStringLiteral("Import finished");
     progress_ = 1.0;
     isRunning_ = false;
+    cancelFlag_.reset();
     runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Success"), QStringLiteral(""));
     emit stateChanged();
     emit importFinished();

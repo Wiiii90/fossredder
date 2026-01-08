@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <atomic>
 
 class IImportStatement;
 class Statement;
@@ -14,7 +15,7 @@ public:
     explicit StatementController(std::shared_ptr<IImportStatement> importService = nullptr)
         : importService_(std::move(importService)) {}
 
-    std::shared_ptr<Statement> importStatement(const std::string& filePath, const std::string& runRoot = {}, const std::string& runIdPrefix = {}, std::function<void(double, const std::string&)> progressCallback = {});
+    std::shared_ptr<Statement> importStatement(const std::string& filePath, const std::string& runRoot = {}, const std::string& runIdPrefix = {}, std::function<void(double, const std::string&)> progressCallback = {}, std::shared_ptr<std::atomic<bool>> cancelFlag = nullptr);
 
     // Optional callback for notifying about extracted transactions
     void setTransactionsExtractedCallback(std::function<void(const std::vector<std::shared_ptr<Transaction>>&)> cb) {

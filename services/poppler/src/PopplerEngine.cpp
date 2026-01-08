@@ -95,7 +95,8 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::extractDocumentMeta(const
                                                                            const std::filesystem::path& outputDir,
                                                                            const std::string& uniqIdPrefix,
                                                                            const std::string& filePrefix,
-                                                                           std::shared_ptr<IDebugger> debugger) {
+                                                                           std::shared_ptr<IDebugger> debugger,
+                                                                           std::shared_ptr<std::atomic<bool>> cancelFlag) {
     std::vector<api::poppler::RenderedPage> result;
     if (!std::filesystem::exists(pdfPath)) throw std::runtime_error("PDF file does not exist: " + pdfPath);
 
@@ -108,6 +109,7 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::extractDocumentMeta(const
 
     int numPages = doc->pages();
     for (int i = 0; i < numPages; ++i) {
+        if (cancelFlag && cancelFlag->load()) break;
         std::unique_ptr<poppler::page> page(doc->create_page(i));
         if (!page) continue;
         result.push_back(extractPageMeta(page.get(), i, dpi, debugger));
@@ -120,7 +122,8 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std:
                                                                       const std::filesystem::path& outputDir,
                                                                       const std::string& uniqIdPrefix,
                                                                       const std::string& filePrefix,
-                                                                      std::shared_ptr<IDebugger> debugger) {
+                                                                      std::shared_ptr<IDebugger> debugger,
+                                                                      std::shared_ptr<std::atomic<bool>> cancelFlag) {
     std::vector<api::poppler::RenderedPage> result;
     if (!std::filesystem::exists(pdfPath)) throw std::runtime_error("PDF file does not exist: " + pdfPath);
 
@@ -138,6 +141,7 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std:
     const std::string base = prefix_base(uniqIdPrefix, filePrefix.empty() ? std::string("poppler_render") : filePrefix);
 
     for (int i = 0; i < numPages; ++i) {
+        if (cancelFlag && cancelFlag->load()) break;
         std::unique_ptr<poppler::page> page(doc->create_page(i));
         if (!page) continue;
 

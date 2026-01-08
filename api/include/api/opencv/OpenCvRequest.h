@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <memory>
+#include <atomic>
 #include "api/opencv/Types.h"
 
 namespace api::opencv {
@@ -10,6 +12,7 @@ namespace api::opencv {
 struct DenoiseRequest {
     std::filesystem::path imagePath;
     enum class Method { Median, Gaussian, Bilateral } method = Method::Median;
+    std::shared_ptr<std::atomic<bool>> cancelFlag;
 };
 
 struct MaskRequest {
@@ -23,6 +26,8 @@ struct MaskRequest {
     bool usePoppler = true;
     bool useTesseract = false;
     bool useMorphology = true;
+
+    std::shared_ptr<std::atomic<bool>> cancelFlag;
 };
 
 struct DetectRequest {
@@ -31,6 +36,8 @@ struct DetectRequest {
     std::string uniqIdPrefix;
     std::string filePrefix; // optional
     enum class DetectKind { Tables, Cells, TextBlocks } kind = DetectKind::Tables;
+
+    std::shared_ptr<std::atomic<bool>> cancelFlag;
 };
 
 struct CropRequest {
@@ -41,6 +48,8 @@ struct CropRequest {
     Rect bbox;
     enum class OutputFormat { Png, Jpg } outputFormat = OutputFormat::Png;
     int jpegQuality = 92;
+
+    std::shared_ptr<std::atomic<bool>> cancelFlag;
 };
 
 }

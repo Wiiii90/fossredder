@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <filesystem>
+#include <atomic>
 #include "api/poppler/Types.h"
 
 class IDebugger;
@@ -15,12 +16,14 @@ public:
                                                                  const std::filesystem::path& outputDir = std::filesystem::path(),
                                                                  const std::string& uniqIdPrefix = "",
                                                                  const std::string& filePrefix = "",
-                                                                 std::shared_ptr<IDebugger> dbg = nullptr);
+                                                                 std::shared_ptr<IDebugger> dbg = nullptr,
+                                                                 std::shared_ptr<std::atomic<bool>> cancelFlag = nullptr);
 
     static std::vector<api::poppler::RenderedPage> extractDocumentMeta(const std::string& path,
                                                                       double dpi,
                                                                       const std::filesystem::path& outputDir = std::filesystem::path(),
                                                                       const std::string& uniqIdPrefix = "",
                                                                       const std::string& filePrefix = "",
-                                                                      std::shared_ptr<IDebugger> dbg = nullptr);
+                                                                      std::shared_ptr<IDebugger> dbg = nullptr,
+                                                                      std::shared_ptr<std::atomic<bool>> cancelFlag = nullptr);
 };

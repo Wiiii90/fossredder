@@ -19,6 +19,8 @@ public:
         api::tesseract::ExtractResult out;
         if (req.outputDir.empty()) return out;
 
+        if (req.cancelFlag && req.cancelFlag->load()) return out;
+
         std::vector<uint8_t> bytes;
         if (!req.imagePath.empty()) {
             try {
@@ -26,6 +28,8 @@ public:
                 if (ifs) bytes.assign((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
             } catch (...) {}
         }
+
+        if (req.cancelFlag && req.cancelFlag->load()) return out;
 
         int psm = req.psm;
         auto [textDto, words] = TesseractEngine::extractFromBytes(bytes, req.tessdataPath, psm, debugger);
@@ -53,6 +57,8 @@ public:
             out.words.push_back(wr);
         }
 
+        if (req.cancelFlag && req.cancelFlag->load()) return out;
+
         if (req.kind == api::tesseract::ExtractRequest::Kind::Table && !req.cells.empty()) {
             api::tesseract::Table t;
             t.cells = req.cells;
@@ -69,6 +75,7 @@ public:
             };
 
             for (auto& cell : t.cells) {
+                if (req.cancelFlag && req.cancelFlag->load()) break;
                 std::vector<WRef> cellWords;
                 cellWords.reserve(out.words.size() / 4);
                 for (const auto& w : out.words) {

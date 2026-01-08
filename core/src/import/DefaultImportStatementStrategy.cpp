@@ -55,11 +55,14 @@ public:
         rreq.outputDir = runRoot;
         rreq.uniqIdPrefix = utils::makeUniqId();
         rreq.filePrefix = "poppler_render";
+        rreq.cancelFlag = req.cancelFlag;
 
         try { std::clog << "DefaultImportStatementStrategy: poppler render start: " << rreq.pdfPath.string() << " dpi=" << rreq.dpi << std::endl; } catch(...){ }
         report(0.05, "Rendering pages");
         auto renderRes = poppler_->render(rreq);
         report(0.15, "Rendered pages");
+
+        if (req.cancelFlag && req.cancelFlag->load()) { report(0.0, "Canceled"); return out; }
 
         api::poppler::ExtractRequest ereq;
         ereq.pdfPath = rreq.pdfPath;
@@ -67,6 +70,7 @@ public:
         ereq.outputDir = runRoot;
         ereq.uniqIdPrefix = utils::makeUniqId();
         ereq.filePrefix = "poppler_extract";
+        ereq.cancelFlag = req.cancelFlag;
         report(0.16, "Extracting text");
         auto extractRes = poppler_->extract(ereq);
         report(0.22, "Extracted text");
@@ -76,6 +80,7 @@ public:
 
         size_t totalPages = renderRes.images.size();
         for (size_t pi = 0; pi < totalPages; ++pi) {
+            if (req.cancelFlag && req.cancelFlag->load()) { report(0.0, "Canceled"); break; }
             const auto& pageImage = renderRes.images[pi];
 
             double pageBase = 0.22;
@@ -91,6 +96,7 @@ public:
             mreq.usePoppler = true;
             mreq.useMorphology = true;
             mreq.useTesseract = false;
+            mreq.cancelFlag = req.cancelFlag;
 
             if (pi < extractRes.pages.size()) {
                 const auto& page = extractRes.pages[pi];
@@ -114,6 +120,7 @@ public:
                 tdreq.uniqIdPrefix = utils::makeUniqId();
                 tdreq.filePrefix = "opencv_detect_textblocks_page" + std::to_string(pi + 1);
                 tdreq.kind = api::opencv::DetectRequest::DetectKind::TextBlocks;
+                tdreq.cancelFlag = req.cancelFlag;
                 auto tdres = opencv_->detect(tdreq);
                 if (tdres.detected) {
                     auto intersectsArea = [](const api::opencv::Rect &a, const api::opencv::Rect &b) -> int {
@@ -148,6 +155,7 @@ public:
                     treq.imagePath = pageImage;
                     treq.tessdataPath = "";
                     treq.psm = 3;
+                    treq.cancelFlag = req.cancelFlag;
                     auto tres = tesseract_->extract(treq);
                     mreq.tesseractTsv = tres.tsv;
                 } catch (...) {}
@@ -164,6 +172,7 @@ public:
             dreq.uniqIdPrefix = utils::makeUniqId();
             dreq.filePrefix = "opencv_detect_tables_page" + std::to_string(pi + 1);
             dreq.kind = api::opencv::DetectRequest::DetectKind::Tables;
+            dreq.cancelFlag = req.cancelFlag;
             auto detectRes = opencv_->detect(dreq);
             try { std::clog << "DefaultImportStatementStrategy: opencv detect done page=" << pi << " detected=" << (detectRes.detected ? 1 : 0) << std::endl; } catch(...){ }
 
@@ -182,10 +191,12 @@ public:
             cropReq.uniqIdPrefix = utils::makeUniqId();
             cropReq.filePrefix = "opencv_crop_table_page" + std::to_string(pi + 1);
             cropReq.bbox = detectRes.table.bbox;
+            cropReq.cancelFlag = req.cancelFlag;
             auto cropRes = opencv_->crop(cropReq);
             try { std::clog << "DefaultImportStatementStrategy: opencv crop done page=" << pi << " crops=" << cropRes.croppedImagePaths.size() << std::endl; } catch(...){ }
 
             for (size_t ci = 0; ci < cropRes.croppedImagePaths.size(); ++ci) {
+                if (req.cancelFlag && req.cancelFlag->load()) { report(0.0, "Canceled"); break; }
                 const auto& cropPath = cropRes.croppedImagePaths[ci];
                 try { std::clog << "DefaultImportStatementStrategy: tesseract extractTable start page=" << pi << " crop=" << ci << " path=" << cropPath.string() << std::endl; } catch(...){ }
 
@@ -197,6 +208,7 @@ public:
                 oreq.filePrefix = "tesseract_extract_table_page" + std::to_string(pi + 1);
                 oreq.tessdataPath = "";
                 oreq.psm = 3;
+                oreq.cancelFlag = req.cancelFlag;
 
                 oreq.cells.reserve(detectRes.table.cells.size());
                 for (const auto& c : detectRes.table.cells) {

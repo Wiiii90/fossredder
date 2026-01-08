@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <memory>
+#include <atomic>
 
 namespace api::poppler {
 
@@ -12,6 +14,8 @@ struct RenderRequest {
     std::filesystem::path outputDir; // required: where rendered images/metadata will be written
     std::string uniqIdPrefix;        // unique id per request
     std::string filePrefix;          // e.g. "poppler_render"
+
+    std::shared_ptr<std::atomic<bool>> cancelFlag; // optional cooperative cancel flag
 };
 
 struct ExtractRequest {
@@ -22,6 +26,8 @@ struct ExtractRequest {
     std::filesystem::path outputDir; // required: where metadata will be written
     std::string uniqIdPrefix;
     std::string filePrefix; // e.g. "poppler_extract"
+
+    std::shared_ptr<std::atomic<bool>> cancelFlag; // optional cooperative cancel flag
 };
 
 }

@@ -4,7 +4,7 @@
 #include "core/models/Statement.h"
 #include <iostream>
 
-std::shared_ptr<Statement> StatementController::importStatement(const std::string& filePath, const std::string& runRoot, const std::string& runIdPrefix, std::function<void(double, const std::string&)> progressCallback) {
+std::shared_ptr<Statement> StatementController::importStatement(const std::string& filePath, const std::string& runRoot, const std::string& runIdPrefix, std::function<void(double, const std::string&)> progressCallback, std::shared_ptr<std::atomic<bool>> cancelFlag) {
     if (!std::filesystem::exists(filePath)) {
         throw std::runtime_error("PDF datei existiert nicht: " + filePath);
     }
@@ -26,6 +26,7 @@ std::shared_ptr<Statement> StatementController::importStatement(const std::strin
     req.runRoot = runRoot;
     req.runIdPrefix = runIdPrefix;
     req.progressCallback = std::move(progressCallback);
+    req.cancelFlag = cancelFlag;
     ImportResult res = importService_->importStatement(req);
 
     try {

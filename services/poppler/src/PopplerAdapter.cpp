@@ -23,7 +23,7 @@ class PopplerAdapterImpl : public api::poppler::IPopplerAdapter {
             }
 
             auto t0 = std::chrono::steady_clock::now();
-            auto pages = PopplerEngine::renderDocument(req.pdfPath.string(), req.dpi, req.outputDir, req.uniqIdPrefix, req.filePrefix, debugger);
+            auto pages = PopplerEngine::renderDocument(req.pdfPath.string(), req.dpi, req.outputDir, req.uniqIdPrefix, req.filePrefix, debugger, req.cancelFlag);
             auto t1 = std::chrono::steady_clock::now();
             std::chrono::duration<double> dur = t1 - t0;
 
@@ -55,7 +55,7 @@ class PopplerAdapterImpl : public api::poppler::IPopplerAdapter {
                 try { debugger->writeText("poppler/log", std::string("extract:start ") + req.pdfPath.string()); } catch (...) {}
             }
             auto t0 = std::chrono::steady_clock::now();
-            auto pages = PopplerEngine::extractDocumentMeta(req.pdfPath.string(), req.dpi, req.outputDir, req.uniqIdPrefix, req.filePrefix, debugger);
+            auto pages = PopplerEngine::extractDocumentMeta(req.pdfPath.string(), req.dpi, req.outputDir, req.uniqIdPrefix, req.filePrefix, debugger, req.cancelFlag);
             auto t1 = std::chrono::steady_clock::now();
             std::chrono::duration<double> dur = t1 - t0;
 

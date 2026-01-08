@@ -148,7 +148,18 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
 
+                        // When running, show Cancel button. Otherwise show Start + Reset
                         Button {
+                            visible: hasUiImport && uiImport.isRunning
+                            text: qsTr("Cancel")
+                            enabled: hasUiImport && uiImport.isRunning
+                            onClicked: {
+                                if (hasUiImport) uiImport.cancelImport()
+                            }
+                        }
+
+                        Button {
+                            visible: hasUiImport && !uiImport.isRunning
                             text: qsTr("Start")
                             enabled: hasUiImport && !uiImport.isRunning && fileField.text.length > 0
                             onClicked: {
@@ -158,9 +169,18 @@ Item {
                         }
 
                         Button {
+                            visible: hasUiImport && !uiImport.isRunning
                             text: qsTr("Reset")
                             enabled: hasUiImport && !uiImport.isRunning
                             onClicked: uiImport.resetStatus()
+                        }
+
+                        // Show a small busy indicator while stopping is in progress
+                        BusyIndicator {
+                            running: hasUiImport && uiImport.phase === "Stopping..."
+                            visible: running
+                            width: 24
+                            height: 24
                         }
 
                         Item { Layout.fillWidth: true }

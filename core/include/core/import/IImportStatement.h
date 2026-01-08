@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <functional>
+#include <atomic>
 
 class Statement;
 
@@ -15,6 +16,9 @@ struct ImportRequest {
 
     // Optional progress callback: (progress [0..1], phase message)
     std::function<void(double, const std::string&)> progressCallback;
+
+    // Optional shared cancel flag that can be set to true to request cooperative cancellation
+    std::shared_ptr<std::atomic<bool>> cancelFlag;
 };
 
 struct ImportResult {

@@ -1,5 +1,7 @@
 #include "opencv/pch.h"
 #include "api/opencv/IOpenCvAdapter.h"
+#include "api/opencv/OpenCvRequest.h"
+#include "api/opencv/OpenCvResponse.h"
 #include "opencv/DenoiseEngine.h"
 #include "opencv/MaskEngine.h"
 #include "opencv/DetectEngine.h"
@@ -14,10 +16,12 @@ public:
     OpenCvAdapterImpl(std::shared_ptr<IDebugger> dbg = nullptr) : debugger(std::move(dbg)) {}
 
     api::opencv::DenoiseResult denoise(const api::opencv::DenoiseRequest& req) override {
+        if (req.cancelFlag && req.cancelFlag->load()) return api::opencv::DenoiseResult{};
         return opencv::DenoiseEngine::Denoise(req, debugger);
     }
 
     api::opencv::MaskResult mask(const api::opencv::MaskRequest& req) override {
+        if (req.cancelFlag && req.cancelFlag->load()) return api::opencv::MaskResult{};
         if (req.outputDir.empty()) return {};
         return opencv::MaskEngine::MaskImage(req, debugger);
     }
@@ -25,6 +29,7 @@ public:
     api::opencv::DetectResult detect(const api::opencv::DetectRequest& req) override {
         api::opencv::DetectResult res;
         try {
+            if (req.cancelFlag && req.cancelFlag->load()) return res;
             std::filesystem::path p = req.imagePath;
             if (!std::filesystem::exists(p)) return res;
 
@@ -56,6 +61,7 @@ public:
 
     api::opencv::CropResult crop(const api::opencv::CropRequest& req) override {
         api::opencv::CropResult res;
+        if (req.cancelFlag && req.cancelFlag->load()) return res;
         if (req.outputDir.empty()) return res;
         try {
             std::filesystem::path p = req.imagePath;

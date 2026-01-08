@@ -7,6 +7,7 @@
 #include <QPointer>
 #include <QFuture>
 #include <QFutureWatcher>
+#include <atomic>
 
 #include "ui/models/ImportRunListModel.h"
 #include "ui/models/StatementDraft.h"
@@ -87,4 +88,5 @@ private:
     QFutureWatcher<std::pair<std::shared_ptr<Statement>, std::string>> importWatcher_;
 
     bool canceled_ = false;
+    std::shared_ptr<std::atomic<bool>> cancelFlag_ = nullptr;
 };

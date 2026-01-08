@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <memory>
+#include <atomic>
 #include "api/tesseract/Types.h"
 
 namespace api::tesseract {
@@ -18,6 +20,8 @@ struct ExtractRequest {
 
     std::string tessdataPath;
     int psm = 3;
+
+    std::shared_ptr<std::atomic<bool>> cancelFlag;
 };
 
 }
