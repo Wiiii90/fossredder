@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import "qrc:/qml/components/controls"
 
 Item {
     id: root
@@ -33,7 +34,7 @@ Item {
             font.pointSize: 18
         }
 
-        TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
+        AppTextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
 
         Item { Layout.fillHeight: true }
 
@@ -92,4 +93,6 @@ Item {
             Item { Layout.fillWidth: true }
         }
     }
+
+    Component.onCompleted: syncFields()
 }

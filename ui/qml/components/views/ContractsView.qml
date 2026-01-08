@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import "qrc:/qml/components/controls"
 
 Item {
     id: root
@@ -59,8 +60,8 @@ Item {
 
         Label { text: isEdit ? qsTr("Edit Contract") : qsTr("Create Contract"); font.pointSize: 18 }
 
-        TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
-        TextField { id: typeField; placeholderText: qsTr("Type"); Layout.fillWidth: true }
+        AppTextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
+        AppTextField { id: typeField; placeholderText: qsTr("Type"); Layout.fillWidth: true }
         TextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.preferredHeight: 120; wrapMode: TextArea.Wrap }
 
         GroupBox {
@@ -85,7 +86,7 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    TextField { id: quickActorField; placeholderText: qsTr("New actor name"); Layout.fillWidth: true }
+                    AppTextField { id: quickActorField; placeholderText: qsTr("New actor name"); Layout.fillWidth: true }
                     Button {
                         text: qsTr("Add")
                         enabled: quickActorField.text.trim().length > 0
@@ -124,7 +125,7 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    TextField { id: quickPropertyField; placeholderText: qsTr("New property name"); Layout.fillWidth: true }
+                    AppTextField { id: quickPropertyField; placeholderText: qsTr("New property name"); Layout.fillWidth: true }
                     Button {
                         text: qsTr("Add")
                         enabled: quickPropertyField.text.trim().length > 0

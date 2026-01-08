@@ -5,10 +5,7 @@
         <file>components/IconButton.qml</file>
         <file>components/StatusBar.qml</file>
         <file>components/Toolbar.qml</file>
-        <file>components/SidebarLeft.qml</file>
-        <file>components/SidebarRight.qml</file>
         <file>components/ContentArea.qml</file>
-        <file>components/BottomBar.qml</file>
         <file>assets/import.svg</file>
         <file>assets/export.svg</file>
         <file>assets/actor.svg</file>
@@ -34,5 +31,10 @@
         <file>components/views/ImportView.qml</file>
         <file>components/views/ImportSidebar.qml</file>
         <file>components/views/ImportRunsList.qml</file>
+        <file>theme/Theme.qml</file>
+        <file>components/controls/AppButton.qml</file>
+        <file>components/controls/AppTextField.qml</file>
+        <file>components/SidebarLeft.qml</file>
+        <file>components/layout/Sidebar.qml</file>
     </qresource>
 </RCC>

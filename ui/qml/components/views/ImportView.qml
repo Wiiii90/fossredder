@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import "qrc:/qml/components/controls"
 
 Item {
     id: root
@@ -65,8 +66,8 @@ Item {
         ColumnLayout {
             id: pageLayout
             width: pageScroll.availableWidth
-            anchors.margins: 12
-            spacing: 10
+            anchors.margins: Theme.spacing
+            spacing: Theme.spacing
 
             Label {
                 text: qsTr("Import")
@@ -107,7 +108,7 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
 
-                        TextField {
+                        AppTextField {
                             id: fileField
                             Layout.fillWidth: true
                             placeholderText: qsTr("PDF file path")
@@ -180,7 +181,7 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
                         Label { text: qsTr("Name"); Layout.preferredWidth: 80 }
-                        TextField { Layout.fillWidth: true; text: draft ? draft.name : ""; onTextChanged: if (draft) draft.name = text }
+                        AppTextField { Layout.fillWidth: true; text: draft ? draft.name : ""; onTextChanged: if (draft) draft.name = text }
                     }
 
                     Label {
@@ -200,7 +201,7 @@ Item {
                             RowLayout {
                                 Layout.fillWidth: true
                                 Label { text: qsTr("Name"); Layout.preferredWidth: 80 }
-                                TextField {
+                                AppTextField {
                                     Layout.fillWidth: true
                                     text: draft && draft.current ? (draft.current.name || "") : ""
                                     onTextChanged: if (draft) draft.transactions.setName(draft.currentIndex, text)
@@ -248,21 +249,21 @@ Item {
                                 columnSpacing: 8
 
                                 Label { text: qsTr("Booking date"); Layout.alignment: Qt.AlignVCenter }
-                                TextField {
+                                AppTextField {
                                     Layout.fillWidth: true
                                     text: draft && draft.current ? (draft.current.bookingDate || "") : ""
                                     onTextChanged: if (draft) draft.transactions.setBookingDate(draft.currentIndex, text)
                                 }
 
                                 Label { text: qsTr("Valuta"); Layout.alignment: Qt.AlignVCenter }
-                                TextField {
+                                AppTextField {
                                     Layout.fillWidth: true
                                     text: draft && draft.current ? (draft.current.valuta || "") : ""
                                     onTextChanged: if (draft) draft.transactions.setValuta(draft.currentIndex, text)
                                 }
 
                                 Label { text: qsTr("Amount"); Layout.alignment: Qt.AlignVCenter }
-                                TextField {
+                                AppTextField {
                                     Layout.fillWidth: true
                                     text: draft && draft.current ? String(draft.current.amount) : ""
                                     onTextChanged: {
@@ -334,7 +335,7 @@ Item {
                                     RowLayout {
                                         Layout.fillWidth: true
 
-                                        TextField {
+                                        AppTextField {
                                             id: actorNameField
                                             Layout.fillWidth: true
                                             placeholderText: qsTr("Proposed/new actor name")
@@ -439,7 +440,6 @@ Item {
                                         if (!draft) return
                                         if (typeof uiDomain !== 'undefined' && uiDomain) {
                                             var sid = uiDomain.finalizeStatementDraft(draft)
-                                            console.log("finalizeStatementDraft returned sid=", sid)
                                             if (hasUiImport) uiImport.clearDraft()
                                             if (sid && sid.length > 0 && uiNav && uiData) {
                                                 uiNav.section = UiNavigation.Booking

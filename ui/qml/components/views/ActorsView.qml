@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import "qrc:/qml/components/controls"
 
 Item {
     id: root
@@ -52,13 +53,13 @@ Item {
             font.pointSize: 18
         }
 
-        TextField {
+        AppTextField {
             id: nameField
             placeholderText: qsTr("Name")
             Layout.fillWidth: true
         }
 
-        TextField {
+        AppTextField {
             id: typeField
             placeholderText: qsTr("Type")
             Layout.fillWidth: true

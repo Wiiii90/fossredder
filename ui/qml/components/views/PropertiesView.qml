@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import "qrc:/qml/components/controls"
 
 Item {
     id: root
@@ -38,8 +39,8 @@ Item {
 
         Label { text: isEdit ? qsTr("Edit Property") : qsTr("Create Property"); font.pointSize: 18 }
 
-        TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
-        TextField { id: addressField; placeholderText: qsTr("Address"); Layout.fillWidth: true }
+        AppTextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
+        AppTextField { id: addressField; placeholderText: qsTr("Address"); Layout.fillWidth: true }
         TextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.fillHeight: true; wrapMode: TextArea.Wrap }
 
         RowLayout {

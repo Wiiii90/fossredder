@@ -6,44 +6,39 @@ import FossRedder 1.0
 Item {
     id: root
 
-    Rectangle {
+    ColumnLayout {
         anchors.fill: parent
-        color: "#ffe5cc"
+        anchors.margins: 8
+        spacing: 8
 
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 8
-            spacing: 8
-
-            RowLayout {
-                Layout.fillWidth: true
-                Button {
-                    text: qsTr("Statements")
-                    checkable: true
-                    checked: uiNav && uiNav.bookingView === UiNavigation.Statements
-                    onClicked: if (uiNav) uiNav.bookingView = UiNavigation.Statements
-                }
-                Button {
-                    text: qsTr("Calendar")
-                    checkable: true
-                    checked: uiNav && uiNav.bookingView === UiNavigation.Calendar
-                    onClicked: if (uiNav) uiNav.bookingView = UiNavigation.Calendar
-                }
-                Button {
-                    text: qsTr("Transactions")
-                    checkable: true
-                    checked: uiNav && uiNav.bookingView === UiNavigation.Transactions
-                    onClicked: if (uiNav) uiNav.bookingView = UiNavigation.Transactions
-                }
+        RowLayout {
+            Layout.fillWidth: true
+            Button {
+                text: qsTr("Statements")
+                checkable: true
+                checked: uiNav && uiNav.bookingView === UiNavigation.Statements
+                onClicked: if (uiNav) uiNav.bookingView = UiNavigation.Statements
             }
-
-            Loader {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                source: (uiNav && uiNav.bookingView === UiNavigation.Statements)
-                            ? "BookingStatementsSidebar.qml"
-                            : "PlaceholderSidebar.qml"
+            Button {
+                text: qsTr("Calendar")
+                checkable: true
+                checked: uiNav && uiNav.bookingView === UiNavigation.Calendar
+                onClicked: if (uiNav) uiNav.bookingView = UiNavigation.Calendar
             }
+            Button {
+                text: qsTr("Transactions")
+                checkable: true
+                checked: uiNav && uiNav.bookingView === UiNavigation.Transactions
+                onClicked: if (uiNav) uiNav.bookingView = UiNavigation.Transactions
+            }
+        }
+
+        Loader {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            source: (uiNav && uiNav.bookingView === UiNavigation.Statements)
+                        ? "BookingStatementsSidebar.qml"
+                        : "PlaceholderSidebar.qml"
         }
     }
 }

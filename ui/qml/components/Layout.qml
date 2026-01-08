@@ -29,17 +29,14 @@ GridLayout {
         property int minBottomHeight: 36
 
         Component.onCompleted: {
-            horizontalSplit.implicitHeight = Math.max(verticalSplit.height * 0.8, minTopHeight)
-            bottomWrapper.implicitHeight = Math.max(verticalSplit.height * 0.2, minBottomHeight)
+            horizontalSplit.implicitHeight = Math.max(verticalSplit.height * 0.9, minTopHeight)
 
-            leftWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.2, 100)
-            centerWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.6, 200)
-            rightWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.2, 100)
+            leftWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.25, 100)
+            centerWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.75, 200)
         }
 
         onHeightChanged: {
-            horizontalSplit.implicitHeight = Math.max(verticalSplit.height * 0.8, minTopHeight)
-            bottomWrapper.implicitHeight = Math.max(verticalSplit.height * 0.2, minBottomHeight)
+            horizontalSplit.implicitHeight = Math.max(verticalSplit.height * 0.9, minTopHeight)
         }
 
         SplitView {
@@ -68,34 +65,13 @@ GridLayout {
                 }
             }
 
-            Item {
-                id: rightWrapper
-
-                Loader {
-                    anchors.fill: parent
-                    source: "SidebarRight.qml"
-                    asynchronous: false
-                }
-            }
-
             onWidthChanged: {
-                leftWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.2, 100)
-                centerWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.6, 200)
-                rightWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.2, 100)
+                leftWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.25, 100)
+                centerWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.75, 200)
             }
 
             onHeightChanged: {
                 if (height < verticalSplit.minTopHeight) height = verticalSplit.minTopHeight
-            }
-        }
-
-        Item {
-            id: bottomWrapper
-
-            Loader {
-                anchors.fill: parent
-                source: "BottomBar.qml"
-                asynchronous: false
             }
         }
     }
