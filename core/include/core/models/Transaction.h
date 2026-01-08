@@ -22,7 +22,8 @@ public:
                 double amount,
                 Contract* contract = nullptr,
                 Actor* actor = nullptr,
-                std::string description = {});
+                std::string description = {},
+                bool allocatable = false);
 
     std::string id;
     std::string name;
@@ -51,6 +52,9 @@ public:
 
     // Optional image path for user verification (crop of the original statement page).
     std::string proofImagePath;
+
+    // Whether this transaction's costs are allocatable to tenants (umlegbar)
+    bool allocatable = false;
 
     bool operator==(const Transaction& other) const noexcept;
 };

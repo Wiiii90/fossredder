@@ -101,6 +101,7 @@ void SqliteSchema::migrate(sqlite3* db) {
             "statement_id INTEGER,"
             "metadata TEXT,"
             "proof_image_path TEXT,"
+            "allocatable INTEGER NOT NULL DEFAULT 0,"
             "FOREIGN KEY(actor_id) REFERENCES actors(id) ON DELETE SET NULL,"
             "FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE SET NULL,"
             "FOREIGN KEY(statement_id) REFERENCES statements(id) ON DELETE CASCADE"

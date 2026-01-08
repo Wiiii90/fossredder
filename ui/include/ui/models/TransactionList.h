@@ -23,7 +23,8 @@ public:
         ActorIdRole,
         ActorProposalRole,
         MetadataRole,
-        ProofImagePathRole
+        ProofImagePathRole,
+        AllocatableRole
         // PaymentSchemeRole removed
     };
 

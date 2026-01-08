@@ -421,6 +421,37 @@ Item {
                                 }
                             }
 
+                            // NEW: Allocatable checkbox and Status selector
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                CheckBox {
+                                    id: allocCheck
+                                    text: qsTr("Allocatable to tenant")
+                                    checked: draft && draft.current ? !!draft.current.allocatable : false
+                                    onCheckedChanged: if (draft) draft.transactions.setAllocatable(draft.currentIndex, checked)
+                                }
+
+                                Item { Layout.fillWidth: true }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                Label { text: qsTr("Status"); Layout.preferredWidth: 80 }
+                                ComboBox {
+                                    id: statusCombo
+                                    Layout.fillWidth: true
+                                    model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
+                                    currentIndex: draft && draft.current ? Math.max(0, draft.current.status) : 2
+                                    onActivated: if (draft) draft.transactions.setStatus(draft.currentIndex, currentIndex)
+                                }
+
+                                Item { Layout.fillWidth: true }
+                            }
+
                             RowLayout {
                                 Layout.fillWidth: true
 

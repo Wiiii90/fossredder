@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include "core/models/Transaction.h"
 
 struct TransactionDraft {
     QString name;
@@ -16,5 +17,8 @@ struct TransactionDraft {
     QString metadata;
     QString proofImagePath;
 
-    int status = 0;
+    bool allocatable = false;
+
+    // Default to Unverified so new transactions require user verification
+    int status = static_cast<int>(Transaction::Status::Unverified);
 };

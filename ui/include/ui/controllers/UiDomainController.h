@@ -43,6 +43,7 @@ public:
     Q_INVOKABLE void updateTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId);
     Q_INVOKABLE void updateTransactionStatus(const QString& id, int status);
     Q_INVOKABLE void updateTransactionActor(const QString& id, const QString& actorId);
+    Q_INVOKABLE void updateTransactionAllocatable(const QString& id, bool allocatable);
 
     Q_INVOKABLE void deleteActor(const QString& id);
     Q_INVOKABLE void deleteProperty(const QString& id);

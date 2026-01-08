@@ -14,8 +14,6 @@ Item {
         bookingDateField.text = ""
         amountField.text = ""
         descField.text = ""
-        metadataField.text = ""
-        proofImage.source = ""
         statementIdField.text = (uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : ""
         quickStatementField.text = ""
     }
@@ -33,9 +31,9 @@ Item {
         bookingDateField.text = current.bookingDate || ""
         amountField.text = String(current.amount)
         descField.text = current.description || ""
-        metadataField.text = current.metadata || ""
-        proofImage.source = toFileUrl(current.proofImagePath || "")
         statementIdField.text = current.statementId || ""
+        allocCheck.checked = current.allocatable ? true : false
+        statusCombo.currentIndex = Math.max(0, current.status)
     }
 
     function toFileUrl(p) {
@@ -58,35 +56,6 @@ Item {
         TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
         TextField { id: bookingDateField; placeholderText: qsTr("Booking Date"); Layout.fillWidth: true }
         TextField { id: amountField; placeholderText: qsTr("Amount"); Layout.fillWidth: true }
-
-        GroupBox {
-            title: qsTr("Imported metadata")
-            Layout.fillWidth: true
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 6
-
-                TextArea {
-                    id: metadataField
-                    readOnly: true
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 140
-                    wrapMode: TextArea.Wrap
-                    placeholderText: qsTr("(no metadata)")
-                }
-
-                Image {
-                    id: proofImage
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 160
-                    fillMode: Image.PreserveAspectFit
-                    source: ""
-                    visible: source && source.length > 0
-                }
-            }
-        }
 
         TextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.preferredHeight: 120; wrapMode: TextArea.Wrap }
 
@@ -148,6 +117,37 @@ Item {
         RowLayout {
             Layout.fillWidth: true
 
+            CheckBox {
+                id: allocCheck
+                text: qsTr("Allocatable to tenant")
+                checked: false
+                onCheckedChanged: {
+                    // when editing existing transaction, update persistent model
+                    if (!isNew && uiDomain && current && current.id) {
+                        uiDomain.updateTransactionAllocatable(current.id, checked)
+                    }
+                }
+            }
+
+            Label { text: qsTr("Status"); Layout.preferredWidth: 80 }
+            ComboBox {
+                id: statusCombo
+                Layout.fillWidth: true
+                model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
+                currentIndex: 2
+                onActivated: {
+                    if (!isNew && uiDomain && current && current.id) {
+                        uiDomain.updateTransactionStatus(current.id, currentIndex)
+                    }
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+
             Button {
                 text: qsTr("Back")
                 onClicked: {
@@ -170,12 +170,20 @@ Item {
                                                   amount,
                                                   descField.text,
                                                   statementIdField.text)
+                        // apply allocatable/status changes for existing transaction
+                        uiDomain.updateTransactionAllocatable(current.id, allocCheck.checked)
+                        uiDomain.updateTransactionStatus(current.id, statusCombo.currentIndex)
                      } else {
                         var id = uiDomain.addTransaction(nameField.text,
                                                          bookingDateField.text,
                                                          amount,
                                                          descField.text,
                                                          statementIdField.text)
+                         // after creation, set allocatable and status if needed
+                         if (id && id.length > 0) {
+                             uiDomain.updateTransactionAllocatable(id, allocCheck.checked)
+                             uiDomain.updateTransactionStatus(id, statusCombo.currentIndex)
+                         }
                          clearFields()
                          if (uiData && id && id.length > 0) uiData.selectedTransactionId = id
                      }

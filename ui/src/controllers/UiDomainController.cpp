@@ -213,6 +213,9 @@ QString UiDomainController::finalizeStatementDraft(StatementDraft* draft)
         t->metadata = tx.metadata.toStdString();
         t->proofImagePath = tx.proofImagePath.toStdString();
 
+        // Preserve allocatable flag from draft
+        t->allocatable = tx.allocatable;
+
         state.transactions.push_back(std::move(t));
     }
 
@@ -389,6 +392,21 @@ void UiDomainController::updateTransactionActor(const QString& id, const QString
         if (!t) continue;
         if (t->id == tid) {
             t->actorId = aid;
+            core_->commit();
+            return;
+        }
+    }
+}
+
+void UiDomainController::updateTransactionAllocatable(const QString& id, bool allocatable)
+{
+    if (!core_) return;
+
+    const auto tid = id.toStdString();
+    for (auto& t : core_->mutableState().transactions) {
+        if (!t) continue;
+        if (t->id == tid) {
+            t->allocatable = allocatable;
             core_->commit();
             return;
         }

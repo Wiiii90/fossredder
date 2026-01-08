@@ -20,6 +20,7 @@ public:
         ActorProposalRole,
         MetadataRole,
         ProofImagePathRole,
+        AllocatableRole,
         StatusRole
     };
 
@@ -47,6 +48,7 @@ public:
     Q_INVOKABLE void setProofImagePath(int index, const QString& v);
 
     Q_INVOKABLE void setStatus(int index, int status);
+    Q_INVOKABLE void setAllocatable(int index, bool v);
 
 private:
     std::vector<TransactionDraft> drafts_;

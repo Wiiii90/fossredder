@@ -7,14 +7,16 @@ Transaction::Transaction(std::string name,
     double amount,
     Contract* contract,
     Actor* actor,
-    std::string description)
+    std::string description,
+    bool allocatable)
     : name(std::move(name)),
       bookingDate(std::move(bookingDate)),
       valuta(std::move(valuta)),
       amount(amount),
       contract(contract),
       actor(actor),
-      description(std::move(description)) {
+      description(std::move(description)),
+      allocatable(allocatable) {
 }
 
 bool Transaction::operator==(const Transaction& other) const noexcept {
@@ -30,5 +32,6 @@ bool Transaction::operator==(const Transaction& other) const noexcept {
            description == other.description &&
            actorProposal == other.actorProposal &&
            metadata == other.metadata &&
-           proofImagePath == other.proofImagePath;
+           proofImagePath == other.proofImagePath &&
+           allocatable == other.allocatable;
 }
