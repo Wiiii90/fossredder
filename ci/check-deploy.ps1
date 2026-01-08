@@ -1,0 +1,69 @@
+param(
+    [string]$BuildDir = ".\\.build\\x64-vcpkg",
+    [string]$StagingDir = ".\\.build\\x64-vcpkg\\staging",
+    [string]$VcpkgInstalled = "third_party/vcpkg/installed",
+    [string]$Config = "Release"
+)
+
+$logsDir = "$PSScriptRoot\logs"
+if (!(Test-Path $logsDir)) { New-Item -ItemType Directory -Path $logsDir | Out-Null }
+
+Write-Host "[CHECK] BuildDir: $BuildDir"
+Write-Host "[CHECK] StagingDir: $StagingDir"
+Write-Host "[CHECK] VcpkgInstalled: $VcpkgInstalled"
+
+# 1) Verify staging exe
+$stagingAbs = $null
+if (Test-Path $StagingDir) { $stagingAbs = (Resolve-Path $StagingDir).ProviderPath } else { $stagingAbs = $StagingDir }
+$exe = Join-Path $stagingAbs "bin\fossredder.exe"
+if (Test-Path $exe) { Write-Host "[OK] Found exe: $exe" } else { Write-Host "[ERROR] fossredder.exe not found in staging/bin" -ForegroundColor Red }
+
+# 2) Find windeployqt
+$candidates = @()
+$pathCmd = Get-Command windeployqt.exe -ErrorAction SilentlyContinue
+if ($pathCmd) { $candidates += $pathCmd.Path }
+if ($env:QTDIR) {
+    $cand = Join-Path $env:QTDIR "bin\windeployqt.exe"
+    if (Test-Path $cand) { $candidates += $cand }
+}
+if (Test-Path $VcpkgInstalled) {
+    $found = Get-ChildItem -Path $VcpkgInstalled -Recurse -Filter windeployqt.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($found) { $candidates += $found.FullName }
+}
+$candidates = $candidates | Select-Object -Unique
+
+if ($candidates.Count -eq 0) { Write-Host "[WARN] No windeployqt candidates found" -ForegroundColor Yellow } else { Write-Host "[OK] windeployqt candidates:"; $candidates | ForEach-Object { Write-Host " - $_" } }
+
+# 3) Run windeployqt against staging exe (if found)
+if ($candidates.Count -gt 0 -and (Test-Path $exe)) {
+    $used = $candidates[0]
+    Write-Host "[ACTION] Running windeployqt: $used on $exe"
+    $outFile = Join-Path $logsDir "windeploy-log.txt"
+    & $used $exe --qmldir="$stagingAbs\qml" *> $outFile 2>&1
+    $rc = $LASTEXITCODE
+    Write-Host "[RESULT] windeployqt exit code: $rc. Log: $outFile"
+} else { Write-Host "[SKIP] Skipping windeployqt run (no candidate or exe missing)" }
+
+# 4) Run cmake qtdeploy fallback
+Write-Host "[ACTION] Running cmake/qtdeploy.cmake fallback"
+$qtdeployLog = Join-Path $logsDir "qtdeploy-log.txt"
+
+$vcpkgInstalledAbs = $VcpkgInstalled
+if (Test-Path $VcpkgInstalled) {
+    $vcpkgInstalledAbs = (Resolve-Path $VcpkgInstalled).ProviderPath
+}
+
+cmake -D TARGET_DIR="$stagingAbs" -D VCPKG_INSTALLED_DIR="$vcpkgInstalledAbs" -D VCPKG_TARGET_TRIPLET="x64-windows" -D BUILD_CONFIG="$Config" -P "$PSScriptRoot\..\cmake\qtdeploy.cmake" *> $qtdeployLog 2>&1
+$rc2 = $LASTEXITCODE
+Write-Host "[RESULT] qtdeploy fallback exit code: $rc2. Log: $qtdeployLog"
+
+# 5) List staging qml dir
+$qmlDir = Join-Path $stagingAbs "qml"
+if (Test-Path $qmlDir) {
+    Write-Host "[OK] staging qml files (first 200):"
+    Get-ChildItem -Path $qmlDir -Recurse -Force | Select-Object -First 200 | ForEach-Object { Write-Host " - $($_.FullName)" }
+} else {
+    Write-Host "[WARN] staging qml dir not found: $qmlDir" -ForegroundColor Yellow
+}
+
+Write-Host "[INFO] Logs written to: $logsDir"

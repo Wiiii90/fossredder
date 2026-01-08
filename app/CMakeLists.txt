@@ -79,16 +79,10 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "4.0.1")
     endif()
 endif()
 
-# Windows: post-build step to deploy Qt runtimes/QML modules when using vcpkg
+# Windows: configure debugger env vars when using vcpkg
 if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
     set(_qt_bin_release "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin")
     set(_qt_bin_debug "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin")
-
-    add_custom_command(TARGET fossredder POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt runtimes and QML modules (qtdeploy)"
-        COMMAND ${CMAKE_COMMAND} -E env TARGET_DIR=$<TARGET_FILE_DIR:fossredder> TARGET_BINARY=$<TARGET_FILE:fossredder> QT_BIN_DEBUG=${_qt_bin_debug} QT_BIN_RELEASE=${_qt_bin_release} VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR} VCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET} BUILD_CONFIG=$<CONFIG> ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/qtdeploy.cmake"
-        COMMENT "Deploy Qt runtimes and QML modules (windeployqt preferred)"
-    )
 
     if(MSVC)
         set(_dbg_env "$<$<CONFIG:Debug>:PATH=${_qt_bin_debug}$<SEMICOLON>QT_DEBUG_PLUGINS=1$<SEMICOLON>VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR}$<SEMICOLON>QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:fossredder>/platforms$<SEMICOLON>QML2_IMPORT_PATH=$<TARGET_FILE_DIR:fossredder>/qml>")
@@ -99,4 +93,33 @@ if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
             VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
         )
     endif()
+
+    # Dev convenience: deploy Qt runtime + platforms/qwindows.dll + QML into the build output
+    add_custom_command(TARGET fossredder POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DTARGET_DIR="$<TARGET_FILE_DIR:fossredder>"
+            -DVCPKG_INSTALLED_DIR="${VCPKG_INSTALLED_DIR}"
+            -DVCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET}"
+            -DBUILD_CONFIG="$<CONFIG>"
+            -P "${CMAKE_SOURCE_DIR}/cmake/qtdeploy.cmake"
+        VERBATIM
+    )
+endif()
+
+# Install rules so 'cmake --install' stages the app for packaging
+install(TARGETS fossredder
+    RUNTIME DESTINATION bin
+)
+
+# Install QML folder so windeployqt can reference it (project uses ui/qml)
+if(EXISTS "${CMAKE_SOURCE_DIR}/ui/qml")
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/ui/qml/" DESTINATION "bin/qml")
+elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/qml")
+    # fallback if app-local qml folder exists
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/qml/" DESTINATION "bin/qml")
+endif()
+
+# Install additional assets if present (optional)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/" DESTINATION share/fossredder/assets FILES_MATCHING PATTERN "*")
 endif()

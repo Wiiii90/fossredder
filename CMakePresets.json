@@ -1,15 +1,15 @@
 {
   "version": 6,
   "cmakeMinimumRequired": {
-    "major": 3,
-    "minor": 21,
-    "patch": 0
+    "major": 4,
+    "minor": 0,
+    "patch": 1
   },
   "configurePresets": [
     {
       "name": "x64-vcpkg",
       "displayName": "x64 (vcpkg)",
-      "generator": "Visual Studio 17 2022",
+      "generator": "Visual Studio 18 2026",
       "binaryDir": "${sourceDir}/.build/${presetName}",
       "architecture": {
         "value": "x64"
@@ -27,7 +27,7 @@
     {
       "name": "x64-vcpkg-tests",
       "displayName": "x64 (vcpkg, with tests)",
-      "generator": "Visual Studio 17 2022",
+      "generator": "Visual Studio 18 2026",
       "binaryDir": "${sourceDir}/.build/${presetName}",
       "architecture": {
         "value": "x64"
@@ -76,11 +76,20 @@
       "name": "x64-release-vcpkg-tests",
       "configurePreset": "x64-vcpkg-tests",
       "configuration": "Release"
+    },
+    {
+      "name": "x64-package-release-vcpkg",
+      "displayName": "x64 Package (Release, vcpkg)",
+      "configurePreset": "x64-vcpkg",
+      "configuration": "Release",
+      "targets": [
+        "package"
+      ]
     }
   ],
   "vendor": {
     "qt-project.org/Presets": {
-      "checksum": "jN667WD/aznczFmDw141r0p03DU="
+      "checksum": "Ll8Va7sdj8Niaf4Ck0TEGeyO+2Q="
     }
   }
 }

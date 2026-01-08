@@ -45,6 +45,13 @@ if (BUILD_CORE_TESTS)
             core_lib
     )
     target_compile_features(core_unit_tests PRIVATE cxx_std_20)
+
+    set_target_properties(core_unit_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/Debug"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release"
+    )
+
     include(GoogleTest)
     gtest_discover_tests(core_unit_tests PROPERTIES LABELS "UNIT")
 
@@ -62,6 +69,13 @@ if (BUILD_CORE_TESTS)
                 core_lib
         )
         target_compile_features(core_interaction_tests PRIVATE cxx_std_20)
+
+        set_target_properties(core_interaction_tests PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+            RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/Debug"
+            RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release"
+        )
+
         include(GoogleTest)
         gtest_discover_tests(core_interaction_tests PROPERTIES LABELS "INTERACTION")
     endif()

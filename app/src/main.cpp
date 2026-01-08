@@ -57,13 +57,15 @@ int main(int argc, char* argv[]) {
     // Load runtime environment from .env if present
     env::load_dotenv(".env", false);
 
-    // Initialize configuration repository (uses persistence factory)
-    auto cfgRepo = createSqliteConfigRepository("fossredder.db");
-
     // Setup storage manager and controller (manages application state files)
-    StorageManager sm(QDir::homePath().toStdString() + std::string("/.fossredder"));
+    const std::string appDataRoot = QDir::homePath().toStdString() + std::string("/.fossredder");
+    StorageManager sm(appDataRoot);
     auto smPtr = std::make_unique<StorageManager>(std::move(sm));
     AppStateController appStateCtrl(std::move(smPtr));
+
+    // Initialize configuration repository (uses persistence factory)
+    // Use a per-user path so the installed app does not attempt to write into Program Files.
+    auto cfgRepo = createSqliteConfigRepository((std::filesystem::path(appDataRoot) / "fossredder.db").string());
 
     appStateCtrl.setRepoFactory([](const std::string& dbPath) {
         auto db = createSqliteDb(dbPath);
@@ -88,7 +90,7 @@ int main(int argc, char* argv[]) {
     });
     appStateCtrl.openLatest();
     if (appStateCtrl.currentPath().empty()) {
-        appStateCtrl.newFile("fossredder.db");
+        appStateCtrl.newFile((std::filesystem::path(appDataRoot) / "fossredder.db").string());
     }
 
     // Apply default configuration if available

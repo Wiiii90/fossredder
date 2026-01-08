@@ -34,3 +34,9 @@ docs/todo.txt
 # Large local resource folders
 services/tesseract/res/
 services/llama/res/
+
+# Packaging outputs
+staging/
+dist/
+
+vcpkg_installed/
