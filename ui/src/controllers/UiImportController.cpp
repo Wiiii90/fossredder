@@ -127,7 +127,7 @@ void UiImportController::startStatementImport()
 
     error_.clear();
     phase_ = QStringLiteral("Starting import...");
-    progress_ = 0.1;
+    progress_ = 0.01;
     isRunning_ = true;
     canceled_ = false;
     emit stateChanged();
@@ -147,11 +147,20 @@ void UiImportController::startStatementImport()
     const QByteArray runIdNative = runIdPrefixQ.toUtf8();
     std::string runIdPrefix(runIdNative.constData(), static_cast<size_t>(runIdNative.size()));
 
+    // create a progress callback that posts updates to the UI thread
+    auto progressCb = [this](double p, const std::string& phaseMsg) {
+        // clamp p
+        if (p < 0.0) p = 0.0; if (p > 1.0) p = 1.0;
+        QString phase = QString::fromStdString(phaseMsg);
+        QMetaObject::invokeMethod(this, "updateProgress", Qt::QueuedConnection, Q_ARG(double, p), Q_ARG(QString, phase));
+    };
+
     // Run import on a worker thread and capture result or error message
-    importFuture_ = QtConcurrent::run([this, p, runRoot, runIdPrefix]() -> std::pair<std::shared_ptr<Statement>, std::string> {
+    importFuture_ = QtConcurrent::run([this, p, runRoot, runIdPrefix, progressCb]() -> std::pair<std::shared_ptr<Statement>, std::string> {
         try {
-            // allow the core to perform import
-            auto imported = coreController_->import(ImportController::ImportType::Statement, p, runRoot, runIdPrefix);
+            // call core ImportController with progress callback
+            auto imported = coreController_->import(ImportController::ImportType::Statement, p, runRoot, runIdPrefix,
+                                                   std::function<void(double, const std::string&)>(progressCb));
             return { imported, std::string() };
         } catch (const std::exception& e) {
             return { nullptr, std::string(e.what()) };
@@ -161,6 +170,15 @@ void UiImportController::startStatementImport()
     });
 
     importWatcher_.setFuture(importFuture_);
+}
+
+void UiImportController::updateProgress(double p, const QString& phase)
+{
+    // ignore updates when cancelled or not running
+    if (!isRunning_ || canceled_) return;
+    progress_ = p;
+    if (!phase.isEmpty()) phase_ = phase;
+    emit stateChanged();
 }
 
 void UiImportController::onImportFutureFinished()

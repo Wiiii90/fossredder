@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <functional>
 
 class Statement;
 
@@ -11,6 +12,9 @@ struct ImportRequest {
     std::string sourcePath;
     std::string runRoot; // absolute directory for all artifacts of this import run
     std::string runIdPrefix; // e.g. yyyyMMddHHmmsszzz (UTC)
+
+    // Optional progress callback: (progress [0..1], phase message)
+    std::function<void(double, const std::string&)> progressCallback;
 };
 
 struct ImportResult {

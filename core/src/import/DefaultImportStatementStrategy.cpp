@@ -38,6 +38,14 @@ public:
         const std::filesystem::path runRoot(req.runRoot);
         try { std::filesystem::create_directories(runRoot); } catch (...) {}
 
+        auto report = [&](double p, const std::string& phase) {
+            if (req.progressCallback) {
+                try { req.progressCallback(p, phase); } catch (...) {}
+            }
+        };
+
+        report(0.02, "Preparing import");
+
         Statement stmt;
         std::vector<Transaction> all;
 
@@ -49,7 +57,9 @@ public:
         rreq.filePrefix = "poppler_render";
 
         try { std::clog << "DefaultImportStatementStrategy: poppler render start: " << rreq.pdfPath.string() << " dpi=" << rreq.dpi << std::endl; } catch(...){ }
+        report(0.05, "Rendering pages");
         auto renderRes = poppler_->render(rreq);
+        report(0.15, "Rendered pages");
 
         api::poppler::ExtractRequest ereq;
         ereq.pdfPath = rreq.pdfPath;
@@ -57,15 +67,22 @@ public:
         ereq.outputDir = runRoot;
         ereq.uniqIdPrefix = utils::makeUniqId();
         ereq.filePrefix = "poppler_extract";
+        report(0.16, "Extracting text");
         auto extractRes = poppler_->extract(ereq);
+        report(0.22, "Extracted text");
 
         std::string carriedBookingDate;
         int nextTxIndex = 1;
 
-        for (size_t pi = 0; pi < renderRes.images.size(); ++pi) {
+        size_t totalPages = renderRes.images.size();
+        for (size_t pi = 0; pi < totalPages; ++pi) {
             const auto& pageImage = renderRes.images[pi];
 
-            try { std::clog << "DefaultImportStatementStrategy: opencv mask start page=" << pi << " image=" << pageImage.string() << std::endl; } catch(...){}
+            double pageBase = 0.22;
+            if (totalPages > 0) pageBase += (0.6 * (static_cast<double>(pi) / static_cast<double>(totalPages)));
+            report(pageBase, std::string("Processing page ") + std::to_string(pi + 1));
+
+            try { std::clog << "DefaultImportStatementStrategy: opencv mask start page=" << pi << " image=" << pageImage.string() << std::endl; } catch(...){ }
             api::opencv::MaskRequest mreq;
             mreq.imagePath = pageImage;
             mreq.outputDir = runRoot;
@@ -138,9 +155,9 @@ public:
 
             auto maskRes = opencv_->mask(mreq);
             std::filesystem::path maskedImage = maskRes.maskedImagePath.empty() ? pageImage : maskRes.maskedImagePath;
-            try { std::clog << "DefaultImportStatementStrategy: opencv mask done page=" << pi << " maskedImage=" << maskedImage.string() << std::endl; } catch(...){}
+            try { std::clog << "DefaultImportStatementStrategy: opencv mask done page=" << pi << " maskedImage=" << maskedImage.string() << std::endl; } catch(...){ }
 
-            try { std::clog << "DefaultImportStatementStrategy: opencv detect start page=" << pi << " image=" << maskedImage.string() << std::endl; } catch(...){}
+            try { std::clog << "DefaultImportStatementStrategy: opencv detect start page=" << pi << " image=" << maskedImage.string() << std::endl; } catch(...){ }
             api::opencv::DetectRequest dreq;
             dreq.imagePath = maskedImage;
             dreq.outputDir = runRoot;
@@ -148,10 +165,10 @@ public:
             dreq.filePrefix = "opencv_detect_tables_page" + std::to_string(pi + 1);
             dreq.kind = api::opencv::DetectRequest::DetectKind::Tables;
             auto detectRes = opencv_->detect(dreq);
-            try { std::clog << "DefaultImportStatementStrategy: opencv detect done page=" << pi << " detected=" << (detectRes.detected ? 1 : 0) << std::endl; } catch(...){}
+            try { std::clog << "DefaultImportStatementStrategy: opencv detect done page=" << pi << " detected=" << (detectRes.detected ? 1 : 0) << std::endl; } catch(...){ }
 
             if (!detectRes.detected) {
-                try { std::clog << "DefaultImportStatementStrategy: no table detected on page=" << pi << ", skipping crop and OCR." << std::endl; } catch(...){}
+                try { std::clog << "DefaultImportStatementStrategy: no table detected on page=" << pi << ", skipping crop and OCR." << std::endl; } catch(...){ }
                 continue;
             }
 
@@ -166,7 +183,7 @@ public:
             cropReq.filePrefix = "opencv_crop_table_page" + std::to_string(pi + 1);
             cropReq.bbox = detectRes.table.bbox;
             auto cropRes = opencv_->crop(cropReq);
-            try { std::clog << "DefaultImportStatementStrategy: opencv crop done page=" << pi << " crops=" << cropRes.croppedImagePaths.size() << std::endl; } catch(...){}
+            try { std::clog << "DefaultImportStatementStrategy: opencv crop done page=" << pi << " crops=" << cropRes.croppedImagePaths.size() << std::endl; } catch(...){ }
 
             for (size_t ci = 0; ci < cropRes.croppedImagePaths.size(); ++ci) {
                 const auto& cropPath = cropRes.croppedImagePaths[ci];
@@ -246,6 +263,12 @@ public:
                     std::string cellsKey = "tesseract/page_" + std::to_string(pi) + "_crop_" + std::to_string(ci) + "_cells.tsv";
                     out.artifacts[cellsKey] = std::vector<uint8_t>(cellStr.begin(), cellStr.end());
                 }
+
+                // update progress per crop
+                double cropProgressBase = 0.22 + 0.6 * (static_cast<double>(pi) / static_cast<double>(totalPages));
+                double cropPart = (static_cast<double>(ci + 1) / static_cast<double>(cropRes.croppedImagePaths.size()));
+                double overall = cropProgressBase + 0.6 * (1.0 / static_cast<double>(totalPages)) * cropPart * 0.5; // small weight
+                report(overall, std::string("OCR page ") + std::to_string(pi + 1) + " crop " + std::to_string(ci + 1));
             }
         }
 
@@ -254,6 +277,7 @@ public:
             out.data = std::make_shared<Statement>(std::move(stmt));
         }
 
+        report(1.0, "Done");
         return out;
     }
 

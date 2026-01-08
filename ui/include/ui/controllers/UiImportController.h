@@ -64,6 +64,7 @@ signals:
 
 private slots:
     void onImportFutureFinished();
+    void updateProgress(double p, const QString& phase);
 
 private:
     std::shared_ptr<ImportController> coreController_;
