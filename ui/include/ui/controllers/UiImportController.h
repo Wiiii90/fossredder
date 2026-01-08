@@ -5,12 +5,15 @@
 #include <QStringList>
 #include <memory>
 #include <QPointer>
+#include <QFuture>
+#include <QFutureWatcher>
 
 #include "ui/models/ImportRunListModel.h"
 #include "ui/models/StatementDraft.h"
 
 class ImportController;
 class UiDomainController;
+class Statement; // forward declare core Statement
 
 class UiImportController : public QObject {
     Q_OBJECT
@@ -50,6 +53,7 @@ public:
     Q_INVOKABLE void startStatementImport();
     Q_INVOKABLE void resetStatus();
     Q_INVOKABLE void clearDraft();
+    Q_INVOKABLE void cancelImport();
 
     ImportRunListModel* runs() noexcept { return &runs_; }
 
@@ -57,6 +61,9 @@ signals:
     void stateChanged();
     void importFinished();
     void importFailed(const QString& error);
+
+private slots:
+    void onImportFutureFinished();
 
 private:
     std::shared_ptr<ImportController> coreController_;
@@ -73,4 +80,10 @@ private:
     ImportRunListModel runs_;
 
     StatementDraft* draft_ = nullptr;
+
+    // Async handling: return pair(result, errorMessage)
+    QFuture<std::pair<std::shared_ptr<Statement>, std::string>> importFuture_;
+    QFutureWatcher<std::pair<std::shared_ptr<Statement>, std::string>> importWatcher_;
+
+    bool canceled_ = false;
 };

@@ -5,6 +5,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QStandardPaths>
+#include <QtConcurrent/QtConcurrent>
 
 #include "core/controllers/ImportController.h"
 #include "ui/controllers/UiDomainController.h"
@@ -17,6 +18,8 @@ UiImportController::UiImportController(std::shared_ptr<ImportController> coreCon
     : QObject(parent), coreController_(std::move(coreController))
     , runs_(this)
 {
+    connect(&importWatcher_, &QFutureWatcher<std::pair<std::shared_ptr<Statement>, std::string>>::finished,
+            this, &UiImportController::onImportFutureFinished);
 }
 
 void UiImportController::setDomainController(UiDomainController* domain)
@@ -57,6 +60,14 @@ void UiImportController::clearDraft()
         draft_->deleteLater();
         draft_ = nullptr;
     }
+    emit stateChanged();
+}
+
+void UiImportController::cancelImport()
+{
+    if (!isRunning_) return;
+    canceled_ = true;
+    phase_ = QStringLiteral("Cancel requested");
     emit stateChanged();
 }
 
@@ -118,6 +129,7 @@ void UiImportController::startStatementImport()
     phase_ = QStringLiteral("Starting import...");
     progress_ = 0.1;
     isRunning_ = true;
+    canceled_ = false;
     emit stateChanged();
 
     const QByteArray nativePath = QFile::encodeName(selectedFile_);
@@ -135,53 +147,80 @@ void UiImportController::startStatementImport()
     const QByteArray runIdNative = runIdPrefixQ.toUtf8();
     std::string runIdPrefix(runIdNative.constData(), static_cast<size_t>(runIdNative.size()));
 
-    try {
-        auto imported = coreController_->import(ImportController::ImportType::Statement, p, runRoot, runIdPrefix);
-
-        if (imported) {
-            draft_ = new StatementDraft(this);
-            draft_->setName(QFileInfo(selectedFile_).baseName());
-
-            std::vector<TransactionDraft> txs;
-            txs.reserve(imported->transactions.size());
-            for (const auto& tx : imported->transactions) {
-                TransactionDraft d;
-                d.name = QString::fromStdString(tx.name);
-                d.bookingDate = QString::fromStdString(tx.bookingDate);
-                d.valuta = QString::fromStdString(tx.valuta);
-                d.amount = tx.amount;
-                d.description = QString::fromStdString(tx.description);
-                d.actorId = QString();
-                d.actorProposal = QString::fromStdString(tx.actorProposal);
-
-                d.metadata = QString::fromStdString(tx.metadata);
-                d.proofImagePath = QString::fromStdString(tx.proofImagePath);
-
-                d.status = static_cast<int>(Transaction::Status::Unverified);
-                txs.push_back(std::move(d));
-            }
-            draft_->setDrafts(std::move(txs));
+    // Run import on a worker thread and capture result or error message
+    importFuture_ = QtConcurrent::run([this, p, runRoot, runIdPrefix]() -> std::pair<std::shared_ptr<Statement>, std::string> {
+        try {
+            // allow the core to perform import
+            auto imported = coreController_->import(ImportController::ImportType::Statement, p, runRoot, runIdPrefix);
+            return { imported, std::string() };
+        } catch (const std::exception& e) {
+            return { nullptr, std::string(e.what()) };
+        } catch (...) {
+            return { nullptr, std::string("Unknown import error") };
         }
+    });
 
-        phase_ = QStringLiteral("Import finished");
-        progress_ = 1.0;
+    importWatcher_.setFuture(importFuture_);
+}
+
+void UiImportController::onImportFutureFinished()
+{
+    auto pairRes = importFuture_.result();
+    const auto& imported = pairRes.first;
+    const std::string err = pairRes.second;
+
+    const auto now = QDateTime::currentDateTime().toString(Qt::ISODate);
+
+    if (canceled_) {
+        phase_ = QStringLiteral("Import canceled");
+        error_ = QStringLiteral("");
         isRunning_ = false;
-        runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Success"), QStringLiteral(""));
+        progress_ = 0.0;
+        runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Canceled"), QStringLiteral(""));
         emit stateChanged();
-        emit importFinished();
-    } catch (const std::exception& e) {
-        error_ = QString::fromUtf8(e.what());
-        phase_ = QStringLiteral("Import failed");
-        isRunning_ = false;
-        runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Failed"), error_);
-        emit stateChanged();
-        emit importFailed(error_);
-    } catch (...) {
-        error_ = QStringLiteral("Import failed");
-        phase_ = QStringLiteral("Import failed");
-        isRunning_ = false;
-        runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Failed"), error_);
-        emit stateChanged();
-        emit importFailed(error_);
+        emit importFailed(QStringLiteral("Canceled"));
+        return;
     }
+
+    if (!imported) {
+        error_ = QString::fromUtf8(err.empty() ? std::string("Import failed") : err);
+        phase_ = QStringLiteral("Import failed");
+        isRunning_ = false;
+        progress_ = 0.0;
+        runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Failed"), error_);
+        emit stateChanged();
+        emit importFailed(error_);
+        return;
+    }
+
+    // Build the UI draft from imported data
+    draft_ = new StatementDraft(this);
+    draft_->setName(QFileInfo(selectedFile_).baseName());
+
+    std::vector<TransactionDraft> txs;
+    txs.reserve(imported->transactions.size());
+    for (const auto& tx : imported->transactions) {
+        TransactionDraft d;
+        d.name = QString::fromStdString(tx.name);
+        d.bookingDate = QString::fromStdString(tx.bookingDate);
+        d.valuta = QString::fromStdString(tx.valuta);
+        d.amount = tx.amount;
+        d.description = QString::fromStdString(tx.description);
+        d.actorId = QString();
+        d.actorProposal = QString::fromStdString(tx.actorProposal);
+
+        d.metadata = QString::fromStdString(tx.metadata);
+        d.proofImagePath = QString::fromStdString(tx.proofImagePath);
+
+        d.status = static_cast<int>(Transaction::Status::Unverified);
+        txs.push_back(std::move(d));
+    }
+    draft_->setDrafts(std::move(txs));
+
+    phase_ = QStringLiteral("Import finished");
+    progress_ = 1.0;
+    isRunning_ = false;
+    runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Success"), QStringLiteral(""));
+    emit stateChanged();
+    emit importFinished();
 }
