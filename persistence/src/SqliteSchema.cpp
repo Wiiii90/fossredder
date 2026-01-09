@@ -111,4 +111,20 @@ void SqliteSchema::migrate(sqlite3* db) {
         setUserVersion(db, 1);
         v = 1;
     }
+    if (v < 2) {
+        exec(db,
+            "BEGIN;"
+            // create transaction_properties relation table to store many-to-many mapping
+            "CREATE TABLE IF NOT EXISTS transaction_properties ("
+            "transaction_id INTEGER NOT NULL,"
+            "property_id INTEGER NOT NULL,"
+            "PRIMARY KEY(transaction_id, property_id),"
+            "FOREIGN KEY(transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,"
+            "FOREIGN KEY(property_id) REFERENCES properties(id) ON DELETE CASCADE"
+            ");"
+            "COMMIT;"
+        );
+        setUserVersion(db, 2);
+        v = 2;
+    }
 }

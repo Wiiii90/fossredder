@@ -33,5 +33,6 @@ bool Transaction::operator==(const Transaction& other) const noexcept {
            actorProposal == other.actorProposal &&
            metadata == other.metadata &&
            proofImagePath == other.proofImagePath &&
-           allocatable == other.allocatable;
+           allocatable == other.allocatable &&
+           propertyIds == other.propertyIds;
 }

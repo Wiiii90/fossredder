@@ -216,6 +216,10 @@ QString UiDomainController::finalizeStatementDraft(StatementDraft* draft)
         // Preserve allocatable flag from draft
         t->allocatable = tx.allocatable;
 
+        // Preserve property assignments from draft
+        t->propertyIds.clear();
+        for (const auto& pid : tx.propertyIds) t->propertyIds.push_back(pid.toStdString());
+
         state.transactions.push_back(std::move(t));
     }
 

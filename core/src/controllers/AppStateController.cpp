@@ -66,6 +66,22 @@ void AppStateController::saveFileAs(const std::string& path) {
 
 void AppStateController::commit() {
     notify();
+
+    // Persist immediately to avoid relying solely on application close
+    // (helps ensure UI-created changes are saved reliably).
+    if (storageManager_) {
+        try {
+            const std::string& path = storageManager_->currentPath();
+            if (!path.empty()) {
+                storageManager_->save(state_);
+            }
+        } catch (const std::exception& ex) {
+            // swallow persistence errors but log to stderr for diagnostics
+            fprintf(stderr, "AppStateController::commit: save failed: %s\n", ex.what());
+        } catch (...) {
+            fprintf(stderr, "AppStateController::commit: save failed: unknown error\n");
+        }
+    }
 }
 
 void AppStateController::notify() {

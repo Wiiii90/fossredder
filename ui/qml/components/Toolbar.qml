@@ -28,7 +28,7 @@ Item {
                     })
                 }
             }
-            Loader {
+            /*Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/export.svg";
@@ -37,7 +37,7 @@ Item {
                         if (uiActions) uiActions.exportFile();
                     })
                 }
-            }
+            }*/
             Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
@@ -55,7 +55,7 @@ Item {
                     })
                 }
             }
-            Loader {
+            /*Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/actor.svg";
@@ -69,7 +69,7 @@ Item {
                         if (uiNav) uiNav.section = UiNavigation.Actors;
                     })
                 }
-            }
+            }*/
             Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
@@ -85,7 +85,7 @@ Item {
                     })
                 }
             }
-            Loader {
+            /*Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/contract.svg";
@@ -99,17 +99,17 @@ Item {
                         if (uiNav) uiNav.section = UiNavigation.Contracts;
                     })
                 }
-            }
-            Loader {
+            }*/
+            /*Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/analysis.svg";
                     item.label = qsTr("Analysis");
                 }
-            }
+            }*/
 
             Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/annual.svg"; item.label = qsTr("Annual"); } }
-            Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/settings.svg"; item.label = qsTr("Settings"); } }
+            /*Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/settings.svg"; item.label = qsTr("Settings"); } }*/
 
             Item { Layout.fillWidth: true }
         }

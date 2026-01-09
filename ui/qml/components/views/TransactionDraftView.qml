@@ -1,40 +1,28 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import "qrc:/qml/components/controls"
+import "qrc:/qml/components/controls" as Controls
+import "qrc:/qml/components/utils/FileUtils.js" as FileUtils
 import FossRedder 1.0
 
 Item {
     id: txRoot
+    // anchors.fill: parent
+
     property var draft
-
-    anchors.fill: parent
-    Layout.fillWidth: true
-    Layout.fillHeight: true
-
-    function toFileUrl(p) {
-        if (!p || p.length === 0) return ""
-        if (p.indexOf("file://") === 0) return p
-        var s = String(p)
-        s = s.replace(/\\/g, "/")
-        if (/^[A-Za-z]:\//.test(s)) return "file:///" + s
-        if (s.indexOf("//") === 0) return "file:" + s
-        return "file:///" + s
-    }
+    implicitHeight: txLayout.implicitHeight
+    implicitWidth: txLayout.implicitWidth
 
     ColumnLayout {
         id: txLayout
-        anchors.fill: parent
-        anchors.margins: 8
-        spacing: 8
-        Layout.fillWidth: true
-        Layout.fillHeight: true
+        width: txRoot.width
 
-        // Transaction header fields
         RowLayout {
             Layout.fillWidth: true
+
             Label { text: qsTr("Name"); Layout.preferredWidth: 80 }
-            AppTextField {
+
+            Controls.AppTextField {
                 Layout.fillWidth: true
                 text: draft && draft.current ? (draft.current.name || "") : ""
                 onTextChanged: if (draft) draft.transactions.setName(draft.currentIndex, text)
@@ -65,7 +53,7 @@ Item {
                     id: proofImage
                     width: parent.width
                     fillMode: Image.PreserveAspectFit
-                    source: toFileUrl((draft && draft.current) ? (draft.current.proofImagePath || "") : "")
+                    source: FileUtils.toFileUrl((draft && draft.current) ? (draft.current.proofImagePath || "") : "")
                     cache: true
                     asynchronous: true
                 }
@@ -74,28 +62,18 @@ Item {
             Component.onCompleted: resetIfNeeded()
         }
 
-        GridLayout {
+        RowLayout {
             Layout.fillWidth: true
-            columns: 6
-            rowSpacing: 6
-            columnSpacing: 8
 
             Label { text: qsTr("Booking date"); Layout.alignment: Qt.AlignVCenter }
-            AppTextField {
+            Controls.AppTextField {
                 Layout.fillWidth: true
                 text: draft && draft.current ? (draft.current.bookingDate || "") : ""
                 onTextChanged: if (draft) draft.transactions.setBookingDate(draft.currentIndex, text)
             }
 
-            Label { text: qsTr("Valuta"); Layout.alignment: Qt.AlignVCenter }
-            AppTextField {
-                Layout.fillWidth: true
-                text: draft && draft.current ? (draft.current.valuta || "") : ""
-                onTextChanged: if (draft) draft.transactions.setValuta(draft.currentIndex, text)
-            }
-
             Label { text: qsTr("Amount"); Layout.alignment: Qt.AlignVCenter }
-            AppTextField {
+            Controls.AppTextField {
                 Layout.fillWidth: true
                 text: draft && draft.current ? String(draft.current.amount) : ""
                 onTextChanged: {
@@ -107,131 +85,85 @@ Item {
             }
         }
 
-        GroupBox {
-            title: qsTr("Metadata")
-            Layout.fillWidth: true
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 6
-                TextArea {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 160
-                    wrapMode: TextArea.Wrap
-                    text: draft && draft.current ? (draft.current.metadata || "") : ""
-                    selectByMouse: true
-                    onTextChanged: if (draft) draft.transactions.setMetadata(draft.currentIndex, text)
-                }
-            }
+        Label {
+            text: qsTr("Metadata")
+            font.bold: true
         }
 
-        // Actor selection block
-        GroupBox {
-            title: qsTr("Actor")
+        Controls.AppTextArea {
             Layout.fillWidth: true
+            wrapMode: TextArea.Wrap
+            text: draft && draft.current ? (draft.current.metadata || "") : ""
+            selectByMouse: true
+            onTextChanged: if (draft) draft.transactions.setMetadata(draft.currentIndex, text)
+        }
+
+        // Properties section grouped visually
+        GroupBox {
+            title: qsTr("Properties")
+            Layout.fillWidth: true
+
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 8
-                spacing: 6
+                anchors.margins: 2
+                spacing: 2
 
-                ComboBox {
-                    id: actorCombo_local
+                // keep the list compact but allow it to grow with content
+                ListView {
+                    id: propertyListView
                     Layout.fillWidth: true
-                    model: uiData ? uiData.actors : null
-                    textRole: "name"
-                    valueRole: "id"
-                    currentIndex: -1
+                    Layout.fillHeight: false
+                    Layout.preferredHeight: contentHeight
+                    interactive: false
+                    model: uiData ? uiData.properties : null
 
-                    function syncFromDraft() {
-                        if (!draft || !draft.current) { currentIndex = -1; return }
-                        var aid = draft.current.actorId || ""
-                        if (!aid || aid.length === 0) { currentIndex = -1; return }
-                        for (var i = 0; i < count; ++i) {
-                            if (valueAt(i) === aid) { currentIndex = i; return }
-                        }
-                        currentIndex = -1
-                    }
-
-                    onActivated: {
-                        if (!draft) return
-                        draft.transactions.setActorId(draft.currentIndex, currentValue)
-                    }
-
-                    Component.onCompleted: syncFromDraft()
-                    onCountChanged: syncFromDraft()
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    AppTextField {
-                        id: actorNameField_local
+                    delegate: RowLayout {
                         Layout.fillWidth: true
-                        placeholderText: qsTr("Proposed/new actor name")
-                        text: (draft && draft.current && (!draft.current.actorId || draft.current.actorId.length === 0)) ? (draft.current.actorProposal || "") : ""
-                        onTextChanged: {
-                            if (!draft) return
-                            draft.transactions.setActorProposal(draft.currentIndex, text)
-                        }
-                    }
+                        spacing: 2
+                        Layout.alignment: Qt.AlignVCenter
 
-                    Button {
-                        text: qsTr("Add")
-                        enabled: (typeof uiDomain !== 'undefined') && !!uiDomain && actorNameField_local.text.trim().length > 0
-                        onClicked: {
-                            if ((typeof uiDomain === 'undefined') || !uiDomain || !draft) return
-                            var id = uiDomain.ensureActorByName(actorNameField_local.text)
-                            if (id && id.length > 0) {
-                                draft.transactions.setActorId(draft.currentIndex, id)
-                                txRoot.forceSync && txRoot.forceSync()
-                            }
-                        }
-                    }
+                        Controls.AppCheckBox {
+                            id: propCheck
+                            Layout.preferredWidth: 28
+                            Layout.margins: 2
+                             // reflect whether this property id is assigned to the draft transaction
+                             checked: (draft && draft.current && draft.current.propertyIds && model.id) ? draft.current.propertyIds.indexOf(model.id) !== -1 : false
+                             onCheckedChanged: {
+                                 if (!draft || !draft.current || !model.id) return
+                                 var ids = draft.current.propertyIds ? draft.current.propertyIds.slice() : []
+                                 var idx = ids.indexOf(model.id)
+                                 if (checked) {
+                                     if (idx === -1) ids.push(model.id)
+                                 } else {
+                                     if (idx > -1) ids.splice(idx, 1)
+                                 }
+                                 draft.transactions.setProperties(draft.currentIndex, ids)
+                             }
+                         }
 
-                    Button {
-                        text: qsTr("Clear")
-                        enabled: draft && draft.current && ((draft.current.actorId && draft.current.actorId.length > 0) || (actorNameField_local.text.length > 0))
-                        onClicked: {
-                            if (!draft) return
-                            draft.transactions.setActorId(draft.currentIndex, "")
-                            draft.transactions.setActorProposal(draft.currentIndex, "")
-                            txRoot.forceSync && txRoot.forceSync()
-                        }
-                    }
-
-                    Button {
-                        text: qsTr("Auto")
-                        enabled: !!draft && !!uiDomain
-                        onClicked: {
-                            if (uiDomain) try { uiDomain.autoAssignActorsForDraft(draft) } catch (e) {}
-                            Qt.callLater(function() { txRoot.forceSync && txRoot.forceSync() })
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Label { text: model.name }
+                            Item { Layout.fillWidth: true }
                         }
                     }
                 }
-            }
-        }
 
-        GroupBox {
-            title: qsTr("Description")
-            Layout.fillWidth: true
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 6
-                TextArea {
+                Label {
+                    id: propEmptyLabel
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 120
-                    wrapMode: TextArea.Wrap
-                    placeholderText: qsTr("Description")
-                    text: draft && draft.current ? (draft.current.description || "") : ""
-                    onTextChanged: if (draft) draft.transactions.setDescription(draft.currentIndex, text)
+                    visible: propertyListView.count === 0
+                    text: qsTr("No properties available")
                 }
             }
-        }
+        } // close GroupBox
 
+        // Allocatable checkbox kept visually separate from properties
         RowLayout {
             Layout.fillWidth: true
-            CheckBox {
+            Controls.AppCheckBox {
                 id: allocCheck_local
+                Layout.alignment: Qt.AlignVCenter
                 text: qsTr("Allocatable to tenant")
                 checked: draft && draft.current ? !!draft.current.allocatable : false
                 onCheckedChanged: if (draft) draft.transactions.setAllocatable(draft.currentIndex, checked)
@@ -242,7 +174,7 @@ Item {
         RowLayout {
             Layout.fillWidth: true
             Label { text: qsTr("Status"); Layout.preferredWidth: 80 }
-            ComboBox {
+            Controls.AppComboBox {
                 id: statusCombo_local
                 Layout.fillWidth: true
                 model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
@@ -251,10 +183,6 @@ Item {
             }
             Item { Layout.fillWidth: true }
         }
-
-        // navigation buttons left to parent
     }
-
-    // helper callable by parent to force a sync of UI from draft
-    function forceSync() { if (actorCombo_local) actorCombo_local.syncFromDraft() }
+    function forceSync() { }
 }

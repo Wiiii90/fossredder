@@ -9,6 +9,7 @@ GridLayout {
     columnSpacing: 0
     rowSpacing: 0
 
+    // Toolbar
     Loader {
         id: toolbarLoader
         source: "Toolbar.qml"
@@ -18,64 +19,54 @@ GridLayout {
         Layout.fillWidth: true
     }
 
+    // Main split
     SplitView {
-        id: verticalSplit
-        orientation: Qt.Vertical
+        id: horizontalSplit
+        orientation: Qt.Horizontal
         Layout.row: 1
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        property int minTopHeight: 100
-        property int minBottomHeight: 36
+        property int minHeight: 100
 
         Component.onCompleted: {
-            horizontalSplit.implicitHeight = Math.max(verticalSplit.height * 0.9, minTopHeight)
+            implicitHeight = Math.max(layoutRoot.height * 0.9, minHeight)
+            leftWrapper.implicitWidth = Math.max(width * 0.25, 100)
+            centerWrapper.implicitWidth = Math.max(width * 0.75, 200)
+        }
 
-            leftWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.25, 100)
-            centerWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.75, 200)
+        onWidthChanged: {
+            leftWrapper.implicitWidth = Math.max(width * 0.25, 100)
+            centerWrapper.implicitWidth = Math.max(width * 0.75, 200)
         }
 
         onHeightChanged: {
-            horizontalSplit.implicitHeight = Math.max(verticalSplit.height * 0.9, minTopHeight)
+            if (height < minHeight)
+                height = minHeight
         }
 
-        SplitView {
-            id: horizontalSplit
-            orientation: Qt.Horizontal
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-
-            Item {
-                id: leftWrapper
-
-                Loader {
-                    anchors.fill: parent
-                    source: "SidebarLeft.qml"
-                    asynchronous: false
-                }
+        // Sidebar
+        Item {
+            id: leftWrapper
+            Loader {
+                source: "SidebarLeft.qml"
+                asynchronous: false
+                anchors.fill: parent
             }
+        }
 
-            Item {
-                id: centerWrapper
-
-                Loader {
-                    anchors.fill: parent
-                    source: "ContentArea.qml"
-                    asynchronous: false
-                }
-            }
-
-            onWidthChanged: {
-                leftWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.25, 100)
-                centerWrapper.implicitWidth = Math.max(horizontalSplit.width * 0.75, 200)
-            }
-
-            onHeightChanged: {
-                if (height < verticalSplit.minTopHeight) height = verticalSplit.minTopHeight
+        // Content
+        Item {
+            id: centerWrapper
+            Loader {
+                source: "ContentArea.qml"
+                asynchronous: false
+                anchors.fill: parent
             }
         }
     }
 
+    // Status bar
     Loader {
         id: statusLoader
         source: "StatusBar.qml"

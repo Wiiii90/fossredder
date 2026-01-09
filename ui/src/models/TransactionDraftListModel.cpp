@@ -32,6 +32,7 @@ QVariant TransactionDraftListModel::data(const QModelIndex& index, int role) con
     case ProofImagePathRole: return t.proofImagePath;
     case AllocatableRole: return t.allocatable;
     case StatusRole: return t.status;
+    case PropertyIdsRole: return QVariant::fromValue(t.propertyIds);
     default: return {};
     }
 }
@@ -50,6 +51,7 @@ QHash<int, QByteArray> TransactionDraftListModel::roleNames() const
     roles[ProofImagePathRole] = "proofImagePath";
     roles[AllocatableRole] = "allocatable";
     roles[StatusRole] = "status";
+    roles[PropertyIdsRole] = "propertyIds";
     return roles;
 }
 
@@ -76,6 +78,7 @@ QVariantMap TransactionDraftListModel::get(int index) const
     m["proofImagePath"] = t.proofImagePath;
     m["allocatable"] = t.allocatable;
     m["status"] = t.status;
+    m["propertyIds"] = t.propertyIds;
     return m;
 }
 
@@ -180,4 +183,13 @@ void TransactionDraftListModel::setAllocatable(int index, bool v)
     drafts_[index].allocatable = v;
     const QModelIndex mi = this->index(index);
     emit dataChanged(mi, mi, { AllocatableRole });
+}
+
+void TransactionDraftListModel::setProperties(int index, const QStringList& ids)
+{
+    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
+    if (drafts_[index].propertyIds == ids) return;
+    drafts_[index].propertyIds = ids;
+    const QModelIndex mi = this->index(index);
+    emit dataChanged(mi, mi, { PropertyIdsRole });
 }

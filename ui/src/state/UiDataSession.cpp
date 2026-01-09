@@ -1,4 +1,5 @@
 #include "ui/state/UiDataSession.h"
+#include <QDebug>
 
 UiDataSession::UiDataSession(QObject* parent)
     : QObject(parent)
@@ -22,6 +23,9 @@ void UiDataSession::loadFromState(const AppState& state)
     contracts_.setContracts(state.contracts);
     statements_.setStatements(state.statements);
     transactions_.setTransactions(state.transactions);
+
+    // debug logging to help track when properties arrive
+    qDebug() << "UiDataSession::loadFromState: properties=" << properties_.rowCount();
 
     refreshSelectedActor();
     refreshSelectedProperty();

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <string>
+#include <vector>
 
 class Actor;
 class Contract;
@@ -55,6 +56,9 @@ public:
 
     // Whether this transaction's costs are allocatable to tenants (umlegbar)
     bool allocatable = false;
+
+    // Associated properties (many-to-many)
+    std::vector<std::string> propertyIds;
 
     bool operator==(const Transaction& other) const noexcept;
 };

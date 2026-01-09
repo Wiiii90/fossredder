@@ -1,0 +1,3 @@
+components/views/StatementDraftView.qml
+components/views/TransactionDraftView.qml
+components/utils/FileUtils.js

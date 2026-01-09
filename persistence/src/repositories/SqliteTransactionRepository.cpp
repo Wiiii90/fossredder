@@ -9,6 +9,25 @@
 
 struct SqliteTransactionRepository::Impl { std::shared_ptr<SqliteDb> db; };
 
+static long long toLL(const std::string& s) {
+    try { return std::stoll(s); } catch (...) { return -1; }
+}
+
+static void insertRelations(sqlite3* db, long long transactionId, const Transaction& t) {
+    const char* sql = "INSERT OR IGNORE INTO transaction_properties (transaction_id, property_id) VALUES (?, ?);";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) return;
+    for (const auto& pidStr : t.propertyIds) {
+        long long pid = toLL(pidStr);
+        if (pid <= 0) continue;
+        sqlite3_reset(stmt);
+        sqlite3_bind_int64(stmt, 1, transactionId);
+        sqlite3_bind_int64(stmt, 2, pid);
+        sqlite3_step(stmt);
+    }
+    sqlite3_finalize(stmt);
+}
+
 SqliteTransactionRepository::SqliteTransactionRepository(const std::string& dbPath)
     : SqliteTransactionRepository(std::make_shared<SqliteDb>(dbPath)) {
 }
@@ -20,10 +39,6 @@ SqliteTransactionRepository::SqliteTransactionRepository(std::shared_ptr<SqliteD
 }
 
 SqliteTransactionRepository::~SqliteTransactionRepository() = default;
-
-static long long toLL(const std::string& s) {
-    try { return std::stoll(s); } catch (...) { return -1; }
-}
 
 void SqliteTransactionRepository::addTransaction(const std::shared_ptr<Transaction>& transaction) {
     if (!transaction) return;
@@ -54,6 +69,7 @@ void SqliteTransactionRepository::addTransaction(const std::shared_ptr<Transacti
     if (sqlite3_step(stmt) == SQLITE_DONE) {
         long long id = sqlite3_last_insert_rowid(pimpl_->db->handle());
         transaction->id = std::to_string(id);
+        insertRelations(pimpl_->db->handle(), id, *transaction);
     }
 
     sqlite3_finalize(stmt);
@@ -102,6 +118,22 @@ std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransa
         out.push_back(std::move(tx));
     }
     sqlite3_finalize(stmt);
+
+    // load properties for each transaction
+    for (const auto& tptr : out) {
+        const long long tid = toLL(tptr->id);
+        const char* relSql = "SELECT property_id FROM transaction_properties WHERE transaction_id = ? ORDER BY property_id;";
+        sqlite3_stmt* relStmt = nullptr;
+        if (sqlite3_prepare_v2(pimpl_->db->handle(), relSql, -1, &relStmt, nullptr) == SQLITE_OK) {
+            sqlite3_bind_int64(relStmt, 1, tid);
+            while (sqlite3_step(relStmt) == SQLITE_ROW) {
+                long long pid = sqlite3_column_int64(relStmt, 0);
+                if (pid > 0) tptr->propertyIds.push_back(std::to_string(pid));
+            }
+            sqlite3_finalize(relStmt);
+        }
+    }
+
     return out;
 }
 
@@ -184,6 +216,18 @@ void SqliteTransactionRepository::updateTransaction(const std::shared_ptr<Transa
 
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
+
+    {
+        const char* del = "DELETE FROM transaction_properties WHERE transaction_id = ?;";
+        sqlite3_stmt* delStmt = nullptr;
+        if (sqlite3_prepare_v2(pimpl_->db->handle(), del, -1, &delStmt, nullptr) == SQLITE_OK) {
+            sqlite3_bind_int64(delStmt, 1, tid);
+            sqlite3_step(delStmt);
+            sqlite3_finalize(delStmt);
+        }
+    }
+
+    insertRelations(pimpl_->db->handle(), tid, *transaction);
 }
 
 void SqliteTransactionRepository::upsertTransaction(const std::shared_ptr<Transaction>& transaction) {

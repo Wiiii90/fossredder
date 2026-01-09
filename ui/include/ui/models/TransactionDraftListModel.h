@@ -21,7 +21,8 @@ public:
         MetadataRole,
         ProofImagePathRole,
         AllocatableRole,
-        StatusRole
+        StatusRole,
+        PropertyIdsRole
     };
 
     explicit TransactionDraftListModel(QObject* parent = nullptr);
@@ -49,6 +50,8 @@ public:
 
     Q_INVOKABLE void setStatus(int index, int status);
     Q_INVOKABLE void setAllocatable(int index, bool v);
+
+    Q_INVOKABLE void setProperties(int index, const QStringList& ids);
 
 private:
     std::vector<TransactionDraft> drafts_;
