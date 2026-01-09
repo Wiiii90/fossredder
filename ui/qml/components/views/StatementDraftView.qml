@@ -79,17 +79,38 @@ Item {
                 Item { Layout.fillWidth: true }
 
                 AppButton {
+                    text: qsTr("Discard")
+                    enabled: !!draft
+                    onClicked: {
+                        // clear the import draft and return to Import view
+                        if (typeof uiImport !== 'undefined' && uiImport) uiImport.clearDraft()
+                        if (typeof uiData !== 'undefined' && uiData) {
+                            uiData.selectedStatementId = ""
+                            uiData.selectedTransactionId = ""
+                        }
+                        if (typeof uiNav !== 'undefined' && uiNav) uiNav.section = UiNavigation.Import
+                    }
+                }
+
+                AppButton {
                     text: qsTr("Finish")
                     enabled: !!draft
                     onClicked: {
                         if (!draft) return;
                         if (typeof uiDomain !== 'undefined' && uiDomain) {
                             var sid = uiDomain.finalizeStatementDraft(draft)
+
+                            // Clear the UI import draft so ImportView switches back
+                            if (typeof uiImport !== 'undefined' && uiImport) uiImport.clearDraft()
+
                             if (sid && sid.length > 0 && uiNav && uiData) {
-                                uiNav.section = UiNavigation.Booking
-                                uiNav.bookingView = UiNavigation.Statements
+                                // stay on statements view and select the created statement
                                 uiData.selectedStatementId = sid
                                 uiData.selectedTransactionId = ""
+                                Qt.callLater(function() {
+                                    uiNav.section = UiNavigation.Booking
+                                    uiNav.bookingView = UiNavigation.Statements
+                                })
                             }
                             return
                         }

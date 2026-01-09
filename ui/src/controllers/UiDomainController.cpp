@@ -192,37 +192,62 @@ QString UiDomainController::finalizeStatementDraft(StatementDraft* draft)
     autoAssignActorsForDraft(draft);
     if (!canFinalizeStatementDraft(draft)) return {};
 
-    const QString sid = addStatement(draft->name());
-    if (sid.isEmpty()) return {};
+    // create statement object (leave id empty so repository will assign numeric id)
+    auto s = std::make_shared<Statement>();
+    s->id.clear();
+    s->name = draft->name().toStdString();
 
     auto& state = core_->mutableState();
 
+    // build transaction objects and attach to the statement (do not yet add to global transactions)
     const auto& txs = draft->transactions()->drafts();
+    s->transactions.clear();
+    s->transactions.reserve(txs.size());
     for (const auto& tx : txs) {
         auto t = std::make_shared<Transaction>();
-        t->id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+        t->id.clear();
         t->name = tx.name.toStdString();
         t->bookingDate = tx.bookingDate.toStdString();
         t->valuta = tx.valuta.toStdString();
         t->amount = tx.amount;
         t->description = tx.description.toStdString();
-        t->statementId = sid.toStdString();
         t->status = static_cast<Transaction::Status>(tx.status);
         t->actorId = tx.actorId.toStdString();
 
         t->metadata = tx.metadata.toStdString();
         t->proofImagePath = tx.proofImagePath.toStdString();
 
-        // Preserve allocatable flag from draft
         t->allocatable = tx.allocatable;
 
-        // Preserve property assignments from draft
         t->propertyIds.clear();
         for (const auto& pid : tx.propertyIds) t->propertyIds.push_back(pid.toStdString());
 
-        state.transactions.push_back(std::move(t));
+        // leave t->statementId empty for now; repository will insert transactions linked to statement
+        s->transactions.push_back(*t);
     }
 
+    // push statement (with its internal transactions) into state and persist so repository can assign numeric ids
+    state.statements.push_back(s);
+    core_->commit();
+
+    // find the statement we just added (it should be the last one) and get its assigned id
+    // use the shared ptr we inserted (s) which repository updated during commit
+    const QString sid = QString::fromStdString(s->id);
+    if (sid.isEmpty()) {
+        // unexpected: repository didn't assign an id
+        return QString();
+    }
+
+    // Now s->transactions contain Transaction objects (by value) which the repository inserted and should have ids set.
+    // We need to move those transaction entries into the global transactions list as shared_ptrs and set their statementId
+    for (const auto& txval : s->transactions) {
+        auto tptr = std::make_shared<Transaction>(txval);
+        // ensure statementId points to numeric id
+        tptr->statementId = s->id;
+        state.transactions.push_back(tptr);
+    }
+
+    // prune and commit again to notify UI (and to persist the fact that transactions are now part of global list)
     pruneInvalidTransactions();
     core_->commit();
 

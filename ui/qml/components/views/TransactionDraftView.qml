@@ -10,6 +10,17 @@ Item {
     // anchors.fill: parent
 
     property var draft
+    function formatAmount(a) {
+        if (a === undefined || a === null) return "";
+        try {
+            var v = Number(a);
+            if (!isFinite(v)) return "";
+            var s = v.toFixed(2); // always two decimals
+            // use comma as decimal separator for display
+            s = s.replace('.', ',');
+            return s;
+        } catch (e) { return String(a); }
+    }
     implicitHeight: txLayout.implicitHeight
     implicitWidth: txLayout.implicitWidth
 
@@ -75,7 +86,7 @@ Item {
             Label { text: qsTr("Amount"); Layout.alignment: Qt.AlignVCenter }
             Controls.AppTextField {
                 Layout.fillWidth: true
-                text: draft && draft.current ? String(draft.current.amount) : ""
+                text: draft && draft.current ? formatAmount(draft.current.amount) : ""
                 onTextChanged: {
                     if (!draft) return
                     var v = parseFloat(text)

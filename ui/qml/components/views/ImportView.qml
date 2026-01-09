@@ -83,7 +83,7 @@ Item {
                                 // avoid binding loop: keep text local and initialize from uiImport.selectedFile
                                 text: ""
                                 Component.onCompleted: {
-                                    var def = "P:/.data/fossredder/Januar 2025.pdf"
+                                    var def = "P:/.data/fossredder/Februar 2025.pdf"
                                     if (hasUiImport) {
                                         if (uiImport.selectedFile && uiImport.selectedFile.length > 0) {
                                             text = uiImport.selectedFile

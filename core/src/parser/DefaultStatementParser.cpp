@@ -52,6 +52,9 @@ struct ColumnModel {
     int valutaX = -1;
     int debitX = -1;
     int creditX = -1;
+    int valutaCol = -1;
+    int debitCol = -1;
+    int creditCol = -1;
     bool hasValuta() const { return valutaX >= 0; }
     bool hasDebit() const { return debitX >= 0; }
     bool hasCredit() const { return creditX >= 0; }
@@ -404,9 +407,62 @@ static TransactionMainRow splitMainRow(const RawLine& src, const ColumnModel& co
         return bestIdx;
     };
 
+    // Helper: prefer indices whose token looks like an amount
+    auto idxNearXPreferNumeric = [&](int x, int skipIdx) -> int {
+        int bestIdx = -1;
+        int bestDist = std::numeric_limits<int>::max();
+        int bestPriority = -1;
+        static const std::regex amountLike(R"(^\(?-?\d{1,3}(?:[\.,]\d{3})*[\.,]\d{1,2}-?$)");
+        for (size_t i = 0; i < toks.size(); ++i) {
+            if (static_cast<int>(i) == skipIdx) continue;
+            const int cx = cxAt(i);
+            const int d = std::abs(cx - x);
+            int priority = 0;
+            try { if (std::regex_match(toks[i], amountLike)) priority = 2; }
+            catch(...) {}
+            // prefer numeric tokens even if slightly farther
+            if (priority > bestPriority || (priority == bestPriority && d < bestDist)) {
+                bestPriority = priority;
+                bestDist = d;
+                bestIdx = static_cast<int>(i);
+            }
+        }
+        return bestIdx;
+    };
+
     int valutaIdx = cols.hasValuta() ? idxNearX(cols.valutaX, -1) : -1;
-    int debitIdx = cols.hasDebit() ? idxNearX(cols.debitX, -1) : -1;
-    int creditIdx = cols.hasCredit() ? idxNearX(cols.creditX, -1) : -1;
+    int debitIdx = cols.hasDebit() ? idxNearXPreferNumeric(cols.debitX, -1) : -1;
+    int creditIdx = cols.hasCredit() ? idxNearXPreferNumeric(cols.creditX, -1) : -1;
+
+    // If assigned token looks like a short date (valuta), avoid using it as amount token.
+    try {
+        static const std::regex shortDate(R"(^\(?\d{2}\.\d{2}\)?$)");
+        static const std::regex amountLike(R"(^\(?-?\d{1,3}(?:[\.,]\d{3})*[\.,]\d{1,2}-?$)");
+        if (creditIdx >= 0) {
+            const auto &t = toks[static_cast<size_t>(creditIdx)];
+            if (std::regex_match(t, shortDate)) {
+                // try to find alternative numeric token near creditX
+                int alt = idxNearXPreferNumeric(cols.creditX, valutaIdx);
+                if (alt >= 0 && std::regex_match(toks[static_cast<size_t>(alt)], amountLike)) {
+                    creditIdx = alt;
+                } else {
+                    // clear credit index to avoid misinterpretation
+                    creditIdx = -1;
+                }
+            }
+        }
+        if (debitIdx >= 0) {
+            const auto &t = toks[static_cast<size_t>(debitIdx)];
+            if (std::regex_match(t, shortDate)) {
+                int alt = idxNearXPreferNumeric(cols.debitX, valutaIdx);
+                if (alt >= 0 && std::regex_match(toks[static_cast<size_t>(alt)], amountLike)) {
+                    debitIdx = alt;
+                } else {
+                    debitIdx = -1;
+                }
+            }
+        }
+    } catch (...) {}
 
     if (valutaIdx >= 0) {
         if (debitIdx == valutaIdx && cols.hasDebit()) debitIdx = idxNearX(cols.debitX, valutaIdx);
@@ -487,6 +543,78 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
     ColumnModel cols;
     RowModel rows;
 
+    // Try to initialize column centers from OCR table cells (if present)
+    try {
+        if (!ocr.tables.empty() && ocr.tables[0].cells.size() > 0) {
+            const auto& t = ocr.tables[0];
+            // accumulate per-column centers and numeric counts
+            std::vector<int> colCounts(static_cast<size_t>(t.cols), 0);
+            std::vector<int> colCenterX(static_cast<size_t>(t.cols), 0);
+            std::vector<int> colItems(static_cast<size_t>(t.cols), 0);
+            for (const auto& c : t.cells) {
+                if (c.col >= 0 && c.col < t.cols) {
+                    int cx = c.bbox.x + c.bbox.width / 2;
+                    colCenterX[static_cast<size_t>(c.col)] += cx;
+                    colItems[static_cast<size_t>(c.col)] += 1;
+                    // simple numeric heuristic for cell text
+                    std::string txt = c.text;
+                    bool numeric = false;
+                    try {
+                        static const std::regex rnum(R"(^\(?-?\d{1,3}(?:[\.,]\d{3})*[\.,]\d{2}\)?-?$)");
+                        if (std::regex_search(txt, rnum)) numeric = true;
+                    } catch (...) {}
+                    if (numeric) colCounts[static_cast<size_t>(c.col)] += 1;
+                }
+            }
+
+            // compute average centers
+            for (int ci = 0; ci < t.cols; ++ci) {
+                if (colItems[static_cast<size_t>(ci)] > 0) colCenterX[static_cast<size_t>(ci)] /= colItems[static_cast<size_t>(ci)];
+            }
+
+            // heuristics: pick rightmost two numeric-rich columns as valuta/debit/credit
+            int bestCol = -1; int bestCount = -1;
+            for (int ci = 0; ci < t.cols; ++ci) {
+                if (colCounts[static_cast<size_t>(ci)] > bestCount) {
+                    bestCount = colCounts[static_cast<size_t>(ci)];
+                    bestCol = ci;
+                }
+            }
+            if (bestCol >= 0) {
+                // assume bestCol is credit-like (rightmost numeric) and previous is debit
+                // find rightmost non-empty column index
+                int rightmost = -1;
+                for (int ci = t.cols - 1; ci >= 0; --ci) {
+                    if (colItems[static_cast<size_t>(ci)] > 0) { rightmost = ci; break; }
+                }
+                if (rightmost >= 0) {
+                    cols.creditX = colCenterX[static_cast<size_t>(rightmost)];
+                    cols.creditCol = rightmost;
+                    // try previous
+                    if (rightmost - 1 >= 0 && colItems[static_cast<size_t>(rightmost - 1)] > 0) {
+                        cols.debitX = colCenterX[static_cast<size_t>(rightmost - 1)];
+                        cols.debitCol = rightmost - 1;
+                    }
+                }
+                // also try to find a valuta-like column by scanning leftwards for date-like tokens
+                for (int ci = 0; ci < t.cols; ++ci) {
+                    if (colItems[static_cast<size_t>(ci)] > 0) {
+                        // approximate x and set valutaX once found left of debit/credit
+                        if (cols.debitCol < 0) {
+                            cols.valutaX = colCenterX[static_cast<size_t>(ci)];
+                            cols.valutaCol = ci;
+                            break;
+                        }
+                    }
+                }
+
+                out.debugLines.push_back(std::string("table.cols") + "\tcols=" + std::to_string(t.cols) + "\trightmost=" + std::to_string(bestCol));
+                out.debugLines.push_back(std::string("cols.from_table\t") + "valutaX=" + std::to_string(cols.valutaX) + "\tdebitX=" + std::to_string(cols.debitX) + "\tcreditX=" + std::to_string(cols.creditX)
+                                     + "\tvalutaCol=" + std::to_string(cols.valutaCol) + "\tdebitCol=" + std::to_string(cols.debitCol) + "\tcreditCol=" + std::to_string(cols.creditCol));
+            }
+        }
+    } catch (...) {}
+
     const auto flush = [&]() {
         if (cur.main.left.empty() && cur.detailLines.empty()) return;
         blocks.push_back(std::move(cur));
@@ -563,6 +691,8 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             if (!cur.main.left.empty() || !cur.detailLines.empty()) flush();
             cur.bookingDateGroup = currentBookingDate;
             cur.main = splitMainRow(l, cols);
+
+            // NOTE: Do not mutate cur.main here. Table-cell mapping is performed later when finalizing blocks.
 
             if (mainByGeom) {
                 out.debugLines.push_back(std::string("tx.main.geom\t") + txt + "\tline=" + std::to_string(li));
@@ -649,6 +779,19 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
     for (const auto& b : blocks) {
         if (b.main.left.empty()) continue;
 
+        // Diagnostic debug: log block main cell texts and column model state
+        try {
+            out.debugLines.push_back(std::string("block.debug\tbookingDateGroup=") + b.bookingDateGroup);
+            out.debugLines.push_back(std::string("block.main.left.text\t") + b.main.left.line.text);
+            out.debugLines.push_back(std::string("block.main.valuta.empty\t") + (b.main.valuta.empty() ? "1" : "0"));
+            out.debugLines.push_back(std::string("block.main.valuta.text\t") + (b.main.valuta.empty() ? std::string("(none)") : b.main.valuta.line.text));
+            out.debugLines.push_back(std::string("block.main.debit.empty\t") + (b.main.debit.empty() ? "1" : "0"));
+            out.debugLines.push_back(std::string("block.main.debit.text\t") + (b.main.debit.empty() ? std::string("(none)") : b.main.debit.line.text));
+            out.debugLines.push_back(std::string("block.main.credit.empty\t") + (b.main.credit.empty() ? "1" : "0"));
+            out.debugLines.push_back(std::string("block.main.credit.text\t") + (b.main.credit.empty() ? std::string("(none)") : b.main.credit.line.text));
+            out.debugLines.push_back(std::string("cols.state\tvalutaX=") + std::to_string(cols.valutaX) + std::string("\tdebitX=") + std::to_string(cols.debitX) + std::string("\tcreditX=") + std::to_string(cols.creditX));
+        } catch (...) {}
+
         const auto txp = DefaultTransactionParser::parseTransaction(b);
 
         Transaction tx;
@@ -660,51 +803,90 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
         tx.actorProposal = txp.actorProposal;
         tx.metadata = txp.metadata;
 
-        if (opencv && !pageCropImagePath.empty()) {
-            int minX = std::numeric_limits<int>::max();
-            int maxX = std::numeric_limits<int>::min();
-            int minY = std::numeric_limits<int>::max();
-            int maxY = std::numeric_limits<int>::min();
+        // If OCR table cells exist, prefer parsing amounts from the corresponding cell text
+         try {
+             if (!ocr.tables.empty() && ocr.tables[0].cells.size() > 0) {
+                const auto& t = ocr.tables[0];
+                auto overlapsLine = [&](const api::tesseract::Cell& c)->bool{
+                    const int cTop = c.bbox.y;
+                    const int cBot = c.bbox.y + c.bbox.height;
+                    return !(cTop > b.main.left.line.maxY || cBot < b.main.left.line.minY);
+                };
 
-            auto accBounds = [&](const OcrLine& l) {
-                minX = std::min(minX, l.minX);
-                maxX = std::max(maxX, l.maxX);
-                minY = std::min(minY, l.minY);
-                maxY = std::max(maxY, l.maxY);
-            };
-
-            if (!b.main.left.empty()) accBounds(b.main.left.line);
-            for (const auto& l : b.detailLines) accBounds(l);
-
-            if (minX != std::numeric_limits<int>::max()) {
-                api::opencv::CropRequest creq;
-                creq.imagePath = std::filesystem::path(pageCropImagePath);
-                creq.outputDir = std::filesystem::path(pageCropImagePath).parent_path();
-                creq.uniqIdPrefix = std::string(utils::makeUniqId());
-                creq.filePrefix = std::string("opencv_proof_tx") + std::to_string(txIndex);
-                creq.outputFormat = api::opencv::CropRequest::OutputFormat::Jpg;
-                creq.jpegQuality = 92;
-
-                creq.bbox.x = 0;
-                creq.bbox.y = std::max(0, minY - 20);
-                creq.bbox.width = 1 << 30;
-
-                creq.bbox.height = std::max(1, (maxY - minY) + 24);
-                try {
-                    const auto cres = opencv->crop(creq);
-                    if (!cres.croppedImagePaths.empty()) {
-                        try { tx.proofImagePath = std::filesystem::absolute(cres.croppedImagePaths.front()).string(); }
-                        catch (...) { tx.proofImagePath = cres.croppedImagePaths.front().string(); }
+                bool usedCell = false;
+                // Prefer exact column matches if we inferred table columns
+                if (cols.hasCredit() && cols.creditCol >= 0) {
+                    for (const auto& c : t.cells) {
+                        if (c.col == cols.creditCol && overlapsLine(c)) {
+                            out.debugLines.push_back(std::string("cell.amount_used\t") + c.text);
+                            if (auto v = core::parser::parseAmountString(c.text)) { tx.amount = *v; usedCell = true; }
+                            break;
+                        }
                     }
-                } catch (...) {
+                }
+                if (!usedCell && cols.hasDebit() && cols.debitCol >= 0) {
+                    for (const auto& c : t.cells) {
+                        if (c.col == cols.debitCol && overlapsLine(c)) {
+                            out.debugLines.push_back(std::string("cell.amount_used\t") + c.text);
+                            if (auto v = core::parser::parseAmountString(c.text)) { tx.amount = -std::abs(*v); usedCell = true; }
+                            break;
+                        }
+                    }
+                }
+             }
+         } catch (...) {}
+
+        // Per-transaction proof crop (restore original behavior)
+        try {
+            if (opencv && !pageCropImagePath.empty()) {
+                int minX = std::numeric_limits<int>::max();
+                int maxX = std::numeric_limits<int>::min();
+                int minY = std::numeric_limits<int>::max();
+                int maxY = std::numeric_limits<int>::min();
+
+                auto accBounds = [&](const OcrLine& l) {
+                    minX = std::min(minX, l.minX);
+                    maxX = std::max(maxX, l.maxX);
+                    minY = std::min(minY, l.minY);
+                    maxY = std::max(maxY, l.maxY);
+                };
+
+                if (!b.main.left.empty()) accBounds(b.main.left.line);
+                for (const auto& l : b.detailLines) accBounds(l);
+
+                if (minX != std::numeric_limits<int>::max()) {
+                    api::opencv::CropRequest creq;
+                    creq.imagePath = std::filesystem::path(pageCropImagePath);
+                    creq.outputDir = std::filesystem::path(pageCropImagePath).parent_path();
+                    creq.uniqIdPrefix = std::string(utils::makeUniqId());
+                    creq.filePrefix = std::string("opencv_proof_tx") + std::to_string(txIndex);
+                    creq.outputFormat = api::opencv::CropRequest::OutputFormat::Jpg;
+                    creq.jpegQuality = 92;
+
+                    // keep original behavior: use full width so proof crop contains valuta/debit/credit columns
+                    creq.bbox.x = 0;
+                    creq.bbox.y = std::max(0, minY - 20);
+                    creq.bbox.width = 1 << 30;
+
+                    creq.bbox.height = std::max(1, (maxY - minY) + 24);
+                    try {
+                        out.debugLines.push_back(std::string("crop.request\t") + creq.imagePath.string() + std::string("\tfilePrefix=") + creq.filePrefix);
+                        const auto cres = opencv->crop(creq);
+                        out.debugLines.push_back(std::string("crop.result.count\t") + std::to_string(cres.croppedImagePaths.size()));
+                        if (!cres.croppedImagePaths.empty()) {
+                            try { tx.proofImagePath = std::filesystem::absolute(cres.croppedImagePaths.front()).string(); }
+                            catch (...) { tx.proofImagePath = cres.croppedImagePaths.front().string(); }
+                        }
+                    } catch (const std::exception& ex) {
+                        out.debugLines.push_back(std::string("crop.exception\t") + ex.what());
+                    } catch (...) {
+                        out.debugLines.push_back(std::string("crop.exception\tunknown"));
+                    }
                 }
             }
-        }
+        } catch (...) {}
 
-        tx.status = static_cast<Transaction::Status>(txp.status);
-        out.transactions.push_back(std::move(tx));
-
-        out.lastBookingDate = b.bookingDateGroup;
+         out.transactions.push_back(std::move(tx));
     }
 
     out.debugLines.push_back(std::string("transactions\t") + std::to_string(out.transactions.size()));

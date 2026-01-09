@@ -47,4 +47,7 @@ struct DefaultTransactionParser {
     static DefaultTransactionParser parseTransaction(const TransactionBlock& block);
 };
 
+// Parse an amount token string into a double. Returns std::nullopt if not a valid amount.
+std::optional<double> parseAmountString(const std::string& s);
+
 } // namespace core::parser
