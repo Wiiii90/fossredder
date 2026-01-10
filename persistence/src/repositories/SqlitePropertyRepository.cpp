@@ -36,6 +36,26 @@ void SqlitePropertyRepository::addProperty(const std::shared_ptr<Property>& prop
 
     if (sqlite3_step(stmt) == SQLITE_DONE) {
         property->id = std::to_string(sqlite3_last_insert_rowid(pimpl_->db->handle()));
+        fprintf(stderr, "SqlitePropertyRepository::addProperty: inserted property id='%s' name='%s'\n", property->id.c_str(), property->name.c_str());
+    } else {
+        // Insertion failed (e.g., UNIQUE constraint). Try to find existing property by name
+        const char* err = sqlite3_errmsg(pimpl_->db->handle());
+        fprintf(stderr, "SqlitePropertyRepository::addProperty: insert failed for name='%s': %s\n", property->name.c_str(), err ? err : "unknown");
+        sqlite3_finalize(stmt);
+        const char* sel = "SELECT id FROM properties WHERE name = ? LIMIT 1;";
+        sqlite3_stmt* selStmt = nullptr;
+        if (sqlite3_prepare_v2(pimpl_->db->handle(), sel, -1, &selStmt, nullptr) == SQLITE_OK) {
+            sqlite3_bind_text(selStmt, 1, property->name.c_str(), -1, SQLITE_TRANSIENT);
+            if (sqlite3_step(selStmt) == SQLITE_ROW) {
+                long long rid = sqlite3_column_int64(selStmt, 0);
+                if (rid > 0) {
+                    property->id = std::to_string(rid);
+                    fprintf(stderr, "SqlitePropertyRepository::addProperty: found existing property id='%s' for name='%s'\n", property->id.c_str(), property->name.c_str());
+                }
+            }
+            sqlite3_finalize(selStmt);
+        }
+        return;
     }
 
     sqlite3_finalize(stmt);
@@ -130,6 +150,7 @@ void SqlitePropertyRepository::updateProperty(const std::shared_ptr<Property>& p
     sqlite3_bind_int64(stmt, 6, pid);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
+    fprintf(stderr, "SqlitePropertyRepository::updateProperty: updated id='%s' name='%s'\n", property->id.c_str(), property->name.c_str());
 }
 
 void SqlitePropertyRepository::upsertProperty(const std::shared_ptr<Property>& property) {
@@ -137,6 +158,7 @@ void SqlitePropertyRepository::upsertProperty(const std::shared_ptr<Property>& p
     long long pid = toLL(property->id);
 
     if (pid > 0) {
+        fprintf(stderr, "SqlitePropertyRepository::upsertProperty: updating existing id='%s' name='%s'\n", property->id.c_str(), property->name.c_str());
         updateProperty(property);
         return;
     }

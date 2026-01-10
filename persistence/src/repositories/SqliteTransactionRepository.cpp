@@ -13,13 +13,34 @@ static long long toLL(const std::string& s) {
     try { return std::stoll(s); } catch (...) { return -1; }
 }
 
+// Resolve a property identifier string. If it's already numeric, return it.
+// Otherwise, try to find the property id by name. Do NOT create new properties here.
+static long long resolvePropertyId(sqlite3* db, const std::string& pidStr) {
+    long long pid = toLL(pidStr);
+    if (pid > 0) return pid;
+
+    const char* sel = "SELECT id FROM properties WHERE name = ? LIMIT 1;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db, sel, -1, &stmt, nullptr) != SQLITE_OK) return -1;
+    sqlite3_bind_text(stmt, 1, pidStr.c_str(), -1, SQLITE_TRANSIENT);
+    long long out = -1;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        out = sqlite3_column_int64(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+    return out > 0 ? out : -1;
+}
+
 static void insertRelations(sqlite3* db, long long transactionId, const Transaction& t) {
     const char* sql = "INSERT OR IGNORE INTO transaction_properties (transaction_id, property_id) VALUES (?, ?);";
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) return;
     for (const auto& pidStr : t.propertyIds) {
-        long long pid = toLL(pidStr);
-        if (pid <= 0) continue;
+        long long pid = resolvePropertyId(db, pidStr);
+        if (pid <= 0) {
+            fprintf(stderr, "SqliteTransactionRepository::insertRelations: unresolved property '%s' for transaction %lld\n", pidStr.c_str(), transactionId);
+            continue;
+        }
         sqlite3_reset(stmt);
         sqlite3_bind_int64(stmt, 1, transactionId);
         sqlite3_bind_int64(stmt, 2, pid);

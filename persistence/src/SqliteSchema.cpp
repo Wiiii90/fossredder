@@ -106,15 +106,6 @@ void SqliteSchema::migrate(sqlite3* db) {
             "FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE SET NULL,"
             "FOREIGN KEY(statement_id) REFERENCES statements(id) ON DELETE CASCADE"
             ");"
-            "COMMIT;"
-        );
-        setUserVersion(db, 1);
-        v = 1;
-    }
-    if (v < 2) {
-        exec(db,
-            "BEGIN;"
-            // create transaction_properties relation table to store many-to-many mapping
             "CREATE TABLE IF NOT EXISTS transaction_properties ("
             "transaction_id INTEGER NOT NULL,"
             "property_id INTEGER NOT NULL,"
@@ -124,7 +115,7 @@ void SqliteSchema::migrate(sqlite3* db) {
             ");"
             "COMMIT;"
         );
-        setUserVersion(db, 2);
-        v = 2;
-    }
+        setUserVersion(db, 1);
+        v = 1;
+    }    
 }

@@ -14,6 +14,8 @@
 #include "persistence/SqliteTransaction.h"
 #include "persistence/Factory.h"
 
+#include <cstdio>
+
 static long long toLL(const std::string& s) {
     try { return std::stoll(s); } catch (...) { return -1; }
 }
@@ -94,6 +96,15 @@ static void deleteIds(sqlite3* db, const char* table, const char* idCol, const s
     sqlite3_finalize(stmt);
 }
 
+static long long db_count(sqlite3* db, const char* sql) {
+    sqlite3_stmt* stmt = nullptr;
+    long long out = -1;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) return -1;
+    if (sqlite3_step(stmt) == SQLITE_ROW) out = sqlite3_column_int64(stmt, 0);
+    sqlite3_finalize(stmt);
+    return out;
+}
+
 AppStateStore::AppStateStore(std::shared_ptr<SqliteDb> db) : db_(std::move(db)) {}
 
 AppState AppStateStore::load() {
@@ -111,7 +122,23 @@ AppState AppStateStore::load() {
     mgrRepos.transactions = txRepo;
 
     AppStateManager mgr(std::move(mgrRepos));
-    return mgr.load();
+    AppState state = mgr.load();
+
+    // Debug: report what was loaded from repositories
+    fprintf(stderr, "AppStateStore::load: loaded - actors=%zu props=%zu contracts=%zu statements=%zu transactions=%zu\n",
+            state.actors.size(), state.properties.size(), state.contracts.size(), state.statements.size(), state.transactions.size());
+    for (size_t i = 0; i < state.statements.size(); ++i) {
+        const auto& s = state.statements[i];
+        if (!s) continue;
+        fprintf(stderr, "  statement[%zu] id='%s' name='%s' transactions=%zu\n", i, s->id.c_str(), s->name.c_str(), s->transactions.size());
+    }
+    for (size_t i = 0; i < state.transactions.size() && i < 10; ++i) {
+        const auto& t = state.transactions[i];
+        if (!t) continue;
+        fprintf(stderr, "  transaction[%zu] id='%s' stmt='%s' name='%s' alloc=%d props=%zu\n", i, t->id.c_str(), t->statementId.c_str(), t->name.c_str(), t->allocatable ? 1 : 0, t->propertyIds.size());
+    }
+
+    return state;
 }
 
 AppStateStoreResult AppStateStore::save(const AppState& state) {
@@ -125,21 +152,28 @@ AppStateStoreResult AppStateStore::save(const AppState& state) {
 
     SqliteTransaction tx(db_->handle());
 
-    std::unordered_set<long long> keepActors, keepProps, keepContracts, keepStatements, keepTx;
-    for (const auto& a : state.actors) { if (a && !a->id.empty()) { auto id = toLL(a->id); if (id > 0) keepActors.insert(id); } }
-    for (const auto& p : state.properties) { if (p && !p->id.empty()) { auto id = toLL(p->id); if (id > 0) keepProps.insert(id); } }
-    for (const auto& c : state.contracts) { if (c && !c->id.empty()) { auto id = toLL(c->id); if (id > 0) keepContracts.insert(id); } }
-    for (const auto& s : state.statements) { if (s && !s->id.empty()) { auto id = toLL(s->id); if (id > 0) keepStatements.insert(id); } }
-    for (const auto& t : state.transactions) { if (t && !t->id.empty()) { auto id = toLL(t->id); if (id > 0) keepTx.insert(id); } }
+    // Debug: print incoming state counts and sample transaction info
+    fprintf(stderr, "AppStateStore::save: state - actors=%zu props=%zu contracts=%zu statements=%zu transactions=%zu\n",
+            state.actors.size(), state.properties.size(), state.contracts.size(), state.statements.size(), state.transactions.size());
 
-    auto contractsToDelete = loadContractIdsWhoseAllActorsAreDeleted(db_->handle(), keepActors, keepContracts);
-    deleteIds(db_->handle(), "contracts", "id", contractsToDelete, &result.impact.deletedContractIds);
+    for (size_t i = 0; i < state.transactions.size(); ++i) {
+        const auto& t = state.transactions[i];
+        if (!t) continue;
+        fprintf(stderr, "  state.transaction[%zu] id='%s' stmt='%s' props=%zu status=%d alloc=%d\n",
+                i, t->id.c_str(), t->statementId.c_str(), t->propertyIds.size(), static_cast<int>(t->status), t->allocatable ? 1 : 0);
+        if (!t->propertyIds.empty()) {
+            fprintf(stderr, "    propertyIds: ");
+            for (const auto& pid : t->propertyIds) fprintf(stderr, "%s,", pid.c_str());
+            fprintf(stderr, "\n");
+        }
+    }
 
-    deleteIdsNotIn(db_->handle(), "transactions", "id", keepTx, &result.impact.deletedTransactionIds);
-    deleteIdsNotIn(db_->handle(), "statements", "id", keepStatements, &result.impact.deletedStatementIds);
-    deleteIdsNotIn(db_->handle(), "properties", "id", keepProps, &result.impact.deletedPropertyIds);
-    deleteIdsNotIn(db_->handle(), "actors", "id", keepActors, &result.impact.deletedActorIds);
+    // DB counts before save
+    long long beforeTx = db_count(db_->handle(), "SELECT COUNT(*) FROM transactions;");
+    long long beforeRel = db_count(db_->handle(), "SELECT COUNT(*) FROM transaction_properties;");
+    fprintf(stderr, "DB before save: transactions=%lld transaction_properties=%lld\n", beforeTx, beforeRel);
 
+    // Persist current state (upserts).
     AppStateManager::Repositories mgrRepos;
     mgrRepos.actors = actors;
     mgrRepos.properties = props;
@@ -149,6 +183,47 @@ AppStateStoreResult AppStateStore::save(const AppState& state) {
 
     AppStateManager mgr(std::move(mgrRepos));
     mgr.save(state);
+
+    // After upserts, compute which DB IDs should be kept. Include transactions that
+    // may now have been assigned IDs inside Statement objects.
+    std::unordered_set<long long> keepActors, keepProps, keepContracts, keepStatements, keepTx;
+    for (const auto& a : state.actors) { if (a && !a->id.empty()) { auto id = toLL(a->id); if (id > 0) keepActors.insert(id); } }
+    for (const auto& p : state.properties) { if (p && !p->id.empty()) { auto id = toLL(p->id); if (id > 0) keepProps.insert(id); } }
+    for (const auto& c : state.contracts) { if (c && !c->id.empty()) { auto id = toLL(c->id); if (id > 0) keepContracts.insert(id); } }
+    for (const auto& s : state.statements) { if (s && !s->id.empty()) { auto id = toLL(s->id); if (id > 0) keepStatements.insert(id); } }
+
+    // global transactions list
+    for (const auto& t : state.transactions) { if (t && !t->id.empty()) { auto id = toLL(t->id); if (id > 0) keepTx.insert(id); } }
+
+    // transactions embedded in statements (these now should have numeric IDs after mgr.save)
+    for (const auto& s : state.statements) {
+        if (!s) continue;
+        for (const auto& txval : s->transactions) {
+            if (!txval.id.empty()) {
+                auto id = toLL(txval.id);
+                if (id > 0) keepTx.insert(id);
+            }
+        }
+    }
+
+    // Previously we removed rows that are not in the computed keep-sets. That proved
+    // fragile and caused accidental data loss when temporary IDs were present. To be
+    // safe, do not delete any database rows automatically during save.
+#if 0
+    auto contractsToDelete = loadContractIdsWhoseAllActorsAreDeleted(db_->handle(), keepActors, keepContracts);
+    deleteIds(db_->handle(), "contracts", "id", contractsToDelete, &result.impact.deletedContractIds);
+
+    // deleteIdsNotIn(db_->handle(), "transactions", "id", keepTx, &result.impact.deletedTransactionIds);
+
+    deleteIdsNotIn(db_->handle(), "statements", "id", keepStatements, &result.impact.deletedStatementIds);
+    deleteIdsNotIn(db_->handle(), "properties", "id", keepProps, &result.impact.deletedPropertyIds);
+    deleteIdsNotIn(db_->handle(), "actors", "id", keepActors, &result.impact.deletedActorIds);
+#endif
+
+    // DB counts after save
+    long long afterTx = db_count(db_->handle(), "SELECT COUNT(*) FROM transactions;");
+    long long afterRel = db_count(db_->handle(), "SELECT COUNT(*) FROM transaction_properties;");
+    fprintf(stderr, "DB after save: transactions=%lld transaction_properties=%lld\n", afterTx, afterRel);
 
     tx.commit();
     return result;

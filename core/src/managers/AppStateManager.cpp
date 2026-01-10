@@ -42,12 +42,181 @@ AppState AppStateManager::load() {
 void AppStateManager::save(const AppState& state) {
     validate(state);
 
+    // Record temporary id -> Property shared_ptr for properties that may have UI-generated IDs
+    std::unordered_map<std::string, std::shared_ptr<Property>> tempIdToPtr;
+    tempIdToPtr.reserve(state.properties.size());
+    for (const auto& p : state.properties) {
+        if (!p) continue;
+        if (!p->id.empty()) tempIdToPtr[p->id] = p;
+    }
+
+    fprintf(stderr, "AppStateManager::save: tempIdToPtr keys:\n");
+    for (const auto& kv : tempIdToPtr) fprintf(stderr, "  tempId=%s name=%s\n", kv.first.c_str(), kv.second ? kv.second->name.c_str() : "(null)");
+
     if (repos_.actors) {
         for (const auto& a : state.actors) repos_.actors->upsertActor(a);
     }
 
+    // helper to parse numeric id (defined early so subsequent code can use it)
+    auto parseIdNum = [](const std::string& s) -> long long {
+        try { size_t pos = 0; long long v = std::stoll(s, &pos); if (pos == s.size()) return v; } catch (...) {}
+        return -1;
+    };
+
+    // Upsert properties first so they receive final numeric IDs
     if (repos_.properties) {
+        // Log property ids/names before upsert
+        fprintf(stderr, "AppStateManager::save: properties before upsert:\n");
+        for (const auto& p : state.properties) {
+            if (!p) { fprintf(stderr, "  (null)\n"); continue; }
+            fprintf(stderr, "  id='%s' name='%s'\n", p->id.c_str(), p->name.c_str());
+        }
+
         for (const auto& p : state.properties) repos_.properties->upsertProperty(p);
+
+        // Reload persisted properties and update in-memory property ids by name
+        try {
+            auto persisted = repos_.properties->getProperties();
+            std::unordered_map<std::string, std::string> persistedNameToId;
+            for (const auto& pp : persisted) {
+                if (!pp) continue;
+                persistedNameToId[pp->name] = pp->id;
+            }
+            for (const auto& p : state.properties) {
+                if (!p) continue;
+                // if id is non-numeric, try to replace by persisted id via name
+                if (parseIdNum(p->id) <= 0) {
+                    auto it = persistedNameToId.find(p->name);
+                    if (it != persistedNameToId.end()) p->id = it->second;
+                }
+            }
+
+            // Log persisted properties and mapping
+            fprintf(stderr, "AppStateManager::save: persisted properties (reloaded):\n");
+            for (const auto& pp : persisted) {
+                if (!pp) { fprintf(stderr, "  (null)\n"); continue; }
+                fprintf(stderr, "  id='%s' name='%s'\n", pp->id.c_str(), pp->name.c_str());
+            }
+
+            fprintf(stderr, "AppStateManager::save: properties after remap:\n");
+            for (const auto& p : state.properties) {
+                if (!p) { fprintf(stderr, "  (null)\n"); continue; }
+                fprintf(stderr, "  id='%s' name='%s' (numeric? %s)\n", p->id.c_str(), p->name.c_str(), (parseIdNum(p->id) > 0) ? "yes" : "no");
+            }
+
+            // If any properties still have non-numeric ids, attempt to insert them explicitly
+            bool anyNonNumeric = false;
+            for (const auto& p : state.properties) {
+                if (!p) continue;
+                if (parseIdNum(p->id) <= 0) { anyNonNumeric = true; break; }
+            }
+            if (anyNonNumeric) {
+                fprintf(stderr, "AppStateManager::save: Attempting explicit insert for non-numeric properties...\n");
+                for (const auto& p : state.properties) {
+                    if (!p) continue;
+                    if (parseIdNum(p->id) > 0) continue;
+                    try {
+                        repos_.properties->addProperty(p);
+                        fprintf(stderr, "AppStateManager::save: addProperty attempted for name='%s' -> id now='%s'\n", p->name.c_str(), p->id.c_str());
+                    } catch (...) {
+                        fprintf(stderr, "AppStateManager::save: addProperty threw for name='%s'\n", p->name.c_str());
+                    }
+                }
+
+                // reload persisted and remap again
+                try {
+                    auto persisted2 = repos_.properties->getProperties();
+                    std::unordered_map<std::string, std::string> persistedNameToId2;
+                    for (const auto& pp : persisted2) {
+                        if (!pp) continue;
+                        persistedNameToId2[pp->name] = pp->id;
+                    }
+                    for (const auto& p : state.properties) {
+                        if (!p) continue;
+                        if (parseIdNum(p->id) <= 0) {
+                            auto it = persistedNameToId2.find(p->name);
+                            if (it != persistedNameToId2.end()) p->id = it->second;
+                        }
+                    }
+
+                    fprintf(stderr, "AppStateManager::save: persisted properties (reloaded after explicit insert):\n");
+                    for (const auto& pp : persisted2) {
+                        if (!pp) { fprintf(stderr, "  (null)\n"); continue; }
+                        fprintf(stderr, "  id='%s' name='%s'\n", pp->id.c_str(), pp->name.c_str());
+                    }
+
+                    fprintf(stderr, "AppStateManager::save: properties after second remap:\n");
+                    for (const auto& p : state.properties) {
+                        if (!p) { fprintf(stderr, "  (null)\n"); continue; }
+                        fprintf(stderr, "  id='%s' name='%s' (numeric? %s)\n", p->id.c_str(), p->name.c_str(), (parseIdNum(p->id) > 0) ? "yes" : "no");
+                    }
+                } catch (...) {
+                    // ignore
+                }
+            }
+        } catch (...) {
+            // ignore reload failures; remapping will log unresolved ids
+        }
+    }
+
+    // Build mapping from temporary id -> final numeric id using the same shared_ptrs
+    std::unordered_map<std::string, std::string> tempToFinalId;
+    tempToFinalId.reserve(tempIdToPtr.size());
+    for (const auto& kv : tempIdToPtr) {
+        const auto& tempId = kv.first;
+        const auto& ptr = kv.second;
+        if (!ptr) continue;
+        if (!ptr->id.empty()) tempToFinalId[tempId] = ptr->id;
+    }
+
+    fprintf(stderr, "AppStateManager::save: tempToFinalId map:\n");
+    for (const auto& kv : tempToFinalId) fprintf(stderr, "  %s -> %s\n", kv.first.c_str(), kv.second.c_str());
+
+    // Build fallback map name -> id in case transactions hold property names instead of ids
+    std::unordered_map<std::string, std::string> nameToId;
+    nameToId.reserve(state.properties.size());
+    for (const auto& p : state.properties) {
+        if (!p) continue;
+        if (!p->name.empty() && !p->id.empty()) nameToId[p->name] = p->id;
+    }
+
+    fprintf(stderr, "AppStateManager::save: nameToId map:\n");
+    for (const auto& kv : nameToId) fprintf(stderr, "  %s -> %s\n", kv.first.c_str(), kv.second.c_str());
+
+    // replace temporary property ids in-place using tempId->finalId map or fallback to name->id
+    auto remapPropertyIds = [&](std::vector<std::string>& propIds) {
+        for (auto& pid : propIds) {
+            if (pid.empty()) continue;
+            if (parseIdNum(pid) > 0) {
+                fprintf(stderr, "AppStateManager::save: pid '%s' already numeric\n", pid.c_str());
+                continue; // already numeric
+            }
+            fprintf(stderr, "AppStateManager::save: resolving pid '%s'...\n", pid.c_str());
+            auto it = tempToFinalId.find(pid);
+            if (it != tempToFinalId.end()) {
+                fprintf(stderr, "  resolved via tempToFinalId -> %s\n", it->second.c_str());
+                pid = it->second; continue;
+            }
+            auto itn = nameToId.find(pid);
+            if (itn != nameToId.end()) {
+                fprintf(stderr, "  resolved via nameToId -> %s\n", itn->second.c_str());
+                pid = itn->second; continue;
+            }
+            // unresolved -> log for diagnostics
+            fprintf(stderr, "AppStateManager::save: unresolved property id '%s'\n", pid.c_str());
+        }
+    };
+
+    // Remap for global transactions
+    for (const auto& t : state.transactions) {
+        if (!t) continue;
+        remapPropertyIds(t->propertyIds);
+    }
+
+    // Remap for statement-embedded transactions (value objects)
+    for (const auto& s : state.statements) {
+        if (!s) continue;
+        for (auto& tx : s->transactions) remapPropertyIds(tx.propertyIds);
     }
 
     if (repos_.contracts) {
@@ -62,12 +231,48 @@ void AppStateManager::save(const AppState& state) {
     }
 
     if (repos_.statements) {
-        for (const auto& s : state.statements) repos_.statements->upsertStatement(s);
+        // Ensure statement objects contain the transactions that reference them.
+        // Populate statement->transactions from the global transactions list
+        // before upserting so the statement repository re-inserts the correct
+        // set of transactions.
+        for (const auto& s : state.statements) {
+            if (!s) continue;
+
+            // Only populate statement->transactions from the global transactions
+            // list if the statement currently has no transactions. This avoids
+            // clearing transactions that were attached directly to the
+            // statement (e.g., created by finalizeStatementDraft) before the
+            // repository upsert runs.
+            if (s->transactions.empty()) {
+                for (const auto& tptr : state.transactions) {
+                    if (!tptr) continue;
+                    if (!tptr->statementId.empty() && tptr->statementId == s->id) {
+                        s->transactions.push_back(*tptr);
+                    }
+                }
+            }
+
+            // Debug: log statement contents before upsert
+            fprintf(stderr, "AppStateManager::save: upserting statement id='%s' name='%s' transactions=%zu\n", s->id.c_str(), s->name.c_str(), s->transactions.size());
+            for (size_t i = 0; i < s->transactions.size(); ++i) {
+                const auto& tx = s->transactions[i];
+                fprintf(stderr, "  stmt.tx[%zu] id='%s' name='%s' props=%zu alloc=%d\n", i, tx.id.c_str(), tx.name.c_str(), tx.propertyIds.size(), tx.allocatable ? 1 : 0);
+                if (!tx.propertyIds.empty()) {
+                    fprintf(stderr, "    propIds: ");
+                    for (const auto& pid : tx.propertyIds) fprintf(stderr, "%s,", pid.c_str());
+                    fprintf(stderr, "\n");
+                }
+            }
+
+            repos_.statements->upsertStatement(s);
+        }
     }
 
     if (repos_.transactions) {
         for (const auto& t : state.transactions) {
             if (!t) continue;
+            // If transaction belongs to a statement, assume it was persisted with the statement
+            if (!t->statementId.empty()) continue;
             if (t->actor && !t->actor->id.empty()) t->actorId = t->actor->id;
             if (t->contract && !t->contract->id.empty()) t->contractId = t->contract->id;
             repos_.transactions->upsertTransaction(t);
@@ -158,10 +363,19 @@ void AppStateManager::rehydrate(AppState& state) {
             auto it = statementById.find(tx.statementId);
             if (it != statementById.end()) {
                 Statement& st = *it->second;
-                auto existing = std::find(st.transactions.begin(), st.transactions.end(), tx);
-                if (existing == st.transactions.end()) {
-                    st.transactions.push_back(tx);
+                // Prefer id-based deduplication: if transaction id is present,
+                // avoid inserting duplicate transactions with same id. Fall back
+                // to value comparison only if ids are empty.
+                bool exists = false;
+                if (!tx.id.empty()) {
+                    for (const auto& existingTx : st.transactions) {
+                        if (existingTx.id == tx.id) { exists = true; break; }
+                    }
+                } else {
+                    auto existing = std::find(st.transactions.begin(), st.transactions.end(), tx);
+                    exists = (existing != st.transactions.end());
                 }
+                if (!exists) st.transactions.push_back(tx);
             }
         }
     }

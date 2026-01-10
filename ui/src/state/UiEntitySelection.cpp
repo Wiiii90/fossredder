@@ -16,6 +16,7 @@ void UiEntitySelection::clear()
     propertyIds_.clear();
     bookingDate_.clear();
     amount_ = 0.0;
+    allocatable_ = false;
     statementId_.clear();
     actorId_.clear();
     actorProposal_.clear();
@@ -97,6 +98,7 @@ void UiEntitySelection::setTransaction(const QString& id, const QString& name, c
     statementId_ = statementId;
     actorId_ = actorId;
     actorProposal_ = actorProposal;
+    allocatable_ = false;
     emit changed();
 }
 
@@ -120,5 +122,24 @@ void UiEntitySelection::setContract(const QString& id, const QString& name, cons
     statementId_.clear();
     actorId_.clear();
     actorProposal_.clear();
+    allocatable_ = false;
+    emit changed();
+}
+
+void UiEntitySelection::setTransactionWithProperties(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, const QString& actorId, const QString& actorProposal, const QStringList& propertyIds, bool allocatable)
+{
+    id_ = id;
+    name_ = name;
+    type_.clear();
+    address_.clear();
+    description_ = description;
+    actorIds_.clear();
+    propertyIds_ = propertyIds;
+    bookingDate_ = bookingDate;
+    amount_ = amount;
+    allocatable_ = allocatable;
+    statementId_ = statementId;
+    actorId_ = actorId;
+    actorProposal_ = actorProposal;
     emit changed();
 }

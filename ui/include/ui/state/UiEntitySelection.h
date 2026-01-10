@@ -17,6 +17,7 @@ class UiEntitySelection : public QObject {
 
     Q_PROPERTY(QString bookingDate READ bookingDate NOTIFY changed)
     Q_PROPERTY(double amount READ amount NOTIFY changed)
+    Q_PROPERTY(bool allocatable READ allocatable NOTIFY changed)
     Q_PROPERTY(QString statementId READ statementId NOTIFY changed)
     Q_PROPERTY(QString actorId READ actorId NOTIFY changed)
     Q_PROPERTY(QString actorProposal READ actorProposal NOTIFY changed)
@@ -33,6 +34,7 @@ public:
     void setTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId);
     void setTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, const QString& actorId);
     void setTransaction(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, const QString& actorId, const QString& actorProposal);
+    void setTransactionWithProperties(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, const QString& actorId, const QString& actorProposal, const QStringList& propertyIds, bool allocatable);
 
     void setContract(const QString& id, const QString& name, const QString& type, const QString& description);
     void setContract(const QString& id, const QString& name, const QString& type, const QString& description,
@@ -49,6 +51,7 @@ public:
 
     QString bookingDate() const { return bookingDate_; }
     double amount() const { return amount_; }
+    bool allocatable() const { return allocatable_; }
     QString statementId() const { return statementId_; }
     QString actorId() const { return actorId_; }
     QString actorProposal() const { return actorProposal_; }
@@ -68,6 +71,7 @@ private:
 
     QString bookingDate_;
     double amount_ = 0.0;
+    bool allocatable_ = false;
     QString statementId_;
     QString actorId_;
     QString actorProposal_;

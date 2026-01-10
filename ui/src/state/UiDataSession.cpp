@@ -169,14 +169,20 @@ void UiDataSession::refreshSelectedTransaction()
 
     for (const auto& t : transactions_.transactions()) {
         if (t && QString::fromStdString(t->id) == selectedTransactionId_) {
-            selectedTransaction_.setTransaction(QString::fromStdString(t->id),
-                                                QString::fromStdString(t->name),
-                                                QString::fromStdString(t->bookingDate),
-                                                t->amount,
-                                                QString::fromStdString(t->description),
-                                                QString::fromStdString(t->statementId),
-                                                QString::fromStdString(t->actorId),
-                                                QString::fromStdString(t->actorProposal));
+            // build property id list for UI
+            QStringList propIds;
+            for (const auto& pid : t->propertyIds) propIds.push_back(QString::fromStdString(pid));
+
+            selectedTransaction_.setTransactionWithProperties(QString::fromStdString(t->id),
+                                                            QString::fromStdString(t->name),
+                                                            QString::fromStdString(t->bookingDate),
+                                                            t->amount,
+                                                            QString::fromStdString(t->description),
+                                                            QString::fromStdString(t->statementId),
+                                                            QString::fromStdString(t->actorId),
+                                                            QString::fromStdString(t->actorProposal),
+                                                            propIds,
+                                                            t->allocatable);
             return;
         }
     }

@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <QUuid>
+#include <QTimer>
 
 #include "core/models/Actor.h"
 #include "core/models/Property.h"
@@ -230,16 +231,11 @@ QString UiDomainController::finalizeStatementDraft(StatementDraft* draft)
     state.statements.push_back(s);
     core_->commit();
 
-    // find the statement we just added (it should be the last one) and get its assigned id
-    // use the shared ptr we inserted (s) which repository updated during commit
-    const QString sid = QString::fromStdString(s->id);
-    if (sid.isEmpty()) {
-        // unexpected: repository didn't assign an id
-        return QString();
-    }
-
-    // Now s->transactions contain Transaction objects (by value) which the repository inserted and should have ids set.
-    // We need to move those transaction entries into the global transactions list as shared_ptrs and set their statementId
+    // After commit the repository should have assigned numeric ids to the
+    // statement's internal transactions. Add copies of those transactions as
+    // shared_ptrs into the global transactions list so the UI can display
+    // them immediately (transactions in the DB were just created by the
+    // statement repository).
     for (const auto& txval : s->transactions) {
         auto tptr = std::make_shared<Transaction>(txval);
         // ensure statementId points to numeric id
@@ -247,11 +243,12 @@ QString UiDomainController::finalizeStatementDraft(StatementDraft* draft)
         state.transactions.push_back(tptr);
     }
 
-    // prune and commit again to notify UI (and to persist the fact that transactions are now part of global list)
+    // prune and commit again to notify UI (and to persist nothing new; this
+    // mainly triggers UI refresh with the global transactions present)
     pruneInvalidTransactions();
     core_->commit();
 
-    return sid;
+    return QString::fromStdString(s->id);
 }
 
 QStringList UiDomainController::getActorAliases(const QString& actorId) const
@@ -435,8 +432,54 @@ void UiDomainController::updateTransactionAllocatable(const QString& id, bool al
     for (auto& t : core_->mutableState().transactions) {
         if (!t) continue;
         if (t->id == tid) {
+            if (t->allocatable == allocatable) {
+                fprintf(stderr, "UiDomainController::updateTransactionAllocatable: no-op for tx=%s\n", tid.c_str());
+                return;
+            }
             t->allocatable = allocatable;
-            core_->commit();
+            fprintf(stderr, "UiDomainController::updateTransactionAllocatable: tx=%s allocatable=%d\n", tid.c_str(), allocatable ? 1 : 0);
+            QTimer::singleShot(0, this, [this]() {
+                if (core_) {
+                    try { core_->commit(); } catch (...) {}
+                }
+            });
+            return;
+        }
+    }
+}
+
+void UiDomainController::updateTransactionProperties(const QString& id, const QStringList& propertyIds)
+{
+    if (!core_) return;
+    const auto tid = id.toStdString();
+    for (auto& t : core_->mutableState().transactions) {
+        if (!t) continue;
+        if (t->id == tid) {
+            // build new vector
+            std::vector<std::string> newIds;
+            newIds.reserve(static_cast<size_t>(propertyIds.size()));
+            for (const auto& pid : propertyIds) newIds.push_back(pid.toStdString());
+
+            // if unchanged, ignore to avoid commit loop
+            if (t->propertyIds == newIds) {
+                fprintf(stderr, "UiDomainController::updateTransactionProperties: no-op for tx=%s\n", tid.c_str());
+                return;
+            }
+
+            t->propertyIds = std::move(newIds);
+            fprintf(stderr, "UiDomainController::updateTransactionProperties: tx=%s propertyIds=[", tid.c_str());
+            for (size_t i = 0; i < t->propertyIds.size(); ++i) {
+                if (i) fprintf(stderr, ",");
+                fprintf(stderr, "%s", t->propertyIds[i].c_str());
+            }
+            fprintf(stderr, "]\n");
+
+            // Defer commit to the event loop to avoid reentrancy and stack overflows triggered by immediate model updates
+            QTimer::singleShot(0, this, [this]() {
+                if (core_) {
+                    try { core_->commit(); } catch (...) {}
+                }
+            });
             return;
         }
     }

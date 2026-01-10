@@ -32,6 +32,11 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case MetadataRole: return QString::fromStdString(t->metadata);
     case ProofImagePathRole: return QString::fromStdString(t->proofImagePath);
     case AllocatableRole: return t->allocatable;
+    case PropertyIdsRole: {
+        QVariantList out;
+        for (const auto& pid : t->propertyIds) out.push_back(QString::fromStdString(pid));
+        return out;
+    }
     default: return {};
     }
 }
@@ -52,6 +57,7 @@ QHash<int, QByteArray> TransactionList::roleNames() const
     roles[MetadataRole] = "metadata";
     roles[ProofImagePathRole] = "proofImagePath";
     roles[AllocatableRole] = "allocatable";
+    roles[PropertyIdsRole] = "propertyIds";
     return roles;
 }
 

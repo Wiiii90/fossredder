@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import "qrc:/qml/components/controls"
 
 Item {
     id: root
@@ -13,12 +14,15 @@ Item {
         nameField.text = ""
         bookingDateField.text = ""
         amountField.text = ""
-        descField.text = ""
-        statementIdField.text = (uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : ""
-        quickStatementField.text = ""
+        // statementId is taken from uiData.selectedStatementId when creating new
+        // reset property selection for new
+        if (typeof selectedPropertyIds !== 'undefined') selectedPropertyIds = []
+        allocCheck.checked = false
+        statusCombo.currentIndex = 0
     }
 
     function syncFields() {
+        if (suppressSync) return
         if (isNew) {
             clearFields()
             return
@@ -30,16 +34,21 @@ Item {
         nameField.text = current.name || ""
         bookingDateField.text = current.bookingDate || ""
         amountField.text = String(current.amount)
-        descField.text = current.description || ""
-        statementIdField.text = current.statementId || ""
+        // populate property selection (for display only)
+        if (typeof selectedPropertyIds !== 'undefined') selectedPropertyIds = current.propertyIds ? current.propertyIds.slice() : []
         allocCheck.checked = current.allocatable ? true : false
         statusCombo.currentIndex = Math.max(0, current.status)
     }
 
-    function toFileUrl(p) {
-        if (!p || p.length === 0) return ""
-        if (p.indexOf("file://") === 0) return p
-        return "file:///" + String(p).replace(/\\/g, "/")
+    // local storage for new-transaction property assignments
+    property var selectedPropertyIds: []
+    // prevent immediate model-driven sync from overwriting user clicks
+    property bool suppressSync: false
+    Timer {
+        id: syncTimer
+        interval: 150
+        repeat: false
+        onTriggered: { suppressSync = false; syncFields(); }
     }
 
     Connections { target: current; function onChanged() { syncFields() } }
@@ -53,144 +62,147 @@ Item {
 
         Label { text: (isNew || isEdit) ? qsTr("Transaction") : qsTr("Create Transaction"); font.pointSize: 18 }
 
-        TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
-        TextField { id: bookingDateField; placeholderText: qsTr("Booking Date"); Layout.fillWidth: true }
-        TextField { id: amountField; placeholderText: qsTr("Amount"); Layout.fillWidth: true }
+        RowLayout { Layout.fillWidth: true
+            Label { text: qsTr("Name"); Layout.preferredWidth: 120 }
+            AppTextField { id: nameField; Layout.fillWidth: true }
+        }
 
-        TextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.preferredHeight: 120; wrapMode: TextArea.Wrap }
+        RowLayout { Layout.fillWidth: true
+            Label { text: qsTr("Booking date"); Layout.preferredWidth: 120 }
+            AppTextField { id: bookingDateField; Layout.fillWidth: true }
 
+            Label { text: qsTr("Amount"); Layout.preferredWidth: 80 }
+            AppTextField { id: amountField; Layout.preferredWidth: 160 }
+        }
+
+        // Properties section
         GroupBox {
-            title: qsTr("Statement (required)")
+            title: qsTr("Properties")
             Layout.fillWidth: true
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 8
-                spacing: 6
+                anchors.margins: 2
+                spacing: 2
 
-                ComboBox {
-                    id: statementCombo
+                ListView {
+                    id: propertyListView
                     Layout.fillWidth: true
-                    model: uiData ? uiData.statements : null
-                    textRole: "name"
-                    valueRole: "id"
-                    onActivated: {
-                        statementIdField.text = currentValue
-                    }
-                    Component.onCompleted: {
-                        if (statementIdField.text.length > 0) {
-                            for (var i = 0; i < count; ++i) {
-                                if (valueAt(i) === statementIdField.text) {
-                                    currentIndex = i
-                                    break
+                    Layout.fillHeight: false
+                    Layout.preferredHeight: contentHeight
+                    interactive: true
+                    model: uiData ? uiData.properties : null
+
+                    delegate: RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        Layout.alignment: Qt.AlignVCenter
+
+                        AppCheckBox {
+                            id: propCheck
+                            Layout.preferredWidth: 28
+                            Layout.margins: 2
+                            checked: (isEdit && current && current.propertyIds && model.id) ? current.propertyIds.indexOf(model.id) !== -1 : (selectedPropertyIds.indexOf(model.id) !== -1)
+                            onClicked: {
+                                if (!model.id) return
+                                if (isEdit && current && current.id) {
+                                    // update persistent transaction properties immediately (user click only)
+                                    var ids = current.propertyIds ? current.propertyIds.slice() : []
+                                    var idx = ids.indexOf(model.id)
+                                    if (propCheck.checked) { if (idx === -1) ids.push(model.id) }
+                                    else { if (idx > -1) ids.splice(idx, 1) }
+                                    if (uiDomain) uiDomain.updateTransactionProperties(current.id, ids)
+                                } else {
+                                    // modify local selection for new transaction
+                                    var localIdx = selectedPropertyIds.indexOf(model.id)
+                                    if (propCheck.checked) { if (localIdx === -1) selectedPropertyIds.push(model.id) }
+                                    else { if (localIdx > -1) selectedPropertyIds.splice(localIdx, 1) }
                                 }
                             }
                         }
-                    }
-                }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    TextField { id: quickStatementField; placeholderText: qsTr("New statement name"); Layout.fillWidth: true }
-                    Button {
-                        text: qsTr("Add")
-                        enabled: quickStatementField.text.trim().length > 0
-                        onClicked: {
-                            if (!uiDomain) return
-                            var id = uiDomain.ensureStatementByName(quickStatementField.text)
-                            if (id && id.length > 0) {
-                                statementIdField.text = id
-                                if (uiData && (!uiData.selectedStatementId || uiData.selectedStatementId === "")) uiData.selectedStatementId = id
-                            }
-                            quickStatementField.text = ""
+                        ColumnLayout { Layout.fillWidth: true
+                            Label { text: model.name }
+                            Item { Layout.fillWidth: true }
                         }
                     }
                 }
 
-                TextField {
-                    id: statementIdField
-                    visible: false
+                Label {
+                    id: propEmptyLabel
+                    Layout.fillWidth: true
+                    visible: propertyListView.count === 0
+                    text: qsTr("No properties available")
                 }
             }
         }
 
+        // Allocatable and status
         RowLayout {
             Layout.fillWidth: true
 
-            CheckBox {
+            AppCheckBox {
                 id: allocCheck
                 text: qsTr("Allocatable to tenant")
                 checked: false
-                onCheckedChanged: {
-                    // when editing existing transaction, update persistent model
-                    if (!isNew && uiDomain && current && current.id) {
-                        uiDomain.updateTransactionAllocatable(current.id, checked)
-                    }
+                onClicked: {
+                    // suppress immediate model sync to keep UI responsive and avoid override
+                    suppressSync = true
+                    syncTimer.restart()
+                    if (!isNew && uiDomain && current && current.id) uiDomain.updateTransactionAllocatable(current.id, allocCheck.checked)
                 }
             }
 
             Label { text: qsTr("Status"); Layout.preferredWidth: 80 }
-            ComboBox {
+            AppComboBox {
                 id: statusCombo
                 Layout.fillWidth: true
                 model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
                 currentIndex: 2
                 onActivated: {
-                    if (!isNew && uiDomain && current && current.id) {
-                        uiDomain.updateTransactionStatus(current.id, currentIndex)
-                    }
+                    if (!isNew && uiDomain && current && current.id) uiDomain.updateTransactionStatus(current.id, currentIndex)
                 }
             }
-
             Item { Layout.fillWidth: true }
         }
 
         RowLayout {
             Layout.fillWidth: true
 
-            Button {
+            AppButton {
                 text: qsTr("Back")
-                onClicked: {
-                    if (uiData) uiData.selectedTransactionId = ""
-                }
+                onClicked: { if (uiData) uiData.selectedTransactionId = "" }
             }
 
-            Button {
+            AppButton {
                 text: (isEdit ? qsTr("Update") : qsTr("Add"))
-                enabled: nameField.text.length > 0 && statementIdField.text.length > 0
+                enabled: nameField.text.length > 0 && ((isEdit && current && current.statementId && current.statementId.length > 0) || (uiData && uiData.selectedStatementId && uiData.selectedStatementId.length > 0))
                 onClicked: {
                     if (!uiDomain) return
-                    var amount = parseFloat(amountField.text)
-                    if (isNaN(amount)) amount = 0.0
+                    var amt = parseFloat(amountField.text)
+                    if (isNaN(amt)) amt = 0.0
 
+                    var sid = (isEdit && current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
                     if (isEdit) {
-                        uiDomain.updateTransaction(current.id,
-                                                  nameField.text,
-                                                  bookingDateField.text,
-                                                  amount,
-                                                  descField.text,
-                                                  statementIdField.text)
-                        // apply allocatable/status changes for existing transaction
+                        uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
                         uiDomain.updateTransactionAllocatable(current.id, allocCheck.checked)
                         uiDomain.updateTransactionStatus(current.id, statusCombo.currentIndex)
-                     } else {
-                        var id = uiDomain.addTransaction(nameField.text,
-                                                         bookingDateField.text,
-                                                         amount,
-                                                         descField.text,
-                                                         statementIdField.text)
-                         // after creation, set allocatable and status if needed
-                         if (id && id.length > 0) {
-                             uiDomain.updateTransactionAllocatable(id, allocCheck.checked)
-                             uiDomain.updateTransactionStatus(id, statusCombo.currentIndex)
-                         }
-                         clearFields()
-                         if (uiData && id && id.length > 0) uiData.selectedTransactionId = id
-                     }
+                        // properties were updated inline when checkboxes changed
+                    } else {
+                        var id = uiDomain.addTransaction(nameField.text, bookingDateField.text, amt, "", sid)
+                        if (id && id.length > 0) {
+                            // apply allocatable/status/properties
+                            uiDomain.updateTransactionAllocatable(id, allocCheck.checked)
+                            uiDomain.updateTransactionStatus(id, statusCombo.currentIndex)
+                            if (selectedPropertyIds && selectedPropertyIds.length > 0) uiDomain.updateTransactionProperties(id, selectedPropertyIds)
+                            clearFields()
+                            if (uiData) uiData.selectedTransactionId = id
+                        }
+                    }
                 }
             }
 
-            Button {
+            AppButton {
                 visible: isEdit
                 text: qsTr("Delete")
                 onClicked: {

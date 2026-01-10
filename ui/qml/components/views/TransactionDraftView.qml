@@ -73,32 +73,23 @@ Item {
             Component.onCompleted: resetIfNeeded()
         }
 
-        RowLayout {
+        Label { text: qsTr("Booking date"); Layout.alignment: Qt.AlignVCenter }
+        Controls.AppTextField {
             Layout.fillWidth: true
-
-            Label { text: qsTr("Booking date"); Layout.alignment: Qt.AlignVCenter }
-            Controls.AppTextField {
-                Layout.fillWidth: true
-                text: draft && draft.current ? (draft.current.bookingDate || "") : ""
-                onTextChanged: if (draft) draft.transactions.setBookingDate(draft.currentIndex, text)
-            }
-
-            Label { text: qsTr("Amount"); Layout.alignment: Qt.AlignVCenter }
-            Controls.AppTextField {
-                Layout.fillWidth: true
-                text: draft && draft.current ? formatAmount(draft.current.amount) : ""
-                onTextChanged: {
-                    if (!draft) return
-                    var v = parseFloat(text)
-                    if (isNaN(v)) v = 0.0
-                    draft.transactions.setAmount(draft.currentIndex, v)
-                }
-            }
+            text: draft && draft.current ? (draft.current.bookingDate || "") : ""
+            onTextChanged: if (draft) draft.transactions.setBookingDate(draft.currentIndex, text)
         }
 
-        Label {
-            text: qsTr("Metadata")
-            font.bold: true
+        Label { text: qsTr("Amount"); Layout.alignment: Qt.AlignVCenter }
+        Controls.AppTextField {
+            Layout.fillWidth: true
+            text: draft && draft.current ? formatAmount(draft.current.amount) : ""
+            onTextChanged: {
+                if (!draft) return
+                var v = parseFloat(text)
+                if (isNaN(v)) v = 0.0
+                draft.transactions.setAmount(draft.currentIndex, v)
+            }
         }
 
         Controls.AppTextArea {
