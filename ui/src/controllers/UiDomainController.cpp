@@ -14,8 +14,33 @@
 #include "core/import/ActorMatcher.h"
 #include "ui/models/StatementDraft.h"
 
+#include <QHash>
+
 UiDomainController::UiDomainController(AppStateController* core, QObject* parent)
     : QObject(parent), core_(core) {}
+
+// Debounced commit helper
+void UiDomainController::scheduleDebouncedCommit(const QString& key, int ms) {
+    // remove any existing timer
+    if (commitTimers_.contains(key)) {
+        QTimer* t = commitTimers_.value(key);
+        if (t) {
+            t->stop();
+            t->start(ms);
+            return;
+        }
+    }
+    QTimer* timer = new QTimer(this);
+    timer->setSingleShot(true);
+    timer->setInterval(ms);
+    connect(timer, &QTimer::timeout, this, [this, key, timer]() {
+        if (core_) { try { core_->commit(); } catch (...) {} }
+        commitTimers_.remove(key);
+        timer->deleteLater();
+    });
+    commitTimers_.insert(key, timer);
+    timer->start();
+}
 
 QString UiDomainController::addActor(const QString& name, const QString& type, const QString& description)
 {
@@ -42,7 +67,7 @@ QString UiDomainController::addActorWithAliases(const QString& name, const QStri
 
     const auto id = QString::fromStdString(actor->id);
     core_->mutableState().actors.push_back(std::move(actor));
-    core_->commit();
+    scheduleDebouncedCommit(QStringLiteral("save"), 300);
     return id;
 }
 
@@ -58,7 +83,7 @@ QString UiDomainController::addProperty(const QString& name, const QString& addr
 
     const auto id = QString::fromStdString(prop->id);
     core_->mutableState().properties.push_back(std::move(prop));
-    core_->commit();
+    scheduleDebouncedCommit(QStringLiteral("save"), 300);
     return id;
 }
 
@@ -81,7 +106,7 @@ QString UiDomainController::addContract(const QString& name, const QString& type
 
     const auto id = QString::fromStdString(c->id);
     core_->mutableState().contracts.push_back(std::move(c));
-    core_->commit();
+    scheduleDebouncedCommit(QStringLiteral("save"), 300);
     return id;
 }
 
@@ -95,7 +120,7 @@ QString UiDomainController::addStatement(const QString& name)
 
     const auto id = QString::fromStdString(s->id);
     core_->mutableState().statements.push_back(std::move(s));
-    core_->commit();
+    scheduleDebouncedCommit(QStringLiteral("save"), 300);
     return id;
 }
 
@@ -106,10 +131,10 @@ QString UiDomainController::addTransaction(const QString& name, const QString& b
 
 QString UiDomainController::addTransactionWithStatus(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, int status)
 {
-    return addTransactionWithStatusAndActor(name, bookingDate, amount, description, statementId, status, QString());
+    return addTransactionDetailed(name, bookingDate, amount, description, statementId, status, QString());
 }
 
-QString UiDomainController::addTransactionWithStatusAndActor(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, int status, const QString& actorId)
+QString UiDomainController::addTransactionDetailed(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, int status, const QString& actorId)
 {
     if (!core_) return {};
     if (statementId.trimmed().isEmpty()) return {};
@@ -123,11 +148,18 @@ QString UiDomainController::addTransactionWithStatusAndActor(const QString& name
     t->statementId = statementId.toStdString();
     t->status = static_cast<Transaction::Status>(status);
     t->actorId = actorId.toStdString();
+    // Ensure other optional fields are initialized to sensible defaults
+    t->valuta.clear();
+    t->actorProposal.clear();
+    t->metadata.clear();
+    t->proofImagePath.clear();
+    t->allocatable = false;
+    t->propertyIds.clear();
+    t->contractId.clear();
 
     const auto id = QString::fromStdString(t->id);
     core_->mutableState().transactions.push_back(std::move(t));
-    pruneInvalidTransactions();
-    core_->commit();
+    scheduleDebouncedCommit(QStringLiteral("tx:") + QString::fromStdString(t->id), 300);
     return id;
 }
 
@@ -200,52 +232,37 @@ QString UiDomainController::finalizeStatementDraft(StatementDraft* draft)
 
     auto& state = core_->mutableState();
 
-    // build transaction objects and attach to the statement (do not yet add to global transactions)
+    // Build transaction value objects from the draft and persist the statement
+    // first so it receives a numeric id. Transactions are stored globally in
+    // AppState::transactions and reference the statement via Transaction::statementId.
     const auto& txs = draft->transactions()->drafts();
-    s->transactions.clear();
-    s->transactions.reserve(txs.size());
-    for (const auto& tx : txs) {
-        auto t = std::make_shared<Transaction>();
-        t->id.clear();
-        t->name = tx.name.toStdString();
-        t->bookingDate = tx.bookingDate.toStdString();
-        t->valuta = tx.valuta.toStdString();
-        t->amount = tx.amount;
-        t->description = tx.description.toStdString();
-        t->status = static_cast<Transaction::Status>(tx.status);
-        t->actorId = tx.actorId.toStdString();
 
-        t->metadata = tx.metadata.toStdString();
-        t->proofImagePath = tx.proofImagePath.toStdString();
-
-        t->allocatable = tx.allocatable;
-
-        t->propertyIds.clear();
-        for (const auto& pid : tx.propertyIds) t->propertyIds.push_back(pid.toStdString());
-
-        // leave t->statementId empty for now; repository will insert transactions linked to statement
-        s->transactions.push_back(*t);
-    }
-
-    // push statement (with its internal transactions) into state and persist so repository can assign numeric ids
+    // push statement into state and persist so repo assigns id
     state.statements.push_back(s);
     core_->commit();
 
-    // After commit the repository should have assigned numeric ids to the
-    // statement's internal transactions. Add copies of those transactions as
-    // shared_ptrs into the global transactions list so the UI can display
-    // them immediately (transactions in the DB were just created by the
-    // statement repository).
-    for (const auto& txval : s->transactions) {
-        auto tptr = std::make_shared<Transaction>(txval);
-        // ensure statementId points to numeric id
+    // now create global transaction shared_ptrs referencing the statement id
+    for (const auto& tx : txs) {
+        auto tptr = std::make_shared<Transaction>();
+        tptr->id.clear();
+        tptr->name = tx.name.toStdString();
+        tptr->bookingDate = tx.bookingDate.toStdString();
+        tptr->valuta = tx.valuta.toStdString();
+        tptr->amount = tx.amount;
+        tptr->description = tx.description.toStdString();
+        tptr->status = static_cast<Transaction::Status>(tx.status);
+        tptr->actorId = tx.actorId.toStdString();
+        tptr->metadata = tx.metadata.toStdString();
+        tptr->proofImagePath = tx.proofImagePath.toStdString();
+        tptr->allocatable = tx.allocatable;
+        tptr->propertyIds.clear();
+        for (const auto& pid : tx.propertyIds) tptr->propertyIds.push_back(pid.toStdString());
+        // Associate with the numeric statement id assigned by the repository
         tptr->statementId = s->id;
         state.transactions.push_back(tptr);
     }
 
-    // prune and commit again to notify UI (and to persist nothing new; this
-    // mainly triggers UI refresh with the global transactions present)
-    pruneInvalidTransactions();
+    // notify and persist so UI sees global transactions
     core_->commit();
 
     return QString::fromStdString(s->id);
@@ -279,7 +296,7 @@ void UiDomainController::setActorAliases(const QString& actorId, const QStringLi
             if (t.isEmpty()) continue;
             a->aliases.push_back(t.toStdString());
         }
-        core_->commit();
+        scheduleDebouncedCommit(QStringLiteral("actor:") + actorId, 300);
         return;
     }
 }
@@ -309,7 +326,7 @@ void UiDomainController::updateActorWithAliases(const QString& id, const QString
                 a->aliases.push_back(t.toStdString());
             }
 
-            core_->commit();
+            scheduleDebouncedCommit(QStringLiteral("actor:") + id, 300);
             return;
         }
     }
@@ -326,7 +343,7 @@ void UiDomainController::updateProperty(const QString& id, const QString& name, 
             p->name = name.toStdString();
             p->address = address.toStdString();
             p->description = description.toStdString();
-            core_->commit();
+            scheduleDebouncedCommit(QStringLiteral("property:") + id, 300);
             return;
         }
     }
@@ -352,7 +369,7 @@ void UiDomainController::updateContract(const QString& id, const QString& name, 
             for (const auto& pid : propertyIds) c->propertyIds.push_back(pid.toStdString());
 
             pruneInvalidContracts();
-            core_->commit();
+            scheduleDebouncedCommit(QStringLiteral("contract:") + id, 300);
             return;
         }
     }
@@ -367,7 +384,7 @@ void UiDomainController::updateStatement(const QString& id, const QString& name)
         if (!s) continue;
         if (s->id == sid) {
             s->name = name.toStdString();
-            core_->commit();
+            scheduleDebouncedCommit(QStringLiteral("statement:") + id, 300);
             return;
         }
     }
@@ -386,8 +403,11 @@ void UiDomainController::updateTransaction(const QString& id, const QString& nam
             t->amount = amount;
             t->description = description.toStdString();
             t->statementId = statementId.toStdString();
-            pruneInvalidTransactions();
-            core_->commit();
+
+            // Defer commit to the event loop to avoid reentrancy and match other
+            // transaction updates (checkboxes/properties use deferred commits).
+            if (core_) try { core_->markTransactionDirty(t->id); } catch(...) {}
+            scheduleDebouncedCommit(QStringLiteral("tx:") + QString::fromStdString(t->id), 300);
             return;
         }
     }
@@ -402,7 +422,8 @@ void UiDomainController::updateTransactionStatus(const QString& id, int status)
         if (!t) continue;
         if (t->id == sid) {
             t->status = static_cast<Transaction::Status>(status);
-            core_->commit();
+            if (core_) try { core_->markTransactionDirty(t->id); } catch(...) {}
+            scheduleDebouncedCommit(QStringLiteral("tx:") + QString::fromStdString(t->id), 300);
             return;
         }
     }
@@ -418,7 +439,8 @@ void UiDomainController::updateTransactionActor(const QString& id, const QString
         if (!t) continue;
         if (t->id == tid) {
             t->actorId = aid;
-            core_->commit();
+            if (core_) try { core_->markTransactionDirty(t->id); } catch(...) {}
+            scheduleDebouncedCommit(QStringLiteral("tx:") + QString::fromStdString(t->id), 300);
             return;
         }
     }
@@ -433,16 +455,11 @@ void UiDomainController::updateTransactionAllocatable(const QString& id, bool al
         if (!t) continue;
         if (t->id == tid) {
             if (t->allocatable == allocatable) {
-                fprintf(stderr, "UiDomainController::updateTransactionAllocatable: no-op for tx=%s\n", tid.c_str());
                 return;
             }
             t->allocatable = allocatable;
-            fprintf(stderr, "UiDomainController::updateTransactionAllocatable: tx=%s allocatable=%d\n", tid.c_str(), allocatable ? 1 : 0);
-            QTimer::singleShot(0, this, [this]() {
-                if (core_) {
-                    try { core_->commit(); } catch (...) {}
-                }
-            });
+            if (core_) try { core_->markTransactionDirty(t->id); } catch(...) {}
+            scheduleDebouncedCommit(QStringLiteral("tx:") + QString::fromStdString(t->id), 300);
             return;
         }
     }
@@ -461,25 +478,12 @@ void UiDomainController::updateTransactionProperties(const QString& id, const QS
             for (const auto& pid : propertyIds) newIds.push_back(pid.toStdString());
 
             // if unchanged, ignore to avoid commit loop
-            if (t->propertyIds == newIds) {
-                fprintf(stderr, "UiDomainController::updateTransactionProperties: no-op for tx=%s\n", tid.c_str());
-                return;
-            }
+            if (t->propertyIds == newIds) return;
 
             t->propertyIds = std::move(newIds);
-            fprintf(stderr, "UiDomainController::updateTransactionProperties: tx=%s propertyIds=[", tid.c_str());
-            for (size_t i = 0; i < t->propertyIds.size(); ++i) {
-                if (i) fprintf(stderr, ",");
-                fprintf(stderr, "%s", t->propertyIds[i].c_str());
-            }
-            fprintf(stderr, "]\n");
-
-            // Defer commit to the event loop to avoid reentrancy and stack overflows triggered by immediate model updates
-            QTimer::singleShot(0, this, [this]() {
-                if (core_) {
-                    try { core_->commit(); } catch (...) {}
-                }
-            });
+            if (core_) try { core_->markTransactionDirty(t->id); } catch(...) {}
+            // Debounced commit to coalesce rapid property changes
+            scheduleDebouncedCommit(QStringLiteral("tx:") + QString::fromStdString(t->id), 300);
             return;
         }
     }
@@ -497,140 +501,129 @@ QString UiDomainController::ensureActorByName(const QString& name)
 
     for (const auto& a : core_->state().actors) {
         if (a && eqName(a->name, name)) {
-            return QString::fromStdString(a->id);
+            const auto id = QString::fromStdString(a->id);
+            return id;
         }
     }
+    return {};
+}
 
-    return addActor(name, QString(), QString());
+void UiDomainController::deleteActor(const QString& id)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+    auto& actors = core_->mutableState().actors;
+    actors.erase(std::remove_if(actors.begin(), actors.end(), [&](const std::shared_ptr<Actor>& a){ return !a || a->id == sid; }), actors.end());
+    pruneInvalidContracts();
+    scheduleDebouncedCommit(QStringLiteral("actor:") + id, 300);
+}
+
+void UiDomainController::deleteProperty(const QString& id)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+    auto& props = core_->mutableState().properties;
+    props.erase(std::remove_if(props.begin(), props.end(), [&](const std::shared_ptr<Property>& p){ return !p || p->id == sid; }), props.end());
+
+    // remove property references from contracts and transactions
+    for (auto& c : core_->mutableState().contracts) {
+        if (!c) continue;
+        c->propertyIds.erase(std::remove(c->propertyIds.begin(), c->propertyIds.end(), sid), c->propertyIds.end());
+        // also clean pointer list (will be rehydrated on load)
+        c->properties.erase(std::remove_if(c->properties.begin(), c->properties.end(), [&](Property* p){ return !p || p->id == sid; }), c->properties.end());
+    }
+    for (auto& t : core_->mutableState().transactions) {
+        if (!t) continue;
+        t->propertyIds.erase(std::remove(t->propertyIds.begin(), t->propertyIds.end(), sid), t->propertyIds.end());
+    }
+    scheduleDebouncedCommit(QStringLiteral("save"), 300);
+}
+
+void UiDomainController::deleteContract(const QString& id)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+    auto& vec = core_->mutableState().contracts;
+    vec.erase(std::remove_if(vec.begin(), vec.end(), [&](const std::shared_ptr<Contract>& c){ return !c || c->id == sid; }), vec.end());
+    scheduleDebouncedCommit(QStringLiteral("contract:") + id, 300);
+}
+
+void UiDomainController::deleteStatement(const QString& id)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+    // remove statement
+    auto& stmts = core_->mutableState().statements;
+    stmts.erase(std::remove_if(stmts.begin(), stmts.end(), [&](const std::shared_ptr<Statement>& s){ return !s || s->id == sid; }), stmts.end());
+    // remove transactions that reference this statement
+    auto& txs = core_->mutableState().transactions;
+    txs.erase(std::remove_if(txs.begin(), txs.end(), [&](const std::shared_ptr<Transaction>& t){ return !t || t->statementId == sid; }), txs.end());
+    scheduleDebouncedCommit(QStringLiteral("save"), 300);
+}
+
+void UiDomainController::deleteTransaction(const QString& id)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+    auto& txs = core_->mutableState().transactions;
+    txs.erase(std::remove_if(txs.begin(), txs.end(), [&](const std::shared_ptr<Transaction>& t){ return !t || t->id == sid; }), txs.end());
+    scheduleDebouncedCommit(QStringLiteral("save"), 300);
 }
 
 QString UiDomainController::ensurePropertyByName(const QString& name)
 {
     if (!core_) return {};
     if (name.trimmed().isEmpty()) return {};
-
     for (const auto& p : core_->state().properties) {
-        if (p && eqName(p->name, name)) {
+        if (p && QString::fromStdString(p->name).trimmed().compare(name.trimmed(), Qt::CaseInsensitive) == 0) {
             return QString::fromStdString(p->id);
         }
     }
-
-    return addProperty(name, QString(), QString());
+    auto prop = std::make_shared<Property>();
+    prop->id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+    prop->name = name.toStdString();
+    core_->mutableState().properties.push_back(prop);
+    scheduleDebouncedCommit(QStringLiteral("save"), 300);
+    return QString::fromStdString(core_->mutableState().properties.back()->id);
 }
 
 QString UiDomainController::ensureStatementByName(const QString& name)
 {
     if (!core_) return {};
     if (name.trimmed().isEmpty()) return {};
-
     for (const auto& s : core_->state().statements) {
-        if (s && eqName(s->name, name)) {
+        if (s && QString::fromStdString(s->name).trimmed().compare(name.trimmed(), Qt::CaseInsensitive) == 0) {
             return QString::fromStdString(s->id);
         }
     }
-
-    return addStatement(name);
-}
-
-void UiDomainController::deleteContract(const QString& id)
-{
-    if (!core_) return;
-
-    const auto sid = id.toStdString();
-    auto& cs = core_->mutableState().contracts;
-    cs.erase(std::remove_if(cs.begin(), cs.end(), [&](const auto& c) {
-        return c && c->id == sid;
-    }), cs.end());
-
-    core_->commit();
-}
-
-void UiDomainController::deleteActor(const QString& id)
-{
-    if (!core_) return;
-
-    const auto sid = id.toStdString();
-    auto& as = core_->mutableState().actors;
-    as.erase(std::remove_if(as.begin(), as.end(), [&](const auto& a) {
-        return a && a->id == sid;
-    }), as.end());
-
-    for (auto& c : core_->mutableState().contracts) {
-        if (!c) continue;
-        c->actorIds.erase(std::remove(c->actorIds.begin(), c->actorIds.end(), sid), c->actorIds.end());
-    }
-
-    pruneInvalidContracts();
-    core_->commit();
-}
-
-void UiDomainController::deleteProperty(const QString& id)
-{
-    if (!core_) return;
-
-    const auto sid = id.toStdString();
-    auto& ps = core_->mutableState().properties;
-    ps.erase(std::remove_if(ps.begin(), ps.end(), [&](const auto& p) {
-        return p && p->id == sid;
-    }), ps.end());
-
-    for (auto& c : core_->mutableState().contracts) {
-        if (!c) continue;
-        c->propertyIds.erase(std::remove(c->propertyIds.begin(), c->propertyIds.end(), sid), c->propertyIds.end());
-    }
-
-    pruneInvalidContracts();
-    core_->commit();
-}
-
-void UiDomainController::deleteTransaction(const QString& id)
-{
-    if (!core_) return;
-
-    const auto sid = id.toStdString();
-    auto& ts = core_->mutableState().transactions;
-    ts.erase(std::remove_if(ts.begin(), ts.end(), [&](const auto& t) {
-        return t && t->id == sid;
-    }), ts.end());
-
-    core_->commit();
-}
-
-void UiDomainController::deleteStatement(const QString& id)
-{
-    if (!core_) return;
-
-    const auto sid = id.toStdString();
-    auto& ss = core_->mutableState().statements;
-    ss.erase(std::remove_if(ss.begin(), ss.end(), [&](const auto& s) {
-        return s && s->id == sid;
-    }), ss.end());
-
-    for (auto& t : core_->mutableState().transactions) {
-        if (!t) continue;
-        if (t->statementId == sid) {
-            t->statementId.clear();
-        }
-    }
-
-    pruneInvalidTransactions();
-    core_->commit();
+    auto s = std::make_shared<Statement>();
+    s->id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+    s->name = name.toStdString();
+    core_->mutableState().statements.push_back(s);
+    scheduleDebouncedCommit(QStringLiteral("save"), 300);
+    return QString::fromStdString(core_->mutableState().statements.back()->id);
 }
 
 void UiDomainController::pruneInvalidContracts()
 {
+    if (!core_) return;
     auto& cs = core_->mutableState().contracts;
-    cs.erase(std::remove_if(cs.begin(), cs.end(), [](const auto& c) {
+    cs.erase(std::remove_if(cs.begin(), cs.end(), [](const std::shared_ptr<Contract>& c){
         if (!c) return true;
-        return c->actorIds.empty() || c->propertyIds.empty();
+        if (c->name.empty()) return true;
+        if (c->actorIds.empty() && c->propertyIds.empty() && c->actors.empty() && c->properties.empty()) return true;
+        return false;
     }), cs.end());
 }
 
 void UiDomainController::pruneInvalidTransactions()
 {
-    auto& ts = core_->mutableState().transactions;
-    ts.erase(std::remove_if(ts.begin(), ts.end(), [](const auto& t) {
+    if (!core_) return;
+    auto& txs = core_->mutableState().transactions;
+    txs.erase(std::remove_if(txs.begin(), txs.end(), [](const std::shared_ptr<Transaction>& t){
         if (!t) return true;
-        return t->statementId.empty();
-    }), ts.end());
+        // prune transactions that have no statement and no name
+        if (t->statementId.empty() && t->name.empty()) return true;
+        return false;
+    }), txs.end());
 }

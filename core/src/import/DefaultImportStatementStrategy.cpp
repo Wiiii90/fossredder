@@ -47,7 +47,7 @@ public:
         report(0.02, "Preparing import");
 
         Statement stmt;
-        std::vector<Transaction> all;
+        std::vector<std::shared_ptr<Transaction>> all;
 
         api::poppler::RenderRequest rreq;
         rreq.pdfPath = std::filesystem::path(req.sourcePath);
@@ -243,14 +243,15 @@ public:
                         if (!parsed.transactions.empty()) {
                             std::ostringstream dbg;
                             dbg << "bookingDate\tvaluta\tamount\tname\tactorProposal\tmetadata\tproofImagePath\n";
-                            for (const auto& tx : parsed.transactions) {
-                                dbg << tx.bookingDate << "\t"
-                                    << tx.valuta << "\t"
-                                    << tx.amount << "\t"
-                                    << tx.name << "\t"
-                                    << tx.actorProposal << "\t"
-                                    << tx.metadata << "\t"
-                                    << tx.proofImagePath << "\n";
+                            for (const auto& txptr : parsed.transactions) {
+                                if (!txptr) continue;
+                                dbg << txptr->bookingDate << "\t"
+                                    << txptr->valuta << "\t"
+                                    << txptr->amount << "\t"
+                                    << txptr->name << "\t"
+                                    << txptr->actorProposal << "\t"
+                                    << txptr->metadata << "\t"
+                                    << txptr->proofImagePath << "\n";
                             }
                             debugger_->writeText("DefaultStatementParser_transactions.txt", dbg.str());
                         }
@@ -258,7 +259,7 @@ public:
                 }
 
                 if (!parsed.transactions.empty()) {
-                    for (auto& tx : parsed.transactions) all.push_back(std::move(tx));
+                    for (auto& txptr : parsed.transactions) all.push_back(std::move(txptr));
                 }
 
                 std::string tsvKey = "tesseract/page_" + std::to_string(pi) + "_crop_" + std::to_string(ci) + ".tsv";

@@ -130,12 +130,7 @@ AppState AppStateStore::load() {
     for (size_t i = 0; i < state.statements.size(); ++i) {
         const auto& s = state.statements[i];
         if (!s) continue;
-        fprintf(stderr, "  statement[%zu] id='%s' name='%s' transactions=%zu\n", i, s->id.c_str(), s->name.c_str(), s->transactions.size());
-    }
-    for (size_t i = 0; i < state.transactions.size() && i < 10; ++i) {
-        const auto& t = state.transactions[i];
-        if (!t) continue;
-        fprintf(stderr, "  transaction[%zu] id='%s' stmt='%s' name='%s' alloc=%d props=%zu\n", i, t->id.c_str(), t->statementId.c_str(), t->name.c_str(), t->allocatable ? 1 : 0, t->propertyIds.size());
+        fprintf(stderr, "  statement[%zu] id='%s' name='%s'\n", i, s->id.c_str(), s->name.c_str());
     }
 
     return state;
@@ -184,8 +179,8 @@ AppStateStoreResult AppStateStore::save(const AppState& state) {
     AppStateManager mgr(std::move(mgrRepos));
     mgr.save(state);
 
-    // After upserts, compute which DB IDs should be kept. Include transactions that
-    // may now have been assigned IDs inside Statement objects.
+    // After upserts, compute which DB IDs should be kept. Transactions are
+    // authoritative in the global AppState::transactions list.
     std::unordered_set<long long> keepActors, keepProps, keepContracts, keepStatements, keepTx;
     for (const auto& a : state.actors) { if (a && !a->id.empty()) { auto id = toLL(a->id); if (id > 0) keepActors.insert(id); } }
     for (const auto& p : state.properties) { if (p && !p->id.empty()) { auto id = toLL(p->id); if (id > 0) keepProps.insert(id); } }
@@ -195,30 +190,24 @@ AppStateStoreResult AppStateStore::save(const AppState& state) {
     // global transactions list
     for (const auto& t : state.transactions) { if (t && !t->id.empty()) { auto id = toLL(t->id); if (id > 0) keepTx.insert(id); } }
 
-    // transactions embedded in statements (these now should have numeric IDs after mgr.save)
-    for (const auto& s : state.statements) {
-        if (!s) continue;
-        for (const auto& txval : s->transactions) {
-            if (!txval.id.empty()) {
-                auto id = toLL(txval.id);
-                if (id > 0) keepTx.insert(id);
-            }
-        }
+    // Remove rows that are not present in the provided AppState. This implements
+    // authoritative save semantics: the in-memory AppState is treated as ground
+    // truth and dangling DB rows are removed. Deletions are recorded in
+    // result.impact so callers can react (UI model updates).
+
+    // Contracts that have no remaining actors should be removed as well.
+    auto contractsToDelete = loadContractIdsWhoseAllActorsAreDeleted(db_->handle(), keepActors, keepContracts);
+    if (!contractsToDelete.empty()) {
+        deleteIds(db_->handle(), "contracts", "id", contractsToDelete, &result.impact.deletedContractIds);
     }
 
-    // Previously we removed rows that are not in the computed keep-sets. That proved
-    // fragile and caused accidental data loss when temporary IDs were present. To be
-    // safe, do not delete any database rows automatically during save.
-#if 0
-    auto contractsToDelete = loadContractIdsWhoseAllActorsAreDeleted(db_->handle(), keepActors, keepContracts);
-    deleteIds(db_->handle(), "contracts", "id", contractsToDelete, &result.impact.deletedContractIds);
+    // Transactions: remove DB rows whose id is not present in keepTx
+    deleteIdsNotIn(db_->handle(), "transactions", "id", keepTx, &result.impact.deletedTransactionIds);
 
-    // deleteIdsNotIn(db_->handle(), "transactions", "id", keepTx, &result.impact.deletedTransactionIds);
-
+    // Statements, properties, actors: remove DB rows not present in keep sets
     deleteIdsNotIn(db_->handle(), "statements", "id", keepStatements, &result.impact.deletedStatementIds);
     deleteIdsNotIn(db_->handle(), "properties", "id", keepProps, &result.impact.deletedPropertyIds);
     deleteIdsNotIn(db_->handle(), "actors", "id", keepActors, &result.impact.deletedActorIds);
-#endif
 
     // DB counts after save
     long long afterTx = db_count(db_->handle(), "SELECT COUNT(*) FROM transactions;");

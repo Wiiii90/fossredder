@@ -229,18 +229,19 @@ void UiImportController::onImportFutureFinished()
 
     std::vector<TransactionDraft> txs;
     txs.reserve(imported->transactions.size());
-    for (const auto& tx : imported->transactions) {
+    for (const auto& txptr : imported->transactions) {
+        if (!txptr) continue;
         TransactionDraft d;
-        d.name = QString::fromStdString(tx.name);
-        d.bookingDate = QString::fromStdString(tx.bookingDate);
-        d.valuta = QString::fromStdString(tx.valuta);
-        d.amount = tx.amount;
-        d.description = QString::fromStdString(tx.description);
+        d.name = QString::fromStdString(txptr->name);
+        d.bookingDate = QString::fromStdString(txptr->bookingDate);
+        d.valuta = QString::fromStdString(txptr->valuta);
+        d.amount = txptr->amount;
+        d.description = QString::fromStdString(txptr->description);
         d.actorId = QString();
-        d.actorProposal = QString::fromStdString(tx.actorProposal);
+        d.actorProposal = QString::fromStdString(txptr->actorProposal);
 
-        d.metadata = QString::fromStdString(tx.metadata);
-        d.proofImagePath = QString::fromStdString(tx.proofImagePath);
+        d.metadata = QString::fromStdString(txptr->metadata);
+        d.proofImagePath = QString::fromStdString(txptr->proofImagePath);
 
         d.status = static_cast<int>(Transaction::Status::Unverified);
         txs.push_back(std::move(d));

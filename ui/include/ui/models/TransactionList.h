@@ -37,6 +37,9 @@ public:
 
     void setTransactions(std::vector<std::shared_ptr<Transaction>> transactions);
     std::vector<std::shared_ptr<Transaction>> transactions() const;
+    int findRowById(const QString& id) const;
+    void setTransactionAt(int row, std::shared_ptr<Transaction> tx);
+    Q_INVOKABLE void removeAt(int row);
 
 private:
     std::vector<std::shared_ptr<Transaction>> transactions_;

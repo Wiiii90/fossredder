@@ -1,6 +1,9 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
+#include <QTimer>
+#include <QString>
 
 #include "core/controllers/AppStateController.h"
 
@@ -24,7 +27,7 @@ public:
     Q_INVOKABLE QString addStatement(const QString& name);
     Q_INVOKABLE QString addTransaction(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId);
     Q_INVOKABLE QString addTransactionWithStatus(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, int status);
-    Q_INVOKABLE QString addTransactionWithStatusAndActor(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, int status, const QString& actorId);
+    Q_INVOKABLE QString addTransactionDetailed(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, int status, const QString& actorId);
 
     Q_INVOKABLE QString finalizeStatementDraft(StatementDraft* draft);
 
@@ -61,4 +64,12 @@ private:
 
     void pruneInvalidContracts();
     void pruneInvalidTransactions();
+
+    // Debounce timers keyed by an arbitrary string (e.g. "tx:<id>") used to
+    // coalesce rapid updates into a single commit.
+    QHash<QString, QTimer*> commitTimers_;
+
+    // Schedule a debounced commit; subsequent calls with same key within
+    // `ms` milliseconds will restart the timer.
+    void scheduleDebouncedCommit(const QString& key, int ms = 300);
 };

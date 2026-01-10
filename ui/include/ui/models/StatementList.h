@@ -24,6 +24,7 @@ public:
 
     void setStatements(std::vector<std::shared_ptr<Statement>> statements);
     std::vector<std::shared_ptr<Statement>> statements() const;
+    Q_INVOKABLE void removeAt(int row);
 
 private:
     std::vector<std::shared_ptr<Statement>> statements_;

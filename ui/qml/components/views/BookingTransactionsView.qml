@@ -31,6 +31,9 @@ Item {
             clearFields()
             return
         }
+        // if user is actively editing this transaction, avoid overwriting fields
+        if (uiData && current && current.id && uiData.isEditingTransaction(current.id)) return
+
         nameField.text = current.name || ""
         bookingDateField.text = current.bookingDate || ""
         amountField.text = String(current.amount)
@@ -51,6 +54,21 @@ Item {
         onTriggered: { suppressSync = false; syncFields(); }
     }
 
+    // debounce timer used to batch text edits before calling domain update
+    Timer {
+        id: updateTimer
+        interval: 300
+        repeat: false
+        onTriggered: {
+            if (!isNew && uiDomain && current && current.id) {
+                var amt = parseFloat(amountField.text)
+                if (isNaN(amt)) amt = 0.0
+                var sid = (current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
+                uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
+            }
+        }
+    }
+
     Connections { target: current; function onChanged() { syncFields() } }
     onIsNewChanged: syncFields()
     onIsEditChanged: syncFields()
@@ -64,15 +82,32 @@ Item {
 
         RowLayout { Layout.fillWidth: true
             Label { text: qsTr("Name"); Layout.preferredWidth: 120 }
-            AppTextField { id: nameField; Layout.fillWidth: true }
+            AppTextField {
+                id: nameField; Layout.fillWidth: true
+                onActiveFocusChanged: {
+                    if (!isNew && uiData) uiData.setEditingTransaction(current.id, activeFocus)
+                }
+                onTextChanged: {
+                    // schedule inline update for existing transaction
+                    if (!isNew && uiDomain && current && current.id) updateTimer.restart()
+                }
+            }
         }
 
         RowLayout { Layout.fillWidth: true
             Label { text: qsTr("Booking date"); Layout.preferredWidth: 120 }
-            AppTextField { id: bookingDateField; Layout.fillWidth: true }
+            AppTextField {
+                id: bookingDateField; Layout.fillWidth: true
+                onActiveFocusChanged: { if (!isNew && uiData) uiData.setEditingTransaction(current.id, activeFocus) }
+                onTextChanged: { if (!isNew && uiDomain && current && current.id) updateTimer.restart() }
+            }
 
             Label { text: qsTr("Amount"); Layout.preferredWidth: 80 }
-            AppTextField { id: amountField; Layout.preferredWidth: 160 }
+            AppTextField {
+                id: amountField; Layout.preferredWidth: 160
+                onActiveFocusChanged: { if (!isNew && uiData) uiData.setEditingTransaction(current.id, activeFocus) }
+                onTextChanged: { if (!isNew && uiDomain && current && current.id) updateTimer.restart() }
+            }
         }
 
         // Properties section
@@ -102,21 +137,20 @@ Item {
                             id: propCheck
                             Layout.preferredWidth: 28
                             Layout.margins: 2
-                            checked: (isEdit && current && current.propertyIds && model.id) ? current.propertyIds.indexOf(model.id) !== -1 : (selectedPropertyIds.indexOf(model.id) !== -1)
+                            // use the local selectedPropertyIds array so repeated clicks accumulate
+                            checked: selectedPropertyIds.indexOf(model.id) !== -1
                             onClicked: {
                                 if (!model.id) return
+                                // update local selection first
+                                var localIdx = selectedPropertyIds.indexOf(model.id)
+                                if (propCheck.checked) { if (localIdx === -1) selectedPropertyIds.push(model.id) }
+                                else { if (localIdx > -1) selectedPropertyIds.splice(localIdx, 1) }
+
                                 if (isEdit && current && current.id) {
-                                    // update persistent transaction properties immediately (user click only)
-                                    var ids = current.propertyIds ? current.propertyIds.slice() : []
-                                    var idx = ids.indexOf(model.id)
-                                    if (propCheck.checked) { if (idx === -1) ids.push(model.id) }
-                                    else { if (idx > -1) ids.splice(idx, 1) }
-                                    if (uiDomain) uiDomain.updateTransactionProperties(current.id, ids)
+                                    // apply persistent update immediately using accumulated local selection
+                                    if (uiDomain) uiDomain.updateTransactionProperties(current.id, selectedPropertyIds)
                                 } else {
-                                    // modify local selection for new transaction
-                                    var localIdx = selectedPropertyIds.indexOf(model.id)
-                                    if (propCheck.checked) { if (localIdx === -1) selectedPropertyIds.push(model.id) }
-                                    else { if (localIdx > -1) selectedPropertyIds.splice(localIdx, 1) }
+                                    // for new transaction we already modify local selection
                                 }
                             }
                         }
@@ -146,10 +180,16 @@ Item {
                 text: qsTr("Allocatable to tenant")
                 checked: false
                 onClicked: {
-                    // suppress immediate model sync to keep UI responsive and avoid override
+                    // suppress immediate model sync briefly to avoid UI flicker
                     suppressSync = true
                     syncTimer.restart()
+                    // mark editing to suppress incremental overwrite while the user interacts
+                    if (!isNew && uiData) uiData.setEditingTransaction(current.id, true)
+                    // update the domain model immediately so syncFields does not revert the toggle
                     if (!isNew && uiDomain && current && current.id) uiDomain.updateTransactionAllocatable(current.id, allocCheck.checked)
+                    // clear editing marker shortly after to allow incremental updates again
+                    if (!isNew) Qt.callLater(function() { Qt.createQmlObject('import QtQuick 2.0; Timer { interval: 400; repeat: false; running: true; onTriggered: { if (uiData) uiData.setEditingTransaction(current.id, false) } }', root)
+                    })
                 }
             }
 
@@ -160,7 +200,13 @@ Item {
                 model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
                 currentIndex: 2
                 onActivated: {
+                    // mark editing to suppress incremental overwrite while the user interacts
+                    if (!isNew && uiData) uiData.setEditingTransaction(current.id, true)
+                    // apply status immediately to keep behavior consistent with other controls
                     if (!isNew && uiDomain && current && current.id) uiDomain.updateTransactionStatus(current.id, currentIndex)
+                    // clear editing marker shortly after
+                    if (!isNew) Qt.callLater(function() { Qt.createQmlObject('import QtQuick 2.0; Timer { interval: 400; repeat: false; running: true; onTriggered: { if (uiData) uiData.setEditingTransaction(current.id, false) } }', root)
+                    })
                 }
             }
             Item { Layout.fillWidth: true }
@@ -174,8 +220,10 @@ Item {
                 onClicked: { if (uiData) uiData.selectedTransactionId = "" }
             }
 
+            // For inline edits we hide the Update action and apply changes directly from fields.
             AppButton {
-                text: (isEdit ? qsTr("Update") : qsTr("Add"))
+                visible: !isEdit
+                text: qsTr("Create")
                 enabled: nameField.text.length > 0 && ((isEdit && current && current.statementId && current.statementId.length > 0) || (uiData && uiData.selectedStatementId && uiData.selectedStatementId.length > 0))
                 onClicked: {
                     if (!uiDomain) return
@@ -183,21 +231,14 @@ Item {
                     if (isNaN(amt)) amt = 0.0
 
                     var sid = (isEdit && current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
-                    if (isEdit) {
-                        uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
-                        uiDomain.updateTransactionAllocatable(current.id, allocCheck.checked)
-                        uiDomain.updateTransactionStatus(current.id, statusCombo.currentIndex)
-                        // properties were updated inline when checkboxes changed
-                    } else {
-                        var id = uiDomain.addTransaction(nameField.text, bookingDateField.text, amt, "", sid)
-                        if (id && id.length > 0) {
-                            // apply allocatable/status/properties
-                            uiDomain.updateTransactionAllocatable(id, allocCheck.checked)
-                            uiDomain.updateTransactionStatus(id, statusCombo.currentIndex)
-                            if (selectedPropertyIds && selectedPropertyIds.length > 0) uiDomain.updateTransactionProperties(id, selectedPropertyIds)
-                            clearFields()
-                            if (uiData) uiData.selectedTransactionId = id
-                        }
+                    var id = uiDomain.addTransaction(nameField.text, bookingDateField.text, amt, "", sid)
+                    if (id && id.length > 0) {
+                        // apply allocatable/status/properties
+                        uiDomain.updateTransactionAllocatable(id, allocCheck.checked)
+                        uiDomain.updateTransactionStatus(id, statusCombo.currentIndex)
+                        if (selectedPropertyIds && selectedPropertyIds.length > 0) uiDomain.updateTransactionProperties(id, selectedPropertyIds)
+                        clearFields()
+                        if (uiData) uiData.selectedTransactionId = id
                     }
                 }
             }

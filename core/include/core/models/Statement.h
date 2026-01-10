@@ -2,18 +2,17 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
-#include "core/models/Transaction.h"
+class Transaction;
 
 class Statement {
 public:
     Statement() = default;
-    explicit Statement(std::vector<Transaction> transactions);
-
-    void addTransaction(const Transaction& t);
-    bool removeTransaction(const Transaction& t);
 
     std::string id;
     std::string name;
-    std::vector<Transaction> transactions;
+
+    // Associated transactions (shared pointers into global transaction store)
+    std::vector<std::shared_ptr<Transaction>> transactions;
 };

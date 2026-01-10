@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "api/opencv/Types.h"
 #include "api/opencv/IOpenCvService.h"
@@ -11,7 +12,7 @@
 class DefaultStatementParser {
 public:
     struct ParseResult {
-        std::vector<Transaction> transactions;
+        std::vector<std::shared_ptr<Transaction>> transactions;
         std::vector<std::string> debugLines;
         std::string lastBookingDate;
         int nextTransactionIndex = 1;

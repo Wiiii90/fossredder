@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <unordered_set>
 
 #include "core/controllers/Callbacks.h"
 #include "core/managers/IStorageManager.h"
@@ -18,6 +19,7 @@
 class AppStateController {
 public:
     using StateChanged = std::function<void(const AppState&)>;
+    using TransactionsChanged = std::function<void(const std::vector<std::string>&)>;
 
     /**
      * @brief Construct with unique ownership of an IStorageManager.
@@ -114,14 +116,31 @@ public:
      */
     void commit();
 
+    /**
+     * @brief Mark a single transaction id as dirty (changed by UI) for incremental notifications.
+     */
+    void markTransactionDirty(const std::string& txId);
+
+    /**
+     * @brief Register a callback invoked with a list of transaction ids changed after commit.
+     * @param cb Callback invoked with the changed transaction IDs.
+     */
+    void setTransactionsChangedCallback(TransactionsChanged cb);
+
 private:
     std::unique_ptr<IStorageManager> storageManager_;
     AppState state_;
     StateChanged onStateChanged_;
     std::string emptyPath_;
+    std::unordered_set<std::string> dirtyTransactionIds_;
+    // Callback forwarded when persistence reports deletions
+    IStorageManager::DeletionImpactCallback onDeletionImpact_;
 
     /**
      * @brief Internal helper to notify registered listeners of the current state.
      */
     void notify();
+
+    // Transactions changed callback (non-owning)
+    TransactionsChanged onTransactionsChanged_;
 };

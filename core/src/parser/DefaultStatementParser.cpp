@@ -886,10 +886,10 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             }
         } catch (...) {}
 
-         out.transactions.push_back(std::move(tx));
+         out.transactions.push_back(std::make_shared<Transaction>(std::move(tx)));
     }
 
-    out.debugLines.push_back(std::string("transactions\t") + std::to_string(out.transactions.size()));
+    out.debugLines.push_back(std::string("transactions	") + std::to_string(out.transactions.size()));
 
     out.lastBookingDate = currentBookingDate;
     out.nextTransactionIndex = txIndex;

@@ -56,6 +56,8 @@ public:
     QString actorId() const { return actorId_; }
     QString actorProposal() const { return actorProposal_; }
 
+    Q_INVOKABLE void setPropertyIds(const QStringList& ids) { propertyIds_ = ids; emit changed(); }
+
 signals:
     void changed();
 

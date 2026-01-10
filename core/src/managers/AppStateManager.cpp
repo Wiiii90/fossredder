@@ -22,6 +22,8 @@
 #include "core/repositories/IStatementRepository.h"
 #include "core/repositories/ITransactionRepository.h"
 
+#include <unordered_set>
+
 AppStateManager::AppStateManager(Repositories repos) : repos_(std::move(repos)) {}
 
 AppState AppStateManager::load() {
@@ -213,11 +215,7 @@ void AppStateManager::save(const AppState& state) {
         remapPropertyIds(t->propertyIds);
     }
 
-    // Remap for statement-embedded transactions (value objects)
-    for (const auto& s : state.statements) {
-        if (!s) continue;
-        for (auto& tx : s->transactions) remapPropertyIds(tx.propertyIds);
-    }
+    // Property id remapping is performed for global transactions in state.transactions.
 
     if (repos_.contracts) {
         for (const auto& c : state.contracts) {
@@ -231,39 +229,12 @@ void AppStateManager::save(const AppState& state) {
     }
 
     if (repos_.statements) {
-        // Ensure statement objects contain the transactions that reference them.
-        // Populate statement->transactions from the global transactions list
-        // before upserting so the statement repository re-inserts the correct
-        // set of transactions.
+        // Persist statements only. Transactions are authoritative in the
+        // global transactions list and will be persisted via the
+        // transaction repository below.
         for (const auto& s : state.statements) {
             if (!s) continue;
-
-            // Only populate statement->transactions from the global transactions
-            // list if the statement currently has no transactions. This avoids
-            // clearing transactions that were attached directly to the
-            // statement (e.g., created by finalizeStatementDraft) before the
-            // repository upsert runs.
-            if (s->transactions.empty()) {
-                for (const auto& tptr : state.transactions) {
-                    if (!tptr) continue;
-                    if (!tptr->statementId.empty() && tptr->statementId == s->id) {
-                        s->transactions.push_back(*tptr);
-                    }
-                }
-            }
-
-            // Debug: log statement contents before upsert
-            fprintf(stderr, "AppStateManager::save: upserting statement id='%s' name='%s' transactions=%zu\n", s->id.c_str(), s->name.c_str(), s->transactions.size());
-            for (size_t i = 0; i < s->transactions.size(); ++i) {
-                const auto& tx = s->transactions[i];
-                fprintf(stderr, "  stmt.tx[%zu] id='%s' name='%s' props=%zu alloc=%d\n", i, tx.id.c_str(), tx.name.c_str(), tx.propertyIds.size(), tx.allocatable ? 1 : 0);
-                if (!tx.propertyIds.empty()) {
-                    fprintf(stderr, "    propIds: ");
-                    for (const auto& pid : tx.propertyIds) fprintf(stderr, "%s,", pid.c_str());
-                    fprintf(stderr, "\n");
-                }
-            }
-
+            fprintf(stderr, "AppStateManager::save: upserting statement id='%s' name='%s'\n", s->id.c_str(), s->name.c_str());
             repos_.statements->upsertStatement(s);
         }
     }
@@ -271,8 +242,7 @@ void AppStateManager::save(const AppState& state) {
     if (repos_.transactions) {
         for (const auto& t : state.transactions) {
             if (!t) continue;
-            // If transaction belongs to a statement, assume it was persisted with the statement
-            if (!t->statementId.empty()) continue;
+            // Persist all transactions from the global transactions list.
             if (t->actor && !t->actor->id.empty()) t->actorId = t->actor->id;
             if (t->contract && !t->contract->id.empty()) t->contractId = t->contract->id;
             repos_.transactions->upsertTransaction(t);
@@ -357,26 +327,6 @@ void AppStateManager::rehydrate(AppState& state) {
         if (!tx.contract && !tx.contractId.empty()) {
             auto it = contractById.find(tx.contractId);
             if (it != contractById.end()) tx.contract = it->second;
-        }
-
-        if (!tx.statementId.empty()) {
-            auto it = statementById.find(tx.statementId);
-            if (it != statementById.end()) {
-                Statement& st = *it->second;
-                // Prefer id-based deduplication: if transaction id is present,
-                // avoid inserting duplicate transactions with same id. Fall back
-                // to value comparison only if ids are empty.
-                bool exists = false;
-                if (!tx.id.empty()) {
-                    for (const auto& existingTx : st.transactions) {
-                        if (existingTx.id == tx.id) { exists = true; break; }
-                    }
-                } else {
-                    auto existing = std::find(st.transactions.begin(), st.transactions.end(), tx);
-                    exists = (existing != st.transactions.end());
-                }
-                if (!exists) st.transactions.push_back(tx);
-            }
         }
     }
 }

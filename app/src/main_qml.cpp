@@ -25,8 +25,10 @@
 #include "api/poppler/IPopplerService.h"
 #include "api/opencv/IOpenCvService.h"
 #include "api/tesseract/ITesseractService.h"
+#include "core/models/DeletionImpact.h"
 
 #include <memory>
+#include <cstdio>
 
 std::shared_ptr<api::poppler::IPopplerAdapter> createPopplerAdapter(std::shared_ptr<IDebugger> dbg);
 std::shared_ptr<api::opencv::IOpenCvAdapter> createOpenCvAdapter(std::shared_ptr<IDebugger> dbg);
@@ -81,6 +83,20 @@ int startQmlApp(QApplication& app, AppStateController& appStateCtrl) {
         if (w.dataSession()) {
             w.dataSession()->loadFromState(st);
         }
+    });
+
+    // incremental transaction updates: update only affected rows to avoid UI flicker
+    appStateCtrl.setTransactionsChangedCallback([&](const std::vector<std::string>& ids){
+        try {
+            if (w.dataSession()) w.dataSession()->applyTransactionUpdates(ids, appStateCtrl.state());
+        } catch (...) {}
+    });
+
+    // forward deletion impacts from persistence to UI session for targeted removals
+    appStateCtrl.setDeletionImpactCallback([&](const DeletionImpact& impact){
+        try {
+            if (w.dataSession()) w.dataSession()->applyDeletionImpact(impact);
+        } catch (...) {}
     });
 
     QObject::connect(&w, &MainWindow::newFileRequested, [&](const QString& path){

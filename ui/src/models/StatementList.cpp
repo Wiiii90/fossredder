@@ -40,6 +40,14 @@ void StatementList::setStatements(std::vector<std::shared_ptr<Statement>> statem
     endResetModel();
 }
 
+void StatementList::removeAt(int row)
+{
+    if (row < 0 || row >= static_cast<int>(statements_.size())) return;
+    beginRemoveRows(QModelIndex(), row, row);
+    statements_.erase(statements_.begin() + row);
+    endRemoveRows();
+}
+
 std::vector<std::shared_ptr<Statement>> StatementList::statements() const
 {
     return statements_;

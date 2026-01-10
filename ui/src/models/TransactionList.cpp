@@ -72,3 +72,35 @@ std::vector<std::shared_ptr<Transaction>> TransactionList::transactions() const
 {
     return transactions_;
 }
+
+int TransactionList::findRowById(const QString& id) const
+{
+    if (id.isEmpty()) return -1;
+    for (int i = 0; i < static_cast<int>(transactions_.size()); ++i) {
+        const auto& t = transactions_[static_cast<size_t>(i)];
+        if (!t) continue;
+        if (QString::fromStdString(t->id) == id) return i;
+    }
+    return -1;
+}
+
+void TransactionList::setTransactionAt(int row, std::shared_ptr<Transaction> tx)
+{
+    if (row < 0 || row >= static_cast<int>(transactions_.size())) return;
+    transactions_[static_cast<size_t>(row)] = std::move(tx);
+    const QModelIndex mi = index(row);
+    // build QVector<int> of roles
+    QVector<int> rolesVec;
+    const auto roleKeys = roleNames().keys();
+    rolesVec.reserve(roleKeys.size());
+    for (int k : roleKeys) rolesVec.append(k);
+    emit dataChanged(mi, mi, rolesVec);
+}
+
+void TransactionList::removeAt(int row)
+{
+    if (row < 0 || row >= static_cast<int>(transactions_.size())) return;
+    beginRemoveRows(QModelIndex(), row, row);
+    transactions_.erase(transactions_.begin() + row);
+    endRemoveRows();
+}

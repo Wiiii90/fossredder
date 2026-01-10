@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QString>
 #include <QHash>
+#include <QSet>
 
 #include "core/models/AppState.h"
 #include "ui/models/ActorList.h"
@@ -12,6 +13,7 @@
 #include "ui/models/TransactionList.h"
 #include "ui/models/TransactionFilterModel.h"
 #include "ui/state/UiEntitySelection.h"
+#include "core/models/DeletionImpact.h"
 
 class UiDataSession : public QObject {
     Q_OBJECT
@@ -66,6 +68,14 @@ public:
     Q_INVOKABLE QVariantList transactionIdsForStatement(const QString& statementId) const;
     Q_INVOKABLE QObject* transactionsForStatement(const QString& statementId);
 
+    // Apply incremental updates for specific transaction ids using current AppState
+    void applyTransactionUpdates(const std::vector<std::string>& ids, const AppState& state);
+
+    Q_INVOKABLE void applyDeletionImpact(const DeletionImpact& impact);
+
+    Q_INVOKABLE void setEditingTransaction(const QString& txId, bool editing);
+    Q_INVOKABLE bool isEditingTransaction(const QString& txId) const;
+
 signals:
     void selectedActorIdChanged();
     void selectedPropertyIdChanged();
@@ -93,6 +103,11 @@ private:
     UiEntitySelection selectedTransaction_;
 
     mutable QHash<QString, TransactionFilterModel*> txByStatement_;
+
+    // transactions currently being edited in the UI (suppress incremental overwrite)
+    QSet<QString> editingTransactions_;
+    // transactions pending deletion while user edits them
+    QSet<QString> pendingDeletionTransactions_;
 
     void refreshSelectedActor();
     void refreshSelectedProperty();

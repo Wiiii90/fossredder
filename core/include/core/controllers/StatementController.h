@@ -22,7 +22,11 @@ public:
         onTransactionsExtracted_ = std::move(cb);
     }
 
+    // Note: persistence is handled by higher layers (UI/AppStateController). StatementController only reports parsed data.
+    // void setAppStateController(AppStateController* core) { appStateController_ = core; }  // removed
+
 private:
     std::shared_ptr<IImportStatement> importService_;
     std::function<void(const std::vector<std::shared_ptr<Transaction>>&)> onTransactionsExtracted_;
+    // AppStateController* appStateController_ = nullptr;  // removed
 };

@@ -31,10 +31,27 @@ static long long resolvePropertyId(sqlite3* db, const std::string& pidStr) {
     return out > 0 ? out : -1;
 }
 
+static void clearRelations(sqlite3* db, long long transactionId) {
+    const char* del = "DELETE FROM transaction_properties WHERE transaction_id = ?;";
+    sqlite3_stmt* delStmt = nullptr;
+    if (sqlite3_prepare_v2(db, del, -1, &delStmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_int64(delStmt, 1, transactionId);
+        sqlite3_step(delStmt);
+        sqlite3_finalize(delStmt);
+    } else {
+        const char* err = sqlite3_errmsg(db);
+        fprintf(stderr, "SqliteTransactionRepository::clearRelations: prepare failed: %s\n", err ? err : "unknown");
+    }
+}
+
 static void insertRelations(sqlite3* db, long long transactionId, const Transaction& t) {
     const char* sql = "INSERT OR IGNORE INTO transaction_properties (transaction_id, property_id) VALUES (?, ?);";
     sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) return;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+        const char* err = sqlite3_errmsg(db);
+        fprintf(stderr, "SqliteTransactionRepository::insertRelations: prepare failed: %s\n", err ? err : "unknown");
+        return;
+    }
     for (const auto& pidStr : t.propertyIds) {
         long long pid = resolvePropertyId(db, pidStr);
         if (pid <= 0) {
@@ -90,6 +107,7 @@ void SqliteTransactionRepository::addTransaction(const std::shared_ptr<Transacti
     if (sqlite3_step(stmt) == SQLITE_DONE) {
         long long id = sqlite3_last_insert_rowid(pimpl_->db->handle());
         transaction->id = std::to_string(id);
+        // Insert property relations for the newly created transaction
         insertRelations(pimpl_->db->handle(), id, *transaction);
     }
 
@@ -238,16 +256,8 @@ void SqliteTransactionRepository::updateTransaction(const std::shared_ptr<Transa
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 
-    {
-        const char* del = "DELETE FROM transaction_properties WHERE transaction_id = ?;";
-        sqlite3_stmt* delStmt = nullptr;
-        if (sqlite3_prepare_v2(pimpl_->db->handle(), del, -1, &delStmt, nullptr) == SQLITE_OK) {
-            sqlite3_bind_int64(delStmt, 1, tid);
-            sqlite3_step(delStmt);
-            sqlite3_finalize(delStmt);
-        }
-    }
-
+    // Clear existing relations then insert new ones
+    clearRelations(pimpl_->db->handle(), tid);
     insertRelations(pimpl_->db->handle(), tid, *transaction);
 }
 
