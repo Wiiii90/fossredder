@@ -7,26 +7,52 @@
 #include <sstream>
 
 namespace core::parser::helpers {
+// define global config instance
+ParserConfig parserConfig;
+// Central constants for amount and date detection
+namespace {
+    static const std::regex g_amountRegex(R"(^\(?-?\d{1,3}(?:[\.,]\d{3})*[\.,]\d{1,2}-?$)");
+    static const std::regex g_amountFallbackRegex(R"(^\(?-?\d+[\.,]\d{2}\)?$)");
+    static const std::regex g_shortDateRegex(R"(\d{2}\.\s*\d{2})");
+    static const std::regex g_fullDateRegex(R"((\d{2}\.\d{2}\.\d{4}))");
 
-bool isAmountLikeToken(const std::string& token) noexcept {
-    try {
-        static const std::regex amountLike(R"(^\(?-?\d{1,3}(?:[\.,]\d{3})*[\.,]\d{1,2}-?$)");
-        return std::regex_match(token, amountLike);
-    } catch(...) { return false; }
+    bool tokenLooksLikeAmount(const std::string& token) noexcept {
+        try {
+            return std::regex_match(token, g_amountRegex) || std::regex_match(token, g_amountFallbackRegex);
+        } catch (...) { return false; }
+    }
 }
 
-bool containsShortDate(const std::string& text) noexcept {
+std::vector<size_t> findAmountTokenIndices(const core::parser::OcrLine& line, int valutaX, int bandPx) noexcept {
+    std::vector<size_t> out;
     try {
-        static const std::regex shortDate(R"(\d{2}\.\s*\d{2})");
-        return std::regex_search(text, shortDate);
-    } catch(...) { return false; }
+        const auto toks = utils::splitWhitespace(line.text);
+        for (size_t i = 0; i < toks.size(); ++i) {
+            try {
+                if (!tokenLooksLikeAmount(toks[i])) continue;
+            } catch (...) { continue; }
+            if (valutaX >= 0 && bandPx > 0) {
+                if (i >= line.wordSpans.size()) continue;
+                const auto& sp = line.wordSpans[i];
+                const int cx = (sp.first + sp.second) / 2;
+                if (std::abs(cx - valutaX) > bandPx) continue;
+            }
+            out.push_back(i);
+        }
+    } catch(...) {}
+    return out;
 }
+
+bool hasShortDateToken(const std::string& text) noexcept {
+    try { return std::regex_search(text, g_shortDateRegex); } catch(...) { return false; }
+}
+
+bool containsShortDate(const std::string& text) noexcept { return hasShortDateToken(text); }
 
 std::optional<std::string> findFirstFullDate(const std::string& text) noexcept {
     try {
-        static const std::regex re(R"((\d{2}\.\d{2}\.\d{4}))");
         std::smatch m;
-        if (std::regex_search(text, m, re)) return m.str(1);
+        if (std::regex_search(text, m, g_fullDateRegex)) return m.str(1);
     } catch(...) {}
     return std::nullopt;
 }
@@ -74,7 +100,7 @@ std::optional<int> findPhraseCenterX(const core::parser::OcrLine& line, std::ini
         int left = line.wordSpans[i].first;
         int right = line.wordSpans[i].second;
 
-        for (size_t j = i; j < toks.size() && (j - i) < 6; ++j) {
+        for (size_t j = i; j < toks.size() && (j - i) < static_cast<size_t>(parserConfig.maxPhraseTokens); ++j) {
             acc += normalizeAlnumLower(toks[j]);
             right = line.wordSpans[j].second;
             if (acc.find(want) != std::string::npos) {
@@ -101,20 +127,11 @@ bool hasTokenNearX(const core::parser::OcrLine& line, int x, int bandPx) noexcep
 
 bool hasAmountLikeTokenInLine(const core::parser::OcrLine& line, int valutaX) noexcept {
     try {
-        const auto toks = utils::splitWhitespace(line.text);
-        for (const auto& t : toks) { try { if (isAmountLikeToken(t)) return true; } catch (...) {} }
         if (valutaX >= 0) {
-            for (size_t i = 0; i < toks.size() && i < line.wordSpans.size(); ++i) {
-                const auto& sp = line.wordSpans[i];
-                const int cx = (sp.first + sp.second) / 2;
-                if (cx > valutaX - 120) {
-                    try { if (isAmountLikeToken(toks[i])) return true; }
-                    catch (...) {}
-                }
-            }
+            return !findAmountTokenIndices(line, valutaX, parserConfig.amountNearValutaBandPx).empty();
         }
-    }
-    catch (...) {}
+        return !findAmountTokenIndices(line, -1, 0).empty();
+    } catch(...) {}
     return false;
 }
 
@@ -125,7 +142,7 @@ bool hasLeftDescriptiveText(const core::parser::OcrLine& line, int valutaX) noex
         for (size_t i = 0; i < toks.size() && i < line.wordSpans.size(); ++i) {
             const auto& sp = line.wordSpans[i];
             const int cx = (sp.first + sp.second) / 2;
-            if (cx < valutaX - 200) {
+            if (cx < valutaX - parserConfig.leftDescriptiveOffsetPx) {
                 for (unsigned char c : toks[i]) if (std::isalpha(c)) return true;
             }
         }
@@ -139,35 +156,26 @@ bool hasLeftDescriptiveText(const core::parser::OcrLine& line, int valutaX) noex
 bool hasAmountNearValuta(const core::parser::OcrLine& line, int valutaX, int bandPx) noexcept {
     if (valutaX < 0) return false;
     try {
-        const auto toks = utils::splitWhitespace(line.text);
-        if (toks.size() != line.wordSpans.size() || toks.empty()) return false;
-        for (size_t i = 0; i < toks.size(); ++i) {
-            const auto& sp = line.wordSpans[i];
-            const int cx = (sp.first + sp.second) / 2;
-            if (std::abs(cx - valutaX) <= bandPx) {
-                try { if (isAmountLikeToken(toks[i])) return true; }
-                catch (...) {}
-            }
-        }
-    }
-    catch (...) {}
+        auto idxs = findAmountTokenIndices(line, valutaX, bandPx);
+        return !idxs.empty();
+    } catch(...) {}
     return false;
 }
 
 bool isLooseTransactionLine(const core::parser::OcrLine& line, int valutaX) noexcept {
     if (valutaX < 0) return false;
     try {
-        if (!containsShortDate(line.text)) return false;
+        if (!hasShortDateToken(line.text)) return false;
         std::smatch md;
-        static const std::regex shortDate(R"((\d{2}\.\s*\d{2}))");
-        if (!std::regex_search(line.text, md, shortDate)) return false;
+        if (!std::regex_search(line.text, md, std::regex(R"((\d{2}\.\s*\d{2}))"))) return false;
         const size_t datePos = static_cast<size_t>(md.position(0));
         const auto toks = utils::splitWhitespace(line.text);
         bool foundAmountAfterDate = false;
-        for (const auto& t : toks) {
-            try { if (!isAmountLikeToken(t)) continue; }
-            catch (...) { continue; }
-            const auto pos = line.text.find(t);
+        // use consolidated finder to check for any amount tokens (no valuta constraint here)
+        auto amtIdxs = findAmountTokenIndices(line, -1, 0);
+        for (auto i : amtIdxs) {
+            if (i >= toks.size()) continue;
+            const auto pos = line.text.find(toks[i]);
             if (pos != std::string::npos && pos > datePos) { foundAmountAfterDate = true; break; }
         }
         if (!foundAmountAfterDate) return false;
@@ -276,8 +284,8 @@ std::vector<RawLineLite> selectiveGroupMergeLinesRaw(const std::vector<RawLineLi
                 core::parser::OcrLine olCur; olCur.minX = cur.minX; olCur.maxX = cur.maxX; olCur.minY = cur.minY; olCur.maxY = cur.maxY; olCur.wordSpans = cur.wordSpans; olCur.text = cur.text;
                 core::parser::OcrLine olNext; olNext.minX = next.minX; olNext.maxX = next.maxX; olNext.minY = next.minY; olNext.maxY = next.maxY; olNext.wordSpans = next.wordSpans; olNext.text = next.text;
                 if (hasAmountLikeTokenInLine(olCur, seedCols.valutaX) || hasAmountLikeTokenInLine(olNext, seedCols.valutaX)) evidence = true;
-                if (!evidence && hasLeftDescriptiveText(olCur, seedCols.valutaX) && hasTokenNearX(olNext, seedCols.valutaX, 220)) evidence = true;
-                if (!evidence && hasLeftDescriptiveText(olNext, seedCols.valutaX) && hasTokenNearX(olCur, seedCols.valutaX, 220)) evidence = true;
+                if (!evidence && hasLeftDescriptiveText(olCur, seedCols.valutaX) && hasTokenNearX(olNext, seedCols.valutaX, parserConfig.tokenNearMergeBandPx)) evidence = true;
+                if (!evidence && hasLeftDescriptiveText(olNext, seedCols.valutaX) && hasTokenNearX(olCur, seedCols.valutaX, parserConfig.tokenNearMergeBandPx)) evidence = true;
                 if (!evidence && isLooseTransactionLine(olCur, seedCols.valutaX)) evidence = true;
                 if (!evidence && isLooseTransactionLine(olNext, seedCols.valutaX)) evidence = true;
             }
@@ -316,14 +324,14 @@ core::parser::TransactionMainRow splitMainRowFromRaw(const RawLineLite& src, int
     }
     auto cxAt = [&](size_t i)->int { const auto& sp = src.wordSpans[i]; return (sp.first + sp.second) / 2; };
     auto idxNearX = [&](int x, int skipIdx)->int { int bestIdx = -1; int bestDist = std::numeric_limits<int>::max(); for (size_t i = 0; i < toks.size(); ++i) { if ((int)i == skipIdx) continue; int d = std::abs(cxAt(i) - x); if (d < bestDist) { bestDist = d; bestIdx = (int)i; } } return bestIdx; };
-    auto idxNearXPreferNumeric = [&](int x, int skipIdx)->int { int bestIdx = -1; int bestDist = std::numeric_limits<int>::max(); int bestPriority = -1; for (size_t i = 0; i < toks.size(); ++i) { if ((int)i == skipIdx) continue; int d = std::abs(cxAt(i) - x); int priority = 0; try { if (isAmountLikeToken(toks[i])) priority = 2; } catch (...) {} if (priority > bestPriority || (priority == bestPriority && d < bestDist)) { bestPriority = priority; bestDist = d; bestIdx = (int)i; } } return bestIdx; };
+    auto idxNearXPreferNumeric = [&](int x, int skipIdx)->int { int bestIdx = -1; int bestDist = std::numeric_limits<int>::max(); int bestPriority = -1; for (size_t i = 0; i < toks.size(); ++i) { if ((int)i == skipIdx) continue; int d = std::abs(cxAt(i) - x); int priority = 0; try { if (tokenLooksLikeAmount(toks[i])) priority = 2; } catch (...) {} if (priority > bestPriority || (priority == bestPriority && d < bestDist)) { bestPriority = priority; bestDist = d; bestIdx = (int)i; } } return bestIdx; };
 
     int valutaIdx = (valutaX >= 0) ? idxNearX(valutaX, -1) : -1;
     int debitIdx = (debitX >= 0) ? idxNearXPreferNumeric(debitX, -1) : -1;
     int creditIdx = (creditX >= 0) ? idxNearXPreferNumeric(creditX, -1) : -1;
     try {
         if (valutaIdx >= 0 && debitIdx < 0 && creditIdx < 0) {
-            int found = -1; for (size_t i = 0; i < toks.size(); ++i) { if (cxAt(i) <= valutaX - 120) continue; try { if (isAmountLikeToken(toks[i])) { found = (int)i; break; } } catch (...) {} }
+            int found = -1; for (size_t i = 0; i < toks.size(); ++i) { if (cxAt(i) <= valutaX - 120) continue; try { if (tokenLooksLikeAmount(toks[i])) { found = (int)i; break; } } catch (...) {} }
             if (found >= 0) { if (creditX >= 0) creditIdx = found; else if (debitX >= 0) debitIdx = found; else creditIdx = found; }
         }
     }
@@ -334,7 +342,7 @@ core::parser::TransactionMainRow splitMainRowFromRaw(const RawLineLite& src, int
     int firstRight = std::numeric_limits<int>::max(); if (valutaIdx >= 0) firstRight = std::min(firstRight, valutaIdx); if (debitIdx >= 0) firstRight = std::min(firstRight, debitIdx); if (creditIdx >= 0) firstRight = std::min(firstRight, creditIdx); if (firstRight == std::numeric_limits<int>::max()) firstRight = (int)toks.size();
 
     row.left.line = toOcrLineFromRawWords(src, 0, static_cast<size_t>(std::max(0, firstRight)));
-    if (valutaIdx >= 0) { size_t v0 = static_cast<size_t>(valutaIdx); size_t v1 = v0 + 1; if (v1 < toks.size() && std::abs(cxAt(v1) - valutaX) <= 140) v1 = v1 + 1; row.valuta.line = toOcrLineFromRawWords(src, v0, v1); }
+    if (valutaIdx >= 0) { size_t v0 = static_cast<size_t>(valutaIdx); size_t v1 = v0 + 1; if (v1 < toks.size() && std::abs(cxAt(v1) - valutaX) <= parserConfig.valutaNeighborExpandPx) v1 = v1 + 1; row.valuta.line = toOcrLineFromRawWords(src, v0, v1); }
     if (debitIdx >= 0) row.debit.line = toOcrLineFromRawWords(src, static_cast<size_t>(debitIdx), static_cast<size_t>(debitIdx + 1));
     if (creditIdx >= 0) row.credit.line = toOcrLineFromRawWords(src, static_cast<size_t>(creditIdx), static_cast<size_t>(creditIdx + 1));
     return row;
@@ -353,7 +361,7 @@ std::optional<std::pair<core::parser::TransactionMainRow, int>> tryVerticalStart
         // prev + curr
         if (li > 0) {
             const auto& prev = lines[li - 1];
-            if (hasLeftDescriptiveText(prev, cols.valutaX) && !hasAmountLikeTokenInLine(prev, cols.valutaX) && hasAmountNearValuta(l, cols.valutaX, 140)) {
+            if (hasLeftDescriptiveText(prev, cols.valutaX) && !hasAmountLikeTokenInLine(prev, cols.valutaX) && hasAmountNearValuta(l, cols.valutaX, parserConfig.amountNearValutaBandPx)) {
                 core::parser::helpers::RawLineLite merged; merged.minX = prev.minX; merged.maxX = l.maxX; merged.minY = prev.minY; merged.maxY = l.maxY; merged.wordSpans = prev.wordSpans; merged.wordSpans.insert(merged.wordSpans.end(), l.wordSpans.begin(), l.wordSpans.end()); merged.text = prev.text + std::string(" ") + l.text;
                 auto main = splitMainRowFromRaw(merged, cols.valutaX, cols.debitX, cols.creditX);
                 return std::make_optional(std::make_pair(main, 0));
@@ -367,7 +375,7 @@ std::optional<std::pair<core::parser::TransactionMainRow, int>> tryVerticalStart
         // curr + next
         if (li + 1 < lines.size()) {
             const auto& next = lines[li + 1];
-            if (hasLeftDescriptiveText(l, cols.valutaX) && !hasAmountLikeTokenInLine(l, cols.valutaX) && hasAmountNearValuta(next, cols.valutaX, 140)) {
+            if (hasLeftDescriptiveText(l, cols.valutaX) && !hasAmountLikeTokenInLine(l, cols.valutaX) && hasAmountNearValuta(next, cols.valutaX, parserConfig.amountNearValutaBandPx)) {
                 core::parser::helpers::RawLineLite merged; merged.minX = l.minX; merged.maxX = next.maxX; merged.minY = l.minY; merged.maxY = next.maxY; merged.wordSpans = l.wordSpans; merged.wordSpans.insert(merged.wordSpans.end(), next.wordSpans.begin(), next.wordSpans.end()); merged.text = l.text + std::string(" ") + next.text;
                 auto main = splitMainRowFromRaw(merged, cols.valutaX, cols.debitX, cols.creditX);
                 return std::make_optional(std::make_pair(main, 1));
@@ -521,13 +529,13 @@ std::optional<std::string> findBookingDateInHeader(const std::string& line) noex
 
 bool detectEarlyEmptyPage(const std::vector<core::parser::OcrLine>& lines, std::string& outDebug, std::string& foundBookingDate) noexcept {
     try {
-        const size_t checkLines = std::min(lines.size(), static_cast<size_t>(12));
+        const size_t checkLines = std::min(lines.size(), static_cast<size_t>(parserConfig.headerScanLines));
         int footLike = 0; int amountLikeCount = 0; size_t start = lines.size() > checkLines ? lines.size() - checkLines : 0;
         for (size_t ii = start; ii < lines.size(); ++ii) {
             const auto& t = lines[ii].text; if (t.empty()) continue;
             try { if (core::parser::heuristics::isPostTransactionFootnote(t)) ++footLike; }
             catch (...) {}
-            try { const auto toks = utils::splitWhitespace(t); for (const auto& tk : toks) { try { if (core::parser::helpers::isAmountLikeToken(tk)) { ++amountLikeCount; break; } } catch (...) {} } }
+            try { const auto toks = utils::splitWhitespace(t); for (const auto& tk : toks) { try { if (tokenLooksLikeAmount(tk)) { ++amountLikeCount; break; } } catch (...) {} } }
             catch (...) {}
         }
         std::ostringstream ss; ss << "page.earlyEmptyCheckBottom\tfootLike=" << footLike << "\tamts=" << amountLikeCount; outDebug = ss.str();

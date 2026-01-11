@@ -15,8 +15,30 @@ struct TransactionBlock;
 
 namespace core::parser::helpers {
 
-// Lightweight check whether a token looks like an amount (not full parse)
-bool isAmountLikeToken(const std::string& token) noexcept;
+// Centralized parser configuration for tuning heuristics and thresholds
+struct ParserConfig {
+    int amountNearValutaBandPx = 120;         // used when searching for amount tokens near valuta
+    int valutaNeighborExpandPx = 140;         // expand window to include adjacent token as valuta
+    int leftDescriptiveOffsetPx = 200;        // X offset to consider token as left descriptive text
+    int tokenNearMergeBandPx = 220;           // band used when checking tokens near valuta for merging
+    int maxPhraseTokens = 6;                  // max tokens to consider when matching a phrase
+
+    int tokenNearBandForMainRow = 100;        // band used in geom-based main row detection
+    int groupMergeMaxGapPx = 8;               // default max vertical gap for grouping lines
+    int headerScanLines = 12;                 // number of lines scanned for header heuristics
+    int headerMarginPx = 8;                   // header margin when skipping lines above header
+    int orphanAttachMaxGapPx = 80;            // max gap for attaching orphan lines to blocks
+    int orphanAcceptXOffsetPx = 40;           // allow orphans whose maxX < valutaX + offset
+};
+
+extern ParserConfig parserConfig;
+
+// Consolidated amount helper: return indices of tokens that look like amounts in the line
+// If valutaX>=0 and bandPx>0, restrict search to tokens near that X (within bandPx)
+std::vector<size_t> findAmountTokenIndices(const core::parser::OcrLine& line, int valutaX = -1, int bandPx = 0) noexcept;
+
+// Short date presence check
+bool hasShortDateToken(const std::string& text) noexcept;
 
 // Check whether a text contains a short date token like "DD. MM" or "DD.MM"
 bool containsShortDate(const std::string& text) noexcept;

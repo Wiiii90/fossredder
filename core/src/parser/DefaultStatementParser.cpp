@@ -80,15 +80,8 @@ static bool isLikelyTransactionMainRowGeom(const RawLine& l, const ColumnModel& 
     // If neither debit nor credit detected, accept numeric-like token near the valuta column
     if (!hasDebit && !hasCredit) {
         try {
-            static const std::regex amountLike(R"(^\(?-?\d{1,3}(?:[\.,]\d{3})*[\.,]\d{1,2}-?\)?)");
-            for (size_t i = 0; i < toks.size(); ++i) {
-                const auto& sp = l.wordSpans[i];
-                const int cx = (sp.first + sp.second) / 2;
-                if (cx > cols.valutaX - 120 && cx < cols.valutaX + 120) {
-                    try { if (std::regex_match(toks[i], amountLike)) { hasDebit = true; break; } } catch(...) {}
-                    try { if (core::parser::helpers::isAmountLikeToken(toks[i])) { hasDebit = true; break; } } catch(...) {}
-                }
-            }
+            auto amtIdx = core::parser::helpers::findAmountTokenIndices(rawToOcrLine(l), cols.valutaX, 120);
+            if (!amtIdx.empty()) hasDebit = true;
         } catch(...) {}
     }
 
