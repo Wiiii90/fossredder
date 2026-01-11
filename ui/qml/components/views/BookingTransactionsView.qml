@@ -149,6 +149,8 @@ Item {
                                 if (isEdit && current && current.id) {
                                     // apply persistent update immediately using accumulated local selection
                                     if (uiDomain) uiDomain.updateTransactionProperties(current.id, selectedPropertyIds)
+                                    // also update UI model immediately so other views (PropertiesView) refresh without waiting for commit
+                                    if (uiData) uiData.setTransactionPropertyIdsImmediate(current.id, selectedPropertyIds)
                                 } else {
                                     // for new transaction we already modify local selection
                                 }

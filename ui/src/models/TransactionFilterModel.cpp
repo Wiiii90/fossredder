@@ -16,11 +16,36 @@ void TransactionFilterModel::setStatementId(const QString& id)
     emit statementIdChanged();
 }
 
+void TransactionFilterModel::setPropertyId(const QString& id)
+{
+    if (propertyId_ == id) return;
+    propertyId_ = id;
+    invalidateFilter();
+    emit propertyIdChanged();
+}
+
 bool TransactionFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
 {
-    if (statementId_.isEmpty()) return false;
+    // if statementId is provided, filter by statementId
+    if (!statementId_.isEmpty()) {
+        const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
+        const auto sid = sourceModel()->data(idx, TransactionList::StatementIdRole).toString();
+        if (sid != statementId_) return false;
+    }
 
-    const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
-    const auto sid = sourceModel()->data(idx, TransactionList::StatementIdRole).toString();
-    return sid == statementId_;
+    // if propertyId provided, ensure transaction's propertyIds contains it
+    if (!propertyId_.isEmpty()) {
+        const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
+        const auto props = sourceModel()->data(idx, TransactionList::PropertyIdsRole).toList();
+        bool found = false;
+        for (const auto& v : props) {
+            if (v.toString() == propertyId_) { found = true; break; }
+        }
+        if (!found) return false;
+    }
+
+    // if neither provided, default to false to avoid listing everything
+    if (statementId_.isEmpty() && propertyId_.isEmpty()) return false;
+
+    return true;
 }

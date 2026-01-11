@@ -1,5 +1,7 @@
 #include "ui/state/UiDataSession.h"
 #include <QDebug>
+#include <QAbstractItemModel>
+#include "ui/models/TransactionList.h"
 
 UiDataSession::UiDataSession(QObject* parent)
     : QObject(parent)
@@ -14,6 +16,56 @@ UiDataSession::UiDataSession(QObject* parent)
     , selectedStatement_(this)
     , selectedTransaction_(this)
 {
+    // Connect to transactions_ model signals to keep property sums cache up-to-date
+    connect(&transactions_, &QAbstractItemModel::rowsAboutToBeRemoved, this, [this](const QModelIndex& parent, int first, int last){
+        Q_UNUSED(parent);
+        const auto vec = transactions_.transactions();
+        for (int r = first; r <= last; ++r) {
+            if (r < 0 || r >= static_cast<int>(vec.size())) continue;
+            const auto& t = vec[static_cast<size_t>(r)];
+            if (!t) continue;
+            for (const auto& pid : t->propertyIds) pendingRecomputePropertyIds_.insert(QString::fromStdString(pid));
+        }
+    });
+
+    connect(&transactions_, &QAbstractItemModel::rowsRemoved, this, [this](const QModelIndex& parent, int first, int last){
+        Q_UNUSED(parent);
+        // recompute for all property ids captured in aboutToBeRemoved
+        for (const auto& pid : pendingRecomputePropertyIds_) recomputePropertySum(pid);
+        pendingRecomputePropertyIds_.clear();
+    });
+
+    connect(&transactions_, &QAbstractItemModel::rowsInserted, this, [this](const QModelIndex& parent, int first, int last){
+        Q_UNUSED(parent);
+        const auto vec = transactions_.transactions();
+        for (int r = first; r <= last; ++r) {
+            if (r < 0 || r >= static_cast<int>(vec.size())) continue;
+            const auto& t = vec[static_cast<size_t>(r)];
+            if (!t) continue;
+            for (const auto& pid : t->propertyIds) recomputePropertySum(QString::fromStdString(pid));
+        }
+    });
+
+    connect(&transactions_, &QAbstractItemModel::dataChanged, this, [this](const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles){
+        // Only react when roles affecting sums changed; if roles is empty treat as full update
+        if (!roles.isEmpty()) {
+            bool relevant = false;
+            for (int r : roles) {
+                if (r == TransactionList::AmountRole || r == TransactionList::AllocatableRole || r == TransactionList::PropertyIdsRole) { relevant = true; break; }
+            }
+            if (!relevant) return;
+        }
+
+        const auto vec = transactions_.transactions();
+        for (int r = topLeft.row(); r <= bottomRight.row(); ++r) {
+            if (r < 0 || r >= static_cast<int>(vec.size())) continue;
+            const auto& t = vec[static_cast<size_t>(r)];
+            if (!t) continue;
+            for (const auto& pid : t->propertyIds) recomputePropertySum(QString::fromStdString(pid));
+        }
+    });
+
+    connect(&transactions_, &QAbstractItemModel::modelReset, this, [this](){ recomputeAllPropertySums(); });
 }
 
 void UiDataSession::loadFromState(const AppState& state)
@@ -26,6 +78,9 @@ void UiDataSession::loadFromState(const AppState& state)
 
     // debug logging to help track when properties arrive
     qDebug() << "UiDataSession::loadFromState: properties=" << properties_.rowCount();
+
+    // recompute sums cache after loading
+    recomputeAllPropertySums();
 
     refreshSelectedActor();
     refreshSelectedProperty();
@@ -220,6 +275,82 @@ QObject* UiDataSession::transactionsForStatement(const QString& statementId)
     return proxy;
 }
 
+QObject* UiDataSession::transactionsForProperty(const QString& propertyId)
+{
+    if (propertyId.isEmpty()) return nullptr;
+
+    const auto key = propertyId;
+    if (txByProperty_.contains(key)) return txByProperty_.value(key);
+
+    auto* proxy = new TransactionFilterModel(this);
+    proxy->setSourceModel(&transactions_);
+    proxy->setPropertyId(propertyId);
+    txByProperty_.insert(key, proxy);
+    return proxy;
+}
+
+QVariantMap UiDataSession::transactionSumsForProperty(const QString& propertyId) const
+{
+    if (propertyId.isEmpty()) return {};
+    if (propertySumsCache_.contains(propertyId)) return propertySumsCache_.value(propertyId);
+
+    // compute on demand and cache
+    QVariantMap out;
+    out["total"] = 0.0;
+    out["allocatable"] = 0.0;
+    out["nonAllocatable"] = 0.0;
+
+    for (const auto& t : transactions_.transactions()) {
+        if (!t) continue;
+        for (const auto& pid : t->propertyIds) {
+            if (QString::fromStdString(pid) == propertyId) {
+                out["total"] = out["total"].toDouble() + t->amount;
+                if (t->allocatable) out["allocatable"] = out["allocatable"].toDouble() + t->amount;
+                else out["nonAllocatable"] = out["nonAllocatable"].toDouble() + t->amount;
+                break;
+            }
+        }
+    }
+
+    propertySumsCache_.insert(propertyId, out);
+    return out;
+}
+
+void UiDataSession::recomputeAllPropertySums()
+{
+    propertySumsCache_.clear();
+    // build set of property ids from properties_ model
+    for (const auto& p : properties_.properties()) {
+        if (!p) continue;
+        recomputePropertySum(QString::fromStdString(p->id));
+    }
+}
+
+void UiDataSession::recomputePropertySum(const QString& propertyId) const
+{
+    if (propertyId.isEmpty()) return;
+    QVariantMap out;
+    out["total"] = 0.0;
+    out["allocatable"] = 0.0;
+    out["nonAllocatable"] = 0.0;
+
+    for (const auto& t : transactions_.transactions()) {
+        if (!t) continue;
+        for (const auto& pid : t->propertyIds) {
+            if (QString::fromStdString(pid) == propertyId) {
+                out["total"] = out["total"].toDouble() + t->amount;
+                if (t->allocatable) out["allocatable"] = out["allocatable"].toDouble() + t->amount;
+                else out["nonAllocatable"] = out["nonAllocatable"].toDouble() + t->amount;
+                break;
+            }
+        }
+    }
+
+    propertySumsCache_.insert(propertyId, out);
+    // emit change to QML listeners
+    QMetaObject::invokeMethod(const_cast<UiDataSession*>(this), "transactionSumsUpdated", Qt::QueuedConnection, Q_ARG(QString, propertyId));
+}
+
 void UiDataSession::applyTransactionUpdates(const std::vector<std::string>& ids, const AppState& state)
 {
     if (ids.empty()) return;
@@ -250,6 +381,15 @@ void UiDataSession::applyTransactionUpdates(const std::vector<std::string>& ids,
                     transactions_.setTransactionAt(row, t);
                     // if this transaction is currently selected, refresh selectedTransaction to keep UI in sync
                     if (selectedTransactionId_ == qid) refreshSelectedTransaction();
+
+                    // Invalidate sums for affected properties: union of old and new propertyIds
+                    QSet<QString> affected;
+                    if (current) for (const auto& pid : current->propertyIds) affected.insert(QString::fromStdString(pid));
+                    for (const auto& pid : t->propertyIds) affected.insert(QString::fromStdString(pid));
+                    for (const auto& pid : affected) {
+                        // recompute and notify
+                        recomputePropertySum(pid);
+                    }
                 }
                 // debug: log propertyIds mismatch
                 if (current && current->propertyIds != t->propertyIds) {
@@ -276,7 +416,16 @@ void UiDataSession::applyDeletionImpact(const DeletionImpact& impact)
             continue;
         }
         int row = transactions_.findRowById(qid);
-        if (row >= 0) transactions_.removeAt(row);
+        if (row >= 0) {
+            // collect affected property ids from transaction before removal
+            const auto tptr = transactions_.transactions().at(static_cast<size_t>(row));
+            QStringList affected;
+            if (tptr) for (const auto& pid : tptr->propertyIds) affected << QString::fromStdString(pid);
+
+            transactions_.removeAt(row);
+
+            for (const auto& pid : affected) recomputePropertySum(pid);
+        }
         if (selectedTransactionId_ == qid) {
             selectedTransactionId_.clear();
             emit selectedTransactionIdChanged();
@@ -310,6 +459,8 @@ void UiDataSession::applyDeletionImpact(const DeletionImpact& impact)
             if (QString::fromStdString(p->id) == qid) { properties_.removeAt(i); if (selectedPropertyId_ == qid) { selectedPropertyId_.clear(); emit selectedPropertyIdChanged(); selectedProperty_.clear(); } break; }
         }
         // Also remove property id references from transaction selection and internal state lists
+        propertySumsCache_.remove(qid);
+        txByProperty_.remove(qid);
     }
 
     for (const auto& aid : impact.deletedActorIds) {
@@ -357,4 +508,37 @@ void UiDataSession::setEditingTransaction(const QString& txId, bool editing)
 bool UiDataSession::isEditingTransaction(const QString& txId) const
 {
     return editingTransactions_.contains(txId);
+}
+
+void UiDataSession::setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds)
+{
+    if (txId.isEmpty()) return;
+    int row = transactions_.findRowById(txId);
+    if (row < 0) return;
+
+    auto current = transactions_.transactions().at(static_cast<size_t>(row));
+    if (!current) return;
+
+    // compute old and new sets
+    QSet<QString> oldSet;
+    for (const auto& pid : current->propertyIds) oldSet.insert(QString::fromStdString(pid));
+
+    QSet<QString> newSet;
+    for (const auto& pid : propertyIds) newSet.insert(pid);
+
+    if (oldSet == newSet) return;
+
+    // apply to model object
+    current->propertyIds.clear();
+    for (const auto& pid : propertyIds) current->propertyIds.push_back(pid.toStdString());
+
+    // emit dataChanged for propertyIds role
+    const QModelIndex mi = transactions_.index(row);
+    QVector<int> roles; roles.append(TransactionList::PropertyIdsRole);
+    emit transactions_.dataChanged(mi, mi, roles);
+
+    // recompute sums for affected properties (union)
+    QSet<QString> affected = oldSet;
+    affected.unite(newSet);
+    for (const auto& pid : affected) recomputePropertySum(pid);
 }

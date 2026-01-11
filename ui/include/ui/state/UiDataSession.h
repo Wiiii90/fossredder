@@ -4,6 +4,7 @@
 #include <QString>
 #include <QHash>
 #include <QSet>
+#include <QVariantMap>
 
 #include "core/models/AppState.h"
 #include "ui/models/ActorList.h"
@@ -67,6 +68,8 @@ public:
 
     Q_INVOKABLE QVariantList transactionIdsForStatement(const QString& statementId) const;
     Q_INVOKABLE QObject* transactionsForStatement(const QString& statementId);
+    Q_INVOKABLE QObject* transactionsForProperty(const QString& propertyId);
+    Q_INVOKABLE QVariantMap transactionSumsForProperty(const QString& propertyId) const;
 
     // Apply incremental updates for specific transaction ids using current AppState
     void applyTransactionUpdates(const std::vector<std::string>& ids, const AppState& state);
@@ -76,12 +79,18 @@ public:
     Q_INVOKABLE void setEditingTransaction(const QString& txId, bool editing);
     Q_INVOKABLE bool isEditingTransaction(const QString& txId) const;
 
+    // Update transaction's property ids immediately in the UI model (no persistence)
+    Q_INVOKABLE void setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds);
+
 signals:
     void selectedActorIdChanged();
     void selectedPropertyIdChanged();
     void selectedContractIdChanged();
     void selectedStatementIdChanged();
     void selectedTransactionIdChanged();
+
+    // Emitted when sums for a specific property changed
+    void transactionSumsUpdated(const QString& propertyId);
 
 private:
     ActorList actors_;
@@ -103,6 +112,13 @@ private:
     UiEntitySelection selectedTransaction_;
 
     mutable QHash<QString, TransactionFilterModel*> txByStatement_;
+    mutable QHash<QString, TransactionFilterModel*> txByProperty_;
+
+    // Cache of computed sums per property id
+    mutable QHash<QString, QVariantMap> propertySumsCache_;
+
+    // temporary set to track property ids from rows about to be removed
+    mutable QSet<QString> pendingRecomputePropertyIds_;
 
     // transactions currently being edited in the UI (suppress incremental overwrite)
     QSet<QString> editingTransactions_;
@@ -114,4 +130,8 @@ private:
     void refreshSelectedContract();
     void refreshSelectedStatement();
     void refreshSelectedTransaction();
+
+    // recompute helpers
+    void recomputeAllPropertySums();
+    void recomputePropertySum(const QString& propertyId) const;
 };
