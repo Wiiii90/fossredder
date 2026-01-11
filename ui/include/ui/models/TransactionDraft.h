@@ -17,6 +17,8 @@ struct TransactionDraft {
     QString metadata;
     QString proofImagePath;
 
+    QString type;
+
     bool allocatable = false;
 
     // Default to Unverified so new transactions require user verification

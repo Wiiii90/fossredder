@@ -237,7 +237,8 @@ void UiDataSession::refreshSelectedTransaction()
                                                             QString::fromStdString(t->actorId),
                                                             QString::fromStdString(t->actorProposal),
                                                             propIds,
-                                                            t->allocatable);
+                                                            t->allocatable,
+                                                            QString::fromStdString(t->type));
             return;
         }
     }

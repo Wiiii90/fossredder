@@ -126,7 +126,7 @@ void UiEntitySelection::setContract(const QString& id, const QString& name, cons
     emit changed();
 }
 
-void UiEntitySelection::setTransactionWithProperties(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, const QString& actorId, const QString& actorProposal, const QStringList& propertyIds, bool allocatable)
+void UiEntitySelection::setTransactionWithProperties(const QString& id, const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, const QString& actorId, const QString& actorProposal, const QStringList& propertyIds, bool allocatable, const QString& transactionType)
 {
     id_ = id;
     name_ = name;
@@ -141,5 +141,6 @@ void UiEntitySelection::setTransactionWithProperties(const QString& id, const QS
     statementId_ = statementId;
     actorId_ = actorId;
     actorProposal_ = actorProposal;
+    type_ = transactionType;
     emit changed();
 }

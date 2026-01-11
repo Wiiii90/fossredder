@@ -92,6 +92,15 @@ Item {
             }
         }
 
+        // Type field - match booking date / amount layout
+        Label { text: qsTr("Type"); Layout.alignment: Qt.AlignVCenter }
+        Controls.AppTextField {
+            Layout.fillWidth: true
+            text: draft && draft.current ? (draft.current.type || "") : ""
+            placeholderText: qsTr("Type")
+            onTextChanged: if (draft) draft.transactions.setType(draft.currentIndex, text)
+        }
+
         Controls.AppTextArea {
             Layout.fillWidth: true
             wrapMode: TextArea.Wrap

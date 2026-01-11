@@ -96,6 +96,7 @@ void SqliteSchema::migrate(sqlite3* db) {
             "amount REAL,"
             "status INTEGER NOT NULL DEFAULT 0,"
             "description TEXT,"
+            "type TEXT,"
             "actor_id INTEGER,"
             "contract_id INTEGER,"
             "statement_id INTEGER,"

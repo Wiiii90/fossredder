@@ -14,6 +14,7 @@ Item {
         nameField.text = ""
         bookingDateField.text = ""
         amountField.text = ""
+        typeField.text = ""
         // statementId is taken from uiData.selectedStatementId when creating new
         // reset property selection for new
         if (typeof selectedPropertyIds !== 'undefined') selectedPropertyIds = []
@@ -37,6 +38,7 @@ Item {
         nameField.text = current.name || ""
         bookingDateField.text = current.bookingDate || ""
         amountField.text = String(current.amount)
+        typeField.text = current.type || ""
         // populate property selection (for display only)
         if (typeof selectedPropertyIds !== 'undefined') selectedPropertyIds = current.propertyIds ? current.propertyIds.slice() : []
         allocCheck.checked = current.allocatable ? true : false
@@ -65,6 +67,8 @@ Item {
                 if (isNaN(amt)) amt = 0.0
                 var sid = (current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
                 uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
+                // update transaction type as well
+                uiDomain.updateTransactionType(current.id, typeField.text)
             }
         }
     }
@@ -105,6 +109,16 @@ Item {
             Label { text: qsTr("Amount"); Layout.preferredWidth: 80 }
             AppTextField {
                 id: amountField; Layout.preferredWidth: 160
+                onActiveFocusChanged: { if (!isNew && uiData) uiData.setEditingTransaction(current.id, activeFocus) }
+                onTextChanged: { if (!isNew && uiDomain && current && current.id) updateTimer.restart() }
+            }
+        }
+
+        RowLayout { Layout.fillWidth: true
+            Label { text: qsTr("Type"); Layout.preferredWidth: 120 }
+            AppTextField {
+                id: typeField; Layout.fillWidth: true
+                placeholderText: qsTr("Type")
                 onActiveFocusChanged: { if (!isNew && uiData) uiData.setEditingTransaction(current.id, activeFocus) }
                 onTextChanged: { if (!isNew && uiDomain && current && current.id) updateTimer.restart() }
             }

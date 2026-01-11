@@ -156,6 +156,7 @@ QString UiDomainController::addTransactionDetailed(const QString& name, const QS
     t->allocatable = false;
     t->propertyIds.clear();
     t->contractId.clear();
+    t->type.clear();
 
     const auto id = QString::fromStdString(t->id);
     core_->mutableState().transactions.push_back(std::move(t));
@@ -257,6 +258,8 @@ QString UiDomainController::finalizeStatementDraft(StatementDraft* draft)
         tptr->allocatable = tx.allocatable;
         tptr->propertyIds.clear();
         for (const auto& pid : tx.propertyIds) tptr->propertyIds.push_back(pid.toStdString());
+        // carry over transaction type from draft
+        tptr->type = tx.type.toStdString();
         // Associate with the numeric statement id assigned by the repository
         tptr->statementId = s->id;
         state.transactions.push_back(tptr);
@@ -626,4 +629,20 @@ void UiDomainController::pruneInvalidTransactions()
         if (t->statementId.empty() && t->name.empty()) return true;
         return false;
     }), txs.end());
+}
+
+void UiDomainController::updateTransactionType(const QString& id, const QString& type)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+    for (auto& t : core_->mutableState().transactions) {
+        if (!t) continue;
+        if (t->id == sid) {
+            if (t->type == type.toStdString()) return;
+            t->type = type.toStdString();
+            if (core_) try { core_->markTransactionDirty(t->id); } catch(...) {}
+            scheduleDebouncedCommit(QStringLiteral("tx:") + QString::fromStdString(t->id), 300);
+            return;
+        }
+    }
 }
