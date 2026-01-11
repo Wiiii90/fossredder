@@ -1,5 +1,6 @@
 #include "core/parser/DefaultTransactionParser.h"
 #include "core/utils/Util.h"
+#include "core/parser/ParserHelpers.h"
 
 #include <algorithm>
 #include <cctype>
@@ -76,6 +77,8 @@ std::optional<double> parseAmountInternal(const std::string& line) {
         replaceAll("\xE2\x88\x92", "-"); // minus sign
         // NBSP (0xC2 0xA0)
         replaceAll("\xC2\xA0", " ");
+        replaceAll("\xE2\x80\xAF", " "); // narrow no-break space U+202F
+        replaceAll("\xE2\x80\x89", " "); // thin space U+2009
     } catch (...) {}
 
     // Repair common OCR splits: e.g. "10,0 0-" -> "10,00-"
@@ -102,8 +105,7 @@ std::optional<double> parseAmountInternal(const std::string& line) {
             std::string token = m.str(1);
             // skip short date-like tokens (e.g. "03.02") which match number pattern but are dates
             try {
-                static const std::regex shortDate(R"(^\(?\d{2}\.\d{2}\)?$)");
-                if (std::regex_match(token, shortDate)) { rem = m.suffix().str(); continue; }
+                if (core::parser::helpers::containsShortDate(token)) { rem = m.suffix().str(); continue; }
             } catch (...) {}
             bool negative = false;
             // parentheses indicate negative
@@ -146,8 +148,7 @@ std::optional<double> parseAmountInternal(const std::string& line) {
                 std::string token = m2.str(1);
                 // skip short date-like tokens (e.g. "03.02")
                 try {
-                    static const std::regex shortDate(R"(^\(?\d{2}\.\d{2}\)?$)");
-                    if (std::regex_match(token, shortDate)) { rem = m2.suffix().str(); continue; }
+                    if (core::parser::helpers::containsShortDate(token)) { rem = m2.suffix().str(); continue; }
                 } catch (...) {}
                 bool negative = false;
                 if (!token.empty() && token.front() == '(' && token.back() == ')') { negative = true; token = token.substr(1, token.size() - 2); }
