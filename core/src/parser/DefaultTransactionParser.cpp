@@ -79,7 +79,22 @@ std::optional<double> parseAmountInternal(const std::string& line) {
         replaceAll("\xC2\xA0", " ");
         replaceAll("\xE2\x80\xAF", " "); // narrow no-break space U+202F
         replaceAll("\xE2\x80\x89", " "); // thin space U+2009
+        // normalize some common OCR dot variants to ASCII dot
+        replaceAll("\xE2\x80\xA2", "."); // bullet -> dot
+        replaceAll("\xE2\x80\xB7", "."); // interpunct
     } catch (...) {}
+
+    // Additional sanitization: remove any characters that are not digits, dot, comma, minus, parentheses or whitespace
+    std::string clean;
+    clean.reserve(s.size());
+    for (unsigned char c : s) {
+        if ((c >= '0' && c <= '9') || c == '.' || c == ',' || c == '-' || c == '(' || c == ')' || std::isspace(c)) clean.push_back(static_cast<char>(c));
+        else {
+            // replace other characters with space to avoid token concatenation
+            clean.push_back(' ');
+        }
+    }
+    s = std::move(clean);
 
     // Repair common OCR splits: e.g. "10,0 0-" -> "10,00-"
     try {
@@ -99,69 +114,60 @@ std::optional<double> parseAmountInternal(const std::string& line) {
     // Primary regex: numbers with comma as decimal, optional thousand separators
     static const std::regex re(R"((\(?-?(?:\d{1,3}(?:[\.,]\d{3})*|\d+),\d{2}\)?))");
     try {
+        // collect all candidate matches and pick best by magnitude to avoid small substring matches
         std::smatch m;
-        std::string rem = s;
-        while (std::regex_search(rem, m, re)) {
-            std::string token = m.str(1);
-            // skip short date-like tokens (e.g. "03.02") which match number pattern but are dates
+        std::optional<double> best;
+        double bestAbs = 0.0;
+        for (std::sregex_iterator it(s.begin(), s.end(), re), end; it != end; ++it) {
             try {
-                if (core::parser::helpers::containsShortDate(token)) { rem = m.suffix().str(); continue; }
+                std::string token = (*it).str(1);
+                if (core::parser::helpers::containsShortDate(token)) continue;
+
+                bool negative = false;
+                if (!token.empty() && token.front() == '(' && token.back() == ')') { negative = true; token = token.substr(1, token.size() - 2); }
+                if (!token.empty() && token.front() == '-') { negative = true; token = token.substr(1); }
+                if (!token.empty() && token.back() == '-') { negative = true; token.pop_back(); }
+
+                // remove thousand dots and normalize comma to dot
+                std::string normalized = token;
+                normalized.erase(std::remove(normalized.begin(), normalized.end(), '.'), normalized.end());
+                std::replace(normalized.begin(), normalized.end(), ',', '.');
+
+                try {
+                    double v = std::stod(normalized);
+                    if (negative) v = -v;
+                    double av = std::abs(v);
+                    if (!best || av > bestAbs) { best = v; bestAbs = av; }
+                } catch (...) {}
             } catch (...) {}
-            bool negative = false;
-            // parentheses indicate negative
-            if (!token.empty() && token.front() == '(' && token.back() == ')') {
-                negative = true;
-                token = token.substr(1, token.size() - 2);
-            }
-            // leading minus
-            if (!token.empty() && token.front() == '-') {
-                negative = true;
-                token = token.substr(1);
-            }
-            // trailing minus
-            if (!token.empty() && token.back() == '-') {
-                negative = true;
-                token.pop_back();
-            }
-
-            // remove thousand dots and normalize comma to dot
-            token.erase(std::remove(token.begin(), token.end(), '.'), token.end());
-            std::replace(token.begin(), token.end(), ',', '.');
-
-            try {
-                double v = std::stod(token);
-                if (negative) v = -v;
-                return v;
-            } catch (...) {}
-
-            rem = m.suffix().str();
         }
+        if (best) return best;
     } catch (...) {}
 
     // Fallback: find simple forms like 59268,40 or -59268,40
     if (!last) {
         static const std::regex re2(R"((\(?-?\d+[\.,]\d{2}\)?))");
         try {
-            std::smatch m2;
-            std::string rem = s;
-            while (std::regex_search(rem, m2, re2)) {
-                std::string token = m2.str(1);
-                // skip short date-like tokens (e.g. "03.02")
+            std::optional<double> best;
+            double bestAbs = 0.0;
+            for (std::sregex_iterator it(s.begin(), s.end(), re2), end; it != end; ++it) {
                 try {
-                    if (core::parser::helpers::containsShortDate(token)) { rem = m2.suffix().str(); continue; }
+                    std::string token = (*it).str(1);
+                    if (core::parser::helpers::containsShortDate(token)) continue;
+                    bool negative = false;
+                    if (!token.empty() && token.front() == '(' && token.back() == ')') { negative = true; token = token.substr(1, token.size() - 2); }
+                    if (!token.empty() && token.front() == '-') { negative = true; token = token.substr(1); }
+                    token.erase(std::remove(token.begin(), token.end(), '.'), token.end());
+                    std::replace(token.begin(), token.end(), ',', '.');
+                    try {
+                        double v = std::stod(token);
+                        if (negative) v = -v;
+                        double av = std::abs(v);
+                        if (!best || av > bestAbs) { best = v; bestAbs = av; }
+                    } catch (...) {}
                 } catch (...) {}
-                bool negative = false;
-                if (!token.empty() && token.front() == '(' && token.back() == ')') { negative = true; token = token.substr(1, token.size() - 2); }
-                if (!token.empty() && token.front() == '-') { negative = true; token = token.substr(1); }
-                token.erase(std::remove(token.begin(), token.end(), '.'), token.end());
-                std::replace(token.begin(), token.end(), ',', '.');
-                try {
-                    double v = std::stod(token);
-                    if (negative) v = -v;
-                    return v;
-                } catch (...) {}
-                rem = m2.suffix().str();
             }
+            if (best) return best;
         } catch (...) {}
     }
 
@@ -181,7 +187,7 @@ int textRightEdge(const OcrLine& l) {
     return l.maxX;
 }
 
-DefaultTransactionParser DefaultTransactionParser::parseTransaction(const TransactionBlock& block) {
+DefaultTransactionParser DefaultTransactionParser::parseTransaction(const TransactionBlock& block, std::vector<std::string>* debugOut /*=nullptr*/) {
     DefaultTransactionParser tx;
     tx.bookingDate = block.bookingDateGroup;
 
@@ -215,26 +221,77 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
 
     if (!block.main.credit.empty()) {
         creditExplicitNeg = tokenIndicatesNegative(block.main.credit.line.text);
-        creditVal = parseAmountString(block.main.credit.line.text);
+        // Prefer robust helper that works on OcrLine tokens
+        if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.credit.line, -1, debugOut)) {
+            creditVal = v;
+            if (debugOut) debugOut->push_back(std::string("initial.credit.helperUsed\t") + block.main.credit.line.text + std::string(" -> ") + std::to_string(*creditVal));
+        } else {
+            creditVal = parseAmountString(block.main.credit.line.text);
+            if (debugOut) debugOut->push_back(std::string("initial.credit.parse\t") + block.main.credit.line.text + std::string(" -> ") + (creditVal ? std::to_string(*creditVal) : std::string("(none)")));
+        }
     }
     if (!block.main.debit.empty()) {
         debitExplicitNeg = tokenIndicatesNegative(block.main.debit.line.text);
-        debitVal = parseAmountString(block.main.debit.line.text);
+        if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.debit.line, -1, debugOut)) {
+            debitVal = v;
+            if (debugOut) debugOut->push_back(std::string("initial.debit.helperUsed\t") + block.main.debit.line.text + std::string(" -> ") + std::to_string(*debitVal));
+        } else {
+            debitVal = parseAmountString(block.main.debit.line.text);
+            if (debugOut) debugOut->push_back(std::string("initial.debit.parse\t") + block.main.debit.line.text + std::string(" -> ") + (debitVal ? std::to_string(*debitVal) : std::string("(none)")));
+        }
     }
+
+    // Fallback: if neither side parsed or parsed values look suspiciously small, try a more robust scan
+    try {
+        const double suspiciousThreshold = 1.0; // amounts smaller than this considered suspect for fallback
+        bool needFallback = (!creditVal && !debitVal);
+        if (!needFallback) {
+            if (creditVal && std::abs(*creditVal) < suspiciousThreshold) needFallback = true;
+            if (debitVal && std::abs(*debitVal) < suspiciousThreshold) needFallback = true;
+        }
+        if (needFallback) {
+            if (debugOut) debugOut->push_back(std::string("fallback.scan.start\tcreditVal=") + (creditVal?"1":"0") + std::string(" debitVal=") + (debitVal?"1":"0"));
+            // scan main line cells and detail lines for amount-like tokens
+            if (!block.main.credit.empty()) {
+                if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.credit.line, -1, debugOut)) { creditVal = v; if (debugOut) debugOut->push_back(std::string("fallback.credit.helper\t") + block.main.credit.line.text + std::string(" -> ") + std::to_string(*v)); }
+            }
+            if (!creditVal && !block.main.debit.empty()) {
+                if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.debit.line, -1, debugOut)) { debitVal = v; if (debugOut) debugOut->push_back(std::string("fallback.debit.helper\t") + block.main.debit.line.text + std::string(" -> ") + std::to_string(*v)); }
+            }
+            if (!creditVal && !debitVal) {
+                // scan left and detail lines
+                if (!block.main.left.empty()) {
+                    if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.left.line, -1, debugOut)) {
+                        // ambiguous which column; assume credit unless signage indicates debit
+                        creditVal = v;
+                        if (debugOut) debugOut->push_back(std::string("fallback.left.helper\t") + block.main.left.line.text + std::string(" -> ") + std::to_string(*v));
+                    }
+                }
+                for (const auto& dl : block.detailLines) {
+                    if (creditVal || debitVal) break;
+                    if (auto v = core::parser::helpers::findAndParseAmountInLine(dl, -1, debugOut)) { creditVal = v; if (debugOut) debugOut->push_back(std::string("fallback.detail.helper\t") + dl.text + std::string(" -> ") + std::to_string(*v)); break; }
+                }
+            }
+        }
+    } catch(...) {}
 
     // If both parsed, resolve using explicit markers or magnitude
     if (creditVal && debitVal) {
         if (creditExplicitNeg && !debitExplicitNeg) {
             tx.amount = *creditVal;
+            if (debugOut) debugOut->push_back(std::string("resolve.both\tchoose.creditNeg->") + std::to_string(tx.amount));
         } else if (debitExplicitNeg && !creditExplicitNeg) {
             tx.amount = *debitVal;
+            if (debugOut) debugOut->push_back(std::string("resolve.both\tchoose.debitNeg->") + std::to_string(tx.amount));
         } else {
             // prefer larger absolute amount as likely the real amount
             if (std::abs(*debitVal) >= std::abs(*creditVal)) tx.amount = *debitVal; else tx.amount = *creditVal;
+            if (debugOut) debugOut->push_back(std::string("resolve.both\tchoose.larger->") + std::to_string(tx.amount));
         }
     } else if (creditVal) {
         // only credit parsed -> use as-is
         tx.amount = *creditVal;
+        if (debugOut) debugOut->push_back(std::string("resolve.credit->") + std::to_string(tx.amount));
     } else if (debitVal) {
         // only debit parsed -> decide sign by relative horizontal position if possible
         bool treatAsCredit = false;
@@ -247,10 +304,13 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
         }
         if (tokenIndicatesNegative(block.main.debit.line.text)) {
             tx.amount = *debitVal; // keep explicit sign
+            if (debugOut) debugOut->push_back(std::string("resolve.debitExpNeg->") + std::to_string(tx.amount));
         } else if (treatAsCredit) {
             tx.amount = *debitVal; // treat as positive credit
+            if (debugOut) debugOut->push_back(std::string("resolve.debit.treatAsCredit->") + std::to_string(tx.amount));
         } else {
             tx.amount = -std::abs(*debitVal); // default: debit -> negative
+            if (debugOut) debugOut->push_back(std::string("resolve.debit.defaultNegative->") + std::to_string(tx.amount));
         }
     }
 
@@ -267,10 +327,12 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
         if (auto p = tryCombineParse(block.main.debit.line.text, block.main.credit.line.text)) {
             // debit+credit combined: assume belongs to debit column unless credit clearly right of debit
             bool creditRightOfDebit = false;
-            try { creditRightOfDebit = centerXOf(block.main.credit.line) > centerXOf(block.main.debit.line); } catch(...){}
+            try { creditRightOfDebit = centerXOf(block.main.credit.line) > centerXOf(block.main.debit.line); } catch(...){ }
             if (creditRightOfDebit) tx.amount = *p; else tx.amount = -std::abs(*p);
+            if (debugOut) debugOut->push_back(std::string("combine.debit+credit->") + std::to_string(tx.amount));
         } else if (auto p = tryCombineParse(block.main.credit.line.text, block.main.debit.line.text)) {
             tx.amount = *p;
+            if (debugOut) debugOut->push_back(std::string("combine.credit+debit->") + std::to_string(tx.amount));
         }
     }
 
@@ -283,6 +345,7 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
         };
         if (tx.amount > 0.0 && (hasNegMarker(block.main.debit.line.text) || hasNegMarker(block.main.credit.line.text))) {
             tx.amount = -std::abs(tx.amount);
+            if (debugOut) debugOut->push_back(std::string("enforce.negMarker->") + std::to_string(tx.amount));
         }
     } catch(...) {}
 

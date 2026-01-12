@@ -5,6 +5,7 @@
 #include <vector>
 #include "api/tesseract/TesseractResponse.h"
 #include "core/parser/ParserHeuristics.h"
+#include "core/utils/Util.h"
 #include <regex>
 
 namespace core::parser {
@@ -62,6 +63,11 @@ bool hasLeftDescriptiveText(const core::parser::OcrLine& line, int valutaX) noex
 bool hasAmountNearValuta(const core::parser::OcrLine& line, int valutaX, int bandPx) noexcept;
 bool isLooseTransactionLine(const core::parser::OcrLine& line, int valutaX) noexcept;
 
+// Try to find and parse an amount candidate from the line by trying tokens
+// and simple concatenations (token+next). Respects valutaX band when provided.
+// If debugOut is provided, the helper will append debug lines describing candidate tokens and parse attempts.
+std::optional<double> findAndParseAmountInLine(const core::parser::OcrLine& line, int valutaX = -1, std::vector<std::string>* debugOut = nullptr) noexcept;
+
 // Bulk helpers: build OcrLine list and infer columns
 namespace detail {
     struct RawLineLite { int minX; int maxX; int minY; int maxY; std::vector<std::pair<int,int>> wordSpans; std::string text; };
@@ -85,7 +91,7 @@ core::parser::OcrLine toOcrLineFromRawWords(const detail::RawLineLite& src, size
 core::parser::TransactionMainRow splitMainRowFromRaw(const detail::RawLineLite& src, int valutaX, int debitX, int creditX) noexcept;
 
 // Header detection: returns preHeaderBottomY (largest maxY of header-like lines) and whether any header signals found
-std::pair<int,bool> detectHeaderRegion(const std::vector<core::parser::OcrLine>& lines, size_t scanLines);
+std::pair<int,bool> detectHeaderRegion(const std::vector<core::parser::OcrLine>& lines, size_t scanLines, int preferValutaX = -1);
 
 // Fallback booking date scan in header area
 std::optional<std::string> findFallbackBookingDate(const std::vector<core::parser::OcrLine>& lines, size_t scanLines) noexcept;

@@ -55,6 +55,8 @@ Item {
                 draft: stmtRoot.draft
             }
 
+            Item { Layout.fillHeight: true }
+
             RowLayout {
                 Layout.fillWidth: true
 

@@ -13,7 +13,8 @@ ParserConfig parserConfig;
 namespace {
     static const std::regex g_amountRegex(R"(^\(?-?\d{1,3}(?:[\.,]\d{3})*[\.,]\d{1,2}-?$)");
     static const std::regex g_amountFallbackRegex(R"(^\(?-?\d+[\.,]\d{2}\)?$)");
-    static const std::regex g_shortDateRegex(R"(\d{2}\.\s*\d{2})");
+    // require word boundaries so we don't match short-date inside larger numeric tokens (e.g. 17.072,66)
+    static const std::regex g_shortDateRegex(R"(\b\d{2}\.\s*\d{2}\b)");
     static const std::regex g_fullDateRegex(R"((\d{2}\.\d{2}\.\d{4}))");
 
     bool tokenLooksLikeAmount(const std::string& token) noexcept {
@@ -184,6 +185,108 @@ bool isLooseTransactionLine(const core::parser::OcrLine& line, int valutaX) noex
     }
     catch (...) {}
     return false;
+}
+
+// Improved implementation: try multiple token combination strategies to handle split/truncated amounts
+std::optional<double> findAndParseAmountInLine(const core::parser::OcrLine& line, int valutaX, std::vector<std::string>* debugOut) noexcept {
+    try {
+        int band = (valutaX >= 0) ? parserConfig.amountNearValutaBandPx : 0;
+        auto idxs = findAmountTokenIndices(line, valutaX, band);
+        if (idxs.empty()) {
+            // fallback: consider any amount-like token
+            idxs = findAmountTokenIndices(line, -1, 0);
+        }
+        const auto toks = utils::splitWhitespace(line.text);
+        auto tryParse = [&](const std::string& s)->std::optional<double> {
+            try {
+                if (s.empty()) return std::nullopt;
+                if (debugOut) debugOut->push_back(std::string("candidate.try\t") + s);
+
+                // skip short date tokens like '25.04' which could be mistaken for amounts
+                try {
+                    if (core::parser::helpers::containsShortDate(s)) {
+                        if (debugOut) debugOut->push_back(std::string("candidate.skip.shortDate\t") + s);
+                        return std::nullopt;
+                    }
+                } catch(...) {}
+
+                // First try: explicit normalization targeted at common European format
+                try {
+                    std::string norm = s;
+                    // trim
+                    norm = utils::trim(norm);
+                    bool negative = false;
+                    if (!norm.empty() && norm.front() == '(' && norm.back() == ')') { negative = true; norm = norm.substr(1, norm.size() - 2); }
+                    if (!norm.empty() && norm.front() == '-') { negative = true; norm = norm.substr(1); }
+                    if (!norm.empty() && norm.back() == '-') { negative = true; norm.pop_back(); }
+
+                    // remove spaces and thousand separators (dots and thin spaces)
+                    std::string tmp;
+                    tmp.reserve(norm.size());
+                    for (unsigned char c : norm) {
+                        if (c == '.' || c == '\u202F' || c == '\u2009' || c == ' ') continue; // drop thousand separators
+                        tmp.push_back(static_cast<char>(c));
+                    }
+                    // replace comma with dot for decimal
+                    std::replace(tmp.begin(), tmp.end(), ',', '.');
+
+                    // guard: don't consider pure integer-looking results that came from dates (e.g. 2504)
+                    try {
+                        if (!tmp.empty()) {
+                            // if original looked like a date (two digits dot two digits) we already skipped; now try stod
+                            double v = std::stod(tmp);
+                            if (negative) v = -v;
+                            if (debugOut) debugOut->push_back(std::string("candidate.ok.norm\t") + tmp + std::string(" -> ") + std::to_string(v));
+                            return v;
+                        }
+                    } catch (...) {}
+                } catch (...) {}
+
+                // fallback: try library parser on original
+                if (auto v = ::core::parser::parseAmountString(s)) { if (debugOut) debugOut->push_back(std::string("candidate.ok\t") + s + std::string(" -> ") + std::to_string(*v)); return v; }
+
+                // also try removing spaces and feeding to library
+                std::string nosp = s; nosp.erase(std::remove(nosp.begin(), nosp.end(), ' '), nosp.end());
+                if (!nosp.empty()) { if (debugOut) debugOut->push_back(std::string("candidate.try.nosp\t") + nosp); if (auto v2 = ::core::parser::parseAmountString(nosp)) { if (debugOut) debugOut->push_back(std::string("candidate.ok.nosp\t") + nosp + std::string(" -> ") + std::to_string(*v2)); return v2; } }
+            } catch (...) {}
+            return std::nullopt;
+        };
+
+        if (debugOut) debugOut->push_back(std::string("helper.findAndParseAmountInLine\tline=") + line.text + std::string(" idxs=") + std::to_string(idxs.size()));
+
+        for (auto i : idxs) {
+            if (i >= toks.size()) continue;
+            // try single token
+            if (auto r = tryParse(toks[i])) return r;
+            // try previous + current
+            if (i > 0) {
+                if (auto r = tryParse(toks[i-1] + toks[i])) return r;
+                if (auto r2 = tryParse(toks[i-1] + " " + toks[i])) return r2;
+            }
+            // try current + next (up to 2 next tokens) to handle splits like "10,0" "0-"
+            for (int len = 1; len <= 2; ++len) {
+                std::string joined;
+                for (int k = 0; k <= len; ++k) {
+                    int idx = static_cast<int>(i) + k;
+                    if (idx >= static_cast<int>(toks.size())) break;
+                    if (!joined.empty()) joined.push_back(' ');
+                    joined += toks[idx];
+                }
+                if (!joined.empty()) {
+                    if (auto r = tryParse(joined)) return r;
+                }
+            }
+            // try joining up to two tokens before and after (three-token window)
+            if (i + 2 < toks.size()) {
+                std::string three = toks[i] + toks[i+1] + toks[i+2];
+                if (auto r = tryParse(three)) return r;
+            }
+        }
+        // As a last resort, try to run parseAmountString on whole line
+        if (debugOut) debugOut->push_back(std::string("candidate.try.whole\t") + line.text);
+        if (auto v = ::core::parser::parseAmountString(line.text)) { if (debugOut) debugOut->push_back(std::string("candidate.ok.whole\t") + line.text + std::string(" -> ") + std::to_string(*v)); return v; }
+    } catch (...) {}
+    return std::nullopt;
 }
 
 // Build OcrLine vector from tesseract words (reuse logic from DefaultStatementParser)
@@ -361,25 +464,41 @@ std::optional<std::pair<core::parser::TransactionMainRow, int>> tryVerticalStart
         // prev + curr
         if (li > 0) {
             const auto& prev = lines[li - 1];
-            if (hasLeftDescriptiveText(prev, cols.valutaX) && !hasAmountLikeTokenInLine(prev, cols.valutaX) && hasAmountNearValuta(l, cols.valutaX, parserConfig.amountNearValutaBandPx)) {
+            // Relaxed: accept amount tokens with a wider band and also consider short-date + amount combos
+            int wideBand = std::max(parserConfig.amountNearValutaBandPx, parserConfig.tokenNearMergeBandPx);
+            if ((hasLeftDescriptiveText(prev, cols.valutaX) && !hasAmountLikeTokenInLine(prev, cols.valutaX) && hasAmountNearValuta(l, cols.valutaX, wideBand)) ||
+                (hasAmountLikeTokenInLine(prev, cols.valutaX) && hasLeftDescriptiveText(l, cols.valutaX))) {
                 core::parser::helpers::RawLineLite merged; merged.minX = prev.minX; merged.maxX = l.maxX; merged.minY = prev.minY; merged.maxY = l.maxY; merged.wordSpans = prev.wordSpans; merged.wordSpans.insert(merged.wordSpans.end(), l.wordSpans.begin(), l.wordSpans.end()); merged.text = prev.text + std::string(" ") + l.text;
                 auto main = splitMainRowFromRaw(merged, cols.valutaX, cols.debitX, cols.creditX);
                 return std::make_optional(std::make_pair(main, 0));
             }
-            if (hasAmountLikeTokenInLine(prev, cols.valutaX) && hasLeftDescriptiveText(l, cols.valutaX)) {
-                core::parser::helpers::RawLineLite merged; merged.minX = prev.minX; merged.maxX = l.maxX; merged.minY = prev.minY; merged.maxY = l.maxY; merged.wordSpans = prev.wordSpans; merged.wordSpans.insert(merged.wordSpans.end(), l.wordSpans.begin(), l.wordSpans.end()); merged.text = prev.text + std::string(" ") + l.text;
-                auto main = splitMainRowFromRaw(merged, cols.valutaX, cols.debitX, cols.creditX);
-                return std::make_optional(std::make_pair(main, 0));
-            }
+            // Additional relaxed case: prev contains a short date token and current contains an amount-like token (within wideBand)
+            try {
+                if (hasShortDateToken(prev.text) && hasAmountNearValuta(l, cols.valutaX, wideBand)) {
+                    core::parser::helpers::RawLineLite merged; merged.minX = prev.minX; merged.maxX = l.maxX; merged.minY = prev.minY; merged.maxY = l.maxY; merged.wordSpans = prev.wordSpans; merged.wordSpans.insert(merged.wordSpans.end(), l.wordSpans.begin(), l.wordSpans.end()); merged.text = prev.text + std::string(" ") + l.text;
+                    auto main = splitMainRowFromRaw(merged, cols.valutaX, cols.debitX, cols.creditX);
+                    return std::make_optional(std::make_pair(main, 0));
+                }
+            } catch(...) {}
         }
         // curr + next
         if (li + 1 < lines.size()) {
             const auto& next = lines[li + 1];
-            if (hasLeftDescriptiveText(l, cols.valutaX) && !hasAmountLikeTokenInLine(l, cols.valutaX) && hasAmountNearValuta(next, cols.valutaX, parserConfig.amountNearValutaBandPx)) {
+            int wideBand2 = std::max(parserConfig.amountNearValutaBandPx, parserConfig.tokenNearMergeBandPx);
+            if ((hasLeftDescriptiveText(l, cols.valutaX) && !hasAmountLikeTokenInLine(l, cols.valutaX) && hasAmountNearValuta(next, cols.valutaX, wideBand2)) ||
+                (hasAmountLikeTokenInLine(l, cols.valutaX) && hasLeftDescriptiveText(next, cols.valutaX))) {
                 core::parser::helpers::RawLineLite merged; merged.minX = l.minX; merged.maxX = next.maxX; merged.minY = l.minY; merged.maxY = next.maxY; merged.wordSpans = l.wordSpans; merged.wordSpans.insert(merged.wordSpans.end(), next.wordSpans.begin(), next.wordSpans.end()); merged.text = l.text + std::string(" ") + next.text;
                 auto main = splitMainRowFromRaw(merged, cols.valutaX, cols.debitX, cols.creditX);
                 return std::make_optional(std::make_pair(main, 1));
             }
+            // Additional relaxed: short-date in current + amount in next
+            try {
+                if (hasShortDateToken(l.text) && hasAmountNearValuta(next, cols.valutaX, wideBand2)) {
+                    core::parser::helpers::RawLineLite merged; merged.minX = l.minX; merged.maxX = next.maxX; merged.minY = l.minY; merged.maxY = next.maxY; merged.wordSpans = l.wordSpans; merged.wordSpans.insert(merged.wordSpans.end(), next.wordSpans.begin(), next.wordSpans.end()); merged.text = l.text + std::string(" ") + next.text;
+                    auto main = splitMainRowFromRaw(merged, cols.valutaX, cols.debitX, cols.creditX);
+                    return std::make_optional(std::make_pair(main, 1));
+                }
+            } catch(...) {}
             if (hasAmountLikeTokenInLine(l, cols.valutaX) && hasLeftDescriptiveText(next, cols.valutaX)) {
                 core::parser::helpers::RawLineLite merged; merged.minX = l.minX; merged.maxX = next.maxX; merged.minY = l.minY; merged.maxY = next.maxY; merged.wordSpans = l.wordSpans; merged.wordSpans.insert(merged.wordSpans.end(), next.wordSpans.begin(), next.wordSpans.end()); merged.text = l.text + std::string(" ") + next.text;
                 auto main = splitMainRowFromRaw(merged, cols.valutaX, cols.debitX, cols.creditX);
@@ -473,21 +592,45 @@ core::parser::TransactionMainRow handleMainRow(const core::parser::OcrLine& line
 }
 
 // Header/footer and orphan helpers
-std::pair<int, bool> detectHeaderRegion(const std::vector<core::parser::OcrLine>& lines, size_t scanLines) {
+std::pair<int, bool> detectHeaderRegion(const std::vector<core::parser::OcrLine>& lines, size_t scanLines, int preferValutaX) {
     int lastBlockY = -1;
     size_t idx = 0;
+    int noiseCount = 0;
     for (const auto& l : lines) {
         ++idx;
         if (idx > scanLines) break;
         const auto txt = l.text;
         if (txt.empty()) continue;
-        bool isHeaderLike = false;
+        bool isStrongHeaderLike = false;
+        bool isNoise = false;
         try {
-            if (core::parser::heuristics::isTransactionsSectionHeader(txt) || normalizeAlnumLower(txt).find("valuta") != std::string::npos || core::parser::heuristics::isDebitCreditHeaderLine(txt) || findFirstFullDate(txt).has_value() || core::parser::heuristics::isHeaderNoiseLine(txt)) isHeaderLike = true;
+            core::parser::OcrLine olLine; olLine.minX = l.minX; olLine.maxX = l.maxX; olLine.minY = l.minY; olLine.maxY = l.maxY; olLine.wordSpans = l.wordSpans; olLine.text = l.text;
+            if (core::parser::heuristics::isTransactionsSectionHeader(txt)) isStrongHeaderLike = true;
+            if (normalizeAlnumLower(txt).find("valuta") != std::string::npos) isStrongHeaderLike = true;
+            if (core::parser::heuristics::isDebitCreditHeaderLine(txt)) isStrongHeaderLike = true;
+            // Full date commonly appears in header/summary lines (e.g. "Neuer Kontostand vom DD.MM.YYYY 12.345,67").
+            // Treat any line containing a full date as header-like to avoid classifying balance summaries as transactions.
+            if (findFirstFullDate(txt).has_value()) {
+                try {
+                    isStrongHeaderLike = true;
+                } catch(...) { isStrongHeaderLike = true; }
+            }
+
+            if (core::parser::heuristics::isHeaderNoiseLine(txt)) isNoise = true;
         }
         catch (...) {}
-        if (isHeaderLike) lastBlockY = std::max(lastBlockY, l.maxY);
-        else { if (lastBlockY >= 0) break; }
+
+        if (isStrongHeaderLike) {
+            lastBlockY = std::max(lastBlockY, l.maxY);
+            // keep scanning until we hit a non-header-like line
+        } else if (isNoise) {
+            ++noiseCount;
+            if (noiseCount >= 2) {
+                lastBlockY = std::max(lastBlockY, l.maxY);
+            }
+        } else {
+            if (lastBlockY >= 0) break;
+        }
     }
     return { lastBlockY, lastBlockY >= 0 };
 }
@@ -564,4 +707,4 @@ void attachOrphansToBlocks(std::vector<core::parser::TransactionBlock>& blocks, 
     catch (...) {}
 }
 
-} // namespace core::parser::helpers
+} // namespace core::parser::helpers} // namespace core::parser::helpers

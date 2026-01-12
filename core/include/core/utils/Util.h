@@ -2,6 +2,10 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <algorithm>
+#include <cctype>
+#include <regex>
+#include <sstream>
 
 namespace utils {
 

@@ -44,7 +44,10 @@ struct DefaultTransactionParser {
     std::string proofImagePath;
     int status = 0;
 
-    static DefaultTransactionParser parseTransaction(const TransactionBlock& block);
+    static DefaultTransactionParser parseTransaction(
+        const TransactionBlock& block,
+        std::vector<std::string>* debugOut = nullptr
+    );
 };
 
 // Parse an amount token string into a double. Returns std::nullopt if not a valid amount.

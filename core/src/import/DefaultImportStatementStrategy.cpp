@@ -207,7 +207,9 @@ public:
                 oreq.uniqIdPrefix = utils::makeUniqId();
                 oreq.filePrefix = "tesseract_extract_table_page" + std::to_string(pi + 1);
                 oreq.tessdataPath = "";
-                oreq.psm = 3;
+                // Use PSM 6 (assume a single uniform block of text) for table crops to improve
+                // numeric/amount recognition inside cells (better than fully automatic PSM 3 here).
+                oreq.psm = 6;
                 oreq.cancelFlag = req.cancelFlag;
 
                 oreq.cells.reserve(detectRes.table.cells.size());

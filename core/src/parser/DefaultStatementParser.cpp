@@ -72,7 +72,7 @@ static bool isLikelyTransactionMainRowGeom(const RawLine& l, const ColumnModel& 
     const auto toks = utils::splitWhitespace(l.text);
     if (toks.size() != l.wordSpans.size() || toks.size() < 3) return false;
 
-    const int band = 100;
+    const int band = core::parser::helpers::parserConfig.tokenNearBandForMainRow;
     const bool hasValuta = core::parser::helpers::hasTokenNearX(rawToOcrLine(l), cols.valutaX, band);
     bool hasDebit = cols.hasDebit() ? core::parser::helpers::hasTokenNearX(rawToOcrLine(l), cols.debitX, band) : false;
     bool hasCredit = cols.hasCredit() ? core::parser::helpers::hasTokenNearX(rawToOcrLine(l), cols.creditX, band) : false;
@@ -80,7 +80,7 @@ static bool isLikelyTransactionMainRowGeom(const RawLine& l, const ColumnModel& 
     // If neither debit nor credit detected, accept numeric-like token near the valuta column
     if (!hasDebit && !hasCredit) {
         try {
-            auto amtIdx = core::parser::helpers::findAmountTokenIndices(rawToOcrLine(l), cols.valutaX, 120);
+            auto amtIdx = core::parser::helpers::findAmountTokenIndices(rawToOcrLine(l), cols.valutaX, core::parser::helpers::parserConfig.amountNearValutaBandPx);
             if (!amtIdx.empty()) hasDebit = true;
         } catch(...) {}
     }
@@ -89,7 +89,7 @@ static bool isLikelyTransactionMainRowGeom(const RawLine& l, const ColumnModel& 
     for (size_t i = 0; i < toks.size(); ++i) {
         const auto& sp = l.wordSpans[i];
         const int cx = (sp.first + sp.second) / 2;
-        if (cx < cols.valutaX - 200) { hasLeft = true; break; }
+        if (cx < cols.valutaX - core::parser::helpers::parserConfig.leftDescriptiveOffsetPx) { hasLeft = true; break; }
     }
 
     return hasLeft && hasValuta && (hasDebit || hasCredit);
@@ -171,16 +171,61 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
     cur.bookingDateGroup = currentBookingDate;
 
     bool inTransactions = !currentBookingDate.empty();
-    ColumnModel cols;
+    ColumnModel cols = seedCols;
     RowModel rows;
 
     // Pre-scan lines to determine a conservative header bottom Y so we do not start parsing
     // transactions from text that is clearly part of the page header. This prevents lookahead
     // from combining header lines into a transaction before header detection runs in the loop.
     const size_t headerScanLines = 12; // reduced window for header detection
-    auto [preHeaderBottomY, headerFound] = core::parser::helpers::detectHeaderRegion(ocrLines, headerScanLines);
+    auto [preHeaderBottomY, headerFound] = core::parser::helpers::detectHeaderRegion(ocrLines, headerScanLines, seed.valutaX);
     out.debugLines.push_back(std::string("header.prebottomY\t") + std::to_string(preHeaderBottomY));
+    out.debugLines.push_back(std::string("header.found\t") + (headerFound ? "1" : "0"));
+    // Diagnostic: enumerate first scan window lines and log header-like signals to aid debugging
+    try {
+        const size_t dbgN = std::min(ocrLines.size(), headerScanLines);
+        for (size_t hi = 0; hi < dbgN; ++hi) {
+            const auto& hl = ocrLines[hi];
+            const auto text = hl.text;
+            try {
+                bool isTxSection = core::parser::heuristics::isTransactionsSectionHeader(text);
+                bool isDebitCredit = core::parser::heuristics::isDebitCreditHeaderLine(text);
+                bool isNoise = core::parser::heuristics::isHeaderNoiseLine(text);
+                bool hasFullDate = core::parser::helpers::findFirstFullDate(text).has_value();
+                core::parser::OcrLine ol = hl;
+                bool hasAmt = core::parser::helpers::hasAmountLikeTokenInLine(ol, seed.valutaX);
+                bool hasValutaTokenNear = false;
+                try { if (seed.valutaX >= 0) hasValutaTokenNear = core::parser::helpers::hasTokenNearX(ol, seed.valutaX, core::parser::helpers::parserConfig.tokenNearBandForMainRow); } catch(...) {}
+                std::ostringstream ss; ss << "header.candidate\tline=" << hi << "\ttext=" << text << "\ttxSection=" << (isTxSection?"1":"0") << "\tdebitcredit=" << (isDebitCredit?"1":"0") << "\tnoise=" << (isNoise?"1":"0") << "\tfullDate=" << (hasFullDate?"1":"0") << "\thasAmt=" << (hasAmt?"1":"0") << "\tvalutaNear=" << (hasValutaTokenNear?"1":"0");
+                out.debugLines.push_back(ss.str());
+            } catch(...) {}
+        }
+    } catch(...) {}
+
     int headerBottomY = preHeaderBottomY; // track lowest (largest y) header line encountered
+    // If we find an early line that already contains an amount-like token or short-date+left-text,
+    // lower the headerBottomY so we do not skip legitimate transaction starts.
+    try {
+        int earliestAmtY = std::numeric_limits<int>::max();
+        bool found = false;
+        for (size_t i = 0; i < lines.size(); ++i) {
+            try {
+                core::parser::OcrLine ol = rawToOcrLine(lines[i]);
+                bool hasAmt = core::parser::helpers::hasAmountLikeTokenInLine(ol, seed.valutaX);
+                bool dateLeft = core::parser::helpers::hasShortDateToken(ol.text) && core::parser::helpers::hasLeftDescriptiveText(ol, seed.valutaX);
+                if (hasAmt || dateLeft) {
+                    earliestAmtY = std::min(earliestAmtY, lines[i].maxY);
+                    found = true;
+                }
+            } catch(...) {}
+        }
+        if (found && earliestAmtY != std::numeric_limits<int>::max()) {
+            // reduce header bottom to just above earliest amount line to avoid skipping it
+            headerBottomY = std::min(headerBottomY, earliestAmtY - 2);
+            out.debugLines.push_back(std::string("header.adjustedForEarliestAmount\t") + std::to_string(headerBottomY));
+        }
+    } catch(...) {}
+
     const int headerMarginPx = 8; // smaller margin to avoid skipping legitimate lines
 
     // Compute page maximum Y for heuristics (used to decide if a footnote is truly at page bottom)
@@ -247,6 +292,20 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
         // header/footer text near the top of the page is not misinterpreted as
         // transactions even when a booking date was provided.
         if (headerBottomY >= 0 && l.maxY <= headerBottomY + headerMarginPx && !inTransactions) {
+            // If this line contains tokens anchored to the inferred valuta column, treat it as data (do not skip).
+            try {
+                if (seedCols.valutaX >= 0) {
+                    core::parser::OcrLine anchorOl = rawToOcrLine(l);
+                    if (core::parser::helpers::hasTokenNearX(anchorOl, seedCols.valutaX, core::parser::helpers::parserConfig.tokenNearBandForMainRow) || core::parser::helpers::hasAmountLikeTokenInLine(anchorOl, seedCols.valutaX)) {
+                        out.debugLines.push_back(std::string("header.overrideByValutaAnchor\tline=") + std::to_string(li) + "\ttext=" + txt);
+                        // fall through to normal processing (do not perform header skip)
+                    } else {
+                        // proceed with header-skip checks below
+                        continue;
+                    }
+                }
+            } catch(...) {}
+
             // Do not skip lines that contain explicit header signals such as a booking date,
             // 'valuta' or any full date token. This prevents legitimate header/data lines
             // from being swallowed by conservative header bounding.
@@ -280,9 +339,27 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                 if (combinedStarted) {
                     // allow processing as normal
                 } else {
-                    out.debugLines.push_back(std::string("line.reason\taboveHeaderSkip\t") + txt + "\tline=" + std::to_string(li));
-                    prevLine = txt;
-                    continue;
+                    // If the line contains an amount-like token or matches a loose transaction pattern,
+                    // allow it to start transactions even though it's above the conservative header bound.
+                    try {
+                        core::parser::OcrLine ol = rawToOcrLine(l);
+                        bool allowAboveHeader = false;
+                        try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) allowAboveHeader = true; } catch(...) {}
+                        try { if (!allowAboveHeader && core::parser::helpers::isLooseTransactionLine(ol, cols.valutaX)) allowAboveHeader = true; } catch(...) {}
+                        if (allowAboveHeader) {
+                            inTransactions = true;
+                            ++txStartLooseCount;
+                            out.debugLines.push_back(std::string("tx.start.aboveHeaderDetected\tline=") + std::to_string(li) + "\ttext=" + txt);
+                        } else {
+                            out.debugLines.push_back(std::string("line.reason\taboveHeaderSkip\t") + txt + "\tline=" + std::to_string(li));
+                            prevLine = txt;
+                            continue;
+                        }
+                    } catch(...) {
+                        out.debugLines.push_back(std::string("line.reason\taboveHeaderSkip\t") + txt + "\tline=" + std::to_string(li));
+                        prevLine = txt;
+                        continue;
+                    }
                 }
             }
             // otherwise fall through and allow processing of this line
@@ -327,16 +404,33 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             continue;
         }
 
-        // Header-noise filtering disabled: do not auto-skip lines based on a heuristic that can remove legitimate transactions.
-        out.debugLines.push_back(std::string("header.noise_filter.disabled\tline=") + std::to_string(li));
+        // Header-noise filtering: skip obvious header-noise lines only when we detected a header region
+        // and the line is not anchored to a valuta/amount/date/main-row signal. This avoids skipping
+        // legitimate transaction-like lines while removing repeated header boilerplate.
+        bool headerNoiseSkipped = false;
+        try {
+            if (!inTransactions && headerFound && core::parser::heuristics::isHeaderNoiseLine(txt)) {
+                bool anchoredToValuta = false;
+                try { if (seedCols.valutaX >= 0) { core::parser::OcrLine _ol = rawToOcrLine(l); if (core::parser::helpers::hasTokenNearX(_ol, seedCols.valutaX, core::parser::helpers::parserConfig.tokenNearBandForMainRow) || core::parser::helpers::hasAmountLikeTokenInLine(_ol, seedCols.valutaX)) anchoredToValuta = true; } } catch(...) {}
 
-        /*
-        if (!inTransactions && !isLikelyTransactionMainRowText(txt) && !isTransactionsSectionHeader(txt) && !isDebitCreditHeaderLine(txt) && isHeaderNoiseLine(txt)) {
-            out.debugLines.push_back(std::string("line.skip.headerNoise\t") + txt + "\tline=" + std::to_string(li));
-            prevLine = txt;
-            continue;
-        }
-        */
+                bool looksMain = false;
+                try {
+                    core::parser::OcrLine _ol = rawToOcrLine(l);
+                    if (core::parser::helpers::isLooseTransactionLine(_ol, seedCols.valutaX)) looksMain = true;
+                    if (core::parser::helpers::hasAmountLikeTokenInLine(_ol, seedCols.valutaX)) looksMain = true;
+                    if (core::parser::helpers::hasShortDateToken(_ol.text) && core::parser::helpers::hasLeftDescriptiveText(_ol, seedCols.valutaX)) looksMain = true;
+                } catch(...) {}
+
+                if (!anchoredToValuta && !looksMain && !isTransactionsSectionHeader(txt) && !isDebitCreditHeaderLine(txt) && !isLikelyTransactionMainRowText(txt)) {
+                    out.debugLines.push_back(std::string("line.skip.headerNoise\t") + txt + std::string("\tline=") + std::to_string(li));
+                    prevLine = txt;
+                    headerNoiseSkipped = true;
+                } else {
+                    out.debugLines.push_back(std::string("header.noise_filter.suppressed\tline=") + std::to_string(li));
+                }
+            }
+        } catch(...) {}
+        if (headerNoiseSkipped) continue;
 
         if (!inTransactions) {
             const bool canStart = (!currentBookingDate.empty()) || (rows.inSection && cols.hasValuta());
@@ -381,24 +475,46 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                 if (startedCombined) {
                     // continue and let normal main detection handle the line
                 } else {
-                    out.debugLines.push_back(std::string("lookahead.disabled\tline=") + std::to_string(li));
-                    out.debugLines.push_back(std::string("line.skip.notInTransactions\t") + txt + "\tline=" + std::to_string(li));
-                    // record orphan for post-processing grouping
-                    {
-                        OcrLine ol;
-                        ol.minX = l.minX; ol.maxX = l.maxX; ol.minY = l.minY; ol.maxY = l.maxY; ol.wordSpans = l.wordSpans;
-                        ol.text = l.text;
-                        orphanLines.push_back(std::move(ol));
-                    }
+                    // Additional relaxed start heuristic: if the line contains a short date token and an amount-like token
+                    // (or descriptive left text), treat it as a transaction start. Also check neighboring lines for amount tokens.
+                    bool relaxedStart = false;
+                    try {
+                        core::parser::OcrLine ol = rawToOcrLine(l);
+                        bool hasDate = false;
+                        try { if (core::parser::helpers::hasShortDateToken(ol.text)) hasDate = true; } catch(...) {}
+                        bool hasAmount = false;
+                        try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) hasAmount = true; } catch(...) {}
+                        // check previous and next lines for amount tokens as fallback
+                        try {
+                            if (!hasAmount && li > 0) { core::parser::OcrLine prevOl = rawToOcrLine(lines[li-1]); if (core::parser::helpers::hasAmountLikeTokenInLine(prevOl, cols.valutaX)) hasAmount = true; }
+                            if (!hasAmount && li + 1 < lines.size()) { core::parser::OcrLine nextOl = rawToOcrLine(lines[li+1]); if (core::parser::helpers::hasAmountLikeTokenInLine(nextOl, cols.valutaX)) hasAmount = true; }
+                        } catch(...) {}
+                        bool hasLeftDesc = false;
+                        try { if (core::parser::helpers::hasLeftDescriptiveText(ol, cols.valutaX)) hasLeftDesc = true; } catch(...) {}
+                        if (hasDate && (hasAmount || hasLeftDesc)) relaxedStart = true;
+                    } catch(...) {}
+                    if (relaxedStart) {
+                        inTransactions = true;
+                        out.debugLines.push_back(std::string("tx.start.relaxed\tline=") + std::to_string(li) + "\ttext=" + txt);
+                    } else {
+                    // Previously we skipped this line as header/noise. Disable skipping: force-start a transaction
+                    inTransactions = true;
+                    out.debugLines.push_back(std::string("tx.start.forced\tline=") + std::to_string(li) + "\ttext=" + txt);
+                    if (!cur.main.left.empty() || !cur.detailLines.empty()) flush();
+                    cur.bookingDateGroup = currentBookingDate;
+                    core::parser::helpers::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
+                    cur.main = core::parser::helpers::handleMainRow(rawToOcrLine(l), cg, false, out.debugLines);
                     prevLine = txt;
                     continue;
+                    }
                 }
             }
         }
 
         const bool mainByRegex = isLikelyTransactionMainRowText(txt);
-        // Only allow geometry-based main-row detection outside the initial header scan window.
-        const bool mainByGeom = (!mainByRegex) && (li > headerScanLines) && isLikelyTransactionMainRowGeom(l, cols);
+        // Allow geometry-based main-row detection earlier when we have an inferred valuta column
+        ColumnModel effectiveCols = cols.hasValuta() ? cols : seedCols;
+        const bool mainByGeom = (!mainByRegex) && ((li > headerScanLines) || effectiveCols.hasValuta()) && isLikelyTransactionMainRowGeom(l, effectiveCols);
 
         if (mainByRegex || mainByGeom) {
             if (!cur.main.left.empty() || !cur.detailLines.empty()) flush();
@@ -420,6 +536,26 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
     flush();
 
     // Post-processing: attach orphan lines via centralized helper
+    // Rescue orphan lines that look like main transaction rows (date + amount or left descriptive + date)
+    try {
+        for (const auto& ol : orphanLines) {
+            try {
+                bool looksMain = false;
+                try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) looksMain = true; } catch(...) {}
+                try { if (!looksMain && core::parser::helpers::isLooseTransactionLine(ol, cols.valutaX)) looksMain = true; } catch(...) {}
+                try { if (!looksMain && core::parser::helpers::hasShortDateToken(ol.text) && core::parser::helpers::hasLeftDescriptiveText(ol, cols.valutaX)) looksMain = true; } catch(...) {}
+                if (looksMain) {
+                    TransactionBlock nb;
+                    nb.bookingDateGroup = currentBookingDate;
+                    core::parser::helpers::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
+                    nb.main = core::parser::helpers::handleMainRow(ol, cg, false, out.debugLines);
+                    blocks.push_back(std::move(nb));
+                    out.debugLines.push_back(std::string("tx.start.rescued\ttext=") + ol.text);
+                }
+            } catch(...) {}
+        }
+    } catch(...) {}
+
     core::parser::helpers::attachOrphansToBlocks(blocks, orphanLines, 80, cols.valutaX);
 
     out.debugLines.push_back(std::string("blocks\t") + std::to_string(blocks.size()));
@@ -447,7 +583,10 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             out.debugLines.push_back(std::string("cols.state\tvalutaX=") + std::to_string(cols.valutaX) + std::string("\tdebitX=") + std::to_string(cols.debitX) + std::string("\tcreditX=") + std::to_string(cols.creditX));
         } catch (...) {}
 
-        const auto txp = DefaultTransactionParser::parseTransaction(b);
+        // collect per-transaction debug lines
+        std::vector<std::string> txDebug;
+        const auto txp = DefaultTransactionParser::parseTransaction(b, &txDebug);
+        for (const auto &d : txDebug) out.debugLines.push_back(std::string("txdbg\t") + d);
 
         Transaction tx;
         tx.name = "Transaction " + std::to_string(txIndex++);
@@ -474,7 +613,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     for (const auto& c : t.cells) {
                         if (c.col == cols.creditCol && overlapsLine(c)) {
                             out.debugLines.push_back(std::string("cell.amount_used\t") + c.text);
-                            if (auto v = core::parser::parseAmountString(c.text)) { tx.amount = *v; usedCell = true; }
+                            if (auto v = core::parser::parseAmountString(c.text)) { tx.amount = *v; usedCell = true; out.debugLines.push_back(std::string("cell.override->") + std::to_string(tx.amount)); }
                             break;
                         }
                     }
@@ -483,7 +622,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     for (const auto& c : t.cells) {
                         if (c.col == cols.debitCol && overlapsLine(c)) {
                             out.debugLines.push_back(std::string("cell.amount_used\t") + c.text);
-                            if (auto v = core::parser::parseAmountString(c.text)) { tx.amount = -std::abs(*v); usedCell = true; }
+                            if (auto v = core::parser::parseAmountString(c.text)) { tx.amount = -std::abs(*v); usedCell = true; out.debugLines.push_back(std::string("cell.override->") + std::to_string(tx.amount)); }
                             break;
                         }
                     }

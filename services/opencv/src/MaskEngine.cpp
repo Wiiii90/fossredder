@@ -83,35 +83,64 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
 
         cv::Mat mask(img.size(), CV_8UC1, cv::Scalar(0));
 
-        int padPx = std::max(6, img.cols / 400);
+        // Detect tables in the page and exclude those regions from masking
+        std::vector<cv::Rect> tableBboxes;
+        try {
+            auto tables = opencv::DetectEngine::DetectTables(img, path.string(), debugger);
+            for (const auto &t : tables) {
+                if (t.bbox.width > 0 && t.bbox.height > 0) tableBboxes.emplace_back(t.bbox.x, t.bbox.y, t.bbox.width, t.bbox.height);
+            }
+        } catch(...) {}
+
+        // helper to check if a box center lies inside any detected table bbox
+        auto isInTable = [&](const cv::Rect &r)->bool{
+            const int cx = r.x + r.width/2;
+            const int cy = r.y + r.height/2;
+            for (const auto &tb : tableBboxes) {
+                if (cx >= tb.x && cx < tb.x + tb.width && cy >= tb.y && cy < tb.y + tb.height) return true;
+            }
+            return false;
+        };
+
+        // pad around detected text boxes when forming mask
+        // use zero pad but inset rectangles slightly to avoid touching table grid lines
+        int padPx = 0;
+        const int insetPx = 1; // shrink each mask rect by this amount on all sides
         for (const auto &r : boxes) {
+            // skip masking text boxes that belong to detected tables
+            if (isInTable(r)) continue;
             cv::Rect rr(r.x - padPx, r.y - padPx, r.width + 2 * padPx, r.height + 2 * padPx);
+            // inset to avoid bridging lines
+            rr.x += insetPx; rr.y += insetPx; rr.width -= 2 * insetPx; rr.height -= 2 * insetPx;
             rr &= cv::Rect(0,0,img.cols,img.rows);
             if (rr.width > 0 && rr.height > 0) cv::rectangle(mask, rr, cv::Scalar(255), cv::FILLED);
         }
 
         cv::Mat cleaned;
-        int dilateK = std::max(3, padPx / 2);
+        // keep dilation minimal to avoid merging neighbouring boxes across table lines
+        int dilateK = 1;
         try { cv::dilate(mask, cleaned, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(dilateK, dilateK))); } catch(...) { cleaned = mask.clone(); }
 
-        int hKernel = std::max(25, img.cols / 100);
-        try { cv::morphologyEx(cleaned, cleaned, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(hKernel, 3))); } catch(...) {}
-        try { cv::morphologyEx(cleaned, cleaned, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5,5))); } catch(...) {}
-        try { cv::medianBlur(cleaned, cleaned, 3); } catch(...) {}
-
+        // avoid additional morphology to keep mask minimal
+        (void)cleaned;
         try { cv::threshold(cleaned, cleaned, 128, 255, cv::THRESH_BINARY); } catch(...) {}
 
+        // Clear mask inside detected table regions to preserve table grid lines
+        try {
+            for (const auto &tb : tableBboxes) {
+                cv::Rect rr = tb & cv::Rect(0,0,img.cols,img.rows);
+                if (rr.width > 0 && rr.height > 0) cv::rectangle(cleaned, rr, cv::Scalar(0), cv::FILLED);
+            }
+        } catch(...) {}
+
         double nonZero = static_cast<double>(cv::countNonZero(cleaned));
-        if (nonZero > imgArea * 0.4) cleaned = mask;
+        // only fallback to raw mask if a very large portion is masked
+        if (nonZero > imgArea * 0.6) cleaned = mask;
 
         cv::Mat out;
-        const bool isWhiteout = (req.mode == api::opencv::MaskRequest::Mode::Whiteout);
-        if (isWhiteout) {
-            out = img.clone();
-            out.setTo(cv::Scalar(255,255,255), cleaned);
-        } else {
-            cv::inpaint(img, cleaned, out, 3.0, cv::INPAINT_TELEA);
-        }
+        // Perform whiteout (fill masked areas with white) but mask is less aggressive now
+        out = img.clone();
+        out.setTo(cv::Scalar(255,255,255), cleaned);
 
         std::filesystem::create_directories(req.outputDir);
 
@@ -137,7 +166,7 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
                     } catch (...) {}
 
                     std::vector<uint8_t> buf; cv::imencode(".png", out, buf);
-                    debugger->writeBytes(isWhiteout ? std::string("opencv_mask_whiteout") : std::string("opencv_mask_inpaint"), buf);
+                    debugger->writeBytes(std::string("opencv_mask_whiteout"), buf);
                 } catch (...) {}
             }
         }
