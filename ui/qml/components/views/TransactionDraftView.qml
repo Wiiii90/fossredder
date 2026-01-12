@@ -73,14 +73,14 @@ Item {
             Component.onCompleted: resetIfNeeded()
         }
 
-        Label { text: qsTr("Booking date"); Layout.alignment: Qt.AlignVCenter }
+        Label { text: qsTr("Buchungsdatum"); Layout.alignment: Qt.AlignVCenter }
         Controls.AppTextField {
             Layout.fillWidth: true
             text: draft && draft.current ? (draft.current.bookingDate || "") : ""
             onTextChanged: if (draft) draft.transactions.setBookingDate(draft.currentIndex, text)
         }
 
-        Label { text: qsTr("Amount"); Layout.alignment: Qt.AlignVCenter }
+        Label { text: qsTr("Betrag"); Layout.alignment: Qt.AlignVCenter }
         Controls.AppTextField {
             Layout.fillWidth: true
             text: draft && draft.current ? formatAmount(draft.current.amount) : ""
@@ -93,25 +93,17 @@ Item {
         }
 
         // Type field - match booking date / amount layout
-        Label { text: qsTr("Type"); Layout.alignment: Qt.AlignVCenter }
+        Label { text: qsTr("Transaktions-Typ"); Layout.alignment: Qt.AlignVCenter }
         Controls.AppTextField {
             Layout.fillWidth: true
             text: draft && draft.current ? (draft.current.type || "") : ""
-            placeholderText: qsTr("Type")
+            placeholderText: qsTr("")
             onTextChanged: if (draft) draft.transactions.setType(draft.currentIndex, text)
-        }
-
-        Controls.AppTextArea {
-            Layout.fillWidth: true
-            wrapMode: TextArea.Wrap
-            text: draft && draft.current ? (draft.current.metadata || "") : ""
-            selectByMouse: true
-            onTextChanged: if (draft) draft.transactions.setMetadata(draft.currentIndex, text)
         }
 
         // Properties section grouped visually
         GroupBox {
-            title: qsTr("Properties")
+            title: qsTr("Gebäude")
             Layout.fillWidth: true
 
             ColumnLayout {
@@ -137,20 +129,21 @@ Item {
                             id: propCheck
                             Layout.preferredWidth: 28
                             Layout.margins: 2
-                             // reflect whether this property id is assigned to the draft transaction
-                             checked: (draft && draft.current && draft.current.propertyIds && model.id) ? draft.current.propertyIds.indexOf(model.id) !== -1 : false
-                             onCheckedChanged: {
-                                 if (!draft || !draft.current || !model.id) return
-                                 var ids = draft.current.propertyIds ? draft.current.propertyIds.slice() : []
-                                 var idx = ids.indexOf(model.id)
-                                 if (checked) {
-                                     if (idx === -1) ids.push(model.id)
-                                 } else {
-                                     if (idx > -1) ids.splice(idx, 1)
-                                 }
-                                 draft.transactions.setProperties(draft.currentIndex, ids)
-                             }
-                         }
+                            // Single-choice behavior: allow only one property selected for import draft
+                            checked: (draft && draft.current && draft.current.propertyIds && model.id) ? draft.current.propertyIds.indexOf(model.id) !== -1 : false
+                            onClicked: {
+                                if (!draft || !draft.current || !model.id) return
+                                if (propCheck.checked) {
+                                    // select only this property
+                                    draft.transactions.setProperties(draft.currentIndex, [model.id])
+                                } else {
+                                    // clear selection
+                                    draft.transactions.setProperties(draft.currentIndex, [])
+                                }
+                                // ensure parent draft signals change so other checkboxes update
+                                if (draft && draft.refresh) draft.refresh()
+                            }
+                        }
 
                         ColumnLayout {
                             Layout.fillWidth: true
@@ -164,7 +157,7 @@ Item {
                     id: propEmptyLabel
                     Layout.fillWidth: true
                     visible: propertyListView.count === 0
-                    text: qsTr("No properties available")
+                    text: qsTr("Keine Gebäude verfügbar, bitte neue Gebäude anlegen!")
                 }
             }
         } // close GroupBox
@@ -175,22 +168,9 @@ Item {
             Controls.AppCheckBox {
                 id: allocCheck_local
                 Layout.alignment: Qt.AlignVCenter
-                text: qsTr("Allocatable to tenant")
+                text: qsTr("Umlegbar")
                 checked: draft && draft.current ? !!draft.current.allocatable : false
                 onCheckedChanged: if (draft) draft.transactions.setAllocatable(draft.currentIndex, checked)
-            }
-            Item { Layout.fillWidth: true }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            Label { text: qsTr("Status"); Layout.preferredWidth: 80 }
-            Controls.AppComboBox {
-                id: statusCombo_local
-                Layout.fillWidth: true
-                model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
-                currentIndex: draft && draft.current ? Math.max(0, draft.current.status) : 2
-                onActivated: if (draft) draft.transactions.setStatus(draft.currentIndex, currentIndex)
             }
             Item { Layout.fillWidth: true }
         }

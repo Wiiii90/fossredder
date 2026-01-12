@@ -106,3 +106,28 @@ void TransactionList::removeAt(int row)
     transactions_.erase(transactions_.begin() + row);
     endRemoveRows();
 }
+
+QVariantMap TransactionList::get(int index) const
+{
+    QVariantMap m;
+    if (index < 0 || index >= static_cast<int>(transactions_.size())) return m;
+    const auto& t = transactions_.at(static_cast<size_t>(index));
+    if (!t) return m;
+    m["id"] = QString::fromStdString(t->id);
+    m["name"] = QString::fromStdString(t->name);
+    m["bookingDate"] = QString::fromStdString(t->bookingDate);
+    m["valuta"] = QString::fromStdString(t->valuta);
+    m["amount"] = t->amount;
+    m["description"] = QString::fromStdString(t->description);
+    m["status"] = static_cast<int>(t->status);
+    m["actorId"] = QString::fromStdString(t->actorId);
+    m["actorProposal"] = QString::fromStdString(t->actorProposal);
+    m["metadata"] = QString::fromStdString(t->metadata);
+    m["proofImagePath"] = QString::fromStdString(t->proofImagePath);
+    m["type"] = QString::fromStdString(t->type);
+    m["allocatable"] = t->allocatable;
+    QVariantList pids;
+    for (const auto& pid : t->propertyIds) pids.push_back(QString::fromStdString(pid));
+    m["propertyIds"] = pids;
+    return m;
+}

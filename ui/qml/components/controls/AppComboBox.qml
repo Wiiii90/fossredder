@@ -10,10 +10,32 @@ ComboBox {
     font.family: Theme.fontFamily
     font.pointSize: Theme.fontSize
 
+    // harmonized background
     background: Rectangle {
+        id: bg
         color: Theme.surface
         radius: Theme.radius
-        border.color: "#ddd"
+        border.color: control.focused ? Theme.primary.lighter(140) : "#ddd"
         border.width: 1
+    }
+
+    popup: Popup {
+        z: 999
+        contentItem: ListView {
+            model: control.model
+            delegate: ItemDelegate {
+                text: model.display
+                onClicked: { control.currentIndex = index; control.close() }
+            }
+        }
+    }
+
+    indicator: Rectangle {
+        width: 36; height: parent ? parent.height : 40
+        color: "transparent"
+        anchors.right: parent ? parent.right : undefined
+        anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+
+        Text { anchors.centerIn: parent; text: "▾"; color: Theme.textPrimary }
     }
 }

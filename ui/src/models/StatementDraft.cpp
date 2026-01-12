@@ -55,3 +55,8 @@ void StatementDraft::setDrafts(std::vector<TransactionDraft> drafts)
     if (currentIndex_ >= count()) currentIndex_ = std::max(0, count() - 1);
     emit changed();
 }
+
+void StatementDraft::refresh()
+{
+    emit changed();
+}

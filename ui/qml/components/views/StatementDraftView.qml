@@ -8,7 +8,6 @@ Item {
     id: stmtRoot
 
     property var draft
-    implicitHeight: stmtLayout.implicitHeight
     implicitWidth: stmtLayout.implicitWidth
 
     ColumnLayout {
@@ -17,7 +16,7 @@ Item {
 
         Label {
             visible: !draft
-            text: qsTr("No draft available")
+            text: qsTr("Keine Entwürfe verfügbar!")
             horizontalAlignment: Text.AlignHCenter
             font.pointSize: 14
             Layout.alignment: Qt.AlignHCenter
@@ -31,7 +30,7 @@ Item {
                 Layout.fillWidth: true
 
                 Label {
-                    text: qsTr("Name")
+                    text: qsTr("Bankauszug")
                     Layout.preferredWidth: 80
                 }
 
@@ -45,7 +44,7 @@ Item {
             Label {
                 Layout.fillWidth: true
                 text: (draft && draft.current)
-                        ? (qsTr("Transaction %1 / %2").arg(draft.currentIndex + 1).arg(draft.count))
+                        ? (qsTr("Transaktion %1 / %2").arg(draft.currentIndex + 1).arg(draft.count))
                         : qsTr("No current transaction")
             }
 
@@ -61,7 +60,7 @@ Item {
                 Layout.fillWidth: true
 
                 AppButton {
-                    text: qsTr("Prev")
+                    text: qsTr("Vorherige")
                     enabled: draft && draft.currentIndex > 0
                     onClicked: {
                         if (draft) draft.prev()
@@ -70,7 +69,7 @@ Item {
                 }
 
                 AppButton {
-                    text: qsTr("Next")
+                    text: qsTr("Nächste")
                     enabled: draft && (draft.currentIndex < draft.count - 1)
                     onClicked: {
                         if (draft) draft.next()
@@ -81,7 +80,7 @@ Item {
                 Item { Layout.fillWidth: true }
 
                 AppButton {
-                    text: qsTr("Discard")
+                    text: qsTr("Verwerfen")
                     enabled: !!draft
                     onClicked: {
                         // clear the import draft and return to Import view
@@ -95,7 +94,7 @@ Item {
                 }
 
                 AppButton {
-                    text: qsTr("Finish")
+                    text: qsTr("Abschließen")
                     enabled: !!draft
                     onClicked: {
                         if (!draft) return;
@@ -106,12 +105,11 @@ Item {
                             if (typeof uiImport !== 'undefined' && uiImport) uiImport.clearDraft()
 
                             if (sid && sid.length > 0 && uiNav && uiData) {
-                                // stay on statements view and select the created statement
-                                uiData.selectedStatementId = sid
+                                // After finalize navigate to Properties view (instead of Booking/Statements)
+                                uiData.selectedStatementId = ""
                                 uiData.selectedTransactionId = ""
                                 Qt.callLater(function() {
-                                    uiNav.section = UiNavigation.Booking
-                                    uiNav.bookingView = UiNavigation.Statements
+                                    uiNav.section = UiNavigation.Properties
                                 })
                             }
                             return

@@ -8,7 +8,6 @@ Item {
     id: root
     // Allow this view to be sized by a parent layout
     Layout.fillWidth: true
-    Layout.fillHeight: true
     anchors.fill: parent
 
     // width for amount column so amounts and total align
@@ -25,20 +24,120 @@ Item {
     function syncFields() {
         if (!isEdit) { clearFields(); return }
         nameField.text = current.name || ""
-        sums = uiData ? uiData.transactionSumsForProperty(current.id) : ({})
+        // get full sums from uiData, prefer transactionSumsForProperty, fallback to WithType
+        if (uiData) {
+            try { sums = uiData.transactionSumsForProperty(current.id) } catch(e) {
+                try { sums = uiData.transactionSumsForPropertyWithType(current.id, "") } catch(e2) { sums = ({}) }
+            }
+        } else sums = ({})
+        rebuildTypes()
+        computeFilteredSums()
     }
 
     Connections { target: current; function onChanged() { syncFields() } }
     onIsEditChanged: syncFields()
 
     // listen for sums updates coming from the session
-    property var sums: uiData ? (current && current.id ? uiData.transactionSumsForProperty(current.id) : ({})) : ({})
+    property var sums: ({})
     Connections {
         target: uiData
         function onTransactionSumsUpdated(propertyId) {
             if (!current) return
-            if (propertyId === current.id) sums = uiData.transactionSumsForProperty(current.id)
+            if (propertyId === current.id) {
+                try { sums = uiData.transactionSumsForProperty(current.id) } catch(e) {
+                    try { sums = uiData.transactionSumsForPropertyWithType(current.id, "") } catch(e2) { sums = ({}) }
+                }
+                rebuildTypes()
+                computeFilteredSums()
+            }
         }
+    }
+
+    // Filtering: selected transaction type (empty = all)
+    property string txTypeFilter: ""
+    // available types for current property's transactions
+    property var txTypes: []
+    // filtered sums when a filter is active
+    property var sumsFiltered: ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
+
+    // shownSums reflects either the full sums or the filtered sums depending on txTypeFilter
+    property var shownSums: ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
+
+    function updateShownSums() {
+        shownSums = (txTypeFilter && txTypeFilter.length > 0) ? sumsFiltered : sums
+    }
+
+    onTxTypeFilterChanged: {
+        // attempt to set txType on the proxy model; C++ invokable methods are callable directly
+        try {
+            var m = uiData ? uiData.transactionsForProperty(current.id) : null
+            if (m) m.setTxType(txTypeFilter)
+        } catch(e) { /* ignore if method not present */ }
+        computeFilteredSums()
+        updateShownSums()
+    }
+
+    onSumsChanged: updateShownSums()
+
+    function rebuildTypes() {
+        txTypes = []
+        if (!current || !uiData) return
+        // Prefer asking the session for unique type strings (safer across model types)
+        try {
+            var provided = uiData.transactionTypesForProperty(current.id)
+            if (provided && provided.length !== undefined) { txTypes = provided; return }
+        } catch(e) { /* ignore and fallback */ }
+
+        // Fallback: iterate model if transactionTypesForProperty is not available
+        var model = uiData.transactionsForProperty(current.id)
+        if (!model) return
+        var set = {}
+        try {
+            var cnt = (typeof model.count === 'function') ? model.count() : (model.length !== undefined ? model.length : 0)
+            for (var i=0;i<cnt;i++) {
+                var it = (typeof model.get === 'function') ? model.get(i) : (model[i] ? model[i] : null)
+                if (!it) continue
+                var t = it.type ? it.type : ""
+                if (t && !set[t]) { set[t] = true; txTypes.push(t) }
+            }
+        } catch(e) { /* ignore */ }
+    }
+
+    function computeFilteredSums() {
+        sumsFiltered = ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
+        if (!current || !uiData) { updateShownSums(); return }
+        // if no filter selected, nothing to compute here
+        if (!txTypeFilter || txTypeFilter.length === 0) { updateShownSums(); return }
+
+        // Prefer asking the session for sums filtered by type (more reliable)
+        if (typeof uiData.transactionSumsForPropertyWithType === 'function') {
+            try {
+                var res = uiData.transactionSumsForPropertyWithType(current.id, txTypeFilter)
+                // ensure numeric values
+                sumsFiltered.total = Number(res.total) || 0
+                sumsFiltered.allocatable = Number(res.allocatable) || 0
+                sumsFiltered.nonAllocatable = Number(res.nonAllocatable) || 0
+                updateShownSums()
+                return
+            } catch(e) { /* fallback to model iterate below */ }
+        }
+
+        var model = uiData.transactionsForProperty(current.id)
+        if (!model) { updateShownSums(); return }
+        try {
+            var cnt = (typeof model.count === 'function') ? model.count() : (model.length !== undefined ? model.length : 0)
+            for (var i=0;i<cnt;i++) {
+                var it = (typeof model.get === 'function') ? model.get(i) : (model[i] ? model[i] : null)
+                if (!it) continue
+                // model role 'type' may be provided as string
+                var t = it.type ? it.type : ""
+                if (t !== txTypeFilter) continue
+                var amt = Number(it.amount) || 0
+                sumsFiltered.total += amt
+                if (it.allocatable) sumsFiltered.allocatable += amt; else sumsFiltered.nonAllocatable += amt
+            }
+        } catch(e) { /* ignore */ }
+        updateShownSums()
     }
 
     ColumnLayout {
@@ -50,17 +149,21 @@ Item {
         anchors.margins: 12
         spacing: 10
 
-        Label { text: isEdit ? qsTr("Edit Property") : qsTr("Create Property"); font.pointSize: 18 }
+        Label { text: isEdit ? qsTr("Gebäudeübersicht") : qsTr("Neues Gebäude anlegen"); font.pointSize: 18 }
 
         AppTextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
+
+        Item { Layout.fillHeight: true }
 
         // Create-mode: only name and add button
         RowLayout {
             visible: !isEdit
             Layout.fillWidth: true
 
+
+
             AppButton {
-                text: qsTr("Add")
+                text: qsTr("Hinzufügen")
                 enabled: nameField.text.length > 0
                 onClicked: {
                     if (!uiDomain) return
@@ -79,6 +182,53 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 8
+
+            // Filter row above the transactions list
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Label { text: qsTr("Transaktionen"); Layout.alignment: Qt.AlignVCenter }
+
+                Item { Layout.fillWidth: true }
+
+                // filter button: shows available types in a menu (menu attached to button for correct positioning)
+                AppButton {
+                    id: filterButton
+                    text: txTypeFilter && txTypeFilter.length > 0 ? txTypeFilter : qsTr("Filter")
+                    implicitWidth: 120
+                    onClicked: {
+                        // open the menu sibling anchored to the button position
+                        try { typeMenu.open() } catch(e) { /* ignore */ }
+                    }
+                }
+
+                // Menu defined as a sibling to avoid assigning to non-existent 'menu' property
+                Menu {
+                    id: typeMenu
+                    // rebuild types when menu opens
+                    onOpened: { rebuildTypes(); }
+
+                    MenuItem {
+                        text: qsTr("Alle")
+                        onTriggered: {
+                            txTypeFilter = ""
+                            computeFilteredSums()
+                        }
+                    }
+
+                    Repeater {
+                        model: txTypes
+                        delegate: MenuItem {
+                            text: modelData
+                            onTriggered: {
+                                txTypeFilter = modelData
+                                computeFilteredSums()
+                            }
+                        }
+                    }
+                }
+            }
 
             // Transactions list expands between nameField and buttons/sums
             ListView {
@@ -159,33 +309,41 @@ Item {
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignVCenter
 
-                    // Allocatable (fixed column)
+                    // use the root-level shownSums (updated reactively)
+
                     ColumnLayout {
                         spacing: 2
                         Layout.alignment: Qt.AlignVCenter
                         width: amountColumnWidth
-                        Label { text: qsTr("Allocatable"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
-                        Label { text: sums && sums.allocatable !== undefined ? (sums.allocatable).toFixed(2) : "0.00"; font.pointSize: 14; font.bold: true; color: "#4caf50"; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
+                        Label { text: qsTr("Umlegbar"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
+                        Label {
+                            text: (root.shownSums && root.shownSums.allocatable !== undefined) ? (root.shownSums.allocatable).toFixed(2) : "0.00";
+                            font.pointSize: 14; font.bold: true; color: "#4caf50"; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
+                        }
                     }
 
-                    // Non-allocatable (fixed column to right of Allocatable)
                     ColumnLayout {
                         spacing: 2
                         Layout.alignment: Qt.AlignVCenter
                         width: amountColumnWidth
-                        Label { text: qsTr("Non-Allocatable"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
-                        Label { text: sums && sums.nonAllocatable !== undefined ? (sums.nonAllocatable).toFixed(2) : "0.00"; font.pointSize: 14; font.bold: true; color: "#e53935"; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
+                        Label { text: qsTr("Nicht-umlegbar"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
+                        Label {
+                            text: (root.shownSums && root.shownSums.nonAllocatable !== undefined) ? (root.shownSums.nonAllocatable).toFixed(2) : "0.00";
+                            font.pointSize: 14; font.bold: true; color: "#e53935"; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
+                        }
                     }
 
                     Item { Layout.fillWidth: true }
 
-                    // Total aligned under amounts column (fixed)
                     ColumnLayout {
                         spacing: 2
                         Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
                         width: amountColumnWidth
-                        Label { text: qsTr("Total"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true }
-                        Label { text: sums && sums.total !== undefined ? (sums.total).toFixed(2) : "0.00"; font.pointSize: 16; font.bold: true; color: Theme.textPrimary; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true }
+                        Label { text: qsTr("Summe"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true }
+                        Label {
+                            text: (root.shownSums && root.shownSums.total !== undefined) ? (root.shownSums.total).toFixed(2) : "0.00";
+                            font.pointSize: 16; font.bold: true; color: Theme.textPrimary; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true
+                        }
                     }
                 }
             }
@@ -200,20 +358,20 @@ Item {
                 // Left-side actions
                 RowLayout {
                     spacing: 8
-                    AppButton { text: qsTr("New"); onClicked: if (uiData) uiData.selectedPropertyId = "" }
-                    AppButton { text: qsTr("Update"); enabled: nameField.text.length > 0; onClicked: if (uiDomain) uiDomain.updateProperty(current.id, nameField.text, "", "") }
+                    AppButton { text: qsTr("Neues Gebäude anlegen"); onClicked: if (uiData) uiData.selectedPropertyId = "" }
+                    AppButton { text: qsTr("Gebäude aktualisieren"); enabled: nameField.text.length > 0; onClicked: if (uiDomain) uiDomain.updateProperty(current.id, nameField.text, "", "") }
                 }
 
                 Item { Layout.fillWidth: true }
 
                 // Right-side delete placed at the far right (bottom corner)
                 AppButton {
-                    text: qsTr("Delete")
+                    text: qsTr("Löschen")
                     onClicked: if (uiDomain) { uiDomain.deleteProperty(current.id); if (uiData) uiData.selectedPropertyId = "" }
                     Layout.alignment: Qt.AlignRight
-                    // red background and white label for emphasis
-                    background: Rectangle { color: "#e53935"; radius: 4 }
-                    contentItem: Label { text: qsTr("Delete"); color: "white"; horizontalAlignment: Text.AlignHCenter }
+                    // red tint using the new per-instance properties (preserves hover/scale/glow behavior)
+                    fillColor: "#e53935"
+                    textColor: "white"
                 }
             }
 

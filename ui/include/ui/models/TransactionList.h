@@ -41,6 +41,7 @@ public:
     int findRowById(const QString& id) const;
     void setTransactionAt(int row, std::shared_ptr<Transaction> tx);
     Q_INVOKABLE void removeAt(int row);
+    Q_INVOKABLE QVariantMap get(int index) const;
 
 private:
     std::vector<std::shared_ptr<Transaction>> transactions_;

@@ -69,6 +69,8 @@ public:
     Q_INVOKABLE QVariantList transactionIdsForStatement(const QString& statementId) const;
     Q_INVOKABLE QObject* transactionsForStatement(const QString& statementId);
     Q_INVOKABLE QObject* transactionsForProperty(const QString& propertyId);
+    Q_INVOKABLE QStringList transactionTypesForProperty(const QString& propertyId) const;
+    Q_INVOKABLE QVariantMap transactionSumsForPropertyWithType(const QString& propertyId, const QString& type) const;
     Q_INVOKABLE QVariantMap transactionSumsForProperty(const QString& propertyId) const;
 
     // Apply incremental updates for specific transaction ids using current AppState

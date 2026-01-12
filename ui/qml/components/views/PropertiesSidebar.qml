@@ -1,6 +1,8 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0
+import "qrc:/qml/components/controls"
 
 Item {
     id: root
@@ -8,11 +10,11 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 8
-        spacing: 6
+        spacing: Theme.spacingSmall
 
-        Label {
-            text: qsTr("Properties")
-            font.pointSize: 14
+        RowLayout {
+            Layout.fillWidth: true
+            Label { text: qsTr("Gebäude"); font.pointSize: 14; color: Theme.textPrimary; Layout.fillWidth: true }
         }
 
         ListView {
@@ -20,27 +22,26 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             model: uiData ? uiData.properties : null
+            spacing: 6
 
             delegate: Rectangle {
                 width: list.width
-                height: 40
-                color: (uiData && model.id === uiData.selectedPropertyId) ? "#ffd39c" : "transparent"
+                height: 48
+                radius: Theme.radius
+                color: (uiData && model.id === uiData.selectedPropertyId) ? Theme.background : "transparent"
+                border.color: "#e6e6e6"
+                border.width: 1
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 6
-                    spacing: 0
+                    anchors.margins: 8
+                    spacing: 4
 
-                    Label { text: model.name; Layout.fillWidth: true }
-                    Label { text: model.address; opacity: 0.7; Layout.fillWidth: true }
+                    Label { text: model.name; color: Theme.textPrimary }
+                    Label { text: model.address; color: Theme.textMuted; font.pointSize: Math.max(12, Theme.fontSize - 2) }
                 }
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        if (uiData) uiData.selectedPropertyId = model.id
-                    }
-                }
+                MouseArea { anchors.fill: parent; onClicked: if (uiData) uiData.selectedPropertyId = model.id }
             }
         }
     }

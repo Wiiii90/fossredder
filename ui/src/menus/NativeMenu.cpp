@@ -26,15 +26,15 @@ void NativeMenu::setupMenus(UiActions* actions)
     fileMenu->addAction(actions->saveFileAsAction());
     fileMenu->addSeparator();
     fileMenu->addAction(actions->importAction());
-    fileMenu->addAction(actions->exportAction());
+    /*fileMenu->addAction(actions->exportAction());*/
     fileMenu->addSeparator();
     fileMenu->addAction(actions->quitAction());
 
-    QMenu* viewMenu = m_menuBar->addMenu(tr("View"));
-    viewMenu->addAction(actions->toggleSidebarAction());
+    /*QMenu* viewMenu = m_menuBar->addMenu(tr("View"));
+    viewMenu->addAction(actions->toggleSidebarAction());*/
 
-    QMenu* helpMenu = m_menuBar->addMenu(tr("Help"));
-    helpMenu->addAction(actions->aboutAction());
+    /*QMenu* helpMenu = m_menuBar->addMenu(tr("Help"));
+    helpMenu->addAction(actions->aboutAction());*/
 
     if (m_qmlContext) {
         m_qmlContext->setContextProperty("useNativeMenu", true);
@@ -45,9 +45,9 @@ void NativeMenu::setupMenus(UiActions* actions)
         m_qmlContext->setContextProperty("actionSaveFileAs", actions->saveFileAsAction());
 
         m_qmlContext->setContextProperty("actionImport", actions->importAction());
-        m_qmlContext->setContextProperty("actionExport", actions->exportAction());
+        /*m_qmlContext->setContextProperty("actionExport", actions->exportAction());*/
         m_qmlContext->setContextProperty("actionQuit", actions->quitAction());
-        m_qmlContext->setContextProperty("actionToggleSidebar", actions->toggleSidebarAction());
-        m_qmlContext->setContextProperty("actionAbout", actions->aboutAction());
+        /*m_qmlContext->setContextProperty("actionToggleSidebar", actions->toggleSidebarAction());*/
+        /*m_qmlContext->setContextProperty("actionAbout", actions->aboutAction());*/
     }
 }

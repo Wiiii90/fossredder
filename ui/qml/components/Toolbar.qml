@@ -38,7 +38,7 @@ Item {
                     })
                 }
             }*/
-            Loader {
+            /*Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/booking.svg";
@@ -54,7 +54,7 @@ Item {
                         }
                     })
                 }
-            }
+            }*/
             /*Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
@@ -74,7 +74,7 @@ Item {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/property.svg";
-                    item.label = qsTr("Property");
+                    item.label = qsTr("Gebäude");
                     item.clicked.connect(function(){
                         if (uiData) {
                             uiData.selectedActorId = "";
@@ -108,7 +108,7 @@ Item {
                 }
             }*/
 
-            Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/annual.svg"; item.label = qsTr("Annual"); } }
+            /*Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/annual.svg"; item.label = qsTr("Annual"); } }*/
             /*Loader { source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight; onLoaded: { item.svgSource = "qrc:/qml/assets/settings.svg"; item.label = qsTr("Settings"); } }*/
 
             Item { Layout.fillWidth: true }

@@ -4,18 +4,25 @@ import QtQuick.Layouts 1.3
 
 Item {
     id: bar
+    // status bar properties
 
+    // minimal status bar: only show the main status text on the left
     Rectangle {
         anchors.fill: parent
         color: "#f6fbfd"
+        border.color: "#e3eef6"
 
         RowLayout {
             anchors.fill: parent
             anchors.margins: 8
-            spacing: 8
-            Label { text: (typeof statusText !== 'undefined' && statusText) ? statusText : qsTr("StatusBar"); color: "#213547" }
-            Item { Layout.fillWidth: true }
-            Label { text: (typeof statusItems !== 'undefined') ? (qsTr("Items: ") + statusItems) : qsTr("Items: 0"); color: "#213547" }
+
+            Label {
+                id: lblStatus
+                text: (typeof statusText !== 'undefined' && statusText) ? statusText : qsTr("Bereit")
+                color: "#213547"
+                elide: Label.ElideRight
+                Layout.fillWidth: true
+            }
         }
     }
 }

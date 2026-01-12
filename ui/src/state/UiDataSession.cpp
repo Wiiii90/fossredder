@@ -290,6 +290,26 @@ QObject* UiDataSession::transactionsForProperty(const QString& propertyId)
     return proxy;
 }
 
+QStringList UiDataSession::transactionTypesForProperty(const QString& propertyId) const
+{
+    QStringList out;
+    if (propertyId.isEmpty()) return out;
+    // collect types from transactions assigned to this property
+    for (const auto& t : transactions_.transactions()) {
+        if (!t) continue;
+        bool contains = false;
+        for (const auto& pid : t->propertyIds) {
+            if (QString::fromStdString(pid) == propertyId) { contains = true; break; }
+        }
+        if (!contains) continue;
+        if (!t->type.empty()) {
+            const QString qt = QString::fromStdString(t->type).trimmed();
+            if (!qt.isEmpty() && !out.contains(qt)) out.push_back(qt);
+        }
+    }
+    return out;
+}
+
 QVariantMap UiDataSession::transactionSumsForProperty(const QString& propertyId) const
 {
     if (propertyId.isEmpty()) return {};
@@ -314,6 +334,34 @@ QVariantMap UiDataSession::transactionSumsForProperty(const QString& propertyId)
     }
 
     propertySumsCache_.insert(propertyId, out);
+    return out;
+}
+
+QVariantMap UiDataSession::transactionSumsForPropertyWithType(const QString& propertyId, const QString& type) const
+{
+    QVariantMap out;
+    out["total"] = 0.0;
+    out["allocatable"] = 0.0;
+    out["nonAllocatable"] = 0.0;
+    if (propertyId.isEmpty()) return out;
+
+    for (const auto& t : transactions_.transactions()) {
+        if (!t) continue;
+        bool contains = false;
+        for (const auto& pid : t->propertyIds) {
+            if (QString::fromStdString(pid) == propertyId) { contains = true; break; }
+        }
+        if (!contains) continue;
+        // if type is provided, filter by it
+        if (!type.isEmpty()) {
+            const QString tt = QString::fromStdString(t->type);
+            if (tt != type) continue;
+        }
+        out["total"] = out["total"].toDouble() + t->amount;
+        if (t->allocatable) out["allocatable"] = out["allocatable"].toDouble() + t->amount;
+        else out["nonAllocatable"] = out["nonAllocatable"].toDouble() + t->amount;
+    }
+
     return out;
 }
 

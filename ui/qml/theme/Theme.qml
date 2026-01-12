@@ -13,7 +13,7 @@ QtObject {
     property int spacing: 12
     property int spacingSmall: 6
     property int spacingLarge: 20
-    property int radius: 2
+    property int radius: 4
 
     property string fontFamily: "Segoe UI"
     property int fontSize: 14

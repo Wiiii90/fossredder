@@ -33,6 +33,7 @@ public:
     Q_INVOKABLE bool hasCurrent() const;
     Q_INVOKABLE void next();
     Q_INVOKABLE void prev();
+    Q_INVOKABLE void refresh();
 
     void setDrafts(std::vector<TransactionDraft> drafts);
 

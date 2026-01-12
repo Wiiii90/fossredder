@@ -7,19 +7,24 @@ class TransactionFilterModel : public QSortFilterProxyModel {
     Q_OBJECT
     Q_PROPERTY(QString statementId READ statementId WRITE setStatementId NOTIFY statementIdChanged)
     Q_PROPERTY(QString propertyId READ propertyId WRITE setPropertyId NOTIFY propertyIdChanged)
+    Q_PROPERTY(QString txType READ txType WRITE setTxType NOTIFY txTypeChanged)
 
 public:
     explicit TransactionFilterModel(QObject* parent = nullptr);
 
     QString statementId() const { return statementId_; }
-    void setStatementId(const QString& id);
+    Q_INVOKABLE void setStatementId(const QString& id);
 
     QString propertyId() const { return propertyId_; }
-    void setPropertyId(const QString& id);
+    Q_INVOKABLE void setPropertyId(const QString& id);
+
+    QString txType() const { return txType_; }
+    Q_INVOKABLE void setTxType(const QString& t);
 
 signals:
     void statementIdChanged();
     void propertyIdChanged();
+    void txTypeChanged();
 
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override;
@@ -27,4 +32,5 @@ protected:
 private:
     QString statementId_;
     QString propertyId_;
+    QString txType_;
 };

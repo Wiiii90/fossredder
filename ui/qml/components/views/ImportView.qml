@@ -7,6 +7,8 @@ import "qrc:/qml/components/utils/FileUtils.js" as FileUtils
 
 Item {
     id: root
+    Layout.fillWidth: true
+    Layout.fillHeight: true
     anchors.fill: parent
     anchors.margins: 8
 
@@ -34,7 +36,7 @@ Item {
                 spacing: 8
 
                 Label {
-                    text: qsTr("Import")
+                    text: qsTr("PDF-Bankauszug-Einleser")
                     Layout.fillWidth: true
                     font.pointSize: 18
                 }
@@ -43,7 +45,6 @@ Item {
                     id: pdfImporter
                     Layout.fillWidth: true
                     width: parent.width
-                    title: qsTr("Import PDF")
                     visible: !(hasUiImport && uiImport.draft)
 
                     ColumnLayout {
@@ -51,34 +52,13 @@ Item {
                         width: parent.width
                         spacing: 8
 
-                        AppComboBox {
-                            id: typeCombo
-                            Layout.fillWidth: true
-                            model: [ qsTr("Statement (PDF)") ]
-                            currentIndex: 0
-                            enabled: !(hasUiImport && uiImport.isRunning)
-                        }
-
-                        AppComboBox {
-                            id: profileCombo
-                            Layout.fillWidth: true
-                            model: hasUiImport ? uiImport.profiles : [ qsTr("Default") ]
-                            enabled: !(hasUiImport && uiImport.isRunning)
-                            Component.onCompleted: {
-                                if (hasUiImport) currentIndex = Math.max(0, model.indexOf(uiImport.selectedProfile))
-                            }
-                            onActivated: {
-                                if (hasUiImport) uiImport.selectedProfile = currentText
-                            }
-                        }
-
                         RowLayout {
                             Layout.fillWidth: true
 
                             AppTextField {
                                 id: fileField
                                 Layout.fillWidth: true
-                                placeholderText: qsTr("PDF file path")
+                                placeholderText: qsTr("PDF Dateipfad")
                                 enabled: !(hasUiImport && uiImport.isRunning)
                                 // avoid binding loop: keep text local and initialize from uiImport.selectedFile
                                 text: ""
@@ -105,13 +85,15 @@ Item {
                             }
 
                             AppButton {
-                                text: qsTr("Browse")
+                                text: qsTr("Durchstöbern")
                                 enabled: !(hasUiImport && uiImport.isRunning)
                                 onClicked: {
                                     if (uiActions) uiActions.browseImportPdf()
                                 }
                             }
                         }
+
+                        Item { Layout.fillHeight: true }
 
                         ProgressBar {
                             Layout.fillWidth: true
@@ -136,7 +118,7 @@ Item {
 
                     AppButton {
                         visible: hasUiImport && uiImport.isRunning
-                        text: qsTr("Cancel")
+                        text: qsTr("Abbrechen")
                         enabled: hasUiImport && uiImport.isRunning
                         onClicked: {
                             if (hasUiImport) uiImport.cancelImport()
@@ -145,7 +127,7 @@ Item {
 
                     AppButton {
                         visible: hasUiImport && !uiImport.isRunning
-                        text: qsTr("Start")
+                        text: qsTr("Starten")
                         // compute enabled from local flag and current field text without creating binding loops
                         enabled: (hasUiImport && !uiImport.isRunning) ? (fileField.text && fileField.text.length > 0) : false
                         onClicked: {
@@ -156,13 +138,13 @@ Item {
 
                     AppButton {
                         visible: hasUiImport && !uiImport.isRunning
-                        text: qsTr("Reset")
+                        text: qsTr("Zurücksetzen")
                         enabled: hasUiImport && !uiImport.isRunning
                         onClicked: uiImport.resetStatus()
                     }
 
                     BusyIndicator {
-                        running: hasUiImport && uiImport.phase === "Stopping..."
+                        running: hasUiImport && uiImport.phase === "Anhalten..."
                         visible: running
                         width: 24
                         height: 24
