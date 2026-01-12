@@ -38,15 +38,6 @@ extern ParserConfig parserConfig;
 // If valutaX>=0 and bandPx>0, restrict search to tokens near that X (within bandPx)
 std::vector<size_t> findAmountTokenIndices(const core::parser::OcrLine& line, int valutaX = -1, int bandPx = 0) noexcept;
 
-// Short date presence check
-bool hasShortDateToken(const std::string& text) noexcept;
-
-// Check whether a text contains a short date token like "DD. MM" or "DD.MM"
-bool containsShortDate(const std::string& text) noexcept;
-
-// Find first full date (DD.MM.YYYY) in text, returns string if found
-std::optional<std::string> findFirstFullDate(const std::string& text) noexcept;
-
 // Normalize a string to alphanumeric lowercase (a-z0-9)
 std::string normalizeAlnumLower(const std::string& s) noexcept;
 
@@ -119,4 +110,13 @@ void appendDetailLine(core::parser::TransactionBlock& cur, const core::parser::O
 
 // Handle main-row detection, splitting and debug logging. 'isGeom' indicates geometry-based detection.
 core::parser::TransactionMainRow handleMainRow(const core::parser::OcrLine& line, const ColumnGuess& cols, bool isGeom, std::vector<std::string>& debugOut) noexcept;
+
+// Short date presence check
+bool hasShortDateToken(const std::string& text) noexcept;
+
+// Check whether a text contains a short date token like "DD. MM" or "DD.MM"
+bool containsShortDate(const std::string& text) noexcept;
+
+// Find first full date (DD.MM.YYYY) in text, returns string if found
+std::optional<std::string> findFirstFullDate(const std::string& text) noexcept;
 } // namespace core::parser::helpers

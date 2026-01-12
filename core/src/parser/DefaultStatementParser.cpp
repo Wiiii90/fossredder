@@ -149,8 +149,23 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
     std::vector<OcrLine> ocrFromRaw; ocrFromRaw.reserve(lines.size());
     for (const auto& rl : lines) ocrFromRaw.push_back(rawToOcrLine(rl));
 
+    // Collect page-wide header booking dates from merged lines so we can
+    // update `currentBookingDate` as we iterate through the page.
+    std::vector<std::pair<size_t,std::string>> pageHeaderDates;
+    try {
+        for (size_t i = 0; i < lines.size(); ++i) {
+            try {
+                if (auto bd = core::parser::helpers::findBookingDateInHeader(lines[i].text)) {
+                    pageHeaderDates.emplace_back(i, *bd);
+                }
+            } catch(...) {}
+        }
+    } catch(...) {}
+
     std::string currentBookingDate = std::move(initialBookingDate);
     int txIndex = std::max(1, initialTransactionIndex);
+
+    size_t headerScanPtr = 0; // pointer into pageHeaderDates
 
     // Early empty-page detection: centralized helper
     {
@@ -260,6 +275,22 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
         const auto txt = l.text;
         const auto combined = prevLine.empty() ? txt : (prevLine + " " + txt);
         if (txt.empty()) continue;
+
+        // Update currentBookingDate if this line index matches a saved header date index
+        if (headerScanPtr < pageHeaderDates.size() && pageHeaderDates[headerScanPtr].first == li) {
+            // this exact line is a detected header 'Buchungsdatum' -> treat as header, not a transaction
+            currentBookingDate = pageHeaderDates[headerScanPtr].second;
+            out.debugLines.push_back(std::string("header.foundOnPage\tline=") + std::to_string(li) + std::string("\t") + currentBookingDate);
+            ++headerScanPtr;
+            // ensure following lines are considered transactions but do not parse this header line as transaction
+            inTransactions = true;
+            flush();
+            cur.bookingDateGroup = currentBookingDate;
+            prevLine = txt;
+            continue;
+        }
+        // advance any header pointers that are before current index (defensive)
+        while (headerScanPtr < pageHeaderDates.size() && pageHeaderDates[headerScanPtr].first < li) ++headerScanPtr;
 
         if (isFooterLine(txt)) { out.debugLines.push_back(std::string("stop.footer\t") + txt + "\tline=" + std::to_string(li)); break; }
         // Only treat post-transaction footnote as terminal if we already started parsing transactions

@@ -660,12 +660,18 @@ std::optional<std::string> findFallbackBookingDate(const std::vector<core::parse
 std::optional<std::string> findBookingDateInHeader(const std::string& line) noexcept {
     try {
         const auto trimmed = utils::trim(line);
-        const auto lower = utils::lowerAscii(trimmed);
-        const auto keyPos = lower.find("buchungsdat");
-        if (keyPos == std::string::npos) return std::nullopt;
-        const auto afterKey = trimmed.substr(keyPos);
-        if (auto d = findFirstFullDate(afterKey)) return d;
-        if (auto d2 = findFirstFullDate(trimmed)) return d2;
+        const auto norm = normalizeAlnumLower(trimmed);
+        // require explicit 'buchungsdat' keyword to consider this a header booking date
+        if (norm.find("buchungsdat") == std::string::npos && norm.find("buchungsdatum") == std::string::npos) return std::nullopt;
+
+        // look for a full date in the trimmed text
+        try {
+            if (auto d = findFirstFullDate(trimmed)) return d;
+            // try a compacted version (remove non-digit/dot/space) to handle OCR noise
+            std::string compact = trimmed;
+            compact.erase(std::remove_if(compact.begin(), compact.end(), [](char c){ return !(std::isdigit(static_cast<unsigned char>(c)) || c == '.' || std::isspace(static_cast<unsigned char>(c))); }), compact.end());
+            if (auto d2 = findFirstFullDate(compact)) return d2;
+        } catch(...) {}
     } catch(...) {}
     return std::nullopt;
 }
