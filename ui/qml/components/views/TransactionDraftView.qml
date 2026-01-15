@@ -86,7 +86,24 @@ Item {
             text: draft && draft.current ? formatAmount(draft.current.amount) : ""
             onTextChanged: {
                 if (!draft) return
-                var v = parseFloat(text)
+                // Normalize common localized number formats before parsing:
+                // - treat comma as decimal separator
+                // - remove thousands-dot when a comma decimal is present (e.g. "1.234,56")
+                // - strip whitespace
+                var s = text ? text.trim() : ""
+                if (s.length === 0) {
+                    draft.transactions.setAmount(draft.currentIndex, 0.0)
+                    return
+                }
+                try {
+                    if (s.indexOf(',') !== -1) {
+                        // remove dots that are likely thousands separators
+                        s = s.replace(/\./g, '')
+                    }
+                    s = s.replace(/,/g, '.')
+                    s = s.replace(/\s/g, '')
+                } catch(e) { }
+                var v = parseFloat(s)
                 if (isNaN(v)) v = 0.0
                 draft.transactions.setAmount(draft.currentIndex, v)
             }

@@ -91,6 +91,16 @@ Item {
                                     if (uiActions) uiActions.browseImportPdf()
                                 }
                             }
+
+                            // Listen for native file dialog result and populate the text field
+                            Connections {
+                                target: uiActions
+                                function onImportFileSelected(path) {
+                                    if (!path) return
+                                    fileField.text = path
+                                    if (hasUiImport) uiImport.selectedFile = path
+                                }
+                            }
                         }
 
                         Item { Layout.fillHeight: true }

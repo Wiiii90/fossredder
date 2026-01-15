@@ -270,7 +270,34 @@ Item {
                             spacing: 2
                             Layout.alignment: Qt.AlignVCenter
 
-                            Label { text: bookingDate || ""; font.family: Theme.fontFamily; font.pointSize: Theme.fontSize; color: Theme.textMuted; Layout.alignment: Qt.AlignVCenter; Layout.fillWidth: true }
+                            // show booking date on the left and tx type on the right (safe when empty)
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+                                Layout.alignment: Qt.AlignVCenter
+
+                                Label {
+                                    text: bookingDate || ""
+                                    font.family: Theme.fontFamily
+                                    font.pointSize: Theme.fontSize
+                                    color: Theme.textMuted
+                                    Layout.alignment: Qt.AlignVCenter
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                }
+
+                                Label {
+                                    // show type if present; keep muted style and safe for undefined/empty
+                                    text: (type && type.length > 0) ? type : ""
+                                    font.family: Theme.fontFamily
+                                    font.pointSize: Math.max(12, Theme.fontSize - 2)
+                                    color: Theme.textMuted
+                                    horizontalAlignment: Text.AlignRight
+                                    Layout.preferredWidth: 140
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+                            }
+
                             Label { text: description ? description : ""; font.family: Theme.fontFamily; font.pointSize: Math.max(12, Theme.fontSize - 2); color: Theme.textMuted; elide: Text.ElideRight; Layout.alignment: Qt.AlignVCenter; Layout.fillWidth: true }
                         }
 
