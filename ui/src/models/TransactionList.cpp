@@ -1,6 +1,7 @@
 #include "ui/models/TransactionList.h"
 
 #include <QVariant>
+#include "core/models/Contract.h"
 
 TransactionList::TransactionList(QObject* parent) : QAbstractListModel(parent) {}
 
@@ -31,7 +32,16 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case ActorProposalRole: return QString::fromStdString(t->actorProposal);
     case MetadataRole: return QString::fromStdString(t->metadata);
     case ProofImagePathRole: return QString::fromStdString(t->proofImagePath);
-    case TypeRole: return QString::fromStdString(t->type);
+    case TypeRole: {
+        // resolve contract type if available
+        if (!t->contractId.empty()) {
+            for (const auto& c : contracts_) {
+                if (!c) continue;
+                if (c->id == t->contractId) return QString::fromStdString(c->type);
+            }
+        }
+        return QString();
+    }
     case AllocatableRole: return t->allocatable;
     case PropertyIdsRole: {
         QVariantList out;
@@ -67,6 +77,13 @@ void TransactionList::setTransactions(std::vector<std::shared_ptr<Transaction>> 
 {
     beginResetModel();
     transactions_ = std::move(transactions);
+    endResetModel();
+}
+
+void TransactionList::setContracts(std::vector<std::shared_ptr<Contract>> contracts)
+{
+    beginResetModel();
+    contracts_ = std::move(contracts);
     endResetModel();
 }
 
@@ -124,7 +141,15 @@ QVariantMap TransactionList::get(int index) const
     m["actorProposal"] = QString::fromStdString(t->actorProposal);
     m["metadata"] = QString::fromStdString(t->metadata);
     m["proofImagePath"] = QString::fromStdString(t->proofImagePath);
-    m["type"] = QString::fromStdString(t->type);
+    // resolve contract type if available
+    QString ctype;
+    if (!t->contractId.empty()) {
+        for (const auto& c : contracts_) {
+            if (!c) continue;
+            if (QString::fromStdString(c->id) == QString::fromStdString(t->contractId)) { ctype = QString::fromStdString(c->type); break; }
+        }
+    }
+    m["type"] = ctype;
     m["allocatable"] = t->allocatable;
     QVariantList pids;
     for (const auto& pid : t->propertyIds) pids.push_back(QString::fromStdString(pid));

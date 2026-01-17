@@ -28,17 +28,17 @@ Item {
                     })
                 }
             }
-            /*Loader {
+            Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/export.svg";
                     item.label = qsTr("Export");
                     item.clicked.connect(function(){
-                        if (uiActions) uiActions.exportFile();
+                        if (uiNav) uiNav.section = UiNavigation.Export;
                     })
                 }
-            }*/
-            /*Loader {
+            }
+            Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/booking.svg";
@@ -54,8 +54,8 @@ Item {
                         }
                     })
                 }
-            }*/
-            /*Loader {
+            }
+            Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/actor.svg";
@@ -69,7 +69,7 @@ Item {
                         if (uiNav) uiNav.section = UiNavigation.Actors;
                     })
                 }
-            }*/
+            }
             Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
@@ -85,7 +85,7 @@ Item {
                     })
                 }
             }
-            /*Loader {
+            Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/contract.svg";
@@ -99,7 +99,7 @@ Item {
                         if (uiNav) uiNav.section = UiNavigation.Contracts;
                     })
                 }
-            }*/
+            }
             /*Loader {
                 source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {

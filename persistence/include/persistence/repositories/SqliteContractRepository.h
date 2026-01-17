@@ -21,6 +21,11 @@ public:
     void upsertContract(const std::shared_ptr<Contract>& contract) override;
     void clearContracts() override;
 
+    std::vector<std::shared_ptr<Contract>> getContractsForActor(const std::string& actorId) const override;
+    std::vector<std::shared_ptr<Contract>> getContractsForProperty(const std::string& propertyId) const override;
+    std::vector<std::string> getActorIdsForContract(const std::string& contractId) const override;
+    std::vector<std::string> getPropertyIdsForContract(const std::string& contractId) const override;
+
 private:
     struct Impl;
     std::unique_ptr<Impl> pimpl_;

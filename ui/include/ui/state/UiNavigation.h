@@ -13,7 +13,8 @@ public:
         Properties,
         Contracts,
         Booking,
-        Import
+        Import,
+        Export
     };
     Q_ENUM(Section)
 

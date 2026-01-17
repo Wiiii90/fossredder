@@ -67,8 +67,7 @@ Item {
                 if (isNaN(amt)) amt = 0.0
                 var sid = (current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
                 uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
-                // update transaction type as well
-                uiDomain.updateTransactionType(current.id, typeField.text)
+                // transaction type removed; recommend updating the contract instead via contract editor
             }
         }
     }

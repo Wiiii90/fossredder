@@ -47,3 +47,8 @@ void UiActions::browseImportPdf()
 {
     emit importBrowseRequested(tr("PDF Files (*.pdf)"));
 }
+
+void UiActions::browseExportFile()
+{
+    emit exportBrowseRequested(tr("Excel Files (*.xlsx);;CSV Files (*.csv)"));
+}

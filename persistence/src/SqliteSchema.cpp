@@ -114,6 +114,10 @@ void SqliteSchema::migrate(sqlite3* db) {
             "FOREIGN KEY(transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,"
             "FOREIGN KEY(property_id) REFERENCES properties(id) ON DELETE CASCADE"
             ");"
+            "CREATE INDEX IF NOT EXISTS idx_transactions_contract_id ON transactions(contract_id);"
+            "CREATE INDEX IF NOT EXISTS idx_contract_actors_actor_id ON contract_actors(actor_id);"
+            "CREATE INDEX IF NOT EXISTS idx_contract_properties_property_id ON contract_properties(property_id);"
+            "CREATE INDEX IF NOT EXISTS idx_transaction_properties_property_id ON transaction_properties(property_id);"
             "COMMIT;"
         );
         setUserVersion(db, 1);

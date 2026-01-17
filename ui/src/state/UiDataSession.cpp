@@ -75,6 +75,29 @@ void UiDataSession::loadFromState(const AppState& state)
     contracts_.setContracts(state.contracts);
     statements_.setStatements(state.statements);
     transactions_.setTransactions(state.transactions);
+    // also forward contracts to transactions model so transaction.type can be resolved
+    transactions_.setContracts(state.contracts);
+
+    // Debug: log loaded contracts and transaction->contractId usage to help diagnose missing types
+    qDebug() << "UiDataSession::loadFromState: contracts=" << state.contracts.size();
+    size_t cmax = std::min<size_t>(state.contracts.size(), 20);
+    for (size_t i = 0; i < cmax; ++i) {
+        const auto& c = state.contracts[i];
+        if (!c) continue;
+        qDebug() << "  contract[" << i << "]: id='" << QString::fromStdString(c->id) << "' type='" << QString::fromStdString(c->type) << "' name='" << QString::fromStdString(c->name) << "'";
+    }
+
+    size_t txWithCid = 0;
+    std::vector<QString> sampleCids;
+    for (const auto& t : state.transactions) {
+        if (!t) continue;
+        if (!t->contractId.empty()) {
+            ++txWithCid;
+            if (sampleCids.size() < 20) sampleCids.push_back(QString::fromStdString(t->contractId));
+        }
+    }
+    qDebug() << "UiDataSession::loadFromState: transactions=" << state.transactions.size() << " with contractId=" << txWithCid;
+    if (!sampleCids.empty()) qDebug() << "  sample contractIds:" << sampleCids;
 
     // debug logging to help track when properties arrive
     qDebug() << "UiDataSession::loadFromState: properties=" << properties_.rowCount();
@@ -238,7 +261,7 @@ void UiDataSession::refreshSelectedTransaction()
                                                             QString::fromStdString(t->actorProposal),
                                                             propIds,
                                                             t->allocatable,
-                                                            QString::fromStdString(t->type));
+                                                            QString());
             return;
         }
     }
@@ -294,7 +317,7 @@ QStringList UiDataSession::transactionTypesForProperty(const QString& propertyId
 {
     QStringList out;
     if (propertyId.isEmpty()) return out;
-    // collect types from transactions assigned to this property
+    // collect contract types from transactions assigned to this property
     for (const auto& t : transactions_.transactions()) {
         if (!t) continue;
         bool contains = false;
@@ -302,9 +325,16 @@ QStringList UiDataSession::transactionTypesForProperty(const QString& propertyId
             if (QString::fromStdString(pid) == propertyId) { contains = true; break; }
         }
         if (!contains) continue;
-        if (!t->type.empty()) {
-            const QString qt = QString::fromStdString(t->type).trimmed();
-            if (!qt.isEmpty() && !out.contains(qt)) out.push_back(qt);
+        // resolve contract type if transaction is linked to a contract
+        if (!t->contractId.empty()) {
+            for (const auto& c : contracts_.contracts()) {
+                if (!c) continue;
+                if (QString::fromStdString(c->id) == QString::fromStdString(t->contractId)) {
+                    const QString qt = QString::fromStdString(c->type).trimmed();
+                    if (!qt.isEmpty() && !out.contains(qt)) out.push_back(qt);
+                    break;
+                }
+            }
         }
     }
     return out;
@@ -354,7 +384,14 @@ QVariantMap UiDataSession::transactionSumsForPropertyWithType(const QString& pro
         if (!contains) continue;
         // if type is provided, filter by it
         if (!type.isEmpty()) {
-            const QString tt = QString::fromStdString(t->type);
+            // resolve contract type
+            QString tt;
+            if (!t->contractId.empty()) {
+                for (const auto& c : contracts_.contracts()) {
+                    if (!c) continue;
+                    if (QString::fromStdString(c->id) == QString::fromStdString(t->contractId)) { tt = QString::fromStdString(c->type); break; }
+                }
+            }
             if (tt != type) continue;
         }
         out["total"] = out["total"].toDouble() + t->amount;

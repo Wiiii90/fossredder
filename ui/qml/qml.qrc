@@ -1,8 +1,6 @@
 <RCC>
     <qresource prefix="/qml">
         <file>Main.qml</file>
-
-        <!-- Components -->
         <file>components/ContentArea.qml</file>
         <file>components/IconButton.qml</file>
         <file>components/Layout.qml</file>
@@ -10,18 +8,12 @@
         <file>components/Toolbar.qml</file>
         <file>components/SidebarLeft.qml</file>
         <file>components/layout/Sidebar.qml</file>
-
-        <!-- Component controls -->
         <file>components/controls/AppButton.qml</file>
         <file>components/controls/AppTextField.qml</file>
         <file>components/controls/AppTextArea.qml</file>
         <file>components/controls/AppCheckBox.qml</file>
         <file>components/controls/AppComboBox.qml</file>
-
-        <!-- Utilities -->
         <file>components/utils/FileUtils.js</file>
-
-        <!-- Views -->
         <file>components/views/ActorsSidebar.qml</file>
         <file>components/views/ActorsView.qml</file>
         <file>components/views/BookingSidebar.qml</file>
@@ -40,8 +32,6 @@
         <file>components/views/PropertiesView.qml</file>
         <file>components/views/StatementDraftView.qml</file>
         <file>components/views/TransactionDraftView.qml</file>
-
-        <!-- Assets -->
         <file>assets/annual.svg</file>
         <file>assets/analysis.svg</file>
         <file>assets/actor.svg</file>
@@ -51,9 +41,9 @@
         <file>assets/import.svg</file>
         <file>assets/property.svg</file>
         <file>assets/settings.svg</file>
-
-        <!-- Theme module (qmldir) -->
         <file>theme/Theme.qml</file>
         <file>theme/qmldir</file>
+        <file>components/views/ExportView.qml</file>
+        <file>components/controls/AppFilePicker.qml</file>
     </qresource>
 </RCC>

@@ -57,4 +57,24 @@ public:
      * @brief Remove all contracts from the repository.
      */
     virtual void clearContracts() = 0;
+
+    /**
+     * @brief Return contracts associated with a given actor id.
+     */
+    virtual std::vector<std::shared_ptr<Contract>> getContractsForActor(const std::string& actorId) const = 0;
+
+    /**
+     * @brief Return contracts associated with a given property id.
+     */
+    virtual std::vector<std::shared_ptr<Contract>> getContractsForProperty(const std::string& propertyId) const = 0;
+
+    /**
+     * @brief Return actor ids linked to a contract.
+     */
+    virtual std::vector<std::string> getActorIdsForContract(const std::string& contractId) const = 0;
+
+    /**
+     * @brief Return property ids linked to a contract.
+     */
+    virtual std::vector<std::string> getPropertyIdsForContract(const std::string& contractId) const = 0;
 };

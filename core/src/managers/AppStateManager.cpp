@@ -218,6 +218,20 @@ void AppStateManager::save(const AppState& state) {
     // Property id remapping is performed for global transactions in state.transactions.
 
     if (repos_.contracts) {
+        // Ensure contract->propertyIds use final numeric ids (remap any temporary ids)
+        for (const auto& c : state.contracts) {
+            if (!c) continue;
+            remapPropertyIds(c->propertyIds);
+        }
+        // Capture original ids before upsert so we can remap transactions that referenced
+        // temporary contract ids (UUIDs) to the final numeric ids assigned by the DB.
+        std::unordered_map<std::string, std::shared_ptr<Contract>> originalContractById;
+        originalContractById.reserve(state.contracts.size());
+        for (const auto& c : state.contracts) {
+            if (!c) continue;
+            originalContractById[c->id] = c;
+        }
+
         for (const auto& c : state.contracts) {
             if (!c) continue;
             c->actorIds.clear();
@@ -225,6 +239,29 @@ void AppStateManager::save(const AppState& state) {
             c->propertyIds.clear();
             for (auto* p : c->properties) { if (p && !p->id.empty()) c->propertyIds.push_back(p->id); }
             repos_.contracts->upsertContract(c);
+        }
+
+        // Build mapping originalId -> finalId for contracts that changed id during upsert
+        std::unordered_map<std::string, std::string> contractTempToFinal;
+        for (const auto& kv : originalContractById) {
+            const std::string& origId = kv.first;
+            const auto& ptr = kv.second;
+            if (!ptr) continue;
+            const std::string& newId = ptr->id;
+            if (!origId.empty() && origId != newId) {
+                contractTempToFinal[origId] = newId;
+            }
+        }
+
+        if (!contractTempToFinal.empty()) {
+            // Remap transaction->contractId values
+            for (auto& t : state.transactions) {
+                if (!t) continue;
+                auto it = contractTempToFinal.find(t->contractId);
+                if (it != contractTempToFinal.end()) {
+                    t->contractId = it->second;
+                }
+            }
         }
     }
 

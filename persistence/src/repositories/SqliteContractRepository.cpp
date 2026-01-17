@@ -138,6 +138,125 @@ std::vector<std::shared_ptr<Contract>> SqliteContractRepository::getContracts() 
     }
 
     sqlite3_finalize(stmt);
+    // Debug: report loaded contracts
+    fprintf(stderr, "SqliteContractRepository::getContracts: loaded %zu contracts\n", out.size());
+    for (size_t i = 0; i < out.size() && i < 20; ++i) {
+        const auto &c = out[i];
+        if (!c) continue;
+        fprintf(stderr, "  contract[%zu] id='%s' name='%s' type='%s' props=%zu actors=%zu\n", i, c->id.c_str(), c->name.c_str(), c->type.c_str(), c->propertyIds.size(), c->actorIds.size());
+    }
+    return out;
+}
+
+std::vector<std::shared_ptr<Contract>> SqliteContractRepository::getContractsForActor(const std::string& actorId) const {
+    std::vector<std::shared_ptr<Contract>> out;
+    long long aid = toLL(actorId);
+    if (aid <= 0) return out;
+
+    const char* sql = "SELECT c.id, c.name, c.type, c.description, c.start_date, c.end_date, c.base_price, c.consumption_price, c.monthly_advance FROM contracts c JOIN contract_actors ca ON c.id = ca.contract_id WHERE ca.actor_id = ? ORDER BY c.id;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return out;
+    sqlite3_bind_int64(stmt, 1, aid);
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        long long id = sqlite3_column_int64(stmt, 0);
+        const unsigned char* name = sqlite3_column_text(stmt, 1);
+        const unsigned char* type = sqlite3_column_text(stmt, 2);
+        const unsigned char* desc = sqlite3_column_text(stmt, 3);
+        const unsigned char* start = sqlite3_column_text(stmt, 4);
+        const unsigned char* end = sqlite3_column_text(stmt, 5);
+        double base = sqlite3_column_double(stmt, 6);
+        double cons = sqlite3_column_double(stmt, 7);
+        double adv = sqlite3_column_double(stmt, 8);
+
+        auto c = std::make_shared<Contract>();
+        c->id = std::to_string(id);
+        c->name = name ? reinterpret_cast<const char*>(name) : std::string();
+        c->type = type ? reinterpret_cast<const char*>(type) : std::string();
+        c->description = desc ? reinterpret_cast<const char*>(desc) : std::string();
+        c->startDate = start ? reinterpret_cast<const char*>(start) : std::string();
+        c->endDate = end ? reinterpret_cast<const char*>(end) : std::string();
+        c->basePrice = base;
+        c->consumptionPrice = cons;
+        c->monthlyAdvance = adv;
+
+        out.push_back(std::move(c));
+    }
+
+    sqlite3_finalize(stmt);
+    return out;
+}
+
+std::vector<std::shared_ptr<Contract>> SqliteContractRepository::getContractsForProperty(const std::string& propertyId) const {
+    std::vector<std::shared_ptr<Contract>> out;
+    long long pid = toLL(propertyId);
+    if (pid <= 0) return out;
+
+    const char* sql = "SELECT c.id, c.name, c.type, c.description, c.start_date, c.end_date, c.base_price, c.consumption_price, c.monthly_advance FROM contracts c JOIN contract_properties cp ON c.id = cp.contract_id WHERE cp.property_id = ? ORDER BY c.id;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return out;
+    sqlite3_bind_int64(stmt, 1, pid);
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        long long id = sqlite3_column_int64(stmt, 0);
+        const unsigned char* name = sqlite3_column_text(stmt, 1);
+        const unsigned char* type = sqlite3_column_text(stmt, 2);
+        const unsigned char* desc = sqlite3_column_text(stmt, 3);
+        const unsigned char* start = sqlite3_column_text(stmt, 4);
+        const unsigned char* end = sqlite3_column_text(stmt, 5);
+        double base = sqlite3_column_double(stmt, 6);
+        double cons = sqlite3_column_double(stmt, 7);
+        double adv = sqlite3_column_double(stmt, 8);
+
+        auto c = std::make_shared<Contract>();
+        c->id = std::to_string(id);
+        c->name = name ? reinterpret_cast<const char*>(name) : std::string();
+        c->type = type ? reinterpret_cast<const char*>(type) : std::string();
+        c->description = desc ? reinterpret_cast<const char*>(desc) : std::string();
+        c->startDate = start ? reinterpret_cast<const char*>(start) : std::string();
+        c->endDate = end ? reinterpret_cast<const char*>(end) : std::string();
+        c->basePrice = base;
+        c->consumptionPrice = cons;
+        c->monthlyAdvance = adv;
+
+        out.push_back(std::move(c));
+    }
+
+    sqlite3_finalize(stmt);
+    return out;
+}
+
+std::vector<std::string> SqliteContractRepository::getActorIdsForContract(const std::string& contractId) const {
+    std::vector<std::string> out;
+    long long cid = toLL(contractId);
+    if (cid <= 0) return out;
+
+    const char* sql = "SELECT actor_id FROM contract_actors WHERE contract_id = ? ORDER BY actor_id;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return out;
+    sqlite3_bind_int64(stmt, 1, cid);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        long long aid = sqlite3_column_int64(stmt, 0);
+        if (aid > 0) out.push_back(std::to_string(aid));
+    }
+    sqlite3_finalize(stmt);
+    return out;
+}
+
+std::vector<std::string> SqliteContractRepository::getPropertyIdsForContract(const std::string& contractId) const {
+    std::vector<std::string> out;
+    long long cid = toLL(contractId);
+    if (cid <= 0) return out;
+
+    const char* sql = "SELECT property_id FROM contract_properties WHERE contract_id = ? ORDER BY property_id;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return out;
+    sqlite3_bind_int64(stmt, 1, cid);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        long long pid = sqlite3_column_int64(stmt, 0);
+        if (pid > 0) out.push_back(std::to_string(pid));
+    }
+    sqlite3_finalize(stmt);
     return out;
 }
 

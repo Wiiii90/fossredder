@@ -14,6 +14,7 @@
 #include "ui/controllers/UiImportController.h"
 #include "ui/controllers/UiStorageController.h"
 #include "ui/controllers/UiDomainController.h"
+#include "ui/controllers/UiExportController.h"
 #include "ui/state/UiDataSession.h"
 #include "debug/FileDebugger.h"
 #include "core/controllers/ImportController.h"
@@ -55,6 +56,10 @@ int startQmlApp(QApplication& app, AppStateController& appStateCtrl) {
 
     auto uiDomain = new UiDomainController(&appStateCtrl, &w);
     w.setQmlContextProperty("uiDomain", uiDomain);
+
+    // Export controller (UI bridge)
+    auto uiExport = new UiExportController(&appStateCtrl, &w);
+    w.setQmlContextProperty("uiExport", uiExport);
 
     {
         auto dbg = std::make_shared<FileDebugger>("", "import");

@@ -34,6 +34,5 @@ bool Transaction::operator==(const Transaction& other) const noexcept {
            metadata == other.metadata &&
            proofImagePath == other.proofImagePath &&
            allocatable == other.allocatable &&
-           propertyIds == other.propertyIds &&
-           type == other.type;
+           propertyIds == other.propertyIds;
 }

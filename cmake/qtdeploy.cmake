@@ -148,4 +148,28 @@ if(EXISTS "${_src_qml}")
     endforeach()
 endif()
 
+# Ensure Qt.labs.folderlistmodel plugin DLL is deployed (used by AppFilePicker)
+set(_target_folderlist_dir "${TARGET_DIR}/qml/Qt/labs/folderlistmodel")
+file(MAKE_DIRECTORY "${_target_folderlist_dir}")
+
+set(_found_folderlist 0)
+set(_folderlist_candidates
+    "${_src_qml}/Qt/labs/folderlistmodel/qmlfolderlistmodelplugin.dll"
+    "${_src_bin}/qmlfolderlistmodelplugin.dll"
+    "${_vroot}/plugins/labs/qmlfolderlistmodelplugin.dll"
+)
+foreach(_ld IN LISTS _folderlist_candidates)
+    if(EXISTS "${_ld}")
+        file(COPY "${_ld}" DESTINATION "${_target_folderlist_dir}")
+        set(_found_folderlist 1)
+        break()
+    endif()
+endforeach()
+
+if(NOT _found_folderlist)
+    message(WARNING "qtdeploy: qmlfolderlistmodelplugin.dll not found; Qt.labs.folderlistmodel may fail to load at runtime")
+else()
+    message(STATUS "qtdeploy: copied qmlfolderlistmodelplugin.dll to ${_target_folderlist_dir}")
+endif()
+
 message(STATUS "qtdeploy: completed to ${TARGET_DIR}")

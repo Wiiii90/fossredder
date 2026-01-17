@@ -13,6 +13,111 @@ static long long toLL(const std::string& s) {
     try { return std::stoll(s); } catch (...) { return -1; }
 }
 
+void SqliteTransactionRepository::assignTransactionsToContract(const std::string& contractId, const std::vector<std::string>& transactionIds) {
+    // contractId may be empty -> clear assignments for given transactions
+    sqlite3* db = pimpl_->db->handle();
+    if (!db) return;
+
+    // Begin transaction for atomicity
+    char* err = nullptr;
+    if (sqlite3_exec(db, "BEGIN;", nullptr, nullptr, &err) != SQLITE_OK) {
+        if (err) sqlite3_free(err);
+        return;
+    }
+
+    const char* updSql = "UPDATE transactions SET contract_id = ? WHERE id = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db, updSql, -1, &stmt, nullptr) != SQLITE_OK) {
+        sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, &err);
+        return;
+    }
+
+    long long cid = toLL(contractId);
+    for (const auto& tidStr : transactionIds) {
+        long long tid = toLL(tidStr);
+        if (tid <= 0) continue;
+        sqlite3_reset(stmt);
+        sqlite3_clear_bindings(stmt);
+        if (cid > 0) sqlite3_bind_int64(stmt, 1, cid); else sqlite3_bind_null(stmt, 1);
+        sqlite3_bind_int64(stmt, 2, tid);
+        if (sqlite3_step(stmt) != SQLITE_DONE) {
+            // ignore individual errors but continue
+        }
+    }
+    sqlite3_finalize(stmt);
+
+    if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, &err) != SQLITE_OK) {
+        if (err) sqlite3_free(err);
+        sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, &err);
+    }
+}
+
+std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransactionsForContract(const std::string& contractId) const {
+    std::vector<std::shared_ptr<Transaction>> out;
+    long long cid = toLL(contractId);
+    if (cid <= 0) return out;
+
+    const char* sql = "SELECT id, name, booking_date, valuta, amount, status, description, actor_id, contract_id, statement_id, metadata, proof_image_path, allocatable FROM transactions WHERE contract_id = ? ORDER BY id;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return out;
+    sqlite3_bind_int64(stmt, 1, cid);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        long long id = sqlite3_column_int64(stmt, 0);
+        const unsigned char* name = sqlite3_column_text(stmt, 1);
+        const unsigned char* bdate = sqlite3_column_text(stmt, 2);
+        const unsigned char* valuta = sqlite3_column_text(stmt, 3);
+        double amount = sqlite3_column_double(stmt, 4);
+        int status = sqlite3_column_int(stmt, 5);
+        const unsigned char* desc = sqlite3_column_text(stmt, 6);
+        long long actorId = sqlite3_column_type(stmt, 7) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 7);
+        long long contractIdVal = sqlite3_column_type(stmt, 8) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 8);
+        long long statementId = sqlite3_column_type(stmt, 9) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 9);
+
+        const unsigned char* meta = sqlite3_column_text(stmt, 11);
+        const unsigned char* proof = sqlite3_column_text(stmt, 12);
+        int alloc = sqlite3_column_int(stmt, 13);
+
+        auto tx = std::make_shared<Transaction>(
+            name ? reinterpret_cast<const char*>(name) : std::string(),
+            bdate ? reinterpret_cast<const char*>(bdate) : std::string(),
+            valuta ? reinterpret_cast<const char*>(valuta) : std::string(),
+            amount,
+            nullptr,
+            nullptr,
+            desc ? reinterpret_cast<const char*>(desc) : std::string(),
+            alloc != 0
+        );
+        tx->id = std::to_string(id);
+        tx->status = static_cast<Transaction::Status>(status);
+        if (actorId > 0) tx->actorId = std::to_string(actorId);
+        if (contractIdVal > 0) tx->contractId = std::to_string(contractIdVal);
+        if (statementId > 0) tx->statementId = std::to_string(statementId);
+
+        tx->metadata = meta ? reinterpret_cast<const char*>(meta) : std::string();
+        tx->proofImagePath = proof ? reinterpret_cast<const char*>(proof) : std::string();
+
+        out.push_back(std::move(tx));
+    }
+    sqlite3_finalize(stmt);
+
+    // load properties for each transaction
+    for (const auto& tptr : out) {
+        const long long tid = toLL(tptr->id);
+        const char* relSql = "SELECT property_id FROM transaction_properties WHERE transaction_id = ? ORDER BY property_id;";
+        sqlite3_stmt* relStmt = nullptr;
+        if (sqlite3_prepare_v2(pimpl_->db->handle(), relSql, -1, &relStmt, nullptr) == SQLITE_OK) {
+            sqlite3_bind_int64(relStmt, 1, tid);
+            while (sqlite3_step(relStmt) == SQLITE_ROW) {
+                long long pid = sqlite3_column_int64(relStmt, 0);
+                if (pid > 0) tptr->propertyIds.push_back(std::to_string(pid));
+            }
+            sqlite3_finalize(relStmt);
+        }
+    }
+
+    return out;
+}
+
 // Resolve a property identifier string. If it's already numeric, return it.
 // Otherwise, try to find the property id by name. Do NOT create new properties here.
 static long long resolvePropertyId(sqlite3* db, const std::string& pidStr) {
@@ -81,7 +186,7 @@ SqliteTransactionRepository::~SqliteTransactionRepository() = default;
 void SqliteTransactionRepository::addTransaction(const std::shared_ptr<Transaction>& transaction) {
     if (!transaction) return;
 
-    const char* insSql = "INSERT INTO transactions (name, booking_date, valuta, amount, status, description, type, actor_id, contract_id, statement_id, metadata, proof_image_path, allocatable) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+    const char* insSql = "INSERT INTO transactions (name, booking_date, valuta, amount, status, description, actor_id, contract_id, statement_id, metadata, proof_image_path, allocatable) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(), insSql, -1, &stmt, nullptr) != SQLITE_OK) return;
 
@@ -91,7 +196,6 @@ void SqliteTransactionRepository::addTransaction(const std::shared_ptr<Transacti
     sqlite3_bind_double(stmt, 4, transaction->amount);
     sqlite3_bind_int(stmt, 5, static_cast<int>(transaction->status));
     sqlite3_bind_text(stmt, 6, transaction->description.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 7, transaction->type.c_str(), -1, SQLITE_TRANSIENT);
 
     long long actorId = (!transaction->actorId.empty()) ? toLL(transaction->actorId) : ((transaction->actor && !transaction->actor->id.empty()) ? toLL(transaction->actor->id) : -1);
     long long contractId = (!transaction->contractId.empty()) ? toLL(transaction->contractId) : ((transaction->contract && !transaction->contract->id.empty()) ? toLL(transaction->contract->id) : -1);
@@ -117,7 +221,7 @@ void SqliteTransactionRepository::addTransaction(const std::shared_ptr<Transacti
 
 std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransactions() const {
     std::vector<std::shared_ptr<Transaction>> out;
-    const char* sql = "SELECT id, name, booking_date, valuta, amount, status, description, type, actor_id, contract_id, statement_id, metadata, proof_image_path, allocatable FROM transactions ORDER BY id;";
+    const char* sql = "SELECT id, name, booking_date, valuta, amount, status, description, actor_id, contract_id, statement_id, metadata, proof_image_path, allocatable FROM transactions ORDER BY id;";
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return out;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -128,10 +232,9 @@ std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransa
         double amount = sqlite3_column_double(stmt, 4);
         int status = sqlite3_column_int(stmt, 5);
         const unsigned char* desc = sqlite3_column_text(stmt, 6);
-        const unsigned char* type = sqlite3_column_text(stmt, 7);
-        long long actorId = sqlite3_column_type(stmt, 8) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 8);
-        long long contractId = sqlite3_column_type(stmt, 9) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 9);
-        long long statementId = sqlite3_column_type(stmt, 10) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 10);
+        long long actorId = sqlite3_column_type(stmt, 7) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 7);
+        long long contractId = sqlite3_column_type(stmt, 8) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 8);
+        long long statementId = sqlite3_column_type(stmt, 9) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 9);
 
         const unsigned char* meta = sqlite3_column_text(stmt, 11);
         const unsigned char* proof = sqlite3_column_text(stmt, 12);
@@ -149,7 +252,6 @@ std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransa
         );
         tx->id = std::to_string(id);
         tx->status = static_cast<Transaction::Status>(status);
-        if (type) tx->type = reinterpret_cast<const char*>(type);
         if (actorId > 0) tx->actorId = std::to_string(actorId);
         if (contractId > 0) tx->contractId = std::to_string(contractId);
         if (statementId > 0) tx->statementId = std::to_string(statementId);
@@ -182,7 +284,7 @@ std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransa
 std::optional<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransactionById(const std::string& id) const {
     long long tid = toLL(id);
     if (tid <= 0) return std::nullopt;
-    const char* sql = "SELECT id, name, booking_date, valuta, amount, status, description, type, actor_id, contract_id, statement_id, metadata, proof_image_path, allocatable FROM transactions WHERE id = ?;";
+    const char* sql = "SELECT id, name, booking_date, valuta, amount, status, description, actor_id, contract_id, statement_id, metadata, proof_image_path, allocatable FROM transactions WHERE id = ?;";
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return std::nullopt;
     sqlite3_bind_int64(stmt, 1, tid);
@@ -195,10 +297,9 @@ std::optional<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTran
     double amount = sqlite3_column_double(stmt, 4);
     int status = sqlite3_column_int(stmt, 5);
     const unsigned char* desc = sqlite3_column_text(stmt, 6);
-    const unsigned char* type = sqlite3_column_text(stmt, 7);
-    long long actorId = sqlite3_column_type(stmt, 8) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 8);
-    long long contractId = sqlite3_column_type(stmt, 9) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 9);
-    long long statementId = sqlite3_column_type(stmt, 10) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 10);
+    long long actorId = sqlite3_column_type(stmt, 7) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 7);
+    long long contractId = sqlite3_column_type(stmt, 8) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 8);
+    long long statementId = sqlite3_column_type(stmt, 9) == SQLITE_NULL ? -1 : sqlite3_column_int64(stmt, 9);
 
     const unsigned char* meta = sqlite3_column_text(stmt, 11);
     const unsigned char* proof = sqlite3_column_text(stmt, 12);
@@ -216,7 +317,6 @@ std::optional<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTran
     );
     tx->id = std::to_string(rid);
     tx->status = static_cast<Transaction::Status>(status);
-    if (type) tx->type = reinterpret_cast<const char*>(type);
     if (actorId > 0) tx->actorId = std::to_string(actorId);
     if (contractId > 0) tx->contractId = std::to_string(contractId);
     if (statementId > 0) tx->statementId = std::to_string(statementId);
@@ -233,7 +333,7 @@ void SqliteTransactionRepository::updateTransaction(const std::shared_ptr<Transa
     long long tid = toLL(transaction->id);
     if (tid <= 0) return;
 
-    const char* sql = "UPDATE transactions SET name = ?, booking_date = ?, valuta = ?, amount = ?, status = ?, description = ?, type = ?, actor_id = ?, contract_id = ?, statement_id = ?, metadata = ?, proof_image_path = ?, allocatable = ? WHERE id = ?;";
+    const char* sql = "UPDATE transactions SET name = ?, booking_date = ?, valuta = ?, amount = ?, status = ?, description = ?, actor_id = ?, contract_id = ?, statement_id = ?, metadata = ?, proof_image_path = ?, allocatable = ? WHERE id = ?;";
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
 
@@ -243,7 +343,6 @@ void SqliteTransactionRepository::updateTransaction(const std::shared_ptr<Transa
     sqlite3_bind_double(stmt, 4, transaction->amount);
     sqlite3_bind_int(stmt, 5, static_cast<int>(transaction->status));
     sqlite3_bind_text(stmt, 6, transaction->description.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 7, transaction->type.c_str(), -1, SQLITE_TRANSIENT);
 
     long long actorId = (!transaction->actorId.empty()) ? toLL(transaction->actorId) : ((transaction->actor && !transaction->actor->id.empty()) ? toLL(transaction->actor->id) : -1);
     long long contractId = (!transaction->contractId.empty()) ? toLL(transaction->contractId) : ((transaction->contract && !transaction->contract->id.empty()) ? toLL(transaction->contract->id) : -1);

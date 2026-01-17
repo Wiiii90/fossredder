@@ -21,6 +21,18 @@ endif()
 
 target_compile_features(core_lib PUBLIC cxx_std_20)
 
+# xlnt is used by the Xlsx export implementation (xlnt workbook/cell APIs)
+find_package(xlnt CONFIG QUIET)
+if(TARGET xlnt::xlnt)
+    message(STATUS "xlnt found; linking to core_lib")
+    target_link_libraries(core_lib PUBLIC xlnt::xlnt)
+elseif(TARGET xlnt)
+    message(STATUS "xlnt target found; linking to core_lib")
+    target_link_libraries(core_lib PUBLIC xlnt)
+else()
+    message(WARNING "xlnt library not found; XLSX export may fail to link")
+endif()
+
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
     if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/core/pch.h")
         target_precompile_headers(core_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/core/pch.h")

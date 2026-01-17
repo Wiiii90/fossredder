@@ -32,8 +32,6 @@ public:
     std::string valuta;
     double amount = 0.0;
 
-    // New: transaction type (free text)
-    std::string type;
 
     Status status = Status::Neutral;
 

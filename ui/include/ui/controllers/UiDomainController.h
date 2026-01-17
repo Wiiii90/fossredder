@@ -48,7 +48,8 @@ public:
     Q_INVOKABLE void updateTransactionActor(const QString& id, const QString& actorId);
     Q_INVOKABLE void updateTransactionAllocatable(const QString& id, bool allocatable);
     Q_INVOKABLE void updateTransactionProperties(const QString& id, const QStringList& propertyIds);
-    Q_INVOKABLE void updateTransactionType(const QString& id, const QString& type);
+    Q_INVOKABLE void exportData(const QString& format, bool includeFormulas, const QString& path);
+    
 
     Q_INVOKABLE void deleteActor(const QString& id);
     Q_INVOKABLE void deleteProperty(const QString& id);
@@ -73,4 +74,6 @@ private:
     // Schedule a debounced commit; subsequent calls with same key within
     // `ms` milliseconds will restart the timer.
     void scheduleDebouncedCommit(const QString& key, int ms = 300);
+
+    // (Contracts are created explicitly when draft transaction has a type.)
 };

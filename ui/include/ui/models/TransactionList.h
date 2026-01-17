@@ -8,6 +8,8 @@
 
 #include "core/models/Transaction.h"
 
+class Contract;
+
 class TransactionList : public QAbstractListModel {
     Q_OBJECT
 public:
@@ -37,6 +39,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     void setTransactions(std::vector<std::shared_ptr<Transaction>> transactions);
+    void setContracts(std::vector<std::shared_ptr<Contract>> contracts);
     std::vector<std::shared_ptr<Transaction>> transactions() const;
     int findRowById(const QString& id) const;
     void setTransactionAt(int row, std::shared_ptr<Transaction> tx);
@@ -45,4 +48,5 @@ public:
 
 private:
     std::vector<std::shared_ptr<Transaction>> transactions_;
+    std::vector<std::shared_ptr<Contract>> contracts_;
 };

@@ -57,4 +57,16 @@ public:
      * @brief Remove all transactions from the repository.
      */
     virtual void clearTransactions() = 0;
+
+    /**
+     * @brief Return transactions associated with a given contract id.
+     */
+    virtual std::vector<std::shared_ptr<Transaction>> getTransactionsForContract(const std::string& contractId) const = 0;
+
+    /**
+     * @brief Assign a list of transactions to a contract (bulk operation).
+     * @param contractId Contract identifier to assign to. Empty string to clear.
+     * @param transactionIds List of transaction id strings to assign.
+     */
+    virtual void assignTransactionsToContract(const std::string& contractId, const std::vector<std::string>& transactionIds) = 0;
 };

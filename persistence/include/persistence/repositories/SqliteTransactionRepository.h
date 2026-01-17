@@ -21,6 +21,9 @@ public:
     void upsertTransaction(const std::shared_ptr<Transaction>& transaction) override;
     void clearTransactions() override;
 
+    std::vector<std::shared_ptr<Transaction>> getTransactionsForContract(const std::string& contractId) const override;
+    void assignTransactionsToContract(const std::string& contractId, const std::vector<std::string>& transactionIds) override;
+
 private:
     struct Impl;
     std::unique_ptr<Impl> pimpl_;

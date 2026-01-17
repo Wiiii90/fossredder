@@ -18,6 +18,7 @@
 #include "ui/menus/NativeMenu.h"
 #include "ui/state/UiDataSession.h"
 #include "ui/state/UiNavigation.h"
+#include "ui/controllers/UiFileSystem.h"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -41,11 +42,13 @@ MainWindow::MainWindow(QWidget* parent)
     auto actions = new UiActions(this);
     auto nav = new UiNavigation(this);
     dataSession_ = new UiDataSession(this);
+    auto fileSys = new UiFileSystem(this);
 
     if (m_quickWidget->rootContext()) {
         m_quickWidget->rootContext()->setContextProperty("uiActions", actions);
         m_quickWidget->rootContext()->setContextProperty("uiNav", nav);
         m_quickWidget->rootContext()->setContextProperty("uiData", dataSession_);
+        m_quickWidget->rootContext()->setContextProperty("uiFileSystem", fileSys);
 
         (void)new NativeMenu(this, actions, m_quickWidget->rootContext(), this);
 
@@ -73,6 +76,13 @@ MainWindow::MainWindow(QWidget* parent)
         const QString file = QFileDialog::getOpenFileName(this, tr("Select PDF"), QString(), filter);
         if (!file.isEmpty()) {
             emit actions->importFileSelected(file);
+        }
+    });
+
+    connect(actions, &UiActions::exportBrowseRequested, this, [this, actions](const QString& filter) {
+        const QString file = QFileDialog::getSaveFileName(this, tr("Export File"), QString(), filter);
+        if (!file.isEmpty()) {
+            emit actions->exportFileSelected(file);
         }
     });
 
