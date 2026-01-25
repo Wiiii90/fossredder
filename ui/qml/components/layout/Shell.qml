@@ -12,7 +12,7 @@ GridLayout {
     // Toolbar
     Loader {
         id: toolbarLoader
-        source: "Toolbar.qml"
+        source: "qrc:/qml/components/layout/Toolbar.qml"
         asynchronous: false
         Layout.row: 0
         Layout.preferredHeight: 64
@@ -49,7 +49,7 @@ GridLayout {
         Item {
             id: leftWrapper
             Loader {
-                source: "SidebarLeft.qml"
+                source: "qrc:/qml/components/layout/SidebarRouter.qml"
                 asynchronous: false
                 anchors.fill: parent
             }
@@ -59,7 +59,7 @@ GridLayout {
         Item {
             id: centerWrapper
             Loader {
-                source: "ContentArea.qml"
+                source: "qrc:/qml/components/layout/ContentRouter.qml"
                 asynchronous: false
                 anchors.fill: parent
             }
@@ -69,7 +69,7 @@ GridLayout {
     // Status bar
     Loader {
         id: statusLoader
-        source: "StatusBar.qml"
+        source: "qrc:/qml/components/layout/StatusBar.qml"
         asynchronous: false
         Layout.row: 2
         Layout.preferredHeight: 36

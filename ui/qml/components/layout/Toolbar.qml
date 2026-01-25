@@ -19,7 +19,7 @@ Item {
             Layout.alignment: Qt.AlignVCenter
 
             Loader {
-                source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
+                source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/import.svg";
                     item.label = qsTr("Import");
@@ -29,7 +29,7 @@ Item {
                 }
             }
             Loader {
-                source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
+                source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/export.svg";
                     item.label = qsTr("Export");
@@ -39,7 +39,7 @@ Item {
                 }
             }
             Loader {
-                source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
+                source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/booking.svg";
                     item.label = qsTr("Booking");
@@ -56,7 +56,7 @@ Item {
                 }
             }
             Loader {
-                source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
+                source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/actor.svg";
                     item.label = qsTr("Actor");
@@ -71,7 +71,7 @@ Item {
                 }
             }
             Loader {
-                source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
+                source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/property.svg";
                     item.label = qsTr("Gebäude");
@@ -86,7 +86,7 @@ Item {
                 }
             }
             Loader {
-                source: "IconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
+                source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 100; Layout.preferredHeight: toolBar.implicitHeight;
                 onLoaded: {
                     item.svgSource = "qrc:/qml/assets/contract.svg";
                     item.label = qsTr("Contract");

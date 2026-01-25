@@ -1,37 +1,42 @@
 <RCC>
     <qresource prefix="/qml">
         <file>Main.qml</file>
-        <file>components/ContentArea.qml</file>
-        <file>components/IconButton.qml</file>
-        <file>components/Layout.qml</file>
-        <file>components/StatusBar.qml</file>
-        <file>components/Toolbar.qml</file>
-        <file>components/SidebarLeft.qml</file>
+        <file>components/controls/AppIconButton.qml</file>
+        <file>components/layout/Shell.qml</file>
+        <file>components/layout/ContentRouter.qml</file>
+        <file>components/layout/Content.qml</file>
+        <file>components/layout/Shell.qml</file>
+        <file>components/layout/StatusBar.qml</file>
+        <file>components/layout/Toolbar.qml</file>
+        <file>components/layout/SidebarRouter.qml</file>
         <file>components/layout/Sidebar.qml</file>
+        <file>components/layout/Content.qml</file>
+        <file>components/controls/qmldir</file>
         <file>components/controls/AppButton.qml</file>
         <file>components/controls/AppTextField.qml</file>
         <file>components/controls/AppTextArea.qml</file>
         <file>components/controls/AppCheckBox.qml</file>
         <file>components/controls/AppComboBox.qml</file>
-        <file>components/utils/FileUtils.js</file>
-        <file>components/views/ActorsSidebar.qml</file>
-        <file>components/views/ActorsView.qml</file>
-        <file>components/views/BookingSidebar.qml</file>
-        <file>components/views/BookingStatementsSidebar.qml</file>
-        <file>components/views/BookingStatementsView.qml</file>
-        <file>components/views/BookingTransactionsView.qml</file>
-        <file>components/views/BookingView.qml</file>
-        <file>components/views/ContractsSidebar.qml</file>
-        <file>components/views/ContractsView.qml</file>
-        <file>components/views/ImportRunsList.qml</file>
-        <file>components/views/ImportSidebar.qml</file>
-        <file>components/views/ImportView.qml</file>
-        <file>components/views/PlaceholderSidebar.qml</file>
-        <file>components/views/PlaceholderView.qml</file>
-        <file>components/views/PropertiesSidebar.qml</file>
-        <file>components/views/PropertiesView.qml</file>
-        <file>components/views/StatementDraftView.qml</file>
-        <file>components/views/TransactionDraftView.qml</file>
+        <file>utils/FileUtils.js</file>
+        <file>views/ActorsSidebar.qml</file>
+        <file>views/ActorsView.qml</file>
+        <file>views/BookingSidebar.qml</file>
+        <file>views/BookingStatementsSidebar.qml</file>
+        <file>views/BookingStatementsView.qml</file>
+        <file>views/BookingTransactionsView.qml</file>
+        <file>views/BookingView.qml</file>
+        <file>views/ContractsSidebar.qml</file>
+        <file>views/ContractsView.qml</file>
+        <file>views/ImportRunsList.qml</file>
+        <file>views/ImportSidebar.qml</file>
+        <file>views/ImportView.qml</file>
+        <file>views/PlaceholderSidebar.qml</file>
+        <file>views/PlaceholderView.qml</file>
+        <file>views/PropertiesView.qml</file>
+        <file>views/PropertiesSidebar.qml</file>
+        <file>views/ExportView.qml</file>
+        <file>views/StatementDraftView.qml</file>
+        <file>views/TransactionDraftView.qml</file>
         <file>assets/annual.svg</file>
         <file>assets/analysis.svg</file>
         <file>assets/actor.svg</file>
@@ -43,7 +48,6 @@
         <file>assets/settings.svg</file>
         <file>theme/Theme.qml</file>
         <file>theme/qmldir</file>
-        <file>components/views/ExportView.qml</file>
         <file>components/controls/AppFilePicker.qml</file>
     </qresource>
 </RCC>

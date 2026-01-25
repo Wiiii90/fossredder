@@ -37,8 +37,8 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             source: (uiNav && uiNav.bookingView === UiNavigation.Statements)
-                        ? "BookingStatementsSidebar.qml"
-                        : "PlaceholderSidebar.qml"
+                        ? "qrc:/qml/views/BookingStatementsSidebar.qml"
+                        : "qrc:/qml/views/PlaceholderSidebar.qml"
         }
     }
 }

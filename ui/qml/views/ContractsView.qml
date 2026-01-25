@@ -78,9 +78,7 @@ Item {
                     delegate: CheckBox {
                         text: model.name
                         checked: selectedActorIds.indexOf(model.id) >= 0
-                        onToggled: {
-                            selectedActorIds = toggleId(selectedActorIds, model.id, checked)
-                        }
+                        onToggled: { selectedActorIds = toggleId(selectedActorIds, model.id, checked) }
                     }
                 }
 
@@ -93,9 +91,7 @@ Item {
                         onClicked: {
                             if (!uiDomain) return
                             var id = uiDomain.ensureActorByName(quickActorField.text)
-                            if (id && id.length > 0) {
-                                selectedActorIds = toggleId(selectedActorIds, id, true)
-                            }
+                            if (id && id.length > 0) selectedActorIds = toggleId(selectedActorIds, id, true)
                             quickActorField.text = ""
                         }
                     }
@@ -117,9 +113,7 @@ Item {
                     delegate: CheckBox {
                         text: model.name
                         checked: selectedPropertyIds.indexOf(model.id) >= 0
-                        onToggled: {
-                            selectedPropertyIds = toggleId(selectedPropertyIds, model.id, checked)
-                        }
+                        onToggled: { selectedPropertyIds = toggleId(selectedPropertyIds, model.id, checked) }
                     }
                 }
 
@@ -132,9 +126,7 @@ Item {
                         onClicked: {
                             if (!uiDomain) return
                             var id = uiDomain.ensurePropertyByName(quickPropertyField.text)
-                            if (id && id.length > 0) {
-                                selectedPropertyIds = toggleId(selectedPropertyIds, id, true)
-                            }
+                            if (id && id.length > 0) selectedPropertyIds = toggleId(selectedPropertyIds, id, true)
                             quickPropertyField.text = ""
                         }
                     }
@@ -145,22 +137,15 @@ Item {
         RowLayout {
             Layout.fillWidth: true
 
-            Button {
-                visible: isEdit
-                text: qsTr("New")
-                onClicked: {
-                    if (uiData) uiData.selectedContractId = ""
-                }
-            }
+            Button { visible: isEdit; text: qsTr("New"); onClicked: if (uiData) uiData.selectedContractId = "" }
 
             Button {
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: canSubmit()
                 onClicked: {
                     if (!uiDomain) return
-                    if (isEdit) {
-                        uiDomain.updateContract(current.id, nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds)
-                    } else {
+                    if (isEdit) uiDomain.updateContract(current.id, nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds)
+                    else {
                         var id = uiDomain.addContract(nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds)
                         clearFields()
                         if (uiData && id && id.length > 0) uiData.selectedContractId = id
@@ -168,16 +153,7 @@ Item {
                 }
             }
 
-            Button {
-                visible: isEdit
-                text: qsTr("Delete")
-                onClicked: {
-                    if (!uiDomain) return
-                    uiDomain.deleteContract(current.id)
-                    if (uiData) uiData.selectedContractId = ""
-                    clearFields()
-                }
-            }
+            Button { visible: isEdit; text: qsTr("Delete"); onClicked: { if (!uiDomain) return; uiDomain.deleteContract(current.id); if (uiData) uiData.selectedContractId = ""; clearFields() } }
 
             Item { Layout.fillWidth: true }
         }

@@ -1,0 +1,9 @@
+module FossRedder.Controls
+
+AppButton 1.0 AppButton.qml
+AppTextField 1.0 AppTextField.qml
+AppTextArea 1.0 AppTextArea.qml
+AppCheckBox 1.0 AppCheckBox.qml
+AppComboBox 1.0 AppComboBox.qml
+AppFilePicker 1.0 AppFilePicker.qml
+AppIconButton 1.0 AppIconButton.qml

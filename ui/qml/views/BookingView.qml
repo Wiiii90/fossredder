@@ -9,8 +9,8 @@ Item {
         anchors.fill: parent
         source: (uiNav && uiNav.bookingView === UiNavigation.Statements)
                     ? ((uiData && uiData.selectedTransactionId && uiData.selectedTransactionId.length > 0)
-                            ? "BookingTransactionsView.qml"
-                            : "BookingStatementsView.qml")
-                    : "PlaceholderView.qml"
+                            ? "qrc:/qml/views/BookingTransactionsView.qml"
+                            : "qrc:/qml/views/BookingStatementsView.qml")
+                    : "qrc:/qml/views/PlaceholderView.qml"
     }
 }

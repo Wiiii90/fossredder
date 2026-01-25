@@ -39,7 +39,7 @@ Item {
         Loader {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            source: "ImportRunsList.qml"
+            source: "qrc:/qml/views/ImportRunsList.qml"
             onLoaded: {
                 if (item) item.model = (typeof uiImport !== 'undefined' && uiImport) ? uiImport.runs : null
             }

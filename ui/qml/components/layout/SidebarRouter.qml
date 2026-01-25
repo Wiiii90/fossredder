@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.3
 import FossRedder 1.0
 
 Item {
@@ -17,12 +18,12 @@ Item {
 
     function srcForSection(sec) {
         switch (sec) {
-        case sectionActors: return "qrc:/qml/components/views/ActorsSidebar.qml";
-        case sectionProperties: return "qrc:/qml/components/views/PropertiesSidebar.qml";
-        case sectionContracts: return "qrc:/qml/components/views/ContractsSidebar.qml";
-        case sectionBooking: return "qrc:/qml/components/views/BookingSidebar.qml";
-        case sectionImport: return "qrc:/qml/components/views/ImportSidebar.qml";
-        default: return "qrc:/qml/components/views/PlaceholderSidebar.qml";
+        case sectionActors: return "qrc:/qml/views/ActorsSidebar.qml";
+        case sectionProperties: return "qrc:/qml/views/PropertiesSidebar.qml";
+        case sectionContracts: return "qrc:/qml/views/ContractsSidebar.qml";
+        case sectionBooking: return "qrc:/qml/views/BookingSidebar.qml";
+        case sectionImport: return "qrc:/qml/views/ImportSidebar.qml";
+        default: return "qrc:/qml/views/PlaceholderSidebar.qml";
         }
     }
 

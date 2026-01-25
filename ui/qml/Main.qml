@@ -1,3 +1,3 @@
 import QtQuick 2.15
 
-Loader { source: "components/Layout.qml" }
+Loader { source: "qrc:/qml/components/layout/Shell.qml" }

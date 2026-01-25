@@ -160,8 +160,6 @@ Item {
             visible: !isEdit
             Layout.fillWidth: true
 
-
-
             AppButton {
                 text: qsTr("Hinzufügen")
                 enabled: nameField.text.length > 0
@@ -398,20 +396,9 @@ Item {
                     Layout.alignment: Qt.AlignRight
                     // red tint using the new per-instance properties (preserves hover/scale/glow behavior)
                     fillColor: "#e53935"
-                    textColor: "white"
                 }
+
             }
-
         }
-    }
-
-    // Debug label to help diagnose overlay issues (toggle debugLayout to true to show)
-    Label {
-        id: dbgCount
-        visible: false
-        text: qsTr("txCount: ") + (uiData && current ? (uiData.transactionsForProperty(current.id) ? (uiData.transactionsForProperty(current.id).count ? uiData.transactionsForProperty(current.id).count() : "?") : "-") : "-")
-        anchors.top: parent.top
-        anchors.right: parent.right
-        color: "red"
     }
 }
