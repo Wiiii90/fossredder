@@ -1,0 +1,132 @@
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.3
+import FossRedder 1.0
+import "qrc:/qml/components/controls"
+
+Item {
+    id: root
+
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 8
+        spacing: Theme.spacingSmall
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.spacing
+            Layout.alignment: Qt.AlignVCenter
+
+            Label {
+                text: qsTr("Export-Protokolle")
+                font.pointSize: 14
+                Layout.fillWidth: true
+                color: Theme.textPrimary
+            }
+
+            AppButton {
+                text: qsTr("Leeren")
+                enabled: runsModel.count > 0
+                implicitHeight: 32
+                implicitWidth: 88
+                fillColor: Theme.surface
+                textColor: Theme.textPrimary
+                onClicked: runsModel.clear()
+            }
+        }
+
+        ListModel {
+            id: runsModel
+        }
+
+        ListView {
+            id: runsList
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            spacing: 6
+            model: runsModel
+
+            delegate: Rectangle {
+                width: runsList.width
+                color: "transparent"
+
+                ColumnLayout {
+                    id: content
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: 4
+                    spacing: 4
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Label {
+                            text: time
+                            font.pointSize: 10
+                            opacity: 0.7
+                            Layout.fillWidth: true
+                            elide: Label.ElideRight
+                        }
+
+                        Label {
+                            text: status
+                            font.pointSize: 10
+                            color: status === "Success" ? "#1b7f1b" : (status === "Running" ? "#f1c40f" : "#a11")
+                        }
+
+                        AppButton {
+                            text: qsTr("Delete")
+                            implicitHeight: 28
+                            implicitWidth: 80
+                            onClicked: runsModel.remove(index)
+                        }
+                    }
+
+                    Label { text: path ? path : ""; Layout.fillWidth: true; elide: Label.ElideMiddle }
+                    Label { visible: message && message.length > 0; text: message; wrapMode: Text.WordWrap; opacity: 0.8; Layout.fillWidth: true }
+                }
+
+                implicitHeight: content.implicitHeight + 8
+            }
+        }
+    }
+
+    function addRun(path, status, message) {
+        var t = new Date().toLocaleString()
+        runsModel.append({ time: t, path: path ? path : "", status: status ? status : "Unknown", message: message ? message : "" })
+    }
+
+    // Keep last running entry index so we can update it on finish
+    property int _lastRunningIndex: -1
+
+    Component.onCompleted: {
+        // when export starts, uiExport.stateChanged will be emitted; detect running state
+        try {
+            if (typeof uiExport !== 'undefined' && uiExport) {
+                // watch state changes
+                uiExport.stateChanged.connect(function() {
+                    try {
+                        if (uiExport.isRunning) {
+                            addRun("", "Running", "")
+                            _lastRunningIndex = runsModel.count - 1
+                        }
+                    } catch(e) {}
+                })
+
+                // on finish, update last entry
+                uiExport.exportFinished.connect(function(success) {
+                    try {
+                        var status = success ? "Success" : "Failure"
+                        if (_lastRunningIndex >= 0 && _lastRunningIndex < runsModel.count) {
+                            runsModel.set(_lastRunningIndex, { time: runsModel.get(_lastRunningIndex).time, path: runsModel.get(_lastRunningIndex).path, status: status, message: "" })
+                        } else {
+                            addRun("", status, "")
+                        }
+                        _lastRunningIndex = -1
+                    } catch(e) {}
+                })
+            }
+        } catch(e) {}
+    }
+}

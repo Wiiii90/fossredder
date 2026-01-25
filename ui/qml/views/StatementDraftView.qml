@@ -114,12 +114,13 @@ Item {
 
                                 Qt.callLater(function() {
                                     uiNav.section = UiNavigation.Booking
-                                    // prefer Transactions subview so selectedTransaction is shown
-                                    try { uiNav.bookingView = UiNavigation.Transactions } catch(e) {}
+                                    // prefer Statements subview so created statement is visible
+                                    try { uiNav.bookingView = UiNavigation.Statements } catch(e) {}
                                 })
                             }
                             return
                         }
+
                     }
                 }
             }

@@ -62,7 +62,7 @@ Item {
 
         AppTextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
         AppTextField { id: typeField; placeholderText: qsTr("Type"); Layout.fillWidth: true }
-        TextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.preferredHeight: 120; wrapMode: TextArea.Wrap }
+        AppTextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.preferredHeight: 120; wrapMode: TextArea.Wrap }
 
         GroupBox {
             title: qsTr("Actors (min 1)")
@@ -75,7 +75,7 @@ Item {
 
                 Repeater {
                     model: uiData ? uiData.actors : null
-                    delegate: CheckBox {
+                    delegate: AppCheckBox {
                         text: model.name
                         checked: selectedActorIds.indexOf(model.id) >= 0
                         onToggled: { selectedActorIds = toggleId(selectedActorIds, model.id, checked) }
@@ -85,7 +85,7 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     AppTextField { id: quickActorField; placeholderText: qsTr("New actor name"); Layout.fillWidth: true }
-                    Button {
+                    AppButton {
                         text: qsTr("Add")
                         enabled: quickActorField.text.trim().length > 0
                         onClicked: {
@@ -110,7 +110,7 @@ Item {
 
                 Repeater {
                     model: uiData ? uiData.properties : null
-                    delegate: CheckBox {
+                    delegate: AppCheckBox {
                         text: model.name
                         checked: selectedPropertyIds.indexOf(model.id) >= 0
                         onToggled: { selectedPropertyIds = toggleId(selectedPropertyIds, model.id, checked) }
@@ -120,7 +120,7 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     AppTextField { id: quickPropertyField; placeholderText: qsTr("New property name"); Layout.fillWidth: true }
-                    Button {
+                    AppButton {
                         text: qsTr("Add")
                         enabled: quickPropertyField.text.trim().length > 0
                         onClicked: {
@@ -137,9 +137,9 @@ Item {
         RowLayout {
             Layout.fillWidth: true
 
-            Button { visible: isEdit; text: qsTr("New"); onClicked: if (uiData) uiData.selectedContractId = "" }
+            AppButton { visible: isEdit; text: qsTr("New"); onClicked: if (uiData) uiData.selectedContractId = "" }
 
-            Button {
+            AppButton {
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: canSubmit()
                 onClicked: {
@@ -153,7 +153,7 @@ Item {
                 }
             }
 
-            Button { visible: isEdit; text: qsTr("Delete"); onClicked: { if (!uiDomain) return; uiDomain.deleteContract(current.id); if (uiData) uiData.selectedContractId = ""; clearFields() } }
+            AppButton { visible: isEdit; text: qsTr("Delete"); onClicked: { if (!uiDomain) return; uiDomain.deleteContract(current.id); if (uiData) uiData.selectedContractId = ""; clearFields() } }
 
             Item { Layout.fillWidth: true }
         }

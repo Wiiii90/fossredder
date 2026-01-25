@@ -65,7 +65,7 @@ Item {
             Layout.fillWidth: true
         }
 
-        TextArea {
+        AppTextArea {
             id: descField
             placeholderText: qsTr("Description")
             Layout.fillWidth: true
@@ -89,7 +89,7 @@ Item {
                     Layout.fillWidth: true
                 }
 
-                TextArea {
+                AppTextArea {
                     id: aliasesField
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -102,7 +102,7 @@ Item {
         RowLayout {
             Layout.fillWidth: true
 
-            Button {
+            AppButton {
                 visible: isEdit
                 text: qsTr("New")
                 onClicked: {
@@ -110,7 +110,7 @@ Item {
                 }
             }
 
-            Button {
+            AppButton {
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: nameField.text.length > 0
                 onClicked: {
@@ -134,7 +134,7 @@ Item {
                 }
             }
 
-            Button {
+            AppButton {
                 visible: isEdit
                 text: qsTr("Delete")
                 onClicked: {

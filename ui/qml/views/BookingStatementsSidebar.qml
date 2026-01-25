@@ -14,6 +14,7 @@ Item {
 
         delegate: Column {
             width: statementList.width
+            property bool collapsed: false
 
             property string statementId: (id !== undefined && id !== null) ? id : ""
             property string statementName: (name !== undefined && name !== null) ? name : ""
@@ -24,14 +25,51 @@ Item {
                 color: (uiData && statementId === uiData.selectedStatementId && (!uiData.selectedTransactionId || uiData.selectedTransactionId === ""))
                            ? "#ffd39c" : "transparent"
 
+                // header selection area underneath; toggle button is declared after so it receives clicks
+                MouseArea {
+                    id: headerMouse
+                    anchors.fill: parent
+                    onClicked: {
+                        if (!uiData) return
+                        uiData.selectedStatementId = statementId
+                        uiData.selectedTransactionId = ""
+                    }
+                }
+
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: 6
-                    Label { text: statementName; Layout.fillWidth: true }
+                    Label { text: statementName; Layout.fillWidth: true; elide: Label.ElideRight }
+                    Item { Layout.fillWidth: true }
+                    // simple chevron toggle (no animation) placed last so it is on top and captures clicks
+                    Rectangle {
+                        id: toggleRect
+                        width: 24; height: 24; radius: 4
+                        color: "transparent"
+                        Layout.alignment: Qt.AlignVCenter
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: collapsed ? "\u25B6" : "\u25BC" // ▶ / ▼
+                            font.pointSize: 12
+                            color: "#666"
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: collapsed = !collapsed
+                        }
+                    }
                 }
 
+                // header selection area (does not overlap toggleRect)
                 MouseArea {
-                    anchors.fill: parent
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.right: toggleRect.left
                     onClicked: {
                         if (!uiData) return
                         uiData.selectedStatementId = statementId
@@ -42,7 +80,8 @@ Item {
 
             ListView {
                 width: statementList.width
-                height: contentHeight
+                height: collapsed ? 0 : contentHeight
+                visible: !collapsed
                 interactive: false
                 clip: true
                 spacing: 2

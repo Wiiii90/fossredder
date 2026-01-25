@@ -23,6 +23,7 @@ Item {
         case sectionContracts: return "qrc:/qml/views/ContractsSidebar.qml";
         case sectionBooking: return "qrc:/qml/views/BookingSidebar.qml";
         case sectionImport: return "qrc:/qml/views/ImportSidebar.qml";
+        case UiNavigation.Export: return "qrc:/qml/views/ExportSidebar.qml";
         default: return "qrc:/qml/views/PlaceholderSidebar.qml";
         }
     }
@@ -48,6 +49,10 @@ Item {
     function resolveSection() {
         if (!uiNav) return sectionImport;
         var v = uiNav.section;
+        // handle enum object value cases like UiNavigation.Export
+        try {
+            if (typeof v === 'string' && v.indexOf('Export') >= 0) return UiNavigation.Export;
+        } catch(e) {}
         if (typeof v === 'number') return v;
         try {
             // if enum object provided stringify and match
@@ -57,6 +62,7 @@ Item {
             if (s.indexOf('Contracts') >= 0) return sectionContracts;
             if (s.indexOf('Booking') >= 0) return sectionBooking;
             if (s.indexOf('Import') >= 0) return sectionImport;
+            if (s.indexOf('Export') >= 0) return UiNavigation.Export;
         } catch (e) {}
         return sectionImport;
     }

@@ -27,8 +27,9 @@
         <file>views/BookingView.qml</file>
         <file>views/ContractsSidebar.qml</file>
         <file>views/ContractsView.qml</file>
-        <file>views/ImportRunsList.qml</file>
+        
         <file>views/ImportSidebar.qml</file>
+        <file>views/ExportSidebar.qml</file>
         <file>views/ImportView.qml</file>
         <file>views/PlaceholderSidebar.qml</file>
         <file>views/PlaceholderView.qml</file>

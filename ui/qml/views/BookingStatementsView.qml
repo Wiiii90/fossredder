@@ -41,7 +41,7 @@ Item {
         RowLayout {
             Layout.fillWidth: true
 
-            Button {
+            AppButton {
                 visible: isEdit
                 text: qsTr("New")
                 onClicked: {
@@ -52,7 +52,7 @@ Item {
                 }
             }
 
-            Button {
+            AppButton {
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: nameField.text.length > 0
                 onClicked: {
@@ -67,7 +67,7 @@ Item {
                 }
             }
 
-            Button {
+            AppButton {
                 visible: isEdit
                 text: qsTr("Delete")
                 onClicked: {
@@ -81,7 +81,7 @@ Item {
                 }
             }
 
-            Button {
+            AppButton {
                 visible: isEdit
                 text: qsTr("New Transaction")
                 onClicked: {
