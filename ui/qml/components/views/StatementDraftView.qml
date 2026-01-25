@@ -105,11 +105,17 @@ Item {
                             if (typeof uiImport !== 'undefined' && uiImport) uiImport.clearDraft()
 
                             if (sid && sid.length > 0 && uiNav && uiData) {
-                                // After finalize navigate to Properties view (instead of Booking/Statements)
-                                uiData.selectedStatementId = ""
-                                uiData.selectedTransactionId = ""
+                                // Select the created statement and first transaction, then navigate to Booking view
+                                uiData.selectedStatementId = sid
+                                try {
+                                    var txs = uiData.transactionIdsForStatement(sid)
+                                    if (txs && txs.length > 0) uiData.selectedTransactionId = txs[0]
+                                } catch(e) { /* ignore if method not available */ }
+
                                 Qt.callLater(function() {
-                                    uiNav.section = UiNavigation.Properties
+                                    uiNav.section = UiNavigation.Booking
+                                    // prefer Transactions subview so selectedTransaction is shown
+                                    try { uiNav.bookingView = UiNavigation.Transactions } catch(e) {}
                                 })
                             }
                             return

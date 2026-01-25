@@ -117,6 +117,15 @@ public:
     void commit();
 
     /**
+     * @brief Notify registered listeners of the current state without persisting.
+     *
+     * Emits the configured StateChanged callback but does not perform any
+     * storage operations. Use when an in-memory update should be reflected in
+     * the UI immediately without triggering a save.
+     */
+    void notifyState();
+
+    /**
      * @brief Mark a single transaction id as dirty (changed by UI) for incremental notifications.
      */
     void markTransactionDirty(const std::string& txId);

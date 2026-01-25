@@ -44,194 +44,26 @@ AppState AppStateManager::load() {
 void AppStateManager::save(const AppState& state) {
     validate(state);
 
-    // Record temporary id -> Property shared_ptr for properties that may have UI-generated IDs
-    std::unordered_map<std::string, std::shared_ptr<Property>> tempIdToPtr;
-    tempIdToPtr.reserve(state.properties.size());
-    for (const auto& p : state.properties) {
-        if (!p) continue;
-        if (!p->id.empty()) tempIdToPtr[p->id] = p;
-    }
-
-    fprintf(stderr, "AppStateManager::save: tempIdToPtr keys:\n");
-    for (const auto& kv : tempIdToPtr) fprintf(stderr, "  tempId=%s name=%s\n", kv.first.c_str(), kv.second ? kv.second->name.c_str() : "(null)");
+    // Persist actors first
 
     if (repos_.actors) {
         for (const auto& a : state.actors) repos_.actors->upsertActor(a);
     }
 
-    // helper to parse numeric id (defined early so subsequent code can use it)
-    auto parseIdNum = [](const std::string& s) -> long long {
-        try { size_t pos = 0; long long v = std::stoll(s, &pos); if (pos == s.size()) return v; } catch (...) {}
-        return -1;
-    };
-
-    // Upsert properties first so they receive final numeric IDs
+    // Upsert properties. UI supplies stable UUID ids; repository will persist them.
     if (repos_.properties) {
-        // Log property ids/names before upsert
         fprintf(stderr, "AppStateManager::save: properties before upsert:\n");
         for (const auto& p : state.properties) {
             if (!p) { fprintf(stderr, "  (null)\n"); continue; }
             fprintf(stderr, "  id='%s' name='%s'\n", p->id.c_str(), p->name.c_str());
         }
-
         for (const auto& p : state.properties) repos_.properties->upsertProperty(p);
-
-        // Reload persisted properties and update in-memory property ids by name
-        try {
-            auto persisted = repos_.properties->getProperties();
-            std::unordered_map<std::string, std::string> persistedNameToId;
-            for (const auto& pp : persisted) {
-                if (!pp) continue;
-                persistedNameToId[pp->name] = pp->id;
-            }
-            for (const auto& p : state.properties) {
-                if (!p) continue;
-                // if id is non-numeric, try to replace by persisted id via name
-                if (parseIdNum(p->id) <= 0) {
-                    auto it = persistedNameToId.find(p->name);
-                    if (it != persistedNameToId.end()) p->id = it->second;
-                }
-            }
-
-            // Log persisted properties and mapping
-            fprintf(stderr, "AppStateManager::save: persisted properties (reloaded):\n");
-            for (const auto& pp : persisted) {
-                if (!pp) { fprintf(stderr, "  (null)\n"); continue; }
-                fprintf(stderr, "  id='%s' name='%s'\n", pp->id.c_str(), pp->name.c_str());
-            }
-
-            fprintf(stderr, "AppStateManager::save: properties after remap:\n");
-            for (const auto& p : state.properties) {
-                if (!p) { fprintf(stderr, "  (null)\n"); continue; }
-                fprintf(stderr, "  id='%s' name='%s' (numeric? %s)\n", p->id.c_str(), p->name.c_str(), (parseIdNum(p->id) > 0) ? "yes" : "no");
-            }
-
-            // If any properties still have non-numeric ids, attempt to insert them explicitly
-            bool anyNonNumeric = false;
-            for (const auto& p : state.properties) {
-                if (!p) continue;
-                if (parseIdNum(p->id) <= 0) { anyNonNumeric = true; break; }
-            }
-            if (anyNonNumeric) {
-                fprintf(stderr, "AppStateManager::save: Attempting explicit insert for non-numeric properties...\n");
-                for (const auto& p : state.properties) {
-                    if (!p) continue;
-                    if (parseIdNum(p->id) > 0) continue;
-                    try {
-                        repos_.properties->addProperty(p);
-                        fprintf(stderr, "AppStateManager::save: addProperty attempted for name='%s' -> id now='%s'\n", p->name.c_str(), p->id.c_str());
-                    } catch (...) {
-                        fprintf(stderr, "AppStateManager::save: addProperty threw for name='%s'\n", p->name.c_str());
-                    }
-                }
-
-                // reload persisted and remap again
-                try {
-                    auto persisted2 = repos_.properties->getProperties();
-                    std::unordered_map<std::string, std::string> persistedNameToId2;
-                    for (const auto& pp : persisted2) {
-                        if (!pp) continue;
-                        persistedNameToId2[pp->name] = pp->id;
-                    }
-                    for (const auto& p : state.properties) {
-                        if (!p) continue;
-                        if (parseIdNum(p->id) <= 0) {
-                            auto it = persistedNameToId2.find(p->name);
-                            if (it != persistedNameToId2.end()) p->id = it->second;
-                        }
-                    }
-
-                    fprintf(stderr, "AppStateManager::save: persisted properties (reloaded after explicit insert):\n");
-                    for (const auto& pp : persisted2) {
-                        if (!pp) { fprintf(stderr, "  (null)\n"); continue; }
-                        fprintf(stderr, "  id='%s' name='%s'\n", pp->id.c_str(), pp->name.c_str());
-                    }
-
-                    fprintf(stderr, "AppStateManager::save: properties after second remap:\n");
-                    for (const auto& p : state.properties) {
-                        if (!p) { fprintf(stderr, "  (null)\n"); continue; }
-                        fprintf(stderr, "  id='%s' name='%s' (numeric? %s)\n", p->id.c_str(), p->name.c_str(), (parseIdNum(p->id) > 0) ? "yes" : "no");
-                    }
-                } catch (...) {
-                    // ignore
-                }
-            }
-        } catch (...) {
-            // ignore reload failures; remapping will log unresolved ids
-        }
     }
 
-    // Build mapping from temporary id -> final numeric id using the same shared_ptrs
-    std::unordered_map<std::string, std::string> tempToFinalId;
-    tempToFinalId.reserve(tempIdToPtr.size());
-    for (const auto& kv : tempIdToPtr) {
-        const auto& tempId = kv.first;
-        const auto& ptr = kv.second;
-        if (!ptr) continue;
-        if (!ptr->id.empty()) tempToFinalId[tempId] = ptr->id;
-    }
-
-    fprintf(stderr, "AppStateManager::save: tempToFinalId map:\n");
-    for (const auto& kv : tempToFinalId) fprintf(stderr, "  %s -> %s\n", kv.first.c_str(), kv.second.c_str());
-
-    // Build fallback map name -> id in case transactions hold property names instead of ids
-    std::unordered_map<std::string, std::string> nameToId;
-    nameToId.reserve(state.properties.size());
-    for (const auto& p : state.properties) {
-        if (!p) continue;
-        if (!p->name.empty() && !p->id.empty()) nameToId[p->name] = p->id;
-    }
-
-    fprintf(stderr, "AppStateManager::save: nameToId map:\n");
-    for (const auto& kv : nameToId) fprintf(stderr, "  %s -> %s\n", kv.first.c_str(), kv.second.c_str());
-
-    // replace temporary property ids in-place using tempId->finalId map or fallback to name->id
-    auto remapPropertyIds = [&](std::vector<std::string>& propIds) {
-        for (auto& pid : propIds) {
-            if (pid.empty()) continue;
-            if (parseIdNum(pid) > 0) {
-                fprintf(stderr, "AppStateManager::save: pid '%s' already numeric\n", pid.c_str());
-                continue; // already numeric
-            }
-            fprintf(stderr, "AppStateManager::save: resolving pid '%s'...\n", pid.c_str());
-            auto it = tempToFinalId.find(pid);
-            if (it != tempToFinalId.end()) {
-                fprintf(stderr, "  resolved via tempToFinalId -> %s\n", it->second.c_str());
-                pid = it->second; continue;
-            }
-            auto itn = nameToId.find(pid);
-            if (itn != nameToId.end()) {
-                fprintf(stderr, "  resolved via nameToId -> %s\n", itn->second.c_str());
-                pid = itn->second; continue;
-            }
-            // unresolved -> log for diagnostics
-            fprintf(stderr, "AppStateManager::save: unresolved property id '%s'\n", pid.c_str());
-        }
-    };
-
-    // Remap for global transactions
-    for (const auto& t : state.transactions) {
-        if (!t) continue;
-        remapPropertyIds(t->propertyIds);
-    }
-
-    // Property id remapping is performed for global transactions in state.transactions.
+    // No property-id remapping: UI provides stable UUID ids for properties and
+    // transactions reference those ids directly.
 
     if (repos_.contracts) {
-        // Ensure contract->propertyIds use final numeric ids (remap any temporary ids)
-        for (const auto& c : state.contracts) {
-            if (!c) continue;
-            remapPropertyIds(c->propertyIds);
-        }
-        // Capture original ids before upsert so we can remap transactions that referenced
-        // temporary contract ids (UUIDs) to the final numeric ids assigned by the DB.
-        std::unordered_map<std::string, std::shared_ptr<Contract>> originalContractById;
-        originalContractById.reserve(state.contracts.size());
-        for (const auto& c : state.contracts) {
-            if (!c) continue;
-            originalContractById[c->id] = c;
-        }
-
         for (const auto& c : state.contracts) {
             if (!c) continue;
             c->actorIds.clear();
@@ -239,29 +71,6 @@ void AppStateManager::save(const AppState& state) {
             c->propertyIds.clear();
             for (auto* p : c->properties) { if (p && !p->id.empty()) c->propertyIds.push_back(p->id); }
             repos_.contracts->upsertContract(c);
-        }
-
-        // Build mapping originalId -> finalId for contracts that changed id during upsert
-        std::unordered_map<std::string, std::string> contractTempToFinal;
-        for (const auto& kv : originalContractById) {
-            const std::string& origId = kv.first;
-            const auto& ptr = kv.second;
-            if (!ptr) continue;
-            const std::string& newId = ptr->id;
-            if (!origId.empty() && origId != newId) {
-                contractTempToFinal[origId] = newId;
-            }
-        }
-
-        if (!contractTempToFinal.empty()) {
-            // Remap transaction->contractId values
-            for (auto& t : state.transactions) {
-                if (!t) continue;
-                auto it = contractTempToFinal.find(t->contractId);
-                if (it != contractTempToFinal.end()) {
-                    t->contractId = it->second;
-                }
-            }
         }
     }
 

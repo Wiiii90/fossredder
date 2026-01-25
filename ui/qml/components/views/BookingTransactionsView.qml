@@ -23,7 +23,7 @@ Item {
     }
 
     function syncFields() {
-        if (suppressSync) return
+        
         if (isNew) {
             clearFields()
             return
@@ -32,8 +32,7 @@ Item {
             clearFields()
             return
         }
-        // if user is actively editing this transaction, avoid overwriting fields
-        if (uiData && current && current.id && uiData.isEditingTransaction(current.id)) return
+        
 
         nameField.text = current.name || ""
         bookingDateField.text = current.bookingDate || ""
@@ -47,30 +46,6 @@ Item {
 
     // local storage for new-transaction property assignments
     property var selectedPropertyIds: []
-    // prevent immediate model-driven sync from overwriting user clicks
-    property bool suppressSync: false
-    Timer {
-        id: syncTimer
-        interval: 150
-        repeat: false
-        onTriggered: { suppressSync = false; syncFields(); }
-    }
-
-    // debounce timer used to batch text edits before calling domain update
-    Timer {
-        id: updateTimer
-        interval: 300
-        repeat: false
-        onTriggered: {
-            if (!isNew && uiDomain && current && current.id) {
-                var amt = parseFloat(amountField.text)
-                if (isNaN(amt)) amt = 0.0
-                var sid = (current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
-                uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
-                // transaction type removed; recommend updating the contract instead via contract editor
-            }
-        }
-    }
 
     Connections { target: current; function onChanged() { syncFields() } }
     onIsNewChanged: syncFields()
@@ -88,11 +63,15 @@ Item {
             AppTextField {
                 id: nameField; Layout.fillWidth: true
                 onActiveFocusChanged: {
-                    if (!isNew && uiData) uiData.setEditingTransaction(current.id, activeFocus)
+                    if (!activeFocus && !isNew && uiDomain && current && current.id) {
+                        var amt = parseFloat(amountField.text)
+                        if (isNaN(amt)) amt = 0.0
+                        var sid = (current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
+                        uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
+                    }
                 }
                 onTextChanged: {
-                    // schedule inline update for existing transaction
-                    if (!isNew && uiDomain && current && current.id) updateTimer.restart()
+                    // inline update suppressed; persistent updates must be triggered explicitly
                 }
             }
         }
@@ -101,15 +80,29 @@ Item {
             Label { text: qsTr("Booking date"); Layout.preferredWidth: 120 }
             AppTextField {
                 id: bookingDateField; Layout.fillWidth: true
-                onActiveFocusChanged: { if (!isNew && uiData) uiData.setEditingTransaction(current.id, activeFocus) }
-                onTextChanged: { if (!isNew && uiDomain && current && current.id) updateTimer.restart() }
+                onActiveFocusChanged: {
+                    if (!activeFocus && !isNew && uiDomain && current && current.id) {
+                        var amt = parseFloat(amountField.text)
+                        if (isNaN(amt)) amt = 0.0
+                        var sid = (current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
+                        uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
+                    }
+                }
+                onTextChanged: { /* no automatic persistence */ }
             }
 
             Label { text: qsTr("Amount"); Layout.preferredWidth: 80 }
             AppTextField {
                 id: amountField; Layout.preferredWidth: 160
-                onActiveFocusChanged: { if (!isNew && uiData) uiData.setEditingTransaction(current.id, activeFocus) }
-                onTextChanged: { if (!isNew && uiDomain && current && current.id) updateTimer.restart() }
+                onActiveFocusChanged: {
+                    if (!activeFocus && !isNew && uiDomain && current && current.id) {
+                        var amt = parseFloat(amountField.text)
+                        if (isNaN(amt)) amt = 0.0
+                        var sid = (current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
+                        uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
+                    }
+                }
+                onTextChanged: { /* no automatic persistence */ }
             }
         }
 
@@ -118,8 +111,8 @@ Item {
             AppTextField {
                 id: typeField; Layout.fillWidth: true
                 placeholderText: qsTr("Type")
-                onActiveFocusChanged: { if (!isNew && uiData) uiData.setEditingTransaction(current.id, activeFocus) }
-                onTextChanged: { if (!isNew && uiDomain && current && current.id) updateTimer.restart() }
+                onActiveFocusChanged: { /* no editing marker handling */ }
+                onTextChanged: { /* no automatic persistence */ }
             }
         }
 
@@ -194,17 +187,9 @@ Item {
                 id: allocCheck
                 text: qsTr("Allocatable to tenant")
                 checked: false
-                onClicked: {
-                    // suppress immediate model sync briefly to avoid UI flicker
-                    suppressSync = true
-                    syncTimer.restart()
-                    // mark editing to suppress incremental overwrite while the user interacts
-                    if (!isNew && uiData) uiData.setEditingTransaction(current.id, true)
-                    // update the domain model immediately so syncFields does not revert the toggle
+                    onClicked: {
+                    // update the domain model in-memory
                     if (!isNew && uiDomain && current && current.id) uiDomain.updateTransactionAllocatable(current.id, allocCheck.checked)
-                    // clear editing marker shortly after to allow incremental updates again
-                    if (!isNew) Qt.callLater(function() { Qt.createQmlObject('import QtQuick 2.0; Timer { interval: 400; repeat: false; running: true; onTriggered: { if (uiData) uiData.setEditingTransaction(current.id, false) } }', root)
-                    })
                 }
             }
 
@@ -214,14 +199,9 @@ Item {
                 Layout.fillWidth: true
                 model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
                 currentIndex: 2
-                onActivated: {
-                    // mark editing to suppress incremental overwrite while the user interacts
-                    if (!isNew && uiData) uiData.setEditingTransaction(current.id, true)
-                    // apply status immediately to keep behavior consistent with other controls
+                    onActivated: {
+                    // apply status in-memory
                     if (!isNew && uiDomain && current && current.id) uiDomain.updateTransactionStatus(current.id, currentIndex)
-                    // clear editing marker shortly after
-                    if (!isNew) Qt.callLater(function() { Qt.createQmlObject('import QtQuick 2.0; Timer { interval: 400; repeat: false; running: true; onTriggered: { if (uiData) uiData.setEditingTransaction(current.id, false) } }', root)
-                    })
                 }
             }
             Item { Layout.fillWidth: true }

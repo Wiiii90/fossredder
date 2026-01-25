@@ -22,6 +22,12 @@ AppStateController::AppStateController(std::unique_ptr<IStorageManager> storageM
     }
 }
 
+void AppStateController::notifyState() {
+    try {
+        if (onStateChanged_) onStateChanged_(state_);
+    } catch (...) {}
+}
+
 void AppStateController::setStateChangedCallback(StateChanged cb) {
     onStateChanged_ = std::move(cb);
 }
@@ -48,15 +54,29 @@ void AppStateController::setDeletionImpactCallback(IStorageManager::DeletionImpa
 void AppStateController::openLatest() {
     if (!storageManager_) return;
     if (auto latest = storageManager_->loadLatestPath()) {
+        try {
+            fprintf(stderr, "AppStateController::openLatest: loading latest='%s'\n", latest->c_str());
+        } catch(...) {}
         state_ = storageManager_->loadFrom(*latest);
+        try {
+            fprintf(stderr, "AppStateController::openLatest: loaded state - actors=%zu props=%zu contracts=%zu statements=%zu transactions=%zu\n",
+                    state_.actors.size(), state_.properties.size(), state_.contracts.size(), state_.statements.size(), state_.transactions.size());
+        } catch(...) {}
         notify();
     }
 }
 
 void AppStateController::newFile(const std::string& path) {
     if (!storageManager_) return;
+    try {
+        fprintf(stderr, "AppStateController::newFile: creating new file '%s' (will reset state)\n", path.c_str());
+    } catch(...) {}
     storageManager_->createNew(path);
     state_ = AppState{};
+    try {
+        fprintf(stderr, "AppStateController::newFile: state reset -> actors=%zu props=%zu contracts=%zu statements=%zu transactions=%zu\n",
+                state_.actors.size(), state_.properties.size(), state_.contracts.size(), state_.statements.size(), state_.transactions.size());
+    } catch(...) {}
     notify();
 }
 

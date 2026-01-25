@@ -5,3 +5,4 @@
 struct AppStateStoreResult {
     DeletionImpact impact;
 };
+

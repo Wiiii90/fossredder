@@ -18,6 +18,7 @@
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
 #include "core/managers/IStorageManager.h"
+#include "core/managers/IRegistry.h"
 
 class IActorRepository;
 class IPropertyRepository;
@@ -117,7 +118,8 @@ public:
 
 private:
     std::string appDataDir_;
-    std::string registryPath_;
+    // registryPath_ removed in favor of an IRegistry implementation
+    std::shared_ptr<IRegistry> registry_;
     std::string currentPath_;
 
     RepoFactory repoFactory_;

@@ -2,7 +2,6 @@
 
 #include <QObject>
 #include <QHash>
-#include <QTimer>
 #include <QString>
 
 #include "core/controllers/AppStateController.h"
@@ -48,6 +47,7 @@ public:
     Q_INVOKABLE void updateTransactionActor(const QString& id, const QString& actorId);
     Q_INVOKABLE void updateTransactionAllocatable(const QString& id, bool allocatable);
     Q_INVOKABLE void updateTransactionProperties(const QString& id, const QStringList& propertyIds);
+    Q_INVOKABLE void commit();
     Q_INVOKABLE void exportData(const QString& format, bool includeFormulas, const QString& path);
     
 
@@ -67,13 +67,9 @@ private:
     void pruneInvalidContracts();
     void pruneInvalidTransactions();
 
-    // Debounce timers keyed by an arbitrary string (e.g. "tx:<id>") used to
-    // coalesce rapid updates into a single commit.
-    QHash<QString, QTimer*> commitTimers_;
-
-    // Schedule a debounced commit; subsequent calls with same key within
-    // `ms` milliseconds will restart the timer.
-    void scheduleDebouncedCommit(const QString& key, int ms = 300);
+    // NOTE: debounced persistence removed. Controller methods now modify
+    // in-memory AppState only; persistence should be triggered explicitly
+    // by higher-level flows.
 
     // (Contracts are created explicitly when draft transaction has a type.)
 };

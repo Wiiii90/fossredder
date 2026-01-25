@@ -126,7 +126,15 @@ int main(int argc, char* argv[]) {
         // continue with empty state
     }
 
-    if (appStateCtrl.currentPath().empty()) {
+    // Only create a new file if no path was found AND the loaded state is empty.
+    // This avoids accidentally overwriting a valid loaded state due to
+    // registry or ordering issues at startup.
+    if (appStateCtrl.currentPath().empty()
+        && appStateCtrl.state().actors.empty()
+        && appStateCtrl.state().properties.empty()
+        && appStateCtrl.state().contracts.empty()
+        && appStateCtrl.state().statements.empty()
+        && appStateCtrl.state().transactions.empty()) {
         appStateCtrl.newFile((std::filesystem::path(appDataRoot) / "fossredder.db").string());
     }
 

@@ -15,10 +15,18 @@
 #include <utility>
 
 #include "core/managers/AppStateManager.h"
+#include "core/managers/SqliteRegistry.h"
 
 StorageManager::StorageManager(std::string appDataDir)
     : appDataDir_(std::move(appDataDir)) {
-    registryPath_ = (std::filesystem::path(appDataDir_) / "files.json").string();
+    // Use a sqlite-backed registry located in the app data root. This
+    // leverages the existing configs table and provides atomic writes.
+    try {
+        auto dbPath = (std::filesystem::path(appDataDir_) / "fossredder.db").string();
+        registry_ = std::make_shared<SqliteRegistry>(dbPath);
+    } catch (...) {
+        registry_ = nullptr;
+    }
 }
 
 void StorageManager::setRepoFactory(RepoFactory factory) {
@@ -38,36 +46,12 @@ void StorageManager::setDeletionImpactCallback(DeletionImpactCallback cb) {
 }
 
 std::optional<std::string> StorageManager::loadLatestPath() const {
-    std::ifstream in(registryPath_, std::ios::in);
-    if (!in.good()) return std::nullopt;
-
-    std::string s;
-    std::getline(in, s, '\0');
-    in.close();
-
-    auto pos = s.find("\"latest\"");
-    if (pos == std::string::npos) return std::nullopt;
-    pos = s.find(':', pos);
-    if (pos == std::string::npos) return std::nullopt;
-    pos = s.find('"', pos);
-    if (pos == std::string::npos) return std::nullopt;
-    auto end = s.find('"', pos + 1);
-    if (end == std::string::npos) return std::nullopt;
-    return s.substr(pos + 1, end - pos - 1);
+    if (registry_) return registry_->getLatest();
+    return std::nullopt;
 }
 
 void StorageManager::setLatestPath(const std::string& filePath) {
-    ensureRegistryDir();
-    std::ofstream out(registryPath_, std::ios::trunc);
-    if (!out.good()) return;
-    out << "{\"latest\":\"";
-    for (char c : filePath) {
-        if (c == '\\') out << "\\\\";
-        else if (c == '"') out << "\\\"";
-        else out << c;
-    }
-    out << "\"}";
-    out.close();
+    if (registry_) registry_->setLatest(filePath);
 }
 
 AppState StorageManager::load() {
@@ -141,11 +125,7 @@ void StorageManager::createNew(const std::string& filePath) {
 }
 
 void StorageManager::ensureRegistryDir() const {
-    std::filesystem::path p(registryPath_);
-    auto dir = p.parent_path();
-    if (!dir.empty() && !std::filesystem::exists(dir)) {
-        std::filesystem::create_directories(dir);
-    }
+    // no-op: registry is now sqlite-backed and located in appDataDir_.
 }
 
 StorageManager::Repositories StorageManager::reposForCurrent() const {
