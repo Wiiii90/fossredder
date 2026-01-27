@@ -3,8 +3,12 @@
 #include <QObject>
 #include <QHash>
 #include <QString>
+#include <memory>
+#include <QVariant>
 
 #include "core/controllers/AppStateController.h"
+#include "core/analysis/AnalysisController.h"
+#include "core/analysis/AnalysisController.h"
 
 class StatementDraft;
 
@@ -24,6 +28,10 @@ public:
                                    const QStringList& actorIds, const QStringList& propertyIds);
 
     Q_INVOKABLE QString addStatement(const QString& name);
+    Q_INVOKABLE QString addAnalysis(const QString& name, const QString& type, const QString& configJson, const QString& filterSpec);
+    Q_INVOKABLE QVariantMap computeAnalysis(const QString& analysisId, const QString& filterSpec) const;
+    Q_INVOKABLE QStringList getPropertyIds() const;
+    Q_INVOKABLE QStringList getContractTypes() const;
     Q_INVOKABLE QString addTransaction(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId);
     Q_INVOKABLE QString addTransactionWithStatus(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, int status);
     Q_INVOKABLE QString addTransactionDetailed(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId, int status, const QString& actorId);
@@ -63,6 +71,7 @@ public:
 
 private:
     AppStateController* core_;
+    std::unique_ptr<AnalysisController> analysisController_;
 
     void pruneInvalidContracts();
     void pruneInvalidTransactions();

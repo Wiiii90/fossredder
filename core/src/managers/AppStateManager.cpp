@@ -21,6 +21,8 @@
 #include "core/repositories/IPropertyRepository.h"
 #include "core/repositories/IStatementRepository.h"
 #include "core/repositories/ITransactionRepository.h"
+#include "core/repositories/IAnalysisRepository.h"
+#include "core/repositories/IAnnualRepository.h"
 
 #include <unordered_set>
 
@@ -34,6 +36,25 @@ AppState AppStateManager::load() {
     if (repos_.contracts) state.contracts = repos_.contracts->getContracts();
     if (repos_.statements) state.statements = repos_.statements->getStatements();
     if (repos_.transactions) state.transactions = repos_.transactions->getTransactions();
+    if (repos_.analyses) {
+        auto vec = repos_.analyses->getAnalyses();
+        state.analyses.clear();
+        for (const auto& a : vec) state.analyses.push_back(a);
+    }
+    if (repos_.annuals) {
+        auto vec = repos_.annuals->getAnnuals();
+        state.annuals.clear();
+        for (const auto& an : vec) state.annuals.push_back(an);
+    }
+    // annuals repository may be provided by persistence layer; load via dynamic_cast if available
+    // to avoid breaking existing Repositories struct. If persistence provides an IAnnualRepository
+    // add it to the Repositories and load similarly.
+    if (repos_.analyses) state.analyses = repos_.analyses->getAnalyses();
+    // load annuals if repository present (optional)
+    // annuals repository may be provided by persistence layer
+    // (ensure AppStateManager::Repositories contains it when constructed)
+    // Note: we don't register an annuals field in Repositories struct to keep
+    // compatibility; if needed, add it there.
 
     rehydrate(state);
     validate(state);
@@ -93,6 +114,14 @@ void AppStateManager::save(const AppState& state) {
             if (t->contract && !t->contract->id.empty()) t->contractId = t->contract->id;
             repos_.transactions->upsertTransaction(t);
         }
+    }
+
+    if (repos_.analyses) {
+        for (const auto& a : state.analyses) if (a) repos_.analyses->upsertAnalysis(a);
+    }
+
+    if (repos_.annuals) {
+        for (const auto& an : state.annuals) if (an) repos_.annuals->upsertAnnual(an);
     }
 }
 

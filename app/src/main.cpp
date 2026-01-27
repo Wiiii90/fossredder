@@ -85,7 +85,8 @@ int main(int argc, char* argv[]) {
 
     std::shared_ptr<IConfigRepository> cfgRepo;
     try {
-        cfgRepo = createSqliteConfigRepository(cfgDbPath);
+        auto cfgDb = createSqliteDb(cfgDbPath);
+        cfgRepo = createSqliteConfigRepository(cfgDb);
     } catch (const std::exception& ex) {
         fprintf(stderr, "Warning: failed to open config DB '%s': %s\n", cfgDbPath.c_str(), ex.what());
         cfgRepo = nullptr;

@@ -18,6 +18,13 @@
         <file>components/controls/AppCheckBox.qml</file>
         <file>components/controls/AppComboBox.qml</file>
         <file>utils/FileUtils.js</file>
+		<file>views/AnalysisSidebar.qml</file>
+        <file>views/AnalysisView.qml</file>
+        <file>views/CreateAnalysis.qml</file>
+        <file>views/AnalysisDetail.qml</file>
+        <file>views/CreateAnnual.qml</file>
+        <file>views/AnnualView.qml</file>
+        <file>views/AnnualSidebar.qml</file>
         <file>views/ActorsSidebar.qml</file>
         <file>views/ActorsView.qml</file>
         <file>views/BookingSidebar.qml</file>

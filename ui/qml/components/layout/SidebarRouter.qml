@@ -24,6 +24,8 @@ Item {
         case sectionBooking: return "qrc:/qml/views/BookingSidebar.qml";
         case sectionImport: return "qrc:/qml/views/ImportSidebar.qml";
         case UiNavigation.Export: return "qrc:/qml/views/ExportSidebar.qml";
+        case UiNavigation.Analysis: return "qrc:/qml/views/AnalysisSidebar.qml";
+        case UiNavigation.Annual: return "qrc:/qml/views/AnnualSidebar.qml";
         default: return "qrc:/qml/views/PlaceholderSidebar.qml";
         }
     }

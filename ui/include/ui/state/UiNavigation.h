@@ -14,7 +14,9 @@ public:
         Contracts,
         Booking,
         Import,
-        Export
+        Export,
+        Analysis,
+        Annual
     };
     Q_ENUM(Section)
 

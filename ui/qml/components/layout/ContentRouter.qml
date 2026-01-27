@@ -26,11 +26,15 @@ Item {
                             ? "qrc:/qml/views/ContractsView.qml"
                             : (uiNav && uiNav.section === UiNavigation.Booking)
                                 ? "qrc:/qml/views/BookingView.qml"
-                                : (uiNav && uiNav.section === UiNavigation.Import)
+        : (uiNav && uiNav.section === UiNavigation.Import)
                                     ? "qrc:/qml/views/ImportView.qml"
                                     : (uiNav && uiNav.section === UiNavigation.Export)
                                         ? "qrc:/qml/views/ExportView.qml"
-                                        : "qrc:/qml/views/PlaceholderView.qml";
+                                        : (uiNav && uiNav.section === UiNavigation.Analysis)
+                                            ? "qrc:/qml/views/AnalysisView.qml"
+                                            : (uiNav && uiNav.section === UiNavigation.Annual)
+                                                ? "qrc:/qml/views/AnnualView.qml"
+                                                : "qrc:/qml/views/PlaceholderView.qml";
         try { mainLoader.item.setContentSource(s) } catch(e) {}
     }
 

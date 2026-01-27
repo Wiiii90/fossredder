@@ -10,19 +10,26 @@
 #include "core/models/Contract.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
+#include "core/models/Analysis.h"
 #include "core/import/ActorMatcher.h"
 #include "ui/models/StatementDraft.h"
 
 #include "core/controllers/ExportController.h"
 #include "core/controllers/CsvController.h"
 #include "core/controllers/XlsxController.h"
+#include "core/analysis/AnalysisController.h"
+#include <QVariant>
+#include "core/analysis/Filter.h"
 
 #include <QHash>
+#include <cstdio>
 
 static std::string q2s(const QString& s) { auto u8 = s.toUtf8(); return std::string(u8.constData(), static_cast<size_t>(u8.size())); }
 
 UiDomainController::UiDomainController(AppStateController* core, QObject* parent)
     : QObject(parent), core_(core) {}
+
+// Note: analysisController_ is lazily constructed when used to avoid header ordering issues
 
 // Debounced commit logic removed. Persistence must be invoked explicitly
 // via the AppStateController::commit() call from higher-level code when
@@ -43,6 +50,34 @@ QString UiDomainController::addActorWithAliases(const QString& name, const QStri
     for (const auto& a: aliases) { auto t = a.trimmed(); if (t.isEmpty()) continue; actor->aliases.push_back(q2s(t)); }
     core_->mutableState().actors.push_back(actor);
     return QString::fromStdString(actor->id);
+}
+
+QStringList UiDomainController::getPropertyIds() const {
+    QStringList out;
+    if (!core_) return out;
+    for (const auto& p : core_->state().properties) {
+        if (!p) continue;
+        out.push_back(QString::fromStdString(p->id));
+    }
+    try { fprintf(stderr, "UiDomainController::getPropertyIds: returning %d ids\n", out.size()); } catch(...) {}
+    return out;
+}
+
+QStringList UiDomainController::getContractTypes() const {
+    QStringList out;
+    if (!core_) return out;
+    std::unordered_set<std::string> seen;
+    for (const auto& c : core_->state().contracts) {
+        if (!c) continue;
+        const std::string t = c->type;
+        if (t.empty()) continue;
+        if (seen.find(t) != seen.end()) continue;
+        seen.insert(t);
+        out.push_back(QString::fromStdString(t));
+    }
+    try { fprintf(stderr, "UiDomainController::getContractTypes: returning %d types\n", out.size()); } catch(...) {}
+    for (const auto &s : out) { try { fprintf(stderr, " UiDomainController::getContractTypes: type=%s\n", s.toUtf8().constData()); } catch(...) {} }
+    return out;
 }
 
 QStringList UiDomainController::getActorAliases(const QString& actorId) const {
@@ -108,6 +143,116 @@ QString UiDomainController::addStatement(const QString& name) {
     s->name = q2s(name);
     core_->mutableState().statements.push_back(s);
     return QString::fromStdString(s->id);
+}
+
+QString UiDomainController::addAnalysis(const QString& name, const QString& type, const QString& configJson, const QString& filterSpec) {
+    if (!core_) return {};
+    auto analysis = std::make_shared<Analysis>();
+    analysis->id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+    analysis->name = q2s(name);
+    analysis->type = q2s(type);
+    analysis->configJson = q2s(configJson);
+    analysis->filterSpec = q2s(filterSpec);
+    core_->mutableState().analyses.push_back(analysis);
+    if (core_) core_->notifyState();
+    return QString::fromStdString(analysis->id);
+}
+
+QVariantMap UiDomainController::computeAnalysis(const QString& analysisId, const QString& filterSpec) const {
+    QVariantMap out;
+    if (!core_) return out;
+    const std::string aid = analysisId.toStdString();
+    const AnalysisController ctrl;
+    // find analysis
+    for (const auto& a : core_->state().analyses) {
+        if (!a) continue;
+        if (a->id != aid) continue;
+        // determine effective filterSpec: prefer explicit param, else analysis.filterSpec
+        const std::string effectiveFilter = filterSpec.isEmpty() ? a->filterSpec : filterSpec.toStdString();
+        const auto res = ctrl.computeAnalysis(*a, core_->state(), effectiveFilter);
+
+        QVariantMap metrics;
+        for (const auto& kv : res.metrics) metrics.insert(QString::fromStdString(kv.first), kv.second);
+
+        QVariantList table;
+        for (const auto& row : res.table) {
+            QVariantList r;
+            for (const auto& col : row) r.push_back(QString::fromStdString(col));
+            table.push_back(r);
+        }
+
+        QVariantList artifacts;
+        for (const auto& art : res.artifacts) artifacts.push_back(QString::fromStdString(art));
+
+        out["metrics"] = metrics;
+        out["table"] = table;
+        // include analysis type/config for QML rendering — prefer concrete plot subtype if provided
+        std::string outType = a->type;
+        std::string outConfig = a->configJson;
+        // if analysis is a plot and configJson contains a plotType field, extract it for UI convenience
+        if (outType == "plot" && !outConfig.empty()) {
+            // try a simple substring parse for "plotType" : "..."
+            const std::string key = "\"plotType\"";
+            auto pos = outConfig.find(key);
+            if (pos != std::string::npos) {
+                auto colon = outConfig.find(':', pos + key.size());
+                if (colon != std::string::npos) {
+                    auto firstQuote = outConfig.find('"', colon + 1);
+                    if (firstQuote != std::string::npos) {
+                        auto secondQuote = outConfig.find('"', firstQuote + 1);
+                        if (secondQuote != std::string::npos && secondQuote > firstQuote) {
+                            outType = outConfig.substr(firstQuote + 1, secondQuote - firstQuote - 1);
+                        }
+                    }
+                }
+            }
+        }
+        out["type"] = QString::fromStdString(outType);
+        out["config"] = QString::fromStdString(outConfig);
+
+        // also include matched transactions (ids + summary) according to filter
+        QVariantList txlist;
+        Filter f = parseFilterSpec(effectiveFilter);
+        try { fprintf(stderr, "UiDomainController::computeAnalysis: parsing filter='%s' f.empty=%d totalTx=%zu\n", effectiveFilter.c_str(), f.empty(), core_->state().transactions.size()); } catch(...) {}
+        size_t matched = 0;
+        for (const auto& tptr : core_->state().transactions) {
+            if (!tptr) continue;
+            bool match = true;
+            if (!effectiveFilter.empty()) match = f.matches(tptr, core_->state());
+            try { fprintf(stderr, "  tx id=%s date='%s' contractId='%s' match=%d\n", tptr->id.c_str(), tptr->bookingDate.c_str(), tptr->contractId.c_str(), match); } catch(...) {}
+            if (!match) continue;
+            QVariantMap tm;
+            tm["id"] = QString::fromStdString(tptr->id);
+            tm["name"] = QString::fromStdString(tptr->name);
+            tm["date"] = QString::fromStdString(tptr->bookingDate);
+            tm["amount"] = tptr->amount;
+            tm["contractId"] = QString::fromStdString(tptr->contractId);
+            // include resolved contract type for easier UI filtering/legend matching
+            std::string ctype = "unassigned";
+            if (!tptr->contractId.empty()) {
+                for (const auto& cptr : core_->state().contracts) {
+                    if (!cptr) continue;
+                    if (cptr->id == tptr->contractId) { ctype = cptr->type; break; }
+                }
+            }
+            tm["contractType"] = QString::fromStdString(ctype);
+            txlist.push_back(tm);
+            ++matched;
+        }
+        try { fprintf(stderr, "UiDomainController::computeAnalysis: matched=%zu transactions\n", matched); } catch(...) {}
+        out["transactions"] = txlist;
+        out["artifacts"] = artifacts;
+        out["generatedAt"] = QString::fromStdString(res.generatedAt);
+
+        // debug: print summary to stderr to help UI troubleshooting
+        try {
+            fprintf(stderr, "UiDomainController::computeAnalysis: analysisId=%s effectiveFilter='%s' tableRows=%zu metrics=%zu matchedTx=%zu\n",
+                    a->id.c_str(), effectiveFilter.c_str(), res.table.size(), res.metrics.size(), txlist.size());
+        } catch(...) {}
+        return out;
+    }
+
+    return out;
 }
 
 QString UiDomainController::addTransaction(const QString& name, const QString& bookingDate, double amount, const QString& description, const QString& statementId) {

@@ -18,6 +18,8 @@ class IPropertyRepository;
 class IContractRepository;
 class IStatementRepository;
 class ITransactionRepository;
+class IAnalysisRepository;
+class IAnnualRepository;
 
 class AppStateManager {
 public:
@@ -27,6 +29,8 @@ public:
         std::shared_ptr<IContractRepository> contracts;
         std::shared_ptr<IStatementRepository> statements;
         std::shared_ptr<ITransactionRepository> transactions;
+        std::shared_ptr<IAnalysisRepository> analyses;
+        std::shared_ptr<IAnnualRepository> annuals;
     };
 
     /**

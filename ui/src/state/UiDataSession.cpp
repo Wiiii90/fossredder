@@ -46,6 +46,7 @@ UiDataSession::UiDataSession(QObject* parent)
         }
     });
 
+
     connect(&transactions_, &QAbstractItemModel::dataChanged, this, [this](const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles){
         // Only react when roles affecting sums changed; if roles is empty treat as full update
         if (!roles.isEmpty()) {
@@ -67,7 +68,6 @@ UiDataSession::UiDataSession(QObject* parent)
 
     connect(&transactions_, &QAbstractItemModel::modelReset, this, [this](){ recomputeAllPropertySums(); });
 }
-
 void UiDataSession::loadFromState(const AppState& state)
 {
     actors_.setActors(state.actors);
@@ -75,6 +75,8 @@ void UiDataSession::loadFromState(const AppState& state)
     contracts_.setContracts(state.contracts);
     statements_.setStatements(state.statements);
     transactions_.setTransactions(state.transactions);
+    analyses_.setAnalyses(state.analyses);
+    annuals_.setAnnuals(state.annuals);
     // also forward contracts to transactions model so transaction.type can be resolved
     transactions_.setContracts(state.contracts);
 
@@ -110,6 +112,9 @@ void UiDataSession::loadFromState(const AppState& state)
     refreshSelectedContract();
     refreshSelectedStatement();
     refreshSelectedTransaction();
+    refreshSelectedAnalysis();
+    refreshSelectedAnnual();
+    lastAnalysisResult_.clear();
 }
 
 void UiDataSession::setSelectedActorId(const QString& id)
@@ -150,6 +155,22 @@ void UiDataSession::setSelectedTransactionId(const QString& id)
     selectedTransactionId_ = id;
     refreshSelectedTransaction();
     emit selectedTransactionIdChanged();
+}
+
+void UiDataSession::setSelectedAnalysisId(const QString& id)
+{
+    if (selectedAnalysisId_ == id) return;
+    selectedAnalysisId_ = id;
+    refreshSelectedAnalysis();
+    emit selectedAnalysisIdChanged();
+}
+
+void UiDataSession::setSelectedAnnualId(const QString& id)
+{
+    if (selectedAnnualId_ == id) return;
+    selectedAnnualId_ = id;
+    refreshSelectedAnnual();
+    emit selectedAnnualIdChanged();
 }
 
 void UiDataSession::refreshSelectedActor()
@@ -267,6 +288,46 @@ void UiDataSession::refreshSelectedTransaction()
     }
 
     selectedTransaction_.clear();
+}
+
+void UiDataSession::refreshSelectedAnalysis()
+{
+    if (selectedAnalysisId_.isEmpty()) {
+        selectedAnalysis_.clear();
+        return;
+    }
+
+    for (const auto& a : analyses_.analyses()) {
+        if (a && QString::fromStdString(a->id) == selectedAnalysisId_) {
+            selectedAnalysis_.setContract(QString::fromStdString(a->id),
+                                          QString::fromStdString(a->name),
+                                          QString::fromStdString(a->type),
+                                          QString());
+            return;
+        }
+    }
+
+    selectedAnalysis_.clear();
+}
+
+void UiDataSession::refreshSelectedAnnual()
+{
+    if (selectedAnnualId_.isEmpty()) {
+        selectedAnnual_.clear();
+        return;
+    }
+
+    for (const auto& an : annuals_.annuals()) {
+        if (an && QString::fromStdString(an->id) == selectedAnnualId_) {
+            selectedAnnual_.setContract(QString::fromStdString(an->id),
+                                        QString::number(an->year),
+                                        QString(),
+                                        QString());
+            return;
+        }
+    }
+
+    selectedAnnual_.clear();
 }
 
 QVariantList UiDataSession::transactionIdsForStatement(const QString& statementId) const
@@ -436,6 +497,16 @@ void UiDataSession::recomputePropertySum(const QString& propertyId) const
     // emit change to QML listeners
     QMetaObject::invokeMethod(const_cast<UiDataSession*>(this), "transactionSumsUpdated", Qt::QueuedConnection, Q_ARG(QString, propertyId));
 }
+QString UiDataSession::propertyNameForId(const QString& id) const
+{
+    if (id.isEmpty()) return QString();
+    for (const auto& p : properties_.properties()) {
+        if (p && QString::fromStdString(p->id) == id) return QString::fromStdString(p->name);
+    }
+    return id; // fallback to id if not found
+}
+
+// lastAnalysisResult accessors implemented inline in header
 
 void UiDataSession::applyTransactionUpdates(const std::vector<std::string>& ids, const AppState& state)
 {

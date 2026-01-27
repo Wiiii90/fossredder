@@ -6,35 +6,19 @@
 #include "persistence/repositories/SqliteTransactionRepository.h"
 #include "persistence/repositories/SqliteContractRepository.h"
 #include "persistence/SqliteDb.h"
+#include "persistence/repositories/SqliteAnalysisRepository.h"
+#include "persistence/repositories/SqliteAnnualRepository.h"
 
+// Helper that creates a SqliteDb instance from a path. Primary factory
+// functions prefer the shared_ptr<SqliteDb> overload for reuse and DI.
 std::shared_ptr<SqliteDb> createSqliteDb(const std::string& dbPath) {
     return std::make_shared<SqliteDb>(dbPath);
 }
 
-std::shared_ptr<IActorRepository> createSqliteActorRepository(const std::string& dbPath) {
-    return std::make_shared<SqliteActorRepository>(dbPath);
-}
+// No dbPath overloads implemented here. Use createSqliteDb() then pass the
+// returned shared_ptr to the primary factory functions.
 
-std::shared_ptr<IPropertyRepository> createSqlitePropertyRepository(const std::string& dbPath) {
-    return std::make_shared<SqlitePropertyRepository>(dbPath);
-}
-
-std::shared_ptr<IStatementRepository> createSqliteStatementRepository(const std::string& dbPath) {
-    return std::make_shared<SqliteStatementRepository>(dbPath);
-}
-
-std::shared_ptr<IConfigRepository> createSqliteConfigRepository(const std::string& dbPath) {
-    return std::make_shared<SqliteConfigRepository>(dbPath);
-}
-
-std::shared_ptr<ITransactionRepository> createSqliteTransactionRepository(const std::string& dbPath) {
-    return std::make_shared<SqliteTransactionRepository>(dbPath);
-}
-
-std::shared_ptr<IContractRepository> createSqliteContractRepository(const std::string& dbPath) {
-    return std::make_shared<SqliteContractRepository>(dbPath);
-}
-
+// Primary constructors taking an existing shared SqliteDb
 std::shared_ptr<IActorRepository> createSqliteActorRepository(const std::shared_ptr<SqliteDb>& db) {
     return std::make_shared<SqliteActorRepository>(db);
 }
@@ -57,4 +41,12 @@ std::shared_ptr<ITransactionRepository> createSqliteTransactionRepository(const 
 
 std::shared_ptr<IContractRepository> createSqliteContractRepository(const std::shared_ptr<SqliteDb>& db) {
     return std::make_shared<SqliteContractRepository>(db);
+}
+
+std::shared_ptr<IAnalysisRepository> createSqliteAnalysisRepository(const std::shared_ptr<SqliteDb>& db) {
+    return std::make_shared<SqliteAnalysisRepository>(db);
+}
+
+std::shared_ptr<IAnnualRepository> createSqliteAnnualRepository(const std::shared_ptr<SqliteDb>& db) {
+    return std::make_shared<SqliteAnnualRepository>(db);
 }
