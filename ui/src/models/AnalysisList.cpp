@@ -16,12 +16,29 @@ QVariant AnalysisList::data(const QModelIndex& index, int role) const {
     const auto& a = analyses_[row];
     if (!a) return {};
 
+    // build adjustments JSON string for QML access
+    std::string adjustmentsJson = "{}";
+    try {
+        if (!a->adjustments.empty()) {
+            std::string s = "{";
+            bool first = true;
+            for (const auto &p : a->adjustments) {
+                if (!first) s += ",";
+                first = false;
+                s += "\"" + p.first + "\":" + std::to_string(p.second);
+            }
+            s += "}";
+            adjustmentsJson = s;
+        }
+    } catch (...) { adjustmentsJson = "{}"; }
+
     switch (role) {
     case IdRole: return QString::fromStdString(a->id);
     case NameRole: return QString::fromStdString(a->name);
     case TypeRole: return QString::fromStdString(a->type);
     case ConfigRole: return QString::fromStdString(a->configJson);
     case FilterRole: return QString::fromStdString(a->filterSpec);
+    case AdjustmentsRole: return QString::fromStdString(adjustmentsJson);
     default: return {};
     }
 }
@@ -75,6 +92,7 @@ QHash<int, QByteArray> AnalysisList::roleNames() const {
     roles[TypeRole] = "type";
     roles[ConfigRole] = "configJson";
     roles[FilterRole] = "filterSpec";
+    roles[AdjustmentsRole] = "adjustments";
     return roles;
 }
 
@@ -118,9 +136,45 @@ bool AnalysisList::updateAnalysisById(const QString& id, const QString& name, co
             a->configJson = configJson.toStdString();
             a->filterSpec = filterSpec.toStdString();
             const QModelIndex idx = index(i);
-            emit dataChanged(idx, idx, {NameRole, TypeRole, ConfigRole, FilterRole});
+            emit dataChanged(idx, idx, {NameRole, TypeRole, ConfigRole, FilterRole, AdjustmentsRole});
             return true;
         }
     }
     return false;
+}
+
+void AnalysisList::setAdjustmentsById(const QString& id, const QString& json) {
+    for (int i = 0; i < static_cast<int>(analyses_.size()); ++i) {
+        const auto& a = analyses_[i];
+        if (!a) continue;
+        if (QString::fromStdString(a->id) == id) {
+            // parse simple flat json of { "txid": number, ... }
+            a->adjustments.clear();
+            try {
+                std::string s = json.toStdString();
+                size_t pos = 0;
+                while (pos < s.size()) {
+                    // find quote
+                    auto q1 = s.find('"', pos);
+                    if (q1 == std::string::npos) break;
+                    auto q2 = s.find('"', q1 + 1);
+                    if (q2 == std::string::npos) break;
+                    std::string key = s.substr(q1 + 1, q2 - q1 - 1);
+                    auto colon = s.find(':', q2 + 1);
+                    if (colon == std::string::npos) break;
+                    size_t j = colon + 1;
+                    while (j < s.size() && isspace(static_cast<unsigned char>(s[j]))) ++j;
+                    size_t start = j;
+                    while (j < s.size() && (isdigit(static_cast<unsigned char>(s[j])) || s[j]=='.' || s[j]=='-' || s[j]=='+' || s[j]=='e' || s[j]=='E')) ++j;
+                    if (start < j) {
+                        try { double v = std::stod(s.substr(start, j - start)); a->adjustments.emplace(key, v); } catch(...) {}
+                    }
+                    pos = j;
+                }
+            } catch(...) {}
+            const QModelIndex idx = index(i);
+            emit dataChanged(idx, idx, {AdjustmentsRole});
+            return;
+        }
+    }
 }

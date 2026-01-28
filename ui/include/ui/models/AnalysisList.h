@@ -15,7 +15,8 @@ public:
         NameRole,
         TypeRole,
         ConfigRole,
-        FilterRole
+        FilterRole,
+        AdjustmentsRole
     };
 
     explicit AnalysisList(QObject* parent = nullptr);
@@ -32,6 +33,7 @@ public:
     Q_INVOKABLE int addAnalysis(const QString& name, const QString& type);
     Q_INVOKABLE void removeAt(int row);
     Q_INVOKABLE bool updateAnalysisById(const QString& id, const QString& name, const QString& type, const QString& configJson, const QString& filterSpec);
+    Q_INVOKABLE void setAdjustmentsById(const QString& id, const QString& json);
 
 private:
     std::vector<std::shared_ptr<Analysis>> analyses_;

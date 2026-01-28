@@ -30,20 +30,17 @@ UiDataSession::UiDataSession(QObject* parent)
 
     connect(&transactions_, &QAbstractItemModel::rowsRemoved, this, [this](const QModelIndex& parent, int first, int last){
         Q_UNUSED(parent);
-        // recompute for all property ids captured in aboutToBeRemoved
-        for (const auto& pid : pendingRecomputePropertyIds_) recomputePropertySum(pid);
+        // clear caches and recompute all sums when rows removed
+        propertySumsCache_.clear();
+        recomputeAllPropertySums();
         pendingRecomputePropertyIds_.clear();
     });
 
     connect(&transactions_, &QAbstractItemModel::rowsInserted, this, [this](const QModelIndex& parent, int first, int last){
         Q_UNUSED(parent);
-        const auto vec = transactions_.transactions();
-        for (int r = first; r <= last; ++r) {
-            if (r < 0 || r >= static_cast<int>(vec.size())) continue;
-            const auto& t = vec[static_cast<size_t>(r)];
-            if (!t) continue;
-            for (const auto& pid : t->propertyIds) recomputePropertySum(QString::fromStdString(pid));
-        }
+        // clear cached sums and recompute
+        propertySumsCache_.clear();
+        recomputeAllPropertySums();
     });
 
 
@@ -57,13 +54,9 @@ UiDataSession::UiDataSession(QObject* parent)
             if (!relevant) return;
         }
 
-        const auto vec = transactions_.transactions();
-        for (int r = topLeft.row(); r <= bottomRight.row(); ++r) {
-            if (r < 0 || r >= static_cast<int>(vec.size())) continue;
-            const auto& t = vec[static_cast<size_t>(r)];
-            if (!t) continue;
-            for (const auto& pid : t->propertyIds) recomputePropertySum(QString::fromStdString(pid));
-        }
+        // clear cached sums and recompute all when transaction data affecting sums changed
+        propertySumsCache_.clear();
+        recomputeAllPropertySums();
     });
 
     connect(&transactions_, &QAbstractItemModel::modelReset, this, [this](){ recomputeAllPropertySums(); });
@@ -106,6 +99,13 @@ void UiDataSession::loadFromState(const AppState& state)
 
     // recompute sums cache after loading
     recomputeAllPropertySums();
+
+    // clear any calc-aware caches when analyses change (connect to model reset)
+    connect(&analyses_, &QAbstractItemModel::modelReset, this, [this]() {
+        propertySumsCache_.clear();
+        // notify QML for all properties
+        for (const auto& p : properties_.properties()) if (p) QMetaObject::invokeMethod(this, "transactionSumsUpdated", Qt::QueuedConnection, Q_ARG(QString, QString::fromStdString(p->id)));
+    });
 
     refreshSelectedActor();
     refreshSelectedProperty();

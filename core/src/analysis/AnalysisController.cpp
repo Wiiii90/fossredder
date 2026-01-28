@@ -4,6 +4,7 @@
 #include "core/analysis/AnalysisResult.h"
 #include "core/analysis/strategies/TabAnalysisStrategy.h"
 #include "core/analysis/strategies/PlotAnalysisStrategy.h"
+#include "core/analysis/strategies/CalcAnalysisStrategy.h"
 #include "core/analysis/Filter.h"
 
 AnalysisController::AnalysisController()
@@ -11,6 +12,7 @@ AnalysisController::AnalysisController()
     // register built-in strategies
     strategies_.emplace("tab", std::make_unique<TabAnalysisStrategy>());
     strategies_.emplace("plot", std::make_unique<PlotAnalysisStrategy>());
+    strategies_.emplace("calc", std::make_unique<CalcAnalysisStrategy>());
 }
 
 AnalysisController::~AnalysisController() = default;
