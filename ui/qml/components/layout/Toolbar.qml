@@ -6,6 +6,7 @@ import FossRedder 1.0
 Item {
     id: toolBar
     implicitHeight: 80
+        property int iconRowHeight: Math.round(implicitHeight * 0.55)
 
     Rectangle {
         id: bg
@@ -23,21 +24,18 @@ Item {
             spacing: 14
             Layout.alignment: Qt.AlignVCenter
 
-            // File group (inline) - consistent layout
             ColumnLayout {
                 id: fileGroup
                 spacing: 6
-                Layout.alignment: Qt.AlignTop
+                Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
-
-                Item { Layout.preferredHeight: 4 }
 
                 RowLayout {
                     id: fileIcons
                     spacing: 12
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    height: toolBar.implicitHeight * 0.55
+                    height: toolBar.iconRowHeight
 
                     Loader { source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 72; Layout.preferredHeight: fileIcons.height; onLoaded: { item.svgSource = "qrc:/qml/assets/import.svg"; item.label = qsTr("Import"); item.clicked.connect(function(){ if (uiNav) uiNav.section = UiNavigation.Import }) } }
                     Loader { source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 72; Layout.preferredHeight: fileIcons.height; onLoaded: { item.svgSource = "qrc:/qml/assets/export.svg"; item.label = qsTr("Export"); item.clicked.connect(function(){ if (uiNav) uiNav.section = UiNavigation.Export }) } }
@@ -55,15 +53,12 @@ Item {
                 }
             }
 
-            // separator (full height)
             Rectangle { width: 1; Layout.fillHeight: true; color: "#d0e6f1"; Layout.alignment: Qt.AlignVCenter }
 
-            // Domain group (inline)
-            // Domain group - consistent layout
             ColumnLayout {
                 id: domainGroup
                 spacing: 6
-                Layout.alignment: Qt.AlignTop
+                Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
@@ -71,7 +66,7 @@ Item {
                     id: domainIcons
                     spacing: 12
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    height: 40
+                    height: toolBar.iconRowHeight
 
                     Loader { source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 72; Layout.preferredHeight: domainIcons.height; onLoaded: { item.svgSource = "qrc:/qml/assets/booking.svg"; item.label = qsTr("Booking"); item.clicked.connect(function(){ if (uiData) { uiData.selectedStatementId = ""; uiData.selectedTransactionId = ""; } if (uiNav) { uiNav.bookingView = UiNavigation.Statements; uiNav.section = UiNavigation.Booking; } }) } }
                     Loader { source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 72; Layout.preferredHeight: domainIcons.height; onLoaded: { item.svgSource = "qrc:/qml/assets/actor.svg"; item.label = qsTr("Actor"); item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Actors; }) } }
@@ -91,14 +86,12 @@ Item {
                 }
             }
 
-            // separator (full height)
             Rectangle { width: 1; Layout.fillHeight: true; color: "#d0e6f1"; Layout.alignment: Qt.AlignVCenter }
 
-            // Tools group (inline) - standardized like other groups
             ColumnLayout {
                 id: toolsGroup
                 spacing: 6
-                Layout.alignment: Qt.AlignTop
+                Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
@@ -106,7 +99,7 @@ Item {
                     id: toolsIcons
                     spacing: 12
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    height: toolBar.implicitHeight * 0.6
+                    height: toolBar.iconRowHeight
 
                     Loader { source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 72; Layout.preferredHeight: toolsIcons.height; onLoaded: { item.svgSource = "qrc:/qml/assets/analysis.svg"; item.label = qsTr("Analysis"); item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Analysis; }) } }
                     Loader { source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 72; Layout.preferredHeight: toolsIcons.height; onLoaded: { item.svgSource = "qrc:/qml/assets/annual.svg"; item.label = qsTr("Annual"); item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Annual; }) } }
@@ -124,14 +117,12 @@ Item {
                 }
             }
 
-            // separator (full height)
             Rectangle { width: 1; Layout.fillHeight: true; color: "#d0e6f1"; Layout.alignment: Qt.AlignVCenter }
 
-            // Application group - standardized like others
             ColumnLayout {
                 id: appGroup
                 spacing: 6
-                Layout.alignment: Qt.AlignTop
+                Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
@@ -139,7 +130,7 @@ Item {
                     id: appIcons
                     spacing: 12
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    height: toolBar.implicitHeight * 0.6
+                    height: toolBar.iconRowHeight
 
                     Loader { source: "qrc:/qml/components/controls/AppIconButton.qml"; asynchronous: false; Layout.preferredWidth: 72; Layout.preferredHeight: appIcons.height; onLoaded: { item.svgSource = "qrc:/qml/assets/settings.svg"; item.label = qsTr("Settings"); } }
                 }
