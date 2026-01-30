@@ -98,6 +98,7 @@ set(_dlls
     Qt6QmlMeta.dll
     Qt6QmlModels.dll
     Qt6Quick.dll
+    Qt6QuickEffects.dll
     Qt6QuickControls2.dll
     Qt6QuickControls2Basic.dll
     Qt6QuickControls2Fusion.dll
@@ -170,6 +171,31 @@ if(NOT _found_folderlist)
     message(WARNING "qtdeploy: qmlfolderlistmodelplugin.dll not found; Qt.labs.folderlistmodel may fail to load at runtime")
 else()
     message(STATUS "qtdeploy: copied qmlfolderlistmodelplugin.dll to ${_target_folderlist_dir}")
+endif()
+
+# Ensure QtQuick Effects plugin DLL is deployed (consistent with other plugin copies)
+set(_target_effects_dir "${TARGET_DIR}/qml/QtQuick/Effects")
+file(MAKE_DIRECTORY "${_target_effects_dir}")
+
+set(_effects_candidates
+    "${_src_qml}/QtQuick/Effects/effectsplugin.dll"
+    "${_vroot}/plugins/QtQuick/Effects/effectsplugin.dll"
+    "${_src_bin}/qml/QtQuick/Effects/effectsplugin.dll"
+)
+
+set(_found_effects 0)
+foreach(_ed IN LISTS _effects_candidates)
+    if(EXISTS "${_ed}")
+        file(COPY "${_ed}" DESTINATION "${_target_effects_dir}")
+        set(_found_effects 1)
+        break()
+    endif()
+endforeach()
+
+if(NOT _found_effects)
+    message(WARNING "qtdeploy: effectsplugin.dll not found; QtQuick.Effects may fail to load at runtime")
+else()
+    message(STATUS "qtdeploy: copied effectsplugin.dll to ${_target_effects_dir}")
 endif()
 
 message(STATUS "qtdeploy: completed to ${TARGET_DIR}")

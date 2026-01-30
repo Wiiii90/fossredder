@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import QtQuick.Effects
 
 Item {
     id: button
@@ -12,7 +13,6 @@ Item {
 
     property url svgSource: ""
     property string label: ""
-    property real iconScale: 1.0
     property bool active: false
     signal clicked()
 
@@ -25,25 +25,46 @@ Item {
         Layout.alignment: Qt.AlignVCenter
 
         Item {
-            id: iconContainer
-            width: Math.min(Math.round(button.height * 0.6), Math.round(button.width * 0.8))
+            id: iconWrap
+            width: Math.min(Math.round(button.implicitHeight * 0.65), Math.round(button.width * 0.9))
             height: width
             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             transformOrigin: Item.Center
-            scale: iconScale
 
-            Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutQuad } }
+            Item {
+                id: iconContainer
+                anchors.fill: parent
+                property real hoverMultiplier: 1.08
+                property bool hovered: false
+                property bool pressed: false
+                scale: ((active || hovered) ? hoverMultiplier : 1.0) * (pressed ? 0.96 : 1.0)
 
-            Image {
-                id: iconSvg
-                anchors.centerIn: parent
-                source: svgSource
-                width: parent.width
-                height: parent.height
-                fillMode: Image.PreserveAspectFit
-                smooth: true
-                opacity: svgSource === "" ? 0 : 1
-                visible: status !== Image.Error
+                Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutQuad } }
+
+                MultiEffect {
+                    id: iconGlow
+                    anchors.fill: parent
+                    source: iconSvg
+                    colorization: active ? 0.20 : 0
+                    colorizationColor: (typeof Theme !== 'undefined') ? Theme.accent : "#FFB74D"
+                    brightness: active ? 0.01 : 0
+                    saturation: active ? 0.01 : 0
+                    visible: active
+                    z: 2
+                }
+
+                Image {
+                    id: iconSvg
+                    anchors.centerIn: parent
+                    source: svgSource
+                    width: parent.width
+                    height: parent.height
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    opacity: svgSource === "" ? 0 : (active ? 0.96 : 1)
+                    visible: status !== Image.Error
+                    z: 1
+                }
             }
         }
 
@@ -63,9 +84,10 @@ Item {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         z: 2
-        onPressed: { button.iconScale = 0.95 }
-        onEntered: { button.iconScale = 1.2 }
-        onExited: { button.iconScale = 1.0 }
+        onPressed: { iconContainer.pressed = true }
+        onReleased: { iconContainer.pressed = false }
+        onEntered: { iconContainer.hovered = true }
+        onExited: { iconContainer.hovered = false }
         onClicked: button.clicked()
     }
 }
