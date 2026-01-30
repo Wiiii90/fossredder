@@ -15,7 +15,7 @@ GridLayout {
         source: "qrc:/qml/components/layout/Toolbar.qml"
         asynchronous: false
         Layout.row: 0
-        Layout.preferredHeight: 64
+        Layout.preferredHeight: 72
         Layout.fillWidth: true
     }
 

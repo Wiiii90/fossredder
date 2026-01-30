@@ -7,18 +7,18 @@ Item {
     implicitWidth: 100
     implicitHeight: 48
 
-    width: (parent && parent.width && parent.width > 0) ? parent.width : implicitWidth
-    height: (parent && parent.height && parent.height > 0) ? parent.height : implicitHeight
+    width: parent && parent.width > 0 ? parent.width : implicitWidth
+    height: parent && parent.height > 0 ? parent.height : implicitHeight
 
     property url svgSource: ""
     property string label: ""
-    property color hoverColor: button ? button.palette.mid : "#dfeff6"
     property real iconScale: 1.0
+    property bool active: false
     signal clicked()
 
     Rectangle { anchors.fill: parent; color: "transparent" }
 
-    ColumnLayout { 
+    ColumnLayout {
         anchors.fill: parent
         anchors.margins: 4
         spacing: 4
@@ -43,37 +43,29 @@ Item {
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 opacity: svgSource === "" ? 0 : 1
-                visible: !(status === Image.Error)
+                visible: status !== Image.Error
             }
-
-            MouseArea {
-                id: iconMouseArea
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onEntered: { button.iconScale = 1.2 }
-                onExited:  { button.iconScale = 1.0 }
-                onClicked: button.clicked()
-            }
-        }
-
-        Text {
-            id: emojiPlaceholder
-            visible: (typeof isDebugBuild !== 'undefined' && isDebugBuild) ? (iconSvg.status === Image.Error || iconSvg.opacity === 0) : false
-            text: "⏹"
-            font.pixelSize: Math.round(height * 0.45)
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            Layout.alignment: Qt.AlignHCenter
         }
 
         Text {
             id: labelText
             text: label
             horizontalAlignment: Text.AlignHCenter
-            font.pixelSize: Math.max(10, Math.round(height * 0.18))
-            color: button ? button.palette.windowText : "#213547"
+            font.pixelSize: Math.max(10, Math.round(height * 0.14))
+            color: typeof Theme !== 'undefined' ? Theme.textPrimary : "#213547"
             Layout.alignment: Qt.AlignHCenter
+            visible: label !== ""
         }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        z: 2
+        onPressed: { button.iconScale = 0.95 }
+        onEntered: { button.iconScale = 1.2 }
+        onExited: { button.iconScale = 1.0 }
+        onClicked: button.clicked()
     }
 }

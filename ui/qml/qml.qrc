@@ -23,7 +23,7 @@
         <file>views/AnalysisTabView.qml</file>
         <file>views/AnalysisCalcView.qml</file>
         <file>utils/FileUtils.js</file>
-		<file>views/AnalysisSidebar.qml</file>
+ 		<file>views/AnalysisSidebar.qml</file>
         <file>views/AnalysisView.qml</file>
         <file>components/analysis/AnalysisTabComponent.qml</file>
         <!-- CreateAnalysis view removed, functionality in AnalysisView.createBox -->
