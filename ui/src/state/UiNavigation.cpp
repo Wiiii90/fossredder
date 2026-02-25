@@ -14,3 +14,11 @@ void UiNavigation::setBookingView(BookingView v)
     bookingView_ = v;
     emit bookingViewChanged();
 }
+
+void UiNavigation::setSettingsCategory(SettingsCategory c)
+{
+    if (settingsCategory_ == c) return;
+    settingsCategory_ = c;
+    emit settingsCategoryChanged();
+}
+

@@ -15,6 +15,7 @@ public:
         Booking,
         Import,
         Export,
+        Settings,
         Analysis,
         Annual
     };
@@ -27,8 +28,24 @@ public:
     };
     Q_ENUM(BookingView)
 
-    explicit UiNavigation(QObject* parent = nullptr);
+    Q_PROPERTY(SettingsCategory settingsCategory READ settingsCategory WRITE setSettingsCategory NOTIFY settingsCategoryChanged)
 
+    enum class SettingsCategory {
+        General,
+        Appearance,
+        Import,
+        Export,
+        Storage,
+        Notifications,
+        Advanced,
+        Updates
+    };
+    // Do not register SettingsCategory with Q_ENUM to avoid name clashes in QML
+
+    explicit UiNavigation(QObject* parent = nullptr);
+    SettingsCategory settingsCategory() const noexcept { return settingsCategory_; }
+    void setSettingsCategory(SettingsCategory c);
+    
     Section section() const noexcept { return section_; }
     void setSection(Section s);
 
@@ -38,8 +55,10 @@ public:
 signals:
     void sectionChanged();
     void bookingViewChanged();
+    void settingsCategoryChanged();
 
 private:
     Section section_ = Section::Import;
     BookingView bookingView_ = BookingView::Statements;
+    SettingsCategory settingsCategory_ = SettingsCategory::General;
 };

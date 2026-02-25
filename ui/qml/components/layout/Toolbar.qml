@@ -7,6 +7,7 @@ Item {
     id: toolBar
     implicitHeight: 80
         property int iconRowHeight: Math.round(implicitHeight * 0.55)
+        // helper removed; set section directly on uiNav to preserve original behavior
 
         Rectangle {
         id: bg
@@ -102,7 +103,7 @@ Item {
                             item.svgSource = "qrc:/qml/assets/booking.svg";
                             item.label = qsTr("Booking");
                             item.active = (uiNav && uiNav.section === UiNavigation.Booking);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedStatementId = ""; uiData.selectedTransactionId = ""; } if (uiNav) { uiNav.bookingView = UiNavigation.Statements; uiNav.section = UiNavigation.Booking; } })
+                            item.clicked.connect(function(){ if (uiData) { uiData.selectedStatementId = ""; uiData.selectedTransactionId = ""; } if (uiNav) { uiNav.bookingView = UiNavigation.Statements; uiNav.section = UiNavigation.Booking } })
                         }
                     }
                     Loader {
@@ -115,7 +116,7 @@ Item {
                             item.svgSource = "qrc:/qml/assets/actor.svg";
                             item.label = qsTr("Actor");
                             item.active = (uiNav && uiNav.section === UiNavigation.Actors);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Actors; })
+                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Actors })
                         }
                     }
                     Loader {
@@ -128,7 +129,7 @@ Item {
                             item.svgSource = "qrc:/qml/assets/property.svg";
                             item.label = qsTr("Gebäude");
                             item.active = (uiNav && uiNav.section === UiNavigation.Properties);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Properties; })
+                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Properties })
                         }
                     }
                     Loader {
@@ -141,7 +142,7 @@ Item {
                             item.svgSource = "qrc:/qml/assets/contract.svg";
                             item.label = qsTr("Contract");
                             item.active = (uiNav && uiNav.section === UiNavigation.Contracts);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Contracts; })
+                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Contracts })
                         }
                     }
                 }
@@ -183,7 +184,7 @@ Item {
                             item.svgSource = "qrc:/qml/assets/analysis.svg";
                             item.label = qsTr("Analysis");
                             item.active = (uiNav && uiNav.section === UiNavigation.Analysis);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Analysis; })
+                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Analysis })
                         }
                     }
                     Loader {
@@ -196,7 +197,7 @@ Item {
                             item.svgSource = "qrc:/qml/assets/annual.svg";
                             item.label = qsTr("Annual");
                             item.active = (uiNav && uiNav.section === UiNavigation.Annual);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Annual; })
+                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Annual })
                         }
                     }
                 }
@@ -238,6 +239,7 @@ Item {
                             item.svgSource = "qrc:/qml/assets/settings.svg";
                             item.label = qsTr("Settings");
                             item.active = (uiNav && uiNav.section === UiNavigation.Settings);
+                            item.clicked.connect(function(){ if (uiNav) uiNav.section = UiNavigation.Settings })
                         }
                     }
                 }

@@ -30,6 +30,8 @@ Item {
                                     ? "qrc:/qml/views/ImportView.qml"
                                     : (uiNav && uiNav.section === UiNavigation.Export)
                                         ? "qrc:/qml/views/ExportView.qml"
+                                        : (uiNav && uiNav.section === UiNavigation.Settings)
+                                            ? "qrc:/qml/views/SettingsView.qml"
                                         : (uiNav && uiNav.section === UiNavigation.Analysis)
                                             ? "qrc:/qml/views/AnalysisView.qml"
                                             : (uiNav && uiNav.section === UiNavigation.Annual)

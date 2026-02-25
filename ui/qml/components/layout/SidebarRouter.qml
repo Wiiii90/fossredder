@@ -26,6 +26,7 @@ Item {
         case UiNavigation.Export: return "qrc:/qml/views/ExportSidebar.qml";
         case UiNavigation.Analysis: return "qrc:/qml/views/AnalysisSidebar.qml";
         case UiNavigation.Annual: return "qrc:/qml/views/AnnualSidebar.qml";
+        case UiNavigation.Settings: return "qrc:/qml/views/SettingsSidebar.qml";
         default: return "qrc:/qml/views/PlaceholderSidebar.qml";
         }
     }

@@ -63,5 +63,15 @@
         <file>theme/Theme.qml</file>
         <file>theme/qmldir</file>
         <file>components/controls/AppFilePicker.qml</file>
+        <file>views/SettingsView.qml</file>
+        <file>views/SettingsSidebar.qml</file>
+        <file>views/SettingsGeneral.qml</file>
+        <file>views/SettingsAppearance.qml</file>
+        <file>views/SettingsImport.qml</file>
+        <file>views/SettingsExport.qml</file>
+        <file>views/SettingsStorage.qml</file>
+        <file>views/SettingsNotifications.qml</file>
+        <file>views/SettingsAdvanced.qml</file>
+        <file>views/SettingsUpdates.qml</file>
     </qresource>
 </RCC>
