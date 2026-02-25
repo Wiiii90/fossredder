@@ -59,7 +59,7 @@ QStringList UiDomainController::getPropertyIds() const {
         if (!p) continue;
         out.push_back(QString::fromStdString(p->id));
     }
-    try { fprintf(stderr, "UiDomainController::getPropertyIds: returning %d ids\n", out.size()); } catch(...) {}
+    
     return out;
 }
 
@@ -75,8 +75,7 @@ QStringList UiDomainController::getContractTypes() const {
         seen.insert(t);
         out.push_back(QString::fromStdString(t));
     }
-    try { fprintf(stderr, "UiDomainController::getContractTypes: returning %d types\n", out.size()); } catch(...) {}
-    for (const auto &s : out) { try { fprintf(stderr, " UiDomainController::getContractTypes: type=%s\n", s.toUtf8().constData()); } catch(...) {} }
+    
     return out;
 }
 

@@ -44,14 +44,7 @@ AppState AppStateStore::load() {
     AppStateManager mgr(std::move(mgrRepos));
     AppState state = mgr.load();
 
-    // Debug: report what was loaded from repositories
-    fprintf(stderr, "AppStateStore::load: loaded - actors=%zu props=%zu contracts=%zu statements=%zu transactions=%zu\n",
-            state.actors.size(), state.properties.size(), state.contracts.size(), state.statements.size(), state.transactions.size());
-    for (size_t i = 0; i < state.statements.size(); ++i) {
-        const auto& s = state.statements[i];
-        if (!s) continue;
-        fprintf(stderr, "  statement[%zu] id='%s' name='%s'\n", i, s->id.c_str(), s->name.c_str());
-    }
+    
 
     return state;
 }
@@ -67,26 +60,12 @@ AppStateStoreResult AppStateStore::save(const AppState& state) {
 
     SqliteTransaction tx(db_->handle());
 
-    // Debug: print incoming state counts and sample transaction info
-    fprintf(stderr, "AppStateStore::save: state - actors=%zu props=%zu contracts=%zu statements=%zu transactions=%zu\n",
-            state.actors.size(), state.properties.size(), state.contracts.size(), state.statements.size(), state.transactions.size());
-
-    for (size_t i = 0; i < state.transactions.size(); ++i) {
-        const auto& t = state.transactions[i];
-        if (!t) continue;
-        fprintf(stderr, "  state.transaction[%zu] id='%s' stmt='%s' props=%zu status=%d alloc=%d\n",
-                i, t->id.c_str(), t->statementId.c_str(), t->propertyIds.size(), static_cast<int>(t->status), t->allocatable ? 1 : 0);
-        if (!t->propertyIds.empty()) {
-            fprintf(stderr, "    propertyIds: ");
-            for (const auto& pid : t->propertyIds) fprintf(stderr, "%s,", pid.c_str());
-            fprintf(stderr, "\n");
-        }
-    }
+    
 
     // DB counts before save
     long long beforeTx = db_count(db_->handle(), "SELECT COUNT(*) FROM transactions;");
     long long beforeRel = db_count(db_->handle(), "SELECT COUNT(*) FROM transaction_properties;");
-    fprintf(stderr, "DB before save: transactions=%lld transaction_properties=%lld\n", beforeTx, beforeRel);
+    
 
     // Persist current state (upserts).
     AppStateManager::Repositories mgrRepos;
@@ -105,10 +84,7 @@ AppStateStoreResult AppStateStore::save(const AppState& state) {
     // when temporary IDs or remapping are in-flight. Clients that need to
     // perform explicit deletions should call explicit delete APIs.
 
-    // DB counts after save (log only)
-    long long afterTx = db_count(db_->handle(), "SELECT COUNT(*) FROM transactions;");
-    long long afterRel = db_count(db_->handle(), "SELECT COUNT(*) FROM transaction_properties;");
-    fprintf(stderr, "DB after save: transactions=%lld transaction_properties=%lld\n", afterTx, afterRel);
+    
 
     tx.commit();
     return result;

@@ -73,29 +73,8 @@ void UiDataSession::loadFromState(const AppState& state)
     // also forward contracts to transactions model so transaction.type can be resolved
     transactions_.setContracts(state.contracts);
 
-    // Debug: log loaded contracts and transaction->contractId usage to help diagnose missing types
-    qDebug() << "UiDataSession::loadFromState: contracts=" << state.contracts.size();
-    size_t cmax = std::min<size_t>(state.contracts.size(), 20);
-    for (size_t i = 0; i < cmax; ++i) {
-        const auto& c = state.contracts[i];
-        if (!c) continue;
-        qDebug() << "  contract[" << i << "]: id='" << QString::fromStdString(c->id) << "' type='" << QString::fromStdString(c->type) << "' name='" << QString::fromStdString(c->name) << "'";
-    }
-
-    size_t txWithCid = 0;
-    std::vector<QString> sampleCids;
-    for (const auto& t : state.transactions) {
-        if (!t) continue;
-        if (!t->contractId.empty()) {
-            ++txWithCid;
-            if (sampleCids.size() < 20) sampleCids.push_back(QString::fromStdString(t->contractId));
-        }
-    }
-    qDebug() << "UiDataSession::loadFromState: transactions=" << state.transactions.size() << " with contractId=" << txWithCid;
-    if (!sampleCids.empty()) qDebug() << "  sample contractIds:" << sampleCids;
-
-    // debug logging to help track when properties arrive
-    qDebug() << "UiDataSession::loadFromState: properties=" << properties_.rowCount();
+    // recompute sums cache after loading
+    
 
     // recompute sums cache after loading
     recomputeAllPropertySums();

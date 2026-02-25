@@ -14,8 +14,6 @@ Item {
         anchors.margins: 12
         spacing: 8
 
-        Label { text: qsTr("Settings"); font.pointSize: 18; color: Theme.textPrimary }
-
         Loader {
             id: settingsLoader
             Layout.fillWidth: true
@@ -33,10 +31,7 @@ Item {
                 case 1: settingsLoader.source = "qrc:/qml/views/settings/SettingsAppearance.qml"; break
                 case 2: settingsLoader.source = "qrc:/qml/views/settings/SettingsImport.qml"; break
                 case 3: settingsLoader.source = "qrc:/qml/views/settings/SettingsExport.qml"; break
-                case 4: settingsLoader.source = "qrc:/qml/views/settings/SettingsStorage.qml"; break
-                case 5: settingsLoader.source = "qrc:/qml/views/settings/SettingsNotifications.qml"; break
-                case 6: settingsLoader.source = "qrc:/qml/views/settings/SettingsAdvanced.qml"; break
-                case 7: settingsLoader.source = "qrc:/qml/views/settings/SettingsUpdates.qml"; break
+                case 4: settingsLoader.source = "qrc:/qml/views/settings/SettingsAdvanced.qml"; break
                 default: settingsLoader.source = "qrc:/qml/views/settings/SettingsGeneral.qml"; break
                 }
             }

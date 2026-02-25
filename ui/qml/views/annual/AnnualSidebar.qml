@@ -1,20 +1,24 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0
+import "qrc:/qml/components/common"
 
 Item {
     width: 240
     Column {
         anchors.fill: parent
         spacing: 8
-        Label { text: qsTr("Annuals"); font.pointSize: 14 }
+        // header removed per UX request
         ListView {
             model: uiData ? uiData.annuals : null
-            delegate: Item {
+            spacing: Theme.spacingSmall
+            delegate: ListRow {
                 width: parent.width
-                height: 36
-                RowLayout { anchors.fill: parent; anchors.margins: 6; Label { text: model.year; Layout.fillWidth: true } Label { text: model.verificationState; opacity: 0.7 } }
-                MouseArea { anchors.fill: parent; onClicked: if (uiData) uiData.selectedAnnualId = model.id }
+                text: model.year ? model.year : ""
+                subtitle: model.verificationState ? model.verificationState : ""
+                selected: uiData ? (model.id === uiData.selectedAnnualId) : false
+                onActivated: { if (uiData) uiData.selectedAnnualId = model.id }
             }
         }
     }

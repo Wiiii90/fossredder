@@ -36,68 +36,13 @@ Item {
             }
         }
 
-        ListView {
-            id: runsList
+        Loader {
+            id: runLogLoader
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            spacing: 6
-            model: (typeof uiImport !== 'undefined' && uiImport) ? uiImport.runs : null
-
-            delegate: Rectangle {
-                width: runsList.width
-                color: "transparent"
-
-                ColumnLayout {
-                    id: content
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.margins: 4
-                    spacing: 4
-
-                    RowLayout {
-                        Layout.fillWidth: true
-
-                        Label {
-                            text: time
-                            font.pointSize: 10
-                            opacity: 0.7
-                            Layout.fillWidth: true
-                            elide: Label.ElideRight
-                        }
-
-                        Label {
-                            text: status
-                            font.pointSize: 10
-                            color: status === "Success" ? "#1b7f1b" : "#a11"
-                        }
-
-                        AppButton {
-                            text: qsTr("Delete")
-                            onClicked: {
-                                if (runsList.model) runsList.model.removeAt(index)
-                            }
-                            implicitHeight: 28
-                            implicitWidth: 80
-                        }
-                    }
-
-                    Label {
-                        text: type + ": " + file
-                        Layout.fillWidth: true
-                        elide: Label.ElideMiddle
-                    }
-
-                    Label {
-                        visible: message && message.length > 0
-                        text: message
-                        wrapMode: Text.WordWrap
-                        opacity: 0.8
-                        Layout.fillWidth: true
-                    }
-                }
-
-                implicitHeight: content.implicitHeight + 8
+            source: "qrc:/qml/components/common/RunLogList.qml"
+            onLoaded: {
+                try { if (runLogLoader.item) runLogLoader.item.model = (typeof uiImport !== 'undefined' && uiImport) ? uiImport.runs : null } catch(e) {}
             }
         }
     }

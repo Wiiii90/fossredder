@@ -1,6 +1,9 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0
+import "qrc:/qml/components/controls"
+import "qrc:/qml/components/common"
 
 Item {
     id: root
@@ -9,19 +12,25 @@ Item {
         id: statementList
         anchors.fill: parent
         clip: true
-        spacing: 8
+        spacing: Theme.spacingSmall
         model: uiData ? uiData.statements : null
 
         delegate: Column {
             width: statementList.width
             property bool collapsed: false
 
+            // ensure delegate reports a consistent height so ListView can layout and
+            // scrolling will always show the full box; include header + inner list height
+            property int headerHeight: 34
+            height: headerHeight + (collapsed ? 0 : (txList ? txList.contentHeight : 0))
+
             property string statementId: (id !== undefined && id !== null) ? id : ""
             property string statementName: (name !== undefined && name !== null) ? name : ""
 
             Rectangle {
+                id: headerRect
                 width: parent.width
-                height: 34
+                height: headerHeight
                 color: (uiData && statementId === uiData.selectedStatementId && (!uiData.selectedTransactionId || uiData.selectedTransactionId === ""))
                            ? "#ffd39c" : "transparent"
 
@@ -36,50 +45,30 @@ Item {
                     }
                 }
 
-                RowLayout {
+                    RowLayout {
                     anchors.fill: parent
                     anchors.margins: 6
                     Label { text: statementName; Layout.fillWidth: true; elide: Label.ElideRight }
                     Item { Layout.fillWidth: true }
-                    // simple chevron toggle (no animation) placed last so it is on top and captures clicks
-                    Rectangle {
-                        id: toggleRect
-                        width: 24; height: 24; radius: 4
-                        color: "transparent"
+                    // nicer toggle button using AppButton for consistent styling
+                    AppButton {
+                        id: toggleBtn
+                        implicitWidth: 28; implicitHeight: 28
+                        fillColor: "transparent"
+                        textColor: Theme.textMuted
+                        text: collapsed ? "\u25B6" : "\u25BC"
+                        onClicked: collapsed = !collapsed
                         Layout.alignment: Qt.AlignVCenter
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: collapsed ? "\u25B6" : "\u25BC" // ▶ / ▼
-                            font.pointSize: 12
-                            color: "#666"
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: collapsed = !collapsed
-                        }
                     }
                 }
 
-                // header selection area (does not overlap toggleRect)
-                MouseArea {
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    anchors.right: toggleRect.left
-                    onClicked: {
-                        if (!uiData) return
-                        uiData.selectedStatementId = statementId
-                        uiData.selectedTransactionId = ""
-                    }
-                }
+                // header selection handled by headerMouse; toggleRect declared after so it receives clicks
             }
 
             ListView {
+                id: txList
                 width: statementList.width
+                // use contentHeight so the parent delegate's implicitHeight can include it
                 height: collapsed ? 0 : contentHeight
                 visible: !collapsed
                 interactive: false
@@ -88,39 +77,22 @@ Item {
                 leftMargin: 14
                 model: (uiData && statementId.length > 0) ? uiData.transactionsForStatement(statementId) : null
 
-                delegate: Rectangle {
-                    width: statementList.width
-                    height: 30
-                    color: (uiData && id === uiData.selectedTransactionId) ? "#ffd39c" : "transparent"
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 6
-                        anchors.rightMargin: 6
-
-                        Rectangle {
-                            width: 10
-                            height: 10
-                            radius: 5
-                            color: (status === 1) ? "#e74c3c" : ((status === 2) ? "#f1c40f" : ((status === 3) ? "#2ecc71" : "#9e9e9e"))
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-
-                        Label {
-                            Layout.fillWidth: true
-                            text: name
-                            elide: Label.ElideRight
-                        }
+                delegate: ListRow {
+                    // account for leftMargin so content does not overflow
+                    width: statementList.width - 14
+                    text: name ? name : ""
+                    subtitle: bookingDate ? bookingDate : ""
+                    selected: uiData ? (id === uiData.selectedTransactionId) : false
+                    // ensure text eliding for long names
+                    Component.onCompleted: {
+                        // nothing here; ListRow labels already elide by default
                     }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            if (!uiData) return
-                            uiData.selectedStatementId = statementId
-                            uiData.selectedTransactionId = id
-                        }
+                    onActivated: {
+                        if (!uiData) return
+                        uiData.selectedStatementId = statementId
+                        uiData.selectedTransactionId = id
                     }
+                    height: 40
                 }
             }
         }

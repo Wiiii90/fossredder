@@ -27,7 +27,7 @@ Item {
 
                     RowLayout {
                         Layout.fillWidth: true
-                        AppButton { text: qsTr("Neues Jahr"); onClicked: { stackView.push(Qt.resolvedUrl("qrc:/qml/views/CreateAnnual.qml")) } }
+                        AppButton { text: qsTr("Neues Jahr"); onClicked: { stackView.push(Qt.resolvedUrl("qrc:/qml/views/annual/AnnualForm.qml")) } }
                         Item { Layout.fillWidth: true }
                     }
 

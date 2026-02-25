@@ -1,6 +1,8 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0
+import "qrc:/qml/components/common"
 
 Item {
     id: root
@@ -10,7 +12,7 @@ Item {
         anchors.fill: parent
         spacing: 8
 
-        Label { text: qsTr("Analysen"); font.pointSize: 14 }
+        // header removed per UX request
 
         ListView {
             id: list
@@ -18,19 +20,14 @@ Item {
             anchors.right: parent.right
             height: parent.height - 40
             model: uiData ? uiData.analyses : null
+            spacing: Theme.spacingSmall
 
-            delegate: Item {
+            delegate: ListRow {
                 width: list.width
-                height: 40
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 6
-                    Label { text: model.name; Layout.fillWidth: true }
-                    Label { text: model.type; opacity: 0.7 }
-                }
-
-                MouseArea { anchors.fill: parent; onClicked: if (uiData) uiData.selectedAnalysisId = model.id }
+                text: model.name ? model.name : ""
+                subtitle: model.type ? model.type : ""
+                selected: uiData ? (model.id === uiData.selectedAnalysisId) : false
+                onActivated: { if (uiData) uiData.selectedAnalysisId = model.id }
             }
         }
     }

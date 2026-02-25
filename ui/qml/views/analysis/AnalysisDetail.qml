@@ -36,7 +36,7 @@ Item {
                     active: true
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    source: (uiData && uiData.selectedAnalysisId) ? ((uiData.selectedAnalysis && uiData.selectedAnalysis.type === "calc") ? "qrc:/qml/views/AnalysisCalcView.qml" : ((uiData.selectedAnalysis && uiData.selectedAnalysis.type === "tab") ? "qrc:/qml/views/AnalysisTabView.qml" : "qrc:/qml/views/AnalysisPlotView.qml")) : "qrc:/qml/views/AnalysisPlotView.qml"
+                    source: (uiData && uiData.selectedAnalysisId) ? ((uiData.selectedAnalysis && uiData.selectedAnalysis.type === "calc") ? "qrc:/qml/views/analysis/AnalysisCalcView.qml" : ((uiData.selectedAnalysis && uiData.selectedAnalysis.type === "tab") ? "qrc:/qml/components/analysis/AnalysisTabComponent.qml" : "qrc:/qml/views/analysis/AnalysisPlotView.qml")) : "qrc:/qml/views/analysis/AnalysisPlotView.qml"
                     onLoaded: {
                         if (mainLoader.item) {
                             try { mainLoader.item.uiData = uiData } catch(e) {}
@@ -44,6 +44,13 @@ Item {
                             try { if (mainLoader.item.rebuild) mainLoader.item.rebuild() } catch(e) {}
                             try { mainLoader.item.anchors.fill = mainLoader } catch(e) {}
                         }
+                    }
+                    onStatusChanged: {
+                        try {
+                            if (mainLoader.status === Loader.Error) {
+                                console.log("AnalysisDetail: Loader error loading", mainLoader.source, "errorString:", mainLoader.errorString)
+                            }
+                        } catch(e) {}
                     }
                 }
             }
@@ -57,9 +64,9 @@ Item {
                 if (!mainLoader) return
                 if (typeof uiData !== 'undefined' && uiData && uiData.selectedAnalysis) {
                     var t = uiData.selectedAnalysis.type ? uiData.selectedAnalysis.type : "plot"
-                    if (t === "calc") mainLoader.source = "qrc:/qml/views/AnalysisCalcView.qml"
+                    if (t === "calc") mainLoader.source = "qrc:/qml/views/analysis/AnalysisCalcView.qml"
                     else if (t === "tab") mainLoader.source = "qrc:/qml/components/analysis/AnalysisTabComponent.qml"
-                    else mainLoader.source = "qrc:/qml/views/AnalysisPlotView.qml"
+                    else mainLoader.source = "qrc:/qml/views/analysis/AnalysisPlotView.qml"
                 } else {
                     mainLoader.source = "qrc:/qml/views/AnalysisPlotView.qml"
                 }

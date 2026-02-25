@@ -219,7 +219,7 @@ Item {
                                         if (id && id.length > 0) {
                                             uiData.selectedAnalysisId = id
                                             try { var res = uiDomain.computeAnalysis(id, filterSpec); uiData.lastAnalysisResult = res } catch(e) {}
-                                            stackView.push("qrc:/qml/views/AnalysisDetail.qml", { stackView: stackView })
+                                            stackView.push("qrc:/qml/views/analysis/AnalysisDetail.qml", { stackView: stackView })
                                         }
                                     }
                                 }

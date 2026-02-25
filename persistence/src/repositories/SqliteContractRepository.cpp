@@ -133,13 +133,6 @@ std::vector<std::shared_ptr<Contract>> SqliteContractRepository::getContracts() 
     }
 
     sqlite3_finalize(stmt);
-    // Debug: report loaded contracts
-    fprintf(stderr, "SqliteContractRepository::getContracts: loaded %zu contracts\n", out.size());
-    for (size_t i = 0; i < out.size() && i < 20; ++i) {
-        const auto &c = out[i];
-        if (!c) continue;
-        fprintf(stderr, "  contract[%zu] id='%s' name='%s' type='%s' props=%zu actors=%zu\n", i, c->id.c_str(), c->name.c_str(), c->type.c_str(), c->propertyIds.size(), c->actorIds.size());
-    }
     return out;
 }
 

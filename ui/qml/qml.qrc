@@ -22,7 +22,10 @@
         <file>components/controls/AppTextArea.qml</file>
         <file>components/controls/AppTextField.qml</file>
         <file>components/controls/qmldir</file>
-
+        <file>components/common/ListRow.qml</file>
+        <file>components/common/EntityPicker.qml</file>
+        <file>components/common/RunLogList.qml</file>
+        
         <file>components/layout/Content.qml</file>
         <file>components/layout/ContentRouter.qml</file>
         <file>components/layout/Shell.qml</file>
@@ -47,10 +50,11 @@
 
         <file>views/annual/AnnualSidebar.qml</file>
         <file>views/annual/AnnualView.qml</file>
-        <file>views/annual/CreateAnnual.qml</file>
+        <file>views/annual/AnnualForm.qml</file>
 
         <file>views/actor/ActorsSidebar.qml</file>
         <file>views/actor/ActorsView.qml</file>
+        <file>views/actor/ActorsForm.qml</file>
 
         <file>views/booking/BookingSidebar.qml</file>
         <file>views/booking/BookingStatementsSidebar.qml</file>
@@ -60,6 +64,7 @@
 
         <file>views/contract/ContractsSidebar.qml</file>
         <file>views/contract/ContractsView.qml</file>
+        <file>views/contract/ContractForm.qml</file>
 
         <file>views/export/ExportSidebar.qml</file>
         <file>views/export/ExportView.qml</file>
@@ -71,16 +76,14 @@
 
         <file>views/property/PropertiesSidebar.qml</file>
         <file>views/property/PropertiesView.qml</file>
+        <file>views/property/PropertyForm.qml</file>
 
         <file>views/settings/SettingsAdvanced.qml</file>
         <file>views/settings/SettingsAppearance.qml</file>
         <file>views/settings/SettingsExport.qml</file>
         <file>views/settings/SettingsGeneral.qml</file>
         <file>views/settings/SettingsImport.qml</file>
-        <file>views/settings/SettingsNotifications.qml</file>
         <file>views/settings/SettingsSidebar.qml</file>
-        <file>views/settings/SettingsStorage.qml</file>
-        <file>views/settings/SettingsUpdates.qml</file>
         <file>views/settings/SettingsView.qml</file>
 
         <file>views/PlaceholderSidebar.qml</file>

@@ -1,6 +1,8 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0
+import "qrc:/qml/components/common"
 
 Item {
     id: root
@@ -10,40 +12,21 @@ Item {
         anchors.margins: 8
         spacing: 6
 
-        Label {
-            text: qsTr("Contracts")
-            font.pointSize: 14
-        }
+        // header removed per UX request
 
         ListView {
             id: list
             Layout.fillWidth: true
             Layout.fillHeight: true
             model: uiData ? uiData.contracts : null
+            spacing: Theme.spacingSmall
 
-            delegate: Item {
+            delegate: ListRow {
                 width: list.width
-                height: 36
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 6
-                    Label { text: model.name; Layout.fillWidth: true }
-                    Label { text: model.type; opacity: 0.7 }
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        if (uiData) uiData.selectedContractId = model.id
-                    }
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: (uiData && model.id === uiData.selectedContractId) ? "#ffd39c" : "transparent"
-                    z: -1
-                }
+                text: model.name ? model.name : ""
+                subtitle: model.type ? model.type : ""
+                selected: uiData ? (model.id === uiData.selectedContractId) : false
+                onActivated: { if (uiData) uiData.selectedContractId = model.id }
             }
         }
     }

@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
+import "qrc:/qml/components/common"
 
 Item {
     id: root
@@ -24,33 +25,30 @@ Item {
                 { id: "appearance", cat: 1, text: qsTr("Appearance") },
                 { id: "import", cat: 2, text: qsTr("Import") },
                 { id: "export", cat: 3, text: qsTr("Export") },
-                { id: "storage", cat: 4, text: qsTr("Storage & Privacy") },
-                { id: "notifications", cat: 5, text: qsTr("Notifications") },
-                { id: "advanced", cat: 6, text: qsTr("Advanced") },
-                { id: "updates", cat: 7, text: qsTr("Updates") }
+                { id: "advanced", cat: 4, text: qsTr("Advanced") }
             ]
             spacing: 6
 
-            delegate: Rectangle {
+            delegate: ListRow {
                 width: list.width
-                height: 44
-                radius: Theme.radius
-                color: (list.currentIndex === index) ? Theme.background : "transparent"
-                border.color: "#e6e6e6"
-                border.width: 1
-
-                Label { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 8; text: modelData.text; color: Theme.textPrimary }
-
-                MouseArea { anchors.fill: parent; onClicked: {
+                text: modelData.text
+                subtitle: ""
+                selected: uiNav ? (uiNav.settingsCategory === modelData.cat) : (list.currentIndex === index)
+                onActivated: {
                     list.currentIndex = index
                     if (uiNav) uiNav.settingsCategory = modelData.cat
-                } }
+                }
             }
         }
 
     Component.onCompleted: {
-        if (uiNav) list.currentIndex = uiNav.settingsCategory
-        else list.currentIndex = 0
+        if (uiNav) {
+            // find item index matching uiNav.settingsCategory
+            for (var i = 0; i < list.count; ++i) {
+                if (list.model[i] && list.model[i].cat === uiNav.settingsCategory) { list.currentIndex = i; return }
+            }
+            list.currentIndex = 0
+        } else list.currentIndex = 0
     }
     }
 }

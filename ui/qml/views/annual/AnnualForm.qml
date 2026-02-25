@@ -23,17 +23,13 @@ Item {
                 enabled: yearField.text.length > 0
                 onClicked: {
                     if (!uiDomain) return
-                    // Use uiDomain to add a statement or annual -- fallback: append to model directly
                     try {
                         var y = parseInt(yearField.text)
                         if (isNaN(y)) return
-                        // Annual model may not have add API; add via domain controller if available
                         if (uiDomain && typeof uiDomain.addAnnual === 'function') {
                             var id = uiDomain.addAnnual(y)
                             if (id && id.length > 0) uiData.selectedAnnualId = id
                         } else {
-                            // fallback: create a minimal annual via analysis list or direct model manipulation
-                            // Not ideal but keeps flow working: create an analysis as placeholder
                             var idx = uiData.annuals.rowCount ? uiData.annuals.rowCount() : -1
                         }
                     } catch(e) {}
