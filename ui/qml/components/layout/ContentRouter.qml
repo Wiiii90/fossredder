@@ -19,11 +19,11 @@ Item {
     function updateContent() {
         if (!mainLoader.item) return
         var s = (uiNav && uiNav.section === UiNavigation.Actors)
-                    ? "qrc:/qml/views/actor/ActorsView.qml"
+                    ? "qrc:/qml/views/actor/ActorView.qml"
                     : (uiNav && uiNav.section === UiNavigation.Properties)
-                        ? "qrc:/qml/views/property/PropertiesView.qml"
+                        ? "qrc:/qml/views/property/PropertyView.qml"
                         : (uiNav && uiNav.section === UiNavigation.Contracts)
-                            ? "qrc:/qml/views/contract/ContractsView.qml"
+                            ? "qrc:/qml/views/contract/ContractView.qml"
                             : (uiNav && uiNav.section === UiNavigation.Booking)
                                 ? "qrc:/qml/views/booking/BookingView.qml"
         : (uiNav && uiNav.section === UiNavigation.Import)

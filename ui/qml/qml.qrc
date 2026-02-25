@@ -52,9 +52,9 @@
         <file>views/annual/AnnualView.qml</file>
         <file>views/annual/AnnualForm.qml</file>
 
-        <file>views/actor/ActorsSidebar.qml</file>
-        <file>views/actor/ActorsView.qml</file>
-        <file>views/actor/ActorsForm.qml</file>
+        <file>views/actor/ActorSidebar.qml</file>
+        <file>views/actor/ActorView.qml</file>
+        <file>views/actor/ActorForm.qml</file>
 
         <file>views/booking/BookingSidebar.qml</file>
         <file>views/booking/BookingStatementsSidebar.qml</file>
@@ -62,8 +62,8 @@
         <file>views/booking/BookingTransactionsView.qml</file>
         <file>views/booking/BookingView.qml</file>
 
-        <file>views/contract/ContractsSidebar.qml</file>
-        <file>views/contract/ContractsView.qml</file>
+        <file>views/contract/ContractSidebar.qml</file>
+        <file>views/contract/ContractView.qml</file>
         <file>views/contract/ContractForm.qml</file>
 
         <file>views/export/ExportSidebar.qml</file>
@@ -74,8 +74,8 @@
         <file>views/import/StatementDraftView.qml</file>
         <file>views/import/TransactionDraftView.qml</file>
 
-        <file>views/property/PropertiesSidebar.qml</file>
-        <file>views/property/PropertiesView.qml</file>
+        <file>views/property/PropertySidebar.qml</file>
+        <file>views/property/PropertyView.qml</file>
         <file>views/property/PropertyForm.qml</file>
 
         <file>views/settings/SettingsAdvanced.qml</file>

@@ -18,9 +18,9 @@ Item {
 
     function srcForSection(sec) {
         switch (sec) {
-        case sectionActors: return "qrc:/qml/views/actor/ActorsSidebar.qml";
-        case sectionProperties: return "qrc:/qml/views/property/PropertiesSidebar.qml";
-        case sectionContracts: return "qrc:/qml/views/contract/ContractsSidebar.qml";
+        case sectionActors: return "qrc:/qml/views/actor/ActorSidebar.qml";
+        case sectionProperties: return "qrc:/qml/views/property/PropertySidebar.qml";
+        case sectionContracts: return "qrc:/qml/views/contract/ContractSidebar.qml";
         case sectionBooking: return "qrc:/qml/views/booking/BookingSidebar.qml";
         case sectionImport: return "qrc:/qml/views/import/ImportSidebar.qml";
         case UiNavigation.Export: return "qrc:/qml/views/export/ExportSidebar.qml";

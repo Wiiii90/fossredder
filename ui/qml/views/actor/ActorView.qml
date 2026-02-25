@@ -4,5 +4,5 @@ import QtQuick.Layouts 1.3
 import "qrc:/qml/components/controls"
 
 Item {
-    Loader { anchors.fill: parent; source: "qrc:/qml/views/actor/ActorsForm.qml" }
+    Loader { anchors.fill: parent; source: "qrc:/qml/views/actor/ActorForm.qml" }
 }
