@@ -7,7 +7,7 @@ Item {
     id: toolBar
     implicitHeight: 80
         property int iconRowHeight: Math.round(implicitHeight * 0.55)
-        // helper removed; set section directly on uiNav to preserve original behavior
+        
 
         Rectangle {
         id: bg

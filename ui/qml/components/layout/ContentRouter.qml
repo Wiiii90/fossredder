@@ -19,23 +19,23 @@ Item {
     function updateContent() {
         if (!mainLoader.item) return
         var s = (uiNav && uiNav.section === UiNavigation.Actors)
-                    ? "qrc:/qml/views/ActorsView.qml"
+                    ? "qrc:/qml/views/actor/ActorsView.qml"
                     : (uiNav && uiNav.section === UiNavigation.Properties)
-                        ? "qrc:/qml/views/PropertiesView.qml"
+                        ? "qrc:/qml/views/property/PropertiesView.qml"
                         : (uiNav && uiNav.section === UiNavigation.Contracts)
-                            ? "qrc:/qml/views/ContractsView.qml"
+                            ? "qrc:/qml/views/contract/ContractsView.qml"
                             : (uiNav && uiNav.section === UiNavigation.Booking)
-                                ? "qrc:/qml/views/BookingView.qml"
+                                ? "qrc:/qml/views/booking/BookingView.qml"
         : (uiNav && uiNav.section === UiNavigation.Import)
-                                    ? "qrc:/qml/views/ImportView.qml"
+                                    ? "qrc:/qml/views/import/ImportView.qml"
                                     : (uiNav && uiNav.section === UiNavigation.Export)
-                                        ? "qrc:/qml/views/ExportView.qml"
+                                        ? "qrc:/qml/views/export/ExportView.qml"
                                         : (uiNav && uiNav.section === UiNavigation.Settings)
-                                            ? "qrc:/qml/views/SettingsView.qml"
+                                            ? "qrc:/qml/views/settings/SettingsView.qml"
                                         : (uiNav && uiNav.section === UiNavigation.Analysis)
-                                            ? "qrc:/qml/views/AnalysisView.qml"
+                                            ? "qrc:/qml/views/analysis/AnalysisView.qml"
                                             : (uiNav && uiNav.section === UiNavigation.Annual)
-                                                ? "qrc:/qml/views/AnnualView.qml"
+                                                ? "qrc:/qml/views/annual/AnnualView.qml"
                                                 : "qrc:/qml/views/PlaceholderView.qml";
         try { mainLoader.item.setContentSource(s) } catch(e) {}
     }

@@ -5,7 +5,7 @@ import FossRedder 1.0
 
 Item {
     id: root
-    signal categoryRequested(string src)
+    
 
     ColumnLayout {
         id: col
@@ -13,7 +13,7 @@ Item {
         anchors.margins: 8
         spacing: Theme.spacingSmall
 
-        // Sidebar header removed to avoid duplicate top-level title; Content wrapper will show the main "Settings" header
+        
 
         ListView {
             id: list
@@ -43,17 +43,14 @@ Item {
 
                 MouseArea { anchors.fill: parent; onClicked: {
                     list.currentIndex = index
-                    try {
-                        if (typeof uiNav !== 'undefined' && uiNav) {
-                            uiNav.settingsCategory = modelData.cat
-                        }
-                    } catch(e) { }
+                    if (uiNav) uiNav.settingsCategory = modelData.cat
                 } }
             }
         }
 
     Component.onCompleted: {
-        list.currentIndex = 0
+        if (uiNav) list.currentIndex = uiNav.settingsCategory
+        else list.currentIndex = 0
     }
     }
 }

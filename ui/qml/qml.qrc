@@ -1,56 +1,5 @@
 <RCC>
     <qresource prefix="/qml">
-        <file>Main.qml</file>
-        <file>components/controls/AppIconButton.qml</file>
-        <file>components/layout/Shell.qml</file>
-        <file>components/layout/ContentRouter.qml</file>
-        <file>components/layout/Content.qml</file>
-        <file>components/layout/Shell.qml</file>
-        <file>components/layout/StatusBar.qml</file>
-        <file>components/layout/Toolbar.qml</file>
-        <file>components/layout/SidebarRouter.qml</file>
-        <file>components/layout/Sidebar.qml</file>
-        <file>components/layout/Content.qml</file>
-        <file>components/controls/qmldir</file>
-        <file>components/controls/AppButton.qml</file>
-        <file>components/controls/AppTextField.qml</file>
-        <file>components/controls/AppTextArea.qml</file>
-        <file>components/controls/AppCheckBox.qml</file>
-        <file>components/controls/AppComboBox.qml</file>
-        <file>components/analysis/AppPie.qml</file>
-        <file>components/analysis/AppHistogram.qml</file>
-        <file>views/AnalysisPlotView.qml</file>
-        <file>views/AnalysisTabView.qml</file>
-        <file>views/AnalysisCalcView.qml</file>
-        <file>utils/FileUtils.js</file>
- 		<file>views/AnalysisSidebar.qml</file>
-        <file>views/AnalysisView.qml</file>
-        <file>components/analysis/AnalysisTabComponent.qml</file>
-        <!-- CreateAnalysis view removed, functionality in AnalysisView.createBox -->
-        <file>views/AnalysisDetail.qml</file>
-        <file>views/CreateAnnual.qml</file>
-        <file>views/AnnualView.qml</file>
-        <file>views/AnnualSidebar.qml</file>
-        <file>views/ActorsSidebar.qml</file>
-        <file>views/ActorsView.qml</file>
-        <file>views/BookingSidebar.qml</file>
-        <file>views/BookingStatementsSidebar.qml</file>
-        <file>views/BookingStatementsView.qml</file>
-        <file>views/BookingTransactionsView.qml</file>
-        <file>views/BookingView.qml</file>
-        <file>views/ContractsSidebar.qml</file>
-        <file>views/ContractsView.qml</file>
-        
-        <file>views/ImportSidebar.qml</file>
-        <file>views/ExportSidebar.qml</file>
-        <file>views/ImportView.qml</file>
-        <file>views/PlaceholderSidebar.qml</file>
-        <file>views/PlaceholderView.qml</file>
-        <file>views/PropertiesView.qml</file>
-        <file>views/PropertiesSidebar.qml</file>
-        <file>views/ExportView.qml</file>
-        <file>views/StatementDraftView.qml</file>
-        <file>views/TransactionDraftView.qml</file>
         <file>assets/annual.svg</file>
         <file>assets/analysis.svg</file>
         <file>assets/actor.svg</file>
@@ -60,18 +9,81 @@
         <file>assets/import.svg</file>
         <file>assets/property.svg</file>
         <file>assets/settings.svg</file>
+
+        <file>components/analysis/AnalysisTabComponent.qml</file>
+        <file>components/analysis/AppHistogram.qml</file>
+        <file>components/analysis/AppPie.qml</file>
+
+        <file>components/controls/AppButton.qml</file>
+        <file>components/controls/AppCheckBox.qml</file>
+        <file>components/controls/AppComboBox.qml</file>
+        <file>components/controls/AppFilePicker.qml</file>
+        <file>components/controls/AppIconButton.qml</file>
+        <file>components/controls/AppTextArea.qml</file>
+        <file>components/controls/AppTextField.qml</file>
+        <file>components/controls/qmldir</file>
+
+        <file>components/layout/Content.qml</file>
+        <file>components/layout/ContentRouter.qml</file>
+        <file>components/layout/Shell.qml</file>
+        <file>components/layout/Sidebar.qml</file>
+        <file>components/layout/SidebarRouter.qml</file>
+        <file>components/layout/StatusBar.qml</file>
+        <file>components/layout/Toolbar.qml</file>
+
         <file>theme/Theme.qml</file>
         <file>theme/qmldir</file>
-        <file>components/controls/AppFilePicker.qml</file>
-        <file>views/SettingsView.qml</file>
-        <file>views/SettingsSidebar.qml</file>
-        <file>views/SettingsGeneral.qml</file>
-        <file>views/SettingsAppearance.qml</file>
-        <file>views/SettingsImport.qml</file>
-        <file>views/SettingsExport.qml</file>
-        <file>views/SettingsStorage.qml</file>
-        <file>views/SettingsNotifications.qml</file>
-        <file>views/SettingsAdvanced.qml</file>
-        <file>views/SettingsUpdates.qml</file>
+
+        <file>utils/FileUtils.js</file>
+
+        <file>Main.qml</file>
+
+        <file>views/analysis/AnalysisCalcView.qml</file>
+        <file>views/analysis/AnalysisDetail.qml</file>
+        <file>views/analysis/AnalysisPlotView.qml</file>
+        <file>views/analysis/AnalysisSidebar.qml</file>
+        <file>views/analysis/AnalysisTabView.qml</file>
+        <file>views/analysis/AnalysisView.qml</file>
+
+        <file>views/annual/AnnualSidebar.qml</file>
+        <file>views/annual/AnnualView.qml</file>
+        <file>views/annual/CreateAnnual.qml</file>
+
+        <file>views/actor/ActorsSidebar.qml</file>
+        <file>views/actor/ActorsView.qml</file>
+
+        <file>views/booking/BookingSidebar.qml</file>
+        <file>views/booking/BookingStatementsSidebar.qml</file>
+        <file>views/booking/BookingStatementsView.qml</file>
+        <file>views/booking/BookingTransactionsView.qml</file>
+        <file>views/booking/BookingView.qml</file>
+
+        <file>views/contract/ContractsSidebar.qml</file>
+        <file>views/contract/ContractsView.qml</file>
+
+        <file>views/export/ExportSidebar.qml</file>
+        <file>views/export/ExportView.qml</file>
+
+        <file>views/import/ImportSidebar.qml</file>
+        <file>views/import/ImportView.qml</file>
+        <file>views/import/StatementDraftView.qml</file>
+        <file>views/import/TransactionDraftView.qml</file>
+
+        <file>views/property/PropertiesSidebar.qml</file>
+        <file>views/property/PropertiesView.qml</file>
+
+        <file>views/settings/SettingsAdvanced.qml</file>
+        <file>views/settings/SettingsAppearance.qml</file>
+        <file>views/settings/SettingsExport.qml</file>
+        <file>views/settings/SettingsGeneral.qml</file>
+        <file>views/settings/SettingsImport.qml</file>
+        <file>views/settings/SettingsNotifications.qml</file>
+        <file>views/settings/SettingsSidebar.qml</file>
+        <file>views/settings/SettingsStorage.qml</file>
+        <file>views/settings/SettingsUpdates.qml</file>
+        <file>views/settings/SettingsView.qml</file>
+
+        <file>views/PlaceholderSidebar.qml</file>
+        <file>views/PlaceholderView.qml</file>
     </qresource>
 </RCC>

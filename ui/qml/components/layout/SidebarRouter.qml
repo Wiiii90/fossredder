@@ -18,15 +18,15 @@ Item {
 
     function srcForSection(sec) {
         switch (sec) {
-        case sectionActors: return "qrc:/qml/views/ActorsSidebar.qml";
-        case sectionProperties: return "qrc:/qml/views/PropertiesSidebar.qml";
-        case sectionContracts: return "qrc:/qml/views/ContractsSidebar.qml";
-        case sectionBooking: return "qrc:/qml/views/BookingSidebar.qml";
-        case sectionImport: return "qrc:/qml/views/ImportSidebar.qml";
-        case UiNavigation.Export: return "qrc:/qml/views/ExportSidebar.qml";
-        case UiNavigation.Analysis: return "qrc:/qml/views/AnalysisSidebar.qml";
-        case UiNavigation.Annual: return "qrc:/qml/views/AnnualSidebar.qml";
-        case UiNavigation.Settings: return "qrc:/qml/views/SettingsSidebar.qml";
+        case sectionActors: return "qrc:/qml/views/actor/ActorsSidebar.qml";
+        case sectionProperties: return "qrc:/qml/views/property/PropertiesSidebar.qml";
+        case sectionContracts: return "qrc:/qml/views/contract/ContractsSidebar.qml";
+        case sectionBooking: return "qrc:/qml/views/booking/BookingSidebar.qml";
+        case sectionImport: return "qrc:/qml/views/import/ImportSidebar.qml";
+        case UiNavigation.Export: return "qrc:/qml/views/export/ExportSidebar.qml";
+        case UiNavigation.Analysis: return "qrc:/qml/views/analysis/AnalysisSidebar.qml";
+        case UiNavigation.Annual: return "qrc:/qml/views/annual/AnnualSidebar.qml";
+        case UiNavigation.Settings: return "qrc:/qml/views/settings/SettingsSidebar.qml";
         default: return "qrc:/qml/views/PlaceholderSidebar.qml";
         }
     }
