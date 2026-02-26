@@ -14,6 +14,8 @@ struct DenoiseResult {
 struct MaskResult {
     std::filesystem::path maskedImagePath;
     std::filesystem::path maskImagePath;
+    std::vector<uint8_t> maskedImageBytes;
+    std::vector<uint8_t> maskImageBytes;
 };
 
 struct DetectResult {
@@ -25,6 +27,7 @@ struct DetectResult {
 
 struct CropResult {
     std::vector<std::filesystem::path> croppedImagePaths;
+    std::vector<std::vector<uint8_t>> croppedImageBytes;
 };
 
 }

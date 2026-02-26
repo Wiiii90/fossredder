@@ -6,21 +6,22 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QStandardPaths>
-#include <QtConcurrent/QtConcurrent>
+#include <QMetaObject>
+#include <QRegularExpression>
 
-#include "core/controllers/ImportController.h"
+#include "core/jobs/JobSystem.h"
+#include "core/jobs/JobManager.h"
+#include "core/jobs/JobTypes.h"
 #include "ui/controllers/UiDomainController.h"
 #include "ui/models/StatementDraft.h"
 #include "ui/models/TransactionDraft.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
 
-UiImportController::UiImportController(std::shared_ptr<ImportController> coreController, QObject* parent)
-    : QObject(parent), coreController_(std::move(coreController))
+UiImportController::UiImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent)
+    : QObject(parent), jobSystem_(std::move(jobSystem))
     , runs_(this)
 {
-    connect(&importWatcher_, &QFutureWatcher<std::pair<std::shared_ptr<Statement>, std::string>>::finished,
-            this, &UiImportController::onImportFutureFinished);
 }
 
 void UiImportController::setDomainController(UiDomainController* domain)
@@ -52,6 +53,9 @@ void UiImportController::resetStatus()
     phase_.clear();
     error_.clear();
     progress_ = 0.0;
+    canceled_ = false;
+    currentPage_ = 0;
+    pageCount_ = 0;
     emit stateChanged();
 }
 
@@ -69,10 +73,7 @@ void UiImportController::cancelImport()
     if (!isRunning_) return;
     canceled_ = true;
     phase_ = QStringLiteral("Stopping...");
-    // signal cancel flag to core/services
-    if (cancelFlag_) {
-        try { cancelFlag_->store(true); } catch (...) {}
-    }
+    if (jobSystem_ && !currentJobId_.isEmpty()) jobSystem_->manager().cancel(currentJobId_.toStdString());
     emit stateChanged();
 }
 
@@ -115,7 +116,7 @@ static void cleanupOldImportRuns(int keep)
 void UiImportController::startStatementImport()
 {
     if (isRunning_) return;
-    if (!coreController_) {
+    if (!jobSystem_) {
         error_ = QStringLiteral("Import controller not available");
         emit stateChanged();
         emit importFailed(error_);
@@ -152,34 +153,36 @@ void UiImportController::startStatementImport()
     const QByteArray runIdNative = runIdPrefixQ.toUtf8();
     std::string runIdPrefix(runIdNative.constData(), static_cast<size_t>(runIdNative.size()));
 
-    // create a progress callback that posts updates to the UI thread
-    auto progressCb = [this](double p, const std::string& phaseMsg) {
-        // clamp p
-        if (p < 0.0) p = 0.0; if (p > 1.0) p = 1.0;
-        QString phase = QString::fromStdString(phaseMsg);
-        QMetaObject::invokeMethod(this, "updateProgress", Qt::QueuedConnection, Q_ARG(double, p), Q_ARG(QString, phase));
-    };
+    if (currentSubId_ != 0 && !currentJobId_.isEmpty()) {
+        try { jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_); } catch (...) {}
+    }
+    currentSubId_ = 0;
+    currentJobId_.clear();
 
-    // create cancel flag
-    auto cancelFlag = std::make_shared<std::atomic<bool>>(false);
-    // store cancel flag so cancelImport can set it
-    cancelFlag_ = cancelFlag;
+    core::jobs::ImportStatementJobSpec spec;
+    spec.sourcePath = p;
+    spec.runRoot = runRoot;
+    spec.runIdPrefix = runIdPrefix;
 
-    // Run import on a worker thread and capture result or error message
-    importFuture_ = QtConcurrent::run([this, p, runRoot, runIdPrefix, progressCb, cancelFlag]() -> std::pair<std::shared_ptr<Statement>, std::string> {
-        try {
-            // call core ImportController with progress callback and cancel flag
-            auto imported = coreController_->import(ImportController::ImportType::Statement, p, runRoot, runIdPrefix,
-                                                   std::function<void(double, const std::string&)>(progressCb), cancelFlag);
-            return { imported, std::string() };
-        } catch (const std::exception& e) {
-            return { nullptr, std::string(e.what()) };
-        } catch (...) {
-            return { nullptr, std::string("Unknown import error") };
-        }
+    const auto jobId = jobSystem_->startImportStatement(spec);
+    currentJobId_ = QString::fromStdString(jobId);
+
+    currentSubId_ = jobSystem_->manager().subscribe(jobId, [this](const core::jobs::JobEvent& ev) {
+        if (currentJobId_.isEmpty()) return;
+        if (QString::fromStdString(ev.jobId) != currentJobId_) return;
+
+        double p = ev.progress;
+        if (p < 0.0) p = 0.0;
+        if (p > 1.0) p = 1.0;
+        const QString phase = QString::fromStdString(ev.message);
+
+        QMetaObject::invokeMethod(this, [this, p, phase, ev]() {
+            updateProgress(p, phase);
+            if (ev.state == core::jobs::JobState::Finished || ev.state == core::jobs::JobState::Failed || ev.state == core::jobs::JobState::Canceled) {
+                onJobTerminal(static_cast<int>(ev.state), QString::fromStdString(ev.message));
+            }
+        }, Qt::QueuedConnection);
     });
-
-    importWatcher_.setFuture(importFuture_);
 }
 
 void UiImportController::updateProgress(double p, const QString& phase)
@@ -187,44 +190,70 @@ void UiImportController::updateProgress(double p, const QString& phase)
     // ignore updates when cancelled or not running
     if (!isRunning_ || canceled_) return;
     progress_ = p;
-    if (!phase.isEmpty()) phase_ = phase;
+    if (!phase.isEmpty()) {
+        phase_ = phase;
+
+        static const QRegularExpression re(QStringLiteral("\\[(\\d+)\\s*/\\s*(\\d+)\\]"));
+        const auto m = re.match(phase);
+        if (m.hasMatch()) {
+            bool ok1 = false;
+            bool ok2 = false;
+            const int cur = m.captured(1).toInt(&ok1);
+            const int total = m.captured(2).toInt(&ok2);
+            if (ok1 && ok2) {
+                currentPage_ = cur;
+                pageCount_ = total;
+            }
+        }
+    }
     emit stateChanged();
 }
 
-void UiImportController::onImportFutureFinished()
+void UiImportController::onJobTerminal(int state, const QString& message)
 {
-    auto pairRes = importFuture_.result();
-    const auto& imported = pairRes.first;
-    const std::string err = pairRes.second;
-
     const auto now = QDateTime::currentDateTime().toString(Qt::ISODate);
 
-    if (canceled_) {
+    if (jobSystem_ && currentSubId_ != 0 && !currentJobId_.isEmpty()) {
+        try { jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_); } catch (...) {}
+    }
+    currentSubId_ = 0;
+
+    const auto s = static_cast<core::jobs::JobState>(state);
+
+    if (s == core::jobs::JobState::Canceled || canceled_) {
         phase_ = QStringLiteral("Import canceled");
-        error_ = QStringLiteral("");
+        error_.clear();
         isRunning_ = false;
         progress_ = 0.0;
-        // clear cancel flag so subsequent imports start fresh
-        cancelFlag_.reset();
         runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Canceled"), QStringLiteral(""));
         emit stateChanged();
         emit importFailed(QStringLiteral("Canceled"));
         return;
     }
 
-    if (!imported) {
-        error_ = QString::fromUtf8(err.empty() ? std::string("Import failed") : err);
+    if (s == core::jobs::JobState::Failed) {
+        error_ = message.isEmpty() ? QStringLiteral("Import failed") : message;
         phase_ = QStringLiteral("Import failed");
         isRunning_ = false;
         progress_ = 0.0;
-        cancelFlag_.reset();
         runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Failed"), error_);
         emit stateChanged();
         emit importFailed(error_);
         return;
     }
 
-    // Build the UI draft from imported data
+    auto imported = jobSystem_ && !currentJobId_.isEmpty() ? jobSystem_->manager().statementResult(currentJobId_.toStdString()) : nullptr;
+    if (!imported) {
+        error_ = QStringLiteral("Import failed");
+        phase_ = QStringLiteral("Import failed");
+        isRunning_ = false;
+        progress_ = 0.0;
+        runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Failed"), error_);
+        emit stateChanged();
+        emit importFailed(error_);
+        return;
+    }
+
     draft_ = new StatementDraft(this);
     draft_->setName(QFileInfo(selectedFile_).baseName());
 
@@ -240,10 +269,8 @@ void UiImportController::onImportFutureFinished()
         d.description = QString::fromStdString(txptr->description);
         d.actorId = QString();
         d.actorProposal = QString::fromStdString(txptr->actorProposal);
-
         d.metadata = QString::fromStdString(txptr->metadata);
         d.proofImagePath = QString::fromStdString(txptr->proofImagePath);
-
         d.status = static_cast<int>(Transaction::Status::Unverified);
         txs.push_back(std::move(d));
     }
@@ -252,7 +279,6 @@ void UiImportController::onImportFutureFinished()
     phase_ = QStringLiteral("Import finished");
     progress_ = 1.0;
     isRunning_ = false;
-    cancelFlag_.reset();
     runs_.addRun(now, QStringLiteral("Statement"), selectedFile_, QStringLiteral("Success"), QStringLiteral(""));
     emit stateChanged();
     emit importFinished();

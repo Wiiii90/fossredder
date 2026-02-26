@@ -118,11 +118,15 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                                                                   const api::tesseract::ExtractResult& ocr,
                                                                   const std::string& pageCropImagePath,
                                                                   std::shared_ptr<api::opencv::IOpenCvService> opencv,
+                                                                  const std::vector<uint8_t>& pageCropImageBytes,
+                                                                  const std::filesystem::path& proofOutputDir,
                                                                   std::string initialBookingDate,
                                                                   int initialTransactionIndex) {
     ParseResult out;
 
     out.debugLines.push_back(std::string("pageCropImagePath\t") + pageCropImagePath);
+    out.debugLines.push_back(std::string("pageCropImageBytes\t") + std::to_string(pageCropImageBytes.size()));
+    try { out.debugLines.push_back(std::string("proofOutputDir\t") + proofOutputDir.string()); } catch (...) {}
     out.debugLines.push_back(std::string("initialBookingDate\t") + initialBookingDate);
     out.debugLines.push_back(std::string("initialTransactionIndex\t") + std::to_string(initialTransactionIndex));
 
@@ -663,7 +667,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
 
         // Per-transaction proof crop (restore original behavior)
         try {
-            if (opencv && !pageCropImagePath.empty()) {
+            if (opencv && (!pageCropImagePath.empty() || !pageCropImageBytes.empty()) && !proofOutputDir.empty()) {
                 int minX = std::numeric_limits<int>::max();
                 int maxX = std::numeric_limits<int>::min();
                 int minY = std::numeric_limits<int>::max();
@@ -681,8 +685,9 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
 
                 if (minX != std::numeric_limits<int>::max()) {
                     api::opencv::CropRequest creq;
-                    creq.imagePath = std::filesystem::path(pageCropImagePath);
-                    creq.outputDir = std::filesystem::path(pageCropImagePath).parent_path();
+                    if (!pageCropImagePath.empty()) creq.imagePath = std::filesystem::path(pageCropImagePath);
+                    creq.imageBytes = pageCropImageBytes;
+                    creq.outputDir = proofOutputDir;
                     creq.uniqIdPrefix = std::string(utils::makeUniqId());
                     creq.filePrefix = std::string("opencv_proof_tx") + std::to_string(txIndex);
                     creq.outputFormat = api::opencv::CropRequest::OutputFormat::Jpg;

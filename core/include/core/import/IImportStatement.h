@@ -7,6 +7,8 @@
 #include <functional>
 #include <atomic>
 
+namespace core { namespace jobs { class Scheduler; class SlotLimiter; } }
+
 class Statement;
 
 struct ImportRequest {
@@ -14,11 +16,16 @@ struct ImportRequest {
     std::string runRoot; // absolute directory for all artifacts of this import run
     std::string runIdPrefix; // e.g. yyyyMMddHHmmsszzz (UTC)
 
+    std::string jobId;
+
     // Optional progress callback: (progress [0..1], phase message)
     std::function<void(double, const std::string&)> progressCallback;
 
     // Optional shared cancel flag that can be set to true to request cooperative cancellation
     std::shared_ptr<std::atomic<bool>> cancelFlag;
+
+    core::jobs::Scheduler* scheduler = nullptr;
+    core::jobs::SlotLimiter* ocrLimiter = nullptr;
 };
 
 struct ImportResult {

@@ -50,7 +50,14 @@ static bool txExists(const std::vector<std::shared_ptr<Transaction>>& list, cons
     return false;
 }
 
-std::shared_ptr<Statement> StatementController::importStatement(const std::string& filePath, const std::string& runRoot, const std::string& runIdPrefix, std::function<void(double, const std::string&)> progressCallback, std::shared_ptr<std::atomic<bool>> cancelFlag) {
+std::shared_ptr<Statement> StatementController::importStatement(const std::string& filePath,
+                                                               const std::string& runRoot,
+                                                               const std::string& runIdPrefix,
+                                                               std::function<void(double, const std::string&)> progressCallback,
+                                                               std::shared_ptr<std::atomic<bool>> cancelFlag,
+                                                               core::jobs::Scheduler* scheduler,
+                                                               core::jobs::SlotLimiter* ocrLimiter,
+                                                               std::string jobId) {
     if (!std::filesystem::exists(filePath)) {
         throw std::runtime_error("PDF datei existiert nicht: " + filePath);
     }
@@ -71,8 +78,11 @@ std::shared_ptr<Statement> StatementController::importStatement(const std::strin
     req.sourcePath = filePath;
     req.runRoot = runRoot;
     req.runIdPrefix = runIdPrefix;
+    req.jobId = std::move(jobId);
     req.progressCallback = std::move(progressCallback);
     req.cancelFlag = cancelFlag;
+    req.scheduler = scheduler;
+    req.ocrLimiter = ocrLimiter;
     ImportResult res = importService_->importStatement(req);
 
     try {

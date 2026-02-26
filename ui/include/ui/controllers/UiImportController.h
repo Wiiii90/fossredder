@@ -5,14 +5,12 @@
 #include <QStringList>
 #include <memory>
 #include <QPointer>
-#include <QFuture>
-#include <QFutureWatcher>
 #include <atomic>
 
 #include "ui/models/ImportRunListModel.h"
 #include "ui/models/StatementDraft.h"
 
-class ImportController;
+namespace core { namespace jobs { class JobSystem; enum class JobState; } }
 class UiDomainController;
 class Statement; // forward declare core Statement
 
@@ -24,6 +22,9 @@ class UiImportController : public QObject {
     Q_PROPERTY(QString phase READ phase NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
 
+    Q_PROPERTY(int currentPage READ currentPage NOTIFY stateChanged)
+    Q_PROPERTY(int pageCount READ pageCount NOTIFY stateChanged)
+
     Q_PROPERTY(QString selectedFile READ selectedFile WRITE setSelectedFile NOTIFY stateChanged)
     Q_PROPERTY(QStringList profiles READ profiles CONSTANT)
     Q_PROPERTY(QString selectedProfile READ selectedProfile WRITE setSelectedProfile NOTIFY stateChanged)
@@ -33,7 +34,7 @@ class UiImportController : public QObject {
     Q_PROPERTY(StatementDraft* draft READ draft NOTIFY stateChanged)
 
 public:
-    explicit UiImportController(std::shared_ptr<ImportController> coreController, QObject* parent = nullptr);
+    explicit UiImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent = nullptr);
 
     void setDomainController(UiDomainController* domain);
 
@@ -41,6 +42,9 @@ public:
     double progress() const noexcept { return progress_; }
     QString phase() const { return phase_; }
     QString error() const { return error_; }
+
+    int currentPage() const noexcept { return currentPage_; }
+    int pageCount() const noexcept { return pageCount_; }
 
     QString selectedFile() const { return selectedFile_; }
     void setSelectedFile(const QString& path);
@@ -64,17 +68,20 @@ signals:
     void importFailed(const QString& error);
 
 private slots:
-    void onImportFutureFinished();
     void updateProgress(double p, const QString& phase);
+    void onJobTerminal(int state, const QString& message);
 
 private:
-    std::shared_ptr<ImportController> coreController_;
+    std::shared_ptr<core::jobs::JobSystem> jobSystem_;
     QPointer<UiDomainController> domain_;
 
     bool isRunning_ = false;
     double progress_ = 0.0;
     QString phase_;
     QString error_;
+
+    int currentPage_ = 0;
+    int pageCount_ = 0;
 
     QString selectedFile_;
     QString selectedProfile_ = QStringLiteral("Default");
@@ -83,10 +90,8 @@ private:
 
     StatementDraft* draft_ = nullptr;
 
-    // Async handling: return pair(result, errorMessage)
-    QFuture<std::pair<std::shared_ptr<Statement>, std::string>> importFuture_;
-    QFutureWatcher<std::pair<std::shared_ptr<Statement>, std::string>> importWatcher_;
-
     bool canceled_ = false;
-    std::shared_ptr<std::atomic<bool>> cancelFlag_ = nullptr;
+
+    QString currentJobId_;
+    std::uint64_t currentSubId_ = 0;
 };

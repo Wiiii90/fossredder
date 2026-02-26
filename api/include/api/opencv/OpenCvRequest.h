@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <atomic>
@@ -17,7 +18,8 @@ struct DenoiseRequest {
 
 struct MaskRequest {
     std::filesystem::path imagePath;
-    std::filesystem::path outputDir; // required: where mask images will be written
+    std::vector<uint8_t> imageBytes;
+    std::filesystem::path outputDir; // optional: where mask images will be written
     std::string uniqIdPrefix; // unique id for this request's outputs
     std::string filePrefix; // e.g. "<ts>_opencv_mask_page1"
     std::vector<Rect> textElements;
@@ -32,7 +34,8 @@ struct MaskRequest {
 
 struct DetectRequest {
     std::filesystem::path imagePath;
-    std::filesystem::path outputDir; // required
+    std::vector<uint8_t> imageBytes;
+    std::filesystem::path outputDir; // optional
     std::string uniqIdPrefix;
     std::string filePrefix; // optional
     enum class DetectKind { Tables, Cells, TextBlocks } kind = DetectKind::Tables;
@@ -42,7 +45,8 @@ struct DetectRequest {
 
 struct CropRequest {
     std::filesystem::path imagePath;
-    std::filesystem::path outputDir; // required: where cropped images will be written
+    std::vector<uint8_t> imageBytes;
+    std::filesystem::path outputDir; // optional: where cropped images will be written
     std::string uniqIdPrefix;
     std::string filePrefix; // e.g. "<ts>_opencv_crop_table_page1"
     Rect bbox;

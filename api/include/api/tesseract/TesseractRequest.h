@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <cstdint>
 #include <memory>
 #include <atomic>
 #include "api/tesseract/Types.h"
@@ -13,7 +14,8 @@ struct ExtractRequest {
     enum class Kind { Text, Table } kind = Kind::Text;
 
     std::filesystem::path imagePath;
-    std::filesystem::path outputDir; // required: where TSV/debug outputs will be written
+    std::vector<uint8_t> imageBytes;
+    std::filesystem::path outputDir; // optional
     std::string uniqIdPrefix;
     std::string filePrefix; // e.g. "tesseract_extract_table_page1"
     std::vector<Cell> cells;

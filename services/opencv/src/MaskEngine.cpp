@@ -46,11 +46,21 @@ cv::Mat MaskEngine::MakeLineMask(const cv::Mat& grayIn, bool horizontal) {
 api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& req, std::shared_ptr<IDebugger> debugger) {
     api::opencv::MaskResult res;
     try {
+        cv::Mat img;
+        std::string imgLabel;
         const auto path = std::filesystem::path(req.imagePath);
-        if (!std::filesystem::exists(path)) return res;
-        if (req.outputDir.empty()) return res;
+        if (!req.imageBytes.empty()) {
+            try {
+                img = cv::imdecode(req.imageBytes, cv::IMREAD_COLOR);
+                imgLabel = std::string("<bytes>");
+            } catch (...) {}
+        }
 
-        cv::Mat img = cv::imread(path.string(), cv::IMREAD_COLOR);
+        if (img.empty() && !req.imagePath.empty()) {
+            if (!std::filesystem::exists(path)) return res;
+            img = cv::imread(path.string(), cv::IMREAD_COLOR);
+            imgLabel = path.string();
+        }
         if (img.empty()) return res;
 
         const double imgArea = static_cast<double>(img.cols) * static_cast<double>(img.rows);
@@ -86,7 +96,7 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
         // Detect tables in the page and exclude those regions from masking
         std::vector<cv::Rect> tableBboxes;
         try {
-            auto tables = opencv::DetectEngine::DetectTables(img, path.string(), debugger);
+            auto tables = opencv::DetectEngine::DetectTables(img, imgLabel, debugger);
             for (const auto &t : tables) {
                 if (t.bbox.width > 0 && t.bbox.height > 0) tableBboxes.emplace_back(t.bbox.x, t.bbox.y, t.bbox.width, t.bbox.height);
             }
@@ -142,8 +152,6 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
         out = img.clone();
         out.setTo(cv::Scalar(255,255,255), cleaned);
 
-        std::filesystem::create_directories(req.outputDir);
-
         std::string base;
         if (!req.uniqIdPrefix.empty()) {
             base = req.uniqIdPrefix;
@@ -152,23 +160,28 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
             base = req.filePrefix.empty() ? std::string("opencv_mask") : req.filePrefix;
         }
 
-        // Only persist the masked output used by the pipeline.
-        const auto outPath = std::filesystem::path(req.outputDir) / (base + ".png");
+        try {
+            cv::imencode(".png", cleaned, res.maskImageBytes);
+        } catch (...) { res.maskImageBytes.clear(); }
+        try {
+            cv::imencode(".png", out, res.maskedImageBytes);
+        } catch (...) { res.maskedImageBytes.clear(); }
 
-        if (cv::imwrite(outPath.string(), out)) {
-            res.maskedImagePath = outPath;
-            if (debugger && debugger->enabled()) {
-                try {
-                    // Debug-only artifacts: persist to debug_output via debugger (not into runRoot).
-                    try {
-                        std::vector<uint8_t> mbuf; cv::imencode(".png", cleaned, mbuf);
-                        debugger->writeBytes(std::string("opencv_mask_binary"), mbuf);
-                    } catch (...) {}
+        if (!req.outputDir.empty()) {
+            try { std::filesystem::create_directories(req.outputDir); } catch (...) {}
+            const auto outPath = std::filesystem::path(req.outputDir) / (base + ".png");
+            try {
+                if (cv::imwrite(outPath.string(), out)) {
+                    res.maskedImagePath = outPath;
+                }
+            } catch (...) {}
+        }
 
-                    std::vector<uint8_t> buf; cv::imencode(".png", out, buf);
-                    debugger->writeBytes(std::string("opencv_mask_whiteout"), buf);
-                } catch (...) {}
-            }
+        if (debugger && debugger->enabled()) {
+            try {
+                if (!res.maskImageBytes.empty()) debugger->writeBytes(std::string("opencv_mask_binary"), res.maskImageBytes);
+                if (!res.maskedImageBytes.empty()) debugger->writeBytes(std::string("opencv_mask_whiteout"), res.maskedImageBytes);
+            } catch (...) {}
         }
     } catch (...) {}
     return res;

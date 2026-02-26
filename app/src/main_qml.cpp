@@ -20,6 +20,7 @@
 #include "core/controllers/ImportController.h"
 #include "core/controllers/StatementController.h"
 #include "core/import/IImportStatement.h"
+#include "core/jobs/JobSystem.h"
 #include "api/poppler/IPopplerAdapter.h"
 #include "api/opencv/IOpenCvAdapter.h"
 #include "api/tesseract/ITesseractAdapter.h"
@@ -75,7 +76,9 @@ int startQmlApp(QApplication& app, AppStateController& appStateCtrl) {
         auto stmtCtrl = std::make_shared<StatementController>(importSvc);
         auto importCtrl = std::make_shared<ImportController>(stmtCtrl);
 
-        auto uiImport = new UiImportController(importCtrl, &w);
+        auto jobSystem = std::make_shared<core::jobs::JobSystem>(importCtrl);
+
+        auto uiImport = new UiImportController(jobSystem, &w);
         uiImport->setDomainController(uiDomain);
         w.setQmlContextProperty("uiImport", uiImport);
     }

@@ -22,7 +22,6 @@ public:
 
     api::opencv::MaskResult mask(const api::opencv::MaskRequest& req) override {
         if (req.cancelFlag && req.cancelFlag->load()) return api::opencv::MaskResult{};
-        if (req.outputDir.empty()) return {};
         return opencv::MaskEngine::MaskImage(req, debugger);
     }
 
@@ -30,10 +29,21 @@ public:
         api::opencv::DetectResult res;
         try {
             if (req.cancelFlag && req.cancelFlag->load()) return res;
-            std::filesystem::path p = req.imagePath;
-            if (!std::filesystem::exists(p)) return res;
+            cv::Mat img;
+            std::string label;
+            if (!req.imageBytes.empty()) {
+                try {
+                    img = cv::imdecode(req.imageBytes, cv::IMREAD_GRAYSCALE);
+                    label = std::string("<bytes>");
+                } catch (...) {}
+            }
 
-            cv::Mat img = cv::imread(p.string(), cv::IMREAD_GRAYSCALE);
+            std::filesystem::path p = req.imagePath;
+            if (img.empty()) {
+                if (!std::filesystem::exists(p)) return res;
+                img = cv::imread(p.string(), cv::IMREAD_GRAYSCALE);
+                label = p.string();
+            }
             if (img.empty()) return res;
 
             if (req.kind == api::opencv::DetectRequest::DetectKind::TextBlocks) {
@@ -50,7 +60,7 @@ public:
                 return res;
             }
 
-            auto tables = opencv::DetectEngine::DetectTables(img, p.string(), debugger);
+            auto tables = opencv::DetectEngine::DetectTables(img, label, debugger);
             if (!tables.empty()) {
                 res.table = tables[0];
                 res.detected = true;
@@ -62,12 +72,18 @@ public:
     api::opencv::CropResult crop(const api::opencv::CropRequest& req) override {
         api::opencv::CropResult res;
         if (req.cancelFlag && req.cancelFlag->load()) return res;
-        if (req.outputDir.empty()) return res;
         try {
-            std::filesystem::path p = req.imagePath;
-            if (!std::filesystem::exists(p)) return res;
+            cv::Mat img;
+            if (!req.imageBytes.empty()) {
+                try { img = cv::imdecode(req.imageBytes, cv::IMREAD_COLOR); } catch (...) {}
+            }
 
-            std::filesystem::create_directories(req.outputDir);
+            std::filesystem::path p = req.imagePath;
+            if (img.empty()) {
+                if (!std::filesystem::exists(p)) return res;
+                img = cv::imread(p.string(), cv::IMREAD_COLOR);
+            }
+            if (img.empty()) return res;
 
             std::vector<api::opencv::Rect> rects; rects.push_back(req.bbox);
             std::string prefix;
@@ -78,8 +94,8 @@ public:
                 prefix = req.filePrefix.empty() ? std::string("opencv_crop") : req.filePrefix;
             }
 
-            auto paths = opencv::CropEngine::CropImages(p.string(), rects, req.outputDir, req.outputFormat, req.jpegQuality, debugger, prefix);
-            res.croppedImagePaths = std::move(paths);
+            res.croppedImageBytes.clear();
+            res.croppedImagePaths = opencv::CropEngine::CropImages(img, rects, req.outputDir, req.outputFormat, req.jpegQuality, &res.croppedImageBytes, debugger, prefix);
         } catch (...) {}
         return res;
     }

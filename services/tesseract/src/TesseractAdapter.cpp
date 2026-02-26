@@ -17,12 +17,12 @@ public:
 
     api::tesseract::ExtractResult extract(const api::tesseract::ExtractRequest& req) override {
         api::tesseract::ExtractResult out;
-        if (req.outputDir.empty()) return out;
-
         if (req.cancelFlag && req.cancelFlag->load()) return out;
 
         std::vector<uint8_t> bytes;
-        if (!req.imagePath.empty()) {
+        if (!req.imageBytes.empty()) {
+            bytes = req.imageBytes;
+        } else if (!req.imagePath.empty()) {
             try {
                 std::ifstream ifs(req.imagePath, std::ios::binary);
                 if (ifs) bytes.assign((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());

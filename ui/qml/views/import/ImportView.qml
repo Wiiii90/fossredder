@@ -118,6 +118,13 @@ Item {
                             text: hasUiImport ? (uiImport.error && uiImport.error.length > 0 ? uiImport.error : uiImport.phase) : ""
                             wrapMode: Text.WordWrap
                         }
+
+                        Label {
+                            Layout.fillWidth: true
+                            visible: hasUiImport && uiImport.isRunning && uiImport.pageCount > 0
+                            text: qsTr("Seite %1/%2").arg(uiImport.currentPage).arg(uiImport.pageCount)
+                            opacity: 0.8
+                        }
                     }
                 }
 
