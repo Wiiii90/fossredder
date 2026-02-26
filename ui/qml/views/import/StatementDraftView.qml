@@ -1,7 +1,7 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import "qrc:/qml/components/controls"
+import components.controls 1.0
 import FossRedder 1.0
 
 Item {
@@ -83,7 +83,6 @@ Item {
                     text: qsTr("Verwerfen")
                     enabled: !!draft
                     onClicked: {
-                        // clear the import draft and return to Import view
                         if (typeof uiImport !== 'undefined' && uiImport) uiImport.clearDraft()
                         if (typeof uiData !== 'undefined' && uiData) {
                             uiData.selectedStatementId = ""
@@ -101,11 +100,9 @@ Item {
                         if (typeof uiDomain !== 'undefined' && uiDomain) {
                             var sid = uiDomain.finalizeStatementDraft(draft)
 
-                            // Clear the UI import draft so ImportView switches back
                             if (typeof uiImport !== 'undefined' && uiImport) uiImport.clearDraft()
 
                             if (sid && sid.length > 0 && uiNav && uiData) {
-                                // Select the created statement and first transaction, then navigate to Booking view
                                 uiData.selectedStatementId = sid
                                 try {
                                     var txs = uiData.transactionIdsForStatement(sid)
@@ -114,7 +111,6 @@ Item {
 
                                 Qt.callLater(function() {
                                     uiNav.section = UiNavigation.Booking
-                                    // prefer Statements subview so created statement is visible
                                     try { uiNav.bookingView = UiNavigation.Statements } catch(e) {}
                                 })
                             }

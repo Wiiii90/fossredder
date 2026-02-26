@@ -1,8 +1,8 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
-import "qrc:/qml/components/controls"
+import components.controls 1.0
 
 Item {
     anchors.fill: parent
@@ -49,7 +49,6 @@ Item {
                             if (contractTypeList.count === 0)
                                 contractTypeList.append({ text: qsTr("(All)") })
 
-                            // default: select all contract types and all properties
                             selectedContractTypes = []
                             for (var i = 0; i < contractTypeList.count; ++i) {
                                 var t = contractTypeList.get(i).text
@@ -84,7 +83,6 @@ Item {
                                 initTimer.start()
                         }
 
-                        // Initialization timer will call rebuildChoices once uiData and models are available
 
                         onVisibleChanged: {
                             if (visible) {

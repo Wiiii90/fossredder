@@ -1,4 +1,4 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -6,7 +6,6 @@ import FossRedder 1.0
 Item {
     id: sidebarLeft
 
-    // Local enum values matching UiNavigation Section order
     readonly property int sectionActors: 0
     readonly property int sectionProperties: 1
     readonly property int sectionContracts: 2
@@ -41,7 +40,6 @@ Item {
             }
         } catch (e) { }
 
-        // fallback: try to access inner loader directly
         try {
             if (sidebarLoader.item.content) {
                 sidebarLoader.item.content.source = src;
@@ -52,13 +50,11 @@ Item {
     function resolveSection() {
         if (!uiNav) return sectionImport;
         var v = uiNav.section;
-        // handle enum object value cases like UiNavigation.Export
         try {
             if (typeof v === 'string' && v.indexOf('Export') >= 0) return UiNavigation.Export;
         } catch(e) {}
         if (typeof v === 'number') return v;
         try {
-            // if enum object provided stringify and match
             var s = String(v);
             if (s.indexOf('Actors') >= 0) return sectionActors;
             if (s.indexOf('Properties') >= 0) return sectionProperties;
@@ -84,9 +80,7 @@ Item {
         source: "qrc:/qml/components/layout/Sidebar.qml"
         onLoaded: {
             if (!sidebarLoader.item) return;
-            // header intentionally removed in wrapper
             update();
-            // schedule a retry in case context properties arrive slightly later
             retryTimer.start();
         }
     }

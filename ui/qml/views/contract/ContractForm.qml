@@ -1,8 +1,8 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
-import "qrc:/qml/components/controls"
+import components.controls 1.0
 import "qrc:/qml/components/common"
 
 Item {
@@ -29,7 +29,6 @@ Item {
         descField.text = current.description || ""
         selectedActorIds = current.actorIds || []
         selectedPropertyIds = current.propertyIds || []
-        // propagate to pickers if loaded
         try { if (actorPickerLoader && actorPickerLoader.item) actorPickerLoader.item.selectedIds = selectedActorIds } catch(e) {}
         try { if (propPickerLoader && propPickerLoader.item) propPickerLoader.item.selectedIds = selectedPropertyIds } catch(e) {}
     }
@@ -66,7 +65,6 @@ Item {
                 anchors.margins: 8
                 spacing: Theme.spacingSmall
 
-                // Use EntityPicker for actors (loaded as component)
                 Loader {
                     id: actorPickerLoader
                     Layout.fillWidth: true

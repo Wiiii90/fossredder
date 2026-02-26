@@ -1,7 +1,7 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import "qrc:/qml/components/controls"
+import components.controls 1.0
 
 Item {
     id: root
@@ -16,7 +16,6 @@ Item {
         anchors.fill: parent
         spacing: 6
 
-        // list of checkboxes
         Flickable {
             Layout.fillWidth: true
             Layout.preferredHeight: Math.min(240, (model && (typeof model.count === 'function' ? model.count() : model.length)) * 42 + 8)
@@ -30,7 +29,6 @@ Item {
                         Layout.fillWidth: true
                         spacing: 8
                         AppCheckBox {
-                            // do not expand the checkbox; keep a small fixed width so the label stays visible
                             Layout.preferredWidth: 28
                             checked: root.selectedIds.indexOf(model.id) !== -1
                             onClicked: {
@@ -40,7 +38,6 @@ Item {
                                 } else {
                                     if (idx !== -1) root.selectedIds.splice(idx, 1)
                                 }
-                                // ensure bindings are refreshed after mutating the array
                                 root.selectedIds = root.selectedIds
                             }
                         }
@@ -60,7 +57,6 @@ Item {
                 enabled: addField.text && addField.text.length > 0
                 onClicked: {
                     if (!uiDomain) return
-                    // try to find appropriate ensure function on domain
                     var name = addField.text.trim()
                     if (!name) return
                     var id = null
@@ -72,7 +68,6 @@ Item {
                     if (id && id.length > 0) {
                         if (root.selectedIds.indexOf(id) === -1) root.selectedIds.push(id)
                         root.added(id)
-                        // reassign to trigger bindings
                         root.selectedIds = root.selectedIds
                     }
                     addField.text = ""

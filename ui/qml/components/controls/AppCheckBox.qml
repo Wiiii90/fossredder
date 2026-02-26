@@ -10,4 +10,6 @@ CheckBox {
 
     font.family: Theme.fontFamily
     font.pointSize: Theme.fontSize
+
+    rightPadding: Theme.spacingSmall
 }

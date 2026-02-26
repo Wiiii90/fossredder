@@ -10,7 +10,6 @@ TextField {
     font.pointSize: Theme.fontSize
 
     background: Rectangle {
-        id: bg
         color: Theme.surface
         radius: Theme.radius
         border.color: control.activeFocus ? Theme.primary.lighter(140) : "#ddd"
@@ -20,7 +19,6 @@ TextField {
         Behavior on border.color { ColorAnimation { duration: 160 } }
     }
 
-    // use explicit padding properties (TextField.padding is numeric in Controls 2)
     leftPadding: 8
     rightPadding: 8
     topPadding: 6

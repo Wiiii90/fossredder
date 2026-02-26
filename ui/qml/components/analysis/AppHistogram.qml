@@ -1,4 +1,4 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 pragma NativeMethodBehavior: AcceptThisObject
 
@@ -10,7 +10,6 @@ Item {
     property var propertyNameForId
     property real splitProgress: 0.0
     Behavior on splitProgress { NumberAnimation { duration: 300; easing.type: Easing.InOutQuad } }
-    // sizing is controlled by the parent layout; do not anchor to parent here
 
     function colorForKey(k) {
         try {
@@ -44,7 +43,6 @@ Item {
 
             for (var i=0;i<months.length;i++) {
                 var x = i*bw + 4; var y0 = height - 18
-                // stacked columns for contracts - base bars collapse as splitProgress increases
                 var baseline = height - 18
                 for (var ci=0; ci<catList.length; ++ci) {
                     var cat = catList[ci]
@@ -56,7 +54,6 @@ Item {
                     baseline -= hBase
                 }
 
-                // if splitProgress > 0, overlay property towers
                 if (root.splitProgress > 0) {
                     var props = []
                     for (var k in byProperty[i]) props.push({k:k,v:byProperty[i][k]})
@@ -82,7 +79,6 @@ Item {
                             ctx.fillRect(xprop, y0prop - hScaled, gw-2, hScaled)
                             y0prop -= hScaled
                         }
-                        // draw property label under tower
                         try {
                             ctx.fillStyle = "#333"
                             ctx.font = "11px sans-serif"
@@ -94,13 +90,10 @@ Item {
                             var lx = xprop + ((gw - 2) / 2) - (tw / 2)
                             if (gw >= 36) ctx.fillText(propName, Math.max(xprop, lx), height - 36)
                         } catch(e) {}
-                    // reset globalAlpha after overlay
                     ctx.globalAlpha = 1.0
                     }
-                    // ensure repaint on split progress change
                     try { if (root.splitProgress !== undefined) {} } catch(e) {}
                 }
-                // draw month label centered under the column
                 try {
                     ctx.fillStyle = "#666"
                     ctx.font = "11px sans-serif"
@@ -115,7 +108,6 @@ Item {
 
     }
 
-    // single requestPaint API
     function requestPaint() { try { histCanvas.requestPaint(); } catch(e) {} }
     onTableChanged: { try { if (histCanvas) histCanvas.requestPaint(); } catch(e) {} }
     Component.onCompleted: { try { if (table && table.length>0) requestPaint(); } catch(e) {} }

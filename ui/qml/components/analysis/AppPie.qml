@@ -1,7 +1,6 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 
-// Pie component recreated from original reference; minimal surface: accepts `table` and `uiData` and draws pie
 Item {
     id: root
     property var table: []

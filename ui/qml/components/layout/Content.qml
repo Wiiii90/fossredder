@@ -1,4 +1,4 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -16,7 +16,6 @@ Item {
         anchors.margins: 12
         spacing: Theme.spacing
 
-        // header
         Item {
             visible: showHeader && title && title.length > 0
             Layout.fillWidth: true
@@ -27,7 +26,6 @@ Item {
             }
         }
 
-        // content loader
         Loader {
             id: content
             Layout.fillWidth: true

@@ -1,7 +1,8 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
+import components.controls 1.0
 
 Item {
     id: toolBar
@@ -38,31 +39,21 @@ Item {
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
-                    Loader {
-                        id: loaderImport
-                        source: "qrc:/qml/components/controls/AppIconButton.qml"
-                        asynchronous: false
+                    AppIconButton {
                         Layout.preferredWidth: 72
                         Layout.preferredHeight: fileIcons.height
-                        onLoaded: {
-                            item.svgSource = "qrc:/qml/assets/import.svg";
-                            item.label = qsTr("Import");
-                            item.active = (uiNav && uiNav.section === UiNavigation.Import);
-                            item.clicked.connect(function(){ if (uiNav) uiNav.section = UiNavigation.Import })
-                        }
+                        svgSource: "qrc:/qml/assets/import.svg"
+                        label: qsTr("Import")
+                        active: uiNav && uiNav.section === UiNavigation.Import
+                        onClicked: if (uiNav) uiNav.section = UiNavigation.Import
                     }
-                    Loader {
-                        id: loaderExport
-                        source: "qrc:/qml/components/controls/AppIconButton.qml"
-                        asynchronous: false
+                    AppIconButton {
                         Layout.preferredWidth: 72
                         Layout.preferredHeight: fileIcons.height
-                        onLoaded: {
-                            item.svgSource = "qrc:/qml/assets/export.svg";
-                            item.label = qsTr("Export");
-                            item.active = (uiNav && uiNav.section === UiNavigation.Export);
-                            item.clicked.connect(function(){ if (uiNav) uiNav.section = UiNavigation.Export })
-                        }
+                        svgSource: "qrc:/qml/assets/export.svg"
+                        label: qsTr("Export")
+                        active: uiNav && uiNav.section === UiNavigation.Export
+                        onClicked: if (uiNav) uiNav.section = UiNavigation.Export
                     }
                 }
 
@@ -70,7 +61,7 @@ Item {
                     id: groupLabelFile
                     text: qsTr("File")
                     color: (typeof Theme !== 'undefined') ? Theme.textMuted : "#6f7d89"
-                    font.pixelSize: 11
+                    font.pointSize: Theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                     elide: Text.ElideRight
@@ -93,56 +84,66 @@ Item {
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
-                    Loader {
-                        id: loaderBooking
-                        source: "qrc:/qml/components/controls/AppIconButton.qml"
-                        asynchronous: false
+                    AppIconButton {
                         Layout.preferredWidth: 72
                         Layout.preferredHeight: domainIcons.height
-                        onLoaded: {
-                            item.svgSource = "qrc:/qml/assets/booking.svg";
-                            item.label = qsTr("Booking");
-                            item.active = (uiNav && uiNav.section === UiNavigation.Booking);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedStatementId = ""; uiData.selectedTransactionId = ""; } if (uiNav) { uiNav.bookingView = UiNavigation.Statements; uiNav.section = UiNavigation.Booking } })
+                        svgSource: "qrc:/qml/assets/booking.svg"
+                        label: qsTr("Booking")
+                        active: uiNav && uiNav.section === UiNavigation.Booking
+                        onClicked: {
+                            if (uiData) {
+                                uiData.selectedStatementId = ""
+                                uiData.selectedTransactionId = ""
+                            }
+                            if (uiNav) {
+                                uiNav.bookingView = UiNavigation.Statements
+                                uiNav.section = UiNavigation.Booking
+                            }
                         }
                     }
-                    Loader {
-                        id: loaderActor
-                        source: "qrc:/qml/components/controls/AppIconButton.qml"
-                        asynchronous: false
+                    AppIconButton {
                         Layout.preferredWidth: 72
                         Layout.preferredHeight: domainIcons.height
-                        onLoaded: {
-                            item.svgSource = "qrc:/qml/assets/actor.svg";
-                            item.label = qsTr("Actor");
-                            item.active = (uiNav && uiNav.section === UiNavigation.Actors);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Actors })
+                        svgSource: "qrc:/qml/assets/actor.svg"
+                        label: qsTr("Actor")
+                        active: uiNav && uiNav.section === UiNavigation.Actors
+                        onClicked: {
+                            if (uiData) {
+                                uiData.selectedActorId = ""
+                                uiData.selectedPropertyId = ""
+                                uiData.selectedContractId = ""
+                            }
+                            if (uiNav) uiNav.section = UiNavigation.Actors
                         }
                     }
-                    Loader {
-                        id: loaderProperty
-                        source: "qrc:/qml/components/controls/AppIconButton.qml"
-                        asynchronous: false
+                    AppIconButton {
                         Layout.preferredWidth: 72
                         Layout.preferredHeight: domainIcons.height
-                        onLoaded: {
-                            item.svgSource = "qrc:/qml/assets/property.svg";
-                            item.label = qsTr("Gebäude");
-                            item.active = (uiNav && uiNav.section === UiNavigation.Properties);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Properties })
+                        svgSource: "qrc:/qml/assets/property.svg"
+                        label: qsTr("Gebäude")
+                        active: uiNav && uiNav.section === UiNavigation.Properties
+                        onClicked: {
+                            if (uiData) {
+                                uiData.selectedActorId = ""
+                                uiData.selectedPropertyId = ""
+                                uiData.selectedContractId = ""
+                            }
+                            if (uiNav) uiNav.section = UiNavigation.Properties
                         }
                     }
-                    Loader {
-                        id: loaderContract
-                        source: "qrc:/qml/components/controls/AppIconButton.qml"
-                        asynchronous: false
+                    AppIconButton {
                         Layout.preferredWidth: 72
                         Layout.preferredHeight: domainIcons.height
-                        onLoaded: {
-                            item.svgSource = "qrc:/qml/assets/contract.svg";
-                            item.label = qsTr("Contract");
-                            item.active = (uiNav && uiNav.section === UiNavigation.Contracts);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Contracts })
+                        svgSource: "qrc:/qml/assets/contract.svg"
+                        label: qsTr("Contract")
+                        active: uiNav && uiNav.section === UiNavigation.Contracts
+                        onClicked: {
+                            if (uiData) {
+                                uiData.selectedActorId = ""
+                                uiData.selectedPropertyId = ""
+                                uiData.selectedContractId = ""
+                            }
+                            if (uiNav) uiNav.section = UiNavigation.Contracts
                         }
                     }
                 }
@@ -151,7 +152,7 @@ Item {
                     id: groupLabelDomain
                     text: qsTr("Domain")
                     color: (typeof Theme !== 'undefined') ? Theme.textMuted : "#6f7d89"
-                    font.pixelSize: 11
+                    font.pointSize: Theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                     elide: Text.ElideRight
@@ -174,30 +175,34 @@ Item {
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
-                    Loader {
-                        id: loaderAnalysis
-                        source: "qrc:/qml/components/controls/AppIconButton.qml"
-                        asynchronous: false
+                    AppIconButton {
                         Layout.preferredWidth: 72
                         Layout.preferredHeight: toolsIcons.height
-                        onLoaded: {
-                            item.svgSource = "qrc:/qml/assets/analysis.svg";
-                            item.label = qsTr("Analysis");
-                            item.active = (uiNav && uiNav.section === UiNavigation.Analysis);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Analysis })
+                        svgSource: "qrc:/qml/assets/analysis.svg"
+                        label: qsTr("Analysis")
+                        active: uiNav && uiNav.section === UiNavigation.Analysis
+                        onClicked: {
+                            if (uiData) {
+                                uiData.selectedActorId = ""
+                                uiData.selectedPropertyId = ""
+                                uiData.selectedContractId = ""
+                            }
+                            if (uiNav) uiNav.section = UiNavigation.Analysis
                         }
                     }
-                    Loader {
-                        id: loaderAnnual
-                        source: "qrc:/qml/components/controls/AppIconButton.qml"
-                        asynchronous: false
+                    AppIconButton {
                         Layout.preferredWidth: 72
                         Layout.preferredHeight: toolsIcons.height
-                        onLoaded: {
-                            item.svgSource = "qrc:/qml/assets/annual.svg";
-                            item.label = qsTr("Annual");
-                            item.active = (uiNav && uiNav.section === UiNavigation.Annual);
-                            item.clicked.connect(function(){ if (uiData) { uiData.selectedActorId = ""; uiData.selectedPropertyId = ""; uiData.selectedContractId = ""; } if (uiNav) uiNav.section = UiNavigation.Annual })
+                        svgSource: "qrc:/qml/assets/annual.svg"
+                        label: qsTr("Annual")
+                        active: uiNav && uiNav.section === UiNavigation.Annual
+                        onClicked: {
+                            if (uiData) {
+                                uiData.selectedActorId = ""
+                                uiData.selectedPropertyId = ""
+                                uiData.selectedContractId = ""
+                            }
+                            if (uiNav) uiNav.section = UiNavigation.Annual
                         }
                     }
                 }
@@ -206,7 +211,7 @@ Item {
                     id: groupLabelTools
                     text: qsTr("Tools")
                     color: (typeof Theme !== 'undefined') ? Theme.textMuted : "#6f7d89"
-                    font.pixelSize: 11
+                    font.pointSize: Theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                     elide: Text.ElideRight
@@ -229,18 +234,13 @@ Item {
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
-                    Loader {
-                        id: loaderSettings
-                        source: "qrc:/qml/components/controls/AppIconButton.qml"
-                        asynchronous: false
+                    AppIconButton {
                         Layout.preferredWidth: 72
                         Layout.preferredHeight: appIcons.height
-                        onLoaded: {
-                            item.svgSource = "qrc:/qml/assets/settings.svg";
-                            item.label = qsTr("Settings");
-                            item.active = (uiNav && uiNav.section === UiNavigation.Settings);
-                            item.clicked.connect(function(){ if (uiNav) uiNav.section = UiNavigation.Settings })
-                        }
+                        svgSource: "qrc:/qml/assets/settings.svg"
+                        label: qsTr("Settings")
+                        active: uiNav && uiNav.section === UiNavigation.Settings
+                        onClicked: if (uiNav) uiNav.section = UiNavigation.Settings
                     }
                 }
 
@@ -248,7 +248,7 @@ Item {
                     id: groupLabelApp
                     text: qsTr("Application")
                     color: (typeof Theme !== 'undefined') ? Theme.textMuted : "#6f7d89"
-                    font.pixelSize: 11
+                    font.pointSize: Theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                     elide: Text.ElideRight
@@ -256,7 +256,6 @@ Item {
                 }
             }
 
-            // separator after Application group
             Rectangle { width: 1; Layout.fillHeight: true; color: "#d0e6f1"; Layout.alignment: Qt.AlignVCenter }
 
             Item { Layout.fillWidth: true }

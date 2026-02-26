@@ -1,19 +1,17 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import "qrc:/qml/components/controls" as Controls
+import components.controls 1.0 as Controls
 import "qrc:/qml/utils/FileUtils.js" as FileUtils
 import FossRedder 1.0
 
 Item {
     id: txRoot
-    // anchors.fill: parent
 
     property var draft
     function proofSource(p) {
         var s = p || ""
         if (s.length === 0) return ""
-        // In-memory proofs are addressed via image provider
         if (s.indexOf("proof/") === 0) return "image://importProof/" + s
         return FileUtils.toFileUrl(s)
     }
@@ -22,8 +20,7 @@ Item {
         try {
             var v = Number(a);
             if (!isFinite(v)) return "";
-            var s = v.toFixed(2); // always two decimals
-            // use comma as decimal separator for display
+            var s = v.toFixed(2);
             s = s.replace('.', ',');
             return s;
         } catch (e) { return String(a); }
@@ -93,10 +90,6 @@ Item {
             text: draft && draft.current ? formatAmount(draft.current.amount) : ""
             onTextChanged: {
                 if (!draft) return
-                // Normalize common localized number formats before parsing:
-                // - treat comma as decimal separator
-                // - remove thousands-dot when a comma decimal is present (e.g. "1.234,56")
-                // - strip whitespace
                 var s = text ? text.trim() : ""
                 if (s.length === 0) {
                     draft.transactions.setAmount(draft.currentIndex, 0.0)
@@ -104,7 +97,6 @@ Item {
                 }
                 try {
                     if (s.indexOf(',') !== -1) {
-                        // remove dots that are likely thousands separators
                         s = s.replace(/\./g, '')
                     }
                     s = s.replace(/,/g, '.')
@@ -116,7 +108,6 @@ Item {
             }
         }
 
-        // Type field - match booking date / amount layout
         Label { text: qsTr("Transaktions-Typ"); Layout.alignment: Qt.AlignVCenter }
         Controls.AppTextField {
             Layout.fillWidth: true
@@ -125,7 +116,6 @@ Item {
             onTextChanged: if (draft) draft.transactions.setType(draft.currentIndex, text)
         }
 
-        // Properties section grouped visually
         GroupBox {
             title: qsTr("Gebäude")
             Layout.fillWidth: true
@@ -135,7 +125,6 @@ Item {
                 anchors.margins: 2
                 spacing: 2
 
-                // keep the list compact but allow it to grow with content
                 ListView {
                     id: propertyListView
                     Layout.fillWidth: true
@@ -153,18 +142,14 @@ Item {
                             id: propCheck
                             Layout.preferredWidth: 28
                             Layout.margins: 2
-                            // Single-choice behavior: allow only one property selected for import draft
                             checked: (draft && draft.current && draft.current.propertyIds && model.id) ? draft.current.propertyIds.indexOf(model.id) !== -1 : false
                             onClicked: {
                                 if (!draft || !draft.current || !model.id) return
                                 if (propCheck.checked) {
-                                    // select only this property
                                     draft.transactions.setProperties(draft.currentIndex, [model.id])
                                 } else {
-                                    // clear selection
                                     draft.transactions.setProperties(draft.currentIndex, [])
                                 }
-                                // ensure parent draft signals change so other checkboxes update
                                 if (draft && draft.refresh) draft.refresh()
                             }
                         }
@@ -184,9 +169,8 @@ Item {
                     text: qsTr("Keine Gebäude verfügbar, bitte neue Gebäude anlegen!")
                 }
             }
-        } // close GroupBox
+            }
 
-        // Allocatable checkbox kept visually separate from properties
         RowLayout {
             Layout.fillWidth: true
             Controls.AppCheckBox {

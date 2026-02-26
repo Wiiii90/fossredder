@@ -1,14 +1,13 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
-import "qrc:/qml/components/controls"
+import components.controls 1.0
 import "qrc:/qml/components/analysis"
 
 Item {
     id: page
     property var stackView
-    // use context properties `uiData` and `uiDomain` provided by the QML engine (do not declare local properties to avoid shadowing)
     width: stackView ? stackView.width : (parent ? parent.width : 800)
     height: stackView ? stackView.height : (parent ? parent.height : 600)
 
@@ -56,7 +55,6 @@ Item {
             }
         }
     }
-    // react when selection changes - uiData may be a QObject with signals; handle safely
     Connections {
         target: typeof uiData !== 'undefined' ? uiData : null
         function onSelectedAnalysisIdChanged() {

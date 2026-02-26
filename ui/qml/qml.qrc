@@ -14,17 +14,21 @@
         <file>components/analysis/AppHistogram.qml</file>
         <file>components/analysis/AppPie.qml</file>
 
+        <file>components/common/ListRow.qml</file>
+        <file>components/common/EntityPicker.qml</file>
+        <file>components/common/RunLogList.qml</file>
+
         <file>components/controls/AppButton.qml</file>
         <file>components/controls/AppCheckBox.qml</file>
         <file>components/controls/AppComboBox.qml</file>
         <file>components/controls/AppFilePicker.qml</file>
         <file>components/controls/AppIconButton.qml</file>
+        <file>components/controls/AppDropZone.qml</file>
+        <file>components/controls/AppProgressBar.qml</file>
+        <file>components/controls/AppPanel.qml</file>
         <file>components/controls/AppTextArea.qml</file>
         <file>components/controls/AppTextField.qml</file>
         <file>components/controls/qmldir</file>
-        <file>components/common/ListRow.qml</file>
-        <file>components/common/EntityPicker.qml</file>
-        <file>components/common/RunLogList.qml</file>
         
         <file>components/layout/Content.qml</file>
         <file>components/layout/ContentRouter.qml</file>
@@ -33,6 +37,7 @@
         <file>components/layout/SidebarRouter.qml</file>
         <file>components/layout/StatusBar.qml</file>
         <file>components/layout/Toolbar.qml</file>
+
 
         <file>theme/Theme.qml</file>
         <file>theme/qmldir</file>

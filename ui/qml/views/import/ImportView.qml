@@ -1,9 +1,8 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
-import "qrc:/qml/components/controls"
-import "qrc:/qml/utils/FileUtils.js" as FileUtils
+import components.controls 1.0
 
 Item {
     id: root
@@ -14,154 +13,293 @@ Item {
 
     property bool hasUiImport: typeof uiImport !== 'undefined'
 
+    property bool showAdvanced: false
+    property bool showPoppler: false
+    property bool showTesseract: false
+    property bool showParser: false
+
+    property var pendingFiles: []
+
+    function commitImportFiles(paths, updatePathField) {
+        if (!paths || paths.length === 0) return
+
+        var pdfs = []
+        for (var i = 0; i < paths.length; ++i) {
+            var p = String(paths[i])
+            if (!p || p.length === 0) continue
+            if (p.toLowerCase().endsWith(".pdf")) pdfs.push(p)
+        }
+        if (pdfs.length === 0) return
+
+        if (updatePathField && manualPath) manualPath.text = pdfs[0]
+        if (hasUiImport) uiImport.addFiles(pdfs)
+        pendingFiles = []
+    }
+
+    function addImportFiles(paths) {
+        commitImportFiles(paths, true)
+    }
+
     StackLayout {
         id: contentStack
         anchors.fill: parent
         currentIndex: (hasUiImport && uiImport.draft) ? 1 : 0
 
-        // Import page
-        Flickable {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            contentHeight: pageLayout.implicitHeight
-
-            ScrollBar.vertical: ScrollBar {
-                policy: ScrollBar.AlwaysOn
-            }
 
             ColumnLayout {
-                id: pageLayout
-                width: parent.width
-                spacing: 8
+                anchors.fill: parent
+                spacing: Theme.spacing
 
-                Label {
-                    text: qsTr("PDF-Bankauszug-Einleser")
+                Flickable {
+                    id: scroll
                     Layout.fillWidth: true
-                    font.pointSize: 18
-                }
+                    Layout.fillHeight: true
+                    clip: true
+                    contentHeight: content.implicitHeight
+                    contentWidth: width
 
-                GroupBox {
-                    id: pdfImporter
-                    Layout.fillWidth: true
-                    width: parent.width
-                    visible: !(hasUiImport && uiImport.draft)
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AsNeeded
+                    }
 
                     ColumnLayout {
-                        Layout.fillWidth: true
-                        width: parent.width
-                        spacing: 8
+                        id: content
+                        width: scroll.width
+                        spacing: Theme.spacing
 
-                        RowLayout {
+                        AppPanel {
                             Layout.fillWidth: true
+                            contentSpacing: Theme.spacingSmall
 
-                            AppTextField {
-                                id: fileField
-                                Layout.fillWidth: true
-                                placeholderText: qsTr("PDF Dateipfad")
-                                enabled: !(hasUiImport && uiImport.isRunning)
-                                // avoid binding loop: keep text local and initialize from uiImport.selectedFile
-                                text: ""
-                                Component.onCompleted: {
-                                    var def = "P:/.data/fossredder/April 2025.pdf"
-                                    if (hasUiImport) {
-                                        if (uiImport.selectedFile && uiImport.selectedFile.length > 0) {
-                                            text = uiImport.selectedFile
-                                        } else {
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Label { text: qsTr("Source"); Layout.preferredWidth: 120 }
+                                    AppComboBox {
+                                        id: sourceKind
+                                        model: [qsTr("PDF")]
+                                        currentIndex: 0
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Label { text: qsTr("Strategy"); Layout.preferredWidth: 120 }
+                                    AppComboBox {
+                                        id: strategy
+                                        model: [qsTr("Commerzbank26")]
+                                        currentIndex: 0
+                                    }
+                                }
+
+                                AppCheckBox {
+                                    text: qsTr("Advanced settings")
+                                    checked: root.showAdvanced
+                                    onToggled: root.showAdvanced = checked
+                                }
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    visible: root.showAdvanced
+                                    spacing: Theme.spacingSmall
+
+                                    AppCheckBox {
+                                        text: qsTr("Poppler")
+                                        checked: root.showPoppler
+                                        onToggled: root.showPoppler = checked
+                                    }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        visible: root.showPoppler
+                                        Layout.leftMargin: Theme.spacing
+                                        Label { text: qsTr("TODO: Poppler settings"); color: Theme.textMuted; wrapMode: Text.WordWrap }
+                                    }
+
+                                    AppCheckBox {
+                                        text: qsTr("Tesseract")
+                                        checked: root.showTesseract
+                                        onToggled: root.showTesseract = checked
+                                    }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        visible: root.showTesseract
+                                        Layout.leftMargin: Theme.spacing
+                                        Label { text: qsTr("TODO: Tesseract settings"); color: Theme.textMuted; wrapMode: Text.WordWrap }
+                                    }
+
+                                    AppCheckBox {
+                                        text: qsTr("Parser")
+                                        checked: root.showParser
+                                        onToggled: root.showParser = checked
+                                    }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        visible: root.showParser
+                                        Layout.leftMargin: Theme.spacing
+                                        Label { text: qsTr("TODO: Parser settings"); color: Theme.textMuted; wrapMode: Text.WordWrap }
+                                    }
+                                }
+                        }
+
+                        AppPanel {
+                            Layout.fillWidth: true
+                            contentSpacing: Theme.spacingSmall
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+
+                                    AppTextField {
+                                        id: manualPath
+                                        Layout.fillWidth: true
+                                        placeholderText: qsTr("Enter file path...")
+                                        enabled: hasUiImport && !uiImport.isRunning
+
+                                        Component.onCompleted: {
+                                            var def = "P:/.data/fossredder/April 2025.pdf"
                                             text = def
-                                            uiImport.selectedFile = def
+                                            if (hasUiImport) uiImport.selectedFile = ""
+                                            pendingFiles = []
                                         }
-                                    } else {
-                                        text = def
+
+                                        onTextEdited: { pendingFiles = [] }
+                                    }
+
+                                    AppButton {
+                                        text: qsTr("Add")
+                                        enabled: hasUiImport && !uiImport.isRunning && manualPath.text && manualPath.text.trim().length > 0
+                                        fillColor: Theme.surface
+                                        textColor: Theme.textPrimary
+                                        onClicked: {
+                                            var files = []
+                                            if (pendingFiles && pendingFiles.length > 0) files = pendingFiles
+                                            else files = [manualPath.text]
+                                            root.commitImportFiles(files, false)
+
+                                            manualPath.text = ""
+                                            pendingFiles = []
+                                        }
+                                    }
+
+                                    AppButton {
+                                        text: qsTr("Browse...")
+                                        enabled: hasUiImport && !uiImport.isRunning
+                                        fillColor: Theme.surface
+                                        textColor: Theme.textPrimary
+                                        onClicked: { if (uiActions) uiActions.browseImportPdf() }
                                     }
                                 }
 
-                                onTextChanged: {
-                                    if (hasUiImport) {
-                                        // update model but avoid reassigning identical value
-                                        if (uiImport.selectedFile !== text) uiImport.selectedFile = text
+                                AppDropZone {
+                                    Layout.fillWidth: true
+                                    enabled: hasUiImport && !uiImport.isRunning
+                                    title: qsTr("Drop PDFs here")
+                                    subtitle: ""
+                                    allowBrowse: false
+                                    clickToBrowse: true
+                                    queuedCount: hasUiImport ? uiImport.queuedCount : 0
+                                    files: hasUiImport ? (uiImport.selectedFile && uiImport.selectedFile.length > 0 ? [uiImport.selectedFile].concat(uiImport.queuedFiles) : uiImport.queuedFiles) : []
+                                    onBrowseRequested: { if (uiActions) uiActions.browseImportPdf() }
+                                }
+
+                                Connections {
+                                    target: uiActions
+                                    function onImportFileSelected(path) {
+                                        if (!path) return
+                                        manualPath.text = path
+                                        pendingFiles = [path]
+                                    }
+                                    function onImportFilesSelected(paths) {
+                                        if (!paths || paths.length === 0) return
+                                        manualPath.text = paths[0]
+                                        pendingFiles = paths
+                                    }
+
+                                    function onImportFileDropped(path) {
+                                        if (!path) return
+                                        root.commitImportFiles([path], false)
+                                    }
+                                    function onImportFilesDropped(paths) {
+                                        if (!paths || paths.length === 0) return
+                                        root.commitImportFiles(paths, false)
                                     }
                                 }
-                            }
 
-                            AppButton {
-                                text: qsTr("Durchstöbern")
-                                enabled: !(hasUiImport && uiImport.isRunning)
-                                onClicked: {
-                                    if (uiActions) uiActions.browseImportPdf()
+                        }
+
+                        AppPanel {
+                            Layout.fillWidth: true
+                            contentSpacing: Theme.spacingSmall
+
+                                AppProgressBar {
+                                    Layout.fillWidth: true
+                                    visible: hasUiImport && (uiImport.isRunning || uiImport.progress > 0)
+                                    value: hasUiImport ? uiImport.progress : 0
                                 }
-                            }
 
-                            // Listen for native file dialog result and populate the text field
-                            Connections {
-                                target: uiActions
-                                function onImportFileSelected(path) {
-                                    if (!path) return
-                                    fileField.text = path
-                                    if (hasUiImport) uiImport.selectedFile = path
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: hasUiImport ? (uiImport.error && uiImport.error.length > 0 ? uiImport.error : uiImport.phase) : ""
+                                    color: hasUiImport && uiImport.error && uiImport.error.length > 0 ? Theme.danger : Theme.textPrimary
+                                    wrapMode: Text.WordWrap
                                 }
-                            }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    visible: hasUiImport ? (uiImport.isRunning && uiImport.pageCount > 0) : false
+                                    text: hasUiImport ? qsTr("Page %1/%2").arg(uiImport.currentPage).arg(uiImport.pageCount) : ""
+                                    color: Theme.textMuted
+                                    wrapMode: Text.WordWrap
+                                }
                         }
 
-                        Item { Layout.fillHeight: true }
-
-                        ProgressBar {
-                            Layout.fillWidth: true
-                            from: 0
-                            to: 1
-                            value: hasUiImport ? uiImport.progress : 0
-                            visible: hasUiImport && (uiImport.isRunning || uiImport.progress > 0)
-                        }
-
-                        Label {
-                            Layout.fillWidth: true
-                            text: hasUiImport ? (uiImport.error && uiImport.error.length > 0 ? uiImport.error : uiImport.phase) : ""
-                            wrapMode: Text.WordWrap
-                        }
-
-                        Label {
-                            Layout.fillWidth: true
-                            visible: hasUiImport ? (uiImport.isRunning && uiImport.pageCount > 0) : false
-                            text: hasUiImport ? qsTr("Seite %1/%2").arg(uiImport.currentPage).arg(uiImport.pageCount) : ""
-                            opacity: 0.8
-                        }
+                        Item { Layout.preferredHeight: Theme.spacingLarge }
                     }
                 }
-
-                Item { Layout.fillHeight: true }
 
                 RowLayout {
                     Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignBottom
 
                     AppButton {
+                        text: qsTr("Cancel")
                         visible: hasUiImport && uiImport.isRunning
-                        text: qsTr("Abbrechen")
                         enabled: hasUiImport && uiImport.isRunning
-                        onClicked: {
-                            if (hasUiImport) uiImport.cancelImport()
-                        }
+                        fillColor: Theme.surface
+                        textColor: Theme.textPrimary
+                        onClicked: if (hasUiImport) uiImport.cancelImport()
                     }
 
                     AppButton {
-                        visible: hasUiImport && !uiImport.isRunning
-                        text: qsTr("Starten")
-                        // compute enabled from local flag and current field text without creating binding loops
-                        enabled: (hasUiImport && !uiImport.isRunning) ? (fileField.text && fileField.text.length > 0) : false
-                        onClicked: {
-                            if (hasUiImport) uiImport.selectedFile = fileField.text
-                            if (hasUiImport) uiImport.startStatementImport()
-                        }
+                        text: qsTr("Cancel all")
+                        visible: hasUiImport && uiImport.isRunning && uiImport.queuedCount > 0
+                        enabled: visible
+                        fillColor: Theme.surface
+                        textColor: Theme.textPrimary
+                        onClicked: if (hasUiImport) uiImport.cancelAllImports()
                     }
 
+                    Item { Layout.fillWidth: true }
+
                     AppButton {
+                        text: qsTr("Reset")
                         visible: hasUiImport && !uiImport.isRunning
-                        text: qsTr("Zurücksetzen")
                         enabled: hasUiImport && !uiImport.isRunning
+                        fillColor: Theme.surface
+                        textColor: Theme.textPrimary
                         onClicked: { if (hasUiImport) uiImport.resetStatus() }
                     }
 
+                    AppButton {
+                        text: qsTr("Start")
+                        visible: hasUiImport && !uiImport.isRunning
+                        enabled: hasUiImport && !uiImport.isRunning && ((uiImport.selectedFile && uiImport.selectedFile.length > 0) || uiImport.queuedCount > 0)
+                        onClicked: { if (hasUiImport) uiImport.startStatementImport() }
+                    }
+
                     BusyIndicator {
-                        running: hasUiImport && uiImport.phase === "Anhalten..."
+                        running: hasUiImport && uiImport.isRunning
                         visible: running
                         width: 24
                         height: 24

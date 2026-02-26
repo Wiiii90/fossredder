@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QStringList>
 
 class QAction;
 
@@ -42,6 +43,9 @@ public:
 signals:
     void importBrowseRequested(const QString& filter);
     void importFileSelected(const QString& path);
+    void importFilesSelected(const QStringList& paths);
+    void importFileDropped(const QString& path);
+    void importFilesDropped(const QStringList& paths);
     void exportBrowseRequested(const QString& filter);
     void exportFileSelected(const QString& path);
 

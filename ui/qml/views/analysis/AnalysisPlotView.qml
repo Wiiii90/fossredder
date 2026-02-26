@@ -1,11 +1,10 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import "qrc:/qml/components/analysis"
 
 Item {
     id: root
-    // uiData and uiDomain are provided by the QML rootContext; do not shadow them with local properties
     property var histLegendModel: []
     property real histLegendTotal: 0
     property var propListModel: []
@@ -26,7 +25,6 @@ Item {
             if (!tbl || tbl.length === 0) return ""
             var sample = tbl[0]
             if (!sample || sample.length < 2) return ""
-            // sample may be [label, jsonOrValue] or [date, label, value]
             var col = (sample.length > 1) ? sample[1] : null
             var col2 = (sample.length > 2) ? sample[2] : null
             try {
@@ -54,7 +52,6 @@ Item {
         var newHistTotal = 0
         try {
             try { console.log('AnalysisPlotView.rebuild run uiData=', !!(typeof uiData !== 'undefined' && uiData), 'hasLast=', !!(typeof uiData !== 'undefined' && uiData && uiData.lastAnalysisResult)) } catch(e) {}
-            // require uiData to be present; do not attempt parent-chain or retry fallbacks
             if (typeof uiData === 'undefined' || !uiData || !uiData.lastAnalysisResult || !uiData.lastAnalysisResult.table) {
                 histLegendModel = newHist
                 histLegendTotal = newHistTotal
@@ -78,7 +75,6 @@ Item {
                 } catch(e) {}
 
                 if (!parsed) {
-                    // support rows like [date, label, value]
                     var nv = NaN
                     var name = null
                     if (row.length > 2) {
@@ -113,7 +109,6 @@ Item {
             propListModel = JSON.parse(JSON.stringify(newProps))
 
             try {
-                // apply uiData-dependent bindings
                 try { if (pie) pie.legendFilter = uiData ? (uiData._legendFilter ? uiData._legendFilter : []) : [] } catch(e) {}
                 try { if (hist) hist.legendFilter = uiData ? (uiData._legendFilter ? uiData._legendFilter : []) : [] } catch(e) {}
                 try { if (uiData && uiData.propertyNameForId) { if (pie) pie.propertyNameForId = function(id) { try { return uiData.propertyNameForId(id) } catch(e) { return id } }; if (hist) hist.propertyNameForId = function(id) { try { return uiData.propertyNameForId(id) } catch(e) { return id } } } else { if (pie) pie.propertyNameForId = null; if (hist) hist.propertyNameForId = null } } catch(e) {}
@@ -140,7 +135,6 @@ Item {
             Layout.fillWidth: true
             spacing: 8
 
-            // Pie view: legend left, pie right
             Item {
                 id: pieArea
                 Layout.fillWidth: true
@@ -171,7 +165,6 @@ Item {
                 }
             }
 
-            // Histogram view
             AppHistogram {
                 id: hist
                 splitProgress: 0.0
@@ -200,7 +193,6 @@ Item {
             }
         }
 
-        // Each plot renders its own legend header inside its area
 
         Flickable {
             id: histLegendFlick
@@ -232,12 +224,9 @@ Item {
             }
         }
 
-        // fallback legend removed to avoid duplicate legends; histogram legend above is authoritative
 
-        // property badges removed for histogram view to avoid extra boxes
     }
 
-    // rebuild will be triggered when uiData.lastAnalysisResult changes or parent loader assigns uiData
     Connections { target: (typeof uiData !== 'undefined') ? uiData : null
         function onLastAnalysisResultChanged() { try { rebuild() } catch(e) {} }
     }

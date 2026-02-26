@@ -1,4 +1,4 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -10,9 +10,7 @@ Item {
     property url iconSource: ""
     property bool selectable: true
     property bool selected: false
-    // theme-driven visuals (no literals/fallbacks)
     property color selectedColor: Theme.background
-    // visual customization with safe defaults
     property color backgroundColor: "transparent"
     property color borderColor: "#e6e6e6"
     property real borderWidth: 1
@@ -31,7 +29,6 @@ Item {
         border.color: root.borderColor
         border.width: root.borderWidth
 
-        // selection accent removed; visuals rely on background color when selected
     }
 
         RowLayout {

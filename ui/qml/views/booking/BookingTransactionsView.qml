@@ -1,7 +1,7 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import "qrc:/qml/components/controls"
+import components.controls 1.0
 
 Item {
     id: root
@@ -15,8 +15,6 @@ Item {
         bookingDateField.text = ""
         amountField.text = ""
         typeField.text = ""
-        // statementId is taken from uiData.selectedStatementId when creating new
-        // reset property selection for new
         if (typeof selectedPropertyIds !== 'undefined') selectedPropertyIds = []
         allocCheck.checked = false
         statusCombo.currentIndex = 0
@@ -38,13 +36,11 @@ Item {
         bookingDateField.text = current.bookingDate || ""
         amountField.text = String(current.amount)
         typeField.text = current.type || ""
-        // populate property selection (for display only)
         if (typeof selectedPropertyIds !== 'undefined') selectedPropertyIds = current.propertyIds ? current.propertyIds.slice() : []
         allocCheck.checked = current.allocatable ? true : false
         statusCombo.currentIndex = Math.max(0, current.status)
     }
 
-    // local storage for new-transaction property assignments
     property var selectedPropertyIds: []
 
     Connections { target: current; function onChanged() { syncFields() } }
@@ -71,7 +67,6 @@ Item {
                     }
                 }
                 onTextChanged: {
-                    // inline update suppressed; persistent updates must be triggered explicitly
                 }
             }
         }
@@ -116,7 +111,6 @@ Item {
             }
         }
 
-        // Properties section
         GroupBox {
             title: qsTr("Properties")
             Layout.fillWidth: true
@@ -143,22 +137,17 @@ Item {
                             id: propCheck
                             Layout.preferredWidth: 28
                             Layout.margins: 2
-                            // use the local selectedPropertyIds array so repeated clicks accumulate
                             checked: selectedPropertyIds.indexOf(model.id) !== -1
                             onClicked: {
                                 if (!model.id) return
-                                // update local selection first
                                 var localIdx = selectedPropertyIds.indexOf(model.id)
                                 if (propCheck.checked) { if (localIdx === -1) selectedPropertyIds.push(model.id) }
                                 else { if (localIdx > -1) selectedPropertyIds.splice(localIdx, 1) }
 
                                 if (isEdit && current && current.id) {
-                                    // apply persistent update immediately using accumulated local selection
                                     if (uiDomain) uiDomain.updateTransactionProperties(current.id, selectedPropertyIds)
-                                    // also update UI model immediately so other views (PropertiesView) refresh without waiting for commit
                                     if (uiData) uiData.setTransactionPropertyIdsImmediate(current.id, selectedPropertyIds)
                                 } else {
-                                    // for new transaction we already modify local selection
                                 }
                             }
                         }
@@ -179,7 +168,6 @@ Item {
             }
         }
 
-        // Allocatable and status
         RowLayout {
             Layout.fillWidth: true
 
@@ -188,7 +176,6 @@ Item {
                 text: qsTr("Allocatable to tenant")
                 checked: false
                     onClicked: {
-                    // update the domain model in-memory
                     if (!isNew && uiDomain && current && current.id) uiDomain.updateTransactionAllocatable(current.id, allocCheck.checked)
                 }
             }
@@ -200,7 +187,6 @@ Item {
                 model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
                 currentIndex: 2
                     onActivated: {
-                    // apply status in-memory
                     if (!isNew && uiDomain && current && current.id) uiDomain.updateTransactionStatus(current.id, currentIndex)
                 }
             }
@@ -215,7 +201,6 @@ Item {
                 onClicked: { if (uiData) uiData.selectedTransactionId = "" }
             }
 
-            // For inline edits we hide the Update action and apply changes directly from fields.
             AppButton {
                 visible: !isEdit
                 text: qsTr("Create")
@@ -228,7 +213,6 @@ Item {
                     var sid = (isEdit && current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
                     var id = uiDomain.addTransaction(nameField.text, bookingDateField.text, amt, "", sid)
                     if (id && id.length > 0) {
-                        // apply allocatable/status/properties
                         uiDomain.updateTransactionAllocatable(id, allocCheck.checked)
                         uiDomain.updateTransactionStatus(id, statusCombo.currentIndex)
                         if (selectedPropertyIds && selectedPropertyIds.length > 0) uiDomain.updateTransactionProperties(id, selectedPropertyIds)

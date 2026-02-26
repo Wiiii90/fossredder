@@ -1,4 +1,4 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 
@@ -8,7 +8,6 @@ Item {
     implicitHeight: 320
     property var uiData: null
     property var uiDomain: null
-    // uiData is provided via QML rootContext; do not shadow it here
     property var table: []
     property var simpleRows: []
     property var contractTypes: []
@@ -18,7 +17,6 @@ Item {
     Timer { id: initDelay; interval: 60; repeat: false; running: false; triggeredOnStart: false; onTriggered: { try { table = (typeof uiData !== 'undefined' && uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []; rebuild() } catch(e) {} } }
 
     function rebuild() {
-        // uiData expected to be provided by the loader/context; do not rely on parent-chain lookups
         contractTypes = []
         propertiesList = []
         matrix = {}
@@ -28,7 +26,6 @@ Item {
             if (typeof uiData === 'undefined' || !uiData || !uiData.lastAnalysisResult || !uiData.lastAnalysisResult.table) return
             var tbl = uiData.lastAnalysisResult.table
             try { console.log('AnalysisTabComponent.rebuild: sampleRow=', JSON.stringify(tbl[0]), 'tableLen=', tbl.length) } catch(e) {}
-            // detect simple rows format: [date,label,value]
             var simple = false
             try {
                 if (tbl && tbl.length > 0 && tbl[0].length >= 3) {
@@ -38,12 +35,10 @@ Item {
             } catch(e) { simple = false }
             try { console.log('AnalysisTabComponent.rebuild: detect simple=', simple, 'type[2]=', typeof(tbl[0][2]), 'val[2]=', tbl[0][2]) } catch(e) {}
             if (simple) {
-                // present a simple rows table (date, label, amount)
                 simpleRows = JSON.parse(JSON.stringify(tbl))
                 contractTypes = []; propertiesList = []; matrix = {}
                 table = simpleRows
                 try {
-                    // ensure the simple list is visible and matrix hidden
                     try { if (typeof matrixContainer !== 'undefined') matrixContainer.visible = false } catch(e) {}
                     try { if (typeof simpleList !== 'undefined') { simpleList.model = simpleRows; simpleList.visible = true } } catch(e) {}
                     updateFlickSizes()
@@ -58,7 +53,6 @@ Item {
             } else {
                 simpleRows = []
             }
-            // collect sets
             var cset = {}
             var pset = {}
             for (var i=0;i<tbl.length;i++) {
@@ -73,20 +67,16 @@ Item {
             for (var k in cset) contractTypes.push(k)
             for (var k in pset) propertiesList.push(k)
             contractTypes.sort(); propertiesList.sort()
-            // init matrix
             for (var ci=0; ci<contractTypes.length; ++ci) { var ct = contractTypes[ci]; matrix[ct] = {}; for (var pi=0; pi<propertiesList.length; ++pi) matrix[ct][propertiesList[pi]] = 0 }
-            // accumulate
             for (var i=0;i<tbl.length;i++) {
                 try {
                     var j = JSON.parse(tbl[i][1]); var bc = j.byContract || {}; var bp = j.byProperty || {}
-                    // compute totalContractsVal for distribution
                     var totalContractsVal = 0
                     for (var c in bc) totalContractsVal += parseFloat(bc[c]) || 0
                     for (var pidx=0; pidx<propertiesList.length; ++pidx) {
                         var pid = propertiesList[pidx]
                         var propVal = parseFloat(bp[pid]) || 0
                         if (bp && bp[pid] && typeof bp[pid] === 'object') {
-                            // per-contract breakdown
                             var breakdown = bp[pid]
                             for (var c in breakdown) {
                                 var v = parseFloat(breakdown[c]) || 0
@@ -95,7 +85,6 @@ Item {
                                 matrix[c][pid] += v
                             }
                         } else {
-                            // distribute proportionally to byContract
                             if (totalContractsVal > 0) {
                                 for (var c in bc) {
                                     var cval = parseFloat(bc[c]) || 0
@@ -105,7 +94,6 @@ Item {
                                     matrix[c][pid] += add
                                 }
                             } else {
-                                // no contract distribution; accumulate under _ungrouped
                                 if (!matrix['_ungrouped']) matrix['_ungrouped'] = {}
                                 if (!matrix['_ungrouped'][pid]) matrix['_ungrouped'][pid] = 0
                                 matrix['_ungrouped'][pid] += propVal
@@ -120,11 +108,9 @@ Item {
 
     Component.onCompleted: {
         try {
-            // start delayed init and report initial sizing for debugging
             try { initDelay.start() } catch(e) {}
             console.log('AnalysisTabComponent: component completed, visible=', root.visible, 'width=', root.width, 'height=', root.height)
             try { updateFlickSizes() } catch(e) {}
-            // if parent provides a size but this item reports zero, copy parent's size once
             try {
                 if ((root.width === 0 || root.height === 0) && root.parent) {
                     if (root.parent.width) root.width = root.parent.width
@@ -151,20 +137,17 @@ Item {
     ColumnLayout { anchors.fill: parent; spacing: 6
         Flickable { id: tabFlick; Layout.fillWidth: true; Layout.preferredHeight: 320; clip: true
             Column { id: innerCol; width: tabFlick.width
-                // debug header to show why preview might be empty
                 Rectangle { id: debugHeader; color: 'transparent'; height: 26; Layout.fillWidth: true; border.color: '#ddd'; border.width: 0
                     RowLayout { anchors.fill: parent; anchors.margins: 4; spacing: 8
                         Label { id: dbgLabel; text: qsTr('Preview: rows=') + (simpleRows ? simpleRows.length : 0) + ' props=' + (propertiesList ? propertiesList.length : 0) + ' contracts=' + (contractTypes ? contractTypes.length : 0); color: '#444' }
                     }
                 }
 
-                // simple fallback renderer: show raw rows when no matrix/properties are available
                 Item {
                     id: fallbackSimple
                     visible: (table && table.length>0) && (propertiesList.length === 0 || simpleRows.length>0)
                     Layout.fillWidth: true
                     Column { spacing: 4; anchors.fill: parent
-                        // header
                         RowLayout { spacing: 8; height: 28
                             Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; Layout.preferredWidth: 140; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Date') } }
                             Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; Layout.fillWidth: true; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Description') } }
@@ -179,16 +162,12 @@ Item {
                         }
                     }
                 }
-                // render either simple rows table or property/contract matrix
                 Item { id: matrixContainer; visible: simpleRows.length === 0; Layout.fillWidth: true
-                    // render matrix grid: headers + rows (cells have visible borders)
                     GridLayout { id: grid; columns: Math.max(2, propertiesList.length + 2); columnSpacing: 8; rowSpacing: 6; Layout.fillWidth: true; Layout.fillHeight: true
-                    // header row
                     Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; Layout.preferredWidth: 160; height: 28; Label { anchors.centerIn: parent; text: qsTr('Contract Type'); font.bold: true } }
                     Repeater { model: propertiesList; delegate: Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; height: 28; Layout.preferredWidth: 100; Label { anchors.centerIn: parent; text: modelData; font.bold: true } } }
                     Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; height: 28; Label { anchors.centerIn: parent; text: qsTr('Total'); font.bold: true } }
 
-                    // data rows
                     Repeater { model: contractTypes
                         delegate: Column { spacing: 0
                             property string contractName: modelData
@@ -205,7 +184,6 @@ Item {
                     }
                 }
 
-                // simple rows view (date,label,value)
                 ListView {
                     id: simpleList
                     visible: simpleRows && simpleRows.length > 0
@@ -220,7 +198,6 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 300
                 }
-                // no runtime Connections here; updateFlickSizes is called from rebuild() when data changes
             }
             }
         }

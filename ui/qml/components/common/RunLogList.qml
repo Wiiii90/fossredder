@@ -1,11 +1,18 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import "qrc:/qml/components/controls"
+import components.controls 1.0
 
 Item {
     id: root
     property var model: null
+
+    function fileName(path) {
+        if (!path) return ""
+        var s = String(path).replace(/\\/g, "/")
+        var idx = s.lastIndexOf("/")
+        return idx >= 0 ? s.substring(idx + 1) : s
+    }
 
     ListView {
         id: runsList
@@ -33,7 +40,7 @@ Item {
                     AppButton { text: qsTr("Delete"); implicitHeight: 28; implicitWidth: 80; onClicked: { if (root.model) root.model.removeAt(index) } }
                 }
 
-                Label { text: file ? file : ""; Layout.fillWidth: true; elide: Label.ElideMiddle }
+                Label { text: file ? root.fileName(file) : ""; Layout.fillWidth: true; elide: Label.ElideRight }
                 Label { visible: message && message.length > 0; text: message; wrapMode: Text.WordWrap; opacity: 0.8; Layout.fillWidth: true }
             }
 

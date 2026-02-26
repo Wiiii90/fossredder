@@ -24,8 +24,12 @@ JobId JobManager::submitImportStatement(const ImportStatementJobSpec& spec) {
 
     (void)spec;
 
-    std::lock_guard<std::mutex> g(jobsMutex_);
-    jobs_.emplace(data->snap.jobId, data);
+    {
+        std::lock_guard<std::mutex> g(jobsMutex_);
+        jobs_.emplace(data->snap.jobId, data);
+        order_.push_back(data->snap.jobId);
+    }
+    prune(kMaxJobs);
     return data->snap.jobId;
 }
 
@@ -87,6 +91,8 @@ void JobManager::cancel(const JobId& id) {
         ev.pageCount = job->snap.pageCount;
     }
     publish(ev);
+
+    prune(kMaxJobs);
 }
 
 std::optional<JobSnapshot> JobManager::snapshot(const JobId& id) const {
@@ -161,6 +167,21 @@ std::map<std::string, std::vector<uint8_t>> JobManager::statementArtifacts(const
     return job->artifacts;
 }
 
+std::map<std::string, std::vector<uint8_t>> JobManager::takeStatementArtifacts(const JobId& id) {
+    std::shared_ptr<JobData> job;
+    {
+        std::lock_guard<std::mutex> g(jobsMutex_);
+        auto it = jobs_.find(id);
+        if (it == jobs_.end()) return {};
+        job = it->second;
+    }
+
+    std::lock_guard<std::mutex> g(job->m);
+    auto out = std::move(job->artifacts);
+    job->artifacts.clear();
+    return out;
+}
+
 void JobManager::publish(const JobEvent& ev) {
     std::shared_ptr<JobData> job;
     {
@@ -215,6 +236,8 @@ void JobManager::start(const JobId& id) {
     }
 
     publish(ev);
+
+    prune(kMaxJobs);
 }
 
 void JobManager::finish(const JobId& id) {
@@ -243,6 +266,49 @@ void JobManager::finish(const JobId& id) {
     }
 
     publish(ev);
+
+    prune(kMaxJobs);
+}
+
+void JobManager::prune(std::size_t maxJobs) {
+    if (maxJobs < 1) maxJobs = 1;
+
+    std::lock_guard<std::mutex> g(jobsMutex_);
+    if (jobs_.size() <= maxJobs) return;
+
+    // Attempt to evict terminal jobs without subscribers in FIFO order.
+    // If none are evictable, keep them (avoid deleting running/subscribed jobs).
+    std::size_t scanned = 0;
+    const std::size_t limit = order_.size();
+    while (jobs_.size() > maxJobs && scanned < limit && !order_.empty()) {
+        JobId id = std::move(order_.front());
+        order_.pop_front();
+        ++scanned;
+
+        auto it = jobs_.find(id);
+        if (it == jobs_.end()) continue;
+        auto job = it->second;
+        if (!job) {
+            jobs_.erase(it);
+            continue;
+        }
+
+        bool evictable = false;
+        {
+            std::lock_guard<std::mutex> gj(job->m);
+            const auto st = job->snap.state;
+            const bool terminal = (st == JobState::Finished || st == JobState::Failed || st == JobState::Canceled);
+            evictable = terminal && job->subs.empty();
+        }
+
+        if (evictable) {
+            jobs_.erase(it);
+            continue;
+        }
+
+        // keep it in rotation
+        order_.push_back(std::move(id));
+    }
 }
 
 void JobManager::fail(const JobId& id, const std::string& error) {

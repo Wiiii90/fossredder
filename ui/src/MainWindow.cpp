@@ -14,6 +14,11 @@
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QSizePolicy>
+#include <QMimeData>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QRegularExpression>
 
 #include "ui/actions/UiActions.h"
 #include "ui/menus/NativeMenu.h"
@@ -32,6 +37,9 @@ MainWindow::MainWindow(QWidget* parent)
     m_quickWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     m_quickWidget->setMinimumSize(0, 0);
 
+    // Required so QML `DropArea` receives native drag&drop events from the OS.
+    m_quickWidget->setAcceptDrops(true);
+
     m_quickWidget->installEventFilter(this);
 
     // Ensure UiNavigation enums are visible in QML as UiNavigation.Actors/...
@@ -41,6 +49,7 @@ MainWindow::MainWindow(QWidget* parent)
     }
 
     auto actions = new UiActions(this);
+    actions_ = actions;
     auto nav = new UiNavigation(this);
     dataSession_ = new UiDataSession(this);
     auto fileSys = new UiFileSystem(this);
@@ -74,9 +83,11 @@ MainWindow::MainWindow(QWidget* parent)
     connect(actions->aboutAction(), &QAction::triggered, this, &MainWindow::onAbout);
 
     connect(actions, &UiActions::importBrowseRequested, this, [this, actions](const QString& filter) {
-        const QString file = QFileDialog::getOpenFileName(this, tr("Select PDF"), QString(), filter);
-        if (!file.isEmpty()) {
-            emit actions->importFileSelected(file);
+        const QStringList files = QFileDialog::getOpenFileNames(this, tr("Select PDF"), QString(), filter);
+        if (!files.isEmpty()) {
+            emit actions->importFilesSelected(files);
+            // keep single-file signal for backwards compatibility
+            if (files.size() == 1) emit actions->importFileSelected(files.first());
         }
     });
 
@@ -107,6 +118,20 @@ MainWindow::MainWindow(QWidget* parent)
     }
 
     m_quickWidget->engine()->addImportPath("qrc:/qml");
+}
+
+static QStringList droppedLocalFiles(const QMimeData* md)
+{
+    QStringList out;
+    if (!md) return out;
+    if (!md->hasUrls()) return out;
+    const auto urls = md->urls();
+    for (const auto& u : urls) {
+        const QString lf = u.toLocalFile();
+        if (lf.isEmpty()) continue;
+        out.push_back(lf);
+    }
+    return out;
 }
 
 MainWindow::~MainWindow() = default;
@@ -145,6 +170,44 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
             QQuickItem* root = m_quickWidget->rootObject();
             root->setProperty("width", m_quickWidget->width());
             root->setProperty("height", m_quickWidget->height());
+        }
+    }
+
+    // QQuickWidget in widget-embedding mode is often unreliable with QML DropArea.
+    // Handle drag&drop on the widget layer and forward file paths into QML via UiActions.
+    if (obj == m_quickWidget) {
+        switch (ev->type()) {
+        case QEvent::DragEnter: {
+            auto* e = static_cast<QDragEnterEvent*>(ev);
+            const auto files = droppedLocalFiles(e->mimeData());
+            if (!files.isEmpty()) e->acceptProposedAction();
+            else e->ignore();
+            return true;
+        }
+        case QEvent::DragMove: {
+            auto* e = static_cast<QDragMoveEvent*>(ev);
+            const auto files = droppedLocalFiles(e->mimeData());
+            if (!files.isEmpty()) e->acceptProposedAction();
+            else e->ignore();
+            return true;
+        }
+        case QEvent::Drop: {
+            auto* e = static_cast<QDropEvent*>(ev);
+            const auto files = droppedLocalFiles(e->mimeData());
+            if (files.isEmpty()) {
+                e->ignore();
+                return true;
+            }
+
+            if (actions_) {
+                emit actions_->importFilesDropped(files);
+                if (files.size() == 1) emit actions_->importFileDropped(files.first());
+            }
+            e->acceptProposedAction();
+            return true;
+        }
+        default:
+            break;
         }
     }
     return QMainWindow::eventFilter(obj, ev);

@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <deque>
 
 class Statement;
 
@@ -42,6 +43,7 @@ public:
 
     void setStatementArtifacts(const JobId& id, std::map<std::string, std::vector<uint8_t>> artifacts);
     std::map<std::string, std::vector<uint8_t>> statementArtifacts(const JobId& id) const;
+    std::map<std::string, std::vector<uint8_t>> takeStatementArtifacts(const JobId& id);
 
     void publish(const JobEvent& ev);
     void fail(const JobId& id, const std::string& error);
@@ -49,6 +51,8 @@ public:
     void start(const JobId& id);
 
 private:
+    void prune(std::size_t maxJobs);
+
     struct JobData {
         JobSnapshot snap;
         std::shared_ptr<std::atomic<bool>> cancel;
@@ -61,7 +65,10 @@ private:
 
     static JobId makeJobId();
 
+    static constexpr std::size_t kMaxJobs = 64;
+
     std::unordered_map<JobId, std::shared_ptr<JobData>> jobs_;
+    std::deque<JobId> order_;
     mutable std::mutex jobsMutex_;
 };
 

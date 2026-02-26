@@ -1,4 +1,4 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -43,7 +43,6 @@ Item {
 
     Component.onCompleted: {
         if (uiNav) {
-            // find item index matching uiNav.settingsCategory
             for (var i = 0; i < list.count; ++i) {
                 if (list.model[i] && list.model[i].cat === uiNav.settingsCategory) { list.currentIndex = i; return }
             }

@@ -1,4 +1,4 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 
@@ -9,7 +9,6 @@ GridLayout {
     columnSpacing: 0
     rowSpacing: 0
 
-    // Toolbar
     Loader {
         id: toolbarLoader
         source: "qrc:/qml/components/layout/Toolbar.qml"
@@ -20,7 +19,6 @@ GridLayout {
         Layout.fillWidth: true
     }
 
-    // Main split
     SplitView {
         id: horizontalSplit
         orientation: Qt.Horizontal
@@ -46,7 +44,6 @@ GridLayout {
                 height = minHeight
         }
 
-        // Sidebar
         Item {
             id: leftWrapper
             Loader {
@@ -56,7 +53,6 @@ GridLayout {
             }
         }
 
-        // Content
         Item {
             id: centerWrapper
             Loader {
@@ -67,7 +63,6 @@ GridLayout {
         }
     }
 
-    // Status bar
     Loader {
         id: statusLoader
         source: "qrc:/qml/components/layout/StatusBar.qml"

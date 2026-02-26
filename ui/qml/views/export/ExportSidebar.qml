@@ -1,8 +1,8 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
-import "qrc:/qml/components/controls"
+import components.controls 1.0
 
 Item {
     id: root
@@ -19,7 +19,7 @@ Item {
 
             Label {
                 text: qsTr("Export-Protokolle")
-                font.pointSize: 14
+                font.pointSize: Theme.fontSizeLarge
                 Layout.fillWidth: true
                 color: Theme.textPrimary
             }
@@ -51,14 +51,11 @@ Item {
         runsModel.append({ time: t, path: path ? path : "", status: status ? status : "Unknown", message: message ? message : "" })
     }
 
-    // Keep last running entry index so we can update it on finish
     property int _lastRunningIndex: -1
 
     Component.onCompleted: {
-        // when export starts, uiExport.stateChanged will be emitted; detect running state
         try {
             if (typeof uiExport !== 'undefined' && uiExport) {
-                // watch state changes
                 uiExport.stateChanged.connect(function() {
                     try {
                         if (uiExport.isRunning) {
@@ -68,7 +65,6 @@ Item {
                     } catch(e) {}
                 })
 
-                // on finish, update last entry
                 uiExport.exportFinished.connect(function(success) {
                     try {
                         var status = success ? "Success" : "Failure"

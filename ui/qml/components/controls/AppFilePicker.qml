@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-// Using UiFileSystem C++ bridge instead of Qt.labs.folderlistmodel
 
 Popup {
     id: picker
@@ -28,9 +27,11 @@ Popup {
                 Layout.fillWidth: true
                 text: picker.folder
                 placeholderText: qsTr("Folder")
-                onEditingFinished: { picker.folder = text }
+                onEditingFinished: picker.folder = text
             }
-            Button { text: qsTr("Up"); onClicked: {
+            Button {
+                text: qsTr("Up")
+                onClicked: {
                     var p = folderField.text
                     var idx = p.lastIndexOf(/[\\/]/)
                     if (idx > 0) {
@@ -43,7 +44,6 @@ Popup {
         }
 
         ListView {
-            id: list
             Layout.fillWidth: true
             Layout.fillHeight: true
             model: uiFileSystem.listDir(picker.folder)
@@ -69,7 +69,9 @@ Popup {
         RowLayout {
             Layout.fillWidth: true
             TextField { id: nameField; Layout.fillWidth: true; placeholderText: qsTr("Filename (optional)") }
-            Button { text: qsTr("Select"); onClicked: {
+            Button {
+                text: qsTr("Select")
+                onClicked: {
                     var out = nameField.text.trim()
                     if (out.length === 0) out = picker.selectedFile
                     else {
@@ -87,13 +89,8 @@ Popup {
 
     function open(dir) {
         if (dir) { picker.folder = dir; folderField.text = dir }
-        popupOpen()
+        picker.open()
     }
 
-    Component.onCompleted: {
-        // ensure folderField initialized
-        folderField.text = picker.folder
-    }
-
-    function popupOpen() { picker.open() }
+    Component.onCompleted: folderField.text = picker.folder
 }

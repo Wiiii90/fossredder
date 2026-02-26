@@ -15,17 +15,46 @@ ComboBox {
         id: bg
         color: Theme.surface
         radius: Theme.radius
-        border.color: control.focused ? Theme.primary.lighter(140) : "#ddd"
+        border.color: control.focused ? Theme.primary.lighter(140) : Theme.border
         border.width: 1
     }
 
     popup: Popup {
+        id: popup
+        y: control.height
+        width: control.width
         z: 999
+        padding: 0
+        modal: false
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        background: Rectangle {
+            radius: Theme.radius
+            color: Theme.surface
+            border.width: 1
+            border.color: Theme.border
+        }
+
         contentItem: ListView {
-            model: control.model
+            implicitHeight: Math.min(contentHeight, 280)
+            model: control.delegateModel
+            clip: true
+
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
+
             delegate: ItemDelegate {
+                width: ListView.view ? ListView.view.width : control.width
                 text: model.display
-                onClicked: { control.currentIndex = index; control.close() }
+                font.family: Theme.fontFamily
+                font.pointSize: Theme.fontSize
+                onClicked: {
+                    control.currentIndex = index
+                    control.activated(index)
+                    control.close()
+                }
             }
         }
     }

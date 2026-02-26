@@ -28,8 +28,8 @@ class UiImportController : public QObject {
     Q_PROPERTY(int pageCount READ pageCount NOTIFY stateChanged)
 
     Q_PROPERTY(QString selectedFile READ selectedFile WRITE setSelectedFile NOTIFY stateChanged)
-    Q_PROPERTY(QStringList profiles READ profiles CONSTANT)
-    Q_PROPERTY(QString selectedProfile READ selectedProfile WRITE setSelectedProfile NOTIFY stateChanged)
+    Q_PROPERTY(int queuedCount READ queuedCount NOTIFY stateChanged)
+    Q_PROPERTY(QStringList queuedFiles READ queuedFiles NOTIFY stateChanged)
 
     Q_PROPERTY(ImportRunListModel* runs READ runs CONSTANT)
 
@@ -51,16 +51,17 @@ public:
     QString selectedFile() const { return selectedFile_; }
     void setSelectedFile(const QString& path);
 
-    QStringList profiles() const;
-    QString selectedProfile() const { return selectedProfile_; }
-    void setSelectedProfile(const QString& profile);
+    int queuedCount() const noexcept { return queuedFiles_.size(); }
+    QStringList queuedFiles() const { return queuedFiles_; }
 
     StatementDraft* draft() const noexcept { return draft_; }
 
     Q_INVOKABLE void startStatementImport();
+    Q_INVOKABLE void addFiles(const QStringList& paths);
     Q_INVOKABLE void resetStatus();
     Q_INVOKABLE void clearDraft();
     Q_INVOKABLE void cancelImport();
+    Q_INVOKABLE void cancelAllImports();
 
     ImportRunListModel* runs() noexcept { return &runs_; }
 
@@ -88,7 +89,8 @@ private:
     int pageCount_ = 0;
 
     QString selectedFile_;
-    QString selectedProfile_ = QStringLiteral("Default");
+
+    QStringList queuedFiles_;
 
     ImportRunListModel runs_;
 
@@ -97,7 +99,13 @@ private:
     QHash<QString, QByteArray> artifacts_;
 
     bool canceled_ = false;
+    bool cancelClearsQueue_ = false;
 
     QString currentJobId_;
     std::uint64_t currentSubId_ = 0;
+
+    QString currentImportFile_;
+
+    void startNextQueuedImport();
+    void startImportForFile(const QString& path);
 };

@@ -1,4 +1,4 @@
-module FossRedder.Controls
+module components.controls
 
 AppButton 1.0 AppButton.qml
 AppTextField 1.0 AppTextField.qml
@@ -7,3 +7,6 @@ AppCheckBox 1.0 AppCheckBox.qml
 AppComboBox 1.0 AppComboBox.qml
 AppFilePicker 1.0 AppFilePicker.qml
 AppIconButton 1.0 AppIconButton.qml
+AppProgressBar 1.0 AppProgressBar.qml
+AppDropZone 1.0 AppDropZone.qml
+AppPanel 1.0 AppPanel.qml

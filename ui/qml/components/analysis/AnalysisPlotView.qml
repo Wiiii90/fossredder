@@ -1,4 +1,4 @@
-import QtQuick 2.15
+﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 
@@ -7,7 +7,6 @@ Item {
     property var uiData
     property var uiDomain
 
-    // helpers moved to the component view to avoid duplicate bindings
     function hashString(s) { var h = 0; if (!s) return 0; for (var i=0;i<s.length;i++) { h = ((h<<5) - h) + s.charCodeAt(i); h |= 0 } return Math.abs(h) }
     function colorForKey(k) { try { var palette = ["#8dd3c7","#ffffb3","#bebada","#fb8072","#80b1d3","#fdb462","#b3de69","#fccde5","#d9d9d9","#bc80bd","#ccebc5","#ffed6f"]; return palette[hashString(k) % palette.length] } catch(e) { return "#888" } }
 

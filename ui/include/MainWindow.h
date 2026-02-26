@@ -7,6 +7,7 @@ QT_FORWARD_DECLARE_CLASS(QQuickWidget)
 QT_FORWARD_DECLARE_CLASS(QQmlImageProviderBase)
 
 class UiDataSession;
+class UiActions;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -44,4 +45,5 @@ protected:
 private:
     QQuickWidget* m_quickWidget = nullptr;
     UiDataSession* dataSession_ = nullptr;
+    UiActions* actions_ = nullptr;
 };
