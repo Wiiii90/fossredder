@@ -8,6 +8,8 @@
 #include <nlohmann/json.hpp>
 #include <filesystem>
 #include <fstream>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 using json = nlohmann::json;
 
@@ -77,9 +79,33 @@ static api::poppler::RenderedPage extractPageMeta(poppler::page* page, int pageI
 }
 
 static std::filesystem::path resolveOutputDir(const std::filesystem::path& outputDir) {
-    if (outputDir.empty()) throw std::runtime_error("PopplerEngine: outputDir must be set");
+    if (outputDir.empty()) return {};
     std::filesystem::create_directories(outputDir);
     return outputDir;
+}
+
+static std::vector<uint8_t> encodePngBytes(poppler::image& img) {
+    std::vector<uint8_t> out;
+    if (!img.is_valid()) return out;
+
+    const int w = img.width();
+    const int h = img.height();
+    if (w <= 0 || h <= 0) return out;
+
+    const int stride = img.bytes_per_row();
+    unsigned char* data = reinterpret_cast<unsigned char*>(img.data());
+    if (!data) return out;
+
+    cv::Mat rgb(h, w, CV_8UC3, data, static_cast<size_t>(stride));
+    cv::Mat bgr;
+    cv::cvtColor(rgb, bgr, cv::COLOR_RGB2BGR);
+
+    std::vector<int> params;
+    params.push_back(cv::IMWRITE_PNG_COMPRESSION);
+    params.push_back(3);
+
+    cv::imencode(".png", bgr, out, params);
+    return out;
 }
 
 static std::string prefix_base(const std::string& uniqIdPrefix, const std::string& filePrefix)
@@ -103,7 +129,6 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::extractDocumentMeta(const
     std::unique_ptr<poppler::document> doc(poppler::document::load_from_file(pdfPath));
     if (!doc) throw std::runtime_error("Failed to open PDF: " + pdfPath);
 
-    (void)resolveOutputDir(outputDir);
     (void)uniqIdPrefix;
     (void)filePrefix;
 
@@ -138,6 +163,7 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std:
     int numPages = doc->pages();
 
     std::filesystem::path outDir = resolveOutputDir(outputDir);
+    const bool writeFiles = !outDir.empty();
     const std::string base = prefix_base(uniqIdPrefix, filePrefix.empty() ? std::string("poppler_render") : filePrefix);
 
     for (int i = 0; i < numPages; ++i) {
@@ -148,21 +174,24 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std:
         poppler::image img = renderer.render_page(page.get(), dpi, dpi);
         if (!img.is_valid()) continue;
 
-        std::ostringstream fname;
-        fname << outDir.string() << "/" << base << "_page" << (i + 1) << ".png";
-        std::string filename = fname.str();
+        api::poppler::RenderedPage rp;
+        rp.dpiX = dpi;
+        rp.dpiY = dpi;
+        rp.imageWidthPx = img.width();
+        rp.imageHeightPx = img.height();
+        rp.imageBytes = encodePngBytes(img);
 
-        if (!img.save(filename, "png")) throw std::runtime_error("Failed to save image: " + filename);
+        if (writeFiles) {
+            std::ostringstream fname;
+            fname << outDir.string() << "/" << base << "_page" << (i + 1) << ".png";
+            rp.imagePath = fname.str();
+            if (!img.save(rp.imagePath, "png")) throw std::runtime_error("Failed to save image: " + rp.imagePath);
+        }
 
-        api::poppler::RenderedPage rp; rp.imagePath = filename; rp.dpiX = dpi; rp.dpiY = dpi;
-
-        if (debugger && debugger->enabled()) {
+        if (debugger && debugger->enabled() && !rp.imageBytes.empty()) {
             try {
-                std::ifstream ifs(filename, std::ios::binary);
-                if (ifs) {
-                    std::vector<uint8_t> buf((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-                    debugger->writeBytes(std::string("poppler/output/") + std::filesystem::path(filename).stem().string() + std::string(".png"), buf);
-                }
+                std::string stem = base + std::string("_page") + std::to_string(i + 1);
+                debugger->writeBytes(std::string("poppler/output/") + stem + std::string(".png"), rp.imageBytes);
             } catch (...) {}
         }
 

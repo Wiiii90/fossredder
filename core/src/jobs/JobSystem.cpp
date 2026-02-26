@@ -54,7 +54,8 @@ JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec) {
                                                   &ocrLimiter_,
                                                   id);
 
-            manager_.setStatementResult(id, stmt);
+            manager_.setStatementResult(id, stmt.data);
+            manager_.setStatementArtifacts(id, std::move(stmt.artifacts));
 
             if (cancel && cancel->load()) {
                 manager_.cancel(id);

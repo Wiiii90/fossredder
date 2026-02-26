@@ -9,6 +9,7 @@ namespace api::poppler {
 
 struct RenderResult {
     std::vector<std::filesystem::path> images;
+    std::vector<std::vector<uint8_t>> imageBytes;
 };
 
 struct ExtractResult {

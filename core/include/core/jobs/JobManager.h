@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <map>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -39,6 +40,9 @@ public:
     void setStatementResult(const JobId& id, std::shared_ptr<Statement> stmt);
     std::shared_ptr<Statement> statementResult(const JobId& id) const;
 
+    void setStatementArtifacts(const JobId& id, std::map<std::string, std::vector<uint8_t>> artifacts);
+    std::map<std::string, std::vector<uint8_t>> statementArtifacts(const JobId& id) const;
+
     void publish(const JobEvent& ev);
     void fail(const JobId& id, const std::string& error);
     void finish(const JobId& id);
@@ -49,6 +53,7 @@ private:
         JobSnapshot snap;
         std::shared_ptr<std::atomic<bool>> cancel;
         std::shared_ptr<Statement> statement;
+        std::map<std::string, std::vector<uint8_t>> artifacts;
         std::unordered_map<SubscriptionId, JobEventCallback> subs;
         SubscriptionId nextSub = 1;
         mutable std::mutex m;

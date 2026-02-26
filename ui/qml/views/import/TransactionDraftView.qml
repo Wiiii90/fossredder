@@ -10,6 +10,13 @@ Item {
     // anchors.fill: parent
 
     property var draft
+    function proofSource(p) {
+        var s = p || ""
+        if (s.length === 0) return ""
+        // In-memory proofs are addressed via image provider
+        if (s.indexOf("proof/") === 0) return "image://importProof/" + s
+        return FileUtils.toFileUrl(s)
+    }
     function formatAmount(a) {
         if (a === undefined || a === null) return "";
         try {
@@ -64,7 +71,7 @@ Item {
                     id: proofImage
                     width: parent.width
                     fillMode: Image.PreserveAspectFit
-                    source: FileUtils.toFileUrl((draft && draft.current) ? (draft.current.proofImagePath || "") : "")
+                    source: txRoot.proofSource((draft && draft.current) ? (draft.current.proofImagePath || "") : "")
                     cache: true
                     asynchronous: true
                 }

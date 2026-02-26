@@ -28,6 +28,8 @@
 
 #include "core/jobs/Scheduler.h"
 
+ 
+
 class DefaultImportStatementStrategy : public IImportStatementStrategy {
 public:
     DefaultImportStatementStrategy(std::shared_ptr<api::poppler::IPopplerService> poppler,
@@ -64,7 +66,7 @@ public:
         api::poppler::RenderRequest rreq;
         rreq.pdfPath = std::filesystem::path(req.sourcePath);
         rreq.dpi = 300.0;
-        rreq.outputDir = runRoot;
+        rreq.outputDir = std::filesystem::path(); // keep production pipeline in-memory (Poppler can still emit debug output via debugger)
         rreq.uniqIdPrefix = utils::makeUniqId();
         rreq.filePrefix = "poppler_render";
         rreq.cancelFlag = req.cancelFlag;
@@ -81,7 +83,7 @@ public:
         api::poppler::ExtractRequest ereq;
         ereq.pdfPath = rreq.pdfPath;
         ereq.dpi = rreq.dpi;
-        ereq.outputDir = runRoot;
+        ereq.outputDir = std::filesystem::path(); // keep production pipeline in-memory
         ereq.uniqIdPrefix = utils::makeUniqId();
         ereq.filePrefix = "poppler_extract";
         ereq.cancelFlag = req.cancelFlag;
@@ -120,7 +122,7 @@ public:
             size_t ocrWords = 0;
         };
 
-        const size_t totalPages = renderRes.images.size();
+        const size_t totalPages = std::max(renderRes.images.size(), renderRes.imageBytes.size());
         std::vector<std::future<PageWork>> pageFutures;
         pageFutures.reserve(totalPages);
 
@@ -160,8 +162,12 @@ public:
                     return;
                 }
 
-                const auto& pageImage = renderRes.images[pi];
-                std::vector<uint8_t> pageBytes = readBytes(pageImage);
+                std::vector<uint8_t> pageBytes;
+                if (pi < renderRes.imageBytes.size() && !renderRes.imageBytes[pi].empty()) {
+                    pageBytes = renderRes.imageBytes[pi];
+                } else if (pi < renderRes.images.size() && !renderRes.images[pi].empty()) {
+                    pageBytes = readBytes(renderRes.images[pi]);
+                }
                 if (pageBytes.empty()) {
                     finishUnits("No image");
                     prom->set_value(std::move(pw));
@@ -311,8 +317,11 @@ public:
             } catch (...) {}
         }
 
-        const std::filesystem::path proofDir = runRoot / "proof";
-        try { std::filesystem::create_directories(proofDir); } catch (...) {}
+        std::filesystem::path proofDir;
+        if (debugger_ && debugger_->enabled()) {
+            proofDir = runRoot / "proof";
+            try { std::filesystem::create_directories(proofDir); } catch (...) {}
+        }
 
         const auto tFinalize0 = std::chrono::steady_clock::now();
         size_t pagesWithTable = 0;
@@ -352,6 +361,13 @@ public:
 
             if (!parsed.transactions.empty()) {
                 for (auto& txptr : parsed.transactions) all.push_back(std::move(txptr));
+            }
+
+            if (!parsed.artifacts.empty()) {
+                try {
+                    std::lock_guard<std::mutex> g(artifactsMutex);
+                    for (auto& kv : parsed.artifacts) out.artifacts.emplace(kv.first, std::move(kv.second));
+                } catch (...) {}
             }
 
         finalizeSec = std::chrono::duration<double>(std::chrono::steady_clock::now() - tFinalize0).count();

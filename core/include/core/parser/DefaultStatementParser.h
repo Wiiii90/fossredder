@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <filesystem>
+#include <unordered_map>
 
 #include "api/opencv/Types.h"
 #include "api/opencv/IOpenCvService.h"
@@ -15,6 +16,7 @@ public:
     struct ParseResult {
         std::vector<std::shared_ptr<Transaction>> transactions;
         std::vector<std::string> debugLines;
+        std::unordered_map<std::string, std::vector<uint8_t>> artifacts;
         std::string lastBookingDate;
         int nextTransactionIndex = 1;
     };

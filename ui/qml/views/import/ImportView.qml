@@ -121,8 +121,8 @@ Item {
 
                         Label {
                             Layout.fillWidth: true
-                            visible: hasUiImport && uiImport.isRunning && uiImport.pageCount > 0
-                            text: qsTr("Seite %1/%2").arg(uiImport.currentPage).arg(uiImport.pageCount)
+                            visible: hasUiImport ? (uiImport.isRunning && uiImport.pageCount > 0) : false
+                            text: hasUiImport ? qsTr("Seite %1/%2").arg(uiImport.currentPage).arg(uiImport.pageCount) : ""
                             opacity: 0.8
                         }
                     }
@@ -149,7 +149,7 @@ Item {
                         enabled: (hasUiImport && !uiImport.isRunning) ? (fileField.text && fileField.text.length > 0) : false
                         onClicked: {
                             if (hasUiImport) uiImport.selectedFile = fileField.text
-                            uiImport.startStatementImport()
+                            if (hasUiImport) uiImport.startStatementImport()
                         }
                     }
 
@@ -157,7 +157,7 @@ Item {
                         visible: hasUiImport && !uiImport.isRunning
                         text: qsTr("Zurücksetzen")
                         enabled: hasUiImport && !uiImport.isRunning
-                        onClicked: uiImport.resetStatus()
+                        onClicked: { if (hasUiImport) uiImport.resetStatus() }
                     }
 
                     BusyIndicator {

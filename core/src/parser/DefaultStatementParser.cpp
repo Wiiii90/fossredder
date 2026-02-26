@@ -665,9 +665,9 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
              }
          } catch (...) {}
 
-        // Per-transaction proof crop (restore original behavior)
+        // Per-transaction proof crop
         try {
-            if (opencv && (!pageCropImagePath.empty() || !pageCropImageBytes.empty()) && !proofOutputDir.empty()) {
+            if (opencv && (!pageCropImagePath.empty() || !pageCropImageBytes.empty())) {
                 int minX = std::numeric_limits<int>::max();
                 int maxX = std::numeric_limits<int>::min();
                 int minY = std::numeric_limits<int>::max();
@@ -687,7 +687,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     api::opencv::CropRequest creq;
                     if (!pageCropImagePath.empty()) creq.imagePath = std::filesystem::path(pageCropImagePath);
                     creq.imageBytes = pageCropImageBytes;
-                    creq.outputDir = proofOutputDir;
+                    creq.outputDir = proofOutputDir; // optional (empty => in-memory only)
                     creq.uniqIdPrefix = std::string(utils::makeUniqId());
                     creq.filePrefix = std::string("opencv_proof_tx") + std::to_string(txIndex);
                     creq.outputFormat = api::opencv::CropRequest::OutputFormat::Jpg;
@@ -703,7 +703,12 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                         out.debugLines.push_back(std::string("crop.request\t") + creq.imagePath.string() + std::string("\tfilePrefix=") + creq.filePrefix);
                         const auto cres = opencv->crop(creq);
                         out.debugLines.push_back(std::string("crop.result.count\t") + std::to_string(cres.croppedImagePaths.size()));
-                        if (!cres.croppedImagePaths.empty()) {
+                        if (!cres.croppedImageBytes.empty() && !cres.croppedImageBytes.front().empty()) {
+                            std::string proofKey = std::string("proof/tx_") + std::string(utils::makeUniqId()) + std::string(".jpg");
+                            tx.proofImagePath = proofKey;
+                            out.artifacts.emplace(proofKey, cres.croppedImageBytes.front());
+                        } else if (!cres.croppedImagePaths.empty()) {
+                            // fallback if service only produced a file
                             try { tx.proofImagePath = std::filesystem::absolute(cres.croppedImagePaths.front()).string(); }
                             catch (...) { tx.proofImagePath = cres.croppedImagePaths.front().string(); }
                         }

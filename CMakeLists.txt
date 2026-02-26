@@ -3,6 +3,10 @@ project(FossRedder)
 
 set(CMAKE_CXX_STANDARD 20)
 
+# MSVC/CMake module dependency scanning has caused unstable diagnostics/build breaks in this repo.
+# This project does not use C++20 modules.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 # Allow optional build of services as SHARED; default OFF to preserve previous behavior
 option(BUILD_SERVICES_SHARED "Build services/* as SHARED libraries instead of STATIC" OFF)
 

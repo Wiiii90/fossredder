@@ -6,6 +6,8 @@
 #include <functional>
 #include <atomic>
 
+#include "core/import/IImportStatement.h"
+
 class IImportStatement;
 class Statement;
 class Transaction;
@@ -25,6 +27,15 @@ public:
                                                core::jobs::Scheduler* scheduler = nullptr,
                                                core::jobs::SlotLimiter* ocrLimiter = nullptr,
                                                std::string jobId = {});
+
+    ImportResult importStatementWithArtifacts(const std::string& filePath,
+                                             const std::string& runRoot = {},
+                                             const std::string& runIdPrefix = {},
+                                             std::function<void(double, const std::string&)> progressCallback = {},
+                                             std::shared_ptr<std::atomic<bool>> cancelFlag = nullptr,
+                                             core::jobs::Scheduler* scheduler = nullptr,
+                                             core::jobs::SlotLimiter* ocrLimiter = nullptr,
+                                             std::string jobId = {});
 
     // Optional callback for notifying about extracted transactions
     void setTransactionsExtractedCallback(std::function<void(const std::vector<std::shared_ptr<Transaction>>&)> cb) {

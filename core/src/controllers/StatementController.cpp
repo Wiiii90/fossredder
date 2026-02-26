@@ -58,6 +58,17 @@ std::shared_ptr<Statement> StatementController::importStatement(const std::strin
                                                                core::jobs::Scheduler* scheduler,
                                                                core::jobs::SlotLimiter* ocrLimiter,
                                                                std::string jobId) {
+    return importStatementWithArtifacts(filePath, runRoot, runIdPrefix, std::move(progressCallback), std::move(cancelFlag), scheduler, ocrLimiter, std::move(jobId)).data;
+}
+
+ImportResult StatementController::importStatementWithArtifacts(const std::string& filePath,
+                                                              const std::string& runRoot,
+                                                              const std::string& runIdPrefix,
+                                                              std::function<void(double, const std::string&)> progressCallback,
+                                                              std::shared_ptr<std::atomic<bool>> cancelFlag,
+                                                              core::jobs::Scheduler* scheduler,
+                                                              core::jobs::SlotLimiter* ocrLimiter,
+                                                              std::string jobId) {
     if (!std::filesystem::exists(filePath)) {
         throw std::runtime_error("PDF datei existiert nicht: " + filePath);
     }
@@ -111,5 +122,5 @@ std::shared_ptr<Statement> StatementController::importStatement(const std::strin
 
     // Provide an optional fuzzy duplicate helper via utils for callers. Not used here directly.
 
-    return res.data;
+    return res;
 }

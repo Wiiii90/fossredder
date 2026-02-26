@@ -27,15 +27,19 @@ class PopplerAdapterImpl : public api::poppler::IPopplerAdapter {
             auto t1 = std::chrono::steady_clock::now();
             std::chrono::duration<double> dur = t1 - t0;
 
+            out.images.clear();
+            out.imageBytes.clear();
             out.images.reserve(pages.size());
-            for (size_t i = 0; i < pages.size(); ++i) {
-                out.images.push_back(std::filesystem::path(pages[i].imagePath));
+            out.imageBytes.reserve(pages.size());
+            for (const auto& p : pages) {
+                out.images.push_back(p.imagePath.empty() ? std::filesystem::path() : std::filesystem::path(p.imagePath));
+                out.imageBytes.push_back(p.imageBytes);
             }
 
             if (debugger && debugger->enabled()) {
                 try {
                     std::ostringstream oss;
-                    oss << "render:done " << req.pdfPath.string() << " pages=" << pages.size() << " duration=" << dur.count();
+                    oss << "render:done " << req.pdfPath.string() << " pages=" << out.images.size() << " duration=" << dur.count();
                     debugger->writeText("poppler/log", oss.str());
                 } catch (...) {}
             }

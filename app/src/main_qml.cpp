@@ -28,6 +28,7 @@
 #include "api/opencv/IOpenCvService.h"
 #include "api/tesseract/ITesseractService.h"
 #include "core/models/DeletionImpact.h"
+#include "ui/qml/ImportProofImageProvider.h"
 
 #include <memory>
 #include <cstdio>
@@ -81,6 +82,9 @@ int startQmlApp(QApplication& app, AppStateController& appStateCtrl) {
         auto uiImport = new UiImportController(jobSystem, &w);
         uiImport->setDomainController(uiDomain);
         w.setQmlContextProperty("uiImport", uiImport);
+
+        // In-memory proof previews for draft UI
+        w.addImageProvider(QStringLiteral("importProof"), new ImportProofImageProvider(uiImport));
     }
 
     if (w.dataSession()) {
@@ -119,6 +123,9 @@ int startQmlApp(QApplication& app, AppStateController& appStateCtrl) {
     QObject::connect(&w, &MainWindow::saveFileAsRequested, [&](const QString& path){
         uiFileCtrl->saveFileAs(path);
     });
+
+    // Load QML after all context properties/providers are installed.
+    w.loadQml();
 
     w.show();
     return app.exec();

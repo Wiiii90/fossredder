@@ -135,6 +135,32 @@ std::shared_ptr<Statement> JobManager::statementResult(const JobId& id) const {
     return job->statement;
 }
 
+void JobManager::setStatementArtifacts(const JobId& id, std::map<std::string, std::vector<uint8_t>> artifacts) {
+    std::shared_ptr<JobData> job;
+    {
+        std::lock_guard<std::mutex> g(jobsMutex_);
+        auto it = jobs_.find(id);
+        if (it == jobs_.end()) return;
+        job = it->second;
+    }
+
+    std::lock_guard<std::mutex> g(job->m);
+    job->artifacts = std::move(artifacts);
+}
+
+std::map<std::string, std::vector<uint8_t>> JobManager::statementArtifacts(const JobId& id) const {
+    std::shared_ptr<JobData> job;
+    {
+        std::lock_guard<std::mutex> g(jobsMutex_);
+        auto it = jobs_.find(id);
+        if (it == jobs_.end()) return {};
+        job = it->second;
+    }
+
+    std::lock_guard<std::mutex> g(job->m);
+    return job->artifacts;
+}
+
 void JobManager::publish(const JobEvent& ev) {
     std::shared_ptr<JobData> job;
     {

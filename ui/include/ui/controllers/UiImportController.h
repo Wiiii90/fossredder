@@ -6,6 +6,8 @@
 #include <memory>
 #include <QPointer>
 #include <atomic>
+#include <QHash>
+#include <QByteArray>
 
 #include "ui/models/ImportRunListModel.h"
 #include "ui/models/StatementDraft.h"
@@ -62,6 +64,8 @@ public:
 
     ImportRunListModel* runs() noexcept { return &runs_; }
 
+    QByteArray artifactBytes(const QString& key) const;
+
 signals:
     void stateChanged();
     void importFinished();
@@ -89,6 +93,8 @@ private:
     ImportRunListModel runs_;
 
     StatementDraft* draft_ = nullptr;
+
+    QHash<QString, QByteArray> artifacts_;
 
     bool canceled_ = false;
 

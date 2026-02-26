@@ -10,6 +10,7 @@
 #include <QMessageBox>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QQmlImageProviderBase>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QSizePolicy>
@@ -106,13 +107,6 @@ MainWindow::MainWindow(QWidget* parent)
     }
 
     m_quickWidget->engine()->addImportPath("qrc:/qml");
-    m_quickWidget->setSource(QUrl("qrc:/qml/Main.qml"));
-
-    if (m_quickWidget->rootObject()) {
-        QObject* root = m_quickWidget->rootObject();
-        root->setProperty("width", m_quickWidget->width());
-        root->setProperty("height", m_quickWidget->height());
-    }
 }
 
 MainWindow::~MainWindow() = default;
@@ -122,6 +116,26 @@ void MainWindow::setQmlContextProperty(const QString& name, QObject* value)
     if (!m_quickWidget) return;
     if (!m_quickWidget->rootContext()) return;
     m_quickWidget->rootContext()->setContextProperty(name, value);
+}
+
+void MainWindow::addImageProvider(const QString& id, QQmlImageProviderBase* provider)
+{
+    if (!m_quickWidget) return;
+    if (!m_quickWidget->engine()) return;
+    m_quickWidget->engine()->addImageProvider(id, provider);
+}
+
+void MainWindow::loadQml(const QUrl& source)
+{
+    if (!m_quickWidget) return;
+    if (m_quickWidget->source() == source) return;
+    m_quickWidget->setSource(source);
+
+    if (m_quickWidget->rootObject()) {
+        QObject* root = m_quickWidget->rootObject();
+        root->setProperty("width", m_quickWidget->width());
+        root->setProperty("height", m_quickWidget->height());
+    }
 }
 
 bool MainWindow::eventFilter(QObject* obj, QEvent* ev)

@@ -65,7 +65,15 @@ void UiImportController::clearDraft()
         draft_->deleteLater();
         draft_ = nullptr;
     }
+    artifacts_.clear();
     emit stateChanged();
+}
+
+QByteArray UiImportController::artifactBytes(const QString& key) const
+{
+    const auto it = artifacts_.find(key);
+    if (it == artifacts_.end()) return {};
+    return it.value();
 }
 
 void UiImportController::cancelImport()
@@ -252,6 +260,17 @@ void UiImportController::onJobTerminal(int state, const QString& message)
         emit stateChanged();
         emit importFailed(error_);
         return;
+    }
+
+    // Pull in-memory artifacts (proof images etc.) for the draft preview.
+    artifacts_.clear();
+    if (jobSystem_ && !currentJobId_.isEmpty()) {
+        const auto arts = jobSystem_->manager().statementArtifacts(currentJobId_.toStdString());
+        for (const auto& kv : arts) {
+            const QString k = QString::fromStdString(kv.first);
+            const auto& v = kv.second;
+            artifacts_.insert(k, v.empty() ? QByteArray() : QByteArray(reinterpret_cast<const char*>(v.data()), static_cast<int>(v.size())));
+        }
     }
 
     draft_ = new StatementDraft(this);

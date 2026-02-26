@@ -26,8 +26,14 @@ target_compile_features(services_poppler PUBLIC cxx_std_20)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(POPPLER_CPP REQUIRED IMPORTED_TARGET poppler-cpp)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(OpenCV REQUIRED)
 
 # Link to api, core and debug
+if(OpenCV_FOUND)
+    target_include_directories(services_poppler PUBLIC ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(services_poppler PUBLIC ${OpenCV_LIBS})
+endif()
+
 target_link_libraries(services_poppler PUBLIC api core_lib debug_lib PkgConfig::POPPLER_CPP nlohmann_json::nlohmann_json)
 
 # Precompiled header

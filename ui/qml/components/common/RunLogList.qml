@@ -30,10 +30,10 @@ Item {
 
                     Label { text: time; font.pointSize: 10; opacity: 0.7; Layout.fillWidth: true; elide: Label.ElideRight }
                     Label { text: status; font.pointSize: 10; color: status === "Success" ? "#1b7f1b" : (status === "Running" ? "#f1c40f" : "#a11") }
-                    AppButton { text: qsTr("Delete"); implicitHeight: 28; implicitWidth: 80; onClicked: { if (root.model) root.model.remove(index) } }
+                    AppButton { text: qsTr("Delete"); implicitHeight: 28; implicitWidth: 80; onClicked: { if (root.model) root.model.removeAt(index) } }
                 }
 
-                Label { text: path ? path : ""; Layout.fillWidth: true; elide: Label.ElideMiddle }
+                Label { text: file ? file : ""; Layout.fillWidth: true; elide: Label.ElideMiddle }
                 Label { visible: message && message.length > 0; text: message; wrapMode: Text.WordWrap; opacity: 0.8; Layout.fillWidth: true }
             }
 
