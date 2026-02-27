@@ -2,6 +2,8 @@
 
 #include <QVariant>
 
+#include <exception>
+
 AnalysisList::AnalysisList(QObject* parent) : QAbstractListModel(parent) {}
 
 int AnalysisList::rowCount(const QModelIndex& parent) const {
@@ -30,7 +32,7 @@ QVariant AnalysisList::data(const QModelIndex& index, int role) const {
             s += "}";
             adjustmentsJson = s;
         }
-    } catch (...) { adjustmentsJson = "{}"; }
+    } catch (const std::exception&) { adjustmentsJson = "{}"; }
 
     switch (role) {
     case IdRole: return QString::fromStdString(a->id);
@@ -167,11 +169,11 @@ void AnalysisList::setAdjustmentsById(const QString& id, const QString& json) {
                     size_t start = j;
                     while (j < s.size() && (isdigit(static_cast<unsigned char>(s[j])) || s[j]=='.' || s[j]=='-' || s[j]=='+' || s[j]=='e' || s[j]=='E')) ++j;
                     if (start < j) {
-                        try { double v = std::stod(s.substr(start, j - start)); a->adjustments.emplace(key, v); } catch(...) {}
+                        try { double v = std::stod(s.substr(start, j - start)); a->adjustments.emplace(key, v); } catch (const std::exception&) {}
                     }
                     pos = j;
                 }
-            } catch(...) {}
+            } catch (const std::exception&) {}
             const QModelIndex idx = index(i);
             emit dataChanged(idx, idx, {AdjustmentsRole});
             return;

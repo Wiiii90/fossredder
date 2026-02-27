@@ -7,6 +7,8 @@
 
 #include "core/controllers/AppStateController.h"
 
+namespace ui {
+
 class ExportController : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool isRunning READ isRunning NOTIFY stateChanged)
@@ -34,3 +36,5 @@ private:
     bool lastIncludeFormulas_ = true;
     QString lastLocale_;
 };
+
+}

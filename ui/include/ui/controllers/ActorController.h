@@ -6,6 +6,8 @@
 
 #include "core/controllers/AppStateController.h"
 
+namespace ui {
+
 class ActorController : public QObject {
     Q_OBJECT
 public:
@@ -18,3 +20,5 @@ public:
 private:
     AppStateController* core_ = nullptr;
 };
+
+}

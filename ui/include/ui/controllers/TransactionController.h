@@ -7,6 +7,8 @@
 #include "core/controllers/AppStateController.h"
 #include "core/models/Transaction.h"
 
+namespace ui {
+
 class TransactionController : public QObject {
     Q_OBJECT
 public:
@@ -38,3 +40,5 @@ public:
 private:
     AppStateController* core_ = nullptr;
 };
+
+}

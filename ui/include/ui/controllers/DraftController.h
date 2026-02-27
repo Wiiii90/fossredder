@@ -7,6 +7,8 @@
 
 class StatementDraft;
 
+namespace ui {
+
 class DraftController : public QObject {
     Q_OBJECT
 public:
@@ -17,3 +19,5 @@ public:
 private:
     AppStateController* core_ = nullptr;
 };
+
+}

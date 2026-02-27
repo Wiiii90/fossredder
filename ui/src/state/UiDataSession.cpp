@@ -512,14 +512,6 @@ void UiDataSession::applyTransactionUpdates(const std::vector<std::string>& ids,
                         recomputePropertySum(pid);
                     }
                 }
-                // debug: log propertyIds mismatch
-                if (current && current->propertyIds != t->propertyIds) {
-                    QStringList cur;
-                    for (const auto& p : current->propertyIds) cur << QString::fromStdString(p);
-                    QStringList upd;
-                    for (const auto& p : t->propertyIds) upd << QString::fromStdString(p);
-                    qDebug() << "applyTransactionUpdates: propIds changed for" << qid << "from" << cur << "to" << upd;
-                }
                 break;
             }
         }

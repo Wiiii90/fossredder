@@ -4,6 +4,8 @@
 #include <QVariant>
 #include <QString>
 
+namespace ui {
+
 class FileSystemController : public QObject {
     Q_OBJECT
 public:
@@ -14,3 +16,5 @@ public:
     Q_INVOKABLE QString homeDir() const;
     Q_INVOKABLE QString appDir() const;
 };
+
+}

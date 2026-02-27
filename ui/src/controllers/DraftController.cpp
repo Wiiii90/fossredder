@@ -1,5 +1,6 @@
 #include "ui/controllers/DraftController.h"
 
+#include <exception>
 #include <memory>
 
 #include "core/models/Contract.h"
@@ -8,6 +9,8 @@
 #include "ui/controllers/StatementController.h"
 #include "ui/controllers/ContractController.h"
 #include "ui/controllers/TransactionController.h"
+
+namespace ui {
 
 DraftController::DraftController(AppStateController* core, QObject* parent)
     : QObject(parent)
@@ -22,7 +25,7 @@ QString DraftController::finalizeStatementDraft(StatementDraft* draft)
     const auto& drafts = draft->transactions()->drafts();
     if (drafts.empty()) return {};
 
-    ui::StatementController statementCtrl(core_, this);
+    StatementController statementCtrl(core_, this);
     ContractController contractCtrl(core_, this);
     TransactionController txCtrl(core_, this);
 
@@ -53,7 +56,7 @@ QString DraftController::finalizeStatementDraft(StatementDraft* draft)
                 try {
                     const int v = std::stoi(rest);
                     if (v > maxIdx) maxIdx = v;
-                } catch (...) {}
+                } catch (const std::exception&) {}
             }
             const QString contractName = QStringLiteral("Vertrag %1").arg(maxIdx + 1);
             const QString contractId = contractCtrl.addContract(contractName, d.type.trimmed(), QString(), {}, d.propertyIds);
@@ -71,4 +74,6 @@ QString DraftController::finalizeStatementDraft(StatementDraft* draft)
     core_->notifyState();
     core_->commit();
     return statementId;
+}
+
 }

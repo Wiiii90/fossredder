@@ -8,6 +8,8 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 
+#include <exception>
+
 #include "core/jobs/JobManager.h"
 #include "core/jobs/JobSystem.h"
 #include "core/jobs/JobTypes.h"
@@ -225,7 +227,7 @@ void ImportController::startImportForFile(const QString& path)
     std::string runIdPrefix(runIdNative.constData(), static_cast<size_t>(runIdNative.size()));
 
     if (currentSubId_ != 0 && !currentJobId_.isEmpty()) {
-        try { jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_); } catch (...) {}
+        try { jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_); } catch (const std::exception&) {}
     }
     currentSubId_ = 0;
     currentJobId_.clear();
@@ -284,7 +286,7 @@ void ImportController::onJobTerminal(int state, const QString& message)
     const auto now = QDateTime::currentDateTime().toString(Qt::ISODate);
 
     if (jobSystem_ && currentSubId_ != 0 && !currentJobId_.isEmpty()) {
-        try { jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_); } catch (...) {}
+        try { jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_); } catch (const std::exception&) {}
     }
     currentSubId_ = 0;
 

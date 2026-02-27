@@ -51,7 +51,7 @@ MainWindow::MainWindow(QWidget* parent)
     actions_ = actions;
     auto nav = new UiNavigation(this);
     dataSession_ = new UiDataSession(this);
-    auto fileSys = new FileSystemController(this);
+    auto fileSys = new ui::FileSystemController(this);
 
     if (m_quickWidget->rootContext()) {
         m_quickWidget->rootContext()->setContextProperty("uiActions", actions);

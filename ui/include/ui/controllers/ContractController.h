@@ -6,6 +6,8 @@
 
 #include "core/controllers/AppStateController.h"
 
+namespace ui {
+
 class ContractController : public QObject {
     Q_OBJECT
 public:
@@ -20,3 +22,5 @@ public:
 private:
     AppStateController* core_ = nullptr;
 };
+
+}

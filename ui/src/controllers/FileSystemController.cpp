@@ -4,6 +4,8 @@
 #include <QDir>
 #include <QFileInfo>
 
+namespace ui {
+
 FileSystemController::FileSystemController(QObject* parent)
     : QObject(parent)
 {
@@ -39,4 +41,6 @@ QString FileSystemController::homeDir() const
 QString FileSystemController::appDir() const
 {
     return QCoreApplication::applicationDirPath();
+}
+
 }

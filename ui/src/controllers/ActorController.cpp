@@ -4,27 +4,10 @@
 #include <algorithm>
 #include <memory>
 
+#include "ui/controllers/ControllerStrings.h"
 #include "core/models/Actor.h"
 
-namespace {
-std::string q2s(const QString& s)
-{
-    const auto u8 = s.toUtf8();
-    return std::string(u8.constData(), static_cast<size_t>(u8.size()));
-}
-
-std::vector<std::string> toStdAliases(const QStringList& aliases)
-{
-    std::vector<std::string> out;
-    out.reserve(static_cast<size_t>(aliases.size()));
-    for (const auto& a : aliases) {
-        const auto t = a.trimmed();
-        if (t.isEmpty()) continue;
-        out.push_back(t.toStdString());
-    }
-    return out;
-}
-}
+namespace ui {
 
 ActorController::ActorController(AppStateController* core, QObject* parent)
     : QObject(parent)
@@ -37,12 +20,13 @@ QString ActorController::addActor(const QString& name, const QString& type, cons
     if (!core_) return {};
     auto actor = std::make_shared<Actor>();
     actor->id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
-    actor->name = q2s(name);
-    actor->type = q2s(type);
-    actor->description = q2s(description);
-    actor->aliases = toStdAliases(aliases);
+    actor->name = strings::toStdString(name);
+    actor->type = strings::toStdString(type);
+    actor->description = strings::toStdString(description);
+    actor->aliases = strings::toStdListTrimmed(aliases);
     core_->mutableState().actors.push_back(actor);
     core_->notifyState();
+    core_->commit();
     return QString::fromStdString(actor->id);
 }
 
@@ -52,11 +36,12 @@ void ActorController::updateActor(const QString& id, const QString& name, const 
     const auto sid = id.toStdString();
     for (auto& a : core_->mutableState().actors) {
         if (!a || a->id != sid) continue;
-        a->name = q2s(name);
-        a->type = q2s(type);
-        a->description = q2s(description);
-        a->aliases = toStdAliases(aliases);
+        a->name = strings::toStdString(name);
+        a->type = strings::toStdString(type);
+        a->description = strings::toStdString(description);
+        a->aliases = strings::toStdListTrimmed(aliases);
         core_->notifyState();
+        core_->commit();
         return;
     }
 }
@@ -68,4 +53,7 @@ void ActorController::deleteActor(const QString& id)
     auto& v = core_->mutableState().actors;
     v.erase(std::remove_if(v.begin(), v.end(), [&](const auto& a) { return a && a->id == sid; }), v.end());
     core_->notifyState();
+    core_->commit();
+}
+
 }

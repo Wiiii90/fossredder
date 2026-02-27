@@ -4,16 +4,9 @@
 #include <algorithm>
 #include <memory>
 
+#include "ui/controllers/ControllerStrings.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
-
-namespace {
-std::string q2s(const QString& s)
-{
-    const auto u8 = s.toUtf8();
-    return std::string(u8.constData(), static_cast<size_t>(u8.size()));
-}
-}
 
 namespace ui {
 
@@ -28,9 +21,10 @@ QString StatementController::addStatement(const QString& name)
     if (!core_) return {};
     auto s = std::make_shared<Statement>();
     s->id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
-    s->name = q2s(name);
+    s->name = strings::toStdString(name);
     core_->mutableState().statements.push_back(s);
     core_->notifyState();
+    core_->commit();
     return QString::fromStdString(s->id);
 }
 
@@ -40,8 +34,9 @@ void StatementController::updateStatement(const QString& id, const QString& name
     const auto sid = id.toStdString();
     for (auto& s : core_->mutableState().statements) {
         if (!s || s->id != sid) continue;
-        s->name = q2s(name);
+        s->name = strings::toStdString(name);
         core_->notifyState();
+        core_->commit();
         return;
     }
 }
@@ -56,6 +51,7 @@ void StatementController::deleteStatement(const QString& id)
     auto& st = core_->mutableState().statements;
     st.erase(std::remove_if(st.begin(), st.end(), [&](const auto& s) { return s && s->id == sid; }), st.end());
     core_->notifyState();
+    core_->commit();
 }
 
 }

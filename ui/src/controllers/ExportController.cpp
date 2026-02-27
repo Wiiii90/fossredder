@@ -7,6 +7,8 @@
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <QFile>
 
+namespace ui {
+
 ExportController::ExportController(AppStateController* core, QObject* parent)
     : QObject(parent)
     , core_(core)
@@ -80,4 +82,6 @@ void ExportController::onExportFinished()
     isRunning_ = false;
     emit stateChanged();
     emit exportFinished(success);
+}
+
 }

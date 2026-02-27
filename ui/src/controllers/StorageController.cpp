@@ -1,5 +1,7 @@
 #include "ui/controllers/StorageController.h"
 
+namespace ui {
+
 StorageController::StorageController(AppStateController* core, QObject* parent)
     : QObject(parent)
     , core_(core)
@@ -38,4 +40,6 @@ void StorageController::saveFileAs(const QString& path)
     if (!core_) return;
     core_->saveFileAs(path.toStdString());
     emit currentPathChanged();
+}
+
 }

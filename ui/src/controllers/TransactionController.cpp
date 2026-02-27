@@ -4,23 +4,10 @@
 #include <algorithm>
 #include <memory>
 
+#include "ui/controllers/ControllerStrings.h"
 #include "core/models/Transaction.h"
 
-namespace {
-std::string q2s(const QString& s)
-{
-    const auto u8 = s.toUtf8();
-    return std::string(u8.constData(), static_cast<size_t>(u8.size()));
-}
-
-std::vector<std::string> toStdIds(const QStringList& ids)
-{
-    std::vector<std::string> out;
-    out.reserve(static_cast<size_t>(ids.size()));
-    for (const auto& id : ids) out.push_back(id.toStdString());
-    return out;
-}
-}
+namespace ui {
 
 TransactionController::TransactionController(AppStateController* core, QObject* parent)
     : QObject(parent)
@@ -43,15 +30,15 @@ QString TransactionController::addTransaction(const QString& name,
 
     auto tx = std::make_shared<Transaction>();
     tx->id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
-    tx->name = q2s(name);
-    tx->bookingDate = q2s(bookingDate);
+    tx->name = strings::toStdString(name);
+    tx->bookingDate = strings::toStdString(bookingDate);
     tx->amount = amount;
-    tx->description = q2s(description);
+    tx->description = strings::toStdString(description);
     tx->statementId = statementId.toStdString();
     tx->status = static_cast<Transaction::Status>(status);
     tx->actorId = actorId.toStdString();
     tx->allocatable = allocatable;
-    tx->propertyIds = toStdIds(propertyIds);
+    tx->propertyIds = strings::toStdList(propertyIds);
     tx->valuta.clear();
     tx->actorProposal.clear();
     tx->metadata.clear();
@@ -59,6 +46,7 @@ QString TransactionController::addTransaction(const QString& name,
 
     core_->mutableState().transactions.push_back(tx);
     core_->notifyState();
+    core_->commit();
     return QString::fromStdString(tx->id);
 }
 
@@ -77,16 +65,17 @@ void TransactionController::updateTransaction(const QString& id,
     const auto sid = id.toStdString();
     for (auto& t : core_->mutableState().transactions) {
         if (!t || t->id != sid) continue;
-        t->name = q2s(name);
-        t->bookingDate = q2s(bookingDate);
+        t->name = strings::toStdString(name);
+        t->bookingDate = strings::toStdString(bookingDate);
         t->amount = amount;
-        t->description = q2s(description);
+        t->description = strings::toStdString(description);
         t->statementId = statementId.toStdString();
         t->status = static_cast<Transaction::Status>(status);
         t->actorId = actorId.toStdString();
         t->allocatable = allocatable;
-        t->propertyIds = toStdIds(propertyIds);
+        t->propertyIds = strings::toStdList(propertyIds);
         core_->notifyState();
+        core_->commit();
         return;
     }
 }
@@ -98,4 +87,7 @@ void TransactionController::deleteTransaction(const QString& id)
     auto& v = core_->mutableState().transactions;
     v.erase(std::remove_if(v.begin(), v.end(), [&](const auto& t) { return t && t->id == sid; }), v.end());
     core_->notifyState();
+    core_->commit();
+}
+
 }

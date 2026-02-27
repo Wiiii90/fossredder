@@ -51,16 +51,16 @@ namespace api { namespace tesseract { std::shared_ptr<ITesseractService> createT
 namespace {
 
 struct UiControllers {
-    StorageController* storage = nullptr;
-    AnnualController* annual = nullptr;
-    ActorController* actor = nullptr;
-    PropertyController* property = nullptr;
-    ContractController* contract = nullptr;
+    ui::StorageController* storage = nullptr;
+    ui::AnnualController* annual = nullptr;
+    ui::ActorController* actor = nullptr;
+    ui::PropertyController* property = nullptr;
+    ui::ContractController* contract = nullptr;
     ui::StatementController* statement = nullptr;
-    TransactionController* transaction = nullptr;
-    DraftController* draft = nullptr;
+    ui::TransactionController* transaction = nullptr;
+    ui::DraftController* draft = nullptr;
     ui::AnalysisController* analysis = nullptr;
-    ExportController* exportCtrl = nullptr;
+    ui::ExportController* exportCtrl = nullptr;
     ui::ImportController* import = nullptr;
 };
 
@@ -68,34 +68,34 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
 {
     UiControllers ui;
 
-    ui.storage = new StorageController(&appStateCtrl, &w);
+    ui.storage = new ui::StorageController(&appStateCtrl, &w);
     w.setQmlContextProperty("storageController", ui.storage);
 
-    ui.annual = new AnnualController(&appStateCtrl, &w);
+    ui.annual = new ui::AnnualController(&appStateCtrl, &w);
     w.setQmlContextProperty("annualController", ui.annual);
 
-    ui.actor = new ActorController(&appStateCtrl, &w);
+    ui.actor = new ui::ActorController(&appStateCtrl, &w);
     w.setQmlContextProperty("actorController", ui.actor);
 
-    ui.property = new PropertyController(&appStateCtrl, &w);
+    ui.property = new ui::PropertyController(&appStateCtrl, &w);
     w.setQmlContextProperty("propertyController", ui.property);
 
-    ui.contract = new ContractController(&appStateCtrl, &w);
+    ui.contract = new ui::ContractController(&appStateCtrl, &w);
     w.setQmlContextProperty("contractController", ui.contract);
 
     ui.statement = new ui::StatementController(&appStateCtrl, &w);
     w.setQmlContextProperty("statementController", ui.statement);
 
-    ui.transaction = new TransactionController(&appStateCtrl, &w);
+    ui.transaction = new ui::TransactionController(&appStateCtrl, &w);
     w.setQmlContextProperty("transactionController", ui.transaction);
 
-    ui.draft = new DraftController(&appStateCtrl, &w);
+    ui.draft = new ui::DraftController(&appStateCtrl, &w);
     w.setQmlContextProperty("draftController", ui.draft);
 
     ui.analysis = new ui::AnalysisController(&appStateCtrl, &w);
     w.setQmlContextProperty("analysisController", ui.analysis);
 
-    ui.exportCtrl = new ExportController(&appStateCtrl, &w);
+    ui.exportCtrl = new ui::ExportController(&appStateCtrl, &w);
     w.setQmlContextProperty("exportController", ui.exportCtrl);
 
     auto dbg = std::make_shared<FileDebugger>("", "import");
@@ -145,7 +145,7 @@ void wireAppStateToSession(MainWindow& w, AppStateController& appStateCtrl)
     });
 }
 
-void wireFileSignals(MainWindow& w, StorageController* storage)
+void wireFileSignals(MainWindow& w, ui::StorageController* storage)
 {
     QObject::connect(&w, &MainWindow::newFileRequested, [&](const QString& path){
         storage->newFile(path);

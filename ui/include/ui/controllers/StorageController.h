@@ -5,6 +5,8 @@
 #include "core/controllers/AppStateController.h"
 #include "core/models/DeletionImpact.h"
 
+namespace ui {
+
 class StorageController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString currentPath READ currentPath NOTIFY currentPathChanged)
@@ -28,3 +30,5 @@ signals:
 private:
     AppStateController* core_ = nullptr;
 };
+
+}

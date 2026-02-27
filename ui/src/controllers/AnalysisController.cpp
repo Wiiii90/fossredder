@@ -3,6 +3,7 @@
 #include <QUuid>
 #include <QVariant>
 
+#include "ui/controllers/ControllerStrings.h"
 #include "core/analysis/AnalysisController.h"
 #include "core/analysis/Filter.h"
 #include "core/models/Analysis.h"
@@ -10,14 +11,6 @@
 #include "core/models/Transaction.h"
 
 #include <unordered_set>
-
-namespace {
-std::string q2s(const QString& s)
-{
-    const auto u8 = s.toUtf8();
-    return std::string(u8.constData(), static_cast<size_t>(u8.size()));
-}
-}
 
 namespace ui {
 
@@ -48,12 +41,13 @@ QString AnalysisController::addAnalysis(const QString& name, const QString& type
     if (!core_) return {};
     auto analysis = std::make_shared<Analysis>();
     analysis->id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
-    analysis->name = q2s(name);
-    analysis->type = q2s(type);
-    analysis->configJson = q2s(configJson);
-    analysis->filterSpec = q2s(filterSpec);
+    analysis->name = strings::toStdString(name);
+    analysis->type = strings::toStdString(type);
+    analysis->configJson = strings::toStdString(configJson);
+    analysis->filterSpec = strings::toStdString(filterSpec);
     core_->mutableState().analyses.push_back(analysis);
     core_->notifyState();
+    core_->commit();
     return QString::fromStdString(analysis->id);
 }
 
