@@ -3,7 +3,7 @@
 #include <QObject>
 #include <QString>
 
-#include "ui/models/TransactionDraftListModel.h"
+#include "ui/models/TransactionDraftList.h"
 
 class StatementDraft : public QObject {
     Q_OBJECT
@@ -13,7 +13,7 @@ class StatementDraft : public QObject {
     Q_PROPERTY(int count READ count NOTIFY changed)
 
     Q_PROPERTY(QVariantMap current READ current NOTIFY changed)
-    Q_PROPERTY(TransactionDraftListModel* transactions READ transactions CONSTANT)
+    Q_PROPERTY(TransactionDraftList* transactions READ transactions CONSTANT)
 
 public:
     explicit StatementDraft(QObject* parent = nullptr);
@@ -26,7 +26,7 @@ public:
 
     int count() const;
 
-    TransactionDraftListModel* transactions() noexcept { return &transactions_; }
+    TransactionDraftList* transactions() noexcept { return &transactions_; }
 
     QVariantMap current() const;
 
@@ -44,5 +44,5 @@ private:
     QString name_;
 
     int currentIndex_ = 0;
-    TransactionDraftListModel transactions_;
+    TransactionDraftList transactions_;
 };

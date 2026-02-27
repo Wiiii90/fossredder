@@ -63,6 +63,8 @@ UiDataSession::UiDataSession(QObject* parent)
 }
 void UiDataSession::loadFromState(const AppState& state)
 {
+    transactionQueries_.clear();
+
     actors_.setActors(state.actors);
     properties_.setProperties(state.properties);
     contracts_.setContracts(state.contracts);
@@ -161,10 +163,13 @@ void UiDataSession::refreshSelectedActor()
 
     for (const auto& a : actors_.actors()) {
         if (a && QString::fromStdString(a->id) == selectedActorId_) {
+            QStringList aliases;
+            for (const auto& al : a->aliases) aliases.push_back(QString::fromStdString(al));
             selectedActor_.setActor(QString::fromStdString(a->id),
                                     QString::fromStdString(a->name),
                                     QString::fromStdString(a->type),
-                                    QString::fromStdString(a->description));
+                                    QString::fromStdString(a->description),
+                                    aliases);
             return;
         }
     }
@@ -325,32 +330,12 @@ QVariantList UiDataSession::transactionIdsForStatement(const QString& statementI
 
 QObject* UiDataSession::transactionsForStatement(const QString& statementId)
 {
-    if (statementId.isEmpty()) return nullptr;
-
-    const auto key = statementId;
-    if (txByStatement_.contains(key)) {
-        return txByStatement_.value(key);
-    }
-
-    auto* proxy = new TransactionFilterModel(this);
-    proxy->setSourceModel(&transactions_);
-    proxy->setStatementId(statementId);
-    txByStatement_.insert(key, proxy);
-    return proxy;
+    return transactionQueries_.transactionsForStatement(statementId, &transactions_, this);
 }
 
 QObject* UiDataSession::transactionsForProperty(const QString& propertyId)
 {
-    if (propertyId.isEmpty()) return nullptr;
-
-    const auto key = propertyId;
-    if (txByProperty_.contains(key)) return txByProperty_.value(key);
-
-    auto* proxy = new TransactionFilterModel(this);
-    proxy->setSourceModel(&transactions_);
-    proxy->setPropertyId(propertyId);
-    txByProperty_.insert(key, proxy);
-    return proxy;
+    return transactionQueries_.transactionsForProperty(propertyId, &transactions_, this);
 }
 
 QStringList UiDataSession::transactionTypesForProperty(const QString& propertyId) const
@@ -596,7 +581,7 @@ void UiDataSession::applyDeletionImpact(const DeletionImpact& impact)
         }
         // Also remove property id references from transaction selection and internal state lists
         propertySumsCache_.remove(qid);
-        txByProperty_.remove(qid);
+        transactionQueries_.removePropertyCache(qid);
     }
 
     for (const auto& aid : impact.deletedActorIds) {

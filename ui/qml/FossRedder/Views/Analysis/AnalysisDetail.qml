@@ -43,7 +43,7 @@ Item {
                     onLoaded: {
                         if (mainLoader.item) {
                             try { mainLoader.item.uiData = uiData } catch(e) {}
-                            try { mainLoader.item.uiDomain = uiDomain } catch(e) {}
+                            try { mainLoader.item.analysisController = analysisController } catch(e) {}
                             try { if (mainLoader.item.rebuild) mainLoader.item.rebuild() } catch(e) {}
                             try { mainLoader.item.anchors.fill = mainLoader } catch(e) {}
                         }
@@ -86,7 +86,7 @@ Item {
             if (!mainLoader || !mainLoader.item) return
             console.log('loaderInitTimer: reassign uiData to loaded item, uiData present=', !!uiData)
             try { mainLoader.item.uiData = uiData } catch(e) {}
-            try { mainLoader.item.uiDomain = uiDomain } catch(e) {}
+            try { mainLoader.item.analysisController = analysisController } catch(e) {}
             try { if (mainLoader.item.rebuild) mainLoader.item.rebuild() } catch(e) {}
         } catch(e) {}
     } }

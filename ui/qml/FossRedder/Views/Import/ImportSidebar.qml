@@ -27,12 +27,12 @@ Item {
 
             Controls.Button {
                 text: qsTr("Clear")
-                enabled: typeof uiImport !== 'undefined' && uiImport && uiImport.runs && uiImport.runs.count > 0
+                enabled: typeof importController !== 'undefined' && importController && importController.runs && importController.runs.count > 0
                 implicitHeight: 32
                 implicitWidth: 88
                 fillColor: Theme.surface
                 textColor: Theme.textPrimary
-                onClicked: if (typeof uiImport !== 'undefined' && uiImport && uiImport.runs) uiImport.runs.clear()
+                onClicked: if (typeof importController !== 'undefined' && importController && importController.runs) importController.runs.clear()
             }
         }
 
@@ -40,7 +40,7 @@ Item {
             id: runLogList
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: (typeof uiImport !== 'undefined' && uiImport) ? uiImport.runs : null
+            model: (typeof importController !== 'undefined' && importController) ? importController.runs : null
         }
     }
 }

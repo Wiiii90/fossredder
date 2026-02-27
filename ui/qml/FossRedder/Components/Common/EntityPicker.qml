@@ -57,14 +57,13 @@ Item {
                 text: qsTr("Add")
                 enabled: addField.text && addField.text.length > 0
                 onClicked: {
-                    if (!uiDomain) return
                     var name = addField.text.trim()
                     if (!name) return
                     var id = null
                     try {
-                        if (typeof uiDomain.ensureActorByName === 'function') id = uiDomain.ensureActorByName(name)
-                        else if (typeof uiDomain.ensurePropertyByName === 'function') id = uiDomain.ensurePropertyByName(name)
-                        else if (typeof uiDomain.ensureContractByName === 'function') id = uiDomain.ensureContractByName(name)
+                        if (typeof actorController !== 'undefined' && actorController && uiData && model === uiData.actors) id = actorController.addActor(name, "", "", [])
+                        else if (typeof propertyController !== 'undefined' && propertyController && uiData && model === uiData.properties) id = propertyController.addProperty(name, "", "")
+                        else if (typeof contractController !== 'undefined' && contractController && uiData && model === uiData.contracts) id = contractController.addContract(name, "", "", [], [])
                     } catch(e) { id = null }
                     if (id && id.length > 0) {
                         var next = root.selectedIds ? root.selectedIds.slice(0) : []

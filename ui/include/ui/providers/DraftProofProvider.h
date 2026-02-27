@@ -5,16 +5,16 @@
 #include <QPointer>
 #include <QQuickImageProvider>
 
-class UiImportController;
+namespace ui { class ImportController; }
 
-class ImportProofImageProvider : public QQuickImageProvider {
+class DraftProofProvider : public QQuickImageProvider {
 public:
-    explicit ImportProofImageProvider(UiImportController* ctrl);
+    explicit DraftProofProvider(ui::ImportController* ctrl);
 
     QImage requestImage(const QString& id, QSize* size, const QSize& requestedSize) override;
 
 private:
-    QPointer<UiImportController> ctrl_;
+    QPointer<ui::ImportController> ctrl_;
 };
 
 #endif

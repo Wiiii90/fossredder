@@ -9,6 +9,7 @@ class UiEntitySelection : public QObject {
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QString type READ type NOTIFY changed)
+    Q_PROPERTY(QStringList aliases READ aliases NOTIFY changed)
     Q_PROPERTY(QString address READ address NOTIFY changed)
     Q_PROPERTY(QString description READ description NOTIFY changed)
 
@@ -27,7 +28,7 @@ public:
 
     void clear();
 
-    void setActor(const QString& id, const QString& name, const QString& type, const QString& description);
+    void setActor(const QString& id, const QString& name, const QString& type, const QString& description, const QStringList& aliases = {});
     void setProperty(const QString& id, const QString& name, const QString& address, const QString& description);
 
     void setStatement(const QString& id, const QString& name);
@@ -43,6 +44,7 @@ public:
     QString id() const { return id_; }
     QString name() const { return name_; }
     QString type() const { return type_; }
+    QStringList aliases() const { return aliases_; }
     QString address() const { return address_; }
     QString description() const { return description_; }
 
@@ -65,6 +67,7 @@ private:
     QString id_;
     QString name_;
     QString type_;
+    QStringList aliases_;
     QString address_;
     QString description_;
 

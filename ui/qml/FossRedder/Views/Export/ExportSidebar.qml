@@ -55,17 +55,17 @@ Item {
 
     Component.onCompleted: {
         try {
-            if (typeof uiExport !== 'undefined' && uiExport) {
-                uiExport.stateChanged.connect(function() {
+            if (typeof exportController !== 'undefined' && exportController) {
+                exportController.stateChanged.connect(function() {
                     try {
-                        if (uiExport.isRunning) {
+                        if (exportController.isRunning) {
                             addRun("", "Running", "")
                             _lastRunningIndex = runsModel.count - 1
                         }
                     } catch(e) {}
                 })
 
-                uiExport.exportFinished.connect(function(success) {
+                exportController.exportFinished.connect(function(success) {
                     try {
                         var status = success ? "Success" : "Failure"
                         if (_lastRunningIndex >= 0 && _lastRunningIndex < runsModel.count) {

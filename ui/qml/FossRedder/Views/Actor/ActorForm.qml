@@ -27,12 +27,7 @@ Item {
         typeField.text = current.type || ""
         descField.text = current.description || ""
 
-        if (uiDomain && current.id) {
-            var a = uiDomain.getActorAliases(current.id)
-            aliases = a ? a : []
-        } else {
-            aliases = []
-        }
+        aliases = current.aliases ? current.aliases : []
         aliasesField.text = aliases.join("\n")
     }
 
@@ -114,7 +109,7 @@ Item {
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: nameField.text.length > 0
                 onClicked: {
-                    if (!uiDomain) return
+                    if (!actorController) return
 
                     var lines = aliasesField.text.split(/\r?\n/)
                     var cleaned = []
@@ -125,9 +120,9 @@ Item {
                     }
 
                     if (isEdit) {
-                        uiDomain.updateActorWithAliases(current.id, nameField.text, typeField.text, descField.text, cleaned)
+                        actorController.updateActor(current.id, nameField.text, typeField.text, descField.text, cleaned)
                     } else {
-                        var id = uiDomain.addActorWithAliases(nameField.text, typeField.text, descField.text, cleaned)
+                        var id = actorController.addActor(nameField.text, typeField.text, descField.text, cleaned)
                         clearFields()
                         if (uiData && id && id.length > 0) uiData.selectedActorId = id
                     }
@@ -138,8 +133,8 @@ Item {
                 visible: isEdit
                 text: qsTr("Delete")
                 onClicked: {
-                    if (!uiDomain) return
-                    uiDomain.deleteActor(current.id)
+                    if (!actorController) return
+                    actorController.deleteActor(current.id)
                     if (uiData) uiData.selectedActorId = ""
                 }
             }

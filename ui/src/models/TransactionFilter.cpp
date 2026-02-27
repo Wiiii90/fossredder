@@ -1,14 +1,14 @@
-#include "ui/models/TransactionFilterModel.h"
+#include "ui/models/TransactionFilter.h"
 
 #include "ui/models/TransactionList.h"
 
-TransactionFilterModel::TransactionFilterModel(QObject* parent)
+TransactionFilter::TransactionFilter(QObject* parent)
     : QSortFilterProxyModel(parent)
 {
     setDynamicSortFilter(true);
 }
 
-void TransactionFilterModel::setStatementId(const QString& id)
+void TransactionFilter::setStatementId(const QString& id)
 {
     if (statementId_ == id) return;
     statementId_ = id;
@@ -16,7 +16,7 @@ void TransactionFilterModel::setStatementId(const QString& id)
     emit statementIdChanged();
 }
 
-void TransactionFilterModel::setPropertyId(const QString& id)
+void TransactionFilter::setPropertyId(const QString& id)
 {
     if (propertyId_ == id) return;
     propertyId_ = id;
@@ -24,7 +24,7 @@ void TransactionFilterModel::setPropertyId(const QString& id)
     emit propertyIdChanged();
 }
 
-void TransactionFilterModel::setTxType(const QString& t)
+void TransactionFilter::setTxType(const QString& t)
 {
     if (txType_ == t) return;
     txType_ = t;
@@ -32,16 +32,14 @@ void TransactionFilterModel::setTxType(const QString& t)
     emit txTypeChanged();
 }
 
-bool TransactionFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
+bool TransactionFilter::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
 {
-    // if statementId is provided, filter by statementId
     if (!statementId_.isEmpty()) {
         const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
         const auto sid = sourceModel()->data(idx, TransactionList::StatementIdRole).toString();
         if (sid != statementId_) return false;
     }
 
-    // if propertyId provided, ensure transaction's propertyIds contains it
     if (!propertyId_.isEmpty()) {
         const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
         const auto props = sourceModel()->data(idx, TransactionList::PropertyIdsRole).toList();
@@ -52,15 +50,13 @@ bool TransactionFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex& 
         if (!found) return false;
     }
 
-    // if txType set, filter by transaction "type" role
     if (!txType_.isEmpty()) {
         const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
         const auto typ = sourceModel()->data(idx, TransactionList::TypeRole).toString();
         if (typ != txType_) return false;
     }
 
-    // if neither provided, default to false to avoid listing everything
-    if (statementId_.isEmpty() && propertyId_.isEmpty() && txType_.isEmpty()) return false;
+    if (statementId_.isEmpty() && propertyId_.isEmpty() && txType_.isEmpty()) return true;
 
     return true;
 }

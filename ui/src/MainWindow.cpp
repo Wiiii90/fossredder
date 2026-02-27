@@ -21,10 +21,9 @@
 #include <QRegularExpression>
 
 #include "ui/actions/UiActions.h"
-#include "ui/menus/NativeMenu.h"
 #include "ui/state/UiDataSession.h"
 #include "ui/state/UiNavigation.h"
-#include "ui/controllers/UiFileSystem.h"
+#include "ui/controllers/FileSystemController.h"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -52,15 +51,13 @@ MainWindow::MainWindow(QWidget* parent)
     actions_ = actions;
     auto nav = new UiNavigation(this);
     dataSession_ = new UiDataSession(this);
-    auto fileSys = new UiFileSystem(this);
+    auto fileSys = new FileSystemController(this);
 
     if (m_quickWidget->rootContext()) {
         m_quickWidget->rootContext()->setContextProperty("uiActions", actions);
         m_quickWidget->rootContext()->setContextProperty("uiNav", nav);
         m_quickWidget->rootContext()->setContextProperty("uiData", dataSession_);
-        m_quickWidget->rootContext()->setContextProperty("uiFileSystem", fileSys);
-
-        (void)new NativeMenu(this, actions, m_quickWidget->rootContext(), this);
+        m_quickWidget->rootContext()->setContextProperty("fileSystemController", fileSys);
 
 #ifdef _DEBUG
         m_quickWidget->rootContext()->setContextProperty("isDebugBuild", true);

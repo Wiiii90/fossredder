@@ -41,9 +41,9 @@ Item {
 
                         function rebuildChoices() {
                             contractTypeList.clear()
-                            if (uiDomain) {
+                            if (analysisController) {
                                 var ctypes = []
-                                try { ctypes = uiDomain.getContractTypes() } catch(e) { ctypes = [] }
+                                try { ctypes = analysisController.getContractTypes() } catch(e) { ctypes = [] }
                                 if (ctypes && ctypes.length > 0) {
                                     for (var ci = 0; ci < ctypes.length; ++ci)
                                         contractTypeList.append({ text: ctypes[ci] })
@@ -198,7 +198,7 @@ Item {
                                     text: qsTr("Erstellen")
                                     enabled: nameField.text.length > 0
                                     onClicked: {
-                                        if (!uiData || !uiDomain) return
+                                        if (!uiData || !analysisController) return
                                         var strategy = "tab"
                                         if (strategyCombo.currentIndex === 1) strategy = "plot"
                                         else if (strategyCombo.currentIndex === 2) strategy = "calc"
@@ -216,10 +216,10 @@ Item {
                                         createBox.rebuildChoices()
 
                                         var cfg = { plotType: plotTypeCombo.currentText, plotMeasure: plotMeasureCombo.currentText, properties: createBox.selectedProps, contractTypes: createBox.selectedContractTypes }
-                                        var id = uiDomain.addAnalysis(nameField.text, strategy, JSON.stringify(cfg), filterSpec)
+                                        var id = analysisController.addAnalysis(nameField.text, strategy, JSON.stringify(cfg), filterSpec)
                                         if (id && id.length > 0) {
                                             uiData.selectedAnalysisId = id
-                                            try { var res = uiDomain.computeAnalysis(id, filterSpec); uiData.lastAnalysisResult = res } catch(e) {}
+                                            try { var res = analysisController.computeAnalysis(id, filterSpec); uiData.lastAnalysisResult = res } catch(e) {}
                                             stackView.push(analysisDetailComp)
                                         }
                                     }

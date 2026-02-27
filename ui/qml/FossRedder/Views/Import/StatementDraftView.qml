@@ -83,7 +83,7 @@ Item {
                     text: qsTr("Verwerfen")
                     enabled: !!draft
                     onClicked: {
-                        if (typeof uiImport !== 'undefined' && uiImport) uiImport.clearDraft()
+                        if (typeof importController !== 'undefined' && importController) importController.clearDraft()
                         if (typeof uiData !== 'undefined' && uiData) {
                             uiData.selectedStatementId = ""
                             uiData.selectedTransactionId = ""
@@ -97,10 +97,10 @@ Item {
                     enabled: !!draft
                     onClicked: {
                         if (!draft) return;
-                        if (typeof uiDomain !== 'undefined' && uiDomain) {
-                            var sid = uiDomain.finalizeStatementDraft(draft)
+                        if (typeof draftController !== 'undefined' && draftController) {
+                            var sid = draftController.finalizeStatementDraft(draft)
 
-                            if (typeof uiImport !== 'undefined' && uiImport) uiImport.clearDraft()
+                            if (typeof importController !== 'undefined' && importController) importController.clearDraft()
 
                             if (sid && sid.length > 0 && uiNav && uiData) {
                                 uiData.selectedStatementId = sid

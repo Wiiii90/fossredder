@@ -108,17 +108,17 @@ Item {
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: canSubmit()
                 onClicked: {
-                    if (!uiDomain) return
-                    if (isEdit) uiDomain.updateContract(current.id, nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds)
+                    if (!contractController) return
+                    if (isEdit) contractController.updateContract(current.id, nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds)
                     else {
-                        var id = uiDomain.addContract(nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds)
+                        var id = contractController.addContract(nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds)
                         clearFields()
                         if (uiData && id && id.length > 0) uiData.selectedContractId = id
                     }
                 }
             }
 
-            Controls.Button { visible: isEdit; text: qsTr("Delete"); onClicked: { if (!uiDomain) return; uiDomain.deleteContract(current.id); if (uiData) uiData.selectedContractId = ""; clearFields() } }
+            Controls.Button { visible: isEdit; text: qsTr("Delete"); onClicked: { if (!contractController) return; contractController.deleteContract(current.id); if (uiData) uiData.selectedContractId = ""; clearFields() } }
 
             Item { Layout.fillWidth: true }
         }

@@ -6,15 +6,15 @@ import FossRedder.Controls 1.0 as Controls
 Item {
     id: analysisCalcView
     property var uiData
-    property var uiDomain
+    property var analysisController
     width: parent ? parent.width : 400
 
     ColumnLayout { anchors.fill: parent; spacing: 6
         RowLayout { spacing: 6; Layout.fillWidth: true
             Controls.Button { text: qsTr("New Calc"); onClicked: {
-                if (!uiDomain) return
+                if (!analysisController) return
                 var cfg = JSON.stringify({ strategy: "tax", percent: 0 })
-                var id = uiDomain.addAnalysis("New Calc", "calc", cfg, "")
+                var id = analysisController.addAnalysis("New Calc", "calc", cfg, "")
                 if (id && uiData) uiData.selectedAnalysisId = id
             } }
             Item { Layout.fillWidth: true }
@@ -47,7 +47,7 @@ Item {
                 }
                 var j = JSON.stringify(obj)
                 if (analysisCalcView.uiData.analyses) analysisCalcView.uiData.analyses.setAdjustmentsById(aid, j)
-                try { var res = analysisCalcView.uiDomain.computeAnalysis(aid, analysisCalcView.uiData.selectedAnalysis.filterSpec ? analysisCalcView.uiData.selectedAnalysis.filterSpec : ""); analysisCalcView.uiData.lastAnalysisResult = res; } catch(e) {}
+                try { var res = analysisCalcView.analysisController.computeAnalysis(aid, analysisCalcView.uiData.selectedAnalysis.filterSpec ? analysisCalcView.uiData.selectedAnalysis.filterSpec : ""); analysisCalcView.uiData.lastAnalysisResult = res; } catch(e) {}
             } }
         }
 

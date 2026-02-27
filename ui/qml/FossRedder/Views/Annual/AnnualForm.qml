@@ -22,12 +22,12 @@ Item {
                 text: qsTr("Erstellen")
                 enabled: yearField.text.length > 0
                 onClicked: {
-                    if (!uiDomain) return
+                    if (typeof annualController === 'undefined' || !annualController) return
                     try {
                         var y = parseInt(yearField.text)
                         if (isNaN(y)) return
-                        if (uiDomain && typeof uiDomain.addAnnual === 'function') {
-                            var id = uiDomain.addAnnual(y)
+                        if (typeof annualController.addAnnual === 'function') {
+                            var id = annualController.addAnnual(y)
                             if (id && id.length > 0) uiData.selectedAnnualId = id
                         } else {
                             var idx = uiData.annuals.rowCount ? uiData.annuals.rowCount() : -1

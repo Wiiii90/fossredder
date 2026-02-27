@@ -6,14 +6,14 @@ import FossRedder.Views 1.0 as Views
 Item {
     id: root
     property var uiData
-    property var uiDomain
+    property var analysisController
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
     width: parent ? parent.width : 800
     height: parent ? parent.height : 600
 
-    onUiDataChanged: { try { if (tabComp) { tabComp.uiData = uiData; tabComp.uiDomain = uiDomain; if (tabComp.rebuild) tabComp.rebuild() } } catch(e) {} }
+    onUiDataChanged: { try { if (tabComp) { tabComp.uiData = uiData; tabComp.analysisController = analysisController; if (tabComp.rebuild) tabComp.rebuild() } } catch(e) {} }
 
     ColumnLayout { anchors.fill: parent; spacing: 6
         Views.AnalysisTabComponent {
@@ -21,7 +21,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             uiData: root.uiData
-            uiDomain: root.uiDomain
+            analysisController: root.analysisController
         }
 
         Connections { target: (typeof uiData !== 'undefined') ? uiData : null

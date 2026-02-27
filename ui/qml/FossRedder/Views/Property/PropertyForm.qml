@@ -132,8 +132,8 @@ Item {
                 text: qsTr("Hinzufügen")
                 enabled: nameField.text.length > 0
                 onClicked: {
-                    if (!uiDomain) return
-                    var id = uiDomain.addProperty(nameField.text, "", "")
+                    if (!propertyController) return
+                    var id = propertyController.addProperty(nameField.text, "", "")
                     clearFields()
                     if (uiData && id && id.length > 0) uiData.selectedPropertyId = id
                 }
@@ -316,14 +316,14 @@ Item {
                 RowLayout {
                     spacing: 8
                     Controls.Button { text: qsTr("Neues Gebäude anlegen"); onClicked: if (uiData) uiData.selectedPropertyId = "" }
-                    Controls.Button { text: qsTr("Gebäude aktualisieren"); enabled: nameField.text.length > 0; onClicked: if (uiDomain) uiDomain.updateProperty(current.id, nameField.text, "", "") }
+                    Controls.Button { text: qsTr("Gebäude aktualisieren"); enabled: nameField.text.length > 0; onClicked: if (propertyController) propertyController.updateProperty(current.id, nameField.text, "", "") }
                 }
 
                 Item { Layout.fillWidth: true }
 
                 Controls.Button {
                     text: qsTr("Löschen")
-                    onClicked: if (uiDomain) { uiDomain.deleteProperty(current.id); if (uiData) uiData.selectedPropertyId = "" }
+                    onClicked: if (propertyController) { propertyController.deleteProperty(current.id); if (uiData) uiData.selectedPropertyId = "" }
                     Layout.alignment: Qt.AlignRight
                     fillColor: "#e53935"
                 }

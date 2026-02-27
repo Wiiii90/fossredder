@@ -1,30 +1,30 @@
-#include "ui/controllers/UiImportController.h"
-#include "ui/controllers/UiExportController.h"
+#include "ui/controllers/ImportController.h"
 
 #include <QDateTime>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QDir>
-#include <QStandardPaths>
 #include <QMetaObject>
 #include <QRegularExpression>
+#include <QStandardPaths>
 
-#include "core/jobs/JobSystem.h"
 #include "core/jobs/JobManager.h"
+#include "core/jobs/JobSystem.h"
 #include "core/jobs/JobTypes.h"
-#include "ui/controllers/UiDomainController.h"
-#include "ui/models/StatementDraft.h"
-#include "ui/models/TransactionDraft.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
+#include "ui/models/TransactionDraft.h"
 
-UiImportController::UiImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent)
-    : QObject(parent), jobSystem_(std::move(jobSystem))
+namespace ui {
+
+ImportController::ImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent)
+    : QObject(parent)
+    , jobSystem_(std::move(jobSystem))
     , runs_(this)
 {
 }
 
-void UiImportController::addFiles(const QStringList& paths)
+void ImportController::addFiles(const QStringList& paths)
 {
     QStringList cleaned;
     cleaned.reserve(paths.size());
@@ -35,8 +35,6 @@ void UiImportController::addFiles(const QStringList& paths)
     }
     if (cleaned.isEmpty()) return;
 
-    // If nothing is selected yet, the first file becomes the selected one.
-    // Additional files are appended to the queue.
     const bool hasSelection = !selectedFile_.trimmed().isEmpty();
     int startIndex = 0;
     if (!hasSelection) {
@@ -48,19 +46,14 @@ void UiImportController::addFiles(const QStringList& paths)
     emit stateChanged();
 }
 
-void UiImportController::setDomainController(UiDomainController* domain)
-{
-    domain_ = domain;
-}
-
-void UiImportController::setSelectedFile(const QString& path)
+void ImportController::setSelectedFile(const QString& path)
 {
     if (selectedFile_ == path) return;
     selectedFile_ = path;
     emit stateChanged();
 }
 
-void UiImportController::resetStatus()
+void ImportController::resetStatus()
 {
     if (isRunning_) return;
     phase_.clear();
@@ -70,7 +63,6 @@ void UiImportController::resetStatus()
     cancelClearsQueue_ = false;
     currentPage_ = 0;
     pageCount_ = 0;
-
     selectedFile_.clear();
     currentImportFile_.clear();
     queuedFiles_.clear();
@@ -78,35 +70,31 @@ void UiImportController::resetStatus()
     emit stateChanged();
 }
 
-void UiImportController::clearDraft()
+void ImportController::clearDraft()
 {
     if (draft_) {
         draft_->deleteLater();
         draft_ = nullptr;
     }
     artifacts_.clear();
-
-    // If no queue is pending, clear the selection so finished queues don't stay "armed".
     if (!isRunning_ && queuedFiles_.isEmpty()) {
         selectedFile_.clear();
         currentImportFile_.clear();
     }
     emit stateChanged();
-
-    // If a queue is pending, continue with the next import once the draft is cleared.
     if (!isRunning_ && !queuedFiles_.isEmpty()) {
         startNextQueuedImport();
     }
 }
 
-QByteArray UiImportController::artifactBytes(const QString& key) const
+QByteArray ImportController::artifactBytes(const QString& key) const
 {
     const auto it = artifacts_.find(key);
     if (it == artifacts_.end()) return {};
     return it.value();
 }
 
-void UiImportController::cancelImport()
+void ImportController::cancelImport()
 {
     if (!isRunning_) return;
     canceled_ = true;
@@ -116,7 +104,7 @@ void UiImportController::cancelImport()
     emit stateChanged();
 }
 
-void UiImportController::cancelAllImports()
+void ImportController::cancelAllImports()
 {
     if (!isRunning_) return;
     canceled_ = true;
@@ -127,10 +115,10 @@ void UiImportController::cancelAllImports()
     emit stateChanged();
 }
 
-void UiImportController::startNextQueuedImport()
+void ImportController::startNextQueuedImport()
 {
     if (isRunning_) return;
-    if (draft_) return; // do not overwrite draft; wait for user to finalize/discard
+    if (draft_) return;
     if (queuedFiles_.isEmpty()) return;
 
     const auto next = queuedFiles_.takeFirst();
@@ -164,7 +152,6 @@ static void cleanupOldImportRuns(int keep)
     QDir d(base);
     if (!d.exists()) return;
 
-    // match: <ts>_import_<n>
     const QStringList dirs = d.entryList(QStringList() << "*_import_*", QDir::Dirs | QDir::NoDotAndDotDot, QDir::Time);
     if (dirs.size() <= keep) return;
 
@@ -174,25 +161,23 @@ static void cleanupOldImportRuns(int keep)
     }
 }
 
-void UiImportController::startStatementImport()
+void ImportController::startStatementImport()
 {
     if (isRunning_) return;
     if (draft_) return;
 
     const auto t = selectedFile_.trimmed();
     if (!t.isEmpty()) {
-        // Start with the currently selected file first, then continue with queued files.
         selectedFile_.clear();
         emit stateChanged();
         startImportForFile(t);
         return;
     }
 
-    // No explicit selection; run the queue (if any).
     startNextQueuedImport();
 }
 
-void UiImportController::startImportForFile(const QString& path)
+void ImportController::startImportForFile(const QString& path)
 {
     if (isRunning_) return;
     if (!jobSystem_) {
@@ -210,11 +195,9 @@ void UiImportController::startImportForFile(const QString& path)
         return;
     }
 
-    // Keep the current file visible in the UI.
     selectedFile_ = path;
     currentImportFile_ = path;
 
-    // Clear any previous draft/artifacts but do NOT trigger queue continuation here.
     if (draft_) {
         draft_->deleteLater();
         draft_ = nullptr;
@@ -273,9 +256,8 @@ void UiImportController::startImportForFile(const QString& path)
     });
 }
 
-void UiImportController::updateProgress(double p, const QString& phase)
+void ImportController::updateProgress(double p, const QString& phase)
 {
-    // ignore updates when cancelled or not running
     if (!isRunning_ || canceled_) return;
     progress_ = p;
     if (!phase.isEmpty()) {
@@ -297,7 +279,7 @@ void UiImportController::updateProgress(double p, const QString& phase)
     emit stateChanged();
 }
 
-void UiImportController::onJobTerminal(int state, const QString& message)
+void ImportController::onJobTerminal(int state, const QString& message)
 {
     const auto now = QDateTime::currentDateTime().toString(Qt::ISODate);
 
@@ -349,7 +331,6 @@ void UiImportController::onJobTerminal(int state, const QString& message)
         return;
     }
 
-    // Pull in-memory artifacts (proof images etc.) for the draft preview.
     artifacts_.clear();
     if (jobSystem_ && !currentJobId_.isEmpty()) {
         const auto arts = jobSystem_->manager().takeStatementArtifacts(currentJobId_.toStdString());
@@ -389,4 +370,6 @@ void UiImportController::onJobTerminal(int state, const QString& message)
     currentImportFile_.clear();
     emit stateChanged();
     emit importFinished();
+}
+
 }

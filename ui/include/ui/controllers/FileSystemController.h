@@ -4,10 +4,10 @@
 #include <QVariant>
 #include <QString>
 
-class UiFileSystem : public QObject {
+class FileSystemController : public QObject {
     Q_OBJECT
 public:
-    explicit UiFileSystem(QObject* parent = nullptr);
+    explicit FileSystemController(QObject* parent = nullptr);
 
     Q_INVOKABLE QVariantList listDir(const QString& path) const;
     Q_INVOKABLE bool exists(const QString& path) const;

@@ -56,11 +56,11 @@ Item {
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: nameField.text.length > 0
                 onClicked: {
-                    if (!uiDomain) return
+                    if (!statementController) return
                     if (isEdit) {
-                        uiDomain.updateStatement(current.id, nameField.text)
+                        statementController.updateStatement(current.id, nameField.text)
                     } else {
-                        var id = uiDomain.addStatement(nameField.text)
+                        var id = statementController.addStatement(nameField.text)
                         clearFields()
                         if (uiData && id && id.length > 0) uiData.selectedStatementId = id
                     }
@@ -71,8 +71,8 @@ Item {
                 visible: isEdit
                 text: qsTr("Delete")
                 onClicked: {
-                    if (!uiDomain) return
-                    uiDomain.deleteStatement(current.id)
+                    if (!statementController) return
+                    statementController.deleteStatement(current.id)
                     if (uiData) {
                         uiData.selectedStatementId = ""
                         uiData.selectedTransactionId = ""

@@ -7,7 +7,7 @@ Item {
     implicitWidth: 600
     implicitHeight: 320
     property var uiData: null
-    property var uiDomain: null
+    property var analysisController: null
     property var table: []
     property var simpleRows: []
     property var contractTypes: []

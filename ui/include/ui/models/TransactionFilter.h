@@ -3,14 +3,14 @@
 #include <QSortFilterProxyModel>
 #include <QString>
 
-class TransactionFilterModel : public QSortFilterProxyModel {
+class TransactionFilter : public QSortFilterProxyModel {
     Q_OBJECT
     Q_PROPERTY(QString statementId READ statementId WRITE setStatementId NOTIFY statementIdChanged)
     Q_PROPERTY(QString propertyId READ propertyId WRITE setPropertyId NOTIFY propertyIdChanged)
     Q_PROPERTY(QString txType READ txType WRITE setTxType NOTIFY txTypeChanged)
 
 public:
-    explicit TransactionFilterModel(QObject* parent = nullptr);
+    explicit TransactionFilter(QObject* parent = nullptr);
 
     QString statementId() const { return statementId_; }
     Q_INVOKABLE void setStatementId(const QString& id);

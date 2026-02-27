@@ -5,12 +5,12 @@
 #include "core/controllers/AppStateController.h"
 #include "core/models/DeletionImpact.h"
 
-class UiStorageController : public QObject {
+class StorageController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString currentPath READ currentPath NOTIFY currentPathChanged)
 
 public:
-    explicit UiStorageController(AppStateController* core, QObject* parent = nullptr);
+    explicit StorageController(AppStateController* core, QObject* parent = nullptr);
 
     QString currentPath() const;
 
@@ -26,5 +26,5 @@ signals:
     void deletionImpact(const DeletionImpact& impact);
 
 private:
-    AppStateController* core_;
+    AppStateController* core_ = nullptr;
 };

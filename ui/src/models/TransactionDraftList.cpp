@@ -1,19 +1,19 @@
-#include "ui/models/TransactionDraftListModel.h"
+#include "ui/models/TransactionDraftList.h"
 
 #include <QVariant>
 
-TransactionDraftListModel::TransactionDraftListModel(QObject* parent)
+TransactionDraftList::TransactionDraftList(QObject* parent)
     : QAbstractListModel(parent)
 {
 }
 
-int TransactionDraftListModel::rowCount(const QModelIndex& parent) const
+int TransactionDraftList::rowCount(const QModelIndex& parent) const
 {
     if (parent.isValid()) return 0;
     return static_cast<int>(drafts_.size());
 }
 
-QVariant TransactionDraftListModel::data(const QModelIndex& index, int role) const
+QVariant TransactionDraftList::data(const QModelIndex& index, int role) const
 {
     if (!index.isValid()) return {};
     const int row = index.row();
@@ -38,7 +38,7 @@ QVariant TransactionDraftListModel::data(const QModelIndex& index, int role) con
     }
 }
 
-QHash<int, QByteArray> TransactionDraftListModel::roleNames() const
+QHash<int, QByteArray> TransactionDraftList::roleNames() const
 {
     QHash<int, QByteArray> roles;
     roles[NameRole] = "name";
@@ -57,14 +57,14 @@ QHash<int, QByteArray> TransactionDraftListModel::roleNames() const
     return roles;
 }
 
-void TransactionDraftListModel::setDrafts(std::vector<TransactionDraft> drafts)
+void TransactionDraftList::setDrafts(std::vector<TransactionDraft> drafts)
 {
     beginResetModel();
     drafts_ = std::move(drafts);
     endResetModel();
 }
 
-QVariantMap TransactionDraftListModel::get(int index) const
+QVariantMap TransactionDraftList::get(int index) const
 {
     QVariantMap m;
     if (index < 0 || index >= static_cast<int>(drafts_.size())) return m;
@@ -85,11 +85,12 @@ QVariantMap TransactionDraftListModel::get(int index) const
     return m;
 }
 
-static bool validIndex(int idx, int size) {
+static bool validIndex(int idx, int size)
+{
     return idx >= 0 && idx < size;
 }
 
-void TransactionDraftListModel::setActorId(int index, const QString& actorId)
+void TransactionDraftList::setActorId(int index, const QString& actorId)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].actorId == actorId) return;
@@ -98,7 +99,7 @@ void TransactionDraftListModel::setActorId(int index, const QString& actorId)
     emit dataChanged(mi, mi, { ActorIdRole });
 }
 
-void TransactionDraftListModel::setActorProposal(int index, const QString& actorProposal)
+void TransactionDraftList::setActorProposal(int index, const QString& actorProposal)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].actorProposal == actorProposal) return;
@@ -107,7 +108,7 @@ void TransactionDraftListModel::setActorProposal(int index, const QString& actor
     emit dataChanged(mi, mi, { ActorProposalRole });
 }
 
-void TransactionDraftListModel::setName(int index, const QString& name)
+void TransactionDraftList::setName(int index, const QString& name)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].name == name) return;
@@ -116,7 +117,7 @@ void TransactionDraftListModel::setName(int index, const QString& name)
     emit dataChanged(mi, mi, { NameRole });
 }
 
-void TransactionDraftListModel::setBookingDate(int index, const QString& bookingDate)
+void TransactionDraftList::setBookingDate(int index, const QString& bookingDate)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].bookingDate == bookingDate) return;
@@ -125,7 +126,7 @@ void TransactionDraftListModel::setBookingDate(int index, const QString& booking
     emit dataChanged(mi, mi, { BookingDateRole });
 }
 
-void TransactionDraftListModel::setValuta(int index, const QString& valuta)
+void TransactionDraftList::setValuta(int index, const QString& valuta)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].valuta == valuta) return;
@@ -134,7 +135,7 @@ void TransactionDraftListModel::setValuta(int index, const QString& valuta)
     emit dataChanged(mi, mi, { ValutaRole });
 }
 
-void TransactionDraftListModel::setAmount(int index, double amount)
+void TransactionDraftList::setAmount(int index, double amount)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].amount == amount) return;
@@ -143,7 +144,7 @@ void TransactionDraftListModel::setAmount(int index, double amount)
     emit dataChanged(mi, mi, { AmountRole });
 }
 
-void TransactionDraftListModel::setDescription(int index, const QString& description)
+void TransactionDraftList::setDescription(int index, const QString& description)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].description == description) return;
@@ -152,7 +153,7 @@ void TransactionDraftListModel::setDescription(int index, const QString& descrip
     emit dataChanged(mi, mi, { DescriptionRole });
 }
 
-void TransactionDraftListModel::setStatus(int index, int status)
+void TransactionDraftList::setStatus(int index, int status)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].status == status) return;
@@ -161,7 +162,7 @@ void TransactionDraftListModel::setStatus(int index, int status)
     emit dataChanged(mi, mi, { StatusRole });
 }
 
-void TransactionDraftListModel::setMetadata(int index, const QString& v)
+void TransactionDraftList::setMetadata(int index, const QString& v)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].metadata == v) return;
@@ -170,7 +171,7 @@ void TransactionDraftListModel::setMetadata(int index, const QString& v)
     emit dataChanged(mi, mi, { MetadataRole });
 }
 
-void TransactionDraftListModel::setProofImagePath(int index, const QString& v)
+void TransactionDraftList::setProofImagePath(int index, const QString& v)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].proofImagePath == v) return;
@@ -179,7 +180,7 @@ void TransactionDraftListModel::setProofImagePath(int index, const QString& v)
     emit dataChanged(mi, mi, { ProofImagePathRole });
 }
 
-void TransactionDraftListModel::setAllocatable(int index, bool v)
+void TransactionDraftList::setAllocatable(int index, bool v)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].allocatable == v) return;
@@ -188,7 +189,7 @@ void TransactionDraftListModel::setAllocatable(int index, bool v)
     emit dataChanged(mi, mi, { AllocatableRole });
 }
 
-void TransactionDraftListModel::setProperties(int index, const QStringList& ids)
+void TransactionDraftList::setProperties(int index, const QStringList& ids)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].propertyIds == ids) return;
@@ -197,7 +198,7 @@ void TransactionDraftListModel::setProperties(int index, const QStringList& ids)
     emit dataChanged(mi, mi, { PropertyIdsRole });
 }
 
-void TransactionDraftListModel::setType(int index, const QString& v)
+void TransactionDraftList::setType(int index, const QString& v)
 {
     if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
     if (drafts_[index].type == v) return;

@@ -1,17 +1,19 @@
-#include "ui/controllers/UiFileSystem.h"
+#include "ui/controllers/FileSystemController.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
-#include <QCoreApplication>
 
-UiFileSystem::UiFileSystem(QObject* parent) : QObject(parent) {}
+FileSystemController::FileSystemController(QObject* parent)
+    : QObject(parent)
+{
+}
 
-QVariantList UiFileSystem::listDir(const QString& path) const
+QVariantList FileSystemController::listDir(const QString& path) const
 {
     QVariantList out;
     QDir d(path);
     if (!d.exists()) return out;
-    // list directories first, then files
     QFileInfoList entries = d.entryInfoList(QDir::NoDotAndDotDot | QDir::AllEntries, QDir::DirsFirst | QDir::Name);
     for (const QFileInfo& fi : entries) {
         QVariantMap m;
@@ -23,19 +25,18 @@ QVariantList UiFileSystem::listDir(const QString& path) const
     return out;
 }
 
-bool UiFileSystem::exists(const QString& path) const
+bool FileSystemController::exists(const QString& path) const
 {
     QFileInfo fi(path);
     return fi.exists();
 }
 
-QString UiFileSystem::homeDir() const
+QString FileSystemController::homeDir() const
 {
     return QDir::homePath();
 }
 
-QString UiFileSystem::appDir() const
+QString FileSystemController::appDir() const
 {
-    // Return actual application directory (where the exe lives)
     return QCoreApplication::applicationDirPath();
 }

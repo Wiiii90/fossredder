@@ -4,56 +4,44 @@
 #include <QString>
 #include <QStringList>
 #include <memory>
-#include <QPointer>
-#include <atomic>
 #include <QHash>
 #include <QByteArray>
 
-#include "ui/models/ImportRunListModel.h"
+#include "ui/models/ImportRunList.h"
 #include "ui/models/StatementDraft.h"
 
-namespace core { namespace jobs { class JobSystem; enum class JobState; } }
-class UiDomainController;
-class Statement; // forward declare core Statement
+namespace core { namespace jobs { class JobSystem; } }
 
-class UiImportController : public QObject {
+namespace ui {
+
+class ImportController : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(bool isRunning READ isRunning NOTIFY stateChanged)
     Q_PROPERTY(double progress READ progress NOTIFY stateChanged)
     Q_PROPERTY(QString phase READ phase NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
-
     Q_PROPERTY(int currentPage READ currentPage NOTIFY stateChanged)
     Q_PROPERTY(int pageCount READ pageCount NOTIFY stateChanged)
-
     Q_PROPERTY(QString selectedFile READ selectedFile WRITE setSelectedFile NOTIFY stateChanged)
     Q_PROPERTY(int queuedCount READ queuedCount NOTIFY stateChanged)
     Q_PROPERTY(QStringList queuedFiles READ queuedFiles NOTIFY stateChanged)
-
-    Q_PROPERTY(ImportRunListModel* runs READ runs CONSTANT)
-
+    Q_PROPERTY(ImportRunList* runs READ runs CONSTANT)
     Q_PROPERTY(StatementDraft* draft READ draft NOTIFY stateChanged)
 
 public:
-    explicit UiImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent = nullptr);
-
-    void setDomainController(UiDomainController* domain);
+    explicit ImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent = nullptr);
 
     bool isRunning() const noexcept { return isRunning_; }
     double progress() const noexcept { return progress_; }
     QString phase() const { return phase_; }
     QString error() const { return error_; }
-
     int currentPage() const noexcept { return currentPage_; }
     int pageCount() const noexcept { return pageCount_; }
-
     QString selectedFile() const { return selectedFile_; }
     void setSelectedFile(const QString& path);
-
     int queuedCount() const noexcept { return queuedFiles_.size(); }
     QStringList queuedFiles() const { return queuedFiles_; }
-
     StatementDraft* draft() const noexcept { return draft_; }
 
     Q_INVOKABLE void startStatementImport();
@@ -63,8 +51,7 @@ public:
     Q_INVOKABLE void cancelImport();
     Q_INVOKABLE void cancelAllImports();
 
-    ImportRunListModel* runs() noexcept { return &runs_; }
-
+    ImportRunList* runs() noexcept { return &runs_; }
     QByteArray artifactBytes(const QString& key) const;
 
 signals:
@@ -78,34 +65,25 @@ private slots:
 
 private:
     std::shared_ptr<core::jobs::JobSystem> jobSystem_;
-    QPointer<UiDomainController> domain_;
-
     bool isRunning_ = false;
     double progress_ = 0.0;
     QString phase_;
     QString error_;
-
     int currentPage_ = 0;
     int pageCount_ = 0;
-
     QString selectedFile_;
-
     QStringList queuedFiles_;
-
-    ImportRunListModel runs_;
-
+    ImportRunList runs_;
     StatementDraft* draft_ = nullptr;
-
     QHash<QString, QByteArray> artifacts_;
-
     bool canceled_ = false;
     bool cancelClearsQueue_ = false;
-
     QString currentJobId_;
     std::uint64_t currentSubId_ = 0;
-
     QString currentImportFile_;
 
     void startNextQueuedImport();
     void startImportForFile(const QString& path);
 };
+
+}

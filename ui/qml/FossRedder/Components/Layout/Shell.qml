@@ -9,9 +9,15 @@ GridLayout {
     columnSpacing: 0
     rowSpacing: 0
 
+    AppMenu {
+        id: appMenu
+        Layout.row: 0
+        Layout.fillWidth: true
+    }
+
     Toolbar {
         id: toolbar
-        Layout.row: 0
+        Layout.row: 1
         Layout.preferredHeight: toolbar.implicitHeight
         Layout.minimumHeight: toolbar.implicitHeight
         Layout.fillWidth: true
@@ -20,7 +26,7 @@ GridLayout {
     SplitView {
         id: horizontalSplit
         orientation: Qt.Horizontal
-        Layout.row: 1
+        Layout.row: 2
         Layout.fillWidth: true
         Layout.fillHeight: true
 
@@ -55,7 +61,7 @@ GridLayout {
 
     StatusBar {
         id: statusBar
-        Layout.row: 2
+        Layout.row: 3
         Layout.preferredHeight: 36
         Layout.fillWidth: true
     }

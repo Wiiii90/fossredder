@@ -5,7 +5,7 @@
 
 #include <vector>
 
-class ImportRunListModel : public QAbstractListModel {
+class ImportRunList : public QAbstractListModel {
     Q_OBJECT
 public:
     enum Roles {
@@ -16,7 +16,7 @@ public:
         MessageRole
     };
 
-    explicit ImportRunListModel(QObject* parent = nullptr);
+    explicit ImportRunList(QObject* parent = nullptr);
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;

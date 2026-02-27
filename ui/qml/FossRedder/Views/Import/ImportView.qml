@@ -11,7 +11,7 @@ Item {
     anchors.fill: parent
     anchors.margins: 8
 
-    property bool hasUiImport: typeof uiImport !== 'undefined'
+    property bool hasImportController: typeof importController !== 'undefined'
 
     property bool showAdvanced: false
     property bool showPoppler: false
@@ -32,7 +32,7 @@ Item {
         if (pdfs.length === 0) return
 
         if (updatePathField && manualPath) manualPath.text = pdfs[0]
-        if (hasUiImport) uiImport.addFiles(pdfs)
+        if (hasImportController) importController.addFiles(pdfs)
         pendingFiles = []
     }
 
@@ -43,7 +43,7 @@ Item {
     StackLayout {
         id: contentStack
         anchors.fill: parent
-        currentIndex: (hasUiImport && uiImport.draft) ? 1 : 0
+        currentIndex: (hasImportController && importController.draft) ? 1 : 0
 
         Item {
             Layout.fillWidth: true
@@ -154,12 +154,12 @@ Item {
                                         id: manualPath
                                         Layout.fillWidth: true
                                         placeholderText: qsTr("Enter file path...")
-                                        enabled: hasUiImport && !uiImport.isRunning
+                                        enabled: hasImportController && !importController.isRunning
 
                                         Component.onCompleted: {
                                             var def = "P:/.data/fossredder/April 2025.pdf"
                                             text = def
-                                            if (hasUiImport) uiImport.selectedFile = ""
+                                            if (hasImportController) importController.selectedFile = ""
                                             pendingFiles = []
                                         }
 
@@ -168,7 +168,7 @@ Item {
 
                                     Controls.Button {
                                         text: qsTr("Add")
-                                        enabled: hasUiImport && !uiImport.isRunning && manualPath.text && manualPath.text.trim().length > 0
+                                        enabled: hasImportController && !importController.isRunning && manualPath.text && manualPath.text.trim().length > 0
                                         fillColor: Theme.surface
                                         textColor: Theme.textPrimary
                                         onClicked: {
@@ -184,7 +184,7 @@ Item {
 
                                     Controls.Button {
                                         text: qsTr("Browse...")
-                                        enabled: hasUiImport && !uiImport.isRunning
+                                        enabled: hasImportController && !importController.isRunning
                                         fillColor: Theme.surface
                                         textColor: Theme.textPrimary
                                         onClicked: { if (uiActions) uiActions.browseImportPdf() }
@@ -193,13 +193,13 @@ Item {
 
                                 Controls.DropZone {
                                     Layout.fillWidth: true
-                                    enabled: hasUiImport && !uiImport.isRunning
+                                    enabled: hasImportController && !importController.isRunning
                                     title: qsTr("Drop PDFs here")
                                     subtitle: ""
                                     allowBrowse: false
                                     clickToBrowse: true
-                                    queuedCount: hasUiImport ? uiImport.queuedCount : 0
-                                    files: hasUiImport ? (uiImport.selectedFile && uiImport.selectedFile.length > 0 ? [uiImport.selectedFile].concat(uiImport.queuedFiles) : uiImport.queuedFiles) : []
+                                    queuedCount: hasImportController ? importController.queuedCount : 0
+                                    files: hasImportController ? (importController.selectedFile && importController.selectedFile.length > 0 ? [importController.selectedFile].concat(importController.queuedFiles) : importController.queuedFiles) : []
                                     onBrowseRequested: { if (uiActions) uiActions.browseImportPdf() }
                                 }
 
@@ -234,21 +234,21 @@ Item {
 
                                 Controls.ProgressBar {
                                     Layout.fillWidth: true
-                                    visible: hasUiImport && (uiImport.isRunning || uiImport.progress > 0)
-                                    value: hasUiImport ? uiImport.progress : 0
+                                    visible: hasImportController && (importController.isRunning || importController.progress > 0)
+                                    value: hasImportController ? importController.progress : 0
                                 }
 
                                 Label {
                                     Layout.fillWidth: true
-                                    text: hasUiImport ? (uiImport.error && uiImport.error.length > 0 ? uiImport.error : uiImport.phase) : ""
-                                    color: hasUiImport && uiImport.error && uiImport.error.length > 0 ? Theme.danger : Theme.textPrimary
+                                    text: hasImportController ? (importController.error && importController.error.length > 0 ? importController.error : importController.phase) : ""
+                                    color: hasImportController && importController.error && importController.error.length > 0 ? Theme.danger : Theme.textPrimary
                                     wrapMode: Text.WordWrap
                                 }
 
                                 Label {
                                     Layout.fillWidth: true
-                                    visible: hasUiImport ? (uiImport.isRunning && uiImport.pageCount > 0) : false
-                                    text: hasUiImport ? qsTr("Page %1/%2").arg(uiImport.currentPage).arg(uiImport.pageCount) : ""
+                                    visible: hasImportController ? (importController.isRunning && importController.pageCount > 0) : false
+                                    text: hasImportController ? qsTr("Page %1/%2").arg(importController.currentPage).arg(importController.pageCount) : ""
                                     color: Theme.textMuted
                                     wrapMode: Text.WordWrap
                                 }
@@ -264,42 +264,42 @@ Item {
 
                     Controls.Button {
                         text: qsTr("Cancel")
-                        visible: hasUiImport && uiImport.isRunning
-                        enabled: hasUiImport && uiImport.isRunning
+                        visible: hasImportController && importController.isRunning
+                        enabled: hasImportController && importController.isRunning
                         fillColor: Theme.surface
                         textColor: Theme.textPrimary
-                        onClicked: if (hasUiImport) uiImport.cancelImport()
+                        onClicked: if (hasImportController) importController.cancelImport()
                     }
 
                     Controls.Button {
                         text: qsTr("Cancel all")
-                        visible: hasUiImport && uiImport.isRunning && uiImport.queuedCount > 0
+                        visible: hasImportController && importController.isRunning && importController.queuedCount > 0
                         enabled: visible
                         fillColor: Theme.surface
                         textColor: Theme.textPrimary
-                        onClicked: if (hasUiImport) uiImport.cancelAllImports()
+                        onClicked: if (hasImportController) importController.cancelAllImports()
                     }
 
                     Item { Layout.fillWidth: true }
 
                     Controls.Button {
                         text: qsTr("Reset")
-                        visible: hasUiImport && !uiImport.isRunning
-                        enabled: hasUiImport && !uiImport.isRunning
+                        visible: hasImportController && !importController.isRunning
+                        enabled: hasImportController && !importController.isRunning
                         fillColor: Theme.surface
                         textColor: Theme.textPrimary
-                        onClicked: { if (hasUiImport) uiImport.resetStatus() }
+                        onClicked: { if (hasImportController) importController.resetStatus() }
                     }
 
                     Controls.Button {
                         text: qsTr("Start")
-                        visible: hasUiImport && !uiImport.isRunning
-                        enabled: hasUiImport && !uiImport.isRunning && ((uiImport.selectedFile && uiImport.selectedFile.length > 0) || uiImport.queuedCount > 0)
-                        onClicked: { if (hasUiImport) uiImport.startStatementImport() }
+                        visible: hasImportController && !importController.isRunning
+                        enabled: hasImportController && !importController.isRunning && ((importController.selectedFile && importController.selectedFile.length > 0) || importController.queuedCount > 0)
+                        onClicked: { if (hasImportController) importController.startStatementImport() }
                     }
 
                     BusyIndicator {
-                        running: hasUiImport && uiImport.isRunning
+                        running: hasImportController && importController.isRunning
                         visible: running
                         width: 24
                         height: 24
@@ -325,7 +325,7 @@ Item {
                 StatementDraftView {
                     id: stmtView
                     Layout.fillWidth: true
-                    draft: (hasUiImport ? uiImport.draft : null)
+                    draft: (hasImportController ? importController.draft : null)
                 }
             }
         }

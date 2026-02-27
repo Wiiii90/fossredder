@@ -7,7 +7,7 @@
 
 #include "ui/models/TransactionDraft.h"
 
-class TransactionDraftListModel : public QAbstractListModel {
+class TransactionDraftList : public QAbstractListModel {
     Q_OBJECT
 public:
     enum Roles {
@@ -26,7 +26,7 @@ public:
         TypeRole
     };
 
-    explicit TransactionDraftListModel(QObject* parent = nullptr);
+    explicit TransactionDraftList(QObject* parent = nullptr);
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;

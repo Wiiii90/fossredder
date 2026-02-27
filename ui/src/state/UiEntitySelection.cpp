@@ -10,6 +10,7 @@ void UiEntitySelection::clear()
     id_.clear();
     name_.clear();
     type_.clear();
+    aliases_.clear();
     address_.clear();
     description_.clear();
     actorIds_.clear();
@@ -23,11 +24,12 @@ void UiEntitySelection::clear()
     emit changed();
 }
 
-void UiEntitySelection::setActor(const QString& id, const QString& name, const QString& type, const QString& description)
+void UiEntitySelection::setActor(const QString& id, const QString& name, const QString& type, const QString& description, const QStringList& aliases)
 {
     id_ = id;
     name_ = name;
     type_ = type;
+    aliases_ = aliases;
     address_.clear();
     description_ = description;
     actorIds_.clear();
@@ -45,6 +47,7 @@ void UiEntitySelection::setProperty(const QString& id, const QString& name, cons
     id_ = id;
     name_ = name;
     type_.clear();
+    aliases_.clear();
     address_ = address;
     description_ = description;
     actorIds_.clear();
@@ -62,6 +65,7 @@ void UiEntitySelection::setStatement(const QString& id, const QString& name)
     id_ = id;
     name_ = name;
     type_.clear();
+    aliases_.clear();
     address_.clear();
     description_.clear();
     actorIds_.clear();
@@ -89,6 +93,7 @@ void UiEntitySelection::setTransaction(const QString& id, const QString& name, c
     id_ = id;
     name_ = name;
     type_.clear();
+    aliases_.clear();
     address_.clear();
     description_ = description;
     actorIds_.clear();
@@ -113,6 +118,7 @@ void UiEntitySelection::setContract(const QString& id, const QString& name, cons
     id_ = id;
     name_ = name;
     type_ = type;
+    aliases_.clear();
     address_.clear();
     description_ = description;
     actorIds_ = actorIds;
@@ -131,6 +137,7 @@ void UiEntitySelection::setTransactionWithProperties(const QString& id, const QS
     id_ = id;
     name_ = name;
     type_.clear();
+    aliases_.clear();
     address_.clear();
     description_ = description;
     actorIds_.clear();

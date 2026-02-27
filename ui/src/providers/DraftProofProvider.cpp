@@ -1,21 +1,20 @@
-#include "ui/qml/ImportProofImageProvider.h"
+#include "ui/providers/DraftProofProvider.h"
 
 #ifdef USE_QML
 
-#include "ui/controllers/UiImportController.h"
+#include "ui/controllers/ImportController.h"
 
 #include <QImage>
 #include <QUrl>
 
-ImportProofImageProvider::ImportProofImageProvider(UiImportController* ctrl)
+DraftProofProvider::DraftProofProvider(ui::ImportController* ctrl)
     : QQuickImageProvider(QQuickImageProvider::Image)
     , ctrl_(ctrl)
 {
 }
 
-QImage ImportProofImageProvider::requestImage(const QString& id, QSize* size, const QSize& requestedSize)
+QImage DraftProofProvider::requestImage(const QString& id, QSize* size, const QSize& requestedSize)
 {
-    // `id` may be percent-encoded and can contain slashes.
     const QString key = QUrl::fromPercentEncoding(id.toUtf8());
 
     QByteArray bytes;

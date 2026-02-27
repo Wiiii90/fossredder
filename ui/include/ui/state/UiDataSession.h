@@ -13,8 +13,8 @@
 #include "ui/models/ContractList.h"
 #include "ui/models/StatementList.h"
 #include "ui/models/TransactionList.h"
-#include "ui/models/TransactionFilterModel.h"
 #include "ui/state/UiEntitySelection.h"
+#include "ui/state/UiTransactionQueries.h"
 #include "core/models/DeletionImpact.h"
 #include "ui/models/AnalysisList.h"
 #include "ui/models/AnnualList.h"
@@ -145,8 +145,7 @@ private:
     UiEntitySelection selectedAnalysis_;
     UiEntitySelection selectedAnnual_;
 
-    mutable QHash<QString, TransactionFilterModel*> txByStatement_;
-    mutable QHash<QString, TransactionFilterModel*> txByProperty_;
+    UiTransactionQueries transactionQueries_;
 
     // Cache of computed sums per property id
     mutable QHash<QString, QVariantMap> propertySumsCache_;

@@ -76,9 +76,9 @@ Item {
             Controls.Button { text: qsTr("Back"); onClicked: { if (stackView) stackView.pop() } }
             Item { Layout.fillWidth: true }
             Controls.Button { text: qsTr("Recompute"); onClicked: {
-                if (!uiDomain || !uiData || !uiData.selectedAnalysis) return
+                if (!analysisController || !uiData || !uiData.selectedAnalysis) return
                 var aid = uiData.selectedAnalysis.id
-                var res = uiDomain.computeAnalysis(aid, uiData.selectedAnalysis.filterSpec ? uiData.selectedAnalysis.filterSpec : "")
+                var res = analysisController.computeAnalysis(aid, uiData.selectedAnalysis.filterSpec ? uiData.selectedAnalysis.filterSpec : "")
                 try { uiData.lastAnalysisResult = res; rebuildHistLegend(); } catch(e) {}
             } }
         }

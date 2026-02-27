@@ -38,6 +38,7 @@
         <file>FossRedder/Components/Layout/Content.qml</file>
         <file>FossRedder/Components/Layout/ContentRouter.qml</file>
         <file>FossRedder/Components/Layout/Shell.qml</file>
+        <file>FossRedder/Components/Layout/AppMenu.qml</file>
         <file>FossRedder/Components/Layout/Sidebar.qml</file>
         <file>FossRedder/Components/Layout/SidebarRouter.qml</file>
         <file>FossRedder/Components/Layout/StatusBar.qml</file>

@@ -5,7 +5,7 @@ import FossRedder.Controls 1.0 as Controls
 
 Item {
     id: root
-    property var exportController: uiExport
+    property var exportCtrl: (typeof exportController !== 'undefined' ? exportController : null)
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
@@ -28,7 +28,7 @@ Item {
                 Layout.preferredWidth: 200
                 onCurrentIndexChanged: {
                     if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf("export.") !== -1)) {
-                        var base = (typeof uiFileSystem !== 'undefined' && uiFileSystem) ? uiFileSystem.appDir() : ""
+                        var base = (typeof fileSystemController !== 'undefined' && fileSystemController) ? fileSystemController.appDir() : ""
                         var ext = (currentIndex === 0) ? "csv" : "xlsx"
                         if (base && base.length > 0) pathField.text = base + "/export." + ext
                     }
@@ -65,7 +65,7 @@ Item {
                 onClicked: {
                     var path = pathField.text
                     if (!path) return
-                    if (exportController) exportController.exportData((formatBox.currentIndex === 0) ? 0 : 1, path, formulas.checked, localeField.text)
+                    if (exportCtrl) exportCtrl.exportData((formatBox.currentIndex === 0) ? 0 : 1, path, formulas.checked, localeField.text)
                 }
             }
         }

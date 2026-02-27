@@ -41,6 +41,31 @@ Item {
         statusCombo.currentIndex = Math.max(0, current.status)
     }
 
+    function effectiveStatementId() {
+        return (current && current.statementId && current.statementId.length > 0)
+                ? current.statementId
+                : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
+    }
+
+    function persistCurrentTransaction() {
+        if (isNew || !transactionController || !current || !current.id) return
+        var amt = parseFloat(amountField.text)
+        if (isNaN(amt)) amt = 0.0
+        var sid = effectiveStatementId()
+        var actorId = (current && current.actorId) ? current.actorId : ""
+        var desc = (current && current.description) ? current.description : ""
+        transactionController.updateTransaction(current.id,
+                                               nameField.text,
+                                               bookingDateField.text,
+                                               amt,
+                                               desc,
+                                               sid,
+                                               statusCombo.currentIndex,
+                                               actorId,
+                                               allocCheck.checked,
+                                               selectedPropertyIds)
+    }
+
     property var selectedPropertyIds: []
 
     Connections { target: current; function onChanged() { syncFields() } }
@@ -59,12 +84,7 @@ Item {
             Controls.TextField {
                 id: nameField; Layout.fillWidth: true
                 onActiveFocusChanged: {
-                    if (!activeFocus && !isNew && uiDomain && current && current.id) {
-                        var amt = parseFloat(amountField.text)
-                        if (isNaN(amt)) amt = 0.0
-                        var sid = (current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
-                        uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
-                    }
+                    if (!activeFocus) persistCurrentTransaction()
                 }
                 onTextChanged: {
                 }
@@ -76,12 +96,7 @@ Item {
             Controls.TextField {
                 id: bookingDateField; Layout.fillWidth: true
                 onActiveFocusChanged: {
-                    if (!activeFocus && !isNew && uiDomain && current && current.id) {
-                        var amt = parseFloat(amountField.text)
-                        if (isNaN(amt)) amt = 0.0
-                        var sid = (current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
-                        uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
-                    }
+                    if (!activeFocus) persistCurrentTransaction()
                 }
                 onTextChanged: { /* no automatic persistence */ }
             }
@@ -90,12 +105,7 @@ Item {
             Controls.TextField {
                 id: amountField; Layout.preferredWidth: 160
                 onActiveFocusChanged: {
-                    if (!activeFocus && !isNew && uiDomain && current && current.id) {
-                        var amt = parseFloat(amountField.text)
-                        if (isNaN(amt)) amt = 0.0
-                        var sid = (current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
-                        uiDomain.updateTransaction(current.id, nameField.text, bookingDateField.text, amt, "", sid)
-                    }
+                    if (!activeFocus) persistCurrentTransaction()
                 }
                 onTextChanged: { /* no automatic persistence */ }
             }
@@ -145,7 +155,7 @@ Item {
                                 else { if (localIdx > -1) selectedPropertyIds.splice(localIdx, 1) }
 
                                 if (isEdit && current && current.id) {
-                                    if (uiDomain) uiDomain.updateTransactionProperties(current.id, selectedPropertyIds)
+                                    persistCurrentTransaction()
                                     if (uiData) uiData.setTransactionPropertyIdsImmediate(current.id, selectedPropertyIds)
                                 } else {
                                 }
@@ -175,9 +185,7 @@ Item {
                 id: allocCheck
                 text: qsTr("Allocatable to tenant")
                 checked: false
-                    onClicked: {
-                    if (!isNew && uiDomain && current && current.id) uiDomain.updateTransactionAllocatable(current.id, allocCheck.checked)
-                }
+                onClicked: persistCurrentTransaction()
             }
 
             Label { text: qsTr("Status"); Layout.preferredWidth: 80 }
@@ -186,9 +194,7 @@ Item {
                 Layout.fillWidth: true
                 model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
                 currentIndex: 2
-                    onActivated: {
-                    if (!isNew && uiDomain && current && current.id) uiDomain.updateTransactionStatus(current.id, currentIndex)
-                }
+                onActivated: persistCurrentTransaction()
             }
             Item { Layout.fillWidth: true }
         }
@@ -206,16 +212,21 @@ Item {
                 text: qsTr("Create")
                 enabled: nameField.text.length > 0 && ((isEdit && current && current.statementId && current.statementId.length > 0) || (uiData && uiData.selectedStatementId && uiData.selectedStatementId.length > 0))
                 onClicked: {
-                    if (!uiDomain) return
+                    if (!transactionController) return
                     var amt = parseFloat(amountField.text)
                     if (isNaN(amt)) amt = 0.0
 
-                    var sid = (isEdit && current && current.statementId && current.statementId.length > 0) ? current.statementId : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
-                    var id = uiDomain.addTransaction(nameField.text, bookingDateField.text, amt, "", sid)
+                    var sid = effectiveStatementId()
+                    var id = transactionController.addTransaction(nameField.text,
+                                                                  bookingDateField.text,
+                                                                  amt,
+                                                                  "",
+                                                                  sid,
+                                                                  statusCombo.currentIndex,
+                                                                  "",
+                                                                  allocCheck.checked,
+                                                                  selectedPropertyIds)
                     if (id && id.length > 0) {
-                        uiDomain.updateTransactionAllocatable(id, allocCheck.checked)
-                        uiDomain.updateTransactionStatus(id, statusCombo.currentIndex)
-                        if (selectedPropertyIds && selectedPropertyIds.length > 0) uiDomain.updateTransactionProperties(id, selectedPropertyIds)
                         clearFields()
                         if (uiData) uiData.selectedTransactionId = id
                     }
@@ -226,8 +237,8 @@ Item {
                 visible: isEdit
                 text: qsTr("Delete")
                 onClicked: {
-                    if (!uiDomain) return
-                    uiDomain.deleteTransaction(current.id)
+                    if (!transactionController) return
+                    transactionController.deleteTransaction(current.id)
                     if (uiData) uiData.selectedTransactionId = ""
                     clearFields()
                 }
