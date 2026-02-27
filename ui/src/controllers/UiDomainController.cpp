@@ -425,11 +425,56 @@ void UiDomainController::exportData(const QString& format, bool includeFormulas,
     exporter.exportData(opts);
 }
 
-void UiDomainController::deleteActor(const QString& id) { if (!core_) return; const auto sid=id.toStdString(); auto& v = core_->mutableState().actors; v.erase(std::remove_if(v.begin(),v.end(),[&](const auto& a){ return !a ? false : a->id==sid; }), v.end()); }
-void UiDomainController::deleteProperty(const QString& id) { if (!core_) return; const auto sid=id.toStdString(); auto& v = core_->mutableState().properties; v.erase(std::remove_if(v.begin(),v.end(),[&](const auto& p){ return !p ? false : p->id==sid; }), v.end()); }
-void UiDomainController::deleteContract(const QString& id) { if (!core_) return; const auto sid=id.toStdString(); auto& v = core_->mutableState().contracts; v.erase(std::remove_if(v.begin(),v.end(),[&](const auto& c){ return !c ? false : c->id==sid; }), v.end()); }
-void UiDomainController::deleteStatement(const QString& id) { if (!core_) return; const auto sid=id.toStdString(); auto& v = core_->mutableState().statements; v.erase(std::remove_if(v.begin(),v.end(),[&](const auto& s){ return !s ? false : s->id==sid; }), v.end()); }
-void UiDomainController::deleteTransaction(const QString& id) { if (!core_) return; const auto sid=id.toStdString(); auto& v = core_->mutableState().transactions; v.erase(std::remove_if(v.begin(),v.end(),[&](const auto& t){ return !t ? false : t->id==sid; }), v.end()); }
+void UiDomainController::deleteActor(const QString& id)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+    auto& v = core_->mutableState().actors;
+    v.erase(std::remove_if(v.begin(), v.end(), [&](const auto& a) { return !a ? false : a->id == sid; }), v.end());
+    core_->notifyState();
+}
+
+void UiDomainController::deleteProperty(const QString& id)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+    auto& v = core_->mutableState().properties;
+    v.erase(std::remove_if(v.begin(), v.end(), [&](const auto& p) { return !p ? false : p->id == sid; }), v.end());
+    core_->notifyState();
+}
+
+void UiDomainController::deleteContract(const QString& id)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+    auto& v = core_->mutableState().contracts;
+    v.erase(std::remove_if(v.begin(), v.end(), [&](const auto& c) { return !c ? false : c->id == sid; }), v.end());
+    core_->notifyState();
+}
+
+void UiDomainController::deleteStatement(const QString& id)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+
+    // Cascade: when a statement is deleted, remove all transactions belonging to it.
+    auto& tx = core_->mutableState().transactions;
+    tx.erase(std::remove_if(tx.begin(), tx.end(), [&](const auto& t) { return !t ? false : t->statementId == sid; }), tx.end());
+
+    auto& v = core_->mutableState().statements;
+    v.erase(std::remove_if(v.begin(), v.end(), [&](const auto& s) { return !s ? false : s->id == sid; }), v.end());
+
+    core_->notifyState();
+}
+
+void UiDomainController::deleteTransaction(const QString& id)
+{
+    if (!core_) return;
+    const auto sid = id.toStdString();
+    auto& v = core_->mutableState().transactions;
+    v.erase(std::remove_if(v.begin(), v.end(), [&](const auto& t) { return !t ? false : t->id == sid; }), v.end());
+    core_->notifyState();
+}
 
 QString UiDomainController::ensureActorByName(const QString& name) { if (!core_) return {}; for (const auto& a : core_->state().actors) { if (!a) continue; if (QString::fromStdString(a->name) == name) return QString::fromStdString(a->id); } return addActor(name, QString(), QString()); }
 QString UiDomainController::ensurePropertyByName(const QString& name) { if (!core_) return {}; for (const auto& p : core_->state().properties) { if (!p) continue; if (QString::fromStdString(p->name) == name) return QString::fromStdString(p->id); } return addProperty(name, QString(), QString()); }
