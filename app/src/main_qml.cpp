@@ -48,9 +48,6 @@ namespace api { namespace tesseract { std::shared_ptr<ITesseractService> createT
  * @return Return value from `QApplication::exec()`.
  */
 int startQmlApp(QApplication& app, AppStateController& appStateCtrl) {
-    // Register Theme singleton so QML can import as `import FossRedder 1.0;` then use `Theme`
-    qmlRegisterSingletonType(QUrl("qrc:/qml/theme/Theme.qml"), "FossRedder", 1, 0, "Theme");
-
     MainWindow w;
 
     auto uiFileCtrl = new UiStorageController(&appStateCtrl, &w);

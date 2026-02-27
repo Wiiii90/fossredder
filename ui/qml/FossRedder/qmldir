@@ -1,0 +1,8 @@
+module FossRedder
+
+singleton Theme 1.0 Theme/Theme.qml
+
+depends FossRedder.Controls 1.0
+depends FossRedder.Components 1.0
+depends FossRedder.Views 1.0
+depends FossRedder.Utils 1.0
