@@ -1,44 +1,44 @@
-﻿# Build output (CMake presets)
-.build/
-
-# Visual Studio / IDE
+﻿# IDE / Editor
 .vs/
 .vscode/
 *.suo
 *.user
 
-# Build artifacts
-*.obj
-*.o
-*.pch
-*.gch
-*.lib
-*.a
-*.so
-*.dylib
-
-# Runtime artifacts
-logs/
-fossredder.db
-
-# Local env
+# Local environment
 .env
 
-# Extern
+# Build directories
+.build/
+vcpkg_installed/
+
+# Compiled artifacts
+*.a
+*.dylib
+*.gch
+*.lib
+*.o
+*.obj
+*.pch
+*.so
+
+# Runtime / local data
+fossredder.db
+logs/
+
+# Packaging outputs
+dist/
+staging/
+
+# Local resources
+services/llama/res/
+services/tesseract/res/
+
+# Third-party local content
 third_party/
 
-# Misc
+# Project-local misc
 LOCAL_APPDATA_FONTCONFIG_CACHE/
 docs/todo.txt
 
-# Large local resource folders
-services/tesseract/res/
-services/llama/res/
-
-# Packaging outputs
-staging/
-dist/
-
-vcpkg_installed/
-
+# Repository-local exclusions
 .github/
