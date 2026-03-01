@@ -7,6 +7,8 @@
 
 #include "ui/models/TransactionDraft.h"
 
+namespace ui {
+
 class TransactionDraftList : public QAbstractListModel {
     Q_OBJECT
 public:
@@ -58,3 +60,5 @@ public:
 private:
     std::vector<TransactionDraft> drafts_;
 };
+
+}

@@ -1,7 +1,10 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 #include "core/models/Transaction.h"
+
+namespace ui {
 
 struct TransactionDraft {
     QString name;
@@ -27,3 +30,5 @@ struct TransactionDraft {
     // Associated property ids (UI-level)
     QStringList propertyIds;
 };
+
+}

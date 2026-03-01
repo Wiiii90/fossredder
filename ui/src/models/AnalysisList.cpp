@@ -4,6 +4,8 @@
 
 #include <exception>
 
+namespace ui {
+
 AnalysisList::AnalysisList(QObject* parent) : QAbstractListModel(parent) {}
 
 int AnalysisList::rowCount(const QModelIndex& parent) const {
@@ -18,13 +20,12 @@ QVariant AnalysisList::data(const QModelIndex& index, int role) const {
     const auto& a = analyses_[row];
     if (!a) return {};
 
-    // build adjustments JSON string for QML access
     std::string adjustmentsJson = "{}";
     try {
         if (!a->adjustments.empty()) {
             std::string s = "{";
             bool first = true;
-            for (const auto &p : a->adjustments) {
+            for (const auto& p : a->adjustments) {
                 if (!first) s += ",";
                 first = false;
                 s += "\"" + p.first + "\":" + std::to_string(p.second);
@@ -32,7 +33,9 @@ QVariant AnalysisList::data(const QModelIndex& index, int role) const {
             s += "}";
             adjustmentsJson = s;
         }
-    } catch (const std::exception&) { adjustmentsJson = "{}"; }
+    } catch (const std::exception&) {
+        adjustmentsJson = "{}";
+    }
 
     switch (role) {
     case IdRole: return QString::fromStdString(a->id);
@@ -150,13 +153,11 @@ void AnalysisList::setAdjustmentsById(const QString& id, const QString& json) {
         const auto& a = analyses_[i];
         if (!a) continue;
         if (QString::fromStdString(a->id) == id) {
-            // parse simple flat json of { "txid": number, ... }
             a->adjustments.clear();
             try {
                 std::string s = json.toStdString();
                 size_t pos = 0;
                 while (pos < s.size()) {
-                    // find quote
                     auto q1 = s.find('"', pos);
                     if (q1 == std::string::npos) break;
                     auto q2 = s.find('"', q1 + 1);
@@ -167,7 +168,7 @@ void AnalysisList::setAdjustmentsById(const QString& id, const QString& json) {
                     size_t j = colon + 1;
                     while (j < s.size() && isspace(static_cast<unsigned char>(s[j]))) ++j;
                     size_t start = j;
-                    while (j < s.size() && (isdigit(static_cast<unsigned char>(s[j])) || s[j]=='.' || s[j]=='-' || s[j]=='+' || s[j]=='e' || s[j]=='E')) ++j;
+                    while (j < s.size() && (isdigit(static_cast<unsigned char>(s[j])) || s[j] == '.' || s[j] == '-' || s[j] == '+' || s[j] == 'e' || s[j] == 'E')) ++j;
                     if (start < j) {
                         try { double v = std::stod(s.substr(start, j - start)); a->adjustments.emplace(key, v); } catch (const std::exception&) {}
                     }
@@ -179,4 +180,6 @@ void AnalysisList::setAdjustmentsById(const QString& id, const QString& json) {
             return;
         }
     }
+}
+
 }

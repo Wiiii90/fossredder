@@ -17,8 +17,8 @@ Item {
         if (!isEdit) { clearFields(); return }
         nameField.text = current.name || ""
         if (uiData) {
-            try { sums = uiData.transactionSumsForProperty(current.id) } catch(e) {
-                try { sums = uiData.transactionSumsForPropertyWithType(current.id, "") } catch(e2) { sums = ({}) }
+            try { sums = uiData.propertyTransactionSums(current.id) } catch(e) {
+                try { sums = uiData.propertyTransactionSums(current.id, "") } catch(e2) { sums = ({}) }
             }
         } else sums = ({})
         rebuildTypes()
@@ -34,8 +34,8 @@ Item {
         function onTransactionSumsUpdated(propertyId) {
             if (!current) return
             if (propertyId === current.id) {
-                try { sums = uiData.transactionSumsForProperty(current.id) } catch(e) {
-                    try { sums = uiData.transactionSumsForPropertyWithType(current.id, "") } catch(e2) { sums = ({}) }
+                try { sums = uiData.propertyTransactionSums(current.id) } catch(e) {
+                    try { sums = uiData.propertyTransactionSums(current.id, "") } catch(e2) { sums = ({}) }
                 }
                 rebuildTypes()
                 computeFilteredSums()
@@ -51,7 +51,7 @@ Item {
     function updateShownSums() { shownSums = (txTypeFilter && txTypeFilter.length > 0) ? sumsFiltered : sums }
 
     onTxTypeFilterChanged: {
-        try { var m = uiData ? uiData.transactionsForProperty(current.id) : null; if (m) m.setTxType(txTypeFilter) } catch(e) {}
+        try { var m = uiData ? uiData.propertyTransactions(current.id) : null; if (m) m.setTxType(txTypeFilter) } catch(e) {}
         computeFilteredSums()
         updateShownSums()
     }
@@ -62,10 +62,10 @@ Item {
         txTypes = []
         if (!current || !uiData) return
         try {
-            var provided = uiData.transactionTypesForProperty(current.id)
+            var provided = uiData.propertyContractTypes(current.id)
             if (provided && provided.length !== undefined) { txTypes = provided; return }
         } catch(e) {}
-        var model = uiData.transactionsForProperty(current.id)
+        var model = uiData.propertyTransactions(current.id)
         if (!model) return
         var set = {}
         try {
@@ -83,9 +83,9 @@ Item {
         sumsFiltered = ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
         if (!current || !uiData) { updateShownSums(); return }
         if (!txTypeFilter || txTypeFilter.length === 0) { updateShownSums(); return }
-        if (typeof uiData.transactionSumsForPropertyWithType === 'function') {
+        if (typeof uiData.propertyTransactionSums === 'function') {
             try {
-                var res = uiData.transactionSumsForPropertyWithType(current.id, txTypeFilter)
+                var res = uiData.propertyTransactionSums(current.id, txTypeFilter)
                 sumsFiltered.total = Number(res.total) || 0
                 sumsFiltered.allocatable = Number(res.allocatable) || 0
                 sumsFiltered.nonAllocatable = Number(res.nonAllocatable) || 0
@@ -93,7 +93,7 @@ Item {
                 return
             } catch(e) {}
         }
-        var model = uiData.transactionsForProperty(current.id)
+        var model = uiData.propertyTransactions(current.id)
         if (!model) { updateShownSums(); return }
         try {
             var cnt = (typeof model.count === 'function') ? model.count() : (model.length !== undefined ? model.length : 0)
@@ -178,7 +178,7 @@ Item {
                 interactive: true
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                model: uiData ? uiData.transactionsForProperty(current.id) : null
+                model: uiData ? uiData.propertyTransactions(current.id) : null
                 spacing: 6
 
                 delegate: Rectangle {

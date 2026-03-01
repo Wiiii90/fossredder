@@ -5,6 +5,8 @@
 
 #include "ui/models/TransactionDraftList.h"
 
+namespace ui {
+
 class StatementDraft : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
@@ -46,3 +48,5 @@ private:
     int currentIndex_ = 0;
     TransactionDraftList transactions_;
 };
+
+}

@@ -7,7 +7,9 @@
 #include <QImage>
 #include <QUrl>
 
-DraftProofProvider::DraftProofProvider(ui::ImportController* ctrl)
+namespace ui {
+
+DraftProofProvider::DraftProofProvider(ImportController* ctrl)
     : QQuickImageProvider(QQuickImageProvider::Image)
     , ctrl_(ctrl)
 {
@@ -31,6 +33,8 @@ QImage DraftProofProvider::requestImage(const QString& id, QSize* size, const QS
 
     if (size) *size = img.size();
     return img;
+}
+
 }
 
 #endif

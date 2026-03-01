@@ -7,6 +7,8 @@
 
 #include "core/models/Actor.h"
 
+namespace ui {
+
 class ActorList : public QAbstractListModel {
     Q_OBJECT
 
@@ -35,3 +37,5 @@ public:
 private:
     std::vector<std::shared_ptr<Actor>> actors_;
 };
+
+}

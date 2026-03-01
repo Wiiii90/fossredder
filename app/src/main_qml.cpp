@@ -22,7 +22,7 @@
 #include "ui/controllers/StatementController.h"
 #include "ui/controllers/StorageController.h"
 #include "ui/controllers/TransactionController.h"
-#include "ui/state/UiDataSession.h"
+#include "ui/state/StateFacade.h"
 #include "debug/FileDebugger.h"
 #include "core/controllers/ImportController.h"
 #include "core/controllers/StatementController.h"
@@ -115,7 +115,7 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
     ui.import = new ui::ImportController(jobSystem, &w);
     w.setQmlContextProperty("importController", ui.import);
 
-    w.addImageProvider(QStringLiteral("importProof"), new DraftProofProvider(ui.import));
+    w.addImageProvider(QStringLiteral("importProof"), new ui::DraftProofProvider(ui.import));
 
     return ui;
 }

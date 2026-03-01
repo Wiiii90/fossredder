@@ -2,6 +2,8 @@
 
 #include <QVariant>
 
+namespace ui {
+
 ImportRunList::ImportRunList(QObject* parent)
     : QAbstractListModel(parent)
 {
@@ -61,4 +63,6 @@ void ImportRunList::clear()
     beginResetModel();
     runs_.clear();
     endResetModel();
+}
+
 }

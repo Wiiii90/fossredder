@@ -1,5 +1,7 @@
 #include "ui/models/StatementDraft.h"
 
+namespace ui {
+
 StatementDraft::StatementDraft(QObject* parent)
     : QObject(parent), transactions_(this)
 {
@@ -59,4 +61,6 @@ void StatementDraft::setDrafts(std::vector<TransactionDraft> drafts)
 void StatementDraft::refresh()
 {
     emit changed();
+}
+
 }

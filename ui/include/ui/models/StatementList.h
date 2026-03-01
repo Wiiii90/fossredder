@@ -8,6 +8,8 @@
 
 #include "core/models/Statement.h"
 
+namespace ui {
+
 class StatementList : public QAbstractListModel {
     Q_OBJECT
 public:
@@ -29,3 +31,5 @@ public:
 private:
     std::vector<std::shared_ptr<Statement>> statements_;
 };
+
+}

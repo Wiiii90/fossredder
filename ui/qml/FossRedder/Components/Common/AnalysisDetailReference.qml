@@ -213,7 +213,7 @@ Item {
                                                 for (var pi=0; pi<props.length; ++pi) {
                                                     var propId = props[pi].k || ""
                                                     var propName = propId
-                                                    try { if (uiData && uiData.propertyNameForId) propName = uiData.propertyNameForId(propId) } catch(e) { }
+                                                    try { if (uiData && uiData.propertyName) propName = uiData.propertyName(propId) } catch(e) { }
                                                     if (hexRe.test(propName)) continue
                                                     var xprop = startX + pi*gw
                                                     var label = propName

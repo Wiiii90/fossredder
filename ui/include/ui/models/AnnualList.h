@@ -7,6 +7,8 @@
 
 #include "core/models/Annual.h"
 
+namespace ui {
+
 class AnnualList : public QAbstractListModel {
     Q_OBJECT
 public:
@@ -30,3 +32,5 @@ public:
 private:
     std::vector<std::shared_ptr<Annual>> annuals_;
 };
+
+}

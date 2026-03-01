@@ -7,6 +7,8 @@
 
 #include "core/models/Property.h"
 
+namespace ui {
+
 class PropertyList : public QAbstractListModel {
     Q_OBJECT
 
@@ -37,3 +39,5 @@ public:
 private:
     std::vector<std::shared_ptr<Property>> props_;
 };
+
+}

@@ -7,6 +7,8 @@
 
 #include "core/models/Analysis.h"
 
+namespace ui {
+
 class AnalysisList : public QAbstractListModel {
     Q_OBJECT
 public:
@@ -38,3 +40,5 @@ public:
 private:
     std::vector<std::shared_ptr<Analysis>> analyses_;
 };
+
+}

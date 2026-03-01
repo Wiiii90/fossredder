@@ -2,6 +2,8 @@
 
 #include <QVariant>
 
+namespace ui {
+
 ContractList::ContractList(QObject* parent) : QAbstractListModel(parent) {}
 
 int ContractList::rowCount(const QModelIndex& parent) const {
@@ -173,4 +175,6 @@ std::vector<std::string> ContractList::toStdVectorStrings(const QVariant& v) {
         return out;
     }
     return out;
+}
+
 }

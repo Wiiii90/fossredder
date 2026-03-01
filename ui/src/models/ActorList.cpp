@@ -2,6 +2,8 @@
 
 #include <QVariant>
 
+namespace ui {
+
 ActorList::ActorList(QObject* parent) : QAbstractListModel(parent) {}
 
 int ActorList::rowCount(const QModelIndex& parent) const {
@@ -100,4 +102,6 @@ void ActorList::removeAt(int row) {
     beginRemoveRows(QModelIndex(), row, row);
     actors_.erase(actors_.begin() + row);
     endRemoveRows();
+}
+
 }

@@ -3,6 +3,8 @@
 #include <QVariant>
 #include "core/models/Contract.h"
 
+namespace ui {
+
 TransactionList::TransactionList(QObject* parent) : QAbstractListModel(parent) {}
 
 int TransactionList::rowCount(const QModelIndex& parent) const
@@ -33,7 +35,6 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case MetadataRole: return QString::fromStdString(t->metadata);
     case ProofImagePathRole: return QString::fromStdString(t->proofImagePath);
     case TypeRole: {
-        // resolve contract type if available
         if (!t->contractId.empty()) {
             for (const auto& c : contracts_) {
                 if (!c) continue;
@@ -80,7 +81,7 @@ void TransactionList::setTransactions(std::vector<std::shared_ptr<Transaction>> 
     endResetModel();
 }
 
-void TransactionList::setContracts(std::vector<std::shared_ptr<Contract>> contracts)
+void TransactionList::setContracts(std::vector<std::shared_ptr<::Contract>> contracts)
 {
     beginResetModel();
     contracts_ = std::move(contracts);
@@ -108,7 +109,6 @@ void TransactionList::setTransactionAt(int row, std::shared_ptr<Transaction> tx)
     if (row < 0 || row >= static_cast<int>(transactions_.size())) return;
     transactions_[static_cast<size_t>(row)] = std::move(tx);
     const QModelIndex mi = index(row);
-    // build QVector<int> of roles
     QVector<int> rolesVec;
     const auto roleKeys = roleNames().keys();
     rolesVec.reserve(roleKeys.size());
@@ -141,7 +141,6 @@ QVariantMap TransactionList::get(int index) const
     m["actorProposal"] = QString::fromStdString(t->actorProposal);
     m["metadata"] = QString::fromStdString(t->metadata);
     m["proofImagePath"] = QString::fromStdString(t->proofImagePath);
-    // resolve contract type if available
     QString ctype;
     if (!t->contractId.empty()) {
         for (const auto& c : contracts_) {
@@ -155,4 +154,6 @@ QVariantMap TransactionList::get(int index) const
     for (const auto& pid : t->propertyIds) pids.push_back(QString::fromStdString(pid));
     m["propertyIds"] = pids;
     return m;
+}
+
 }

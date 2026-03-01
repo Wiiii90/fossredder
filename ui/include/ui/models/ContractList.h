@@ -8,6 +8,8 @@
 
 #include "core/models/Contract.h"
 
+namespace ui {
+
 class ContractList : public QAbstractListModel {
     Q_OBJECT
 
@@ -46,3 +48,5 @@ private:
     static QStringList toQStringList(const std::vector<std::string>& v);
     static std::vector<std::string> toStdVectorStrings(const QVariant& v);
 };
+
+}

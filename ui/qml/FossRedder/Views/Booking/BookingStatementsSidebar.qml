@@ -69,7 +69,7 @@ Item {
                 clip: true
                 spacing: 2
                 leftMargin: 14
-                model: (uiData && statementId.length > 0) ? uiData.transactionsForStatement(statementId) : null
+                model: (uiData && statementId.length > 0) ? uiData.statementTransactions(statementId) : null
 
                 delegate: Components.ListRow {
                     width: statementList.width - 14

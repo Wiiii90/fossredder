@@ -111,7 +111,7 @@ Item {
             try {
                 try { if (pie) pie.legendFilter = uiData ? (uiData._legendFilter ? uiData._legendFilter : []) : [] } catch(e) {}
                 try { if (hist) hist.legendFilter = uiData ? (uiData._legendFilter ? uiData._legendFilter : []) : [] } catch(e) {}
-                try { if (uiData && uiData.propertyNameForId) { if (pie) pie.propertyNameForId = function(id) { try { return uiData.propertyNameForId(id) } catch(e) { return id } }; if (hist) hist.propertyNameForId = function(id) { try { return uiData.propertyNameForId(id) } catch(e) { return id } } } else { if (pie) pie.propertyNameForId = null; if (hist) hist.propertyNameForId = null } } catch(e) {}
+                try { if (uiData && uiData.propertyName) { if (pie) pie.propertyNameForId = function(id) { try { return uiData.propertyName(id) } catch(e) { return id } }; if (hist) hist.propertyNameForId = function(id) { try { return uiData.propertyName(id) } catch(e) { return id } } } else { if (pie) pie.propertyNameForId = null; if (hist) hist.propertyNameForId = null } } catch(e) {}
 
                 var tbl = (uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []
                 if (pie) pie.table = tbl

@@ -2,6 +2,8 @@
 
 #include "ui/models/TransactionList.h"
 
+namespace ui {
+
 TransactionFilter::TransactionFilter(QObject* parent)
     : QSortFilterProxyModel(parent)
 {
@@ -59,4 +61,6 @@ bool TransactionFilter::filterAcceptsRow(int sourceRow, const QModelIndex& sourc
     if (statementId_.isEmpty() && propertyId_.isEmpty() && txType_.isEmpty()) return true;
 
     return true;
+}
+
 }

@@ -5,9 +5,9 @@
 
 #include "core/controllers/AppStateController.h"
 
-class StatementDraft;
-
 namespace ui {
+
+class StatementDraft;
 
 class DraftController : public QObject {
     Q_OBJECT

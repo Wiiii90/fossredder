@@ -2,6 +2,8 @@
 
 #include <QVariant>
 
+namespace ui {
+
 AnnualList::AnnualList(QObject* parent) : QAbstractListModel(parent) {}
 
 int AnnualList::rowCount(const QModelIndex& parent) const {
@@ -47,4 +49,6 @@ void AnnualList::removeAt(int row) {
     beginRemoveRows(QModelIndex(), row, row);
     annuals_.erase(annuals_.begin() + row);
     endRemoveRows();
+}
+
 }

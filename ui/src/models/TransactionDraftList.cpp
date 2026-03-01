@@ -2,6 +2,8 @@
 
 #include <QVariant>
 
+namespace ui {
+
 TransactionDraftList::TransactionDraftList(QObject* parent)
     : QAbstractListModel(parent)
 {
@@ -205,4 +207,6 @@ void TransactionDraftList::setType(int index, const QString& v)
     drafts_[index].type = v;
     const QModelIndex mi = this->index(index);
     emit dataChanged(mi, mi, { TypeRole });
+}
+
 }

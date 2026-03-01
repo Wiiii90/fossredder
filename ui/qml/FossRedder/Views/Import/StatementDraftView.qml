@@ -105,7 +105,7 @@ Item {
                             if (sid && sid.length > 0 && uiNav && uiData) {
                                 uiData.selectedStatementId = sid
                                 try {
-                                    var txs = uiData.transactionIdsForStatement(sid)
+                                    var txs = uiData.statementTransactionIds(sid)
                                     if (txs && txs.length > 0) uiData.selectedTransactionId = txs[0]
                                 } catch(e) { /* ignore if method not available */ }
 

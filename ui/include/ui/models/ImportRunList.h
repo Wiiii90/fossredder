@@ -5,6 +5,8 @@
 
 #include <vector>
 
+namespace ui {
+
 class ImportRunList : public QAbstractListModel {
     Q_OBJECT
 public:
@@ -38,3 +40,5 @@ private:
 
     std::vector<Run> runs_;
 };
+
+}

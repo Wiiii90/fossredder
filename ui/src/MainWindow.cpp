@@ -20,9 +20,9 @@
 #include <QDropEvent>
 #include <QRegularExpression>
 
-#include "ui/actions/UiActions.h"
-#include "ui/state/UiDataSession.h"
-#include "ui/state/UiNavigation.h"
+#include "ui/actions/Actions.h"
+#include "ui/state/StateFacade.h"
+#include "ui/state/NavigationState.h"
 #include "ui/controllers/FileSystemController.h"
 
 MainWindow::MainWindow(QWidget* parent)
@@ -36,21 +36,19 @@ MainWindow::MainWindow(QWidget* parent)
     m_quickWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     m_quickWidget->setMinimumSize(0, 0);
 
-    // Required so QML `DropArea` receives native drag&drop events from the OS.
     m_quickWidget->setAcceptDrops(true);
 
     m_quickWidget->installEventFilter(this);
 
-    // Ensure UiNavigation enums are visible in QML as UiNavigation.Actors/...
     if (m_quickWidget->engine()) {
-        qmlRegisterUncreatableType<UiNavigation>("FossRedder", 1, 0, "UiNavigation",
+        qmlRegisterUncreatableType<ui::NavigationState>("FossRedder", 1, 0, "UiNavigation",
                                                 "UiNavigation is exposed via context property 'uiNav'");
     }
 
-    auto actions = new UiActions(this);
+    auto actions = new ui::Actions(this);
     actions_ = actions;
-    auto nav = new UiNavigation(this);
-    dataSession_ = new UiDataSession(this);
+    auto nav = new ui::NavigationState(this);
+    dataSession_ = new ui::StateFacade(this);
     auto fileSys = new ui::FileSystemController(this);
 
     if (m_quickWidget->rootContext()) {
@@ -79,16 +77,15 @@ MainWindow::MainWindow(QWidget* parent)
     connect(actions->quitAction(), &QAction::triggered, this, &QWidget::close);
     connect(actions->aboutAction(), &QAction::triggered, this, &MainWindow::onAbout);
 
-    connect(actions, &UiActions::importBrowseRequested, this, [this, actions](const QString& filter) {
+    connect(actions, &ui::Actions::importBrowseRequested, this, [this, actions](const QString& filter) {
         const QStringList files = QFileDialog::getOpenFileNames(this, tr("Select PDF"), QString(), filter);
         if (!files.isEmpty()) {
             emit actions->importFilesSelected(files);
-            // keep single-file signal for backwards compatibility
             if (files.size() == 1) emit actions->importFileSelected(files.first());
         }
     });
 
-    connect(actions, &UiActions::exportBrowseRequested, this, [this, actions](const QString& filter) {
+    connect(actions, &ui::Actions::exportBrowseRequested, this, [this, actions](const QString& filter) {
         const QString file = QFileDialog::getSaveFileName(this, tr("Export File"), QString(), filter);
         if (!file.isEmpty()) {
             emit actions->exportFileSelected(file);
@@ -170,8 +167,6 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
         }
     }
 
-    // QQuickWidget in widget-embedding mode is often unreliable with QML DropArea.
-    // Handle drag&drop on the widget layer and forward file paths into QML via UiActions.
     if (obj == m_quickWidget) {
         switch (ev->type()) {
         case QEvent::DragEnter: {

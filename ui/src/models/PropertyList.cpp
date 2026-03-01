@@ -2,6 +2,8 @@
 
 #include <QVariant>
 
+namespace ui {
+
 PropertyList::PropertyList(QObject* parent) : QAbstractListModel(parent) {}
 
 int PropertyList::rowCount(const QModelIndex& parent) const {
@@ -114,4 +116,6 @@ void PropertyList::removeAt(int row) {
     beginRemoveRows(QModelIndex(), row, row);
     props_.erase(props_.begin() + row);
     endRemoveRows();
+}
+
 }

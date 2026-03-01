@@ -5,7 +5,9 @@
 
 class QAction;
 
-class UiActions : public QObject {
+namespace ui {
+
+class Actions : public QObject {
     Q_OBJECT
     Q_PROPERTY(QAction* newFileAction READ newFileAction CONSTANT)
     Q_PROPERTY(QAction* openFileAction READ openFileAction CONSTANT)
@@ -18,7 +20,7 @@ class UiActions : public QObject {
     Q_PROPERTY(QAction* aboutAction READ aboutAction CONSTANT)
 
 public:
-    explicit UiActions(QObject* parent = nullptr);
+    explicit Actions(QObject* parent = nullptr);
 
     QAction* newFileAction() const;
     QAction* openFileAction() const;
@@ -60,3 +62,5 @@ private:
     QAction* toggleSidebarAction_;
     QAction* aboutAction_;
 };
+
+}

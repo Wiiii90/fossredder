@@ -3,6 +3,8 @@
 #include <QSortFilterProxyModel>
 #include <QString>
 
+namespace ui {
+
 class TransactionFilter : public QSortFilterProxyModel {
     Q_OBJECT
     Q_PROPERTY(QString statementId READ statementId WRITE setStatementId NOTIFY statementIdChanged)
@@ -34,3 +36,5 @@ private:
     QString propertyId_;
     QString txType_;
 };
+
+}

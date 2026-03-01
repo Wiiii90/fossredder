@@ -2,7 +2,9 @@
 
 #include <QObject>
 
-class UiNavigation : public QObject {
+namespace ui {
+
+class NavigationState : public QObject {
     Q_OBJECT
     Q_PROPERTY(Section section READ section WRITE setSection NOTIFY sectionChanged)
     Q_PROPERTY(BookingView bookingView READ bookingView WRITE setBookingView NOTIFY bookingViewChanged)
@@ -42,7 +44,7 @@ public:
     };
     // Do not register SettingsCategory with Q_ENUM to avoid name clashes in QML
 
-    explicit UiNavigation(QObject* parent = nullptr);
+    explicit NavigationState(QObject* parent = nullptr);
     SettingsCategory settingsCategory() const noexcept { return settingsCategory_; }
     void setSettingsCategory(SettingsCategory c);
     
@@ -62,3 +64,5 @@ private:
     BookingView bookingView_ = BookingView::Statements;
     SettingsCategory settingsCategory_ = SettingsCategory::General;
 };
+
+}
