@@ -42,6 +42,14 @@ StateFacade::StateFacade(QObject* parent)
     connect(&transactions_, &QAbstractItemModel::modelReset, this, [this]() {
         metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
     });
+
+    connect(&analyses_, &QAbstractItemModel::modelReset, this, [this]() {
+        metrics_.clearCache();
+        for (const auto& p : properties_.properties()) {
+            if (!p) continue;
+            emit transactionSumsUpdated(QString::fromStdString(p->id));
+        }
+    });
 }
 
 void StateFacade::loadFromState(const AppState& state)
@@ -58,14 +66,6 @@ void StateFacade::loadFromState(const AppState& state)
     transactions_.setContracts(state.contracts);
 
     metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
-
-    connect(&analyses_, &QAbstractItemModel::modelReset, this, [this]() {
-        metrics_.clearCache();
-        for (const auto& p : properties_.properties()) {
-            if (!p) continue;
-            emit transactionSumsUpdated(QString::fromStdString(p->id));
-        }
-    }, Qt::UniqueConnection);
 
     selection_.refreshAll();
     lastAnalysisResult_.clear();
