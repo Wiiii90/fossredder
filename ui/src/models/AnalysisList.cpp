@@ -1,5 +1,6 @@
 #include "ui/models/AnalysisList.h"
 
+#include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 
 #include <QVariant>
@@ -35,7 +36,11 @@ QVariant AnalysisList::data(const QModelIndex& index, int role) const {
             s += "}";
             adjustmentsJson = s;
         }
-    } catch (const std::exception&) {
+    } catch (...) {
+        core::errors::reportException(core::errors::ErrorSeverity::Warning,
+                                      core::errors::codes::ExceptionError,
+                                      "ui::AnalysisList::data::adjustmentsJson",
+                                      std::current_exception());
         adjustmentsJson = "{}";
     }
 
