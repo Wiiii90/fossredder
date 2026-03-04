@@ -1,5 +1,7 @@
 #include "core/controllers/CsvController.h"
 
+#include "core/errors/ErrorReporterRegistry.h"
+
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -11,7 +13,6 @@
 #include "core/models/Property.h"
 #include "core/models/Contract.h"
 #include "core/models/Transaction.h"
-#include <iostream>
 #include <algorithm>
 #include <cctype>
 
@@ -81,7 +82,12 @@ bool CsvController::exportData(const ExportOptions& opts) {
         // diagnostic: print missing id once
         static std::unordered_set<std::string> missingLogged;
         if (missingLogged.insert(cid).second) {
-            std::cerr << "CsvController: missing contractId->type mapping for id='" << cid << "'\n";
+            core::errors::report({
+                core::errors::ErrorSeverity::Warning,
+                "core::CsvController::exportData",
+                std::string("missing contractId->type mapping for id='") + cid + "'",
+                {}
+            });
         }
         return std::string("(Unassigned)");
     };
@@ -110,15 +116,12 @@ bool CsvController::exportData(const ExportOptions& opts) {
 
     // Diagnostic logging to help understand why types may be empty
     {
-        std::cerr << "CsvController: dataRows=" << dataRows.size() << " contractTypes=" << contractTypes.size() << "\n";
-        size_t maxPrint = std::min<size_t>(20, dataRows.size());
-        for (size_t i = 0; i < maxPrint; ++i) {
-            const auto &r = dataRows[i];
-            std::cerr << "  row[" << i << "] prop='" << r.prop << "' type='" << r.type << "' amount=" << r.amount << "\n";
-        }
-        std::cerr << "ContractTypes: ";
-        for (const auto &ct : contractTypes) std::cerr << "['" << ct << "'] ";
-        std::cerr << "\n";
+        core::errors::report({
+            core::errors::ErrorSeverity::Info,
+            "core::CsvController::exportData",
+            std::string("dataRows=") + std::to_string(dataRows.size()) + " contractTypes=" + std::to_string(contractTypes.size()),
+            {}
+        });
     }
 
     // Build unique property list: include properties from state in defined order only if they have data,

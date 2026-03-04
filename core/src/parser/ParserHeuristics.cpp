@@ -1,4 +1,5 @@
 #include "core/parser/ParserHeuristics.h"
+#include "core/errors/ErrorReporterRegistry.h"
 #include "core/utils/Util.h"
 
 #include <vector>
@@ -66,7 +67,9 @@ bool isPostTransactionFootnote(const std::string& line) {
     try {
         static const std::regex amountDetect(R"(\d+[\.,]\d{2})");
         if (std::regex_search(l, amountDetect)) return false; // prefer amount-bearing lines for parsing
-    } catch(...) {}
+    } catch (...) {
+        core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::heuristics::isPostTransactionFootnote::regex", std::current_exception());
+    }
 
     const std::initializer_list<const char*> strong = {
         "guthaben sind als",

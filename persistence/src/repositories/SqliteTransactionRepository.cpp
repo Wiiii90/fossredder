@@ -1,4 +1,5 @@
 #include "persistence/repositories/SqliteTransactionRepository.h"
+#include "core/errors/ErrorReporterRegistry.h"
 #include <sqlite3.h>
 #include <stdexcept>
 #include "core/models/Transaction.h"
@@ -173,7 +174,12 @@ static void clearRelations(sqlite3* db, const std::string& transactionId) {
         sqlite3_finalize(delStmt);
     } else {
         const char* err = sqlite3_errmsg(db);
-        fprintf(stderr, "SqliteTransactionRepository::clearRelations: prepare failed: %s\n", err ? err : "unknown");
+        core::errors::report({
+            core::errors::ErrorSeverity::Error,
+            "persistence::SqliteTransactionRepository::clearRelations",
+            std::string("prepare failed: ") + (err ? err : "unknown"),
+            {}
+        });
     }
 }
 
@@ -182,13 +188,23 @@ static void insertRelations(sqlite3* db, const std::string& transactionId, const
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
         const char* err = sqlite3_errmsg(db);
-        fprintf(stderr, "SqliteTransactionRepository::insertRelations: prepare failed: %s\n", err ? err : "unknown");
+        core::errors::report({
+            core::errors::ErrorSeverity::Error,
+            "persistence::SqliteTransactionRepository::insertRelations",
+            std::string("prepare failed: ") + (err ? err : "unknown"),
+            {}
+        });
         return;
     }
     for (const auto& pidStr : t.propertyIds) {
         std::string pid = resolvePropertyIdText(db, pidStr);
         if (pid.empty()) {
-            fprintf(stderr, "SqliteTransactionRepository::insertRelations: unresolved property '%s' for transaction %s\n", pidStr.c_str(), transactionId.c_str());
+            core::errors::report({
+                core::errors::ErrorSeverity::Warning,
+                "persistence::SqliteTransactionRepository::insertRelations",
+                std::string("unresolved property '") + pidStr + "' for transaction '" + transactionId + "'",
+                {}
+            });
             continue;
         }
         sqlite3_reset(stmt);
@@ -238,11 +254,21 @@ void SqliteTransactionRepository::addTransaction(const std::shared_ptr<Transacti
     if (sqlite3_step(stmt) == SQLITE_DONE) {
         // Insert property relations for the newly created transaction
         insertRelations(pimpl_->db->handle(), transaction->id, *transaction);
-        fprintf(stderr, "SqliteTransactionRepository::addTransaction: inserted id='%s' name='%s'\n", transaction->id.c_str(), transaction->name.c_str());
+        core::errors::report({
+            core::errors::ErrorSeverity::Info,
+            "persistence::SqliteTransactionRepository::addTransaction",
+            std::string("inserted id='") + transaction->id + "' name='" + transaction->name + "'",
+            {}
+        });
     }
     else {
         const char* err = sqlite3_errmsg(pimpl_->db->handle());
-        fprintf(stderr, "SqliteTransactionRepository::addTransaction: failed to insert id='%s' name='%s' err=%s\n", transaction->id.c_str(), transaction->name.c_str(), err ? err : "unknown");
+        core::errors::report({
+            core::errors::ErrorSeverity::Error,
+            "persistence::SqliteTransactionRepository::addTransaction",
+            std::string("failed to insert id='") + transaction->id + "' name='" + transaction->name + "' err=" + (err ? err : "unknown"),
+            {}
+        });
     }
     sqlite3_finalize(stmt);
 }
@@ -382,10 +408,20 @@ void SqliteTransactionRepository::updateTransaction(const std::shared_ptr<Transa
     sqlite3_step(stmt);
     if (sqlite3_changes(pimpl_->db->handle()) == 0) {
         const char* err = sqlite3_errmsg(pimpl_->db->handle());
-        fprintf(stderr, "SqliteTransactionRepository::updateTransaction: no rows updated for id='%s' err=%s\n", transaction->id.c_str(), err ? err : "unknown");
+        core::errors::report({
+            core::errors::ErrorSeverity::Warning,
+            "persistence::SqliteTransactionRepository::updateTransaction",
+            std::string("no rows updated for id='") + transaction->id + "' err=" + (err ? err : "unknown"),
+            {}
+        });
     }
     else {
-        fprintf(stderr, "SqliteTransactionRepository::updateTransaction: updated id='%s' name='%s'\n", transaction->id.c_str(), transaction->name.c_str());
+        core::errors::report({
+            core::errors::ErrorSeverity::Info,
+            "persistence::SqliteTransactionRepository::updateTransaction",
+            std::string("updated id='") + transaction->id + "' name='" + transaction->name + "'",
+            {}
+        });
     }
     sqlite3_finalize(stmt);
 
@@ -396,7 +432,12 @@ void SqliteTransactionRepository::updateTransaction(const std::shared_ptr<Transa
 
 void SqliteTransactionRepository::upsertTransaction(const std::shared_ptr<Transaction>& transaction) {
     if (!transaction) return;
-    fprintf(stderr, "SqliteTransactionRepository::upsertTransaction: id='%s' name='%s'\n", transaction->id.c_str(), transaction->name.c_str());
+    core::errors::report({
+        core::errors::ErrorSeverity::Info,
+        "persistence::SqliteTransactionRepository::upsertTransaction",
+        std::string("upsert id='") + transaction->id + "' name='" + transaction->name + "'",
+        {}
+    });
     if (transaction->id.empty()) { addTransaction(transaction); return; }
 
     // Check existence first to avoid race where update reports no changes but

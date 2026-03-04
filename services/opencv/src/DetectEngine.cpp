@@ -22,7 +22,9 @@ void writeImageViaDebugger(std::shared_ptr<IDebugger> debugger, const std::strin
         bool ok = cv::imencode(".png", out, buf);
         if (!ok || buf.empty()) return;
         debugger->writeBytes(relPath + ".png", buf);
-    } catch (...) {}
+    } catch (...) {
+        debugger->writeText("opencv/error.txt", std::string("writeImageViaDebugger failed for ") + relPath);
+    }
 }
 
 static cv::Mat ensureGrayLocal(const cv::Mat& in) {
@@ -368,11 +370,7 @@ api::opencv::Table detectTableGridHough(const cv::Mat& roiGrayIn, const cv::Rect
 
 // Expose DetectTextBlocks implementation
 std::vector<cv::Rect> DetectEngine::DetectTextBlocks(const cv::Mat& img, std::shared_ptr<IDebugger> debugger) {
-    try {
-        return findTextBlocksUsingMorphology(img);
-    } catch (...) {
-        return {};
-    }
+    return findTextBlocksUsingMorphology(img);
 }
 
 std::vector<api::opencv::Table> DetectEngine::DetectTables(const cv::Mat& img, const std::string& imagePath, std::shared_ptr<IDebugger> debugger) {
@@ -405,22 +403,20 @@ std::vector<api::opencv::Table> DetectEngine::DetectTables(const cv::Mat& img, c
     if (!candidates.empty()) result.push_back(candidates[0].t);
 
     if (debugger && debugger->enabled()) {
-        try {
-            cv::Mat vis;
-            if (img.channels() == 1) cv::cvtColor(img, vis, cv::COLOR_GRAY2BGR);
-            else vis = img.clone();
+        cv::Mat vis;
+        if (img.channels() == 1) cv::cvtColor(img, vis, cv::COLOR_GRAY2BGR);
+        else vis = img.clone();
 
-            for (const auto &t : result)
-                cv::rectangle(vis, cv::Rect(t.bbox.x, t.bbox.y, t.bbox.width, t.bbox.height), cv::Scalar(0,255,0), 2);
+        for (const auto &t : result)
+            cv::rectangle(vis, cv::Rect(t.bbox.x, t.bbox.y, t.bbox.width, t.bbox.height), cv::Scalar(0,255,0), 2);
 
-            if (!result.empty()) {
-                const auto &t = result[0];
-                for (const auto &c : t.cells)
-                    cv::rectangle(vis, cv::Rect(c.bbox.x, c.bbox.y, c.bbox.width, c.bbox.height), cv::Scalar(255,0,0), 2);
-            }
+        if (!result.empty()) {
+            const auto &t = result[0];
+            for (const auto &c : t.cells)
+                cv::rectangle(vis, cv::Rect(c.bbox.x, c.bbox.y, c.bbox.width, c.bbox.height), cv::Scalar(255,0,0), 2);
+        }
 
-            writeImageViaDebugger(debugger, "opencv/detect_table_with_cells", vis);
-        } catch (...) {}
+        writeImageViaDebugger(debugger, "opencv/detect_table_with_cells", vis);
     }
 
     return result;

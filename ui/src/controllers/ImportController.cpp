@@ -26,6 +26,11 @@ ImportController::ImportController(std::shared_ptr<core::jobs::JobSystem> jobSys
 {
 }
 
+void ImportController::setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter)
+{
+    errorReporter_ = std::move(reporter);
+}
+
 void ImportController::addFiles(const QStringList& paths)
 {
     QStringList cleaned;
@@ -227,7 +232,11 @@ void ImportController::startImportForFile(const QString& path)
     std::string runIdPrefix(runIdNative.constData(), static_cast<size_t>(runIdNative.size()));
 
     if (currentSubId_ != 0 && !currentJobId_.isEmpty()) {
-        try { jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_); } catch (const std::exception&) {}
+        try {
+            jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_);
+        } catch (...) {
+            reportException("ui::ImportController::startImportForFile::unsubscribe", std::current_exception());
+        }
     }
     currentSubId_ = 0;
     currentJobId_.clear();
@@ -286,7 +295,11 @@ void ImportController::onJobTerminal(int state, const QString& message)
     const auto now = QDateTime::currentDateTime().toString(Qt::ISODate);
 
     if (jobSystem_ && currentSubId_ != 0 && !currentJobId_.isEmpty()) {
-        try { jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_); } catch (const std::exception&) {}
+        try {
+            jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_);
+        } catch (...) {
+            reportException("ui::ImportController::onJobTerminal::unsubscribe", std::current_exception());
+        }
     }
     currentSubId_ = 0;
 
@@ -372,6 +385,13 @@ void ImportController::onJobTerminal(int state, const QString& message)
     currentImportFile_.clear();
     emit stateChanged();
     emit importFinished();
+}
+
+void ImportController::reportException(const char* origin, std::exception_ptr exception) const
+{
+    if (errorReporter_) {
+        errorReporter_->reportException(core::errors::ErrorSeverity::Error, origin, exception);
+    }
 }
 
 }

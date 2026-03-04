@@ -1,5 +1,6 @@
 #include "core/jobs/Scheduler.h"
 
+#include "core/errors/ErrorReporterRegistry.h"
 #include <algorithm>
 
 namespace core::jobs {
@@ -46,7 +47,7 @@ void Scheduler::stop() {
     for (auto& w : workers_) {
         try {
             if (w.joinable()) w.join();
-        } catch (...) {}
+        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::jobs::Scheduler::stop::join", std::current_exception()); }
     }
     workers_.clear();
 }
@@ -76,7 +77,7 @@ void Scheduler::workerLoop() {
 
         try {
             if (t) t();
-        } catch (...) {}
+        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Error, "core::jobs::Scheduler::workerLoop::task", std::current_exception()); }
     }
 }
 

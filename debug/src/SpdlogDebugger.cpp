@@ -25,7 +25,9 @@ SpdlogDebugger::SpdlogDebugger(const std::string& loggerName, std::shared_ptr<ID
 SpdlogDebugger::~SpdlogDebugger() {
     try {
         if (m_logger_) spdlog::drop(m_logger_->name());
-    } catch (...) {}
+    } catch (...) {
+        m_enabled_ = false;
+    }
 }
 
 bool SpdlogDebugger::enabled() const {
@@ -38,16 +40,18 @@ void SpdlogDebugger::writeText(const std::string& relPath, const std::string& te
     try {
         if (relPath.rfind("poppler/meta/", 0) == 0) {
             if (m_backend_) {
-                try { m_backend_->writeText(relPath, text); } catch (...) {}
+                try { m_backend_->writeText(relPath, text); } catch (...) { if (m_logger_) m_logger_->warn("backend writeText failed for {}", relPath); }
             }
             if (m_logger_) m_logger_->debug("[{}] metadata written (content omitted)", relPath);
             return;
         }
-    } catch (...) {}
+    } catch (...) {
+        if (m_logger_) m_logger_->warn("writeText pre-check failed for {}", relPath);
+    }
 
     if (m_logger_) m_logger_->info("[{}] {}", relPath, text);
     if (m_backend_) {
-        try { m_backend_->writeText(relPath, text); } catch (...) {}
+        try { m_backend_->writeText(relPath, text); } catch (...) { if (m_logger_) m_logger_->warn("backend writeText failed for {}", relPath); }
     }
 }
 
@@ -67,7 +71,7 @@ void SpdlogDebugger::writeBytes(const std::string& relPath, const std::vector<ui
 
 void SpdlogDebugger::flush() {
     if (m_backend_) {
-        try { m_backend_->flush(); } catch (...) {}
+        try { m_backend_->flush(); } catch (...) { if (m_logger_) m_logger_->warn("backend flush failed"); }
     }
-    try { spdlog::drop_all(); } catch (...) {}
+    try { spdlog::drop_all(); } catch (...) { if (m_logger_) m_logger_->warn("spdlog drop_all failed"); }
 }

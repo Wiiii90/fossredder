@@ -11,6 +11,7 @@
 #include "api/tesseract/TesseractResponse.h"
 #include "api/tesseract/ITesseractService.h"
 #include "core/import/IImportStatement.h"
+#include "core/errors/ErrorReporterRegistry.h"
 #include "core/parser/DefaultStatementParser.h"
 #include "../../debug/include/debug/IDebugger.h"
 #include "core/models/Statement.h"
@@ -50,11 +51,11 @@ public:
         double finalizeSec = 0.0;
 
         const std::filesystem::path runRoot(req.runRoot);
-        try { std::filesystem::create_directories(runRoot); } catch (...) {}
+        try { std::filesystem::create_directories(runRoot); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::createRunRoot", std::current_exception()); }
 
         auto report = [&](double p, const std::string& phase) {
             if (req.progressCallback) {
-                try { req.progressCallback(p, phase); } catch (...) {}
+                try { req.progressCallback(p, phase); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::progressCallback", std::current_exception()); }
             }
         };
 
@@ -71,7 +72,12 @@ public:
         rreq.filePrefix = "poppler_render";
         rreq.cancelFlag = req.cancelFlag;
 
-        try { std::clog << "DefaultImportStatementStrategy: poppler render start: " << rreq.pdfPath.string() << " dpi=" << rreq.dpi << std::endl; } catch(...){ }
+        core::errors::report({
+            core::errors::ErrorSeverity::Info,
+            "core::import::DefaultImportStatementStrategy::run",
+            std::string("poppler render start: ") + rreq.pdfPath.string() + " dpi=" + std::to_string(rreq.dpi),
+            {}
+        });
         report(0.05, "Rendering pages");
         const auto tRender0 = std::chrono::steady_clock::now();
         auto renderRes = poppler_->render(rreq);
@@ -102,7 +108,7 @@ public:
                 std::ifstream ifs(p, std::ios::binary);
                 if (!ifs) return out;
                 out.assign((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-            } catch (...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::readBytes", std::current_exception()); }
             return out;
         };
 
@@ -218,7 +224,8 @@ public:
 
                         mreq.tesseractTsv = tres.tsv;
                     } catch (...) {
-                        try { if (ocrLimiter) ocrLimiter->release(); } catch (...) {}
+                        try { if (ocrLimiter) ocrLimiter->release(); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::ocrLimiterReleaseMask", std::current_exception()); }
+                        core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::tesseractMaskExtract", std::current_exception());
                     }
                 }
 
@@ -284,7 +291,8 @@ public:
                     pw.ocrSec += std::chrono::duration<double>(std::chrono::steady_clock::now() - tOcr0).count();
                     if (ocrLimiter) ocrLimiter->release();
                 } catch (...) {
-                    try { if (ocrLimiter) ocrLimiter->release(); } catch (...) {}
+                    try { if (ocrLimiter) ocrLimiter->release(); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::ocrLimiterReleaseTable", std::current_exception()); }
+                    core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::tesseractTableExtract", std::current_exception());
                     finishUnits("OCR failed");
                     prom->set_value(std::move(pw));
                     return;
@@ -302,7 +310,7 @@ public:
                     std::vector<uint8_t> tsvData(pw.ocr.tsv.begin(), pw.ocr.tsv.end());
                     std::lock_guard<std::mutex> g(artifactsMutex);
                     out.artifacts[tsvKey] = std::move(tsvData);
-                } catch (...) {}
+                } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::storeTsvArtifact", std::current_exception()); }
 
                 finishUnits("Done");
                 pw.totalSec = std::chrono::duration<double>(std::chrono::steady_clock::now() - tPage0).count();
@@ -314,13 +322,13 @@ public:
             try {
                 auto pw = f.get();
                 if (pw.pageIndex < pages.size()) pages[pw.pageIndex] = std::move(pw);
-            } catch (...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::pageFutureGet", std::current_exception()); }
         }
 
         std::filesystem::path proofDir;
         if (debugger_ && debugger_->enabled()) {
             proofDir = runRoot / "proof";
-            try { std::filesystem::create_directories(proofDir); } catch (...) {}
+            try { std::filesystem::create_directories(proofDir); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::createProofDir", std::current_exception()); }
         }
 
         const auto tFinalize0 = std::chrono::steady_clock::now();
@@ -367,7 +375,7 @@ public:
                 try {
                     std::lock_guard<std::mutex> g(artifactsMutex);
                     for (auto& kv : parsed.artifacts) out.artifacts.emplace(kv.first, std::move(kv.second));
-                } catch (...) {}
+                } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::mergeParsedArtifacts", std::current_exception()); }
             }
 
         finalizeSec = std::chrono::duration<double>(std::chrono::steady_clock::now() - tFinalize0).count();
@@ -407,7 +415,7 @@ public:
 
             const auto dumped = j.dump(2);
             out.artifacts["metrics.json"] = std::vector<uint8_t>(dumped.begin(), dumped.end());
-        } catch (...) {}
+        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::metricsArtifact", std::current_exception()); }
 
         report(1.0, "Done");
         return out;

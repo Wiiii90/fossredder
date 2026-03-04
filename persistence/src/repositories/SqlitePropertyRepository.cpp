@@ -1,4 +1,5 @@
 #include "persistence/repositories/SqlitePropertyRepository.h"
+#include "core/errors/ErrorReporterRegistry.h"
 #include <sqlite3.h>
 #include <stdexcept>
 #include "core/models/Property.h"
@@ -35,11 +36,21 @@ void SqlitePropertyRepository::addProperty(const std::shared_ptr<Property>& prop
     sqlite3_bind_text(stmt, 6, property->consumptionUnit.c_str(), -1, SQLITE_TRANSIENT);
 
     if (sqlite3_step(stmt) == SQLITE_DONE) {
-        fprintf(stderr, "SqlitePropertyRepository::addProperty: inserted property id='%s' name='%s'\n", property->id.c_str(), property->name.c_str());
+        core::errors::report({
+            core::errors::ErrorSeverity::Info,
+            "persistence::SqlitePropertyRepository::addProperty",
+            std::string("inserted property id='") + property->id + "' name='" + property->name + "'",
+            {}
+        });
     } else {
         // Insertion failed (e.g., UNIQUE constraint). Try to find existing property by name
         const char* err = sqlite3_errmsg(pimpl_->db->handle());
-        fprintf(stderr, "SqlitePropertyRepository::addProperty: insert failed for name='%s': %s\n", property->name.c_str(), err ? err : "unknown");
+        core::errors::report({
+            core::errors::ErrorSeverity::Error,
+            "persistence::SqlitePropertyRepository::addProperty",
+            std::string("insert failed for name='") + property->name + "': " + (err ? err : "unknown"),
+            {}
+        });
         sqlite3_finalize(stmt);
         const char* sel = "SELECT id FROM properties WHERE name = ? LIMIT 1;";
         sqlite3_stmt* selStmt = nullptr;
@@ -49,7 +60,12 @@ void SqlitePropertyRepository::addProperty(const std::shared_ptr<Property>& prop
                 const unsigned char* rid = sqlite3_column_text(selStmt, 0);
                 if (rid) {
                     property->id = reinterpret_cast<const char*>(rid);
-                    fprintf(stderr, "SqlitePropertyRepository::addProperty: found existing property id='%s' for name='%s'\n", property->id.c_str(), property->name.c_str());
+                    core::errors::report({
+                        core::errors::ErrorSeverity::Info,
+                        "persistence::SqlitePropertyRepository::addProperty",
+                        std::string("found existing property id='") + property->id + "' for name='" + property->name + "'",
+                        {}
+                    });
                 }
             }
             sqlite3_finalize(selStmt);
@@ -146,7 +162,12 @@ void SqlitePropertyRepository::updateProperty(const std::shared_ptr<Property>& p
     sqlite3_bind_text(stmt, 6, property->id.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
-    fprintf(stderr, "SqlitePropertyRepository::updateProperty: updated id='%s' name='%s'\n", property->id.c_str(), property->name.c_str());
+    core::errors::report({
+        core::errors::ErrorSeverity::Info,
+        "persistence::SqlitePropertyRepository::updateProperty",
+        std::string("updated id='") + property->id + "' name='" + property->name + "'",
+        {}
+    });
 }
 
 void SqlitePropertyRepository::upsertProperty(const std::shared_ptr<Property>& property) {

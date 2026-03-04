@@ -1,6 +1,7 @@
 #include "core/controllers/ImportController.h"
 
 #include "core/controllers/StatementController.h"
+#include "core/errors/ErrorReporterRegistry.h"
 #include "core/import/IImportStatement.h"
 #include "core/models/Statement.h"
 
@@ -21,7 +22,11 @@ ImportResult ImportController::import(ImportType type,
                                       core::jobs::SlotLimiter* ocrLimiter,
                                       std::string jobId)
 {
-    try { debug::startRun("import"); } catch (...) {}
+    try {
+        debug::startRun("import");
+    } catch (...) {
+        core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::ImportController::import::startRun", std::current_exception());
+    }
 
     ImportResult result;
 
@@ -34,10 +39,18 @@ ImportResult ImportController::import(ImportType type,
             break;
         }
     } catch (...) {
-        try { debug::endRun(); } catch (...) {}
+        try {
+            debug::endRun();
+        } catch (...) {
+            core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::ImportController::import::endRunOnError", std::current_exception());
+        }
         throw;
     }
 
-    try { debug::endRun(); } catch (...) {}
+    try {
+        debug::endRun();
+    } catch (...) {
+        core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::ImportController::import::endRun", std::current_exception());
+    }
     return result;
 }

@@ -4,7 +4,7 @@
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
 #include "core/controllers/AppStateController.h"
-#include <iostream>
+#include "core/errors/ErrorReporterRegistry.h"
 #include <algorithm>
 #include <cctype>
 
@@ -81,9 +81,12 @@ ImportResult StatementController::importStatementWithArtifacts(const std::string
         throw std::runtime_error("No import runRoot configured");
     }
 
-    try {
-        std::clog << "StatementController::importStatement - starting import: " << filePath << std::endl;
-    } catch (...) {}
+    core::errors::report({
+        core::errors::ErrorSeverity::Info,
+        "core::StatementController::importStatementWithArtifacts",
+        std::string("starting import: ") + filePath,
+        {}
+    });
 
     ImportRequest req;
     req.sourcePath = filePath;
@@ -96,11 +99,12 @@ ImportResult StatementController::importStatementWithArtifacts(const std::string
     req.ocrLimiter = ocrLimiter;
     ImportResult res = importService_->importStatement(req);
 
-    try {
-        std::clog << "StatementController::importStatement - import completed for: " << filePath
-                  << ", data=" << (res.data ? "present" : "null")
-                  << ", artifacts=" << res.artifacts.size() << std::endl;
-    } catch (...) {}
+    core::errors::report({
+        core::errors::ErrorSeverity::Info,
+        "core::StatementController::importStatementWithArtifacts",
+        std::string("import completed for: ") + filePath + ", data=" + (res.data ? "present" : "null") + ", artifacts=" + std::to_string(res.artifacts.size()),
+        {}
+    });
 
     if (!res.data) {
         throw std::runtime_error("Extraction failed");
@@ -112,8 +116,7 @@ ImportResult StatementController::importStatementWithArtifacts(const std::string
             onTransactionsExtracted_(res.data->transactions);
         }
     } catch (...) {
-        // ensure callback exceptions do not break import
-        try { std::clog << "StatementController::importStatement - onTransactionsExtracted_ callback threw" << std::endl; } catch (...) {}
+        core::errors::reportException(core::errors::ErrorSeverity::Error, "core::StatementController::importStatementWithArtifacts::onTransactionsExtracted", std::current_exception());
     }
 
     // Persistence intentionally not performed here. StatementController reports parsed data

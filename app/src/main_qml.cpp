@@ -16,6 +16,7 @@
 #include "ui/controllers/ImportController.h"
 #include "ui/controllers/StorageController.h"
 #include "ui/state/StateFacade.h"
+#include "core/errors/DebuggerErrorReporter.h"
 #include "debug/FileDebugger.h"
 #include "core/controllers/ImportController.h"
 #include "core/controllers/StatementController.h"
@@ -32,6 +33,7 @@
 
 #include <memory>
 #include <cstdio>
+#include <exception>
 
 std::shared_ptr<api::poppler::IPopplerAdapter> createPopplerAdapter(std::shared_ptr<IDebugger> dbg);
 std::shared_ptr<api::opencv::IOpenCvAdapter> createOpenCvAdapter(std::shared_ptr<IDebugger> dbg);
@@ -50,7 +52,7 @@ struct UiControllers {
     ui::ImportController* import = nullptr;
 };
 
-UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl)
+UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl, const std::shared_ptr<core::errors::IErrorReporter>& errorReporter)
 {
     UiControllers ui;
 
@@ -86,6 +88,7 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
     auto jobSystem = std::make_shared<core::jobs::JobSystem>(importCtrl);
 
     ui.import = new ui::ImportController(jobSystem, &w);
+    ui.import->setErrorReporter(errorReporter);
     w.setQmlContextProperty("importController", ui.import);
 
     w.addImageProvider(QStringLiteral("importProof"), new ui::DraftProofProvider(ui.import));
@@ -93,7 +96,7 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
     return ui;
 }
 
-void wireAppStateToSession(MainWindow& w, AppStateController& appStateCtrl)
+void wireAppStateToSession(MainWindow& w, AppStateController& appStateCtrl, const std::shared_ptr<core::errors::IErrorReporter>& errorReporter)
 {
     if (w.dataSession()) {
         w.dataSession()->loadFromState(appStateCtrl.state());
@@ -108,7 +111,9 @@ void wireAppStateToSession(MainWindow& w, AppStateController& appStateCtrl)
     appStateCtrl.setDeletionImpactCallback([&](const DeletionImpact& impact){
         try {
             if (w.dataSession()) w.dataSession()->applyDeletionImpact(impact);
-        } catch (...) {}
+        } catch (...) {
+            if (errorReporter) errorReporter->reportException(core::errors::ErrorSeverity::Error, "app::wireAppStateToSession::applyDeletionImpact", std::current_exception());
+        }
     });
 }
 
@@ -139,8 +144,12 @@ void wireFileSignals(MainWindow& w, ui::StorageController* storage)
 int startQmlApp(QApplication& app, AppStateController& appStateCtrl) {
     MainWindow w;
 
-    const UiControllers ui = setupUiControllers(w, appStateCtrl);
-    wireAppStateToSession(w, appStateCtrl);
+    auto errorReporter = std::make_shared<core::errors::DebuggerErrorReporter>(
+        std::make_shared<FileDebugger>("", "errors"));
+    appStateCtrl.setErrorReporter(errorReporter);
+
+    const UiControllers ui = setupUiControllers(w, appStateCtrl, errorReporter);
+    wireAppStateToSession(w, appStateCtrl, errorReporter);
     wireFileSignals(w, ui.storage);
 
     // Load QML after all context properties/providers are installed.

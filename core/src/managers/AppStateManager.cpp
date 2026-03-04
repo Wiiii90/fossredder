@@ -10,6 +10,8 @@
 
 #include "core/managers/AppStateManager.h"
 
+#include "core/errors/ErrorReporterRegistry.h"
+
 #include "core/models/Actor.h"
 #include "core/models/Contract.h"
 #include "core/models/Property.h"
@@ -73,10 +75,28 @@ void AppStateManager::save(const AppState& state) {
 
     // Upsert properties. UI supplies stable UUID ids; repository will persist them.
     if (repos_.properties) {
-        fprintf(stderr, "AppStateManager::save: properties before upsert:\n");
+        core::errors::report({
+            core::errors::ErrorSeverity::Info,
+            "core::AppStateManager::save",
+            "properties before upsert",
+            {}
+        });
         for (const auto& p : state.properties) {
-            if (!p) { fprintf(stderr, "  (null)\n"); continue; }
-            fprintf(stderr, "  id='%s' name='%s'\n", p->id.c_str(), p->name.c_str());
+            if (!p) {
+                core::errors::report({
+                    core::errors::ErrorSeverity::Warning,
+                    "core::AppStateManager::save",
+                    "property entry is null",
+                    {}
+                });
+                continue;
+            }
+            core::errors::report({
+                core::errors::ErrorSeverity::Info,
+                "core::AppStateManager::save",
+                std::string("property id='") + p->id + "' name='" + p->name + "'",
+                {}
+            });
         }
         for (const auto& p : state.properties) repos_.properties->upsertProperty(p);
     }
@@ -101,7 +121,12 @@ void AppStateManager::save(const AppState& state) {
         // transaction repository below.
         for (const auto& s : state.statements) {
             if (!s) continue;
-            fprintf(stderr, "AppStateManager::save: upserting statement id='%s' name='%s'\n", s->id.c_str(), s->name.c_str());
+            core::errors::report({
+                core::errors::ErrorSeverity::Info,
+                "core::AppStateManager::save",
+                std::string("upserting statement id='") + s->id + "' name='" + s->name + "'",
+                {}
+            });
             repos_.statements->upsertStatement(s);
         }
     }

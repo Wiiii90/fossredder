@@ -1,5 +1,6 @@
 #include "core/jobs/JobManager.h"
 
+#include "core/errors/ErrorReporterRegistry.h"
 #include "core/utils/UniqId.h"
 
 #include <utility>
@@ -73,7 +74,7 @@ void JobManager::cancel(const JobId& id) {
     }
 
     if (job->cancel) {
-        try { job->cancel->store(true); } catch (...) {}
+        try { job->cancel->store(true); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::jobs::JobManager::cancel::store", std::current_exception()); }
     }
 
     JobEvent ev;
@@ -207,7 +208,7 @@ void JobManager::publish(const JobEvent& ev) {
     }
 
     for (auto& cb : cbs) {
-        try { cb(ev); } catch (...) {}
+        try { cb(ev); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::jobs::JobManager::publish::callback", std::current_exception()); }
     }
 }
 

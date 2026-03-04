@@ -1,5 +1,7 @@
 #include "ui/models/AnalysisList.h"
 
+#include "core/errors/ErrorReporterRegistry.h"
+
 #include <QVariant>
 
 #include <exception>
@@ -170,11 +172,18 @@ void AnalysisList::setAdjustmentsById(const QString& id, const QString& json) {
                     size_t start = j;
                     while (j < s.size() && (isdigit(static_cast<unsigned char>(s[j])) || s[j] == '.' || s[j] == '-' || s[j] == '+' || s[j] == 'e' || s[j] == 'E')) ++j;
                     if (start < j) {
-                        try { double v = std::stod(s.substr(start, j - start)); a->adjustments.emplace(key, v); } catch (const std::exception&) {}
+                        try {
+                            double v = std::stod(s.substr(start, j - start));
+                            a->adjustments.emplace(key, v);
+                        } catch (...) {
+                            core::errors::reportException(core::errors::ErrorSeverity::Warning, "ui::AnalysisList::setAdjustmentsById::parseValue", std::current_exception());
+                        }
                     }
                     pos = j;
                 }
-            } catch (const std::exception&) {}
+            } catch (...) {
+                core::errors::reportException(core::errors::ErrorSeverity::Warning, "ui::AnalysisList::setAdjustmentsById::parseLoop", std::current_exception());
+            }
             const QModelIndex idx = index(i);
             emit dataChanged(idx, idx, {AdjustmentsRole});
             return;

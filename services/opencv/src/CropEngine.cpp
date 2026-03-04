@@ -49,7 +49,8 @@ std::vector<std::filesystem::path> CropEngine::CropImages(const cv::Mat& img,
     }
 
     if (!outputDir.empty()) {
-        try { std::filesystem::create_directories(outputDir); } catch (...) {}
+        std::error_code ec;
+        std::filesystem::create_directories(outputDir, ec);
     }
 
     int idx = 0;
@@ -61,13 +62,9 @@ std::vector<std::filesystem::path> CropEngine::CropImages(const cv::Mat& img,
             cv::Mat crop = img(r).clone();
 
             if (outBytes) {
-                try {
-                    std::vector<uint8_t> buf;
-                    cv::imencode(ext, crop, buf, encodeParams);
-                    outBytes->push_back(std::move(buf));
-                } catch (...) {
-                    outBytes->push_back({});
-                }
+                std::vector<uint8_t> buf;
+                if (cv::imencode(ext, crop, buf, encodeParams)) outBytes->push_back(std::move(buf));
+                else outBytes->push_back({});
             }
 
             if (!outputDir.empty()) {
@@ -81,13 +78,11 @@ std::vector<std::filesystem::path> CropEngine::CropImages(const cv::Mat& img,
                 } else {
                     outPaths.emplace_back(filename);
                     if (debugger && debugger->enabled()) {
-                        try {
-                            std::ifstream ifs(filename, std::ios::binary);
-                            if (ifs) {
-                                std::vector<uint8_t> buf((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-                                debugger->writeBytes(std::string("opencv_cropped"), buf);
-                            }
-                        } catch (...) {}
+                        std::ifstream ifs(filename, std::ios::binary);
+                        if (ifs) {
+                            std::vector<uint8_t> buf((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+                            debugger->writeBytes(std::string("opencv_cropped"), buf);
+                        }
                     }
                 }
             }

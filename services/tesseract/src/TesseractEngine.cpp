@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <cstdlib>
+#include <system_error>
 
 using namespace std;
 
@@ -19,50 +20,47 @@ static Pix* pixFromBytes(const std::vector<uint8_t>& data) {
 }
 
 static std::string resolveTessdataPath(const std::string& provided) {
-    try {
-        if (!provided.empty()) {
-            std::filesystem::path p(provided);
-            if (std::filesystem::exists(p)) return p.string();
-        }
-    } catch (...) {}
+    auto existsNoThrow = [](const std::filesystem::path& p) {
+        std::error_code ec;
+        return !p.empty() && std::filesystem::exists(p, ec) && !ec;
+    };
+
+    if (!provided.empty()) {
+        std::filesystem::path p(provided);
+        if (existsNoThrow(p)) return p.string();
+    }
 
     if (const char* env = std::getenv("TESSDATA_PREFIX")) {
-        try { if (std::filesystem::exists(env)) return std::string(env); } catch(...) {}
+        if (existsNoThrow(env)) return std::string(env);
     }
 
     std::vector<std::filesystem::path> candidates;
-    try {
-        candidates.push_back(std::filesystem::current_path() / "res" / "tessdata");
-        candidates.push_back(std::filesystem::current_path() / "tessdata");
-        // relative to source tree (use file location as hint)
-        candidates.push_back(std::filesystem::path(__FILE__).parent_path().parent_path() / "res" / "tessdata");
-        candidates.push_back(std::filesystem::path(__FILE__).parent_path().parent_path() / "tessdata");
-    } catch (...) {}
+    candidates.push_back(std::filesystem::current_path() / "res" / "tessdata");
+    candidates.push_back(std::filesystem::current_path() / "tessdata");
+    candidates.push_back(std::filesystem::path(__FILE__).parent_path().parent_path() / "res" / "tessdata");
+    candidates.push_back(std::filesystem::path(__FILE__).parent_path().parent_path() / "tessdata");
 
     for (const auto &c : candidates) {
-        try { if (!c.empty() && std::filesystem::exists(c)) return c.string(); } catch(...) {}
+        if (existsNoThrow(c)) return c.string();
     }
 
     return std::string();
 }
 
 static void configureForStatements(tesseract::TessBaseAPI& ocr) {
-    try { ocr.SetVariable("tessedit_ocr_engine_mode", "1"); } catch (...) {}
-    try { ocr.SetVariable("preserve_interword_spaces", "1"); } catch (...) {}
+    ocr.SetVariable("tessedit_ocr_engine_mode", "1");
+    ocr.SetVariable("preserve_interword_spaces", "1");
 
     // Keep this conservative: allow letters/digits and common punctuation found in statements.
-    try { ocr.SetVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜabcdefghijklmnopqrstuvwxyzäöüß0123456789.,:-/()'“”‘’+&% "); } catch (...) {}
+    ocr.SetVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜabcdefghijklmnopqrstuvwxyzäöüß0123456789.,:-/()'“”‘’+&% ");
 }
 
 static void applyPsm(tesseract::TessBaseAPI& ocr, int psm) {
-    // Map request value to tesseract enum; ignore invalid values.
-    try {
-        const int maxPsm = static_cast<int>(tesseract::PSM_COUNT) - 1;
-        if (psm < 0 || psm > maxPsm) {
-            psm = 3;
-        }
-        ocr.SetPageSegMode(static_cast<tesseract::PageSegMode>(psm));
-    } catch (...) {}
+    const int maxPsm = static_cast<int>(tesseract::PSM_COUNT) - 1;
+    if (psm < 0 || psm > maxPsm) {
+        psm = 3;
+    }
+    ocr.SetPageSegMode(static_cast<tesseract::PageSegMode>(psm));
 }
 
 static api::tesseract::Text recognizeTextFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, int psm, std::shared_ptr<IDebugger> dbg) {

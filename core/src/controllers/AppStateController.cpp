@@ -8,8 +8,10 @@
 
 #include "core/pch.h"
 #include "core/controllers/AppStateController.h"
+#include "core/errors/ErrorReporterRegistry.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cctype>
 #include <cstdio>
 #include <random>
@@ -52,7 +54,9 @@ AppStateController::AppStateController(std::unique_ptr<IStorageManager> storageM
         storageManager_->setDeletionImpactCallback([this](const DeletionImpact& impact){
             try {
                 if (onDeletionImpact_) onDeletionImpact_(impact);
-            } catch(...) {}
+            } catch (...) {
+                reportException(core::errors::ErrorSeverity::Error, "AppStateController::AppStateController::DeletionImpactCallback", std::current_exception());
+            }
         });
     }
 }
@@ -60,7 +64,14 @@ AppStateController::AppStateController(std::unique_ptr<IStorageManager> storageM
 void AppStateController::notifyState() {
     try {
         if (onStateChanged_) onStateChanged_(state_);
-    } catch (...) {}
+    } catch (...) {
+        reportException(core::errors::ErrorSeverity::Error, "AppStateController::notifyState", std::current_exception());
+    }
+}
+
+void AppStateController::setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter)
+{
+    errorReporter_ = std::move(reporter);
 }
 
 void AppStateController::setStateChangedCallback(StateChanged cb) {
@@ -82,36 +93,58 @@ void AppStateController::setAtomicStoreLoad(IStorageManager::AtomicStoreLoad loa
 void AppStateController::setDeletionImpactCallback(IStorageManager::DeletionImpactCallback cb) {
     onDeletionImpact_ = std::move(cb);
     if (storageManager_) storageManager_->setDeletionImpactCallback([this](const DeletionImpact& impact){
-        try { if (onDeletionImpact_) onDeletionImpact_(impact); } catch(...) {}
+        try {
+            if (onDeletionImpact_) onDeletionImpact_(impact);
+        } catch (...) {
+            reportException(core::errors::ErrorSeverity::Error, "AppStateController::setDeletionImpactCallback", std::current_exception());
+        }
     });
 }
 
 void AppStateController::openLatest() {
     if (!storageManager_) return;
     if (auto latest = storageManager_->loadLatestPath()) {
-        try {
-            fprintf(stderr, "AppStateController::openLatest: loading latest='%s'\n", latest->c_str());
-        } catch(...) {}
+        core::errors::report({
+            core::errors::ErrorSeverity::Info,
+            "core::AppStateController::openLatest",
+            std::string("loading latest='") + *latest + "'",
+            {}
+        });
         state_ = storageManager_->loadFrom(*latest);
-        try {
-            fprintf(stderr, "AppStateController::openLatest: loaded state - actors=%zu props=%zu contracts=%zu statements=%zu transactions=%zu\n",
-                    state_.actors.size(), state_.properties.size(), state_.contracts.size(), state_.statements.size(), state_.transactions.size());
-        } catch(...) {}
+        core::errors::report({
+            core::errors::ErrorSeverity::Info,
+            "core::AppStateController::openLatest",
+            std::string("loaded state actors=") + std::to_string(state_.actors.size())
+                + " properties=" + std::to_string(state_.properties.size())
+                + " contracts=" + std::to_string(state_.contracts.size())
+                + " statements=" + std::to_string(state_.statements.size())
+                + " transactions=" + std::to_string(state_.transactions.size()),
+            {}
+        });
         notify();
     }
 }
 
 void AppStateController::newFile(const std::string& path) {
     if (!storageManager_) return;
-    try {
-        fprintf(stderr, "AppStateController::newFile: creating new file '%s' (will reset state)\n", path.c_str());
-    } catch(...) {}
+    core::errors::report({
+        core::errors::ErrorSeverity::Info,
+        "core::AppStateController::newFile",
+        std::string("creating new file '") + path + "'",
+        {}
+    });
     storageManager_->createNew(path);
     state_ = AppState{};
-    try {
-        fprintf(stderr, "AppStateController::newFile: state reset -> actors=%zu props=%zu contracts=%zu statements=%zu transactions=%zu\n",
-                state_.actors.size(), state_.properties.size(), state_.contracts.size(), state_.statements.size(), state_.transactions.size());
-    } catch(...) {}
+    core::errors::report({
+        core::errors::ErrorSeverity::Info,
+        "core::AppStateController::newFile",
+        std::string("state reset actors=") + std::to_string(state_.actors.size())
+            + " properties=" + std::to_string(state_.properties.size())
+            + " contracts=" + std::to_string(state_.contracts.size())
+            + " statements=" + std::to_string(state_.statements.size())
+            + " transactions=" + std::to_string(state_.transactions.size()),
+        {}
+    });
     notify();
 }
 
@@ -449,10 +482,11 @@ std::string AppStateController::finalizeStatementDraft(const DraftStatement& dra
                 const std::string& contractName = contractPtr->name;
                 if (contractName.size() <= std::char_traits<char>::length(prefix) || contractName.rfind(prefix, 0) != 0) continue;
                 const std::string rest = contractName.substr(std::char_traits<char>::length(prefix));
-                try {
-                    const int idx = std::stoi(rest);
+                int idx = 0;
+                const auto parseResult = std::from_chars(rest.data(), rest.data() + rest.size(), idx);
+                if (parseResult.ec == std::errc{} && parseResult.ptr == rest.data() + rest.size()) {
                     if (idx > maxIdx) maxIdx = idx;
-                } catch (const std::exception&) {}
+                }
             }
 
             auto contract = std::make_shared<Contract>();
@@ -482,17 +516,28 @@ void AppStateController::commit() {
                 storageManager_->save(state_);
             }
         } catch (const std::exception& ex) {
-            fprintf(stderr, "AppStateController::commit: save failed: %s\n", ex.what());
+            reportException(core::errors::ErrorSeverity::Error, "AppStateController::commit::save", std::current_exception());
         } catch (...) {
-            fprintf(stderr, "AppStateController::commit: save failed: unknown error\n");
+            reportException(core::errors::ErrorSeverity::Error, "AppStateController::commit::saveUnknown", std::current_exception());
         }
     }
 
     try {
         if (onStateChanged_) onStateChanged_(state_);
-    } catch (...) {}
+    } catch (...) {
+        reportException(core::errors::ErrorSeverity::Error, "AppStateController::commit::stateChangedCallback", std::current_exception());
+    }
 }
 
 void AppStateController::notify() {
     if (onStateChanged_) onStateChanged_(state_);
+}
+
+void AppStateController::reportException(core::errors::ErrorSeverity severity, const char* origin, std::exception_ptr exception) const
+{
+    if (errorReporter_) {
+        errorReporter_->reportException(severity, origin, exception);
+    } else {
+        core::errors::reportException(severity, origin, exception);
+    }
 }

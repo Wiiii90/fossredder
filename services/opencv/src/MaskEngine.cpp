@@ -31,14 +31,14 @@ cv::Mat MaskEngine::MakeLineMask(const cv::Mat& grayIn, bool horizontal) {
 
     cv::Mat m;
     try { cv::erode(bin, m, k); } catch (...) { m = bin.clone(); }
-    try { cv::dilate(m, m, k); } catch (...) {}
+    try { cv::dilate(m, m, k); } catch (...) { m = m.clone(); }
 
     try {
         cv::Mat closeK = horizontal
             ? cv::getStructuringElement(cv::MORPH_RECT, cv::Size(std::max(5, gray.cols / 120), 1))
             : cv::getStructuringElement(cv::MORPH_RECT, cv::Size(1, std::max(5, gray.rows / 120)));
         cv::morphologyEx(m, m, cv::MORPH_CLOSE, closeK);
-    } catch (...) {}
+    } catch (...) { m = m.clone(); }
 
     return m;
 }
@@ -50,10 +50,8 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
         std::string imgLabel;
         const auto path = std::filesystem::path(req.imagePath);
         if (!req.imageBytes.empty()) {
-            try {
-                img = cv::imdecode(req.imageBytes, cv::IMREAD_COLOR);
-                imgLabel = std::string("<bytes>");
-            } catch (...) {}
+            img = cv::imdecode(req.imageBytes, cv::IMREAD_COLOR);
+            imgLabel = std::string("<bytes>");
         }
 
         if (img.empty() && !req.imagePath.empty()) {
@@ -100,7 +98,7 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
             for (const auto &t : tables) {
                 if (t.bbox.width > 0 && t.bbox.height > 0) tableBboxes.emplace_back(t.bbox.x, t.bbox.y, t.bbox.width, t.bbox.height);
             }
-        } catch(...) {}
+        } catch (...) { tableBboxes.clear(); }
 
         // helper to check if a box center lies inside any detected table bbox
         auto isInTable = [&](const cv::Rect &r)->bool{
@@ -133,15 +131,13 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
 
         // avoid additional morphology to keep mask minimal
         (void)cleaned;
-        try { cv::threshold(cleaned, cleaned, 128, 255, cv::THRESH_BINARY); } catch(...) {}
+        try { cv::threshold(cleaned, cleaned, 128, 255, cv::THRESH_BINARY); } catch(...) { cleaned = mask.clone(); }
 
         // Clear mask inside detected table regions to preserve table grid lines
-        try {
-            for (const auto &tb : tableBboxes) {
-                cv::Rect rr = tb & cv::Rect(0,0,img.cols,img.rows);
-                if (rr.width > 0 && rr.height > 0) cv::rectangle(cleaned, rr, cv::Scalar(0), cv::FILLED);
-            }
-        } catch(...) {}
+        for (const auto &tb : tableBboxes) {
+            cv::Rect rr = tb & cv::Rect(0,0,img.cols,img.rows);
+            if (rr.width > 0 && rr.height > 0) cv::rectangle(cleaned, rr, cv::Scalar(0), cv::FILLED);
+        }
 
         double nonZero = static_cast<double>(cv::countNonZero(cleaned));
         // only fallback to raw mask if a very large portion is masked
@@ -168,22 +164,21 @@ api::opencv::MaskResult MaskEngine::MaskImage(const api::opencv::MaskRequest& re
         } catch (...) { res.maskedImageBytes.clear(); }
 
         if (!req.outputDir.empty()) {
-            try { std::filesystem::create_directories(req.outputDir); } catch (...) {}
+            std::error_code ec;
+            std::filesystem::create_directories(req.outputDir, ec);
             const auto outPath = std::filesystem::path(req.outputDir) / (base + ".png");
-            try {
-                if (cv::imwrite(outPath.string(), out)) {
-                    res.maskedImagePath = outPath;
-                }
-            } catch (...) {}
+            if (cv::imwrite(outPath.string(), out)) {
+                res.maskedImagePath = outPath;
+            }
         }
 
         if (debugger && debugger->enabled()) {
-            try {
-                if (!res.maskImageBytes.empty()) debugger->writeBytes(std::string("opencv_mask_binary"), res.maskImageBytes);
-                if (!res.maskedImageBytes.empty()) debugger->writeBytes(std::string("opencv_mask_whiteout"), res.maskedImageBytes);
-            } catch (...) {}
+            if (!res.maskImageBytes.empty()) debugger->writeBytes(std::string("opencv_mask_binary"), res.maskImageBytes);
+            if (!res.maskedImageBytes.empty()) debugger->writeBytes(std::string("opencv_mask_whiteout"), res.maskedImageBytes);
         }
-    } catch (...) {}
+    } catch (...) {
+        if (debugger && debugger->enabled()) debugger->writeText("opencv/error.txt", "MaskEngine::MaskImage failed");
+    }
     return res;
 }
 

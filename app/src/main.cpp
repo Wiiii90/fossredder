@@ -10,6 +10,9 @@
 #include "core/managers/ConfigManager.h"
 #include "core/managers/StorageManager.h"
 #include "core/controllers/AppStateController.h"
+#include "core/errors/DebuggerErrorReporter.h"
+#include "core/errors/ErrorReporterRegistry.h"
+#include "debug/FileDebugger.h"
 
 #include <QDir>
 #include <filesystem>
@@ -22,21 +25,22 @@ static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, 
     QByteArray localMsg = msg.toLocal8Bit();
     const char *file = context.file ? context.file : "";
     const char *function = context.function ? context.function : "";
+    const std::string text = std::string(localMsg.constData()) + " (" + file + ":" + std::to_string(context.line) + ", " + function + ")";
     switch (type) {
     case QtDebugMsg:
-        fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        core::errors::report({core::errors::ErrorSeverity::Info, "app::qtMessageHandler", text, {}});
         break;
     case QtInfoMsg:
-        fprintf(stderr, "Info: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        core::errors::report({core::errors::ErrorSeverity::Info, "app::qtMessageHandler", text, {}});
         break;
     case QtWarningMsg:
-        fprintf(stderr, "Warning: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        core::errors::report({core::errors::ErrorSeverity::Warning, "app::qtMessageHandler", text, {}});
         break;
     case QtCriticalMsg:
-        fprintf(stderr, "Critical: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        core::errors::report({core::errors::ErrorSeverity::Error, "app::qtMessageHandler", text, {}});
         break;
     case QtFatalMsg:
-        fprintf(stderr, "Fatal: %s (%s:%u, %s)\n", localMsg.constData(), file, context.line, function);
+        core::errors::report({core::errors::ErrorSeverity::Critical, "app::qtMessageHandler", text, {}});
         abort();
     }
 }
@@ -71,6 +75,11 @@ int main(int argc, char* argv[]) {
     auto smPtr = std::make_unique<StorageManager>(std::move(sm));
     AppStateController appStateCtrl(std::move(smPtr));
 
+    auto errorReporter = std::make_shared<core::errors::DebuggerErrorReporter>(
+        std::make_shared<FileDebugger>("", "errors"));
+    core::errors::setGlobalErrorReporter(errorReporter);
+    appStateCtrl.setErrorReporter(errorReporter);
+
     // Initialize configuration repository (uses persistence factory)
     // Use a per-user path so the installed app does not attempt to write into Program Files.
     std::string cfgDbPath = (std::filesystem::path(appDataRoot) / "fossredder.db").string();
@@ -80,7 +89,7 @@ int main(int argc, char* argv[]) {
         std::filesystem::path p(cfgDbPath);
         if (p.has_parent_path()) std::filesystem::create_directories(p.parent_path());
     } catch (const std::exception& ex) {
-        fprintf(stderr, "Warning: could not create db parent directories: %s\n", ex.what());
+        core::errors::reportException(core::errors::ErrorSeverity::Warning, "app::main::createConfigDirectory", std::current_exception());
     }
 
     std::shared_ptr<IConfigRepository> cfgRepo;
@@ -88,7 +97,7 @@ int main(int argc, char* argv[]) {
         auto cfgDb = createSqliteDb(cfgDbPath);
         cfgRepo = createSqliteConfigRepository(cfgDb);
     } catch (const std::exception& ex) {
-        fprintf(stderr, "Warning: failed to open config DB '%s': %s\n", cfgDbPath.c_str(), ex.what());
+        core::errors::report({core::errors::ErrorSeverity::Warning, "app::main::openConfigDb", std::string("failed to open config DB '") + cfgDbPath + "': " + ex.what(), {}});
         cfgRepo = nullptr;
     }
 
@@ -97,7 +106,9 @@ int main(int argc, char* argv[]) {
         try {
             std::filesystem::path p(dbPath);
             if (p.has_parent_path()) std::filesystem::create_directories(p.parent_path());
-        } catch (...) {}
+        } catch (...) {
+            core::errors::reportException(core::errors::ErrorSeverity::Warning, "app::main::setRepoFactory::create_directories", std::current_exception());
+        }
         auto db = createSqliteDb(dbPath);
         IStorageManager::Repositories r;
         r.actors = createSqliteActorRepository(db);
@@ -123,7 +134,7 @@ int main(int argc, char* argv[]) {
     try {
         appStateCtrl.openLatest();
     } catch (const std::exception& ex) {
-        fprintf(stderr, "Warning: failed to open latest app state: %s\n", ex.what());
+        core::errors::reportException(core::errors::ErrorSeverity::Warning, "app::main::openLatest", std::current_exception());
         // continue with empty state
     }
 
@@ -146,7 +157,7 @@ int main(int argc, char* argv[]) {
             if (auto def = cfgRepo->getDefaultConfig())
                 cfgMgr.setConfig(*def);
         } catch (const std::exception& ex) {
-            fprintf(stderr, "Warning: failed to read default config: %s\n", ex.what());
+            core::errors::reportException(core::errors::ErrorSeverity::Warning, "app::main::getDefaultConfig", std::current_exception());
         }
     }
 
@@ -158,11 +169,11 @@ int main(int argc, char* argv[]) {
     try {
         return startQmlApp(app, appStateCtrl);
     } catch (const std::exception& ex) {
-        fprintf(stderr, "Fatal error during QML startup: %s\n", ex.what());
+        core::errors::reportException(core::errors::ErrorSeverity::Critical, "app::main::startQmlApp", std::current_exception());
         QMessageBox::critical(nullptr, QObject::tr("Fatal error"), QObject::tr("Startup failed: %1").arg(QString::fromUtf8(ex.what())));
         return -1;
     } catch (...) {
-        fprintf(stderr, "Fatal error during QML startup: unknown exception\n");
+        core::errors::reportException(core::errors::ErrorSeverity::Critical, "app::main::startQmlAppUnknown", std::current_exception());
         QMessageBox::critical(nullptr, QObject::tr("Fatal error"), QObject::tr("Startup failed: unknown exception"));
         return -2;
     }

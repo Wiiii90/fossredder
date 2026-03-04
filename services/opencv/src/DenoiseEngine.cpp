@@ -41,14 +41,15 @@ api::opencv::DenoiseResult DenoiseEngine::Denoise(const api::opencv::DenoiseRequ
         if (cv::imwrite(outPath.string(), denoised)) {
             res.denoisedImagePath = outPath;
             if (debugger && debugger->enabled()) {
-                try {
-                    std::vector<uint8_t> buf;
-                    cv::imencode(".png", denoised, buf);
+                std::vector<uint8_t> buf;
+                if (cv::imencode(".png", denoised, buf)) {
                     debugger->writeBytes("opencv/" + stem + "/denoised.png", buf);
-                } catch (...) {}
+                }
             }
         }
-    } catch (...) {}
+    } catch (...) {
+        if (debugger && debugger->enabled()) debugger->writeText("opencv/error.txt", "DenoiseEngine::Denoise failed");
+    }
     return res;
 }
 

@@ -23,10 +23,8 @@ public:
         if (!req.imageBytes.empty()) {
             bytes = req.imageBytes;
         } else if (!req.imagePath.empty()) {
-            try {
-                std::ifstream ifs(req.imagePath, std::ios::binary);
-                if (ifs) bytes.assign((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-            } catch (...) {}
+            std::ifstream ifs(req.imagePath, std::ios::binary);
+            if (ifs) bytes.assign((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
         }
 
         if (req.cancelFlag && req.cancelFlag->load()) return out;
@@ -34,13 +32,11 @@ public:
         int psm = req.psm;
         auto [textDto, words] = TesseractEngine::extractFromBytes(bytes, req.tessdataPath, psm, debugger);
         out.text = textDto.text;
-        try {
-            std::ostringstream oss;
-            for (const auto &w : words) {
-                oss << w.text << "\t" << w.bbox.x << "\t" << w.bbox.y << "\t" << w.bbox.width << "\t" << w.bbox.height << "\t" << w.confidence << "\n";
-            }
-            out.tsv = oss.str();
-        } catch (...) { out.tsv.clear(); }
+        std::ostringstream oss;
+        for (const auto &w : words) {
+            oss << w.text << "\t" << w.bbox.x << "\t" << w.bbox.y << "\t" << w.bbox.width << "\t" << w.bbox.height << "\t" << w.confidence << "\n";
+        }
+        out.tsv = oss.str();
 
         // Persist TSV to runRoot for traceability.
         // NOTE: Keinen TSV als Datei im runRoot persistieren; TSV ist Debug/Artefakt und wird bei Bedarf über out.artifacts weitergereicht.

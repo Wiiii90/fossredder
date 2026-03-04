@@ -32,10 +32,8 @@ public:
             cv::Mat img;
             std::string label;
             if (!req.imageBytes.empty()) {
-                try {
-                    img = cv::imdecode(req.imageBytes, cv::IMREAD_GRAYSCALE);
-                    label = std::string("<bytes>");
-                } catch (...) {}
+                img = cv::imdecode(req.imageBytes, cv::IMREAD_GRAYSCALE);
+                label = std::string("<bytes>");
             }
 
             std::filesystem::path p = req.imagePath;
@@ -65,7 +63,9 @@ public:
                 res.table = tables[0];
                 res.detected = true;
             }
-        } catch (...) {}
+        } catch (...) {
+            if (debugger && debugger->enabled()) debugger->writeText("opencv/error.txt", "OpenCvAdapter::detect failed");
+        }
         return res;
     }
 
@@ -75,7 +75,7 @@ public:
         try {
             cv::Mat img;
             if (!req.imageBytes.empty()) {
-                try { img = cv::imdecode(req.imageBytes, cv::IMREAD_COLOR); } catch (...) {}
+                img = cv::imdecode(req.imageBytes, cv::IMREAD_COLOR);
             }
 
             std::filesystem::path p = req.imagePath;
@@ -96,7 +96,9 @@ public:
 
             res.croppedImageBytes.clear();
             res.croppedImagePaths = opencv::CropEngine::CropImages(img, rects, req.outputDir, req.outputFormat, req.jpegQuality, &res.croppedImageBytes, debugger, prefix);
-        } catch (...) {}
+        } catch (...) {
+            if (debugger && debugger->enabled()) debugger->writeText("opencv/error.txt", "OpenCvAdapter::crop failed");
+        }
         return res;
     }
 

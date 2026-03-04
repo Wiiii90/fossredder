@@ -1,6 +1,7 @@
 #include "core/controllers/XlsxController.h"
 
-#include <iostream>
+#include "core/errors/ErrorReporterRegistry.h"
+
 #include <stdexcept>
 #include <xlnt/xlnt.hpp>
 #include <unordered_map>
@@ -164,10 +165,10 @@ bool XlsxController::exportData(const ExportOptions& opts) {
         wb.save(opts.outputPath);
         return true;
     } catch (const std::exception& ex) {
-        std::cerr << "XlsxController::exportData failed: " << ex.what() << std::endl;
+        core::errors::reportException(core::errors::ErrorSeverity::Error, "core::XlsxController::exportData", std::current_exception());
         return false;
     } catch (...) {
-        std::cerr << "XlsxController::exportData failed: unknown error" << std::endl;
+        core::errors::reportException(core::errors::ErrorSeverity::Error, "core::XlsxController::exportDataUnknown", std::current_exception());
         return false;
     }
 }

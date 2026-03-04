@@ -41,7 +41,10 @@ FileDebugger::FileDebugger(const std::string& baseOrProcess, const std::string& 
         std::string sess = make_session_dir(base.string());
         baseDir_ = sess;
         processName_ = proc;
-    } catch (...) {}
+    } catch (...) {
+        baseDir_ = (std::filesystem::current_path() / "debug_output").string();
+        processName_ = processName.empty() ? baseOrProcess : processName;
+    }
 }
 
 FileDebugger::~FileDebugger() {
@@ -85,9 +88,7 @@ void FileDebugger::writeText(const std::string& relPath, const std::string& text
     std::lock_guard<std::mutex> g(mtx_);
     try {
         // Do not persist short poppler log messages to files; they should appear on console only
-        try {
-            if (relPath.rfind("poppler/log", 0) == 0) return;
-        } catch (...) {}
+        if (relPath.rfind("poppler/log", 0) == 0) return;
 
         auto runid = debug::currentRun();
         if (runid.empty()) runid = debug::startRun(processName_);
@@ -110,16 +111,16 @@ void FileDebugger::writeText(const std::string& relPath, const std::string& text
             }
         }
 
-        if (tryPretty) {
-            try {
-                nlohmann::json j = nlohmann::json::parse(text);
-                outText = j.dump(4);
-            } catch (...) {}
+        if (tryPretty && nlohmann::json::accept(text)) {
+            nlohmann::json j = nlohmann::json::parse(text);
+            outText = j.dump(4);
         }
 
         std::ofstream ofs(outp, std::ios::binary);
         if (ofs) ofs << outText;
-    } catch (...) {}
+    } catch (...) {
+        return;
+    }
 }
 
 void FileDebugger::writeBytes(const std::string& relPath, const std::vector<uint8_t>& data) {
@@ -136,7 +137,9 @@ void FileDebugger::writeBytes(const std::string& relPath, const std::vector<uint
         if (!outp.has_extension()) outp += ".png";
         std::ofstream ofs(outp, std::ios::binary);
         if (ofs) ofs.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
-    } catch (...) {}
+    } catch (...) {
+        return;
+    }
 }
 
 void FileDebugger::flush() {

@@ -3,10 +3,12 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <exception>
 #include <memory>
 #include <QHash>
 #include <QByteArray>
 
+#include "core/errors/IErrorReporter.h"
 #include "ui/models/ImportRunList.h"
 #include "ui/models/StatementDraft.h"
 
@@ -50,6 +52,7 @@ public:
     Q_INVOKABLE void clearDraft();
     Q_INVOKABLE void cancelImport();
     Q_INVOKABLE void cancelAllImports();
+    void setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter);
 
     ImportRunList* runs() noexcept { return &runs_; }
     QByteArray artifactBytes(const QString& key) const;
@@ -81,9 +84,11 @@ private:
     QString currentJobId_;
     std::uint64_t currentSubId_ = 0;
     QString currentImportFile_;
+    std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
 
     void startNextQueuedImport();
     void startImportForFile(const QString& path);
+    void reportException(const char* origin, std::exception_ptr exception) const;
 };
 
 }

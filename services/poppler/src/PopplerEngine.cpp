@@ -13,6 +13,24 @@
 
 using json = nlohmann::json;
 
+static void safeWriteText(const std::shared_ptr<IDebugger>& debugger, const std::string& path, const std::string& text) {
+    if (!debugger || !debugger->enabled()) return;
+    try {
+        debugger->writeText(path, text);
+    } catch (...) {
+        return;
+    }
+}
+
+static void safeWriteBytes(const std::shared_ptr<IDebugger>& debugger, const std::string& path, const std::vector<uint8_t>& data) {
+    if (!debugger || !debugger->enabled()) return;
+    try {
+        debugger->writeBytes(path, data);
+    } catch (...) {
+        return;
+    }
+}
+
 static api::poppler::RenderedPage extractPageMeta(poppler::page* page, int pageIndex, double dpi, std::shared_ptr<IDebugger> debugger) {
     api::poppler::RenderedPage rp;
     double pageWidthPts = 0.0, pageHeightPts = 0.0;
@@ -50,7 +68,7 @@ static api::poppler::RenderedPage extractPageMeta(poppler::page* page, int pageI
 
             rp.textElements.push_back(te);
         }
-    } catch (...) {}
+    } catch (...) { rp.textElements.clear(); }
 
     json j;
     j["dpi_x"] = dpi; j["dpi_y"] = dpi;
@@ -69,10 +87,8 @@ static api::poppler::RenderedPage extractPageMeta(poppler::page* page, int pageI
     rp.metadataJson = j.dump();
 
     if (debugger && debugger->enabled()) {
-        try {
-            std::string stem = std::to_string(pageIndex + 1);
-            debugger->writeText(std::string("poppler/meta/") + stem + ".json", rp.metadataJson);
-        } catch (...) {}
+        std::string stem = std::to_string(pageIndex + 1);
+        safeWriteText(debugger, std::string("poppler/meta/") + stem + ".json", rp.metadataJson);
     }
 
     return rp;
@@ -189,10 +205,8 @@ std::vector<api::poppler::RenderedPage> PopplerEngine::renderDocument(const std:
         }
 
         if (debugger && debugger->enabled() && !rp.imageBytes.empty()) {
-            try {
-                std::string stem = base + std::string("_page") + std::to_string(i + 1);
-                debugger->writeBytes(std::string("poppler/output/") + stem + std::string(".png"), rp.imageBytes);
-            } catch (...) {}
+            std::string stem = base + std::string("_page") + std::to_string(i + 1);
+            safeWriteBytes(debugger, std::string("poppler/output/") + stem + std::string(".png"), rp.imageBytes);
         }
 
         result.push_back(std::move(rp));

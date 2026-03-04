@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "core/controllers/Callbacks.h"
+#include "core/errors/IErrorReporter.h"
 #include "core/managers/IStorageManager.h"
 #include "core/models/DraftStatement.h"
 
@@ -38,6 +39,7 @@ public:
      * @param cb Callback invoked with the new AppState.
      */
     void setStateChangedCallback(StateChanged cb);
+    void setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter);
 
     /**
      * @brief Configure repository factory used for repository-backed persistence.
@@ -194,6 +196,7 @@ private:
     std::unique_ptr<IStorageManager> storageManager_;
     AppState state_;
     StateChanged onStateChanged_;
+    std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
     std::string emptyPath_;
     // Callback forwarded when persistence reports deletions
     IStorageManager::DeletionImpactCallback onDeletionImpact_;
@@ -202,5 +205,6 @@ private:
      * @brief Internal helper to notify registered listeners of the current state.
      */
     void notify();
+    void reportException(core::errors::ErrorSeverity severity, const char* origin, std::exception_ptr exception) const;
 
 };

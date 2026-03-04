@@ -3,6 +3,7 @@
 #include "core/parser/DefaultStatementParser.h"
 
 #include "core/parser/DefaultTransactionParser.h"
+#include "core/errors/ErrorReporterRegistry.h"
 #include "core/parser/ParserHeuristics.h"
 #include "core/parser/ParserHelpers.h"
 #include "core/utils/Util.h"
@@ -82,7 +83,7 @@ static bool isLikelyTransactionMainRowGeom(const RawLine& l, const ColumnModel& 
         try {
             auto amtIdx = core::parser::helpers::findAmountTokenIndices(rawToOcrLine(l), cols.valutaX, core::parser::helpers::parserConfig.amountNearValutaBandPx);
             if (!amtIdx.empty()) hasDebit = true;
-        } catch(...) {}
+        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::isLikelyTransactionMainRowGeom", std::current_exception()); }
     }
 
     bool hasLeft = false;
@@ -126,7 +127,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
 
     out.debugLines.push_back(std::string("pageCropImagePath\t") + pageCropImagePath);
     out.debugLines.push_back(std::string("pageCropImageBytes\t") + std::to_string(pageCropImageBytes.size()));
-    try { out.debugLines.push_back(std::string("proofOutputDir\t") + proofOutputDir.string()); } catch (...) {}
+    try { out.debugLines.push_back(std::string("proofOutputDir\t") + proofOutputDir.string()); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::proofOutputDir", std::current_exception()); }
     out.debugLines.push_back(std::string("initialBookingDate\t") + initialBookingDate);
     out.debugLines.push_back(std::string("initialTransactionIndex\t") + std::to_string(initialTransactionIndex));
 
@@ -162,9 +163,9 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                 if (auto bd = core::parser::helpers::findBookingDateInHeader(lines[i].text)) {
                     pageHeaderDates.emplace_back(i, *bd);
                 }
-            } catch(...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerOverrideByValutaAnchor", std::current_exception()); }
         }
-    } catch(...) {}
+    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::pageHeaderDates", std::current_exception()); }
 
     std::string currentBookingDate = std::move(initialBookingDate);
     int txIndex = std::max(1, initialTransactionIndex);
@@ -214,12 +215,12 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                 core::parser::OcrLine ol = hl;
                 bool hasAmt = core::parser::helpers::hasAmountLikeTokenInLine(ol, seed.valutaX);
                 bool hasValutaTokenNear = false;
-                try { if (seed.valutaX >= 0) hasValutaTokenNear = core::parser::helpers::hasTokenNearX(ol, seed.valutaX, core::parser::helpers::parserConfig.tokenNearBandForMainRow); } catch(...) {}
+                try { if (seed.valutaX >= 0) hasValutaTokenNear = core::parser::helpers::hasTokenNearX(ol, seed.valutaX, core::parser::helpers::parserConfig.tokenNearBandForMainRow); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerCandidateValutaNear", std::current_exception()); }
                 std::ostringstream ss; ss << "header.candidate\tline=" << hi << "\ttext=" << text << "\ttxSection=" << (isTxSection?"1":"0") << "\tdebitcredit=" << (isDebitCredit?"1":"0") << "\tnoise=" << (isNoise?"1":"0") << "\tfullDate=" << (hasFullDate?"1":"0") << "\thasAmt=" << (hasAmt?"1":"0") << "\tvalutaNear=" << (hasValutaTokenNear?"1":"0");
                 out.debugLines.push_back(ss.str());
-            } catch(...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::txt", std::current_exception()); }
         }
-    } catch(...) {}
+    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerCandidates", std::current_exception()); }
 
     int headerBottomY = preHeaderBottomY; // track lowest (largest y) header line encountered
     // If we find an early line that already contains an amount-like token or short-date+left-text,
@@ -236,14 +237,14 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     earliestAmtY = std::min(earliestAmtY, lines[i].maxY);
                     found = true;
                 }
-            } catch(...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::combined", std::current_exception()); }
         }
         if (found && earliestAmtY != std::numeric_limits<int>::max()) {
             // reduce header bottom to just above earliest amount line to avoid skipping it
             headerBottomY = std::min(headerBottomY, earliestAmtY - 2);
             out.debugLines.push_back(std::string("header.adjustedForEarliestAmount\t") + std::to_string(headerBottomY));
         }
-    } catch(...) {}
+    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerAdjustEarliestAmount", std::current_exception()); }
 
     const int headerMarginPx = 8; // smaller margin to avoid skipping legitimate lines
 
@@ -302,17 +303,17 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
         // prematurely stopping when header-like lines appear near the header bottom.
         if (isPostTransactionFootnote(txt)) {
             bool nearBottom = false;
-            try { if (pageMaxY >= 0 && l.maxY >= static_cast<int>(pageMaxY * 3 / 4)) nearBottom = true; } catch(...) {}
+            try { if (pageMaxY >= 0 && l.maxY >= static_cast<int>(pageMaxY * 3 / 4)) nearBottom = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::footnoteNearBottom", std::current_exception()); }
             // Only treat as terminal when we already have found transaction blocks and
             // the footnote is clearly near the bottom of the page. This avoids
             // aborting pages where an initial booking date is provided but no
             // transactions have yet been detected on this page.
             try {
                 out.debugLines.push_back(std::string("footnote.check\tpageMaxY=") + std::to_string(pageMaxY) + std::string("\tlineY=") + std::to_string(l.maxY) + std::string("\tnearBottom=") + (nearBottom ? "1" : "0") + std::string("\tblocks=") + std::to_string(blocks.size()));
-            } catch(...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::valuta", std::current_exception()); }
 
             bool reallyTerminal = false;
-            try { if (!blocks.empty() && nearBottom) reallyTerminal = true; } catch(...) {}
+            try { if (!blocks.empty() && nearBottom) reallyTerminal = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::footnoteTerminal", std::current_exception()); }
             if (reallyTerminal) {
                 out.debugLines.push_back(std::string("stop.footnote\t") + txt + "\tline=" + std::to_string(li));
                 break;
@@ -339,7 +340,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                         continue;
                     }
                 }
-            } catch(...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerOverrideByValutaAnchor", std::current_exception()); }
 
             // Do not skip lines that contain explicit header signals such as a booking date,
             // 'valuta' or any full date token. This prevents legitimate header/data lines
@@ -347,14 +348,14 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             bool hasHeaderSignal = false;
             try {
                 if (core::parser::helpers::findBookingDateInHeader(txt).has_value()) hasHeaderSignal = true;
-            } catch(...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::txt", std::current_exception()); }
             try {
                 // also consider the combined previous+current token for split OCR cases
                 if (core::parser::helpers::findBookingDateInHeader(combined).has_value()) hasHeaderSignal = true;
-            } catch(...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::combined", std::current_exception()); }
             try {
                 if (isValutaHeaderLine(txt)) hasHeaderSignal = true;
-            } catch(...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::valuta", std::current_exception()); }
 
             if (!hasHeaderSignal && !(rows.inSection && cols.hasValuta())) {
                 // before skipping, attempt combined prev+curr / curr+next main-row detection
@@ -369,8 +370,8 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                             out.debugLines.push_back(std::string("tx.start.combined.aboveHeader\tline=") + std::to_string(li) + "\ttext=" + (cs->second ? combNext : combPrev));
                             combinedStarted = true;
                         }
-                    } catch(...) {}
-                } catch(...) {}
+                    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::combinedStartInner", std::current_exception()); }
+                } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::combinedStart", std::current_exception()); }
                 if (combinedStarted) {
                     // allow processing as normal
                 } else {
@@ -379,8 +380,8 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     try {
                         core::parser::OcrLine ol = rawToOcrLine(l);
                         bool allowAboveHeader = false;
-                        try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) allowAboveHeader = true; } catch(...) {}
-                        try { if (!allowAboveHeader && core::parser::helpers::isLooseTransactionLine(ol, cols.valutaX)) allowAboveHeader = true; } catch(...) {}
+                        try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) allowAboveHeader = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::allowAboveHeader::hasAmount", std::current_exception()); }
+                        try { if (!allowAboveHeader && core::parser::helpers::isLooseTransactionLine(ol, cols.valutaX)) allowAboveHeader = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::allowAboveHeader::isLoose", std::current_exception()); }
                         if (allowAboveHeader) {
                             inTransactions = true;
                             ++txStartLooseCount;
@@ -390,7 +391,8 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                             prevLine = txt;
                             continue;
                         }
-                    } catch(...) {
+                    } catch (...) {
+                        core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::allowAboveHeader", std::current_exception());
                         out.debugLines.push_back(std::string("line.reason\taboveHeaderSkip\t") + txt + "\tline=" + std::to_string(li));
                         prevLine = txt;
                         continue;
@@ -410,7 +412,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             out.debugLines.push_back(std::string("header.debitcredit\t") + txt + "\tline=" + std::to_string(li));
             out.debugLines.push_back(std::string("cols.debitX\t") + std::to_string(cols.debitX) + "\tcols.creditX\t" + std::to_string(cols.creditX));
             // update header bottom
-            try { headerBottomY = std::max(headerBottomY, l.maxY); } catch(...) {}
+            try { headerBottomY = std::max(headerBottomY, l.maxY); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerBottomY::debitCredit", std::current_exception()); }
             prevLine = txt;
             continue;
         }
@@ -423,7 +425,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             out.debugLines.push_back(std::string("header.section\t") + combined + "\tline=" + std::to_string(li));
             out.debugLines.push_back(std::string("cols.valutaX\t") + std::to_string(cols.valutaX));
             // update header bottom
-            try { headerBottomY = std::max(headerBottomY, l.maxY); } catch(...) {}
+            try { headerBottomY = std::max(headerBottomY, l.maxY); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerBottomY::section", std::current_exception()); }
             prevLine = txt;
             continue;
         }
@@ -434,7 +436,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             flush();
             cur.bookingDateGroup = currentBookingDate;
             // update header bottom
-            try { headerBottomY = std::max(headerBottomY, l.maxY); } catch(...) {}
+            try { headerBottomY = std::max(headerBottomY, l.maxY); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerBottomY::bookingDate", std::current_exception()); }
             prevLine = txt;
             continue;
         }
@@ -446,7 +448,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
         try {
             if (!inTransactions && headerFound && core::parser::heuristics::isHeaderNoiseLine(txt)) {
                 bool anchoredToValuta = false;
-                try { if (seedCols.valutaX >= 0) { core::parser::OcrLine _ol = rawToOcrLine(l); if (core::parser::helpers::hasTokenNearX(_ol, seedCols.valutaX, core::parser::helpers::parserConfig.tokenNearBandForMainRow) || core::parser::helpers::hasAmountLikeTokenInLine(_ol, seedCols.valutaX)) anchoredToValuta = true; } } catch(...) {}
+                try { if (seedCols.valutaX >= 0) { core::parser::OcrLine _ol = rawToOcrLine(l); if (core::parser::helpers::hasTokenNearX(_ol, seedCols.valutaX, core::parser::helpers::parserConfig.tokenNearBandForMainRow) || core::parser::helpers::hasAmountLikeTokenInLine(_ol, seedCols.valutaX)) anchoredToValuta = true; } } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerNoise::anchoredToValuta", std::current_exception()); }
 
                 bool looksMain = false;
                 try {
@@ -454,7 +456,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     if (core::parser::helpers::isLooseTransactionLine(_ol, seedCols.valutaX)) looksMain = true;
                     if (core::parser::helpers::hasAmountLikeTokenInLine(_ol, seedCols.valutaX)) looksMain = true;
                     if (core::parser::helpers::hasShortDateToken(_ol.text) && core::parser::helpers::hasLeftDescriptiveText(_ol, seedCols.valutaX)) looksMain = true;
-                } catch(...) {}
+                } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerNoise::looksMain", std::current_exception()); }
 
                 if (!anchoredToValuta && !looksMain && !isTransactionsSectionHeader(txt) && !isDebitCreditHeaderLine(txt) && !isLikelyTransactionMainRowText(txt)) {
                     out.debugLines.push_back(std::string("line.skip.headerNoise\t") + txt + std::string("\tline=") + std::to_string(li));
@@ -464,7 +466,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     out.debugLines.push_back(std::string("header.noise_filter.suppressed\tline=") + std::to_string(li));
                 }
             }
-        } catch(...) {}
+        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerNoise", std::current_exception()); }
         if (headerNoiseSkipped) continue;
 
         if (!inTransactions) {
@@ -486,7 +488,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                         }
                     }
                 }
-            } catch(...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::verticalStart", std::current_exception()); }
 
             if (canStart && (isLikelyTransactionMainRowText(txt) || isLikelyTransactionMainRowGeom(l, cols))) {
                  inTransactions = true;
@@ -505,8 +507,8 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                             inTransactions = true; startedCombined = true;
                             out.debugLines.push_back(std::string("tx.start.combined\tline=") + std::to_string(li) + "\ttext=" + (cs->second ? combNext : combPrev));
                         }
-                    } catch(...) {}
-                } catch(...) {}
+                    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::combinedStartInner", std::current_exception()); }
+                } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::combinedStart", std::current_exception()); }
                 if (startedCombined) {
                     // continue and let normal main detection handle the line
                 } else {
@@ -516,18 +518,18 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     try {
                         core::parser::OcrLine ol = rawToOcrLine(l);
                         bool hasDate = false;
-                        try { if (core::parser::helpers::hasShortDateToken(ol.text)) hasDate = true; } catch(...) {}
+                        try { if (core::parser::helpers::hasShortDateToken(ol.text)) hasDate = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::hasShortDate", std::current_exception()); }
                         bool hasAmount = false;
-                        try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) hasAmount = true; } catch(...) {}
+                        try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) hasAmount = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::hasAmount", std::current_exception()); }
                         // check previous and next lines for amount tokens as fallback
                         try {
                             if (!hasAmount && li > 0) { core::parser::OcrLine prevOl = rawToOcrLine(lines[li-1]); if (core::parser::helpers::hasAmountLikeTokenInLine(prevOl, cols.valutaX)) hasAmount = true; }
                             if (!hasAmount && li + 1 < lines.size()) { core::parser::OcrLine nextOl = rawToOcrLine(lines[li+1]); if (core::parser::helpers::hasAmountLikeTokenInLine(nextOl, cols.valutaX)) hasAmount = true; }
-                        } catch(...) {}
+                        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::neighborAmount", std::current_exception()); }
                         bool hasLeftDesc = false;
-                        try { if (core::parser::helpers::hasLeftDescriptiveText(ol, cols.valutaX)) hasLeftDesc = true; } catch(...) {}
+                        try { if (core::parser::helpers::hasLeftDescriptiveText(ol, cols.valutaX)) hasLeftDesc = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::hasLeftDesc", std::current_exception()); }
                         if (hasDate && (hasAmount || hasLeftDesc)) relaxedStart = true;
-                    } catch(...) {}
+                    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart", std::current_exception()); }
                     if (relaxedStart) {
                         inTransactions = true;
                         out.debugLines.push_back(std::string("tx.start.relaxed\tline=") + std::to_string(li) + "\ttext=" + txt);
@@ -576,9 +578,9 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
         for (const auto& ol : orphanLines) {
             try {
                 bool looksMain = false;
-                try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) looksMain = true; } catch(...) {}
-                try { if (!looksMain && core::parser::helpers::isLooseTransactionLine(ol, cols.valutaX)) looksMain = true; } catch(...) {}
-                try { if (!looksMain && core::parser::helpers::hasShortDateToken(ol.text) && core::parser::helpers::hasLeftDescriptiveText(ol, cols.valutaX)) looksMain = true; } catch(...) {}
+                try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) looksMain = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::rescue::hasAmount", std::current_exception()); }
+                try { if (!looksMain && core::parser::helpers::isLooseTransactionLine(ol, cols.valutaX)) looksMain = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::rescue::isLoose", std::current_exception()); }
+                try { if (!looksMain && core::parser::helpers::hasShortDateToken(ol.text) && core::parser::helpers::hasLeftDescriptiveText(ol, cols.valutaX)) looksMain = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::rescue::dateAndLeft", std::current_exception()); }
                 if (looksMain) {
                     TransactionBlock nb;
                     nb.bookingDateGroup = currentBookingDate;
@@ -587,9 +589,9 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     blocks.push_back(std::move(nb));
                     out.debugLines.push_back(std::string("tx.start.rescued\ttext=") + ol.text);
                 }
-            } catch(...) {}
+            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::rescue::loop", std::current_exception()); }
         }
-    } catch(...) {}
+    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::rescue", std::current_exception()); }
 
     core::parser::helpers::attachOrphansToBlocks(blocks, orphanLines, 80, cols.valutaX);
 
@@ -600,7 +602,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
         std::ostringstream ps;
         ps << "page.summary\tocr.lines=" << lines.size() << "\theader.prebottomY=" << headerBottomY << "\tblocks=" << blocks.size() << "\ttxStartLoose=" << txStartLooseCount;
         out.debugLines.push_back(ps.str());
-    } catch(...) {}
+    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::pageSummary", std::current_exception()); }
 
     for (const auto& b : blocks) {
         if (b.main.left.empty()) continue;
@@ -616,7 +618,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             out.debugLines.push_back(std::string("block.main.credit.empty\t") + (b.main.credit.empty() ? "1" : "0"));
             out.debugLines.push_back(std::string("block.main.credit.text\t") + (b.main.credit.empty() ? std::string("(none)") : b.main.credit.line.text));
             out.debugLines.push_back(std::string("cols.state\tvalutaX=") + std::to_string(cols.valutaX) + std::string("\tdebitX=") + std::to_string(cols.debitX) + std::string("\tcreditX=") + std::to_string(cols.creditX));
-        } catch (...) {}
+        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::blockDebug", std::current_exception()); }
 
         // collect per-transaction debug lines
         std::vector<std::string> txDebug;
@@ -663,7 +665,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     }
                 }
              }
-         } catch (...) {}
+         } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::cellOverride", std::current_exception()); }
 
         // Per-transaction proof crop
         try {
@@ -719,7 +721,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     }
                 }
             }
-        } catch (...) {}
+        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::proofCrop", std::current_exception()); }
 
          out.transactions.push_back(std::make_shared<Transaction>(std::move(tx)));
     }

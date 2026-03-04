@@ -1,5 +1,6 @@
 #include "core/pch.h"
 #include "core/utils/Environment.h"
+#include "core/errors/ErrorReporterRegistry.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -105,14 +106,14 @@ namespace env {
         if (localApp && *localApp) {
             std::filesystem::path p = std::filesystem::path(localApp) / appName / "cache";
             try { std::filesystem::create_directories(p); }
-            catch (...) {}
+            catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::utils::Environment::getUserCacheDir::create_localappdata", std::current_exception()); }
             return p;
         }
         const char* appdata = std::getenv("APPDATA");
         if (appdata && *appdata) {
             std::filesystem::path p = std::filesystem::path(appdata) / appName / "cache";
             try { std::filesystem::create_directories(p); }
-            catch (...) {}
+            catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::utils::Environment::getUserCacheDir::create_appdata", std::current_exception()); }
             return p;
         }
         return std::filesystem::current_path() / appName / "cache";
@@ -121,7 +122,7 @@ namespace env {
         if (home && *home) {
             std::filesystem::path p = std::filesystem::path(home) / "Library" / "Caches" / appName;
             try { std::filesystem::create_directories(p); }
-            catch (...) {}
+            catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::utils::Environment::getUserCacheDir::create_macos", std::current_exception()); }
             return p;
         }
         return std::filesystem::current_path() / appName / "cache";
@@ -130,14 +131,14 @@ namespace env {
         if (xdg && *xdg) {
             std::filesystem::path p = std::filesystem::path(xdg) / appName;
             try { std::filesystem::create_directories(p); }
-            catch (...) {}
+            catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::utils::Environment::getUserCacheDir::create_xdg", std::current_exception()); }
             return p;
         }
         const char* home = std::getenv("HOME");
         if (home && *home) {
             std::filesystem::path p = std::filesystem::path(home) / ".cache" / appName;
             try { std::filesystem::create_directories(p); }
-            catch (...) {}
+            catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::utils::Environment::getUserCacheDir::create_home", std::current_exception()); }
             return p;
         }
         return std::filesystem::current_path() / appName / "cache";

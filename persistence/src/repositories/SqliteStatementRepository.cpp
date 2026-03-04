@@ -1,4 +1,5 @@
 #include "persistence/repositories/SqliteStatementRepository.h"
+#include "core/errors/ErrorReporterRegistry.h"
 #include <sqlite3.h>
 #include <stdexcept>
 #include "persistence/Uuid.h"
@@ -43,7 +44,12 @@ void SqliteStatementRepository::addStatement(const std::shared_ptr<Statement>& s
     }
     sqlite3_finalize(stmt);
 
-    fprintf(stderr, "SqliteStatementRepository::addStatement: inserted statement id=%s name='%s'\n", statement->id.c_str(), statement->name.c_str());
+    core::errors::report({
+        core::errors::ErrorSeverity::Info,
+        "persistence::SqliteStatementRepository::addStatement",
+        std::string("inserted statement id='") + statement->id + "' name='" + statement->name + "'",
+        {}
+    });
 }
 
 std::vector<std::shared_ptr<Statement>> SqliteStatementRepository::getStatements() const {

@@ -1,4 +1,5 @@
 #include "core/analysis/strategies/PlotAnalysisStrategy.h"
+#include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/Transaction.h"
 #include "core/models/Contract.h"
 #include "core/analysis/Filter.h"
@@ -31,12 +32,22 @@ AnalysisResult PlotAnalysisStrategy::compute(const Analysis& analysis, const App
                 for (const auto& ct : j["contractTypes"]) contractTypeFilter.push_back(ct.get<std::string>());
             }
         }
-    } catch(...) {}
+    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::analysis::PlotAnalysisStrategy::parseConfig", std::current_exception()); }
 
     if (!propertyFilter.empty()) {
-        try { fprintf(stderr, "PlotAnalysisStrategy::compute: propertyFilter size=%zu\n", propertyFilter.size()); } catch(...) {}
+        core::errors::report({
+            core::errors::ErrorSeverity::Info,
+            "core::analysis::PlotAnalysisStrategy::compute",
+            std::string("propertyFilter size=") + std::to_string(propertyFilter.size()),
+            {}
+        });
         for (const auto& pf : propertyFilter) {
-            try { fprintf(stderr, "  prop: %s\n", pf.c_str()); } catch(...) {}
+            core::errors::report({
+                core::errors::ErrorSeverity::Info,
+                "core::analysis::PlotAnalysisStrategy::compute",
+                std::string("propertyFilter value=") + pf,
+                {}
+            });
         }
     }
 
