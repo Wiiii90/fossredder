@@ -11,6 +11,7 @@
 #include "core/managers/StorageManager.h"
 #include "core/controllers/AppStateController.h"
 #include "core/errors/DebuggerErrorReporter.h"
+#include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "debug/FileDebugger.h"
 
@@ -26,21 +27,26 @@ static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, 
     const char *file = context.file ? context.file : "";
     const char *function = context.function ? context.function : "";
     const std::string text = std::string(localMsg.constData()) + " (" + file + ":" + std::to_string(context.line) + ", " + function + ")";
+    const core::errors::ErrorContext ctx = {
+        {"file", file},
+        {"line", std::to_string(context.line)},
+        {"function", function}
+    };
     switch (type) {
     case QtDebugMsg:
-        core::errors::report({core::errors::ErrorSeverity::Info, "app::qtMessageHandler", text, {}});
+        core::errors::report(core::errors::ErrorSeverity::Info, core::errors::codes::QtDebug, "app::qtMessageHandler", text, ctx);
         break;
     case QtInfoMsg:
-        core::errors::report({core::errors::ErrorSeverity::Info, "app::qtMessageHandler", text, {}});
+        core::errors::report(core::errors::ErrorSeverity::Info, core::errors::codes::QtInfo, "app::qtMessageHandler", text, ctx);
         break;
     case QtWarningMsg:
-        core::errors::report({core::errors::ErrorSeverity::Warning, "app::qtMessageHandler", text, {}});
+        core::errors::report(core::errors::ErrorSeverity::Warning, core::errors::codes::QtWarning, "app::qtMessageHandler", text, ctx);
         break;
     case QtCriticalMsg:
-        core::errors::report({core::errors::ErrorSeverity::Error, "app::qtMessageHandler", text, {}});
+        core::errors::report(core::errors::ErrorSeverity::Error, core::errors::codes::QtCritical, "app::qtMessageHandler", text, ctx);
         break;
     case QtFatalMsg:
-        core::errors::report({core::errors::ErrorSeverity::Critical, "app::qtMessageHandler", text, {}});
+        core::errors::report(core::errors::ErrorSeverity::Critical, core::errors::codes::QtFatal, "app::qtMessageHandler", text, ctx);
         abort();
     }
 }
@@ -97,7 +103,13 @@ int main(int argc, char* argv[]) {
         auto cfgDb = createSqliteDb(cfgDbPath);
         cfgRepo = createSqliteConfigRepository(cfgDb);
     } catch (const std::exception& ex) {
-        core::errors::report({core::errors::ErrorSeverity::Warning, "app::main::openConfigDb", std::string("failed to open config DB '") + cfgDbPath + "': " + ex.what(), {}});
+        core::errors::report(
+            core::errors::ErrorSeverity::Warning,
+            core::errors::codes::ConfigDbOpenFailed,
+            "app::main::openConfigDb",
+            std::string("failed to open config DB '") + cfgDbPath + "': " + ex.what(),
+            {{"path", cfgDbPath}}
+        );
         cfgRepo = nullptr;
     }
 

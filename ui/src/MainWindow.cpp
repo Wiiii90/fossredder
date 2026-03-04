@@ -157,6 +157,11 @@ void MainWindow::loadQml(const QUrl& source)
     }
 }
 
+QQmlEngine* MainWindow::qmlEngine() const noexcept
+{
+    return m_quickWidget ? m_quickWidget->engine() : nullptr;
+}
+
 bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
 {
     if (obj == m_quickWidget && ev->type() == QEvent::Resize) {

@@ -5,6 +5,7 @@
 
 QT_FORWARD_DECLARE_CLASS(QQuickWidget)
 QT_FORWARD_DECLARE_CLASS(QQmlImageProviderBase)
+QT_FORWARD_DECLARE_CLASS(QQmlEngine)
 
 namespace ui { class StateFacade; }
 namespace ui { class Actions; }
@@ -18,6 +19,7 @@ public:
     void setQmlContextProperty(const QString& name, QObject* value);
     void addImageProvider(const QString& id, QQmlImageProviderBase* provider);
     void loadQml(const QUrl& source = QUrl("qrc:/qml/FossRedder/Main.qml"));
+    QQmlEngine* qmlEngine() const noexcept;
     ui::StateFacade* dataSession() const noexcept { return dataSession_; }
 
 signals:

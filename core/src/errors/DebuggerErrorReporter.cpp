@@ -1,4 +1,5 @@
 #include "core/errors/DebuggerErrorReporter.h"
+#include "core/errors/ErrorCodes.h"
 
 #include <sstream>
 #include <typeinfo>
@@ -31,8 +32,19 @@ void DebuggerErrorReporter::report(const ErrorEvent& event)
 
     std::ostringstream out;
     out << "[" << toString(event.severity) << "] ";
+    out << "[" << (event.code.empty() ? codes::GenericError : event.code) << "] ";
     if (!event.origin.empty()) out << event.origin << " - ";
     out << event.message;
+    if (!event.context.empty()) {
+        out << " {";
+        bool first = true;
+        for (const auto& kv : event.context) {
+            if (!first) out << ", ";
+            first = false;
+            out << kv.first << "=" << kv.second;
+        }
+        out << "}";
+    }
     if (!event.exceptionType.empty()) out << " (" << event.exceptionType << ")";
     out << "\n";
     debugger_->writeText("errors/errors.log", out.str());
@@ -41,16 +53,16 @@ void DebuggerErrorReporter::report(const ErrorEvent& event)
 void DebuggerErrorReporter::reportException(ErrorSeverity severity, const char* origin, std::exception_ptr exception)
 {
     if (!exception) {
-        report({severity, origin ? origin : std::string{}, "unknown exception", "unknown"});
+        report({severity, origin ? origin : std::string{}, "unknown exception", "unknown", codes::ExceptionError, {}});
         return;
     }
 
     try {
         std::rethrow_exception(exception);
     } catch (const std::exception& ex) {
-        report({severity, origin ? origin : std::string{}, ex.what(), typeid(ex).name()});
+        report({severity, origin ? origin : std::string{}, ex.what(), typeid(ex).name(), codes::ExceptionStd, {}});
     } catch (...) {
-        report({severity, origin ? origin : std::string{}, "non-std exception", "unknown"});
+        report({severity, origin ? origin : std::string{}, "non-std exception", "unknown", codes::ExceptionNonStd, {}});
     }
 }
 

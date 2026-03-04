@@ -9,6 +9,7 @@
 #ifdef USE_QML
 #include <QApplication>
 #include <QQmlEngine>
+#include <QQmlError>
 #include <QUrl>
 #include "MainWindow.h"
 #include "ui/controllers/DomainController.h"
@@ -17,6 +18,7 @@
 #include "ui/controllers/StorageController.h"
 #include "ui/state/StateFacade.h"
 #include "core/errors/DebuggerErrorReporter.h"
+#include "core/errors/ErrorCodes.h"
 #include "debug/FileDebugger.h"
 #include "core/controllers/ImportController.h"
 #include "core/controllers/StatementController.h"
@@ -133,6 +135,28 @@ void wireFileSignals(MainWindow& w, ui::StorageController* storage)
     });
 }
 
+void wireQmlWarnings(MainWindow& w, const std::shared_ptr<core::errors::IErrorReporter>& errorReporter)
+{
+    auto* engine = w.qmlEngine();
+    if (!engine || !errorReporter) return;
+
+    QObject::connect(engine, &QQmlEngine::warnings, &w, [errorReporter](const QList<QQmlError>& warnings) {
+        for (const auto& warning : warnings) {
+            core::errors::ErrorEvent event;
+            event.severity = core::errors::ErrorSeverity::Warning;
+            event.code = core::errors::codes::QmlWarning;
+            event.origin = "app::qml::warnings";
+            event.message = warning.description().toStdString();
+            event.context = {
+                {"url", warning.url().toString().toStdString()},
+                {"line", std::to_string(warning.line())},
+                {"column", std::to_string(warning.column())}
+            };
+            errorReporter->report(event);
+        }
+    });
+}
+
 }
 
 /**
@@ -151,6 +175,7 @@ int startQmlApp(QApplication& app, AppStateController& appStateCtrl) {
     const UiControllers ui = setupUiControllers(w, appStateCtrl, errorReporter);
     wireAppStateToSession(w, appStateCtrl, errorReporter);
     wireFileSignals(w, ui.storage);
+    wireQmlWarnings(w, errorReporter);
 
     // Load QML after all context properties/providers are installed.
     w.loadQml();
