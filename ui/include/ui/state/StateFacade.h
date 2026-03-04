@@ -91,8 +91,6 @@ public:
     Q_INVOKABLE QVariantMap propertyTransactionSums(const QString& propertyId, const QString& contractType = QString()) const;
     Q_INVOKABLE QString propertyName(const QString& id) const;
 
-    void applyTransactionUpdates(const std::vector<std::string>& ids, const AppState& state);
-
     Q_INVOKABLE void applyDeletionImpact(const DeletionImpact& impact);
     Q_INVOKABLE void setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds);
 

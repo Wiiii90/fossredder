@@ -9,17 +9,17 @@
 #include <memory>
 #include <string>
 #include <type_traits>
-#include <unordered_set>
+#include <vector>
 
 #include "core/controllers/Callbacks.h"
 #include "core/managers/IStorageManager.h"
+#include "core/models/DraftStatement.h"
 
 /// UI/domain facing controller that manages the in-memory AppState and uses
 /// an IStorageManager for persistence operations.
 class AppStateController {
 public:
     using StateChanged = std::function<void(const AppState&)>;
-    using TransactionsChanged = std::function<void(const std::vector<std::string>&)>;
 
     /**
      * @brief Construct with unique ownership of an IStorageManager.
@@ -98,21 +98,86 @@ public:
     const AppState& state() const noexcept { return state_; }
 
     /**
-     * @brief Accessor for the current AppState (mutable).
-     * @return mutable reference to the current AppState.
-     */
-    AppState& mutableState() noexcept { return state_; }
-
-    /**
      * @brief Return the current storage path managed by the underlying storage manager.
      * @return path string (may be empty if none set).
      */
     const std::string& currentPath() const noexcept { return storageManager_ ? storageManager_->currentPath() : emptyPath_; }
 
     /**
-     * @brief Commit/notify hook — triggers registered state change callbacks.
-     *
-     * Intended as a single point to emit change notifications after modifications.
+     * @brief Actor mutations.
+     */
+    std::string addActor(const std::string& name, const std::string& type, const std::string& description, const std::vector<std::string>& aliases);
+    void updateActor(const std::string& id, const std::string& name, const std::string& type, const std::string& description, const std::vector<std::string>& aliases);
+    void deleteActor(const std::string& id);
+
+    /**
+     * @brief Property mutations.
+     */
+    std::string addProperty(const std::string& name, const std::string& address, const std::string& description);
+    void updateProperty(const std::string& id, const std::string& name, const std::string& address, const std::string& description);
+    void deleteProperty(const std::string& id);
+
+    /**
+     * @brief Contract mutations.
+     */
+    std::string addContract(const std::string& name, const std::string& type, const std::string& description,
+                            const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds);
+    void updateContract(const std::string& id, const std::string& name, const std::string& type, const std::string& description,
+                        const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds);
+    void deleteContract(const std::string& id);
+
+    /**
+     * @brief Statement mutations.
+     */
+    std::string addStatement(const std::string& name);
+    void updateStatement(const std::string& id, const std::string& name);
+    void deleteStatement(const std::string& id);
+
+    /**
+     * @brief Transaction mutations.
+     */
+    std::string addTransaction(const std::string& name,
+                               const std::string& bookingDate,
+                               double amount,
+                               const std::string& description,
+                               const std::string& statementId,
+                               int status,
+                               const std::string& actorId,
+                               bool allocatable,
+                               const std::vector<std::string>& propertyIds);
+    void updateTransaction(const std::string& id,
+                           const std::string& name,
+                           const std::string& bookingDate,
+                           double amount,
+                           const std::string& description,
+                           const std::string& statementId,
+                           int status,
+                           const std::string& actorId,
+                           bool allocatable,
+                           const std::vector<std::string>& propertyIds);
+    void deleteTransaction(const std::string& id);
+
+    /**
+     * @brief Analysis mutations.
+     */
+    std::string addAnalysis(const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec);
+    void updateAnalysis(const std::string& id, const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec);
+    void deleteAnalysis(const std::string& id);
+
+    /**
+     * @brief Annual mutations.
+     */
+    std::string addAnnual(int year);
+    void updateAnnual(const std::string& id, int year);
+    void deleteAnnual(const std::string& id);
+
+    /**
+     * @brief Finalize a temporary draft into persisted statement/transaction/contract domain objects.
+     */
+    std::string finalizeStatementDraft(const DraftStatement& draft);
+
+    /**
+     * @brief Persist current state and emit full-state callback.
      */
     void commit();
 
@@ -125,23 +190,11 @@ public:
      */
     void notifyState();
 
-    /**
-     * @brief Mark a single transaction id as dirty (changed by UI) for incremental notifications.
-     */
-    void markTransactionDirty(const std::string& txId);
-
-    /**
-     * @brief Register a callback invoked with a list of transaction ids changed after commit.
-     * @param cb Callback invoked with the changed transaction IDs.
-     */
-    void setTransactionsChangedCallback(TransactionsChanged cb);
-
 private:
     std::unique_ptr<IStorageManager> storageManager_;
     AppState state_;
     StateChanged onStateChanged_;
     std::string emptyPath_;
-    std::unordered_set<std::string> dirtyTransactionIds_;
     // Callback forwarded when persistence reports deletions
     IStorageManager::DeletionImpactCallback onDeletionImpact_;
 
@@ -150,6 +203,4 @@ private:
      */
     void notify();
 
-    // Transactions changed callback (non-owning)
-    TransactionsChanged onTransactionsChanged_;
 };
