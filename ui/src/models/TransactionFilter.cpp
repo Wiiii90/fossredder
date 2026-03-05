@@ -36,15 +36,21 @@ void TransactionFilter::setTxType(const QString& t)
 
 bool TransactionFilter::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
 {
+    const QAbstractItemModel* model = sourceModel();
+    if (!model) return false;
+
+    if (statementId_.isEmpty() && propertyId_.isEmpty() && txType_.isEmpty()) return true;
+
+    const QModelIndex idx = model->index(sourceRow, 0, sourceParent);
+    if (!idx.isValid()) return false;
+
     if (!statementId_.isEmpty()) {
-        const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
-        const auto sid = sourceModel()->data(idx, TransactionList::StatementIdRole).toString();
+        const auto sid = model->data(idx, TransactionList::StatementIdRole).toString();
         if (sid != statementId_) return false;
     }
 
     if (!propertyId_.isEmpty()) {
-        const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
-        const auto props = sourceModel()->data(idx, TransactionList::PropertyIdsRole).toList();
+        const auto props = model->data(idx, TransactionList::PropertyIdsRole).toList();
         bool found = false;
         for (const auto& v : props) {
             if (v.toString() == propertyId_) { found = true; break; }
@@ -53,12 +59,9 @@ bool TransactionFilter::filterAcceptsRow(int sourceRow, const QModelIndex& sourc
     }
 
     if (!txType_.isEmpty()) {
-        const auto idx = sourceModel()->index(sourceRow, 0, sourceParent);
-        const auto typ = sourceModel()->data(idx, TransactionList::TypeRole).toString();
+        const auto typ = model->data(idx, TransactionList::TypeRole).toString();
         if (typ != txType_) return false;
     }
-
-    if (statementId_.isEmpty() && propertyId_.isEmpty() && txType_.isEmpty()) return true;
 
     return true;
 }

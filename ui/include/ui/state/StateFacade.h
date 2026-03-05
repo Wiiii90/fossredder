@@ -37,13 +37,13 @@ class StateFacade : public QObject {
     Q_PROPERTY(QString selectedAnalysisId READ selectedAnalysisId WRITE setSelectedAnalysisId NOTIFY selectedAnalysisIdChanged)
     Q_PROPERTY(QString selectedAnnualId READ selectedAnnualId WRITE setSelectedAnnualId NOTIFY selectedAnnualIdChanged)
 
-    Q_PROPERTY(EntitySelection* selectedActor READ selectedActor CONSTANT)
-    Q_PROPERTY(EntitySelection* selectedProperty READ selectedProperty CONSTANT)
-    Q_PROPERTY(EntitySelection* selectedContract READ selectedContract CONSTANT)
-    Q_PROPERTY(EntitySelection* selectedStatement READ selectedStatement CONSTANT)
-    Q_PROPERTY(EntitySelection* selectedTransaction READ selectedTransaction CONSTANT)
-    Q_PROPERTY(EntitySelection* selectedAnalysis READ selectedAnalysis CONSTANT)
-    Q_PROPERTY(EntitySelection* selectedAnnual READ selectedAnnual CONSTANT)
+    Q_PROPERTY(ActorSelection* selectedActor READ selectedActor CONSTANT)
+    Q_PROPERTY(PropertySelection* selectedProperty READ selectedProperty CONSTANT)
+    Q_PROPERTY(ContractSelection* selectedContract READ selectedContract CONSTANT)
+    Q_PROPERTY(StatementSelection* selectedStatement READ selectedStatement CONSTANT)
+    Q_PROPERTY(TransactionSelection* selectedTransaction READ selectedTransaction CONSTANT)
+    Q_PROPERTY(AnalysisSelection* selectedAnalysis READ selectedAnalysis CONSTANT)
+    Q_PROPERTY(AnnualSelection* selectedAnnual READ selectedAnnual CONSTANT)
 
     Q_PROPERTY(QVariant lastAnalysisResult READ lastAnalysisResult WRITE setLastAnalysisResult NOTIFY lastAnalysisResultChanged)
 
@@ -76,13 +76,13 @@ public:
     void setSelectedAnalysisId(const QString& id);
     void setSelectedAnnualId(const QString& id);
 
-    EntitySelection* selectedActor();
-    EntitySelection* selectedProperty();
-    EntitySelection* selectedContract();
-    EntitySelection* selectedStatement();
-    EntitySelection* selectedTransaction();
-    EntitySelection* selectedAnalysis();
-    EntitySelection* selectedAnnual();
+    ActorSelection* selectedActor();
+    PropertySelection* selectedProperty();
+    ContractSelection* selectedContract();
+    StatementSelection* selectedStatement();
+    TransactionSelection* selectedTransaction();
+    AnalysisSelection* selectedAnalysis();
+    AnnualSelection* selectedAnnual();
 
     Q_INVOKABLE QVariantList statementTransactionIds(const QString& statementId) const;
     Q_INVOKABLE QObject* statementTransactions(const QString& statementId);

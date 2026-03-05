@@ -1,6 +1,8 @@
 #pragma once
 
+#include <QObject>
 #include <QString>
+#include <QStringList>
 
 #include "ui/models/ActorList.h"
 #include "ui/models/PropertyList.h"
@@ -12,61 +14,159 @@
 
 namespace ui {
 
-class EntitySelection : public QObject {
+class ActorSelection : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QString type READ type NOTIFY changed)
-    Q_PROPERTY(QStringList aliases READ aliases NOTIFY changed)
-    Q_PROPERTY(QString address READ address NOTIFY changed)
     Q_PROPERTY(QString description READ description NOTIFY changed)
-    Q_PROPERTY(QStringList actorIds READ actorIds NOTIFY changed)
-    Q_PROPERTY(QStringList propertyIds READ propertyIds NOTIFY changed)
-    Q_PROPERTY(QString bookingDate READ bookingDate NOTIFY changed)
-    Q_PROPERTY(double amount READ amount NOTIFY changed)
-    Q_PROPERTY(bool allocatable READ allocatable NOTIFY changed)
-    Q_PROPERTY(QString statementId READ statementId NOTIFY changed)
-    Q_PROPERTY(QString actorId READ actorId NOTIFY changed)
-    Q_PROPERTY(QString actorProposal READ actorProposal NOTIFY changed)
+    Q_PROPERTY(QStringList aliases READ aliases NOTIFY changed)
 
 public:
-    explicit EntitySelection(QObject* parent = nullptr);
+    explicit ActorSelection(QObject* parent = nullptr);
 
     void clear();
-    void setActor(const QString& id, const QString& name, const QString& type, const QString& description, const QStringList& aliases = {});
-    void setProperty(const QString& id, const QString& name, const QString& address, const QString& description);
-    void setStatement(const QString& id, const QString& name);
-    void setTransaction(const QString& id,
-                        const QString& name,
-                        const QString& bookingDate,
-                        double amount,
-                        const QString& description,
-                        const QString& statementId,
-                        const QString& actorId = QString(),
-                        const QString& actorProposal = QString(),
-                        const QStringList& propertyIds = {},
-                        bool allocatable = false,
-                        const QString& transactionType = QString());
-    void setContract(const QString& id, const QString& name, const QString& type, const QString& description);
-    void setContract(const QString& id, const QString& name, const QString& type, const QString& description,
-                     const QStringList& actorIds, const QStringList& propertyIds);
-    void setAnalysis(const QString& id, const QString& name, const QString& type, const QString& description = QString());
-    void setAnnual(const QString& id, int year);
+    void set(QString id, QString name, QString type, QString description, QStringList aliases);
 
     QString id() const { return id_; }
     QString name() const { return name_; }
     QString type() const { return type_; }
+    QString description() const { return description_; }
     QStringList aliases() const { return aliases_; }
+
+signals:
+    void changed();
+
+private:
+    QString id_;
+    QString name_;
+    QString type_;
+    QString description_;
+    QStringList aliases_;
+};
+
+class PropertySelection : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString id READ id NOTIFY changed)
+    Q_PROPERTY(QString name READ name NOTIFY changed)
+    Q_PROPERTY(QString address READ address NOTIFY changed)
+    Q_PROPERTY(QString description READ description NOTIFY changed)
+
+public:
+    explicit PropertySelection(QObject* parent = nullptr);
+
+    void clear();
+    void set(QString id, QString name, QString address, QString description);
+
+    QString id() const { return id_; }
+    QString name() const { return name_; }
     QString address() const { return address_; }
+    QString description() const { return description_; }
+
+signals:
+    void changed();
+
+private:
+    QString id_;
+    QString name_;
+    QString address_;
+    QString description_;
+};
+
+class ContractSelection : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString id READ id NOTIFY changed)
+    Q_PROPERTY(QString name READ name NOTIFY changed)
+    Q_PROPERTY(QString type READ type NOTIFY changed)
+    Q_PROPERTY(QString description READ description NOTIFY changed)
+    Q_PROPERTY(QStringList actorIds READ actorIds NOTIFY changed)
+    Q_PROPERTY(QStringList propertyIds READ propertyIds NOTIFY changed)
+
+public:
+    explicit ContractSelection(QObject* parent = nullptr);
+
+    void clear();
+    void set(QString id, QString name, QString type, QString description, QStringList actorIds, QStringList propertyIds);
+
+    QString id() const { return id_; }
+    QString name() const { return name_; }
+    QString type() const { return type_; }
     QString description() const { return description_; }
     QStringList actorIds() const { return actorIds_; }
     QStringList propertyIds() const { return propertyIds_; }
+
+signals:
+    void changed();
+
+private:
+    QString id_;
+    QString name_;
+    QString type_;
+    QString description_;
+    QStringList actorIds_;
+    QStringList propertyIds_;
+};
+
+class StatementSelection : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString id READ id NOTIFY changed)
+    Q_PROPERTY(QString name READ name NOTIFY changed)
+
+public:
+    explicit StatementSelection(QObject* parent = nullptr);
+
+    void clear();
+    void set(QString id, QString name);
+
+    QString id() const { return id_; }
+    QString name() const { return name_; }
+
+signals:
+    void changed();
+
+private:
+    QString id_;
+    QString name_;
+};
+
+class TransactionSelection : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString id READ id NOTIFY changed)
+    Q_PROPERTY(QString name READ name NOTIFY changed)
+    Q_PROPERTY(QString bookingDate READ bookingDate NOTIFY changed)
+    Q_PROPERTY(double amount READ amount NOTIFY changed)
+    Q_PROPERTY(QString description READ description NOTIFY changed)
+    Q_PROPERTY(QString statementId READ statementId NOTIFY changed)
+    Q_PROPERTY(QString actorId READ actorId NOTIFY changed)
+    Q_PROPERTY(QString actorProposal READ actorProposal NOTIFY changed)
+    Q_PROPERTY(QStringList propertyIds READ propertyIds NOTIFY changed)
+    Q_PROPERTY(bool allocatable READ allocatable NOTIFY changed)
+
+public:
+    explicit TransactionSelection(QObject* parent = nullptr);
+
+    void clear();
+    void set(QString id,
+             QString name,
+             QString bookingDate,
+             double amount,
+             QString description,
+             QString statementId,
+             QString actorId,
+             QString actorProposal,
+             QStringList propertyIds,
+             bool allocatable);
+
+    QString id() const { return id_; }
+    QString name() const { return name_; }
     QString bookingDate() const { return bookingDate_; }
     double amount() const { return amount_; }
-    bool allocatable() const { return allocatable_; }
+    QString description() const { return description_; }
     QString statementId() const { return statementId_; }
     QString actorId() const { return actorId_; }
     QString actorProposal() const { return actorProposal_; }
+    QStringList propertyIds() const { return propertyIds_; }
+    bool allocatable() const { return allocatable_; }
 
     Q_INVOKABLE void setPropertyIds(const QStringList& ids) { propertyIds_ = ids; emit changed(); }
 
@@ -76,18 +176,61 @@ signals:
 private:
     QString id_;
     QString name_;
-    QString type_;
-    QStringList aliases_;
-    QString address_;
-    QString description_;
-    QStringList actorIds_;
-    QStringList propertyIds_;
     QString bookingDate_;
     double amount_ = 0.0;
-    bool allocatable_ = false;
+    QString description_;
     QString statementId_;
     QString actorId_;
     QString actorProposal_;
+    QStringList propertyIds_;
+    bool allocatable_ = false;
+};
+
+class AnalysisSelection : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString id READ id NOTIFY changed)
+    Q_PROPERTY(QString name READ name NOTIFY changed)
+    Q_PROPERTY(QString type READ type NOTIFY changed)
+
+public:
+    explicit AnalysisSelection(QObject* parent = nullptr);
+
+    void clear();
+    void set(QString id, QString name, QString type);
+
+    QString id() const { return id_; }
+    QString name() const { return name_; }
+    QString type() const { return type_; }
+
+signals:
+    void changed();
+
+private:
+    QString id_;
+    QString name_;
+    QString type_;
+};
+
+class AnnualSelection : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString id READ id NOTIFY changed)
+    Q_PROPERTY(QString name READ name NOTIFY changed)
+
+public:
+    explicit AnnualSelection(QObject* parent = nullptr);
+
+    void clear();
+    void set(QString id, QString name);
+
+    QString id() const { return id_; }
+    QString name() const { return name_; }
+
+signals:
+    void changed();
+
+private:
+    QString id_;
+    QString name_;
 };
 
 class SelectionState {
@@ -117,13 +260,13 @@ public:
     bool setSelectedAnalysisId(const QString& id);
     bool setSelectedAnnualId(const QString& id);
 
-    EntitySelection* selectedActor();
-    EntitySelection* selectedProperty();
-    EntitySelection* selectedContract();
-    EntitySelection* selectedStatement();
-    EntitySelection* selectedTransaction();
-    EntitySelection* selectedAnalysis();
-    EntitySelection* selectedAnnual();
+    ActorSelection* selectedActor();
+    PropertySelection* selectedProperty();
+    ContractSelection* selectedContract();
+    StatementSelection* selectedStatement();
+    TransactionSelection* selectedTransaction();
+    AnalysisSelection* selectedAnalysis();
+    AnnualSelection* selectedAnnual();
 
     void refreshAll();
     void refreshSelectedTransaction();
@@ -151,13 +294,13 @@ private:
     QString selectedAnalysisId_;
     QString selectedAnnualId_;
 
-    EntitySelection selectedActor_;
-    EntitySelection selectedProperty_;
-    EntitySelection selectedContract_;
-    EntitySelection selectedStatement_;
-    EntitySelection selectedTransaction_;
-    EntitySelection selectedAnalysis_;
-    EntitySelection selectedAnnual_;
+    ActorSelection selectedActor_;
+    PropertySelection selectedProperty_;
+    ContractSelection selectedContract_;
+    StatementSelection selectedStatement_;
+    TransactionSelection selectedTransaction_;
+    AnalysisSelection selectedAnalysis_;
+    AnnualSelection selectedAnnual_;
 
     void refreshSelectedActor();
     void refreshSelectedProperty();

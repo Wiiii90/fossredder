@@ -151,13 +151,13 @@ void StateFacade::setSelectedAnnualId(const QString& id)
     if (selection_.setSelectedAnnualId(id)) emit selectedAnnualIdChanged();
 }
 
-EntitySelection* StateFacade::selectedActor() { return selection_.selectedActor(); }
-EntitySelection* StateFacade::selectedProperty() { return selection_.selectedProperty(); }
-EntitySelection* StateFacade::selectedContract() { return selection_.selectedContract(); }
-EntitySelection* StateFacade::selectedStatement() { return selection_.selectedStatement(); }
-EntitySelection* StateFacade::selectedTransaction() { return selection_.selectedTransaction(); }
-EntitySelection* StateFacade::selectedAnalysis() { return selection_.selectedAnalysis(); }
-EntitySelection* StateFacade::selectedAnnual() { return selection_.selectedAnnual(); }
+ActorSelection* StateFacade::selectedActor() { return selection_.selectedActor(); }
+PropertySelection* StateFacade::selectedProperty() { return selection_.selectedProperty(); }
+ContractSelection* StateFacade::selectedContract() { return selection_.selectedContract(); }
+StatementSelection* StateFacade::selectedStatement() { return selection_.selectedStatement(); }
+TransactionSelection* StateFacade::selectedTransaction() { return selection_.selectedTransaction(); }
+AnalysisSelection* StateFacade::selectedAnalysis() { return selection_.selectedAnalysis(); }
+AnnualSelection* StateFacade::selectedAnnual() { return selection_.selectedAnnual(); }
 
 QVariantList StateFacade::statementTransactionIds(const QString& statementId) const
 {

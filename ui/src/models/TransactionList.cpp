@@ -83,9 +83,10 @@ void TransactionList::setTransactions(std::vector<std::shared_ptr<Transaction>> 
 
 void TransactionList::setContracts(std::vector<std::shared_ptr<::Contract>> contracts)
 {
-    beginResetModel();
     contracts_ = std::move(contracts);
-    endResetModel();
+    const int rows = rowCount();
+    if (rows == 0) return;
+    emit dataChanged(index(0), index(rows - 1), { TypeRole });
 }
 
 std::vector<std::shared_ptr<Transaction>> TransactionList::transactions() const

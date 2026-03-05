@@ -1,175 +1,173 @@
 #include "ui/state/SelectionState.h"
 
+#include <utility>
+
 namespace ui {
 
-EntitySelection::EntitySelection(QObject* parent)
+template <typename Selection, typename Collection, typename Mapper>
+void refreshSelection(const QString& selectedId,
+                      const Collection& items,
+                      Selection& selection,
+                      Mapper&& mapper)
+{
+    if (selectedId.isEmpty()) { selection.clear(); return; }
+    for (const auto& item : items) {
+        if (!item) continue;
+        if (QString::fromStdString(item->id) != selectedId) continue;
+        mapper(*item, selection);
+        return;
+    }
+    selection.clear();
+}
+
+ActorSelection::ActorSelection(QObject* parent)
     : QObject(parent)
 {
 }
 
-void EntitySelection::clear()
+void ActorSelection::clear()
 {
-    id_.clear();
-    name_.clear();
-    type_.clear();
-    aliases_.clear();
-    address_.clear();
-    description_.clear();
-    actorIds_.clear();
-    propertyIds_.clear();
-    bookingDate_.clear();
-    amount_ = 0.0;
-    allocatable_ = false;
-    statementId_.clear();
-    actorId_.clear();
-    actorProposal_.clear();
+    set({}, {}, {}, {}, {});
+}
+
+void ActorSelection::set(QString id, QString name, QString type, QString description, QStringList aliases)
+{
+    id_ = std::move(id);
+    name_ = std::move(name);
+    type_ = std::move(type);
+    description_ = std::move(description);
+    aliases_ = std::move(aliases);
     emit changed();
 }
 
-void EntitySelection::setActor(const QString& id, const QString& name, const QString& type, const QString& description, const QStringList& aliases)
+PropertySelection::PropertySelection(QObject* parent)
+    : QObject(parent)
 {
-    id_ = id;
-    name_ = name;
-    type_ = type;
-    aliases_ = aliases;
-    address_.clear();
-    description_ = description;
-    actorIds_.clear();
-    propertyIds_.clear();
-    bookingDate_.clear();
-    amount_ = 0.0;
-    statementId_.clear();
-    actorId_.clear();
-    actorProposal_.clear();
+}
+
+void PropertySelection::clear()
+{
+    set({}, {}, {}, {});
+}
+
+void PropertySelection::set(QString id, QString name, QString address, QString description)
+{
+    id_ = std::move(id);
+    name_ = std::move(name);
+    address_ = std::move(address);
+    description_ = std::move(description);
     emit changed();
 }
 
-void EntitySelection::setProperty(const QString& id, const QString& name, const QString& address, const QString& description)
+ContractSelection::ContractSelection(QObject* parent)
+    : QObject(parent)
 {
-    id_ = id;
-    name_ = name;
-    type_.clear();
-    aliases_.clear();
-    address_ = address;
-    description_ = description;
-    actorIds_.clear();
-    propertyIds_.clear();
-    bookingDate_.clear();
-    amount_ = 0.0;
-    statementId_.clear();
-    actorId_.clear();
-    actorProposal_.clear();
+}
+
+void ContractSelection::clear()
+{
+    set({}, {}, {}, {}, {}, {});
+}
+
+void ContractSelection::set(QString id,
+                            QString name,
+                            QString type,
+                            QString description,
+                            QStringList actorIds,
+                            QStringList propertyIds)
+{
+    id_ = std::move(id);
+    name_ = std::move(name);
+    type_ = std::move(type);
+    description_ = std::move(description);
+    actorIds_ = std::move(actorIds);
+    propertyIds_ = std::move(propertyIds);
     emit changed();
 }
 
-void EntitySelection::setStatement(const QString& id, const QString& name)
+StatementSelection::StatementSelection(QObject* parent)
+    : QObject(parent)
 {
-    id_ = id;
-    name_ = name;
-    type_.clear();
-    aliases_.clear();
-    address_.clear();
-    description_.clear();
-    actorIds_.clear();
-    propertyIds_.clear();
-    bookingDate_.clear();
-    amount_ = 0.0;
-    statementId_.clear();
-    actorId_.clear();
-    actorProposal_.clear();
+}
+
+void StatementSelection::clear()
+{
+    set({}, {});
+}
+
+void StatementSelection::set(QString id, QString name)
+{
+    id_ = std::move(id);
+    name_ = std::move(name);
     emit changed();
 }
 
-void EntitySelection::setTransaction(const QString& id,
-                                     const QString& name,
-                                     const QString& bookingDate,
-                                     double amount,
-                                     const QString& description,
-                                     const QString& statementId,
-                                     const QString& actorId,
-                                     const QString& actorProposal,
-                                     const QStringList& propertyIds,
-                                     bool allocatable,
-                                     const QString& transactionType)
+TransactionSelection::TransactionSelection(QObject* parent)
+    : QObject(parent)
 {
-    id_ = id;
-    name_ = name;
-    type_.clear();
-    aliases_.clear();
-    address_.clear();
-    description_ = description;
-    actorIds_.clear();
-    propertyIds_ = propertyIds;
-    bookingDate_ = bookingDate;
+}
+
+void TransactionSelection::clear()
+{
+    set({}, {}, {}, 0.0, {}, {}, {}, {}, {}, false);
+}
+
+void TransactionSelection::set(QString id,
+                               QString name,
+                               QString bookingDate,
+                               double amount,
+                               QString description,
+                               QString statementId,
+                               QString actorId,
+                               QString actorProposal,
+                               QStringList propertyIds,
+                               bool allocatable)
+{
+    id_ = std::move(id);
+    name_ = std::move(name);
+    bookingDate_ = std::move(bookingDate);
     amount_ = amount;
-    statementId_ = statementId;
-    actorId_ = actorId;
-    actorProposal_ = actorProposal;
+    description_ = std::move(description);
+    statementId_ = std::move(statementId);
+    actorId_ = std::move(actorId);
+    actorProposal_ = std::move(actorProposal);
+    propertyIds_ = std::move(propertyIds);
     allocatable_ = allocatable;
-    type_ = transactionType;
     emit changed();
 }
 
-void EntitySelection::setContract(const QString& id, const QString& name, const QString& type, const QString& description)
+AnalysisSelection::AnalysisSelection(QObject* parent)
+    : QObject(parent)
 {
-    setContract(id, name, type, description, {}, {});
 }
 
-void EntitySelection::setContract(const QString& id, const QString& name, const QString& type, const QString& description,
-                                  const QStringList& actorIds, const QStringList& propertyIds)
+void AnalysisSelection::clear()
 {
-    id_ = id;
-    name_ = name;
-    type_ = type;
-    aliases_.clear();
-    address_.clear();
-    description_ = description;
-    actorIds_ = actorIds;
-    propertyIds_ = propertyIds;
-    bookingDate_.clear();
-    amount_ = 0.0;
-    statementId_.clear();
-    actorId_.clear();
-    actorProposal_.clear();
-    allocatable_ = false;
+    set({}, {}, {});
+}
+
+void AnalysisSelection::set(QString id, QString name, QString type)
+{
+    id_ = std::move(id);
+    name_ = std::move(name);
+    type_ = std::move(type);
     emit changed();
 }
 
-void EntitySelection::setAnalysis(const QString& id, const QString& name, const QString& type, const QString& description)
+AnnualSelection::AnnualSelection(QObject* parent)
+    : QObject(parent)
 {
-    id_ = id;
-    name_ = name;
-    type_ = type;
-    aliases_.clear();
-    address_.clear();
-    description_ = description;
-    actorIds_.clear();
-    propertyIds_.clear();
-    bookingDate_.clear();
-    amount_ = 0.0;
-    statementId_.clear();
-    actorId_.clear();
-    actorProposal_.clear();
-    allocatable_ = false;
-    emit changed();
 }
 
-void EntitySelection::setAnnual(const QString& id, int year)
+void AnnualSelection::clear()
 {
-    id_ = id;
-    name_ = QString::number(year);
-    type_.clear();
-    aliases_.clear();
-    address_.clear();
-    description_.clear();
-    actorIds_.clear();
-    propertyIds_.clear();
-    bookingDate_.clear();
-    amount_ = 0.0;
-    statementId_.clear();
-    actorId_.clear();
-    actorProposal_.clear();
-    allocatable_ = false;
+    set({}, {});
+}
+
+void AnnualSelection::set(QString id, QString name)
+{
+    id_ = std::move(id);
+    name_ = std::move(name);
     emit changed();
 }
 
@@ -214,13 +212,13 @@ bool SelectionState::setSelectedTransactionId(const QString& id) { if (selectedT
 bool SelectionState::setSelectedAnalysisId(const QString& id) { if (selectedAnalysisId_ == id) return false; selectedAnalysisId_ = id; refreshSelectedAnalysis(); return true; }
 bool SelectionState::setSelectedAnnualId(const QString& id) { if (selectedAnnualId_ == id) return false; selectedAnnualId_ = id; refreshSelectedAnnual(); return true; }
 
-EntitySelection* SelectionState::selectedActor() { return &selectedActor_; }
-EntitySelection* SelectionState::selectedProperty() { return &selectedProperty_; }
-EntitySelection* SelectionState::selectedContract() { return &selectedContract_; }
-EntitySelection* SelectionState::selectedStatement() { return &selectedStatement_; }
-EntitySelection* SelectionState::selectedTransaction() { return &selectedTransaction_; }
-EntitySelection* SelectionState::selectedAnalysis() { return &selectedAnalysis_; }
-EntitySelection* SelectionState::selectedAnnual() { return &selectedAnnual_; }
+ActorSelection* SelectionState::selectedActor() { return &selectedActor_; }
+PropertySelection* SelectionState::selectedProperty() { return &selectedProperty_; }
+ContractSelection* SelectionState::selectedContract() { return &selectedContract_; }
+StatementSelection* SelectionState::selectedStatement() { return &selectedStatement_; }
+TransactionSelection* SelectionState::selectedTransaction() { return &selectedTransaction_; }
+AnalysisSelection* SelectionState::selectedAnalysis() { return &selectedAnalysis_; }
+AnnualSelection* SelectionState::selectedAnnual() { return &selectedAnnual_; }
 
 void SelectionState::refreshAll()
 {
@@ -235,118 +233,82 @@ void SelectionState::refreshAll()
 
 void SelectionState::refreshSelectedActor()
 {
-    if (selectedActorId_.isEmpty()) { selectedActor_.clear(); return; }
-    for (const auto& a : actors_.actors()) {
-        if (!a) continue;
-        if (QString::fromStdString(a->id) != selectedActorId_) continue;
+    refreshSelection(selectedActorId_, actors_.actors(), selectedActor_, [](const Actor& actor, ActorSelection& selection) {
         QStringList aliases;
-        for (const auto& al : a->aliases) aliases.push_back(QString::fromStdString(al));
-        selectedActor_.setActor(QString::fromStdString(a->id),
-                                QString::fromStdString(a->name),
-                                QString::fromStdString(a->type),
-                                QString::fromStdString(a->description),
-                                aliases);
-        return;
-    }
-    selectedActor_.clear();
+        for (const auto& alias : actor.aliases) aliases.push_back(QString::fromStdString(alias));
+        selection.set(QString::fromStdString(actor.id),
+                      QString::fromStdString(actor.name),
+                      QString::fromStdString(actor.type),
+                      QString::fromStdString(actor.description),
+                      aliases);
+    });
 }
 
 void SelectionState::refreshSelectedProperty()
 {
-    if (selectedPropertyId_.isEmpty()) { selectedProperty_.clear(); return; }
-    for (const auto& p : properties_.properties()) {
-        if (!p) continue;
-        if (QString::fromStdString(p->id) != selectedPropertyId_) continue;
-        selectedProperty_.setProperty(QString::fromStdString(p->id),
-                                      QString::fromStdString(p->name),
-                                      QString::fromStdString(p->address),
-                                      QString::fromStdString(p->description));
-        return;
-    }
-    selectedProperty_.clear();
+    refreshSelection(selectedPropertyId_, properties_.properties(), selectedProperty_, [](const Property& property, PropertySelection& selection) {
+        selection.set(QString::fromStdString(property.id),
+                      QString::fromStdString(property.name),
+                      QString::fromStdString(property.address),
+                      QString::fromStdString(property.description));
+    });
 }
 
 void SelectionState::refreshSelectedContract()
 {
-    if (selectedContractId_.isEmpty()) { selectedContract_.clear(); return; }
-    for (const auto& c : contracts_.contracts()) {
-        if (!c) continue;
-        if (QString::fromStdString(c->id) != selectedContractId_) continue;
+    refreshSelection(selectedContractId_, contracts_.contracts(), selectedContract_, [](const Contract& contract, ContractSelection& selection) {
         QStringList actorIds;
-        for (const auto& aid : c->actorIds) actorIds.push_back(QString::fromStdString(aid));
+        for (const auto& actorId : contract.actorIds) actorIds.push_back(QString::fromStdString(actorId));
         QStringList propertyIds;
-        for (const auto& pid : c->propertyIds) propertyIds.push_back(QString::fromStdString(pid));
-        selectedContract_.setContract(QString::fromStdString(c->id),
-                                      QString::fromStdString(c->name),
-                                      QString::fromStdString(c->type),
-                                      QString::fromStdString(c->description),
-                                      actorIds,
-                                      propertyIds);
-        return;
-    }
-    selectedContract_.clear();
+        for (const auto& propertyId : contract.propertyIds) propertyIds.push_back(QString::fromStdString(propertyId));
+        selection.set(QString::fromStdString(contract.id),
+                      QString::fromStdString(contract.name),
+                      QString::fromStdString(contract.type),
+                      QString::fromStdString(contract.description),
+                      actorIds,
+                      propertyIds);
+    });
 }
 
 void SelectionState::refreshSelectedStatement()
 {
-    if (selectedStatementId_.isEmpty()) { selectedStatement_.clear(); return; }
-    for (const auto& s : statements_.statements()) {
-        if (!s) continue;
-        if (QString::fromStdString(s->id) != selectedStatementId_) continue;
-        selectedStatement_.setStatement(QString::fromStdString(s->id), QString::fromStdString(s->name));
-        return;
-    }
-    selectedStatement_.clear();
+    refreshSelection(selectedStatementId_, statements_.statements(), selectedStatement_, [](const Statement& statement, StatementSelection& selection) {
+        selection.set(QString::fromStdString(statement.id), QString::fromStdString(statement.name));
+    });
 }
 
 void SelectionState::refreshSelectedTransaction()
 {
-    if (selectedTransactionId_.isEmpty()) { selectedTransaction_.clear(); return; }
-    for (const auto& t : transactions_.transactions()) {
-        if (!t) continue;
-        if (QString::fromStdString(t->id) != selectedTransactionId_) continue;
+    refreshSelection(selectedTransactionId_, transactions_.transactions(), selectedTransaction_, [](const Transaction& transaction, TransactionSelection& selection) {
         QStringList propertyIds;
-        for (const auto& pid : t->propertyIds) propertyIds.push_back(QString::fromStdString(pid));
-        selectedTransaction_.setTransaction(QString::fromStdString(t->id),
-                                            QString::fromStdString(t->name),
-                                            QString::fromStdString(t->bookingDate),
-                                            t->amount,
-                                            QString::fromStdString(t->description),
-                                            QString::fromStdString(t->statementId),
-                                            QString::fromStdString(t->actorId),
-                                            QString::fromStdString(t->actorProposal),
-                                            propertyIds,
-                                            t->allocatable,
-                                            QString());
-        return;
-    }
-    selectedTransaction_.clear();
+        for (const auto& propertyId : transaction.propertyIds) propertyIds.push_back(QString::fromStdString(propertyId));
+        selection.set(QString::fromStdString(transaction.id),
+                      QString::fromStdString(transaction.name),
+                      QString::fromStdString(transaction.bookingDate),
+                      transaction.amount,
+                      QString::fromStdString(transaction.description),
+                      QString::fromStdString(transaction.statementId),
+                      QString::fromStdString(transaction.actorId),
+                      QString::fromStdString(transaction.actorProposal),
+                      propertyIds,
+                      transaction.allocatable);
+    });
 }
 
 void SelectionState::refreshSelectedAnalysis()
 {
-    if (selectedAnalysisId_.isEmpty()) { selectedAnalysis_.clear(); return; }
-    for (const auto& a : analyses_.analyses()) {
-        if (!a) continue;
-        if (QString::fromStdString(a->id) != selectedAnalysisId_) continue;
-        selectedAnalysis_.setAnalysis(QString::fromStdString(a->id),
-                                      QString::fromStdString(a->name),
-                                      QString::fromStdString(a->type));
-        return;
-    }
-    selectedAnalysis_.clear();
+    refreshSelection(selectedAnalysisId_, analyses_.analyses(), selectedAnalysis_, [](const Analysis& analysis, AnalysisSelection& selection) {
+        selection.set(QString::fromStdString(analysis.id),
+                      QString::fromStdString(analysis.name),
+                      QString::fromStdString(analysis.type));
+    });
 }
 
 void SelectionState::refreshSelectedAnnual()
 {
-    if (selectedAnnualId_.isEmpty()) { selectedAnnual_.clear(); return; }
-    for (const auto& an : annuals_.annuals()) {
-        if (!an) continue;
-        if (QString::fromStdString(an->id) != selectedAnnualId_) continue;
-        selectedAnnual_.setAnnual(QString::fromStdString(an->id), an->year);
-        return;
-    }
-    selectedAnnual_.clear();
+    refreshSelection(selectedAnnualId_, annuals_.annuals(), selectedAnnual_, [](const Annual& annual, AnnualSelection& selection) {
+        selection.set(QString::fromStdString(annual.id), QString::number(annual.year));
+    });
 }
 
 bool SelectionState::clearActorIfSelected(const QString& id)
