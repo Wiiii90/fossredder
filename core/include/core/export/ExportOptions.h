@@ -10,7 +10,19 @@ struct ExportOptions {
     enum class Format {
         Csv,
         Xlsx
-    } format = Format::Xlsx;
+    };
+
+    enum class Status {
+        Ok,
+        InvalidInput,
+        WriteFailed,
+        XlsxGenerationFailed,
+        UnsupportedFormat,
+        InternalError
+    };
+
+    Format requestedFormat = Format::Xlsx;
+    Format actualFormat = Format::Xlsx;
 
     // Output path (file)
     std::string outputPath;
@@ -23,6 +35,11 @@ struct ExportOptions {
 
     // Immutable AppState snapshot to export from. If null, export will fail.
     std::shared_ptr<const AppState> stateSnapshot;
+
+    Status status = Status::InternalError;
+    std::string resolvedOutputPath;
+    std::string errorCode;
+    std::string message;
 };
 
 } // namespace core::controllers::exporting

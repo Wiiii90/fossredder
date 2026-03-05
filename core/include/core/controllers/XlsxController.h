@@ -7,7 +7,7 @@ namespace core::controllers::exporting {
 class XlsxController {
 public:
     XlsxController() = default;
-    bool exportData(const ExportOptions& opts);
+    ExportOptions::Status exportData(ExportOptions& opts);
 };
 
 } // namespace core::controllers::exporting

@@ -6,6 +6,7 @@
 #include <QFutureWatcher>
 
 #include "core/controllers/AppStateController.h"
+#include "core/export/ExportOptions.h"
 
 namespace ui {
 
@@ -28,13 +29,9 @@ private slots:
 
 private:
     AppStateController* core_ = nullptr;
-    QFuture<bool> exportFuture_;
-    QFutureWatcher<bool> exportWatcher_;
+    QFuture<core::controllers::exporting::ExportOptions> exportFuture_;
+    QFutureWatcher<core::controllers::exporting::ExportOptions> exportWatcher_;
     bool isRunning_ = false;
-    QString lastPath_;
-    int lastFormat_ = 0;
-    bool lastIncludeFormulas_ = true;
-    QString lastLocale_;
 };
 
 }

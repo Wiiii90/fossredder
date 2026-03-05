@@ -12,7 +12,7 @@ class ExportController {
 public:
     explicit ExportController(std::shared_ptr<XlsxController> xlsx, std::shared_ptr<CsvController> csv);
 
-    bool exportData(const ExportOptions& opts);
+    ExportOptions::Status exportData(ExportOptions& opts);
 
 private:
     std::shared_ptr<XlsxController> xlsx_;

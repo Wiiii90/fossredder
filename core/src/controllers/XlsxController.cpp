@@ -2,12 +2,10 @@
 
 #include "core/errors/ErrorReporterRegistry.h"
 
-#include <stdexcept>
 #include <xlnt/xlnt.hpp>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <sstream>
 
 #include "core/models/AppState.h"
 #include "core/models/Property.h"
@@ -16,14 +14,27 @@
 
 namespace core::controllers::exporting {
 
-bool XlsxController::exportData(const ExportOptions& opts) {
+ExportOptions::Status XlsxController::exportData(ExportOptions& opts) {
     try {
-        if (opts.outputPath.empty()) return false;
+        opts.actualFormat = ExportOptions::Format::Xlsx;
+        opts.resolvedOutputPath = opts.outputPath;
+
+        if (opts.outputPath.empty()) {
+            opts.status = ExportOptions::Status::InvalidInput;
+            opts.errorCode = "EXPORT_OUTPUT_PATH_EMPTY";
+            opts.message = "Output path is empty";
+            return opts.status;
+        }
 
         xlnt::workbook wb;
 
         // Validate AppState
-        if (!opts.stateSnapshot) return false;
+        if (!opts.stateSnapshot) {
+            opts.status = ExportOptions::Status::InvalidInput;
+            opts.errorCode = "EXPORT_STATE_MISSING";
+            opts.message = "State snapshot is missing";
+            return opts.status;
+        }
         const AppState& state = *opts.stateSnapshot;
 
         // Collect properties map id->name for lookups
@@ -163,13 +174,22 @@ bool XlsxController::exportData(const ExportOptions& opts) {
         }
 
         wb.save(opts.outputPath);
-        return true;
-    } catch (const std::exception& ex) {
+        opts.status = ExportOptions::Status::Ok;
+        opts.errorCode.clear();
+        opts.message.clear();
+        return opts.status;
+    } catch (const std::exception&) {
         core::errors::reportException(core::errors::ErrorSeverity::Error, "core::XlsxController::exportData", std::current_exception());
-        return false;
+        opts.status = ExportOptions::Status::XlsxGenerationFailed;
+        opts.errorCode = "EXPORT_XLSX_GENERATION_FAILED";
+        opts.message = "XLSX generation failed";
+        return opts.status;
     } catch (...) {
         core::errors::reportException(core::errors::ErrorSeverity::Error, "core::XlsxController::exportDataUnknown", std::current_exception());
-        return false;
+        opts.status = ExportOptions::Status::InternalError;
+        opts.errorCode = "EXPORT_INTERNAL_ERROR";
+        opts.message = "Unexpected error during XLSX export";
+        return opts.status;
     }
 }
 

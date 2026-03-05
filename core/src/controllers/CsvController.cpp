@@ -34,9 +34,21 @@ static std::string escapeCsvField(const std::string& s, char sep) {
     return out;
 }
 
-bool CsvController::exportData(const ExportOptions& opts) {
-    if (opts.outputPath.empty()) return false;
-    if (!opts.stateSnapshot) return false;
+ExportOptions::Status CsvController::exportData(ExportOptions& opts) {
+    opts.actualFormat = ExportOptions::Format::Csv;
+    opts.resolvedOutputPath = opts.outputPath;
+    if (opts.outputPath.empty()) {
+        opts.status = ExportOptions::Status::InvalidInput;
+        opts.errorCode = "EXPORT_OUTPUT_PATH_EMPTY";
+        opts.message = "Output path is empty";
+        return opts.status;
+    }
+    if (!opts.stateSnapshot) {
+        opts.status = ExportOptions::Status::InvalidInput;
+        opts.errorCode = "EXPORT_STATE_MISSING";
+        opts.message = "State snapshot is missing";
+        return opts.status;
+    }
 
     const AppState& state = *opts.stateSnapshot;
 
@@ -147,7 +159,12 @@ bool CsvController::exportData(const ExportOptions& opts) {
     const char sep = ';';
 
     std::ofstream out(opts.outputPath, std::ios::binary);
-    if (!out) return false;
+    if (!out) {
+        opts.status = ExportOptions::Status::WriteFailed;
+        opts.errorCode = "EXPORT_FILE_OPEN_FAILED";
+        opts.message = "Failed to open export output file";
+        return opts.status;
+    }
     // BOM
     const unsigned char bom[] = { 0xEF, 0xBB, 0xBF };
     out.write(reinterpret_cast<const char*>(bom), sizeof(bom));
@@ -186,7 +203,17 @@ bool CsvController::exportData(const ExportOptions& opts) {
     }
 
     out.close();
-    return true;
+    if (!out) {
+        opts.status = ExportOptions::Status::WriteFailed;
+        opts.errorCode = "EXPORT_FILE_WRITE_FAILED";
+        opts.message = "Failed while writing export output file";
+        return opts.status;
+    }
+
+    opts.status = ExportOptions::Status::Ok;
+    opts.errorCode.clear();
+    opts.message.clear();
+    return opts.status;
 }
 
 } // namespace core::controllers::exporting
