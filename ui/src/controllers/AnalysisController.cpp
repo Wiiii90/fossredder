@@ -1,36 +1,13 @@
 #include "ui/controllers/AnalysisController.h"
 
+#include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
 
 #include "core/analysis/AnalysisController.h"
-#include "core/errors/ErrorCodes.h"
-#include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/Contract.h"
 #include "core/models/Transaction.h"
 
 namespace ui {
-
-namespace {
-
-bool ensureCore(const AppStateController* core, const char* origin)
-{
-    if (core) return true;
-    core::errors::report(core::errors::ErrorSeverity::Warning,
-                         core::errors::codes::GenericError,
-                         origin,
-                         "AppStateController is null");
-    return false;
-}
-
-void reportControllerException(const char* origin)
-{
-    core::errors::reportException(core::errors::ErrorSeverity::Error,
-                                  core::errors::codes::ExceptionError,
-                                  origin,
-                                  std::current_exception());
-}
-
-}
 
 AnalysisController::AnalysisController(AppStateController* core, const ::AnalysisController* analysisController, QObject* parent)
     : QObject(parent)
@@ -41,11 +18,11 @@ AnalysisController::AnalysisController(AppStateController* core, const ::Analysi
 
 QString AnalysisController::addAnalysis(const QString& name, const QString& type, const QString& configJson, const QString& filterSpec)
 {
-    if (!ensureCore(core_, "ui::AnalysisController::addAnalysis")) return {};
+    if (!controllers::guard::ensureCore(core_, "ui::AnalysisController::addAnalysis")) return {};
     try {
         return QString::fromStdString(core_->addAnalysis(strings::toStdString(name), strings::toStdString(type), strings::toStdString(configJson), strings::toStdString(filterSpec)));
     } catch (...) {
-        reportControllerException("ui::AnalysisController::addAnalysis");
+        controllers::guard::reportException("ui::AnalysisController::addAnalysis");
     }
     return {};
 }
@@ -53,7 +30,7 @@ QString AnalysisController::addAnalysis(const QString& name, const QString& type
 QVariantMap AnalysisController::computeAnalysis(const QString& analysisId, const QString& filterSpec) const
 {
     QVariantMap out;
-    if (!ensureCore(core_, "ui::AnalysisController::computeAnalysis")) return out;
+    if (!controllers::guard::ensureCore(core_, "ui::AnalysisController::computeAnalysis")) return out;
     if (!analysisController_) {
         core::errors::report(core::errors::ErrorSeverity::Warning,
                              core::errors::codes::GenericError,
@@ -101,7 +78,7 @@ QVariantMap AnalysisController::computeAnalysis(const QString& analysisId, const
         out["generatedAt"] = QString::fromStdString(result.createdAt);
         return out;
     } catch (...) {
-        reportControllerException("ui::AnalysisController::computeAnalysis");
+        controllers::guard::reportException("ui::AnalysisController::computeAnalysis");
     }
 
     return out;

@@ -19,6 +19,28 @@
 
 namespace ui {
 
+namespace {
+
+constexpr int kImportRunKeepCount = 20;
+constexpr double kInitialImportProgress = 0.01;
+
+const auto kImportTypeStatement = QStringLiteral("Statement");
+const auto kStatusCanceled = QStringLiteral("Canceled");
+const auto kStatusFailed = QStringLiteral("Failed");
+const auto kStatusSuccess = QStringLiteral("Success");
+
+const auto kPhaseStopping = QStringLiteral("Stopping...");
+const auto kPhaseStartingImport = QStringLiteral("Starting import...");
+const auto kPhaseImportCanceled = QStringLiteral("Import canceled");
+const auto kPhaseImportFailed = QStringLiteral("Import failed");
+const auto kPhaseImportFinished = QStringLiteral("Import finished");
+
+const auto kErrorImportControllerUnavailable = QStringLiteral("Import controller not available");
+const auto kErrorNoFileSelected = QStringLiteral("No file selected");
+const auto kErrorImportFailed = QStringLiteral("Import failed");
+
+}
+
 ImportController::ImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent)
     : QObject(parent)
     , jobSystem_(std::move(jobSystem))
@@ -106,7 +128,7 @@ void ImportController::cancelImport()
     if (!isRunning_) return;
     canceled_ = true;
     cancelClearsQueue_ = false;
-    phase_ = QStringLiteral("Stopping...");
+    phase_ = kPhaseStopping;
     if (jobSystem_ && !currentJobId_.isEmpty()) jobSystem_->manager().cancel(currentJobId_.toStdString());
     emit stateChanged();
 }
@@ -117,7 +139,7 @@ void ImportController::cancelAllImports()
     canceled_ = true;
     cancelClearsQueue_ = true;
     queuedFiles_.clear();
-    phase_ = QStringLiteral("Stopping...");
+    phase_ = kPhaseStopping;
     if (jobSystem_ && !currentJobId_.isEmpty()) jobSystem_->manager().cancel(currentJobId_.toStdString());
     emit stateChanged();
 }
@@ -188,14 +210,14 @@ void ImportController::startImportForFile(const QString& path)
 {
     if (isRunning_) return;
     if (!jobSystem_) {
-        error_ = QStringLiteral("Import controller not available");
+        error_ = kErrorImportControllerUnavailable;
         queuedFiles_.clear();
         emit stateChanged();
         emit importFailed(error_);
         return;
     }
     if (path.trimmed().isEmpty()) {
-        error_ = QStringLiteral("No file selected");
+        error_ = kErrorNoFileSelected;
         queuedFiles_.clear();
         emit stateChanged();
         emit importFailed(error_);
@@ -212,8 +234,8 @@ void ImportController::startImportForFile(const QString& path)
     artifacts_.clear();
 
     error_.clear();
-    phase_ = QStringLiteral("Starting import...");
-    progress_ = 0.01;
+    phase_ = kPhaseStartingImport;
+    progress_ = kInitialImportProgress;
     isRunning_ = true;
     canceled_ = false;
     emit stateChanged();
@@ -221,7 +243,7 @@ void ImportController::startImportForFile(const QString& path)
     const QByteArray nativePath = QFile::encodeName(path);
     std::string p(nativePath.constData(), static_cast<size_t>(nativePath.size()));
 
-    cleanupOldImportRuns(20);
+    cleanupOldImportRuns(kImportRunKeepCount);
 
     QString runIdPrefixQ;
     const QString runRootQ = makeImportRunRootDir(&runIdPrefixQ);
@@ -306,27 +328,27 @@ void ImportController::onJobTerminal(int state, const QString& message)
     const auto s = static_cast<core::jobs::JobState>(state);
 
     if (s == core::jobs::JobState::Canceled || canceled_) {
-        phase_ = QStringLiteral("Import canceled");
+        phase_ = kPhaseImportCanceled;
         error_.clear();
         isRunning_ = false;
         progress_ = 0.0;
         if (cancelClearsQueue_) queuedFiles_.clear();
-        runs_.addRun(now, QStringLiteral("Statement"), currentImportFile_.isEmpty() ? selectedFile_ : currentImportFile_, QStringLiteral("Canceled"), QStringLiteral(""));
+        runs_.addRun(now, kImportTypeStatement, currentImportFile_.isEmpty() ? selectedFile_ : currentImportFile_, kStatusCanceled, QStringLiteral(""));
         selectedFile_.clear();
         currentImportFile_.clear();
         cancelClearsQueue_ = false;
         emit stateChanged();
-        emit importFailed(QStringLiteral("Canceled"));
+        emit importFailed(kStatusCanceled);
         return;
     }
 
     if (s == core::jobs::JobState::Failed) {
-        error_ = message.isEmpty() ? QStringLiteral("Import failed") : message;
-        phase_ = QStringLiteral("Import failed");
+        error_ = message.isEmpty() ? kErrorImportFailed : message;
+        phase_ = kPhaseImportFailed;
         isRunning_ = false;
         progress_ = 0.0;
         queuedFiles_.clear();
-        runs_.addRun(now, QStringLiteral("Statement"), currentImportFile_.isEmpty() ? selectedFile_ : currentImportFile_, QStringLiteral("Failed"), error_);
+        runs_.addRun(now, kImportTypeStatement, currentImportFile_.isEmpty() ? selectedFile_ : currentImportFile_, kStatusFailed, error_);
         currentImportFile_.clear();
         emit stateChanged();
         emit importFailed(error_);
@@ -335,11 +357,11 @@ void ImportController::onJobTerminal(int state, const QString& message)
 
     auto imported = jobSystem_ && !currentJobId_.isEmpty() ? jobSystem_->manager().statementResult(currentJobId_.toStdString()) : nullptr;
     if (!imported) {
-        error_ = QStringLiteral("Import failed");
-        phase_ = QStringLiteral("Import failed");
+        error_ = kErrorImportFailed;
+        phase_ = kPhaseImportFailed;
         isRunning_ = false;
         progress_ = 0.0;
-        runs_.addRun(now, QStringLiteral("Statement"), currentImportFile_.isEmpty() ? selectedFile_ : currentImportFile_, QStringLiteral("Failed"), error_);
+        runs_.addRun(now, kImportTypeStatement, currentImportFile_.isEmpty() ? selectedFile_ : currentImportFile_, kStatusFailed, error_);
         currentImportFile_.clear();
         emit stateChanged();
         emit importFailed(error_);
@@ -378,10 +400,10 @@ void ImportController::onJobTerminal(int state, const QString& message)
     }
     draft_->setDrafts(std::move(txs));
 
-    phase_ = QStringLiteral("Import finished");
+    phase_ = kPhaseImportFinished;
     progress_ = 1.0;
     isRunning_ = false;
-    runs_.addRun(now, QStringLiteral("Statement"), currentImportFile_, QStringLiteral("Success"), QStringLiteral(""));
+    runs_.addRun(now, kImportTypeStatement, currentImportFile_, kStatusSuccess, QStringLiteral(""));
     currentImportFile_.clear();
     emit stateChanged();
     emit importFinished();

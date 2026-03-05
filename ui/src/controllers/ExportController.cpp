@@ -1,10 +1,10 @@
 #include "ui/controllers/ExportController.h"
 
+#include "ui/controllers/ControllerGuard.h"
+
 #include "core/controllers/CsvController.h"
 #include "core/controllers/ExportController.h"
 #include "core/controllers/XlsxController.h"
-#include "core/errors/ErrorCodes.h"
-#include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/Actor.h"
 #include "core/models/Analysis.h"
 #include "core/models/Annual.h"
@@ -19,24 +19,6 @@
 namespace ui {
 
 namespace {
-
-bool ensureCore(const AppStateController* core, const char* origin)
-{
-    if (core) return true;
-    core::errors::report(core::errors::ErrorSeverity::Warning,
-                         core::errors::codes::GenericError,
-                         origin,
-                         "AppStateController is null");
-    return false;
-}
-
-void reportExportException(const char* origin)
-{
-    core::errors::reportException(core::errors::ErrorSeverity::Error,
-                                  core::errors::codes::ExceptionError,
-                                  origin,
-                                  std::current_exception());
-}
 
 std::shared_ptr<const AppState> createExportSnapshot(const AppState& state)
 {
@@ -98,7 +80,7 @@ ExportController::ExportController(AppStateController* core, QObject* parent)
 
 void ExportController::exportData(int format, const QString& path, bool includeFormulas, const QString& locale)
 {
-    if (!ensureCore(core_, "ui::ExportController::exportData")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::ExportController::exportData")) return;
     if (isRunning_) return;
 
     try {
@@ -122,7 +104,7 @@ void ExportController::exportData(int format, const QString& path, bool includeF
         });
         exportWatcher_.setFuture(exportFuture_);
     } catch (...) {
-        reportExportException("ui::ExportController::exportData");
+        controllers::guard::reportException("ui::ExportController::exportData");
         isRunning_ = false;
         emit stateChanged();
         emit exportFinished(false);
@@ -142,7 +124,7 @@ void ExportController::onExportFinished()
                                  result.message.empty() ? "Export failed" : result.message);
         }
     } catch (...) {
-        reportExportException("ui::ExportController::onExportFinished");
+        controllers::guard::reportException("ui::ExportController::onExportFinished");
         success = false;
     }
 

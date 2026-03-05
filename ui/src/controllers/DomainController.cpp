@@ -1,5 +1,6 @@
 #include "ui/controllers/DomainController.h"
 
+#include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/models/StatementDraft.h"
 
@@ -8,34 +9,9 @@
 #include "core/models/Contract.h"
 #include "core/models/Transaction.h"
 
-#include "core/errors/ErrorCodes.h"
-#include "core/errors/ErrorReporterRegistry.h"
-
 #include <unordered_set>
 
 namespace ui {
-
-namespace {
-
-bool ensureCore(const AppStateController* core, const char* origin)
-{
-    if (core) return true;
-    core::errors::report(core::errors::ErrorSeverity::Warning,
-                         core::errors::codes::GenericError,
-                         origin,
-                         "AppStateController is null");
-    return false;
-}
-
-void reportControllerException(const char* origin)
-{
-    core::errors::reportException(core::errors::ErrorSeverity::Error,
-                                  core::errors::codes::ExceptionError,
-                                  origin,
-                                  std::current_exception());
-}
-
-}
 
 DomainController::DomainController(AppStateController* core, QObject* parent)
     : QObject(parent)
@@ -45,74 +21,74 @@ DomainController::DomainController(AppStateController* core, QObject* parent)
 
 QString DomainController::addActor(const QString& name, const QString& type, const QString& description, const QStringList& aliases)
 {
-    if (!ensureCore(core_, "ui::DomainController::addActor")) return {};
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::addActor")) return {};
     try {
         return QString::fromStdString(core_->addActor(strings::toStdString(name), strings::toStdString(type), strings::toStdString(description), strings::toStdListTrimmed(aliases)));
     } catch (...) {
-        reportControllerException("ui::DomainController::addActor");
+        controllers::guard::reportException("ui::DomainController::addActor");
     }
     return {};
 }
 
 void DomainController::updateActor(const QString& id, const QString& name, const QString& type, const QString& description, const QStringList& aliases)
 {
-    if (!ensureCore(core_, "ui::DomainController::updateActor")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::updateActor")) return;
     try {
         core_->updateActor(id.toStdString(), strings::toStdString(name), strings::toStdString(type), strings::toStdString(description), strings::toStdListTrimmed(aliases));
     } catch (...) {
-        reportControllerException("ui::DomainController::updateActor");
+        controllers::guard::reportException("ui::DomainController::updateActor");
     }
 }
 
 void DomainController::deleteActor(const QString& id)
 {
-    if (!ensureCore(core_, "ui::DomainController::deleteActor")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::deleteActor")) return;
     try {
         core_->deleteActor(id.toStdString());
     } catch (...) {
-        reportControllerException("ui::DomainController::deleteActor");
+        controllers::guard::reportException("ui::DomainController::deleteActor");
     }
 }
 
 QString DomainController::addAnnual(int year)
 {
-    if (!ensureCore(core_, "ui::DomainController::addAnnual")) return {};
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::addAnnual")) return {};
     try {
         return QString::fromStdString(core_->addAnnual(year));
     } catch (...) {
-        reportControllerException("ui::DomainController::addAnnual");
+        controllers::guard::reportException("ui::DomainController::addAnnual");
     }
     return {};
 }
 
 void DomainController::updateAnnual(const QString& id, int year)
 {
-    if (!ensureCore(core_, "ui::DomainController::updateAnnual")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::updateAnnual")) return;
     try {
         core_->updateAnnual(id.toStdString(), year);
     } catch (...) {
-        reportControllerException("ui::DomainController::updateAnnual");
+        controllers::guard::reportException("ui::DomainController::updateAnnual");
     }
 }
 
 void DomainController::deleteAnnual(const QString& id)
 {
-    if (!ensureCore(core_, "ui::DomainController::deleteAnnual")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::deleteAnnual")) return;
     try {
         core_->deleteAnnual(id.toStdString());
     } catch (...) {
-        reportControllerException("ui::DomainController::deleteAnnual");
+        controllers::guard::reportException("ui::DomainController::deleteAnnual");
     }
 }
 
 QString DomainController::addContract(const QString& name, const QString& type, const QString& description,
                                       const QStringList& actorIds, const QStringList& propertyIds)
 {
-    if (!ensureCore(core_, "ui::DomainController::addContract")) return {};
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::addContract")) return {};
     try {
         return QString::fromStdString(core_->addContract(strings::toStdString(name), strings::toStdString(type), strings::toStdString(description), strings::toStdList(actorIds), strings::toStdList(propertyIds)));
     } catch (...) {
-        reportControllerException("ui::DomainController::addContract");
+        controllers::guard::reportException("ui::DomainController::addContract");
     }
     return {};
 }
@@ -120,83 +96,83 @@ QString DomainController::addContract(const QString& name, const QString& type, 
 void DomainController::updateContract(const QString& id, const QString& name, const QString& type, const QString& description,
                                       const QStringList& actorIds, const QStringList& propertyIds)
 {
-    if (!ensureCore(core_, "ui::DomainController::updateContract")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::updateContract")) return;
     try {
         core_->updateContract(id.toStdString(), strings::toStdString(name), strings::toStdString(type), strings::toStdString(description), strings::toStdList(actorIds), strings::toStdList(propertyIds));
     } catch (...) {
-        reportControllerException("ui::DomainController::updateContract");
+        controllers::guard::reportException("ui::DomainController::updateContract");
     }
 }
 
 void DomainController::deleteContract(const QString& id)
 {
-    if (!ensureCore(core_, "ui::DomainController::deleteContract")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::deleteContract")) return;
     try {
         core_->deleteContract(id.toStdString());
     } catch (...) {
-        reportControllerException("ui::DomainController::deleteContract");
+        controllers::guard::reportException("ui::DomainController::deleteContract");
     }
 }
 
 QString DomainController::addProperty(const QString& name, const QString& address, const QString& description)
 {
-    if (!ensureCore(core_, "ui::DomainController::addProperty")) return {};
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::addProperty")) return {};
     try {
         return QString::fromStdString(core_->addProperty(strings::toStdString(name), strings::toStdString(address), strings::toStdString(description)));
     } catch (...) {
-        reportControllerException("ui::DomainController::addProperty");
+        controllers::guard::reportException("ui::DomainController::addProperty");
     }
     return {};
 }
 
 void DomainController::updateProperty(const QString& id, const QString& name, const QString& address, const QString& description)
 {
-    if (!ensureCore(core_, "ui::DomainController::updateProperty")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::updateProperty")) return;
     try {
         core_->updateProperty(id.toStdString(), strings::toStdString(name), strings::toStdString(address), strings::toStdString(description));
     } catch (...) {
-        reportControllerException("ui::DomainController::updateProperty");
+        controllers::guard::reportException("ui::DomainController::updateProperty");
     }
 }
 
 void DomainController::deleteProperty(const QString& id)
 {
-    if (!ensureCore(core_, "ui::DomainController::deleteProperty")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::deleteProperty")) return;
     try {
         core_->deleteProperty(id.toStdString());
     } catch (...) {
-        reportControllerException("ui::DomainController::deleteProperty");
+        controllers::guard::reportException("ui::DomainController::deleteProperty");
     }
 }
 
 QString DomainController::addStatement(const QString& name)
 {
-    if (!ensureCore(core_, "ui::DomainController::addStatement")) return {};
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::addStatement")) return {};
     try {
         return QString::fromStdString(core_->addStatement(strings::toStdString(name)));
     } catch (...) {
-        reportControllerException("ui::DomainController::addStatement");
+        controllers::guard::reportException("ui::DomainController::addStatement");
     }
     return {};
 }
 
 void DomainController::updateStatement(const QString& id, const QString& name)
 {
-    if (!ensureCore(core_, "ui::DomainController::updateStatement")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::updateStatement")) return;
     try {
         core_->updateStatement(id.toStdString(), strings::toStdString(name));
     } catch (...) {
-        reportControllerException("ui::DomainController::updateStatement");
+        controllers::guard::reportException("ui::DomainController::updateStatement");
     }
 }
 
 void DomainController::deleteStatement(const QString& id)
 {
-    if (!ensureCore(core_, "ui::DomainController::deleteStatement")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::deleteStatement")) return;
     try {
         core_->deleteStatement(id.toStdString());
     } catch (...) {
-        reportControllerException("ui::DomainController::deleteStatement");
+        controllers::guard::reportException("ui::DomainController::deleteStatement");
     }
 }
 
@@ -210,7 +186,7 @@ QString DomainController::addTransaction(const QString& name,
                                          bool allocatable,
                                          const QStringList& propertyIds)
 {
-    if (!ensureCore(core_, "ui::DomainController::addTransaction")) return {};
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::addTransaction")) return {};
     try {
         return QString::fromStdString(core_->addTransaction(strings::toStdString(name),
                                                              strings::toStdString(bookingDate),
@@ -222,7 +198,7 @@ QString DomainController::addTransaction(const QString& name,
                                                              allocatable,
                                                              strings::toStdList(propertyIds)));
     } catch (...) {
-        reportControllerException("ui::DomainController::addTransaction");
+        controllers::guard::reportException("ui::DomainController::addTransaction");
     }
     return {};
 }
@@ -238,7 +214,7 @@ void DomainController::updateTransaction(const QString& id,
                                          bool allocatable,
                                          const QStringList& propertyIds)
 {
-    if (!ensureCore(core_, "ui::DomainController::updateTransaction")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::updateTransaction")) return;
     try {
         core_->updateTransaction(id.toStdString(),
                                  strings::toStdString(name),
@@ -251,24 +227,24 @@ void DomainController::updateTransaction(const QString& id,
                                  allocatable,
                                  strings::toStdList(propertyIds));
     } catch (...) {
-        reportControllerException("ui::DomainController::updateTransaction");
+        controllers::guard::reportException("ui::DomainController::updateTransaction");
     }
 }
 
 void DomainController::deleteTransaction(const QString& id)
 {
-    if (!ensureCore(core_, "ui::DomainController::deleteTransaction")) return;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::deleteTransaction")) return;
     try {
         core_->deleteTransaction(id.toStdString());
     } catch (...) {
-        reportControllerException("ui::DomainController::deleteTransaction");
+        controllers::guard::reportException("ui::DomainController::deleteTransaction");
     }
 }
 
 QStringList DomainController::getContractTypes() const
 {
     QStringList out;
-    if (!ensureCore(core_, "ui::DomainController::getContractTypes")) return out;
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::getContractTypes")) return out;
     try {
         std::unordered_set<std::string> seen;
         for (const auto& c : core_->state().contracts) {
@@ -280,14 +256,14 @@ QStringList DomainController::getContractTypes() const
             out.push_back(QString::fromStdString(type));
         }
     } catch (...) {
-        reportControllerException("ui::DomainController::getContractTypes");
+        controllers::guard::reportException("ui::DomainController::getContractTypes");
     }
     return out;
 }
 
 QString DomainController::finalizeStatementDraft(StatementDraft* draft)
 {
-    if (!ensureCore(core_, "ui::DomainController::finalizeStatementDraft") || !draft) return {};
+    if (!controllers::guard::ensureCore(core_, "ui::DomainController::finalizeStatementDraft") || !draft) return {};
 
     try {
         const auto& drafts = draft->transactions()->drafts();
@@ -312,7 +288,7 @@ QString DomainController::finalizeStatementDraft(StatementDraft* draft)
 
         return QString::fromStdString(core_->finalizeStatementDraft(input));
     } catch (...) {
-        reportControllerException("ui::DomainController::finalizeStatementDraft");
+        controllers::guard::reportException("ui::DomainController::finalizeStatementDraft");
     }
     return {};
 }
