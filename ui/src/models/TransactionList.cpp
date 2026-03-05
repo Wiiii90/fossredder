@@ -16,6 +16,52 @@ void TransactionList::rebuildIdIndex()
     }
 }
 
+void TransactionList::rebuildContractTypeIndex()
+{
+    contractTypeById_.clear();
+    contractTypeById_.reserve(static_cast<int>(contracts_.size()));
+    for (const auto& contract : contracts_) {
+        if (!contract) continue;
+        contractTypeById_.insert(QString::fromStdString(contract->id), QString::fromStdString(contract->type));
+    }
+}
+
+QString TransactionList::contractTypeForTransaction(const Transaction& transaction) const
+{
+    if (transaction.contractId.empty()) return {};
+    const QString contractId = QString::fromStdString(transaction.contractId);
+    const auto it = contractTypeById_.find(contractId);
+    return it == contractTypeById_.end() ? QString() : it.value();
+}
+
+QVariantList TransactionList::toPropertyIdList(const std::vector<std::string>& propertyIds)
+{
+    QVariantList out;
+    out.reserve(static_cast<int>(propertyIds.size()));
+    for (const auto& propertyId : propertyIds) {
+        out.push_back(QString::fromStdString(propertyId));
+    }
+    return out;
+}
+
+void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& transaction) const
+{
+    map["id"] = QString::fromStdString(transaction.id);
+    map["name"] = QString::fromStdString(transaction.name);
+    map["bookingDate"] = QString::fromStdString(transaction.bookingDate);
+    map["valuta"] = QString::fromStdString(transaction.valuta);
+    map["amount"] = transaction.amount;
+    map["description"] = QString::fromStdString(transaction.description);
+    map["status"] = static_cast<int>(transaction.status);
+    map["actorId"] = QString::fromStdString(transaction.actorId);
+    map["actorProposal"] = QString::fromStdString(transaction.actorProposal);
+    map["metadata"] = QString::fromStdString(transaction.metadata);
+    map["proofImagePath"] = QString::fromStdString(transaction.proofImagePath);
+    map["type"] = contractTypeForTransaction(transaction);
+    map["allocatable"] = transaction.allocatable;
+    map["propertyIds"] = toPropertyIdList(transaction.propertyIds);
+}
+
 TransactionList::TransactionList(QObject* parent) : QAbstractListModel(parent) {}
 
 int TransactionList::rowCount(const QModelIndex& parent) const
@@ -45,21 +91,9 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case ActorProposalRole: return QString::fromStdString(t->actorProposal);
     case MetadataRole: return QString::fromStdString(t->metadata);
     case ProofImagePathRole: return QString::fromStdString(t->proofImagePath);
-    case TypeRole: {
-        if (!t->contractId.empty()) {
-            for (const auto& c : contracts_) {
-                if (!c) continue;
-                if (c->id == t->contractId) return QString::fromStdString(c->type);
-            }
-        }
-        return QString();
-    }
+    case TypeRole: return contractTypeForTransaction(*t);
     case AllocatableRole: return t->allocatable;
-    case PropertyIdsRole: {
-        QVariantList out;
-        for (const auto& pid : t->propertyIds) out.push_back(QString::fromStdString(pid));
-        return out;
-    }
+    case PropertyIdsRole: return toPropertyIdList(t->propertyIds);
     default: return {};
     }
 }
@@ -96,6 +130,7 @@ void TransactionList::setTransactions(std::vector<std::shared_ptr<Transaction>> 
 void TransactionList::setContracts(std::vector<std::shared_ptr<::Contract>> contracts)
 {
     contracts_ = std::move(contracts);
+    rebuildContractTypeIndex();
     const int rows = rowCount();
     if (rows == 0) return;
     emit dataChanged(index(0), index(rows - 1), { TypeRole });
@@ -141,29 +176,7 @@ QVariantMap TransactionList::get(int index) const
     if (index < 0 || index >= static_cast<int>(transactions_.size())) return m;
     const auto& t = transactions_.at(static_cast<size_t>(index));
     if (!t) return m;
-    m["id"] = QString::fromStdString(t->id);
-    m["name"] = QString::fromStdString(t->name);
-    m["bookingDate"] = QString::fromStdString(t->bookingDate);
-    m["valuta"] = QString::fromStdString(t->valuta);
-    m["amount"] = t->amount;
-    m["description"] = QString::fromStdString(t->description);
-    m["status"] = static_cast<int>(t->status);
-    m["actorId"] = QString::fromStdString(t->actorId);
-    m["actorProposal"] = QString::fromStdString(t->actorProposal);
-    m["metadata"] = QString::fromStdString(t->metadata);
-    m["proofImagePath"] = QString::fromStdString(t->proofImagePath);
-    QString ctype;
-    if (!t->contractId.empty()) {
-        for (const auto& c : contracts_) {
-            if (!c) continue;
-            if (QString::fromStdString(c->id) == QString::fromStdString(t->contractId)) { ctype = QString::fromStdString(c->type); break; }
-        }
-    }
-    m["type"] = ctype;
-    m["allocatable"] = t->allocatable;
-    QVariantList pids;
-    for (const auto& pid : t->propertyIds) pids.push_back(QString::fromStdString(pid));
-    m["propertyIds"] = pids;
+    fillTransactionMap(m, *t);
     return m;
 }
 
