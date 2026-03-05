@@ -1,22 +1,18 @@
 #include "ui/controllers/ImportController.h"
 
 #include <QDateTime>
-#include <QDir>
 #include <QFile>
-#include <QFileInfo>
 #include <QMetaObject>
 #include <QRegularExpression>
-#include <QStandardPaths>
 
 #include <exception>
 
 #include "core/jobs/JobManager.h"
 #include "core/jobs/JobSystem.h"
 #include "core/jobs/JobTypes.h"
-#include "core/models/Statement.h"
-#include "core/models/Transaction.h"
 #include "ui/controllers/UiControllerContracts.h"
-#include "ui/models/TransactionDraft.h"
+#include "ui/import/ImportDraftMapper.h"
+#include "ui/import/ImportRunStore.h"
 
 namespace ui {
 
@@ -30,6 +26,7 @@ constexpr double kInitialImportProgress = 0.01;
 ImportController::ImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent)
     : QObject(parent)
     , jobSystem_(std::move(jobSystem))
+    , jobBridge_(jobSystem_)
     , runs_(this)
 {
 }
@@ -115,7 +112,7 @@ void ImportController::cancelImport()
     canceled_ = true;
     cancelClearsQueue_ = false;
     phase_ = controllers::contracts::importPhases::kStopping;
-    if (jobSystem_ && !currentJobId_.isEmpty()) jobSystem_->manager().cancel(currentJobId_.toStdString());
+    jobBridge_.cancelCurrent();
     emit stateChanged();
 }
 
@@ -126,7 +123,7 @@ void ImportController::cancelAllImports()
     cancelClearsQueue_ = true;
     queuedFiles_.clear();
     phase_ = controllers::contracts::importPhases::kStopping;
-    if (jobSystem_ && !currentJobId_.isEmpty()) jobSystem_->manager().cancel(currentJobId_.toStdString());
+    jobBridge_.cancelCurrent();
     emit stateChanged();
 }
 
@@ -139,41 +136,6 @@ void ImportController::startNextQueuedImport()
     const auto next = queuedFiles_.takeFirst();
     emit stateChanged();
     startImportForFile(next);
-}
-
-static QString makeImportRunRootDir(QString* outRunIdPrefix)
-{
-    const QString base = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    QDir d(base);
-    d.mkpath(".");
-
-    const QString ts = QDateTime::currentDateTimeUtc().toString("yyyyMMddHHmmsszzz");
-    if (outRunIdPrefix) *outRunIdPrefix = ts;
-
-    int n = 1;
-    while (true) {
-        const QString name = QStringLiteral("%1_import_%2").arg(ts).arg(n);
-        if (!d.exists(name)) {
-            d.mkpath(name);
-            return d.filePath(name);
-        }
-        ++n;
-    }
-}
-
-static void cleanupOldImportRuns(int keep)
-{
-    const QString base = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    QDir d(base);
-    if (!d.exists()) return;
-
-    const QStringList dirs = d.entryList(QStringList() << "*_import_*", QDir::Dirs | QDir::NoDotAndDotDot, QDir::Time);
-    if (dirs.size() <= keep) return;
-
-    for (int i = keep; i < dirs.size(); ++i) {
-        QDir rm(d.filePath(dirs[i]));
-        rm.removeRecursively();
-    }
 }
 
 void ImportController::startStatementImport()
@@ -229,38 +191,23 @@ void ImportController::startImportForFile(const QString& path)
     const QByteArray nativePath = QFile::encodeName(path);
     std::string p(nativePath.constData(), static_cast<size_t>(nativePath.size()));
 
-    cleanupOldImportRuns(kImportRunKeepCount);
+    importing::cleanupOldImportRuns(kImportRunKeepCount);
 
-    QString runIdPrefixQ;
-    const QString runRootQ = makeImportRunRootDir(&runIdPrefixQ);
+    const auto runInfo = importing::createImportRunInfo();
+    const QString runRootQ = runInfo.runRoot;
+    const QString runIdPrefixQ = runInfo.runIdPrefix;
     const QByteArray runRootNative = QFile::encodeName(runRootQ);
     std::string runRoot(runRootNative.constData(), static_cast<size_t>(runRootNative.size()));
 
     const QByteArray runIdNative = runIdPrefixQ.toUtf8();
     std::string runIdPrefix(runIdNative.constData(), static_cast<size_t>(runIdNative.size()));
 
-    if (currentSubId_ != 0 && !currentJobId_.isEmpty()) {
-        try {
-            jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_);
-        } catch (...) {
-            reportException("ui::ImportController::startImportForFile::unsubscribe", std::current_exception());
-        }
-    }
-    currentSubId_ = 0;
-    currentJobId_.clear();
-
     core::jobs::ImportStatementJobSpec spec;
     spec.sourcePath = p;
     spec.runRoot = runRoot;
     spec.runIdPrefix = runIdPrefix;
 
-    const auto jobId = jobSystem_->startImportStatement(spec);
-    currentJobId_ = QString::fromStdString(jobId);
-
-    currentSubId_ = jobSystem_->manager().subscribe(jobId, [this](const core::jobs::JobEvent& ev) {
-        if (currentJobId_.isEmpty()) return;
-        if (QString::fromStdString(ev.jobId) != currentJobId_) return;
-
+    jobBridge_.startStatementImport(spec, [this](const core::jobs::JobEvent& ev) {
         double p = ev.progress;
         if (p < 0.0) p = 0.0;
         if (p > 1.0) p = 1.0;
@@ -272,6 +219,8 @@ void ImportController::startImportForFile(const QString& path)
                 onJobTerminal(static_cast<int>(ev.state), QString::fromStdString(ev.message));
             }
         }, Qt::QueuedConnection);
+    }, [this](const char* origin, std::exception_ptr exception) {
+        reportException(origin, exception);
     });
 }
 
@@ -301,15 +250,9 @@ void ImportController::updateProgress(double p, const QString& phase)
 void ImportController::onJobTerminal(int state, const QString& message)
 {
     const auto now = QDateTime::currentDateTime().toString(Qt::ISODate);
-
-    if (jobSystem_ && currentSubId_ != 0 && !currentJobId_.isEmpty()) {
-        try {
-            jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_);
-        } catch (...) {
-            reportException("ui::ImportController::onJobTerminal::unsubscribe", std::current_exception());
-        }
-    }
-    currentSubId_ = 0;
+    jobBridge_.clearSubscription([this](const char* origin, std::exception_ptr exception) {
+        reportException(origin, exception);
+    });
 
     const auto s = static_cast<core::jobs::JobState>(state);
 
@@ -349,7 +292,7 @@ void ImportController::onJobTerminal(int state, const QString& message)
         return;
     }
 
-    auto imported = jobSystem_ && !currentJobId_.isEmpty() ? jobSystem_->manager().statementResult(currentJobId_.toStdString()) : nullptr;
+    auto imported = jobBridge_.statementResult();
     if (!imported) {
         error_ = controllers::contracts::errors::kImportFailed;
         phase_ = controllers::contracts::importPhases::kFailed;
@@ -367,36 +310,14 @@ void ImportController::onJobTerminal(int state, const QString& message)
     }
 
     artifacts_.clear();
-    if (jobSystem_ && !currentJobId_.isEmpty()) {
-        const auto arts = jobSystem_->manager().takeStatementArtifacts(currentJobId_.toStdString());
-        for (const auto& kv : arts) {
-            const QString k = QString::fromStdString(kv.first);
-            const auto& v = kv.second;
-            artifacts_.insert(k, v.empty() ? QByteArray() : QByteArray(reinterpret_cast<const char*>(v.data()), static_cast<int>(v.size())));
-        }
+    const auto arts = jobBridge_.takeArtifacts();
+    for (const auto& kv : arts) {
+        const QString k = QString::fromStdString(kv.first);
+        const auto& v = kv.second;
+        artifacts_.insert(k, v.empty() ? QByteArray() : QByteArray(reinterpret_cast<const char*>(v.data()), static_cast<int>(v.size())));
     }
 
-    draft_ = new StatementDraft(this);
-    draft_->setName(QFileInfo(currentImportFile_).baseName());
-
-    std::vector<TransactionDraft> txs;
-    txs.reserve(imported->transactions.size());
-    for (const auto& txptr : imported->transactions) {
-        if (!txptr) continue;
-        TransactionDraft d;
-        d.name = QString::fromStdString(txptr->name);
-        d.bookingDate = QString::fromStdString(txptr->bookingDate);
-        d.valuta = QString::fromStdString(txptr->valuta);
-        d.amount = txptr->amount;
-        d.description = QString::fromStdString(txptr->description);
-        d.actorId = QString();
-        d.actorProposal = QString::fromStdString(txptr->actorProposal);
-        d.metadata = QString::fromStdString(txptr->metadata);
-        d.proofImagePath = QString::fromStdString(txptr->proofImagePath);
-        d.status = static_cast<int>(Transaction::Status::Unverified);
-        txs.push_back(std::move(d));
-    }
-    draft_->setDrafts(std::move(txs));
+    draft_ = importing::createStatementDraft(currentImportFile_, imported, this);
 
     phase_ = controllers::contracts::importPhases::kFinished;
     progress_ = 1.0;

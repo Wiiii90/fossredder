@@ -9,6 +9,7 @@
 #include <QByteArray>
 
 #include "core/errors/IErrorReporter.h"
+#include "ui/import/ImportJobBridge.h"
 #include "ui/models/ImportRunList.h"
 #include "ui/models/StatementDraft.h"
 
@@ -81,8 +82,7 @@ private:
     QHash<QString, QByteArray> artifacts_;
     bool canceled_ = false;
     bool cancelClearsQueue_ = false;
-    QString currentJobId_;
-    std::uint64_t currentSubId_ = 0;
+    importing::ImportJobBridge jobBridge_;
     QString currentImportFile_;
     std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
 
