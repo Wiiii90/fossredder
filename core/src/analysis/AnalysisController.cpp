@@ -1,11 +1,70 @@
 #include "core/analysis/AnalysisController.h"
+#include "core/errors/ErrorCodes.h"
+#include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/AppState.h"
 #include "core/models/Analysis.h"
-#include "core/analysis/AnalysisResult.h"
+#include "core/models/Contract.h"
+#include "core/models/Transaction.h"
 #include "core/analysis/strategies/TabAnalysisStrategy.h"
 #include "core/analysis/strategies/PlotAnalysisStrategy.h"
 #include "core/analysis/strategies/CalcAnalysisStrategy.h"
 #include "core/analysis/Filter.h"
+
+#include <nlohmann/json.hpp>
+#include <unordered_map>
+
+namespace {
+
+std::string resolveOutputType(const Analysis& analysis)
+{
+    if (analysis.type != "plot" || analysis.configJson.empty()) return analysis.type;
+
+    try {
+        const auto config = nlohmann::json::parse(analysis.configJson);
+        if (config.contains("plotType") && config["plotType"].is_string()) {
+            return config["plotType"].get<std::string>();
+        }
+    } catch (...) {
+        core::errors::reportException(core::errors::ErrorSeverity::Warning,
+                                      core::errors::codes::ExceptionError,
+                                      "core::analysis::AnalysisController::resolveOutputType",
+                                      std::current_exception());
+    }
+
+    return analysis.type;
+}
+
+std::vector<std::shared_ptr<Transaction>> collectTransactions(const AppState& state, const std::string& filterSpec)
+{
+    std::vector<std::shared_ptr<Transaction>> out;
+    out.reserve(state.transactions.size());
+
+    std::unordered_map<std::string, std::shared_ptr<Contract>> contractById;
+    contractById.reserve(state.contracts.size());
+    for (const auto& cptr : state.contracts) {
+        if (!cptr) continue;
+        contractById.emplace(cptr->id, cptr);
+    }
+
+    Filter f = parseFilterSpec(filterSpec);
+
+    for (const auto& tptr : state.transactions) {
+        if (!tptr) continue;
+        if (!filterSpec.empty() && !f.matches(tptr, state)) continue;
+
+        auto tx = std::make_shared<Transaction>(*tptr);
+        tx->contract = nullptr;
+        if (!tx->contractId.empty()) {
+            const auto it = contractById.find(tx->contractId);
+            if (it != contractById.end() && it->second) tx->contract = it->second.get();
+        }
+        out.push_back(std::move(tx));
+    }
+
+    return out;
+}
+
+}
 
 AnalysisController::AnalysisController()
 {
@@ -26,20 +85,23 @@ const IAnalysisStrategy* AnalysisController::resolveStrategy(const Analysis& a) 
     return it2 != strategies_.end() ? it2->second.get() : nullptr;
 }
 
-AnalysisResult AnalysisController::computeAnalysisById(const std::string& analysisId, const AppState& state, const std::string& filterSpec) const {
-    // find analysis in state
+Analysis AnalysisController::computeAnalysisById(const std::string& analysisId, const AppState& state, const std::string& filterSpec) const {
     for (const auto& a : state.analyses) {
         if (!a) continue;
-        if (a->id == analysisId) return computeAnalysis(*a, state, filterSpec);
+        if (a->id != analysisId) continue;
+        const std::string effectiveFilter = filterSpec.empty() ? a->filterSpec : filterSpec;
+        return computeAnalysis(*a, state, effectiveFilter);
     }
-    return AnalysisResult{};
+    return Analysis{};
 }
 
-AnalysisResult AnalysisController::computeAnalysis(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const {
+Analysis AnalysisController::computeAnalysis(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const {
     const IAnalysisStrategy* strat = resolveStrategy(analysis);
-    if (!strat) return AnalysisResult{};
-    // Always call strategy with full state and pass filterSpec through so strategies
-    // can decide how to apply filtering. This guarantees all transactions are
-    // available to strategies that need to examine the full dataset.
-    return strat->compute(analysis, state, filterSpec);
+    Analysis out;
+    if (strat) out = strat->compute(analysis, state, filterSpec);
+    out.type = resolveOutputType(analysis);
+    out.configJson = analysis.configJson;
+    out.transactions = collectTransactions(state, filterSpec);
+    out.found = true;
+    return out;
 }

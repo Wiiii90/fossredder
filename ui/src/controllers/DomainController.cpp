@@ -3,8 +3,6 @@
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/models/StatementDraft.h"
 
-#include "core/analysis/AnalysisController.h"
-#include "core/analysis/Filter.h"
 #include "core/models/DraftStatement.h"
 #include "core/models/Analysis.h"
 #include "core/models/Contract.h"
@@ -284,108 +282,6 @@ QStringList DomainController::getContractTypes() const
     } catch (...) {
         reportControllerException("ui::DomainController::getContractTypes");
     }
-    return out;
-}
-
-QString DomainController::addAnalysis(const QString& name, const QString& type, const QString& configJson, const QString& filterSpec)
-{
-    if (!ensureCore(core_, "ui::DomainController::addAnalysis")) return {};
-    try {
-        return QString::fromStdString(core_->addAnalysis(strings::toStdString(name), strings::toStdString(type), strings::toStdString(configJson), strings::toStdString(filterSpec)));
-    } catch (...) {
-        reportControllerException("ui::DomainController::addAnalysis");
-    }
-    return {};
-}
-
-QVariantMap DomainController::computeAnalysis(const QString& analysisId, const QString& filterSpec) const
-{
-    QVariantMap out;
-    if (!ensureCore(core_, "ui::DomainController::computeAnalysis")) return out;
-
-    try {
-        const std::string aid = analysisId.toStdString();
-        const ::AnalysisController ctrl;
-
-        for (const auto& a : core_->state().analyses) {
-            if (!a) continue;
-            if (a->id != aid) continue;
-
-        const std::string effectiveFilter = filterSpec.isEmpty() ? a->filterSpec : filterSpec.toStdString();
-        const auto res = ctrl.computeAnalysis(*a, core_->state(), effectiveFilter);
-
-        QVariantMap metrics;
-        for (const auto& kv : res.metrics) metrics.insert(QString::fromStdString(kv.first), kv.second);
-
-        QVariantList table;
-        for (const auto& row : res.table) {
-            QVariantList r;
-            for (const auto& col : row) r.push_back(QString::fromStdString(col));
-            table.push_back(r);
-        }
-
-        QVariantList artifacts;
-        for (const auto& art : res.artifacts) artifacts.push_back(QString::fromStdString(art));
-
-        out["metrics"] = metrics;
-        out["table"] = table;
-
-        std::string outType = a->type;
-        std::string outConfig = a->configJson;
-        if (outType == "plot" && !outConfig.empty()) {
-            const std::string key = "\"plotType\"";
-            auto pos = outConfig.find(key);
-            if (pos != std::string::npos) {
-                auto colon = outConfig.find(':', pos + key.size());
-                if (colon != std::string::npos) {
-                    auto firstQuote = outConfig.find('"', colon + 1);
-                    if (firstQuote != std::string::npos) {
-                        auto secondQuote = outConfig.find('"', firstQuote + 1);
-                        if (secondQuote != std::string::npos && secondQuote > firstQuote) {
-                            outType = outConfig.substr(firstQuote + 1, secondQuote - firstQuote - 1);
-                        }
-                    }
-                }
-            }
-        }
-
-        out["type"] = QString::fromStdString(outType);
-        out["config"] = QString::fromStdString(outConfig);
-
-        QVariantList txlist;
-        Filter f = parseFilterSpec(effectiveFilter);
-        for (const auto& tptr : core_->state().transactions) {
-            if (!tptr) continue;
-            bool match = true;
-            if (!effectiveFilter.empty()) match = f.matches(tptr, core_->state());
-            if (!match) continue;
-            QVariantMap tm;
-            tm["id"] = QString::fromStdString(tptr->id);
-            tm["name"] = QString::fromStdString(tptr->name);
-            tm["date"] = QString::fromStdString(tptr->bookingDate);
-            tm["amount"] = tptr->amount;
-            tm["contractId"] = QString::fromStdString(tptr->contractId);
-
-            std::string contractType = "unassigned";
-            if (!tptr->contractId.empty()) {
-                for (const auto& cptr : core_->state().contracts) {
-                    if (!cptr) continue;
-                    if (cptr->id == tptr->contractId) { contractType = cptr->type; break; }
-                }
-            }
-            tm["contractType"] = QString::fromStdString(contractType);
-            txlist.push_back(tm);
-        }
-
-            out["transactions"] = txlist;
-            out["artifacts"] = artifacts;
-            out["generatedAt"] = QString::fromStdString(res.generatedAt);
-            return out;
-        }
-    } catch (...) {
-        reportControllerException("ui::DomainController::computeAnalysis");
-    }
-
     return out;
 }
 

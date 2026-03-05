@@ -3,6 +3,8 @@
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QVariant>
 
 #include <exception>
@@ -23,25 +25,17 @@ QVariant AnalysisList::data(const QModelIndex& index, int role) const {
     const auto& a = analyses_[row];
     if (!a) return {};
 
-    std::string adjustmentsJson = "{}";
+    QString adjustmentsJson = QStringLiteral("{}");
     try {
-        if (!a->adjustments.empty()) {
-            std::string s = "{";
-            bool first = true;
-            for (const auto& p : a->adjustments) {
-                if (!first) s += ",";
-                first = false;
-                s += "\"" + p.first + "\":" + std::to_string(p.second);
-            }
-            s += "}";
-            adjustmentsJson = s;
-        }
+        QJsonObject obj;
+        for (const auto& p : a->adjustments) obj.insert(QString::fromStdString(p.first), p.second);
+        adjustmentsJson = QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
     } catch (...) {
         core::errors::reportException(core::errors::ErrorSeverity::Warning,
                                       core::errors::codes::ExceptionError,
                                       "ui::AnalysisList::data::adjustmentsJson",
                                       std::current_exception());
-        adjustmentsJson = "{}";
+        adjustmentsJson = QStringLiteral("{}");
     }
 
     switch (role) {
@@ -50,7 +44,7 @@ QVariant AnalysisList::data(const QModelIndex& index, int role) const {
     case TypeRole: return QString::fromStdString(a->type);
     case ConfigRole: return QString::fromStdString(a->configJson);
     case FilterRole: return QString::fromStdString(a->filterSpec);
-    case AdjustmentsRole: return QString::fromStdString(adjustmentsJson);
+    case AdjustmentsRole: return adjustmentsJson;
     default: return {};
     }
 }
@@ -162,32 +156,25 @@ void AnalysisList::setAdjustmentsById(const QString& id, const QString& json) {
         if (QString::fromStdString(a->id) == id) {
             a->adjustments.clear();
             try {
-                std::string s = json.toStdString();
-                size_t pos = 0;
-                while (pos < s.size()) {
-                    auto q1 = s.find('"', pos);
-                    if (q1 == std::string::npos) break;
-                    auto q2 = s.find('"', q1 + 1);
-                    if (q2 == std::string::npos) break;
-                    std::string key = s.substr(q1 + 1, q2 - q1 - 1);
-                    auto colon = s.find(':', q2 + 1);
-                    if (colon == std::string::npos) break;
-                    size_t j = colon + 1;
-                    while (j < s.size() && isspace(static_cast<unsigned char>(s[j]))) ++j;
-                    size_t start = j;
-                    while (j < s.size() && (isdigit(static_cast<unsigned char>(s[j])) || s[j] == '.' || s[j] == '-' || s[j] == '+' || s[j] == 'e' || s[j] == 'E')) ++j;
-                    if (start < j) {
-                        try {
-                            double v = std::stod(s.substr(start, j - start));
-                            a->adjustments.emplace(key, v);
-                        } catch (...) {
-                            core::errors::reportException(core::errors::ErrorSeverity::Warning, "ui::AnalysisList::setAdjustmentsById::parseValue", std::current_exception());
-                        }
+                QJsonParseError parseError;
+                const auto doc = QJsonDocument::fromJson(json.toUtf8(), &parseError);
+                if (parseError.error != QJsonParseError::NoError) {
+                    core::errors::report(core::errors::ErrorSeverity::Warning,
+                                         core::errors::codes::GenericError,
+                                         "ui::AnalysisList::setAdjustmentsById::parseJson",
+                                         parseError.errorString().toStdString());
+                } else if (doc.isObject()) {
+                    const auto obj = doc.object();
+                    for (auto it = obj.begin(); it != obj.end(); ++it) {
+                        if (!it.value().isDouble()) continue;
+                        a->adjustments.emplace(it.key().toStdString(), it.value().toDouble());
                     }
-                    pos = j;
                 }
             } catch (...) {
-                core::errors::reportException(core::errors::ErrorSeverity::Warning, "ui::AnalysisList::setAdjustmentsById::parseLoop", std::current_exception());
+                core::errors::reportException(core::errors::ErrorSeverity::Warning,
+                                              core::errors::codes::ExceptionError,
+                                              "ui::AnalysisList::setAdjustmentsById",
+                                              std::current_exception());
             }
             const QModelIndex idx = index(i);
             emit dataChanged(idx, idx, {AdjustmentsRole});

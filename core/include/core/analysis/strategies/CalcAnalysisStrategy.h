@@ -7,6 +7,6 @@ public:
     CalcAnalysisStrategy() = default;
     ~CalcAnalysisStrategy() override = default;
 
-    AnalysisResult compute(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const override;
+    Analysis compute(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const override;
 };
 

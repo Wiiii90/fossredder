@@ -63,8 +63,6 @@ public:
     Q_INVOKABLE void deleteTransaction(const QString& id);
 
     Q_INVOKABLE QStringList getContractTypes() const;
-    Q_INVOKABLE QString addAnalysis(const QString& name, const QString& type, const QString& configJson, const QString& filterSpec);
-    Q_INVOKABLE QVariantMap computeAnalysis(const QString& analysisId, const QString& filterSpec) const;
 
     Q_INVOKABLE QString finalizeStatementDraft(StatementDraft* draft);
 

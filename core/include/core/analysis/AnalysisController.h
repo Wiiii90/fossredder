@@ -7,7 +7,6 @@
 #include "core/analysis/IAnalysisStrategy.h"
 
 class AppState;
-class AnalysisResult;
 class Analysis;
 
 // AnalysisController resolves analysis strategies and executes analyses against
@@ -19,10 +18,10 @@ public:
     ~AnalysisController();
 
     // Compute result for analysis identified by id (searches in provided state)
-    AnalysisResult computeAnalysisById(const std::string& analysisId, const AppState& state, const std::string& filterSpec = "") const;
+    Analysis computeAnalysisById(const std::string& analysisId, const AppState& state, const std::string& filterSpec = "") const;
 
     // Compute result for given analysis object
-    AnalysisResult computeAnalysis(const Analysis& analysis, const AppState& state, const std::string& filterSpec = "") const;
+    Analysis computeAnalysis(const Analysis& analysis, const AppState& state, const std::string& filterSpec = "") const;
 
 private:
     // map from strategy key (analysis.type) to strategy implementation

@@ -12,6 +12,7 @@
 #include <QQmlError>
 #include <QUrl>
 #include "MainWindow.h"
+#include "ui/controllers/AnalysisController.h"
 #include "ui/controllers/DomainController.h"
 #include "ui/controllers/ExportController.h"
 #include "ui/controllers/ImportController.h"
@@ -24,6 +25,7 @@
 #include "core/controllers/StatementController.h"
 #include "core/import/IImportStatement.h"
 #include "core/jobs/JobSystem.h"
+#include "core/analysis/AnalysisController.h"
 #include "api/poppler/IPopplerAdapter.h"
 #include "api/opencv/IOpenCvAdapter.h"
 #include "api/tesseract/ITesseractAdapter.h"
@@ -50,8 +52,10 @@ namespace {
 struct UiControllers {
     ui::StorageController* storage = nullptr;
     ui::DomainController* domain = nullptr;
+    ui::AnalysisController* analysisUi = nullptr;
     ui::ExportController* exportCtrl = nullptr;
     ui::ImportController* import = nullptr;
+    std::unique_ptr<AnalysisController> analysis;
 };
 
 UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl, const std::shared_ptr<core::errors::IErrorReporter>& errorReporter)
@@ -61,7 +65,9 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
     ui.storage = new ui::StorageController(&appStateCtrl, &w);
     w.setQmlContextProperty("storageController", ui.storage);
 
+    ui.analysis = std::make_unique<AnalysisController>();
     ui.domain = new ui::DomainController(&appStateCtrl, &w);
+    ui.analysisUi = new ui::AnalysisController(&appStateCtrl, ui.analysis.get(), &w);
     w.setQmlContextProperty("domainController", ui.domain);
     w.setQmlContextProperty("annualController", ui.domain);
     w.setQmlContextProperty("actorController", ui.domain);
@@ -70,7 +76,7 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
     w.setQmlContextProperty("statementController", ui.domain);
     w.setQmlContextProperty("transactionController", ui.domain);
     w.setQmlContextProperty("draftController", ui.domain);
-    w.setQmlContextProperty("analysisController", ui.domain);
+    w.setQmlContextProperty("analysisController", ui.analysisUi);
 
     ui.exportCtrl = new ui::ExportController(&appStateCtrl, &w);
     w.setQmlContextProperty("exportController", ui.exportCtrl);

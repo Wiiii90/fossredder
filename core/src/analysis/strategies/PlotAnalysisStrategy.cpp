@@ -3,20 +3,45 @@
 #include "core/models/Transaction.h"
 #include "core/models/Contract.h"
 #include "core/analysis/Filter.h"
+#include <algorithm>
 #include <map>
 #include <sstream>
 #include <cmath>
 #include <nlohmann/json.hpp>
 
-AnalysisResult PlotAnalysisStrategy::compute(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const {
-    AnalysisResult res;
-    res.generatedAt = "";
+namespace {
 
-    // very simple demo implementation: support "pie" and "histogram" as subtype in analysis.type
-    // subtype may be encoded in analysis.configJson (e.g. "pie"/"histogram")
-    std::string subtype = analysis.type;
-    // parse optional config JSON from analysis.configJson to determine plotMeasure and properties
-    std::string plotType = subtype;
+std::string normalizeValue(const std::string& s)
+{
+    size_t a = 0;
+    while (a < s.size() && std::isspace(static_cast<unsigned char>(s[a]))) ++a;
+    size_t b = s.size();
+    while (b > a && std::isspace(static_cast<unsigned char>(s[b - 1]))) --b;
+    if (b <= a) return {};
+
+    std::string out = s.substr(a, b - a);
+    for (auto& ch : out) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    return out;
+}
+
+std::vector<std::string> normalizeList(const std::vector<std::string>& values)
+{
+    std::vector<std::string> out;
+    out.reserve(values.size());
+    for (const auto& v : values) {
+        const auto n = normalizeValue(v);
+        if (!n.empty()) out.push_back(n);
+    }
+    return out;
+}
+
+}
+
+Analysis PlotAnalysisStrategy::compute(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const {
+    Analysis res;
+    res.createdAt = "";
+
+    std::string plotType = analysis.type;
     std::string plotMeasure = "Total Amount";
     std::vector<std::string> propertyFilter;
     std::vector<std::string> contractTypeFilter;
@@ -34,43 +59,15 @@ AnalysisResult PlotAnalysisStrategy::compute(const Analysis& analysis, const App
         }
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::analysis::PlotAnalysisStrategy::parseConfig", std::current_exception()); }
 
-    if (!propertyFilter.empty()) {
-        core::errors::report({
-            core::errors::ErrorSeverity::Info,
-            "core::analysis::PlotAnalysisStrategy::compute",
-            std::string("propertyFilter size=") + std::to_string(propertyFilter.size()),
-            {}
-        });
-        for (const auto& pf : propertyFilter) {
-            core::errors::report({
-                core::errors::ErrorSeverity::Info,
-                "core::analysis::PlotAnalysisStrategy::compute",
-                std::string("propertyFilter value=") + pf,
-                {}
-            });
-        }
-    }
-
     if (plotType == "pie") {
         // aggregate by contract.type (or "unassigned") using selected properties if provided
         std::map<std::string, double> agg;
         std::map<std::string, int> count;
         // build contractId -> contract.type map (normalized lowercase trimmed) for reliable comparisons
         std::map<std::string, std::string> contractTypeById;
-        auto normalize = [](const std::string &s)->std::string {
-            std::string out;
-            // trim
-            size_t a = 0; while (a < s.size() && std::isspace((unsigned char)s[a])) ++a;
-            size_t b = s.size(); while (b > a && std::isspace((unsigned char)s[b-1])) --b;
-            if (b <= a) return std::string();
-            out = s.substr(a, b-a);
-            // lowercase
-            for (auto &ch : out) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-            return out;
-        };
         for (const auto& cptr : state.contracts) {
             if (!cptr) continue;
-            contractTypeById[cptr->id] = normalize(cptr->type);
+            contractTypeById[cptr->id] = normalizeValue(cptr->type);
         }
         // parse generic filter spec and apply it per-transaction so strategies can respect it
         Filter f = parseFilterSpec(filterSpec);
@@ -90,19 +87,7 @@ AnalysisResult PlotAnalysisStrategy::compute(const Analysis& analysis, const App
             // apply contract type filter if present (normalize comparisons)
             if (!contractTypeFilter.empty()) {
                 bool ok = false;
-                // build normalized wanted set once
-                static std::vector<std::string> wantedNorm; wantedNorm.clear();
-                for (const auto& ct : contractTypeFilter) {
-                    // normalize contract type tokens
-                    std::string tmp = ct;
-                    // trim
-                    size_t a = 0; while (a < tmp.size() && std::isspace((unsigned char)tmp[a])) ++a;
-                    size_t b = tmp.size(); while (b > a && std::isspace((unsigned char)tmp[b-1])) --b;
-                    if (b <= a) continue;
-                    std::string sub = tmp.substr(a, b-a);
-                    for (auto &ch : sub) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-                    wantedNorm.push_back(sub);
-                }
+                const auto wantedNorm = normalizeList(contractTypeFilter);
                 if (tptr->contractId.empty()) {
                     for (const auto& w : wantedNorm) if (w == "unassigned") { ok = true; break; }
                 } else {
@@ -125,7 +110,6 @@ AnalysisResult PlotAnalysisStrategy::compute(const Analysis& analysis, const App
         double totalAll = 0.0; size_t totalCount = 0;
         for (const auto& kv : agg) { totalAll += std::fabs(kv.second); totalCount += count[kv.first]; }
         for (const auto& kv : agg) {
-            double raw = kv.second;
             double val = 0.0;
             if (plotMeasure == "Count") {
                 val = static_cast<double>(count[kv.first]);
@@ -144,7 +128,6 @@ AnalysisResult PlotAnalysisStrategy::compute(const Analysis& analysis, const App
         // monthly histogram with breakdown by contract type and by property
         // determine matching transactions first (respecting filterSpec and property/contractType filters)
         Filter f = parseFilterSpec(filterSpec);
-        struct TxRef { std::shared_ptr<Transaction> t; };
         std::vector<std::shared_ptr<Transaction>> matched;
         for (const auto& tptr : state.transactions) {
             if (!tptr) continue;
@@ -170,10 +153,7 @@ AnalysisResult PlotAnalysisStrategy::compute(const Analysis& analysis, const App
                         if (!cptr) continue;
                         if (cptr->id == tptr->contractId) {
                             for (const auto& ct : contractTypeFilter) {
-                                std::string a = cptr->type; std::string b = ct;
-                                // trim/lower
-                                auto norm = [](const std::string &s){ std::string o=s; size_t a=0; while(a<o.size() && isspace((unsigned char)o[a])) ++a; size_t bb=o.size(); while(bb>a && isspace((unsigned char)o[bb-1])) --bb; if (bb<=a) return std::string(); std::string r=o.substr(a,bb-a); for(auto &ch:r) ch=static_cast<char>(std::tolower(static_cast<unsigned char>(ch))); return r; };
-                                if (norm(a) == norm(b)) { ok = true; break; }
+                                if (normalizeValue(cptr->type) == normalizeValue(ct)) { ok = true; break; }
                             }
                             break;
                         }
