@@ -1,6 +1,7 @@
 #include "ui/controllers/ExportController.h"
 
 #include "ui/controllers/ControllerGuard.h"
+#include "ui/controllers/UiControllerContracts.h"
 
 #include "core/controllers/CsvController.h"
 #include "core/controllers/ExportController.h"
@@ -19,6 +20,19 @@
 namespace ui {
 
 namespace {
+
+core::controllers::exporting::ExportOptions::Format toExportFormat(int format)
+{
+    using UiExportFormat = ui::controllers::contracts::ExportFormat;
+    switch (static_cast<UiExportFormat>(format)) {
+    case UiExportFormat::Csv:
+        return core::controllers::exporting::ExportOptions::Format::Csv;
+    case UiExportFormat::Xlsx:
+        return core::controllers::exporting::ExportOptions::Format::Xlsx;
+    default:
+        return core::controllers::exporting::ExportOptions::Format::Csv;
+    }
+}
 
 std::shared_ptr<const AppState> createExportSnapshot(const AppState& state)
 {
@@ -97,7 +111,7 @@ void ExportController::exportData(int format, const QString& path, bool includeF
         opts.includeFormulas = includeFormulas;
         opts.locale = locale.toStdString();
         opts.stateSnapshot = createExportSnapshot(core_->state());
-        opts.requestedFormat = (format == 0) ? core::controllers::exporting::ExportOptions::Format::Csv : core::controllers::exporting::ExportOptions::Format::Xlsx;
+        opts.requestedFormat = toExportFormat(format);
 
         exportFuture_ = QtConcurrent::run([exporter, opts]() mutable {
             exporter.exportData(opts);
@@ -106,7 +120,7 @@ void ExportController::exportData(int format, const QString& path, bool includeF
         exportWatcher_.setFuture(exportFuture_);
     } catch (...) {
         controllers::guard::reportException("ui::ExportController::exportData");
-        lastError_ = QStringLiteral("Export failed");
+        lastError_ = controllers::contracts::errors::kExportFailed;
         isRunning_ = false;
         emit stateChanged();
         emit exportFailed(lastError_);
@@ -121,18 +135,18 @@ void ExportController::onExportFinished()
         const auto result = exportFuture_.result();
         success = (result.status == core::controllers::exporting::ExportOptions::Status::Ok);
         if (!success) {
-            lastError_ = result.message.empty() ? QStringLiteral("Export failed") : QString::fromStdString(result.message);
+            lastError_ = result.message.empty() ? controllers::contracts::errors::kExportFailed : QString::fromStdString(result.message);
             core::errors::report(core::errors::ErrorSeverity::Warning,
                                  result.errorCode.empty() ? core::errors::codes::GenericError : result.errorCode.c_str(),
                                  "ui::ExportController::onExportFinished",
-                                 result.message.empty() ? "Export failed" : result.message);
+                                 result.message.empty() ? controllers::contracts::errors::kExportFailed.toStdString() : result.message);
             emit exportFailed(lastError_);
         } else {
             lastError_.clear();
         }
     } catch (...) {
         controllers::guard::reportException("ui::ExportController::onExportFinished");
-        lastError_ = QStringLiteral("Export failed");
+        lastError_ = controllers::contracts::errors::kExportFailed;
         emit exportFailed(lastError_);
         success = false;
     }

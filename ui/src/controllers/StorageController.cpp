@@ -1,6 +1,7 @@
 #include "ui/controllers/StorageController.h"
 
 #include "ui/controllers/ControllerGuard.h"
+#include "ui/controllers/UiControllerContracts.h"
 
 namespace ui {
 
@@ -35,11 +36,11 @@ void StorageController::newFile(const QString& path)
         core_->newFile(path.toStdString());
         setLastError({});
         emit currentPathChanged();
-        emit operationSucceeded(QStringLiteral("newFile"));
+        emit operationSucceeded(controllers::contracts::operations::kNewFile);
     } catch (...) {
         controllers::guard::reportException("ui::StorageController::newFile");
-        setLastError(QStringLiteral("Failed to create file"));
-        emit operationFailed(QStringLiteral("newFile"), lastError_);
+        setLastError(controllers::contracts::errors::kStorageCreateFailed);
+        emit operationFailed(controllers::contracts::operations::kNewFile, lastError_);
     }
 }
 
@@ -50,11 +51,11 @@ void StorageController::openFile(const QString& path)
         core_->openFile(path.toStdString());
         setLastError({});
         emit currentPathChanged();
-        emit operationSucceeded(QStringLiteral("openFile"));
+        emit operationSucceeded(controllers::contracts::operations::kOpenFile);
     } catch (...) {
         controllers::guard::reportException("ui::StorageController::openFile");
-        setLastError(QStringLiteral("Failed to open file"));
-        emit operationFailed(QStringLiteral("openFile"), lastError_);
+        setLastError(controllers::contracts::errors::kStorageOpenFailed);
+        emit operationFailed(controllers::contracts::operations::kOpenFile, lastError_);
     }
 }
 
@@ -65,11 +66,11 @@ void StorageController::saveFile()
         core_->saveFile();
         setLastError({});
         emit currentPathChanged();
-        emit operationSucceeded(QStringLiteral("saveFile"));
+        emit operationSucceeded(controllers::contracts::operations::kSaveFile);
     } catch (...) {
         controllers::guard::reportException("ui::StorageController::saveFile");
-        setLastError(QStringLiteral("Failed to save file"));
-        emit operationFailed(QStringLiteral("saveFile"), lastError_);
+        setLastError(controllers::contracts::errors::kStorageSaveFailed);
+        emit operationFailed(controllers::contracts::operations::kSaveFile, lastError_);
     }
 }
 
@@ -80,11 +81,11 @@ void StorageController::saveFileAs(const QString& path)
         core_->saveFileAs(path.toStdString());
         setLastError({});
         emit currentPathChanged();
-        emit operationSucceeded(QStringLiteral("saveFileAs"));
+        emit operationSucceeded(controllers::contracts::operations::kSaveFileAs);
     } catch (...) {
         controllers::guard::reportException("ui::StorageController::saveFileAs");
-        setLastError(QStringLiteral("Failed to save file as"));
-        emit operationFailed(QStringLiteral("saveFileAs"), lastError_);
+        setLastError(controllers::contracts::errors::kStorageSaveAsFailed);
+        emit operationFailed(controllers::contracts::operations::kSaveFileAs, lastError_);
     }
 }
 
