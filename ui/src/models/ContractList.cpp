@@ -128,7 +128,7 @@ void ContractList::setContracts(std::vector<std::shared_ptr<Contract>> contracts
     endResetModel();
 }
 
-std::vector<std::shared_ptr<Contract>> ContractList::contracts() const {
+const std::vector<std::shared_ptr<Contract>>& ContractList::contracts() const {
     return contracts_;
 }
 

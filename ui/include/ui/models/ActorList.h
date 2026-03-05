@@ -29,7 +29,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     void setActors(std::vector<std::shared_ptr<Actor>> actors);
-    std::vector<std::shared_ptr<Actor>> actors() const;
+    const std::vector<std::shared_ptr<Actor>>& actors() const;
 
     Q_INVOKABLE int addActor(const QString& name, const QString& type, const QString& description);
     Q_INVOKABLE void removeAt(int row);

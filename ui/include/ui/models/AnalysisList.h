@@ -30,7 +30,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     void setAnalyses(std::vector<std::shared_ptr<Analysis>> analyses);
-    std::vector<std::shared_ptr<Analysis>> analyses() const;
+    const std::vector<std::shared_ptr<Analysis>>& analyses() const;
 
     Q_INVOKABLE int addAnalysis(const QString& name, const QString& type);
     Q_INVOKABLE void removeAt(int row);

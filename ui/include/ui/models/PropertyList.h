@@ -31,7 +31,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     void setProperties(std::vector<std::shared_ptr<Property>> props);
-    std::vector<std::shared_ptr<Property>> properties() const;
+    const std::vector<std::shared_ptr<Property>>& properties() const;
 
     Q_INVOKABLE int addProperty(const QString& name, const QString& address, const QString& description);
     Q_INVOKABLE void removeAt(int row);

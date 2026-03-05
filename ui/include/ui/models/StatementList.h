@@ -25,7 +25,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     void setStatements(std::vector<std::shared_ptr<Statement>> statements);
-    std::vector<std::shared_ptr<Statement>> statements() const;
+    const std::vector<std::shared_ptr<Statement>>& statements() const;
     Q_INVOKABLE void removeAt(int row);
 
 private:

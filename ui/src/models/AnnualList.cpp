@@ -40,7 +40,7 @@ void AnnualList::setAnnuals(std::vector<std::shared_ptr<Annual>> annuals) {
     endResetModel();
 }
 
-std::vector<std::shared_ptr<Annual>> AnnualList::annuals() const {
+const std::vector<std::shared_ptr<Annual>>& AnnualList::annuals() const {
     return annuals_;
 }
 

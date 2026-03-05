@@ -13,10 +13,16 @@
 #include <QUrl>
 #include "MainWindow.h"
 #include "ui/controllers/AnalysisController.h"
-#include "ui/controllers/DomainController.h"
+#include "ui/controllers/ActorController.h"
+#include "ui/controllers/AnnualController.h"
+#include "ui/controllers/ContractController.h"
+#include "ui/controllers/DraftController.h"
 #include "ui/controllers/ExportController.h"
 #include "ui/controllers/ImportController.h"
+#include "ui/controllers/PropertyController.h"
+#include "ui/controllers/StatementController.h"
 #include "ui/controllers/StorageController.h"
+#include "ui/controllers/TransactionController.h"
 #include "ui/state/StateFacade.h"
 #include "core/errors/DebuggerErrorReporter.h"
 #include "core/errors/ErrorCodes.h"
@@ -51,7 +57,13 @@ namespace {
 
 struct UiControllers {
     ui::StorageController* storage = nullptr;
-    ui::DomainController* domain = nullptr;
+    ui::AnnualController* annual = nullptr;
+    ui::ActorController* actor = nullptr;
+    ui::PropertyController* property = nullptr;
+    ui::ContractController* contract = nullptr;
+    ui::StatementController* statement = nullptr;
+    ui::TransactionController* transaction = nullptr;
+    ui::DraftController* draft = nullptr;
     ui::AnalysisController* analysisUi = nullptr;
     ui::ExportController* exportCtrl = nullptr;
     ui::ImportController* import = nullptr;
@@ -66,16 +78,21 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
     w.setQmlContextProperty("storageController", ui.storage);
 
     ui.analysis = std::make_unique<AnalysisController>();
-    ui.domain = new ui::DomainController(&appStateCtrl, &w);
+    ui.annual = new ui::AnnualController(&appStateCtrl, &w);
+    ui.actor = new ui::ActorController(&appStateCtrl, &w);
+    ui.property = new ui::PropertyController(&appStateCtrl, &w);
+    ui.contract = new ui::ContractController(&appStateCtrl, &w);
+    ui.statement = new ui::StatementController(&appStateCtrl, &w);
+    ui.transaction = new ui::TransactionController(&appStateCtrl, &w);
+    ui.draft = new ui::DraftController(&appStateCtrl, &w);
     ui.analysisUi = new ui::AnalysisController(&appStateCtrl, ui.analysis.get(), &w);
-    w.setQmlContextProperty("domainController", ui.domain);
-    w.setQmlContextProperty("annualController", ui.domain);
-    w.setQmlContextProperty("actorController", ui.domain);
-    w.setQmlContextProperty("propertyController", ui.domain);
-    w.setQmlContextProperty("contractController", ui.domain);
-    w.setQmlContextProperty("statementController", ui.domain);
-    w.setQmlContextProperty("transactionController", ui.domain);
-    w.setQmlContextProperty("draftController", ui.domain);
+    w.setQmlContextProperty("annualController", ui.annual);
+    w.setQmlContextProperty("actorController", ui.actor);
+    w.setQmlContextProperty("propertyController", ui.property);
+    w.setQmlContextProperty("contractController", ui.contract);
+    w.setQmlContextProperty("statementController", ui.statement);
+    w.setQmlContextProperty("transactionController", ui.transaction);
+    w.setQmlContextProperty("draftController", ui.draft);
     w.setQmlContextProperty("analysisController", ui.analysisUi);
 
     ui.exportCtrl = new ui::ExportController(&appStateCtrl, &w);

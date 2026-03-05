@@ -79,7 +79,7 @@ void ActorList::setActors(std::vector<std::shared_ptr<Actor>> actors) {
     endResetModel();
 }
 
-std::vector<std::shared_ptr<Actor>> ActorList::actors() const {
+const std::vector<std::shared_ptr<Actor>>& ActorList::actors() const {
     return actors_;
 }
 

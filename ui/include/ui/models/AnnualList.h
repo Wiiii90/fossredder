@@ -25,7 +25,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     void setAnnuals(std::vector<std::shared_ptr<Annual>> annuals);
-    std::vector<std::shared_ptr<Annual>> annuals() const;
+    const std::vector<std::shared_ptr<Annual>>& annuals() const;
 
     Q_INVOKABLE void removeAt(int row);
 

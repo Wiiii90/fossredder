@@ -89,7 +89,7 @@ void TransactionList::setContracts(std::vector<std::shared_ptr<::Contract>> cont
     emit dataChanged(index(0), index(rows - 1), { TypeRole });
 }
 
-std::vector<std::shared_ptr<Transaction>> TransactionList::transactions() const
+const std::vector<std::shared_ptr<Transaction>>& TransactionList::transactions() const
 {
     return transactions_;
 }

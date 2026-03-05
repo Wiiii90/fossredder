@@ -93,7 +93,7 @@ void PropertyList::setProperties(std::vector<std::shared_ptr<Property>> props) {
     endResetModel();
 }
 
-std::vector<std::shared_ptr<Property>> PropertyList::properties() const {
+const std::vector<std::shared_ptr<Property>>& PropertyList::properties() const {
     return props_;
 }
 

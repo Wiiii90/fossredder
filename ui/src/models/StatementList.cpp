@@ -42,7 +42,7 @@ void StatementList::setStatements(std::vector<std::shared_ptr<Statement>> statem
     endResetModel();
 }
 
-std::vector<std::shared_ptr<Statement>> StatementList::statements() const
+const std::vector<std::shared_ptr<Statement>>& StatementList::statements() const
 {
     return statements_;
 }

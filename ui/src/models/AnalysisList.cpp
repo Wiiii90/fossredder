@@ -108,7 +108,7 @@ void AnalysisList::setAnalyses(std::vector<std::shared_ptr<Analysis>> analyses) 
     endResetModel();
 }
 
-std::vector<std::shared_ptr<Analysis>> AnalysisList::analyses() const {
+const std::vector<std::shared_ptr<Analysis>>& AnalysisList::analyses() const {
     return analyses_;
 }
 

@@ -37,7 +37,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     void setContracts(std::vector<std::shared_ptr<Contract>> contracts);
-    std::vector<std::shared_ptr<Contract>> contracts() const;
+    const std::vector<std::shared_ptr<Contract>>& contracts() const;
 
     Q_INVOKABLE int addContract(const QString& name, const QString& type, const QString& description);
     Q_INVOKABLE void removeAt(int row);
