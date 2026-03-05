@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include "core/models/AppState.h"
 
@@ -20,8 +21,8 @@ struct ExportOptions {
     // Locale string, e.g. "de-DE" or "en-US" (may affect decimal separator/format)
     std::string locale;
 
-    // Pointer to AppState snapshot to export from. If null, export will fail.
-    const AppState* state = nullptr;
+    // Immutable AppState snapshot to export from. If null, export will fail.
+    std::shared_ptr<const AppState> stateSnapshot;
 };
 
 } // namespace core::controllers::exporting

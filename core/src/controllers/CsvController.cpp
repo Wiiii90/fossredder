@@ -36,9 +36,9 @@ static std::string escapeCsvField(const std::string& s, char sep) {
 
 bool CsvController::exportData(const ExportOptions& opts) {
     if (opts.outputPath.empty()) return false;
-    if (!opts.state) return false;
+    if (!opts.stateSnapshot) return false;
 
-    const AppState& state = *opts.state;
+    const AppState& state = *opts.stateSnapshot;
 
     // Build helper maps
     std::unordered_map<std::string, std::string> propIdToName;

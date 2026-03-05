@@ -5,9 +5,17 @@
 #include "core/controllers/XlsxController.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
+#include "core/models/Actor.h"
+#include "core/models/Analysis.h"
+#include "core/models/Annual.h"
+#include "core/models/Contract.h"
+#include "core/models/Property.h"
+#include "core/models/Statement.h"
+#include "core/models/Transaction.h"
 
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <QFile>
+#include <memory>
 
 namespace ui {
 
@@ -29,6 +37,55 @@ void reportExportException(const char* origin)
                                   core::errors::codes::ExceptionError,
                                   origin,
                                   std::current_exception());
+}
+
+std::shared_ptr<const AppState> createExportSnapshot(const AppState& state)
+{
+    auto snapshot = std::make_shared<AppState>();
+
+    snapshot->properties.reserve(state.properties.size());
+    for (const auto& item : state.properties) {
+        if (!item) continue;
+        snapshot->properties.push_back(std::make_shared<Property>(*item));
+    }
+
+    snapshot->actors.reserve(state.actors.size());
+    for (const auto& item : state.actors) {
+        if (!item) continue;
+        snapshot->actors.push_back(std::make_shared<Actor>(*item));
+    }
+
+    snapshot->contracts.reserve(state.contracts.size());
+    for (const auto& item : state.contracts) {
+        if (!item) continue;
+        snapshot->contracts.push_back(std::make_shared<Contract>(*item));
+    }
+
+    snapshot->statements.reserve(state.statements.size());
+    for (const auto& item : state.statements) {
+        if (!item) continue;
+        snapshot->statements.push_back(std::make_shared<Statement>(*item));
+    }
+
+    snapshot->transactions.reserve(state.transactions.size());
+    for (const auto& item : state.transactions) {
+        if (!item) continue;
+        snapshot->transactions.push_back(std::make_shared<Transaction>(*item));
+    }
+
+    snapshot->analyses.reserve(state.analyses.size());
+    for (const auto& item : state.analyses) {
+        if (!item) continue;
+        snapshot->analyses.push_back(std::make_shared<Analysis>(*item));
+    }
+
+    snapshot->annuals.reserve(state.annuals.size());
+    for (const auto& item : state.annuals) {
+        if (!item) continue;
+        snapshot->annuals.push_back(std::make_shared<Annual>(*item));
+    }
+
+    return snapshot;
 }
 
 }
@@ -57,7 +114,7 @@ void ExportController::exportData(int format, const QString& path, bool includeF
         opts.outputPath = path.toStdString();
         opts.includeFormulas = includeFormulas;
         opts.locale = locale.toStdString();
-        opts.state = &core_->state();
+        opts.stateSnapshot = createExportSnapshot(core_->state());
         opts.format = (format == 0) ? core::controllers::exporting::ExportOptions::Format::Csv : core::controllers::exporting::ExportOptions::Format::Xlsx;
 
         lastPath_ = path;

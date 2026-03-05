@@ -23,8 +23,8 @@ bool XlsxController::exportData(const ExportOptions& opts) {
         xlnt::workbook wb;
 
         // Validate AppState
-        if (!opts.state) return false;
-        const AppState& state = *opts.state;
+        if (!opts.stateSnapshot) return false;
+        const AppState& state = *opts.stateSnapshot;
 
         // Collect properties map id->name for lookups
         std::unordered_map<std::string, std::string> propIdToName;
