@@ -1,5 +1,6 @@
 #include "ui/state/SelectionState.h"
 
+#include <tuple>
 #include <utility>
 
 namespace ui {
@@ -20,6 +21,15 @@ void refreshSelection(const QString& selectedId,
     selection.clear();
 }
 
+template <typename RefreshFn>
+bool updateSelectedId(QString& targetId, const QString& newId, RefreshFn&& refresh)
+{
+    if (targetId == newId) return false;
+    targetId = newId;
+    refresh();
+    return true;
+}
+
 ActorSelection::ActorSelection(QObject* parent)
     : QObject(parent)
 {
@@ -32,6 +42,7 @@ void ActorSelection::clear()
 
 void ActorSelection::set(QString id, QString name, QString type, QString description, QStringList aliases)
 {
+    if (std::tie(id_, name_, type_, description_, aliases_) == std::tie(id, name, type, description, aliases)) return;
     id_ = std::move(id);
     name_ = std::move(name);
     type_ = std::move(type);
@@ -52,6 +63,7 @@ void PropertySelection::clear()
 
 void PropertySelection::set(QString id, QString name, QString address, QString description)
 {
+    if (std::tie(id_, name_, address_, description_) == std::tie(id, name, address, description)) return;
     id_ = std::move(id);
     name_ = std::move(name);
     address_ = std::move(address);
@@ -76,6 +88,7 @@ void ContractSelection::set(QString id,
                             QStringList actorIds,
                             QStringList propertyIds)
 {
+    if (std::tie(id_, name_, type_, description_, actorIds_, propertyIds_) == std::tie(id, name, type, description, actorIds, propertyIds)) return;
     id_ = std::move(id);
     name_ = std::move(name);
     type_ = std::move(type);
@@ -97,6 +110,7 @@ void StatementSelection::clear()
 
 void StatementSelection::set(QString id, QString name)
 {
+    if (std::tie(id_, name_) == std::tie(id, name)) return;
     id_ = std::move(id);
     name_ = std::move(name);
     emit changed();
@@ -123,6 +137,10 @@ void TransactionSelection::set(QString id,
                                QStringList propertyIds,
                                bool allocatable)
 {
+    if (std::tie(id_, name_, bookingDate_, amount_, description_, statementId_, actorId_, actorProposal_, propertyIds_, allocatable_)
+        == std::tie(id, name, bookingDate, amount, description, statementId, actorId, actorProposal, propertyIds, allocatable)) {
+        return;
+    }
     id_ = std::move(id);
     name_ = std::move(name);
     bookingDate_ = std::move(bookingDate);
@@ -148,6 +166,7 @@ void AnalysisSelection::clear()
 
 void AnalysisSelection::set(QString id, QString name, QString type)
 {
+    if (std::tie(id_, name_, type_) == std::tie(id, name, type)) return;
     id_ = std::move(id);
     name_ = std::move(name);
     type_ = std::move(type);
@@ -166,6 +185,7 @@ void AnnualSelection::clear()
 
 void AnnualSelection::set(QString id, QString name)
 {
+    if (std::tie(id_, name_) == std::tie(id, name)) return;
     id_ = std::move(id);
     name_ = std::move(name);
     emit changed();
@@ -204,13 +224,13 @@ const QString& SelectionState::selectedTransactionId() const { return selectedTr
 const QString& SelectionState::selectedAnalysisId() const { return selectedAnalysisId_; }
 const QString& SelectionState::selectedAnnualId() const { return selectedAnnualId_; }
 
-bool SelectionState::setSelectedActorId(const QString& id) { if (selectedActorId_ == id) return false; selectedActorId_ = id; refreshSelectedActor(); return true; }
-bool SelectionState::setSelectedPropertyId(const QString& id) { if (selectedPropertyId_ == id) return false; selectedPropertyId_ = id; refreshSelectedProperty(); return true; }
-bool SelectionState::setSelectedContractId(const QString& id) { if (selectedContractId_ == id) return false; selectedContractId_ = id; refreshSelectedContract(); return true; }
-bool SelectionState::setSelectedStatementId(const QString& id) { if (selectedStatementId_ == id) return false; selectedStatementId_ = id; refreshSelectedStatement(); return true; }
-bool SelectionState::setSelectedTransactionId(const QString& id) { if (selectedTransactionId_ == id) return false; selectedTransactionId_ = id; refreshSelectedTransaction(); return true; }
-bool SelectionState::setSelectedAnalysisId(const QString& id) { if (selectedAnalysisId_ == id) return false; selectedAnalysisId_ = id; refreshSelectedAnalysis(); return true; }
-bool SelectionState::setSelectedAnnualId(const QString& id) { if (selectedAnnualId_ == id) return false; selectedAnnualId_ = id; refreshSelectedAnnual(); return true; }
+bool SelectionState::setSelectedActorId(const QString& id) { return updateSelectedId(selectedActorId_, id, [this]() { refreshSelectedActor(); }); }
+bool SelectionState::setSelectedPropertyId(const QString& id) { return updateSelectedId(selectedPropertyId_, id, [this]() { refreshSelectedProperty(); }); }
+bool SelectionState::setSelectedContractId(const QString& id) { return updateSelectedId(selectedContractId_, id, [this]() { refreshSelectedContract(); }); }
+bool SelectionState::setSelectedStatementId(const QString& id) { return updateSelectedId(selectedStatementId_, id, [this]() { refreshSelectedStatement(); }); }
+bool SelectionState::setSelectedTransactionId(const QString& id) { return updateSelectedId(selectedTransactionId_, id, [this]() { refreshSelectedTransaction(); }); }
+bool SelectionState::setSelectedAnalysisId(const QString& id) { return updateSelectedId(selectedAnalysisId_, id, [this]() { refreshSelectedAnalysis(); }); }
+bool SelectionState::setSelectedAnnualId(const QString& id) { return updateSelectedId(selectedAnnualId_, id, [this]() { refreshSelectedAnnual(); }); }
 
 ActorSelection* SelectionState::selectedActor() { return &selectedActor_; }
 PropertySelection* SelectionState::selectedProperty() { return &selectedProperty_; }

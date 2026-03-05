@@ -168,7 +168,11 @@ public:
     QStringList propertyIds() const { return propertyIds_; }
     bool allocatable() const { return allocatable_; }
 
-    Q_INVOKABLE void setPropertyIds(const QStringList& ids) { propertyIds_ = ids; emit changed(); }
+    Q_INVOKABLE void setPropertyIds(const QStringList& ids) {
+        if (propertyIds_ == ids) return;
+        propertyIds_ = ids;
+        emit changed();
+    }
 
 signals:
     void changed();
