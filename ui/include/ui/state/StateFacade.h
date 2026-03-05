@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QHash>
+#include <QSet>
 #include <QString>
 #include <QVariant>
 
@@ -111,6 +112,10 @@ signals:
 
 private:
     void rebuildPropertyNameIndex();
+    void recomputeAllMetrics();
+    void recomputeMetricsForRows(int firstRow, int lastRow);
+    void recomputeMetricsForPropertyIds(const QSet<QString>& propertyIds);
+    void notifyTransactionSumsForAllProperties();
 
     ActorList actors_;
     AnalysisList analyses_;

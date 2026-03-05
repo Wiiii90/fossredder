@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <QAbstractItemModel>
 #include <QSet>
-#include <QMetaObject>
 
 namespace ui {
 
@@ -18,6 +17,54 @@ void StateFacade::rebuildPropertyNameIndex()
     }
 }
 
+void StateFacade::recomputeAllMetrics()
+{
+    metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) {
+        emit transactionSumsUpdated(propertyId);
+    });
+}
+
+void StateFacade::recomputeMetricsForPropertyIds(const QSet<QString>& propertyIds)
+{
+    for (const auto& propertyId : propertyIds) {
+        metrics_.recomputeProperty(propertyId, transactions_, contracts_, [this](const QString& pid) {
+            emit transactionSumsUpdated(pid);
+        });
+    }
+}
+
+void StateFacade::recomputeMetricsForRows(int firstRow, int lastRow)
+{
+    if (firstRow < 0 || lastRow < firstRow) {
+        recomputeAllMetrics();
+        return;
+    }
+
+    QSet<QString> affectedPropertyIds;
+    const auto rows = transactions_.transactions();
+    const int safeLast = std::min(lastRow, static_cast<int>(rows.size()) - 1);
+    for (int row = firstRow; row <= safeLast; ++row) {
+        const auto& tx = rows[static_cast<size_t>(row)];
+        if (!tx) continue;
+        for (const auto& pid : tx->propertyIds) affectedPropertyIds.insert(QString::fromStdString(pid));
+    }
+
+    if (affectedPropertyIds.isEmpty()) {
+        recomputeAllMetrics();
+        return;
+    }
+
+    recomputeMetricsForPropertyIds(affectedPropertyIds);
+}
+
+void StateFacade::notifyTransactionSumsForAllProperties()
+{
+    for (const auto& p : properties_.properties()) {
+        if (!p) continue;
+        emit transactionSumsUpdated(QString::fromStdString(p->id));
+    }
+}
+
 StateFacade::StateFacade(QObject* parent)
     : QObject(parent)
     , actors_(this)
@@ -29,42 +76,17 @@ StateFacade::StateFacade(QObject* parent)
     , annuals_(this)
     , selection_(actors_, properties_, contracts_, statements_, transactions_, analyses_, annuals_, this)
 {
-    auto recomputeRows = [this](int firstRow, int lastRow) {
-        if (firstRow < 0 || lastRow < firstRow) {
-            metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
-            return;
-        }
-
-        QSet<QString> affectedPropertyIds;
-        const auto rows = transactions_.transactions();
-        const int safeLast = std::min(lastRow, static_cast<int>(rows.size()) - 1);
-        for (int row = firstRow; row <= safeLast; ++row) {
-            const auto& tx = rows[static_cast<size_t>(row)];
-            if (!tx) continue;
-            for (const auto& pid : tx->propertyIds) affectedPropertyIds.insert(QString::fromStdString(pid));
-        }
-
-        if (affectedPropertyIds.isEmpty()) {
-            metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
-            return;
-        }
-
-        for (const auto& propertyId : affectedPropertyIds) {
-            metrics_.recomputeProperty(propertyId, transactions_, contracts_, [this](const QString& pid) { emit transactionSumsUpdated(pid); });
-        }
-    };
-
     connect(&transactions_, &QAbstractItemModel::rowsRemoved, this, [this](const QModelIndex&, int, int) {
-        metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
+        recomputeAllMetrics();
     });
 
-    connect(&transactions_, &QAbstractItemModel::rowsInserted, this, [recomputeRows](const QModelIndex&, int first, int last) {
-        recomputeRows(first, last);
+    connect(&transactions_, &QAbstractItemModel::rowsInserted, this, [this](const QModelIndex&, int first, int last) {
+        recomputeMetricsForRows(first, last);
     });
 
-    connect(&transactions_, &QAbstractItemModel::dataChanged, this, [this, recomputeRows](const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles) {
+    connect(&transactions_, &QAbstractItemModel::dataChanged, this, [this](const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles) {
         if (roles.isEmpty()) {
-            metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
+            recomputeAllMetrics();
             return;
         }
 
@@ -76,7 +98,7 @@ StateFacade::StateFacade(QObject* parent)
         }
 
         if (propertyIdsChanged) {
-            metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
+            recomputeAllMetrics();
             return;
         }
 
@@ -84,19 +106,16 @@ StateFacade::StateFacade(QObject* parent)
 
         const int first = topLeft.isValid() ? topLeft.row() : -1;
         const int last = bottomRight.isValid() ? bottomRight.row() : first;
-        recomputeRows(first, last);
+        recomputeMetricsForRows(first, last);
     });
 
     connect(&transactions_, &QAbstractItemModel::modelReset, this, [this]() {
-        metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
+        recomputeAllMetrics();
     });
 
     connect(&analyses_, &QAbstractItemModel::modelReset, this, [this]() {
         metrics_.clearCache();
-        for (const auto& p : properties_.properties()) {
-            if (!p) continue;
-            emit transactionSumsUpdated(QString::fromStdString(p->id));
-        }
+        notifyTransactionSumsForAllProperties();
     });
 }
 
@@ -114,7 +133,7 @@ void StateFacade::loadFromState(const AppState& state)
     transactions_.setContracts(state.contracts);
     rebuildPropertyNameIndex();
 
-    metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
+    recomputeAllMetrics();
 
     selection_.refreshAll();
     lastAnalysisResult_.clear();
@@ -216,12 +235,12 @@ void StateFacade::applyDeletionImpact(const DeletionImpact& impact)
         int row = transactions_.findRowById(qid);
         if (row >= 0) {
             const auto tptr = transactions_.transactions().at(static_cast<size_t>(row));
-            QStringList affected;
-            if (tptr) for (const auto& pid : tptr->propertyIds) affected << QString::fromStdString(pid);
-            transactions_.removeAt(row);
-            for (const auto& pid : affected) {
-                metrics_.recomputeProperty(pid, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
+            QSet<QString> affected;
+            if (tptr) {
+                for (const auto& pid : tptr->propertyIds) affected.insert(QString::fromStdString(pid));
             }
+            transactions_.removeAt(row);
+            recomputeMetricsForPropertyIds(affected);
         }
         if (selection_.clearTransactionIfSelected(qid)) emit selectedTransactionIdChanged();
     }
@@ -286,9 +305,7 @@ void StateFacade::setTransactionPropertyIdsImmediate(const QString& txId, const 
 
     QSet<QString> affected = oldSet;
     affected.unite(newSet);
-    for (const auto& pid : affected) {
-        metrics_.recomputeProperty(pid, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
-    }
+    recomputeMetricsForPropertyIds(affected);
 }
 
 }
