@@ -13,16 +13,19 @@ namespace ui {
 class ExportController : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool isRunning READ isRunning NOTIFY stateChanged)
+    Q_PROPERTY(QString lastError READ lastError NOTIFY stateChanged)
 public:
     explicit ExportController(AppStateController* core, QObject* parent = nullptr);
 
     Q_INVOKABLE void exportData(int format, const QString& path, bool includeFormulas = true, const QString& locale = QString());
 
     bool isRunning() const noexcept { return isRunning_; }
+    QString lastError() const { return lastError_; }
 
 signals:
     void stateChanged();
     void exportFinished(bool success);
+    void exportFailed(const QString& error);
 
 private slots:
     void onExportFinished();
@@ -32,6 +35,7 @@ private:
     QFuture<core::controllers::exporting::ExportOptions> exportFuture_;
     QFutureWatcher<core::controllers::exporting::ExportOptions> exportWatcher_;
     bool isRunning_ = false;
+    QString lastError_;
 };
 
 }

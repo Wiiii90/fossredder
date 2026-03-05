@@ -84,6 +84,7 @@ void ExportController::exportData(int format, const QString& path, bool includeF
     if (isRunning_) return;
 
     try {
+        lastError_.clear();
         isRunning_ = true;
         emit stateChanged();
 
@@ -105,8 +106,10 @@ void ExportController::exportData(int format, const QString& path, bool includeF
         exportWatcher_.setFuture(exportFuture_);
     } catch (...) {
         controllers::guard::reportException("ui::ExportController::exportData");
+        lastError_ = QStringLiteral("Export failed");
         isRunning_ = false;
         emit stateChanged();
+        emit exportFailed(lastError_);
         emit exportFinished(false);
     }
 }
@@ -118,13 +121,19 @@ void ExportController::onExportFinished()
         const auto result = exportFuture_.result();
         success = (result.status == core::controllers::exporting::ExportOptions::Status::Ok);
         if (!success) {
+            lastError_ = result.message.empty() ? QStringLiteral("Export failed") : QString::fromStdString(result.message);
             core::errors::report(core::errors::ErrorSeverity::Warning,
                                  result.errorCode.empty() ? core::errors::codes::GenericError : result.errorCode.c_str(),
                                  "ui::ExportController::onExportFinished",
                                  result.message.empty() ? "Export failed" : result.message);
+            emit exportFailed(lastError_);
+        } else {
+            lastError_.clear();
         }
     } catch (...) {
         controllers::guard::reportException("ui::ExportController::onExportFinished");
+        lastError_ = QStringLiteral("Export failed");
+        emit exportFailed(lastError_);
         success = false;
     }
 

@@ -3,18 +3,19 @@
 #include <QObject>
 
 #include "core/controllers/AppStateController.h"
-#include "core/models/DeletionImpact.h"
 
 namespace ui {
 
 class StorageController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString currentPath READ currentPath NOTIFY currentPathChanged)
+    Q_PROPERTY(QString lastError READ lastError NOTIFY errorChanged)
 
 public:
     explicit StorageController(AppStateController* core, QObject* parent = nullptr);
 
     QString currentPath() const;
+    QString lastError() const { return lastError_; }
 
 public slots:
     void newFile(const QString& path);
@@ -24,11 +25,14 @@ public slots:
 
 signals:
     void currentPathChanged();
-    void stateLoaded();
-    void deletionImpact(const DeletionImpact& impact);
+    void errorChanged();
+    void operationFailed(const QString& operation, const QString& error);
+    void operationSucceeded(const QString& operation);
 
 private:
     AppStateController* core_ = nullptr;
+    QString lastError_;
+    void setLastError(const QString& error);
 };
 
 }
