@@ -4,6 +4,17 @@
 
 namespace ui {
 
+void ActorList::rebuildIdIndex()
+{
+    idToRow_.clear();
+    idToRow_.reserve(static_cast<int>(actors_.size()));
+    for (int i = 0; i < static_cast<int>(actors_.size()); ++i) {
+        const auto& a = actors_[static_cast<size_t>(i)];
+        if (!a) continue;
+        idToRow_.insert(QString::fromStdString(a->id), i);
+    }
+}
+
 ActorList::ActorList(QObject* parent) : QAbstractListModel(parent) {}
 
 int ActorList::rowCount(const QModelIndex& parent) const {
@@ -76,11 +87,19 @@ QHash<int, QByteArray> ActorList::roleNames() const {
 void ActorList::setActors(std::vector<std::shared_ptr<Actor>> actors) {
     beginResetModel();
     actors_ = std::move(actors);
+    rebuildIdIndex();
     endResetModel();
 }
 
 const std::vector<std::shared_ptr<Actor>>& ActorList::actors() const {
     return actors_;
+}
+
+int ActorList::findRowById(const QString& id) const
+{
+    if (id.isEmpty()) return -1;
+    const auto it = idToRow_.find(id);
+    return it == idToRow_.end() ? -1 : it.value();
 }
 
 int ActorList::addActor(const QString& name, const QString& type, const QString& description) {
@@ -92,6 +111,7 @@ int ActorList::addActor(const QString& name, const QString& type, const QString&
     const int row = static_cast<int>(actors_.size());
     beginInsertRows(QModelIndex(), row, row);
     actors_.push_back(std::move(a));
+    if (actors_.back()) idToRow_.insert(QString::fromStdString(actors_.back()->id), row);
     endInsertRows();
 
     return row;
@@ -101,6 +121,7 @@ void ActorList::removeAt(int row) {
     if (row < 0 || row >= static_cast<int>(actors_.size())) return;
     beginRemoveRows(QModelIndex(), row, row);
     actors_.erase(actors_.begin() + row);
+    rebuildIdIndex();
     endRemoveRows();
 }
 

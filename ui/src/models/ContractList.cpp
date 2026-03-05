@@ -4,6 +4,17 @@
 
 namespace ui {
 
+void ContractList::rebuildIdIndex()
+{
+    idToRow_.clear();
+    idToRow_.reserve(static_cast<int>(contracts_.size()));
+    for (int i = 0; i < static_cast<int>(contracts_.size()); ++i) {
+        const auto& c = contracts_[static_cast<size_t>(i)];
+        if (!c) continue;
+        idToRow_.insert(QString::fromStdString(c->id), i);
+    }
+}
+
 ContractList::ContractList(QObject* parent) : QAbstractListModel(parent) {}
 
 int ContractList::rowCount(const QModelIndex& parent) const {
@@ -125,11 +136,19 @@ QHash<int, QByteArray> ContractList::roleNames() const {
 void ContractList::setContracts(std::vector<std::shared_ptr<Contract>> contracts) {
     beginResetModel();
     contracts_ = std::move(contracts);
+    rebuildIdIndex();
     endResetModel();
 }
 
 const std::vector<std::shared_ptr<Contract>>& ContractList::contracts() const {
     return contracts_;
+}
+
+int ContractList::findRowById(const QString& id) const
+{
+    if (id.isEmpty()) return -1;
+    const auto it = idToRow_.find(id);
+    return it == idToRow_.end() ? -1 : it.value();
 }
 
 int ContractList::addContract(const QString& name, const QString& type, const QString& description) {
@@ -141,6 +160,7 @@ int ContractList::addContract(const QString& name, const QString& type, const QS
     const int row = static_cast<int>(contracts_.size());
     beginInsertRows(QModelIndex(), row, row);
     contracts_.push_back(std::move(c));
+    if (contracts_.back()) idToRow_.insert(QString::fromStdString(contracts_.back()->id), row);
     endInsertRows();
 
     return row;
@@ -150,6 +170,7 @@ void ContractList::removeAt(int row) {
     if (row < 0 || row >= static_cast<int>(contracts_.size())) return;
     beginRemoveRows(QModelIndex(), row, row);
     contracts_.erase(contracts_.begin() + row);
+    rebuildIdIndex();
     endRemoveRows();
 }
 

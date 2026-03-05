@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QHash>
 #include <QString>
 
 #include <memory>
@@ -49,8 +50,11 @@ public:
     Q_INVOKABLE QVariantMap get(int index) const;
 
 private:
+    void rebuildIdIndex();
+
     std::vector<std::shared_ptr<Transaction>> transactions_;
     std::vector<std::shared_ptr<::Contract>> contracts_;
+    QHash<QString, int> idToRow_;
 };
 
 }

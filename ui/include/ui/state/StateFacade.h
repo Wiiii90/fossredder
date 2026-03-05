@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
 #include <QString>
 #include <QVariant>
 
@@ -109,6 +110,8 @@ signals:
     void lastAnalysisResultChanged();
 
 private:
+    void rebuildPropertyNameIndex();
+
     ActorList actors_;
     AnalysisList analyses_;
     PropertyList properties_;
@@ -120,6 +123,7 @@ private:
     SelectionState selection_;
     FilterState filters_;
     mutable MetricsState metrics_;
+    QHash<QString, QString> propertyNameIndex_;
 
     QVariant lastAnalysisResult_;
 };

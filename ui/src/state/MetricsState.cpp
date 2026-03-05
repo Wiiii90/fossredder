@@ -6,24 +6,40 @@
 
 namespace ui {
 
+namespace {
+
+QHash<QString, QString> buildContractTypeById(const ContractList& contracts)
+{
+    QHash<QString, QString> out;
+    const auto& rows = contracts.contracts();
+    out.reserve(static_cast<int>(rows.size()));
+    for (const auto& c : rows) {
+        if (!c) continue;
+        out.insert(QString::fromStdString(c->id), QString::fromStdString(c->type));
+    }
+    return out;
+}
+
+bool containsPropertyId(const std::vector<std::string>& propertyIds, const QString& propertyId)
+{
+    for (const auto& pid : propertyIds) {
+        if (QString::fromStdString(pid) == propertyId) return true;
+    }
+    return false;
+}
+
+}
+
 QStringList MetricsState::propertyContractTypes(const QString& propertyId, const TransactionList& transactions, const ContractList& contracts) const
 {
     QStringList out;
     if (propertyId.isEmpty()) return out;
+    const auto contractTypeById = buildContractTypeById(contracts);
     for (const auto& t : transactions.transactions()) {
         if (!t) continue;
-        bool contains = false;
-        for (const auto& pid : t->propertyIds) {
-            if (QString::fromStdString(pid) == propertyId) { contains = true; break; }
-        }
-        if (!contains || t->contractId.empty()) continue;
-        for (const auto& c : contracts.contracts()) {
-            if (!c) continue;
-            if (QString::fromStdString(c->id) != QString::fromStdString(t->contractId)) continue;
-            const QString contractType = QString::fromStdString(c->type).trimmed();
-            if (!contractType.isEmpty() && !out.contains(contractType)) out.push_back(contractType);
-            break;
-        }
+        if (!containsPropertyId(t->propertyIds, propertyId) || t->contractId.empty()) continue;
+        const QString contractType = contractTypeById.value(QString::fromStdString(t->contractId)).trimmed();
+        if (!contractType.isEmpty() && !out.contains(contractType)) out.push_back(contractType);
     }
     return out;
 }
@@ -86,24 +102,16 @@ QVariantMap MetricsState::computePropertySums(const QString& propertyId,
     out["nonAllocatable"] = 0.0;
     if (propertyId.isEmpty()) return out;
 
+    const auto contractTypeById = buildContractTypeById(contracts);
+
     for (const auto& t : transactions.transactions()) {
         if (!t) continue;
-        bool contains = false;
-        for (const auto& pid : t->propertyIds) {
-            if (QString::fromStdString(pid) == propertyId) { contains = true; break; }
-        }
-        if (!contains) continue;
+        if (!containsPropertyId(t->propertyIds, propertyId)) continue;
 
         if (!contractType.isEmpty()) {
-            QString currentType;
-            if (!t->contractId.empty()) {
-                for (const auto& c : contracts.contracts()) {
-                    if (!c) continue;
-                    if (QString::fromStdString(c->id) != QString::fromStdString(t->contractId)) continue;
-                    currentType = QString::fromStdString(c->type);
-                    break;
-                }
-            }
+            const QString currentType = t->contractId.empty()
+                ? QString()
+                : contractTypeById.value(QString::fromStdString(t->contractId));
             if (currentType != contractType) continue;
         }
 

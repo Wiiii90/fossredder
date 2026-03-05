@@ -7,6 +7,17 @@
 
 namespace ui {
 
+void StateFacade::rebuildPropertyNameIndex()
+{
+    propertyNameIndex_.clear();
+    const auto& rows = properties_.properties();
+    propertyNameIndex_.reserve(static_cast<int>(rows.size()));
+    for (const auto& p : rows) {
+        if (!p) continue;
+        propertyNameIndex_.insert(QString::fromStdString(p->id), QString::fromStdString(p->name));
+    }
+}
+
 StateFacade::StateFacade(QObject* parent)
     : QObject(parent)
     , actors_(this)
@@ -101,6 +112,7 @@ void StateFacade::loadFromState(const AppState& state)
     analyses_.setAnalyses(state.analyses);
     annuals_.setAnnuals(state.annuals);
     transactions_.setContracts(state.contracts);
+    rebuildPropertyNameIndex();
 
     metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) { emit transactionSumsUpdated(propertyId); });
 
@@ -193,26 +205,12 @@ QVariantMap StateFacade::propertyTransactionSums(const QString& propertyId, cons
 QString StateFacade::propertyName(const QString& id) const
 {
     if (id.isEmpty()) return QString();
-    for (const auto& p : properties_.properties()) {
-        if (!p) continue;
-        if (QString::fromStdString(p->id) == id) return QString::fromStdString(p->name);
-    }
-    return id;
+    const auto it = propertyNameIndex_.find(id);
+    return it == propertyNameIndex_.end() ? id : it.value();
 }
 
 void StateFacade::applyDeletionImpact(const DeletionImpact& impact)
 {
-    auto removeById = [](const auto& items, const QString& id, auto removeAt) {
-        for (int i = 0; i < static_cast<int>(items.size()); ++i) {
-            const auto& item = items[static_cast<size_t>(i)];
-            if (!item) continue;
-            if (QString::fromStdString(item->id) != id) continue;
-            removeAt(i);
-            return true;
-        }
-        return false;
-    };
-
     for (const auto& tid : impact.deletedTransactionIds) {
         const QString qid = QString::fromStdString(tid);
         int row = transactions_.findRowById(qid);
@@ -230,14 +228,17 @@ void StateFacade::applyDeletionImpact(const DeletionImpact& impact)
 
     for (const auto& sid : impact.deletedStatementIds) {
         const QString qid = QString::fromStdString(sid);
-        removeById(statements_.statements(), qid, [&](int rowIndex) { statements_.removeAt(rowIndex); });
+        const int row = statements_.findRowById(qid);
+        if (row >= 0) statements_.removeAt(row);
         filters_.removeStatement(qid);
         if (selection_.clearStatementIfSelected(qid)) emit selectedStatementIdChanged();
     }
 
     for (const auto& pid : impact.deletedPropertyIds) {
         const QString qid = QString::fromStdString(pid);
-        removeById(properties_.properties(), qid, [&](int rowIndex) { properties_.removeAt(rowIndex); });
+        const int row = properties_.findRowById(qid);
+        if (row >= 0) properties_.removeAt(row);
+        propertyNameIndex_.remove(qid);
         metrics_.removePropertyCache(qid);
         filters_.removeProperty(qid);
         if (selection_.clearPropertyIfSelected(qid)) emit selectedPropertyIdChanged();
@@ -245,13 +246,15 @@ void StateFacade::applyDeletionImpact(const DeletionImpact& impact)
 
     for (const auto& aid : impact.deletedActorIds) {
         const QString qid = QString::fromStdString(aid);
-        removeById(actors_.actors(), qid, [&](int rowIndex) { actors_.removeAt(rowIndex); });
+        const int row = actors_.findRowById(qid);
+        if (row >= 0) actors_.removeAt(row);
         if (selection_.clearActorIfSelected(qid)) emit selectedActorIdChanged();
     }
 
     for (const auto& cid : impact.deletedContractIds) {
         const QString qid = QString::fromStdString(cid);
-        removeById(contracts_.contracts(), qid, [&](int rowIndex) { contracts_.removeAt(rowIndex); });
+        const int row = contracts_.findRowById(qid);
+        if (row >= 0) contracts_.removeAt(row);
         if (selection_.clearContractIfSelected(qid)) emit selectedContractIdChanged();
     }
 }

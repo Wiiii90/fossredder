@@ -5,6 +5,17 @@
 
 namespace ui {
 
+void TransactionList::rebuildIdIndex()
+{
+    idToRow_.clear();
+    idToRow_.reserve(static_cast<int>(transactions_.size()));
+    for (int i = 0; i < static_cast<int>(transactions_.size()); ++i) {
+        const auto& t = transactions_[static_cast<size_t>(i)];
+        if (!t) continue;
+        idToRow_.insert(QString::fromStdString(t->id), i);
+    }
+}
+
 TransactionList::TransactionList(QObject* parent) : QAbstractListModel(parent) {}
 
 int TransactionList::rowCount(const QModelIndex& parent) const
@@ -78,6 +89,7 @@ void TransactionList::setTransactions(std::vector<std::shared_ptr<Transaction>> 
 {
     beginResetModel();
     transactions_ = std::move(transactions);
+    rebuildIdIndex();
     endResetModel();
 }
 
@@ -97,18 +109,15 @@ const std::vector<std::shared_ptr<Transaction>>& TransactionList::transactions()
 int TransactionList::findRowById(const QString& id) const
 {
     if (id.isEmpty()) return -1;
-    for (int i = 0; i < static_cast<int>(transactions_.size()); ++i) {
-        const auto& t = transactions_[static_cast<size_t>(i)];
-        if (!t) continue;
-        if (QString::fromStdString(t->id) == id) return i;
-    }
-    return -1;
+    const auto it = idToRow_.find(id);
+    return it == idToRow_.end() ? -1 : it.value();
 }
 
 void TransactionList::setTransactionAt(int row, std::shared_ptr<Transaction> tx)
 {
     if (row < 0 || row >= static_cast<int>(transactions_.size())) return;
     transactions_[static_cast<size_t>(row)] = std::move(tx);
+    rebuildIdIndex();
     const QModelIndex mi = index(row);
     QVector<int> rolesVec;
     const auto roleKeys = roleNames().keys();
@@ -122,6 +131,7 @@ void TransactionList::removeAt(int row)
     if (row < 0 || row >= static_cast<int>(transactions_.size())) return;
     beginRemoveRows(QModelIndex(), row, row);
     transactions_.erase(transactions_.begin() + row);
+    rebuildIdIndex();
     endRemoveRows();
 }
 

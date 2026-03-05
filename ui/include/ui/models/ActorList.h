@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QHash>
 #include <QString>
 #include <vector>
 #include <memory>
@@ -30,12 +31,16 @@ public:
 
     void setActors(std::vector<std::shared_ptr<Actor>> actors);
     const std::vector<std::shared_ptr<Actor>>& actors() const;
+    int findRowById(const QString& id) const;
 
     Q_INVOKABLE int addActor(const QString& name, const QString& type, const QString& description);
     Q_INVOKABLE void removeAt(int row);
 
 private:
+    void rebuildIdIndex();
+
     std::vector<std::shared_ptr<Actor>> actors_;
+    QHash<QString, int> idToRow_;
 };
 
 }

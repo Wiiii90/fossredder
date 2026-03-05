@@ -4,6 +4,17 @@
 
 namespace ui {
 
+void PropertyList::rebuildIdIndex()
+{
+    idToRow_.clear();
+    idToRow_.reserve(static_cast<int>(props_.size()));
+    for (int i = 0; i < static_cast<int>(props_.size()); ++i) {
+        const auto& p = props_[static_cast<size_t>(i)];
+        if (!p) continue;
+        idToRow_.insert(QString::fromStdString(p->id), i);
+    }
+}
+
 PropertyList::PropertyList(QObject* parent) : QAbstractListModel(parent) {}
 
 int PropertyList::rowCount(const QModelIndex& parent) const {
@@ -90,11 +101,19 @@ QHash<int, QByteArray> PropertyList::roleNames() const {
 void PropertyList::setProperties(std::vector<std::shared_ptr<Property>> props) {
     beginResetModel();
     props_ = std::move(props);
+    rebuildIdIndex();
     endResetModel();
 }
 
 const std::vector<std::shared_ptr<Property>>& PropertyList::properties() const {
     return props_;
+}
+
+int PropertyList::findRowById(const QString& id) const
+{
+    if (id.isEmpty()) return -1;
+    const auto it = idToRow_.find(id);
+    return it == idToRow_.end() ? -1 : it.value();
 }
 
 int PropertyList::addProperty(const QString& name, const QString& address, const QString& description) {
@@ -106,6 +125,7 @@ int PropertyList::addProperty(const QString& name, const QString& address, const
     const int row = static_cast<int>(props_.size());
     beginInsertRows(QModelIndex(), row, row);
     props_.push_back(std::move(p));
+    if (props_.back()) idToRow_.insert(QString::fromStdString(props_.back()->id), row);
     endInsertRows();
 
     return row;
@@ -115,6 +135,7 @@ void PropertyList::removeAt(int row) {
     if (row < 0 || row >= static_cast<int>(props_.size())) return;
     beginRemoveRows(QModelIndex(), row, row);
     props_.erase(props_.begin() + row);
+    rebuildIdIndex();
     endRemoveRows();
 }
 

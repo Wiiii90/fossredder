@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QHash>
 #include <QString>
 
 #include <memory>
@@ -26,10 +27,14 @@ public:
 
     void setStatements(std::vector<std::shared_ptr<Statement>> statements);
     const std::vector<std::shared_ptr<Statement>>& statements() const;
+    int findRowById(const QString& id) const;
     Q_INVOKABLE void removeAt(int row);
 
 private:
+    void rebuildIdIndex();
+
     std::vector<std::shared_ptr<Statement>> statements_;
+    QHash<QString, int> idToRow_;
 };
 
 }

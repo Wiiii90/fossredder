@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QHash>
 #include <QString>
 #include <QStringList>
 #include <vector>
@@ -38,12 +39,16 @@ public:
 
     void setContracts(std::vector<std::shared_ptr<Contract>> contracts);
     const std::vector<std::shared_ptr<Contract>>& contracts() const;
+    int findRowById(const QString& id) const;
 
     Q_INVOKABLE int addContract(const QString& name, const QString& type, const QString& description);
     Q_INVOKABLE void removeAt(int row);
 
 private:
+    void rebuildIdIndex();
+
     std::vector<std::shared_ptr<Contract>> contracts_;
+    QHash<QString, int> idToRow_;
 
     static QStringList toQStringList(const std::vector<std::string>& v);
     static std::vector<std::string> toStdVectorStrings(const QVariant& v);
