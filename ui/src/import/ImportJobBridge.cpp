@@ -70,14 +70,4 @@ std::map<std::string, std::vector<uint8_t>> ImportJobBridge::takeArtifacts()
     return jobSystem_->manager().takeStatementArtifacts(currentJobId_.toStdString());
 }
 
-bool ImportJobBridge::hasCurrentJob() const
-{
-    return !currentJobId_.isEmpty();
-}
-
-QString ImportJobBridge::currentJobId() const
-{
-    return currentJobId_;
-}
-
 }

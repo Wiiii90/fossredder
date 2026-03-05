@@ -16,32 +16,15 @@
 #include <QDropEvent>
 #include <string>
 
-#include "core/errors/ErrorCodes.h"
-#include "core/errors/ErrorReporterRegistry.h"
 #include "ui/actions/Actions.h"
 #include "ui/bootstrap/QmlRuntime.h"
 #include "ui/dialogs/FileDialogs.h"
+#include "ui/observability/UiTrace.h"
 #include "ui/state/StateFacade.h"
 #include "ui/state/NavigationState.h"
 #include "ui/state/StatusState.h"
 #include "ui/controllers/FileSystemController.h"
 #include "ui/workflows/FileWorkflow.h"
-
-namespace {
-
-void reportUiFlow(core::errors::ErrorSeverity severity,
-                  const char* origin,
-                  std::string message,
-                  core::errors::ErrorContext context = {})
-{
-    core::errors::report(severity,
-                         core::errors::codes::GenericError,
-                         origin,
-                         std::move(message),
-                         std::move(context));
-}
-
-}
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -112,36 +95,36 @@ void MainWindow::setupActionRouting()
         connect(actions->saveFileAsAction(), &QAction::triggered, fileWorkflow_, &ui::workflows::FileWorkflow::requestSaveFileAs);
 
         connect(fileWorkflow_, &ui::workflows::FileWorkflow::newFileRequested, this, [this](const QString& file) {
-            reportUiFlow(core::errors::ErrorSeverity::Info,
-                         "MainWindow::setupActionRouting",
-                         "UI requested new file",
-                         {
-                             {"path", file.toStdString()}
-                         });
+            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          "MainWindow::setupActionRouting",
+                                          "UI requested new file",
+                                          {
+                                              {"path", file.toStdString()}
+                                          });
             emit newFileRequested(file);
         });
         connect(fileWorkflow_, &ui::workflows::FileWorkflow::openFileRequested, this, [this](const QString& file) {
-            reportUiFlow(core::errors::ErrorSeverity::Info,
-                         "MainWindow::setupActionRouting",
-                         "UI requested open file",
-                         {
-                             {"path", file.toStdString()}
-                         });
+            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          "MainWindow::setupActionRouting",
+                                          "UI requested open file",
+                                          {
+                                              {"path", file.toStdString()}
+                                          });
             emit openFileRequested(file);
         });
         connect(fileWorkflow_, &ui::workflows::FileWorkflow::saveFileRequested, this, [this]() {
-            reportUiFlow(core::errors::ErrorSeverity::Info,
-                         "MainWindow::setupActionRouting",
-                         "UI requested save file");
+            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          "MainWindow::setupActionRouting",
+                                          "UI requested save file");
             emit saveFileRequested();
         });
         connect(fileWorkflow_, &ui::workflows::FileWorkflow::saveFileAsRequested, this, [this](const QString& file) {
-            reportUiFlow(core::errors::ErrorSeverity::Info,
-                         "MainWindow::setupActionRouting",
-                         "UI requested save file as",
-                         {
-                             {"path", file.toStdString()}
-                         });
+            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          "MainWindow::setupActionRouting",
+                                          "UI requested save file as",
+                                          {
+                                              {"path", file.toStdString()}
+                                          });
             emit saveFileAsRequested(file);
         });
     }
@@ -151,13 +134,13 @@ void MainWindow::setupActionRouting()
     connect(actions, &ui::Actions::importBrowseRequested, this, [this, actions](const QString& filter) {
         const QStringList files = ui::dialogs::pickImportFiles(this, filter);
         if (!files.isEmpty()) {
-            reportUiFlow(core::errors::ErrorSeverity::Info,
-                         "MainWindow::setupActionRouting",
-                         "UI selected import files",
-                         {
-                             {"count", std::to_string(files.size())},
-                             {"firstFile", files.front().toStdString()}
-                         });
+            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          "MainWindow::setupActionRouting",
+                                          "UI selected import files",
+                                          {
+                                              {"count", std::to_string(files.size())},
+                                              {"firstFile", files.front().toStdString()}
+                                          });
             emit actions->importFilesSelected(files);
             if (files.size() == 1) emit actions->importFileSelected(files.first());
             if (status_) status_->setText(QString("Selected: %1").arg(files.front()));
@@ -167,12 +150,12 @@ void MainWindow::setupActionRouting()
     connect(actions, &ui::Actions::exportBrowseRequested, this, [this, actions](const QString& filter) {
         const QString file = ui::dialogs::pickExportFile(this, filter);
         if (!file.isEmpty()) {
-            reportUiFlow(core::errors::ErrorSeverity::Info,
-                         "MainWindow::setupActionRouting",
-                         "UI selected export path",
-                         {
-                             {"path", file.toStdString()}
-                         });
+            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          "MainWindow::setupActionRouting",
+                                          "UI selected export path",
+                                          {
+                                              {"path", file.toStdString()}
+                                          });
             emit actions->exportFileSelected(file);
             if (status_) status_->setText(QString("Export path: %1").arg(file));
         }
@@ -268,13 +251,13 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
             }
 
             if (actions_) {
-                reportUiFlow(core::errors::ErrorSeverity::Info,
-                             "MainWindow::eventFilter",
-                             "Import files dropped",
-                             {
-                                 {"count", std::to_string(files.size())},
-                                 {"firstFile", files.front().toStdString()}
-                             });
+                ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                              "MainWindow::eventFilter",
+                                              "Import files dropped",
+                                              {
+                                                  {"count", std::to_string(files.size())},
+                                                  {"firstFile", files.front().toStdString()}
+                                              });
                 emit actions_->importFilesDropped(files);
                 if (files.size() == 1) emit actions_->importFileDropped(files.first());
             }
@@ -290,9 +273,9 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
-    reportUiFlow(core::errors::ErrorSeverity::Info,
-                 "MainWindow::closeEvent",
-                 "Main window close requested; triggering save workflow");
+    ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                  "MainWindow::closeEvent",
+                                  "Main window close requested; triggering save workflow");
     if (fileWorkflow_) fileWorkflow_->requestSaveFile();
     else emit saveFileRequested();
     QMainWindow::closeEvent(event);

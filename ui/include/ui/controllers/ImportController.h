@@ -61,6 +61,7 @@ public:
 signals:
     void stateChanged();
     void importFinished();
+    void importCanceled();
     void importFailed(const QString& error);
 
 private slots:

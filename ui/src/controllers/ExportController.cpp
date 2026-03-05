@@ -2,12 +2,11 @@
 
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/UiControllerContracts.h"
+#include "ui/observability/UiTrace.h"
 
 #include "core/controllers/CsvController.h"
 #include "core/controllers/ExportController.h"
 #include "core/controllers/XlsxController.h"
-#include "core/errors/ErrorCodes.h"
-#include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/Actor.h"
 #include "core/models/Analysis.h"
 #include "core/models/Annual.h"
@@ -24,18 +23,6 @@ namespace ui {
 
 namespace {
 
-void reportUiFlow(core::errors::ErrorSeverity severity,
-                  const char* origin,
-                  std::string message,
-                  core::errors::ErrorContext context = {})
-{
-    core::errors::report(severity,
-                         core::errors::codes::GenericError,
-                         origin,
-                         std::move(message),
-                         std::move(context));
-}
-
 core::controllers::exporting::ExportOptions::Format toExportFormat(int format)
 {
     using UiExportFormat = ui::controllers::contracts::ExportFormat;
@@ -45,12 +32,12 @@ core::controllers::exporting::ExportOptions::Format toExportFormat(int format)
     case UiExportFormat::Xlsx:
         return core::controllers::exporting::ExportOptions::Format::Xlsx;
     default:
-        reportUiFlow(core::errors::ErrorSeverity::Warning,
-                     "ui::ExportController::toExportFormat",
-                     "Unknown export format, fallback to CSV",
-                     {
-                         {"format", std::to_string(format)}
-                     });
+        observability::reportFlow(core::errors::ErrorSeverity::Warning,
+                                  "ui::ExportController::toExportFormat",
+                                  "Unknown export format, fallback to CSV",
+                                  {
+                                      {"format", std::to_string(format)}
+                                  });
         return core::controllers::exporting::ExportOptions::Format::Csv;
     }
 }
@@ -117,9 +104,9 @@ void ExportController::exportData(int format, const QString& path, bool includeF
 {
     if (!controllers::guard::ensureCore(core_, "ui::ExportController::exportData")) return;
     if (isRunning_) {
-        reportUiFlow(core::errors::ErrorSeverity::Info,
-                     "ui::ExportController::exportData",
-                     "Export ignored: already running");
+        observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                  "ui::ExportController::exportData",
+                                  "Export ignored: already running");
         return;
     }
 
@@ -139,15 +126,15 @@ void ExportController::exportData(int format, const QString& path, bool includeF
         opts.stateSnapshot = createExportSnapshot(core_->state());
         opts.requestedFormat = toExportFormat(format);
 
-        reportUiFlow(core::errors::ErrorSeverity::Info,
-                     "ui::ExportController::exportData",
-                     "Export started",
-                     {
-                         {"path", path.toStdString()},
-                         {"format", std::to_string(format)},
-                         {"includeFormulas", includeFormulas ? "true" : "false"},
-                         {"locale", locale.toStdString()}
-                     });
+        observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                  "ui::ExportController::exportData",
+                                  "Export started",
+                                  {
+                                      {"path", path.toStdString()},
+                                      {"format", std::to_string(format)},
+                                      {"includeFormulas", includeFormulas ? "true" : "false"},
+                                      {"locale", locale.toStdString()}
+                                  });
 
         exportFuture_ = QtConcurrent::run([exporter, opts]() mutable {
             exporter.exportData(opts);
@@ -157,12 +144,12 @@ void ExportController::exportData(int format, const QString& path, bool includeF
     } catch (...) {
         controllers::guard::reportException("ui::ExportController::exportData");
         lastError_ = controllers::contracts::errors::kExportFailed;
-        reportUiFlow(core::errors::ErrorSeverity::Error,
-                     "ui::ExportController::exportData",
-                     "Export failed with exception",
-                     {
-                         {"path", path.toStdString()}
-                     });
+        observability::reportFlow(core::errors::ErrorSeverity::Error,
+                                  "ui::ExportController::exportData",
+                                  "Export failed with exception",
+                                  {
+                                      {"path", path.toStdString()}
+                                  });
         isRunning_ = false;
         emit stateChanged();
         emit exportFailed(lastError_);
@@ -182,25 +169,25 @@ void ExportController::onExportFinished()
                                  result.errorCode.empty() ? core::errors::codes::GenericError : result.errorCode.c_str(),
                                  "ui::ExportController::onExportFinished",
                                  result.message.empty() ? controllers::contracts::errors::kExportFailed.toStdString() : result.message);
-            reportUiFlow(core::errors::ErrorSeverity::Warning,
-                         "ui::ExportController::onExportFinished",
-                         "Export finished with failure",
-                         {
-                             {"error", lastError_.toStdString()}
-                         });
+            observability::reportFlow(core::errors::ErrorSeverity::Warning,
+                                      "ui::ExportController::onExportFinished",
+                                      "Export finished with failure",
+                                      {
+                                          {"error", lastError_.toStdString()}
+                                      });
             emit exportFailed(lastError_);
         } else {
             lastError_.clear();
-            reportUiFlow(core::errors::ErrorSeverity::Info,
-                         "ui::ExportController::onExportFinished",
-                         "Export finished successfully");
+            observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                      "ui::ExportController::onExportFinished",
+                                      "Export finished successfully");
         }
     } catch (...) {
         controllers::guard::reportException("ui::ExportController::onExportFinished");
         lastError_ = controllers::contracts::errors::kExportFailed;
-        reportUiFlow(core::errors::ErrorSeverity::Error,
-                     "ui::ExportController::onExportFinished",
-                     "Export finished with exception");
+        observability::reportFlow(core::errors::ErrorSeverity::Error,
+                                  "ui::ExportController::onExportFinished",
+                                  "Export finished with exception");
         emit exportFailed(lastError_);
         success = false;
     }

@@ -8,14 +8,13 @@
 #include <exception>
 #include <string>
 
-#include "core/errors/ErrorCodes.h"
-#include "core/errors/ErrorReporterRegistry.h"
 #include "core/jobs/JobManager.h"
 #include "core/jobs/JobSystem.h"
 #include "core/jobs/JobTypes.h"
 #include "ui/controllers/UiControllerContracts.h"
 #include "ui/import/ImportDraftMapper.h"
 #include "ui/import/ImportRunStore.h"
+#include "ui/observability/UiTrace.h"
 
 namespace ui {
 
@@ -23,18 +22,6 @@ namespace {
 
 constexpr int kImportRunKeepCount = 20;
 constexpr double kInitialImportProgress = 0.01;
-
-void reportUiFlow(core::errors::ErrorSeverity severity,
-                  const char* origin,
-                  std::string message,
-                  core::errors::ErrorContext context = {})
-{
-    core::errors::report(severity,
-                         core::errors::codes::GenericError,
-                         origin,
-                         std::move(message),
-                         std::move(context));
-}
 
 }
 
@@ -128,13 +115,13 @@ void ImportController::cancelImport()
     cancelClearsQueue_ = false;
     phase_ = controllers::contracts::importPhases::kStopping;
     jobBridge_.cancelCurrent();
-    reportUiFlow(core::errors::ErrorSeverity::Info,
-                 "ui::ImportController::cancelImport",
-                 "Import cancellation requested",
-                 {
-                     {"file", currentImportFile_.toStdString()},
-                     {"queuedCount", std::to_string(queuedFiles_.size())}
-                 });
+    observability::reportFlow(core::errors::ErrorSeverity::Info,
+                              "ui::ImportController::cancelImport",
+                              "Import cancellation requested",
+                              {
+                                  {"file", currentImportFile_.toStdString()},
+                                  {"queuedCount", std::to_string(queuedFiles_.size())}
+                              });
     emit stateChanged();
 }
 
@@ -146,12 +133,12 @@ void ImportController::cancelAllImports()
     queuedFiles_.clear();
     phase_ = controllers::contracts::importPhases::kStopping;
     jobBridge_.cancelCurrent();
-    reportUiFlow(core::errors::ErrorSeverity::Info,
-                 "ui::ImportController::cancelAllImports",
-                 "Cancel-all requested for import queue",
-                 {
-                     {"file", currentImportFile_.toStdString()}
-                 });
+    observability::reportFlow(core::errors::ErrorSeverity::Info,
+                              "ui::ImportController::cancelAllImports",
+                              "Cancel-all requested for import queue",
+                              {
+                                  {"file", currentImportFile_.toStdString()}
+                              });
     emit stateChanged();
 }
 
@@ -188,9 +175,9 @@ void ImportController::startImportForFile(const QString& path)
     if (!jobSystem_) {
         error_ = controllers::contracts::errors::kImportControllerUnavailable;
         queuedFiles_.clear();
-        reportUiFlow(core::errors::ErrorSeverity::Warning,
-                     "ui::ImportController::startImportForFile",
-                     "Import start rejected: controller unavailable");
+        observability::reportFlow(core::errors::ErrorSeverity::Warning,
+                                  "ui::ImportController::startImportForFile",
+                                  "Import start rejected: controller unavailable");
         emit stateChanged();
         emit importFailed(error_);
         return;
@@ -198,9 +185,9 @@ void ImportController::startImportForFile(const QString& path)
     if (path.trimmed().isEmpty()) {
         error_ = controllers::contracts::errors::kNoFileSelected;
         queuedFiles_.clear();
-        reportUiFlow(core::errors::ErrorSeverity::Warning,
-                     "ui::ImportController::startImportForFile",
-                     "Import start rejected: no file selected");
+        observability::reportFlow(core::errors::ErrorSeverity::Warning,
+                                  "ui::ImportController::startImportForFile",
+                                  "Import start rejected: no file selected");
         emit stateChanged();
         emit importFailed(error_);
         return;
@@ -241,14 +228,14 @@ void ImportController::startImportForFile(const QString& path)
     spec.runRoot = runRoot;
     spec.runIdPrefix = runIdPrefix;
 
-    reportUiFlow(core::errors::ErrorSeverity::Info,
-                 "ui::ImportController::startImportForFile",
-                 "Import started",
-                 {
-                     {"file", path.toStdString()},
-                     {"runRoot", runRootQ.toStdString()},
-                     {"queuedCount", std::to_string(queuedFiles_.size())}
-                 });
+    observability::reportFlow(core::errors::ErrorSeverity::Info,
+                              "ui::ImportController::startImportForFile",
+                              "Import started",
+                              {
+                                  {"file", path.toStdString()},
+                                  {"runRoot", runRootQ.toStdString()},
+                                  {"queuedCount", std::to_string(queuedFiles_.size())}
+                              });
 
     jobBridge_.startStatementImport(spec, [this](const core::jobs::JobEvent& ev) {
         double p = ev.progress;
@@ -313,14 +300,14 @@ void ImportController::onJobTerminal(int state, const QString& message)
         selectedFile_.clear();
         currentImportFile_.clear();
         cancelClearsQueue_ = false;
-        reportUiFlow(core::errors::ErrorSeverity::Info,
-                     "ui::ImportController::onJobTerminal",
-                     "Import canceled",
-                     {
-                         {"status", controllers::contracts::importRuns::kStatusCanceled.toStdString()}
-                     });
+        observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                  "ui::ImportController::onJobTerminal",
+                                  "Import canceled",
+                                  {
+                                      {"status", controllers::contracts::importRuns::kStatusCanceled.toStdString()}
+                                  });
         emit stateChanged();
-        emit importFailed(controllers::contracts::importRuns::kStatusCanceled);
+        emit importCanceled();
         return;
     }
 
@@ -336,12 +323,12 @@ void ImportController::onJobTerminal(int state, const QString& message)
                      controllers::contracts::importRuns::kStatusFailed,
                      error_);
         currentImportFile_.clear();
-        reportUiFlow(core::errors::ErrorSeverity::Warning,
-                     "ui::ImportController::onJobTerminal",
-                     "Import failed",
-                     {
-                         {"error", error_.toStdString()}
-                     });
+        observability::reportFlow(core::errors::ErrorSeverity::Warning,
+                                  "ui::ImportController::onJobTerminal",
+                                  "Import failed",
+                                  {
+                                      {"error", error_.toStdString()}
+                                  });
         emit stateChanged();
         emit importFailed(error_);
         return;
@@ -359,9 +346,9 @@ void ImportController::onJobTerminal(int state, const QString& message)
                      controllers::contracts::importRuns::kStatusFailed,
                      error_);
         currentImportFile_.clear();
-        reportUiFlow(core::errors::ErrorSeverity::Warning,
-                     "ui::ImportController::onJobTerminal",
-                     "Import failed: missing statement result");
+        observability::reportFlow(core::errors::ErrorSeverity::Warning,
+                                  "ui::ImportController::onJobTerminal",
+                                  "Import failed: missing statement result");
         emit stateChanged();
         emit importFailed(error_);
         return;
@@ -385,13 +372,13 @@ void ImportController::onJobTerminal(int state, const QString& message)
                  currentImportFile_,
                  controllers::contracts::importRuns::kStatusSuccess,
                  QStringLiteral(""));
-    reportUiFlow(core::errors::ErrorSeverity::Info,
-                 "ui::ImportController::onJobTerminal",
-                 "Import finished",
-                 {
-                     {"status", controllers::contracts::importRuns::kStatusSuccess.toStdString()},
-                     {"artifactCount", std::to_string(artifacts_.size())}
-                 });
+    observability::reportFlow(core::errors::ErrorSeverity::Info,
+                              "ui::ImportController::onJobTerminal",
+                              "Import finished",
+                              {
+                                  {"status", controllers::contracts::importRuns::kStatusSuccess.toStdString()},
+                                  {"artifactCount", std::to_string(artifacts_.size())}
+                              });
     currentImportFile_.clear();
     emit stateChanged();
     emit importFinished();

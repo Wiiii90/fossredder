@@ -36,9 +36,6 @@ public:
     std::shared_ptr<Statement> statementResult() const;
     std::map<std::string, std::vector<uint8_t>> takeArtifacts();
 
-    bool hasCurrentJob() const;
-    QString currentJobId() const;
-
 private:
     std::shared_ptr<core::jobs::JobSystem> jobSystem_;
     QString currentJobId_;
