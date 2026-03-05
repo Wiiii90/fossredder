@@ -2,11 +2,7 @@
 
 #include <QAction>
 #include <QCloseEvent>
-#include <QCoreApplication>
-#include <QDir>
 #include <QEvent>
-#include <QFileDialog>
-#include <QLibraryInfo>
 #include <QMessageBox>
 #include <QQmlContext>
 #include <QQmlEngine>
@@ -18,18 +14,34 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
-#include <QRegularExpression>
 
 #include "ui/actions/Actions.h"
+#include "ui/bootstrap/QmlRuntime.h"
+#include "ui/dialogs/FileDialogs.h"
 #include "ui/state/StateFacade.h"
 #include "ui/state/NavigationState.h"
+#include "ui/state/StatusState.h"
 #include "ui/controllers/FileSystemController.h"
+#include "ui/workflows/FileWorkflow.h"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {
     setWindowTitle("FOSSRedder");
     resize(1200, 800);
+
+    setupQuickWidget();
+    setupUiContext();
+    setupActionRouting();
+
+    setCentralWidget(m_quickWidget);
+
+    setupQmlRuntime();
+}
+
+void MainWindow::setupQuickWidget()
+{
+    if (m_quickWidget) return;
 
     m_quickWidget = new QQuickWidget(this);
     m_quickWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
@@ -40,78 +52,76 @@ MainWindow::MainWindow(QWidget* parent)
 
     m_quickWidget->installEventFilter(this);
 
-    if (m_quickWidget->engine()) {
-        qmlRegisterUncreatableType<ui::NavigationState>("FossRedder", 1, 0, "UiNavigation",
-                                                "UiNavigation is exposed via context property 'uiNav'");
-    }
+    ui::bootstrap::registerTypes();
+}
 
+void MainWindow::setupUiContext()
+{
     auto actions = new ui::Actions(this);
     actions_ = actions;
     auto nav = new ui::NavigationState(this);
     dataSession_ = new ui::StateFacade(this);
     auto fileSys = new ui::FileSystemController(this);
+    fileWorkflow_ = new ui::workflows::FileWorkflow(this, this);
+    status_ = new ui::StatusState(this);
+    status_->setText(QStringLiteral("Ready"));
 
     if (m_quickWidget->rootContext()) {
         m_quickWidget->rootContext()->setContextProperty("uiActions", actions);
         m_quickWidget->rootContext()->setContextProperty("uiNav", nav);
         m_quickWidget->rootContext()->setContextProperty("uiData", dataSession_);
         m_quickWidget->rootContext()->setContextProperty("fileSystemController", fileSys);
+        m_quickWidget->rootContext()->setContextProperty("uiStatus", status_);
 
 #ifdef _DEBUG
         m_quickWidget->rootContext()->setContextProperty("isDebugBuild", true);
 #else
         m_quickWidget->rootContext()->setContextProperty("isDebugBuild", false);
 #endif
-
-        m_quickWidget->rootContext()->setContextProperty("statusText", QStringLiteral("Ready"));
-        m_quickWidget->rootContext()->setContextProperty("statusItems", 3);
     }
+}
 
-    connect(actions->newFileAction(), &QAction::triggered, this, &MainWindow::onNewFile);
-    connect(actions->openFileAction(), &QAction::triggered, this, &MainWindow::onOpenFile);
-    connect(actions->saveFileAction(), &QAction::triggered, this, &MainWindow::onSaveFile);
-    connect(actions->saveFileAsAction(), &QAction::triggered, this, &MainWindow::onSaveFileAs);
+void MainWindow::setupActionRouting()
+{
+    if (!actions_) return;
 
-    connect(actions->importAction(), &QAction::triggered, this, &MainWindow::onImport);
-    connect(actions->exportAction(), &QAction::triggered, this, &MainWindow::onExport);
+    auto actions = actions_;
+    if (fileWorkflow_) {
+        connect(actions->newFileAction(), &QAction::triggered, fileWorkflow_, &ui::workflows::FileWorkflow::requestNewFile);
+        connect(actions->openFileAction(), &QAction::triggered, fileWorkflow_, &ui::workflows::FileWorkflow::requestOpenFile);
+        connect(actions->saveFileAction(), &QAction::triggered, fileWorkflow_, &ui::workflows::FileWorkflow::requestSaveFile);
+        connect(actions->saveFileAsAction(), &QAction::triggered, fileWorkflow_, &ui::workflows::FileWorkflow::requestSaveFileAs);
+
+        connect(fileWorkflow_, &ui::workflows::FileWorkflow::newFileRequested, this, &MainWindow::newFileRequested);
+        connect(fileWorkflow_, &ui::workflows::FileWorkflow::openFileRequested, this, &MainWindow::openFileRequested);
+        connect(fileWorkflow_, &ui::workflows::FileWorkflow::saveFileRequested, this, &MainWindow::saveFileRequested);
+        connect(fileWorkflow_, &ui::workflows::FileWorkflow::saveFileAsRequested, this, &MainWindow::saveFileAsRequested);
+    }
     connect(actions->quitAction(), &QAction::triggered, this, &QWidget::close);
     connect(actions->aboutAction(), &QAction::triggered, this, &MainWindow::onAbout);
 
     connect(actions, &ui::Actions::importBrowseRequested, this, [this, actions](const QString& filter) {
-        const QStringList files = QFileDialog::getOpenFileNames(this, tr("Select PDF"), QString(), filter);
+        const QStringList files = ui::dialogs::pickImportFiles(this, filter);
         if (!files.isEmpty()) {
             emit actions->importFilesSelected(files);
             if (files.size() == 1) emit actions->importFileSelected(files.first());
+            if (status_) status_->setText(QString("Selected: %1").arg(files.front()));
         }
     });
 
     connect(actions, &ui::Actions::exportBrowseRequested, this, [this, actions](const QString& filter) {
-        const QString file = QFileDialog::getSaveFileName(this, tr("Export File"), QString(), filter);
+        const QString file = ui::dialogs::pickExportFile(this, filter);
         if (!file.isEmpty()) {
             emit actions->exportFileSelected(file);
+            if (status_) status_->setText(QString("Export path: %1").arg(file));
         }
     });
+}
 
-    setCentralWidget(m_quickWidget);
-
+void MainWindow::setupQmlRuntime()
+{
     Q_INIT_RESOURCE(qml);
-
-    const QString qtImports = QLibraryInfo::path(QLibraryInfo::Qml2ImportsPath);
-    if (!qtImports.isEmpty() && QDir(qtImports).exists()) {
-        m_quickWidget->engine()->addImportPath(qtImports);
-    }
-
-    const QString appQmlDir = QCoreApplication::applicationDirPath() + "/qml";
-    if (QDir(appQmlDir).exists()) {
-        m_quickWidget->engine()->addImportPath(appQmlDir);
-    }
-
-    const QString imageFormatsDir = QCoreApplication::applicationDirPath() + "/imageformats";
-    if (QDir(imageFormatsDir).exists()) {
-        QCoreApplication::addLibraryPath(imageFormatsDir);
-    }
-
-    m_quickWidget->engine()->addImportPath("qrc:/qml");
+    ui::bootstrap::configureRuntime(m_quickWidget ? m_quickWidget->engine() : nullptr);
 }
 
 static QStringList droppedLocalFiles(const QMimeData* md)
@@ -212,59 +222,12 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
-    emit saveFileRequested();
+    if (fileWorkflow_) fileWorkflow_->requestSaveFile();
+    else emit saveFileRequested();
     QMainWindow::closeEvent(event);
-}
-
-void MainWindow::onImport()
-{
-    QString file = QFileDialog::getOpenFileName(this, tr("Import File"));
-    if (!file.isEmpty()) {
-        if (m_quickWidget && m_quickWidget->rootContext()) {
-            m_quickWidget->rootContext()->setContextProperty("statusText", QString("Selected: %1").arg(file));
-        }
-        emit importRequested(file);
-    }
-}
-
-void MainWindow::onExport()
-{
-    QString file = QFileDialog::getSaveFileName(this, tr("Export File"));
-    if (!file.isEmpty()) {
-        if (m_quickWidget && m_quickWidget->rootContext()) {
-            m_quickWidget->rootContext()->setContextProperty("statusText", QString("Export path: %1").arg(file));
-        }
-        QMessageBox::information(this, tr("Export"), tr("Export path: %1").arg(file));
-    }
 }
 
 void MainWindow::onAbout()
 {
     QMessageBox::about(this, tr("About FOSSRedder"), tr("FOSSRedder - demo"));
-}
-
-void MainWindow::onNewFile()
-{
-    QString file = QFileDialog::getSaveFileName(this, tr("New File"), QString(), tr("Database (*.db)"));
-    if (file.isEmpty()) return;
-    emit newFileRequested(file);
-}
-
-void MainWindow::onOpenFile()
-{
-    QString file = QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Database (*.db)"));
-    if (file.isEmpty()) return;
-    emit openFileRequested(file);
-}
-
-void MainWindow::onSaveFile()
-{
-    emit saveFileRequested();
-}
-
-void MainWindow::onSaveFileAs()
-{
-    QString file = QFileDialog::getSaveFileName(this, tr("Save File As"), QString(), tr("Database (*.db)"));
-    if (file.isEmpty()) return;
-    emit saveFileAsRequested(file);
 }

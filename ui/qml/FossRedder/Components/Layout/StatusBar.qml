@@ -16,7 +16,9 @@ Item {
 
             Label {
                 id: lblStatus
-                text: (typeof statusText !== 'undefined' && statusText) ? statusText : qsTr("Bereit")
+                text: (typeof uiStatus !== 'undefined' && uiStatus && uiStatus.text && uiStatus.text.length > 0)
+                      ? uiStatus.text
+                      : qsTr("Bereit")
                 color: "#213547"
                 elide: Label.ElideRight
                 Layout.fillWidth: true

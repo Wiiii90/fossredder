@@ -58,7 +58,7 @@ Item {
 
             Label { text: qsTr("Save to:"); Layout.preferredWidth: 120 }
             Controls.TextField { id: pathField; text: ""; placeholderText: qsTr("e.g. C:/Users/You/Documents/export.xlsx"); Layout.fillWidth: true }
-            Controls.Button { text: qsTr("Durchstöbern"); onClicked: picker.open(pathField.text || "") }
+            Controls.Button { text: qsTr("Durchstöbern"); onClicked: if (uiActions) uiActions.browseExportFile() }
             Controls.Button {
                 text: qsTr("Export")
                 enabled: pathField.text.length > 0
@@ -70,6 +70,12 @@ Item {
             }
         }
 
-        Controls.FilePicker { id: picker; onAccepted: function(p) { pathField.text = p } }
+        Connections {
+            target: uiActions
+            function onExportFileSelected(path) {
+                if (!path) return
+                pathField.text = path
+            }
+        }
     }
 }
