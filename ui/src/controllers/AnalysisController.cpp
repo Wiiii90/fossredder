@@ -18,13 +18,9 @@ AnalysisController::AnalysisController(AppStateController* core, const ::Analysi
 
 QString AnalysisController::addAnalysis(const QString& name, const QString& type, const QString& configJson, const QString& filterSpec)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::AnalysisController::addAnalysis")) return {};
-    try {
+    return controllers::guard::invokeValue<QString>(core_, "ui::AnalysisController::addAnalysis", {}, [&]() {
         return QString::fromStdString(core_->addAnalysis(strings::toStdString(name), strings::toStdString(type), strings::toStdString(configJson), strings::toStdString(filterSpec)));
-    } catch (...) {
-        controllers::guard::reportException("ui::AnalysisController::addAnalysis");
-    }
-    return {};
+    });
 }
 
 QVariantMap AnalysisController::computeAnalysis(const QString& analysisId, const QString& filterSpec) const

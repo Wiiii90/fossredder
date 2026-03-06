@@ -13,33 +13,23 @@ PropertyController::PropertyController(AppStateController* core, QObject* parent
 
 QString PropertyController::addProperty(const QString& name, const QString& address, const QString& description)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::PropertyController::addProperty")) return {};
-    try {
+    return controllers::guard::invokeValue<QString>(core_, "ui::PropertyController::addProperty", {}, [&]() {
         return QString::fromStdString(core_->addProperty(strings::toStdString(name), strings::toStdString(address), strings::toStdString(description)));
-    } catch (...) {
-        controllers::guard::reportException("ui::PropertyController::addProperty");
-    }
-    return {};
+    });
 }
 
 void PropertyController::updateProperty(const QString& id, const QString& name, const QString& address, const QString& description)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::PropertyController::updateProperty")) return;
-    try {
+    controllers::guard::invokeVoid(core_, "ui::PropertyController::updateProperty", [&]() {
         core_->updateProperty(id.toStdString(), strings::toStdString(name), strings::toStdString(address), strings::toStdString(description));
-    } catch (...) {
-        controllers::guard::reportException("ui::PropertyController::updateProperty");
-    }
+    });
 }
 
 void PropertyController::deleteProperty(const QString& id)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::PropertyController::deleteProperty")) return;
-    try {
+    controllers::guard::invokeVoid(core_, "ui::PropertyController::deleteProperty", [&]() {
         core_->deleteProperty(id.toStdString());
-    } catch (...) {
-        controllers::guard::reportException("ui::PropertyController::deleteProperty");
-    }
+    });
 }
 
 }

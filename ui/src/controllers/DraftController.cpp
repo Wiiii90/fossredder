@@ -16,11 +16,10 @@ DraftController::DraftController(AppStateController* core, QObject* parent)
 
 QString DraftController::finalizeStatementDraft(StatementDraft* draft)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::DraftController::finalizeStatementDraft") || !draft) return {};
-
-    try {
+    if (!draft) return {};
+    return controllers::guard::invokeValue<QString>(core_, "ui::DraftController::finalizeStatementDraft", {}, [&]() {
         const auto& drafts = draft->transactions()->drafts();
-        if (drafts.empty()) return {};
+        if (drafts.empty()) return QString();
 
         DraftStatement input;
         input.name = strings::toStdString(draft->name());
@@ -40,10 +39,7 @@ QString DraftController::finalizeStatementDraft(StatementDraft* draft)
         }
 
         return QString::fromStdString(core_->finalizeStatementDraft(input));
-    } catch (...) {
-        controllers::guard::reportException("ui::DraftController::finalizeStatementDraft");
-    }
-    return {};
+    });
 }
 
 }

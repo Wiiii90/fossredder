@@ -12,33 +12,23 @@ AnnualController::AnnualController(AppStateController* core, QObject* parent)
 
 QString AnnualController::addAnnual(int year)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::AnnualController::addAnnual")) return {};
-    try {
+    return controllers::guard::invokeValue<QString>(core_, "ui::AnnualController::addAnnual", {}, [&]() {
         return QString::fromStdString(core_->addAnnual(year));
-    } catch (...) {
-        controllers::guard::reportException("ui::AnnualController::addAnnual");
-    }
-    return {};
+    });
 }
 
 void AnnualController::updateAnnual(const QString& id, int year)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::AnnualController::updateAnnual")) return;
-    try {
+    controllers::guard::invokeVoid(core_, "ui::AnnualController::updateAnnual", [&]() {
         core_->updateAnnual(id.toStdString(), year);
-    } catch (...) {
-        controllers::guard::reportException("ui::AnnualController::updateAnnual");
-    }
+    });
 }
 
 void AnnualController::deleteAnnual(const QString& id)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::AnnualController::deleteAnnual")) return;
-    try {
+    controllers::guard::invokeVoid(core_, "ui::AnnualController::deleteAnnual", [&]() {
         core_->deleteAnnual(id.toStdString());
-    } catch (...) {
-        controllers::guard::reportException("ui::AnnualController::deleteAnnual");
-    }
+    });
 }
 
 }

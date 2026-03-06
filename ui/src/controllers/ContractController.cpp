@@ -18,41 +18,30 @@ ContractController::ContractController(AppStateController* core, QObject* parent
 QString ContractController::addContract(const QString& name, const QString& type, const QString& description,
                                         const QStringList& actorIds, const QStringList& propertyIds)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::ContractController::addContract")) return {};
-    try {
+    return controllers::guard::invokeValue<QString>(core_, "ui::ContractController::addContract", {}, [&]() {
         return QString::fromStdString(core_->addContract(strings::toStdString(name), strings::toStdString(type), strings::toStdString(description), strings::toStdList(actorIds), strings::toStdList(propertyIds)));
-    } catch (...) {
-        controllers::guard::reportException("ui::ContractController::addContract");
-    }
-    return {};
+    });
 }
 
 void ContractController::updateContract(const QString& id, const QString& name, const QString& type, const QString& description,
                                         const QStringList& actorIds, const QStringList& propertyIds)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::ContractController::updateContract")) return;
-    try {
+    controllers::guard::invokeVoid(core_, "ui::ContractController::updateContract", [&]() {
         core_->updateContract(id.toStdString(), strings::toStdString(name), strings::toStdString(type), strings::toStdString(description), strings::toStdList(actorIds), strings::toStdList(propertyIds));
-    } catch (...) {
-        controllers::guard::reportException("ui::ContractController::updateContract");
-    }
+    });
 }
 
 void ContractController::deleteContract(const QString& id)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::ContractController::deleteContract")) return;
-    try {
+    controllers::guard::invokeVoid(core_, "ui::ContractController::deleteContract", [&]() {
         core_->deleteContract(id.toStdString());
-    } catch (...) {
-        controllers::guard::reportException("ui::ContractController::deleteContract");
-    }
+    });
 }
 
 QStringList ContractController::getContractTypes() const
 {
-    QStringList out;
-    if (!controllers::guard::ensureCore(core_, "ui::ContractController::getContractTypes")) return out;
-    try {
+    return controllers::guard::invokeValue<QStringList>(core_, "ui::ContractController::getContractTypes", {}, [&]() {
+        QStringList out;
         std::unordered_set<std::string> seen;
         for (const auto& c : core_->state().contracts) {
             if (!c) continue;
@@ -62,10 +51,8 @@ QStringList ContractController::getContractTypes() const
             seen.insert(type);
             out.push_back(QString::fromStdString(type));
         }
-    } catch (...) {
-        controllers::guard::reportException("ui::ContractController::getContractTypes");
-    }
-    return out;
+        return out;
+    });
 }
 
 }

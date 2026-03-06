@@ -21,8 +21,7 @@ QString TransactionController::addTransaction(const QString& name,
                                               bool allocatable,
                                               const QStringList& propertyIds)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::TransactionController::addTransaction")) return {};
-    try {
+    return controllers::guard::invokeValue<QString>(core_, "ui::TransactionController::addTransaction", {}, [&]() {
         return QString::fromStdString(core_->addTransaction(strings::toStdString(name),
                                                              strings::toStdString(bookingDate),
                                                              amount,
@@ -32,10 +31,7 @@ QString TransactionController::addTransaction(const QString& name,
                                                              actorId.toStdString(),
                                                              allocatable,
                                                              strings::toStdList(propertyIds)));
-    } catch (...) {
-        controllers::guard::reportException("ui::TransactionController::addTransaction");
-    }
-    return {};
+    });
 }
 
 void TransactionController::updateTransaction(const QString& id,
@@ -49,8 +45,7 @@ void TransactionController::updateTransaction(const QString& id,
                                               bool allocatable,
                                               const QStringList& propertyIds)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::TransactionController::updateTransaction")) return;
-    try {
+    controllers::guard::invokeVoid(core_, "ui::TransactionController::updateTransaction", [&]() {
         core_->updateTransaction(id.toStdString(),
                                  strings::toStdString(name),
                                  strings::toStdString(bookingDate),
@@ -61,19 +56,14 @@ void TransactionController::updateTransaction(const QString& id,
                                  actorId.toStdString(),
                                  allocatable,
                                  strings::toStdList(propertyIds));
-    } catch (...) {
-        controllers::guard::reportException("ui::TransactionController::updateTransaction");
-    }
+    });
 }
 
 void TransactionController::deleteTransaction(const QString& id)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::TransactionController::deleteTransaction")) return;
-    try {
+    controllers::guard::invokeVoid(core_, "ui::TransactionController::deleteTransaction", [&]() {
         core_->deleteTransaction(id.toStdString());
-    } catch (...) {
-        controllers::guard::reportException("ui::TransactionController::deleteTransaction");
-    }
+    });
 }
 
 }

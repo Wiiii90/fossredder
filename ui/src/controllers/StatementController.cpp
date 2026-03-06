@@ -13,33 +13,23 @@ StatementController::StatementController(AppStateController* core, QObject* pare
 
 QString StatementController::addStatement(const QString& name)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::StatementController::addStatement")) return {};
-    try {
+    return controllers::guard::invokeValue<QString>(core_, "ui::StatementController::addStatement", {}, [&]() {
         return QString::fromStdString(core_->addStatement(strings::toStdString(name)));
-    } catch (...) {
-        controllers::guard::reportException("ui::StatementController::addStatement");
-    }
-    return {};
+    });
 }
 
 void StatementController::updateStatement(const QString& id, const QString& name)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::StatementController::updateStatement")) return;
-    try {
+    controllers::guard::invokeVoid(core_, "ui::StatementController::updateStatement", [&]() {
         core_->updateStatement(id.toStdString(), strings::toStdString(name));
-    } catch (...) {
-        controllers::guard::reportException("ui::StatementController::updateStatement");
-    }
+    });
 }
 
 void StatementController::deleteStatement(const QString& id)
 {
-    if (!controllers::guard::ensureCore(core_, "ui::StatementController::deleteStatement")) return;
-    try {
+    controllers::guard::invokeVoid(core_, "ui::StatementController::deleteStatement", [&]() {
         core_->deleteStatement(id.toStdString());
-    } catch (...) {
-        controllers::guard::reportException("ui::StatementController::deleteStatement");
-    }
+    });
 }
 
 }
