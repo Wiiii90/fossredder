@@ -20,18 +20,30 @@ bool ImportJobBridge::startStatementImport(const core::jobs::ImportStatementJobS
 {
     if (!jobSystem_) return false;
 
-    clearSubscription(exceptionReporter);
+    try {
+        clearSubscription(exceptionReporter);
 
-    const auto jobId = jobSystem_->startImportStatement(spec);
-    currentJobId_ = QString::fromStdString(jobId);
+        const auto jobId = jobSystem_->startImportStatement(spec);
+        currentJobId_ = QString::fromStdString(jobId);
 
-    currentSubId_ = jobSystem_->manager().subscribe(jobId, [this, callback = std::move(callback)](const core::jobs::JobEvent& event) {
-        if (currentJobId_.isEmpty()) return;
-        if (QString::fromStdString(event.jobId) != currentJobId_) return;
-        if (callback) callback(event);
-    });
+        currentSubId_ = jobSystem_->manager().subscribe(jobId, [this, callback = std::move(callback)](const core::jobs::JobEvent& event) {
+            if (currentJobId_.isEmpty()) return;
+            if (QString::fromStdString(event.jobId) != currentJobId_) return;
+            if (callback) callback(event);
+        });
 
-    return true;
+        return true;
+    } catch (const std::exception&) {
+        currentSubId_ = 0;
+        currentJobId_.clear();
+        if (exceptionReporter) exceptionReporter("ui::importing::ImportJobBridge::startStatementImport", std::current_exception());
+        return false;
+    } catch (...) {
+        currentSubId_ = 0;
+        currentJobId_.clear();
+        if (exceptionReporter) exceptionReporter("ui::importing::ImportJobBridge::startStatementImport", std::current_exception());
+        return false;
+    }
 }
 
 void ImportJobBridge::cancelCurrent()
@@ -50,6 +62,8 @@ void ImportJobBridge::clearSubscription(const ExceptionReporter& exceptionReport
 
     try {
         jobSystem_->manager().unsubscribe(currentJobId_.toStdString(), currentSubId_);
+    } catch (const std::exception&) {
+        if (exceptionReporter) exceptionReporter("ui::importing::ImportJobBridge::clearSubscription", std::current_exception());
     } catch (...) {
         if (exceptionReporter) exceptionReporter("ui::importing::ImportJobBridge::clearSubscription", std::current_exception());
     }

@@ -96,6 +96,7 @@ void MainWindow::setupActionRouting()
 
         connect(fileWorkflow_, &ui::workflows::FileWorkflow::newFileRequested, this, [this](const QString& file) {
             ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          core::errors::codes::UiFlowMainWindowAction,
                                           "MainWindow::setupActionRouting",
                                           "UI requested new file",
                                           {
@@ -105,6 +106,7 @@ void MainWindow::setupActionRouting()
         });
         connect(fileWorkflow_, &ui::workflows::FileWorkflow::openFileRequested, this, [this](const QString& file) {
             ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          core::errors::codes::UiFlowMainWindowAction,
                                           "MainWindow::setupActionRouting",
                                           "UI requested open file",
                                           {
@@ -114,12 +116,14 @@ void MainWindow::setupActionRouting()
         });
         connect(fileWorkflow_, &ui::workflows::FileWorkflow::saveFileRequested, this, [this]() {
             ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          core::errors::codes::UiFlowMainWindowAction,
                                           "MainWindow::setupActionRouting",
                                           "UI requested save file");
             emit saveFileRequested();
         });
         connect(fileWorkflow_, &ui::workflows::FileWorkflow::saveFileAsRequested, this, [this](const QString& file) {
             ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          core::errors::codes::UiFlowMainWindowAction,
                                           "MainWindow::setupActionRouting",
                                           "UI requested save file as",
                                           {
@@ -135,6 +139,7 @@ void MainWindow::setupActionRouting()
         const QStringList files = ui::dialogs::pickImportFiles(this, filter);
         if (!files.isEmpty()) {
             ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          core::errors::codes::UiFlowMainWindowAction,
                                           "MainWindow::setupActionRouting",
                                           "UI selected import files",
                                           {
@@ -151,6 +156,7 @@ void MainWindow::setupActionRouting()
         const QString file = ui::dialogs::pickExportFile(this, filter);
         if (!file.isEmpty()) {
             ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                          core::errors::codes::UiFlowMainWindowAction,
                                           "MainWindow::setupActionRouting",
                                           "UI selected export path",
                                           {
@@ -252,6 +258,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
 
             if (actions_) {
                 ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                              core::errors::codes::UiFlowMainWindowAction,
                                               "MainWindow::eventFilter",
                                               "Import files dropped",
                                               {
@@ -274,6 +281,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
 void MainWindow::closeEvent(QCloseEvent* event)
 {
     ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                  core::errors::codes::UiFlowMainWindowAction,
                                   "MainWindow::closeEvent",
                                   "Main window close requested; triggering save workflow");
     if (fileWorkflow_) fileWorkflow_->requestSaveFile();

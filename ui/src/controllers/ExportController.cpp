@@ -16,6 +16,7 @@
 #include "core/models/Transaction.h"
 
 #include <QtConcurrent/qtconcurrentrun.h>
+#include <exception>
 #include <memory>
 #include <string>
 
@@ -33,6 +34,7 @@ core::controllers::exporting::ExportOptions::Format toExportFormat(int format)
         return core::controllers::exporting::ExportOptions::Format::Xlsx;
     default:
         observability::reportFlow(core::errors::ErrorSeverity::Warning,
+                                  core::errors::codes::UiFlowExportFallback,
                                   "ui::ExportController::toExportFormat",
                                   "Unknown export format, fallback to CSV",
                                   {
@@ -105,6 +107,7 @@ void ExportController::exportData(int format, const QString& path, bool includeF
     if (!controllers::guard::ensureCore(core_, "ui::ExportController::exportData")) return;
     if (isRunning_) {
         observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                  core::errors::codes::UiFlowExportStarted,
                                   "ui::ExportController::exportData",
                                   "Export ignored: already running");
         return;
@@ -127,6 +130,7 @@ void ExportController::exportData(int format, const QString& path, bool includeF
         opts.requestedFormat = toExportFormat(format);
 
         observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                  core::errors::codes::UiFlowExportStarted,
                                   "ui::ExportController::exportData",
                                   "Export started",
                                   {
@@ -141,12 +145,31 @@ void ExportController::exportData(int format, const QString& path, bool includeF
             return opts;
         });
         exportWatcher_.setFuture(exportFuture_);
+    } catch (const std::exception& ex) {
+        core::errors::report(core::errors::ErrorSeverity::Error,
+                             core::errors::codes::ExceptionStd,
+                             "ui::ExportController::exportData",
+                             ex.what());
+        lastError_ = controllers::contracts::errors::kExportFailed;
+        observability::reportFlow(core::errors::ErrorSeverity::Error,
+                                  core::errors::codes::UiFlowExportFailed,
+                                  "ui::ExportController::exportData",
+                                  "Export failed with exception",
+                                  {
+                                      {"exception", ex.what()},
+                                      {"path", path.toStdString()}
+                                  });
+        isRunning_ = false;
+        emit stateChanged();
+        emit exportFailed(lastError_);
+        emit exportFinished(false);
     } catch (...) {
         controllers::guard::reportException("ui::ExportController::exportData");
         lastError_ = controllers::contracts::errors::kExportFailed;
         observability::reportFlow(core::errors::ErrorSeverity::Error,
+                                  core::errors::codes::UiFlowExportFailed,
                                   "ui::ExportController::exportData",
-                                  "Export failed with exception",
+                                  "Export failed with non-std exception",
                                   {
                                       {"path", path.toStdString()}
                                   });
@@ -170,6 +193,7 @@ void ExportController::onExportFinished()
                                  "ui::ExportController::onExportFinished",
                                  result.message.empty() ? controllers::contracts::errors::kExportFailed.toStdString() : result.message);
             observability::reportFlow(core::errors::ErrorSeverity::Warning,
+                                      core::errors::codes::UiFlowExportFailed,
                                       "ui::ExportController::onExportFinished",
                                       "Export finished with failure",
                                       {
@@ -179,15 +203,32 @@ void ExportController::onExportFinished()
         } else {
             lastError_.clear();
             observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                      core::errors::codes::UiFlowExportFinished,
                                       "ui::ExportController::onExportFinished",
                                       "Export finished successfully");
         }
+    } catch (const std::exception& ex) {
+        core::errors::report(core::errors::ErrorSeverity::Error,
+                             core::errors::codes::ExceptionStd,
+                             "ui::ExportController::onExportFinished",
+                             ex.what());
+        lastError_ = controllers::contracts::errors::kExportFailed;
+        observability::reportFlow(core::errors::ErrorSeverity::Error,
+                                  core::errors::codes::UiFlowExportFailed,
+                                  "ui::ExportController::onExportFinished",
+                                  "Export finished with std exception",
+                                  {
+                                      {"exception", ex.what()}
+                                  });
+        emit exportFailed(lastError_);
+        success = false;
     } catch (...) {
         controllers::guard::reportException("ui::ExportController::onExportFinished");
         lastError_ = controllers::contracts::errors::kExportFailed;
         observability::reportFlow(core::errors::ErrorSeverity::Error,
+                                  core::errors::codes::UiFlowExportFailed,
                                   "ui::ExportController::onExportFinished",
-                                  "Export finished with exception");
+                                  "Export finished with non-std exception");
         emit exportFailed(lastError_);
         success = false;
     }

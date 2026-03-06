@@ -69,6 +69,13 @@ private slots:
     void onJobTerminal(int state, const QString& message);
 
 private:
+    QString currentRunFile() const;
+    void beginImportState(const QString& path);
+    void resetImportState();
+    void appendRun(const QString& now, const QString& status, const QString& message);
+    void handleImportCanceled(const QString& now);
+    void handleImportFailed(const QString& now, const QString& errorMessage, const char* traceMessage);
+    bool populateDraftFromResult(const QString& now);
     std::shared_ptr<core::jobs::JobSystem> jobSystem_;
     bool isRunning_ = false;
     double progress_ = 0.0;
