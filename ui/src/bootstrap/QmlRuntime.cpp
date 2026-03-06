@@ -5,6 +5,7 @@
 #include <QLibraryInfo>
 #include <QQmlEngine>
 
+#include "ui/config/UiDefaults.h"
 #include "ui/state/NavigationState.h"
 
 namespace ui::bootstrap {
@@ -28,17 +29,17 @@ void configureRuntime(QQmlEngine* engine)
         engine->addImportPath(qtImports);
     }
 
-    const QString appQmlDir = QCoreApplication::applicationDirPath() + "/qml";
+    const QString appQmlDir = QCoreApplication::applicationDirPath() + QLatin1Char('/') + ui::config::kAppQmlDirName;
     if (QDir(appQmlDir).exists()) {
         engine->addImportPath(appQmlDir);
     }
 
-    const QString imageFormatsDir = QCoreApplication::applicationDirPath() + "/imageformats";
+    const QString imageFormatsDir = QCoreApplication::applicationDirPath() + QLatin1Char('/') + ui::config::kImageFormatsDirName;
     if (QDir(imageFormatsDir).exists()) {
         QCoreApplication::addLibraryPath(imageFormatsDir);
     }
 
-    engine->addImportPath("qrc:/qml");
+    engine->addImportPath(ui::config::kQrcQmlImportPath);
 }
 
 }

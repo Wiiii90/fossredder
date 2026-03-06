@@ -2,6 +2,8 @@
 
 #include <QVariant>
 
+#include "ui/payload/UiPayloadKeys.h"
+
 namespace ui {
 
 TransactionDraftList::TransactionDraftList(QObject* parent)
@@ -71,19 +73,19 @@ QVariantMap TransactionDraftList::get(int index) const
     QVariantMap m;
     if (index < 0 || index >= static_cast<int>(drafts_.size())) return m;
     const auto& t = drafts_[index];
-    m["name"] = t.name;
-    m["bookingDate"] = t.bookingDate;
-    m["valuta"] = t.valuta;
-    m["amount"] = t.amount;
-    m["description"] = t.description;
-    m["actorId"] = t.actorId;
-    m["actorProposal"] = t.actorProposal;
-    m["metadata"] = t.metadata;
-    m["proofImagePath"] = t.proofImagePath;
-    m["allocatable"] = t.allocatable;
-    m["status"] = t.status;
-    m["propertyIds"] = t.propertyIds;
-    m["type"] = t.type;
+    m[payload::keys::common::kName] = t.name;
+    m[payload::keys::transaction::kBookingDate] = t.bookingDate;
+    m[payload::keys::transaction::kValuta] = t.valuta;
+    m[payload::keys::common::kAmount] = t.amount;
+    m[payload::keys::common::kDescription] = t.description;
+    m[payload::keys::transaction::kActorId] = t.actorId;
+    m[payload::keys::transaction::kActorProposal] = t.actorProposal;
+    m[payload::keys::common::kMetadata] = t.metadata;
+    m[payload::keys::transaction::kProofImagePath] = t.proofImagePath;
+    m[payload::keys::transaction::kAllocatable] = t.allocatable;
+    m[payload::keys::common::kStatus] = t.status;
+    m[payload::keys::transaction::kPropertyIds] = t.propertyIds;
+    m[payload::keys::common::kType] = t.type;
     return m;
 }
 

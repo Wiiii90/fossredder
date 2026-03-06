@@ -34,8 +34,8 @@ Item {
 
         Rectangle {
             id: headerSep
-            height: 1
-            color: "#eee"
+            height: Theme.borderWidthThin
+            color: Theme.borderLight
             Layout.fillWidth: true
             visible: headerLabel.visible
         }

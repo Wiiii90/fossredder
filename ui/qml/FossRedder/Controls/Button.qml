@@ -23,7 +23,7 @@ Button {
             anchors.fill: parent
             y: control.pressed ? 1 : (control.hovered ? 2 : 4)
             radius: Theme.radius
-            color: "#000000"
+            color: Theme.shadow
             opacity: control.enabled ? (control.pressed ? 0.12 : (control.hovered ? 0.09 : 0.04)) : 0.03
             z: -2
             Behavior on y { NumberAnimation { duration: 220; easing.type: Easing.OutQuad } }
@@ -61,7 +61,7 @@ Button {
         Rectangle {
             anchors.fill: parent
             radius: Theme.radius
-            color: "#000000"
+            color: Theme.shadow
             opacity: control.enabled ? (control.pressed ? 0.06 : 0.0) : 0.02
             z: 2
             Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutQuad } }

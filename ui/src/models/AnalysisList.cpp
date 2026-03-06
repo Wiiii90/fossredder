@@ -1,5 +1,7 @@
 #include "ui/models/AnalysisList.h"
 
+#include "ui/config/UiDefaults.h"
+
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 
@@ -25,7 +27,7 @@ QVariant AnalysisList::data(const QModelIndex& index, int role) const {
     const auto& a = analyses_[row];
     if (!a) return {};
 
-    QString adjustmentsJson = QStringLiteral("{}");
+    QString adjustmentsJson = ui::config::kJsonEmptyObject;
     try {
         QJsonObject obj;
         for (const auto& p : a->adjustments) obj.insert(QString::fromStdString(p.first), p.second);
@@ -35,7 +37,7 @@ QVariant AnalysisList::data(const QModelIndex& index, int role) const {
                                       core::errors::codes::ExceptionError,
                                       "ui::AnalysisList::data::adjustmentsJson",
                                       std::current_exception());
-        adjustmentsJson = QStringLiteral("{}");
+        adjustmentsJson = ui::config::kJsonEmptyObject;
     }
 
     switch (role) {

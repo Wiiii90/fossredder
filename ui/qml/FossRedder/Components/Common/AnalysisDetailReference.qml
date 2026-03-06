@@ -21,10 +21,10 @@ Item {
     }
     function colorForKey(k) {
         try {
-            var palette = ["#8dd3c7","#ffffb3","#bebada","#fb8072","#80b1d3","#fdb462","#b3de69","#fccde5","#d9d9d9","#bc80bd","#ccebc5","#ffed6f"]
+            var palette = Theme.analysisPalette
             var idx = hashString(k) % palette.length
             return palette[idx]
-        } catch(e) { return "#888" }
+        } catch(e) { return Theme.chartFallback }
     }
     function rebuildHistLegend() {
         histLegendModel = []
@@ -205,7 +205,7 @@ Item {
                                             }
 
                                             try {
-                                                ctx.fillStyle = "#333"
+                                                ctx.fillStyle = Theme.chartText
                                                 ctx.font = "11px sans-serif"
                                                 ctx.textBaseline = "top"
                                                 var maxLabelWidth = Math.max(24, gw - 4)
@@ -235,8 +235,8 @@ Item {
 
                                             ctx.globalAlpha = 1.0
                                         }
-                                        try { var totalVal = totals[i] || 0; ctx.fillStyle = "#000"; ctx.font = "12px sans-serif"; var txt = totalVal.toFixed(2); var tw = ctx.measureText ? (ctx.measureText(txt).width || 0) : 0; var txv = x + ((bw - 8) / 2) - (tw/2); var hTotal = (maxv>0) ? (totals[i]/maxv)*(height-30) : 0; var labelYv = Math.max(6, height - 20 - hTotal); ctx.textBaseline = "bottom"; ctx.fillText(txt, Math.max(x, txv), labelYv) } catch(e) {}
-                                        ctx.fillStyle = "#666"; try { function formatMonthLabel(m) { if (!m) return m; var parts = m.split('-'); if (parts.length >= 2 && parts[0].length==4) { var yy = parts[0]; var mm = parts[1]; var names = ["January","February","March","April","May","June","July","August","September","October","November","December"]; var mi = parseInt(mm,10)-1; if (!isNaN(mi) && mi>=0 && mi<12) return names[mi] + " " + yy } return m } var label = formatMonthLabel(months[i]); var fm = ctx.measureText ? ctx.measureText(label) : null; var tx = x + ((bw - 8) / 2) - (fm ? (fm.width/2) : 0); try { ctx.font = "11px sans-serif" } catch(e) {} ctx.textBaseline = "top"; ctx.fillText(label, Math.max(x, tx), height - 14) } catch(e) { ctx.fillText(months[i], x, height + 8) }
+                                        try { var totalVal = totals[i] || 0; ctx.fillStyle = Theme.shadow; ctx.font = "12px sans-serif"; var txt = totalVal.toFixed(2); var tw = ctx.measureText ? (ctx.measureText(txt).width || 0) : 0; var txv = x + ((bw - 8) / 2) - (tw/2); var hTotal = (maxv>0) ? (totals[i]/maxv)*(height-30) : 0; var labelYv = Math.max(6, height - 20 - hTotal); ctx.textBaseline = "bottom"; ctx.fillText(txt, Math.max(x, txv), labelYv) } catch(e) {}
+                                        ctx.fillStyle = Theme.placeholderText; try { function formatMonthLabel(m) { if (!m) return m; var parts = m.split('-'); if (parts.length >= 2 && parts[0].length==4) { var yy = parts[0]; var mm = parts[1]; var names = ["January","February","March","April","May","June","July","August","September","October","November","December"]; var mi = parseInt(mm,10)-1; if (!isNaN(mi) && mi>=0 && mi<12) return names[mi] + " " + yy } return m } var label = formatMonthLabel(months[i]); var fm = ctx.measureText ? ctx.measureText(label) : null; var tx = x + ((bw - 8) / 2) - (fm ? (fm.width/2) : 0); try { ctx.font = "11px sans-serif" } catch(e) {} ctx.textBaseline = "top"; ctx.fillText(label, Math.max(x, tx), height - 14) } catch(e) { ctx.fillText(months[i], x, height + 8) }
                                     }
                                 }
                             }
@@ -276,10 +276,10 @@ Item {
                         }
                         RowLayout { Layout.fillWidth: true; spacing: 6; visible: (function(){ if (!propListModel || propListModel.length === 0) return false; return true })()
                             Repeater { model: propListModel
-                                delegate: Rectangle { radius: 6; color: "transparent"; border.color: "#ccc"; border.width: 1; height: 22; width: Math.max(80, childrenRect.width + 16)
-                                    RowLayout { anchors.fill: parent; anchors.margins: 4; spacing: 6
+                                delegate: Rectangle { radius: 6; color: "transparent"; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; height: 22; width: Math.max(80, childrenRect.width + 16)
+                                    RowLayout { anchors.fill: parent; anchors.margins: Theme.margins * 2; spacing: Theme.spacingSmall
                                         Label { text: (model && model.name) ? model.name : "" }
-                                        Label { text: (model && model.value) ? (model.value.toFixed(2)) : ""; font.pixelSize: 11; color: "#666" }
+                                        Label { text: (model && model.value) ? (model.value.toFixed(2)) : ""; font.pixelSize: 11; color: Theme.placeholderText }
                                     }
                                 }
                             }

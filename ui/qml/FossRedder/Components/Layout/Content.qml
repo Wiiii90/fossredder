@@ -24,7 +24,7 @@ Item {
             ColumnLayout {
                 Label { text: title; font.pointSize: 18; color: Theme.textPrimary }
                 Label { text: subtitle; font.pointSize: Math.max(12, Theme.fontSize - 2); color: Theme.textMuted; visible: subtitle && subtitle.length > 0 }
-                Rectangle { height: 1; color: "#eee"; Layout.fillWidth: true }
+                Rectangle { height: Theme.borderWidthThin; color: Theme.borderLight; Layout.fillWidth: true }
             }
         }
 

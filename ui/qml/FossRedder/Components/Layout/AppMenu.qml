@@ -6,9 +6,9 @@ MenuBar {
     id: root
 
     background: Rectangle {
-        color: "#f6fbfd"
-        border.width: 1
-        border.color: "#e6eef5"
+        color: Theme.toolbarBackground
+        border.width: Theme.borderWidthThin
+        border.color: Theme.toolbarBorder
     }
 
     Menu {

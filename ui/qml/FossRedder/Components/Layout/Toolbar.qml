@@ -15,15 +15,15 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         height: toolBar.implicitHeight
-        color: "#f6fbfd"
-        border.width: 1
-        border.color: "#e6eef5"
+        color: Theme.toolbarBackground
+        border.width: Theme.borderWidthThin
+        border.color: Theme.toolbarBorder
             clip: false
 
         RowLayout {
             id: rootRow
             anchors.fill: parent
-            spacing: 14
+            spacing: Theme.spacing + Theme.margins
             Layout.alignment: Qt.AlignVCenter
 
             ColumnLayout {
@@ -60,7 +60,7 @@ Item {
                 Text {
                     id: groupLabelFile
                     text: qsTr("File")
-                    color: (typeof Theme !== 'undefined') ? Theme.textMuted : "#6f7d89"
+                    color: Theme.textMuted
                     font.pointSize: Theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
@@ -69,7 +69,7 @@ Item {
                 }
             }
 
-            Rectangle { width: 1; Layout.fillHeight: true; color: "#d0e6f1"; Layout.alignment: Qt.AlignVCenter }
+            Rectangle { width: Theme.borderWidthThin; Layout.fillHeight: true; color: Theme.divider; Layout.alignment: Qt.AlignVCenter }
 
             ColumnLayout {
                 id: domainGroup
@@ -120,7 +120,7 @@ Item {
                         Layout.preferredWidth: 72
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/property.svg"
-                        label: qsTr("Gebäude")
+                        label: qsTr("Property")
                         active: uiNav && uiNav.section === UiNavigation.Properties
                         onClicked: {
                             if (uiData) {
@@ -151,7 +151,7 @@ Item {
                 Text {
                     id: groupLabelDomain
                     text: qsTr("Domain")
-                    color: (typeof Theme !== 'undefined') ? Theme.textMuted : "#6f7d89"
+                    color: Theme.textMuted
                     font.pointSize: Theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
@@ -160,7 +160,7 @@ Item {
                 }
             }
 
-            Rectangle { width: 1; Layout.fillHeight: true; color: "#d0e6f1"; Layout.alignment: Qt.AlignVCenter }
+            Rectangle { width: Theme.borderWidthThin; Layout.fillHeight: true; color: Theme.divider; Layout.alignment: Qt.AlignVCenter }
 
             ColumnLayout {
                 id: toolsGroup
@@ -210,7 +210,7 @@ Item {
                 Text {
                     id: groupLabelTools
                     text: qsTr("Tools")
-                    color: (typeof Theme !== 'undefined') ? Theme.textMuted : "#6f7d89"
+                    color: Theme.textMuted
                     font.pointSize: Theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
@@ -219,7 +219,7 @@ Item {
                 }
             }
 
-            Rectangle { width: 1; Layout.fillHeight: true; color: "#d0e6f1"; Layout.alignment: Qt.AlignVCenter }
+            Rectangle { width: Theme.borderWidthThin; Layout.fillHeight: true; color: Theme.divider; Layout.alignment: Qt.AlignVCenter }
 
             ColumnLayout {
                 id: appGroup
@@ -247,7 +247,7 @@ Item {
                 Text {
                     id: groupLabelApp
                     text: qsTr("Application")
-                    color: (typeof Theme !== 'undefined') ? Theme.textMuted : "#6f7d89"
+                    color: Theme.textMuted
                     font.pointSize: Theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
@@ -256,7 +256,7 @@ Item {
                 }
             }
 
-            Rectangle { width: 1; Layout.fillHeight: true; color: "#d0e6f1"; Layout.alignment: Qt.AlignVCenter }
+            Rectangle { width: Theme.borderWidthThin; Layout.fillHeight: true; color: Theme.divider; Layout.alignment: Qt.AlignVCenter }
 
             Item { Layout.fillWidth: true }
         }

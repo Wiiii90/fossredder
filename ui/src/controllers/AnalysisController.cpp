@@ -2,6 +2,7 @@
 
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
+#include "ui/payload/UiPayloadKeys.h"
 
 #include "core/analysis/AnalysisController.h"
 #include "core/models/Contract.h"
@@ -56,22 +57,22 @@ QVariantMap AnalysisController::computeAnalysis(const QString& analysisId, const
         for (const auto& tx : result.transactions) {
             if (!tx) continue;
             QVariantMap tm;
-            tm["id"] = QString::fromStdString(tx->id);
-            tm["name"] = QString::fromStdString(tx->name);
-            tm["date"] = QString::fromStdString(tx->bookingDate);
-            tm["amount"] = tx->amount;
-            tm["contractId"] = QString::fromStdString(tx->contractId);
-            tm["contractType"] = QString::fromStdString(tx->contract ? tx->contract->type : std::string("unassigned"));
+            tm[payload::keys::common::kId] = QString::fromStdString(tx->id);
+            tm[payload::keys::common::kName] = QString::fromStdString(tx->name);
+            tm[payload::keys::transaction::kDate] = QString::fromStdString(tx->bookingDate);
+            tm[payload::keys::common::kAmount] = tx->amount;
+            tm[payload::keys::transaction::kContractId] = QString::fromStdString(tx->contractId);
+            tm[payload::keys::transaction::kContractType] = QString::fromStdString(tx->contract ? tx->contract->type : std::string("unassigned"));
             txlist.push_back(tm);
         }
 
-        out["metrics"] = metrics;
-        out["table"] = table;
-        out["type"] = QString::fromStdString(result.type);
-        out["config"] = QString::fromStdString(result.configJson);
-        out["transactions"] = txlist;
-        out["artifacts"] = artifacts;
-        out["generatedAt"] = QString::fromStdString(result.createdAt);
+        out[payload::keys::analysis::kMetrics] = metrics;
+        out[payload::keys::analysis::kTable] = table;
+        out[payload::keys::common::kType] = QString::fromStdString(result.type);
+        out[payload::keys::analysis::kConfig] = QString::fromStdString(result.configJson);
+        out[payload::keys::analysis::kTransactions] = txlist;
+        out[payload::keys::analysis::kArtifacts] = artifacts;
+        out[payload::keys::analysis::kGeneratedAt] = QString::fromStdString(result.createdAt);
         return out;
     } catch (...) {
         controllers::guard::reportException("ui::AnalysisController::computeAnalysis");

@@ -11,15 +11,15 @@ Item {
         anchors.margins: 12
         spacing: 8
 
-        Label { text: qsTr("Neues Jahr"); font.pointSize: 18 }
+        Label { text: qsTr("New Year"); font.pointSize: 18 }
 
-        Controls.TextField { id: yearField; placeholderText: qsTr("Jahr (z.B. 2025)") }
+        Controls.TextField { id: yearField; placeholderText: qsTr("Year (e.g. 2025)") }
 
         RowLayout { Layout.fillWidth: true
-            Controls.Button { text: qsTr("Abbrechen"); onClicked: { if (stackView) stackView.pop() } }
+            Controls.Button { text: qsTr("Cancel"); onClicked: { if (stackView) stackView.pop() } }
             Item { Layout.fillWidth: true }
             Controls.Button {
-                text: qsTr("Erstellen")
+                text: qsTr("Create")
                 enabled: yearField.text.length > 0
                 onClicked: {
                     if (typeof annualController === 'undefined' || !annualController) return

@@ -1,5 +1,6 @@
 ﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
+import FossRedder 1.0
 
 Item {
     id: root
@@ -19,10 +20,10 @@ Item {
 
     function colorForKey(k, i) {
         try {
-            var palette = ["#8dd3c7","#ffffb3","#bebada","#fb8072","#80b1d3","#fdb462","#b3de69","#fccde5","#d9d9d9","#bc80bd","#ccebc5","#ffed6f"]
+            var palette = Theme.analysisPalette
             if (k) return palette[hashString(k) % palette.length]
             return palette[i % palette.length]
-        } catch(e) { return "#888" }
+        } catch(e) { return Theme.chartFallback }
     }
 
     Canvas {

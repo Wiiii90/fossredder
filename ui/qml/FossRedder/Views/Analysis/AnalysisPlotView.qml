@@ -1,6 +1,7 @@
 ﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0
 import FossRedder.Components 1.0 as Components
 
 Item {
@@ -41,9 +42,9 @@ Item {
 
     function colorForKey(k) {
         try {
-            var palette = ["#8dd3c7","#ffffb3","#bebada","#fb8072","#80b1d3","#fdb462","#b3de69","#fccde5","#d9d9d9","#bc80bd","#ccebc5","#ffed6f"]
+            var palette = Theme.analysisPalette
             return palette[hashString(k) % palette.length]
-        } catch(e) { return "#888" }
+        } catch(e) { return Theme.chartFallback }
     }
 
     function rebuild() {
@@ -123,17 +124,17 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 6
+        spacing: Theme.spacingSmall
 
         Label {
             id: debugLabel
             text: qsTr('Debug: type=') + ((uiData && uiData.lastAnalysisResult && uiData.lastAnalysisResult.type) ? uiData.lastAnalysisResult.type : qsTr('<none>')) + qsTr(' rows=') + ((uiData && uiData.lastAnalysisResult && uiData.lastAnalysisResult.table) ? uiData.lastAnalysisResult.table.length : 0)
-            color: "#333"
+            color: Theme.chartText
         }
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.spacingMedium
 
             Item {
                 id: pieArea
@@ -148,11 +149,11 @@ Item {
                     } catch(e) { return false }
                 })()
             
-                RowLayout { anchors.fill: parent; spacing: 12
-                    Column { id: pieLegendCol; Layout.preferredWidth: 220; Layout.fillHeight: true; spacing: 6
-                        Label { text: qsTr('Legend'); font.bold: false; color: '#333' }
+                RowLayout { anchors.fill: parent; spacing: Theme.spacing
+                    Column { id: pieLegendCol; Layout.preferredWidth: 220; Layout.fillHeight: true; spacing: Theme.spacingSmall
+                        Label { text: qsTr('Legend'); font.bold: false; color: Theme.chartText }
                         Repeater { model: (uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []
-                            delegate: RowLayout { spacing: 6; height: 20
+                            delegate: RowLayout { spacing: Theme.spacingSmall; height: 20
                                 Rectangle { width: 10; height: 10; color: colorForKey(modelData && modelData.length>0 ? modelData[0] : index) }
                                 Label { text: (modelData && modelData.length>0) ? modelData[0] : ''; horizontalAlignment: Text.AlignLeft; Layout.preferredWidth: 120 }
                                 Label { text: (function(){ var v = (modelData && modelData.length>1) ? parseFloat(modelData[1])||0 : 0; return ' ' + v.toFixed(2); })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 80 }
@@ -183,10 +184,10 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.spacingMedium
             Item { Layout.fillWidth: true }
             RowLayout {
-                spacing: 6
+                spacing: Theme.spacingSmall
                 visible: Boolean(uiData && uiData.lastAnalysisResult && (uiData.lastAnalysisResult.type === 'histogram' || (uiData.lastAnalysisResult.config && (function(){ try { var c = JSON.parse(uiData.lastAnalysisResult.config); return c.plotType === 'histogram' } catch(e){ return false } })())) )
                 Label { text: qsTr('Split by property') }
                 Switch { id: splitSwitch; onCheckedChanged: { hist.splitProgress = checked ? 1.0 : 0.0; try { if (hist.requestPaint) hist.requestPaint(); } catch(e) {} } }
@@ -206,7 +207,7 @@ Item {
             Flow {
                 id: histLegendFlow
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacingMedium
                 flow: Flow.LeftToRight
 
                 Label { text: qsTr('Legend'); font.bold: false }
@@ -214,7 +215,7 @@ Item {
                     id: histLegendRepeater
                     model: histLegendModel
                     delegate: RowLayout {
-                        spacing: 6
+                        spacing: Theme.spacingSmall
                         Rectangle { width: 10; height: 10; color: colorForKey(modelData && modelData.name ? modelData.name : modelData) }
                         Label { text: (modelData && modelData.name) ? modelData.name : ''; font.pixelSize: 12 }
                         Label { text: (modelData && modelData.value) ? (' ' + parseFloat(modelData.value).toFixed(2)) : ' 0.00'; font.pixelSize: 12 }

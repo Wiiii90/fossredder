@@ -2,6 +2,7 @@
 
 #include <QVariant>
 #include "core/models/Contract.h"
+#include "ui/payload/UiPayloadKeys.h"
 
 namespace ui {
 
@@ -46,20 +47,20 @@ QVariantList TransactionList::toPropertyIdList(const std::vector<std::string>& p
 
 void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& transaction) const
 {
-    map["id"] = QString::fromStdString(transaction.id);
-    map["name"] = QString::fromStdString(transaction.name);
-    map["bookingDate"] = QString::fromStdString(transaction.bookingDate);
-    map["valuta"] = QString::fromStdString(transaction.valuta);
-    map["amount"] = transaction.amount;
-    map["description"] = QString::fromStdString(transaction.description);
-    map["status"] = static_cast<int>(transaction.status);
-    map["actorId"] = QString::fromStdString(transaction.actorId);
-    map["actorProposal"] = QString::fromStdString(transaction.actorProposal);
-    map["metadata"] = QString::fromStdString(transaction.metadata);
-    map["proofImagePath"] = QString::fromStdString(transaction.proofImagePath);
-    map["type"] = contractTypeForTransaction(transaction);
-    map["allocatable"] = transaction.allocatable;
-    map["propertyIds"] = toPropertyIdList(transaction.propertyIds);
+    map[payload::keys::common::kId] = QString::fromStdString(transaction.id);
+    map[payload::keys::common::kName] = QString::fromStdString(transaction.name);
+    map[payload::keys::transaction::kBookingDate] = QString::fromStdString(transaction.bookingDate);
+    map[payload::keys::transaction::kValuta] = QString::fromStdString(transaction.valuta);
+    map[payload::keys::common::kAmount] = transaction.amount;
+    map[payload::keys::common::kDescription] = QString::fromStdString(transaction.description);
+    map[payload::keys::common::kStatus] = static_cast<int>(transaction.status);
+    map[payload::keys::transaction::kActorId] = QString::fromStdString(transaction.actorId);
+    map[payload::keys::transaction::kActorProposal] = QString::fromStdString(transaction.actorProposal);
+    map[payload::keys::common::kMetadata] = QString::fromStdString(transaction.metadata);
+    map[payload::keys::transaction::kProofImagePath] = QString::fromStdString(transaction.proofImagePath);
+    map[payload::keys::common::kType] = contractTypeForTransaction(transaction);
+    map[payload::keys::transaction::kAllocatable] = transaction.allocatable;
+    map[payload::keys::transaction::kPropertyIds] = toPropertyIdList(transaction.propertyIds);
 }
 
 TransactionList::TransactionList(QObject* parent) : QAbstractListModel(parent) {}

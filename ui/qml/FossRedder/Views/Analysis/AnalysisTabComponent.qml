@@ -1,6 +1,7 @@
 ﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0
 
 Item {
     id: root
@@ -134,12 +135,12 @@ Item {
         } catch(e) {}
     }
 
-    ColumnLayout { anchors.fill: parent; spacing: 6
+    ColumnLayout { anchors.fill: parent; spacing: Theme.spacingSmall
         Flickable { id: tabFlick; Layout.fillWidth: true; Layout.preferredHeight: 320; clip: true
             Column { id: innerCol; width: tabFlick.width
-                Rectangle { id: debugHeader; color: 'transparent'; height: 26; Layout.fillWidth: true; border.color: '#ddd'; border.width: 0
-                    RowLayout { anchors.fill: parent; anchors.margins: 4; spacing: 8
-                        Label { id: dbgLabel; text: qsTr('Preview: rows=') + (simpleRows ? simpleRows.length : 0) + ' props=' + (propertiesList ? propertiesList.length : 0) + ' contracts=' + (contractTypes ? contractTypes.length : 0); color: '#444' }
+                Rectangle { id: debugHeader; color: 'transparent'; height: 26; Layout.fillWidth: true; border.color: Theme.borderMedium; border.width: 0
+                    RowLayout { anchors.fill: parent; anchors.margins: Theme.margins * 2; spacing: Theme.spacingMedium
+                        Label { id: dbgLabel; text: qsTr('Preview: rows=') + (simpleRows ? simpleRows.length : 0) + ' props=' + (propertiesList ? propertiesList.length : 0) + ' contracts=' + (contractTypes ? contractTypes.length : 0); color: Theme.debugText }
                     }
                 }
 
@@ -147,38 +148,38 @@ Item {
                     id: fallbackSimple
                     visible: (table && table.length>0) && (propertiesList.length === 0 || simpleRows.length>0)
                     Layout.fillWidth: true
-                    Column { spacing: 4; anchors.fill: parent
-                        RowLayout { spacing: 8; height: 28
-                            Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; Layout.preferredWidth: 140; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Date') } }
-                            Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; Layout.fillWidth: true; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Description') } }
-                            Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; Layout.preferredWidth: 100; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Amount') } }
+                    Column { spacing: Theme.margins * 2; anchors.fill: parent
+                        RowLayout { spacing: Theme.spacingMedium; height: 28
+                            Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.preferredWidth: 140; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Date') } }
+                            Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.fillWidth: true; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Description') } }
+                            Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.preferredWidth: 100; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Amount') } }
                         }
                         Repeater { model: (table && table.length>0) ? table : []
-                            delegate: RowLayout { spacing: 8; height: 28
-                                Rectangle { color: 'transparent'; border.color: '#eee'; border.width: 1; Layout.preferredWidth: 140; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>0) ? modelData[0] : '' } }
-                                Rectangle { color: 'transparent'; border.color: '#eee'; border.width: 1; Layout.fillWidth: true; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>1) ? modelData[1] : '' } }
-                                Rectangle { color: 'transparent'; border.color: '#eee'; border.width: 1; Layout.preferredWidth: 100; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>2) ? (parseFloat(modelData[2])||0).toFixed(2) : '' } }
+                            delegate: RowLayout { spacing: Theme.spacingMedium; height: 28
+                                Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; Layout.preferredWidth: 140; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>0) ? modelData[0] : '' } }
+                                Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; Layout.fillWidth: true; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>1) ? modelData[1] : '' } }
+                                Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; Layout.preferredWidth: 100; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>2) ? (parseFloat(modelData[2])||0).toFixed(2) : '' } }
                             }
                         }
                     }
                 }
                 Item { id: matrixContainer; visible: simpleRows.length === 0; Layout.fillWidth: true
-                    GridLayout { id: grid; columns: Math.max(2, propertiesList.length + 2); columnSpacing: 8; rowSpacing: 6; Layout.fillWidth: true; Layout.fillHeight: true
-                    Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; Layout.preferredWidth: 160; height: 28; Label { anchors.centerIn: parent; text: qsTr('Contract Type'); font.bold: true } }
-                    Repeater { model: propertiesList; delegate: Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; height: 28; Layout.preferredWidth: 100; Label { anchors.centerIn: parent; text: modelData; font.bold: true } } }
-                    Rectangle { color: 'transparent'; border.color: '#ccc'; border.width: 1; height: 28; Label { anchors.centerIn: parent; text: qsTr('Total'); font.bold: true } }
+                    GridLayout { id: grid; columns: Math.max(2, propertiesList.length + 2); columnSpacing: Theme.spacingMedium; rowSpacing: Theme.spacingSmall; Layout.fillWidth: true; Layout.fillHeight: true
+                    Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.preferredWidth: 160; height: 28; Label { anchors.centerIn: parent; text: qsTr('Contract Type'); font.bold: true } }
+                    Repeater { model: propertiesList; delegate: Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; height: 28; Layout.preferredWidth: 100; Label { anchors.centerIn: parent; text: modelData; font.bold: true } } }
+                    Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; height: 28; Label { anchors.centerIn: parent; text: qsTr('Total'); font.bold: true } }
 
                     Repeater { model: contractTypes
                         delegate: Column { spacing: 0
                             property string contractName: modelData
                             RowLayout { spacing: 0
-                                Rectangle { color: 'transparent'; border.color: '#ddd'; border.width: 1; height: 28; Layout.preferredWidth: 160; Label { anchors.centerIn: parent; text: contractName } }
+                                Rectangle { color: 'transparent'; border.color: Theme.borderMedium; border.width: Theme.borderWidthThin; height: 28; Layout.preferredWidth: 160; Label { anchors.centerIn: parent; text: contractName } }
                                 Repeater { model: propertiesList
-                                    delegate: Rectangle { color: 'transparent'; border.color: '#eee'; border.width: 1; height: 28; Layout.preferredWidth: 100
+                                    delegate: Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; height: 28; Layout.preferredWidth: 100
                                         Label { anchors.centerIn: parent; text: (function(){ var pid = modelData; var val = 0; try { if (matrix && matrix[contractName] && matrix[contractName][pid]) val = matrix[contractName][pid] } catch(e) { val = 0 } return (typeof val === 'number') ? val.toFixed(2) : String(val) })() }
                                     }
                                 }
-                                Rectangle { color: 'transparent'; border.color: '#ddd'; border.width: 1; height: 28; Layout.preferredWidth: 100; Label { anchors.centerIn: parent; text: (function(){ var total=0; for (var pi=0; pi<propertiesList.length; ++pi) { var pid = propertiesList[pi]; total += (matrix && matrix[contractName] && matrix[contractName][pid]) ? matrix[contractName][pid] : 0 } return total.toFixed(2) })() } }
+                                Rectangle { color: 'transparent'; border.color: Theme.borderMedium; border.width: Theme.borderWidthThin; height: 28; Layout.preferredWidth: 100; Label { anchors.centerIn: parent; text: (function(){ var total=0; for (var pi=0; pi<propertiesList.length; ++pi) { var pid = propertiesList[pi]; total += (matrix && matrix[contractName] && matrix[contractName][pid]) ? matrix[contractName][pid] : 0 } return total.toFixed(2) })() } }
                             }
                         }
                     }
@@ -189,7 +190,7 @@ Item {
                     visible: simpleRows && simpleRows.length > 0
                     model: simpleRows
                     clip: true
-                    delegate: RowLayout { spacing: 8; height: 28
+                    delegate: RowLayout { spacing: Theme.spacingMedium; height: 28
                         Label { text: modelData.length>0 ? modelData[0] : ''; Layout.preferredWidth: 140 }
                         Label { text: modelData.length>1 ? modelData[1] : ''; Layout.fillWidth: true }
                         Label { text: (modelData.length>2) ? (parseFloat(modelData[2])||0).toFixed(2) : ''; Layout.preferredWidth: 100; horizontalAlignment: Text.AlignRight }

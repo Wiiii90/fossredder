@@ -18,19 +18,21 @@
 
 #include "ui/actions/Actions.h"
 #include "ui/bootstrap/QmlRuntime.h"
+#include "ui/config/UiDefaults.h"
 #include "ui/dialogs/FileDialogs.h"
 #include "ui/observability/UiTrace.h"
 #include "ui/state/StateFacade.h"
 #include "ui/state/NavigationState.h"
 #include "ui/state/StatusState.h"
+#include "ui/text/UiText.h"
 #include "ui/controllers/FileSystemController.h"
 #include "ui/workflows/FileWorkflow.h"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {
-    setWindowTitle("FOSSRedder");
-    resize(1200, 800);
+    setWindowTitle(ui::config::kMainWindowTitle);
+    resize(ui::config::kMainWindowDefaultWidth, ui::config::kMainWindowDefaultHeight);
 
     setupQuickWidget();
     setupUiContext();
@@ -66,7 +68,7 @@ void MainWindow::setupUiContext()
     auto fileSys = new ui::FileSystemController(this);
     fileWorkflow_ = new ui::workflows::FileWorkflow(this, this);
     status_ = new ui::StatusState(this);
-    status_->setText(QStringLiteral("Ready"));
+    status_->setText(ui::text::kStatusReady);
 
     if (m_quickWidget->rootContext()) {
         m_quickWidget->rootContext()->setContextProperty("uiActions", actions);

@@ -229,14 +229,14 @@ Item {
                                 Connections {
                                     target: hasImportController ? importController : null
                                     function onImportCanceled() {
-                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = qsTr("Import canceled")
+                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = UiText.statusImportCanceled
                                     }
                                     function onImportFinished() {
-                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = qsTr("Import finished")
+                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = UiText.statusImportFinished
                                     }
                                     function onImportFailed(error) {
                                         if (typeof uiStatus !== 'undefined' && uiStatus)
-                                            uiStatus.text = (error && error.length > 0) ? error : qsTr("Import failed")
+                                            uiStatus.text = (error && error.length > 0) ? error : UiText.statusImportFailed
                                     }
                                 }
 

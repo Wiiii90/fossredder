@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import FossRedder 1.0
 
 Item {
     anchors.fill: parent
@@ -7,6 +8,6 @@ Item {
     Label {
         anchors.centerIn: parent
         text: qsTr("Not implemented")
-        color: "#666"
+        color: Theme.placeholderText
     }
 }

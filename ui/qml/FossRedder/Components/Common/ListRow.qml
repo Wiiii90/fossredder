@@ -12,8 +12,8 @@ Item {
     property bool selected: false
     property color selectedColor: Theme.background
     property color backgroundColor: "transparent"
-    property color borderColor: "#e6e6e6"
-    property real borderWidth: 1
+    property color borderColor: Theme.borderSoft
+    property real borderWidth: Theme.borderWidthThin
     property real radius: 6
     property int padding: 8
 

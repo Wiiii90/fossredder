@@ -46,6 +46,7 @@
 
         <file>FossRedder/Utils/FileUtils.js</file>
         <file>FossRedder/Utils/qmldir</file>
+        <file>FossRedder/Constants/UiText.js</file>
 
         <file>FossRedder/Main.qml</file>
 

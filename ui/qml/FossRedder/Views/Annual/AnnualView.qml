@@ -31,7 +31,7 @@ Item {
 
                     RowLayout {
                         Layout.fillWidth: true
-                        Controls.Button { text: qsTr("Neues Jahr"); onClicked: { stackView.push(annualFormComp) } }
+                        Controls.Button { text: qsTr("New year"); onClicked: { stackView.push(annualFormComp) } }
                         Item { Layout.fillWidth: true }
                     }
 

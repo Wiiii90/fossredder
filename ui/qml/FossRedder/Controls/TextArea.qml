@@ -13,7 +13,7 @@ TextArea {
     background: Rectangle {
         color: Theme.surface
         radius: Theme.radius
-        border.color: "#ddd"
-        border.width: 1
+        border.color: Theme.borderMedium
+        border.width: Theme.borderWidthThin
     }
 }

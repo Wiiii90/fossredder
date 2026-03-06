@@ -11,6 +11,7 @@
 #include "core/jobs/JobManager.h"
 #include "core/jobs/JobSystem.h"
 #include "core/jobs/JobTypes.h"
+#include "ui/config/UiDefaults.h"
 #include "ui/controllers/UiControllerContracts.h"
 #include "ui/import/ImportDraftMapper.h"
 #include "ui/import/ImportRunStore.h"
@@ -153,7 +154,7 @@ void ImportController::handleImportCanceled(const QString& now)
     error_.clear();
     resetImportState();
     if (cancelClearsQueue_) queuedFiles_.clear();
-    appendRun(now, controllers::contracts::importRuns::kStatusCanceled, QStringLiteral(""));
+    appendRun(now, controllers::contracts::importRuns::kStatusCanceled, {});
     selectedFile_.clear();
     currentImportFile_.clear();
     cancelClearsQueue_ = false;
@@ -208,7 +209,7 @@ bool ImportController::populateDraftFromResult(const QString& now)
     phase_ = controllers::contracts::importPhases::kFinished;
     progress_ = 1.0;
     isRunning_ = false;
-    appendRun(now, controllers::contracts::importRuns::kStatusSuccess, QStringLiteral(""));
+    appendRun(now, controllers::contracts::importRuns::kStatusSuccess, {});
     observability::reportFlow(core::errors::ErrorSeverity::Info,
                               "ui::ImportController::onJobTerminal",
                               "Import finished",
@@ -370,7 +371,7 @@ void ImportController::updateProgress(double p, const QString& phase)
     if (!phase.isEmpty()) {
         phase_ = phase;
 
-        static const QRegularExpression re(QStringLiteral("\\[(\\d+)\\s*/\\s*(\\d+)\\]"));
+        static const QRegularExpression re(ui::config::kImportProgressPagePattern);
         const auto m = re.match(phase);
         if (m.hasMatch()) {
             bool ok1 = false;

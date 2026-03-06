@@ -32,7 +32,7 @@ Item {
 
                     GroupBox {
                         id: createBox
-                        title: qsTr("Neue Analyse erstellen")
+                        title: qsTr("Create new analysis")
                         Layout.fillWidth: true
 
                         ListModel { id: contractTypeList }
@@ -108,25 +108,25 @@ Item {
                         }
 
                         ColumnLayout { anchors.fill: parent; anchors.margins: 6; spacing: 8
-                            Controls.TextField { id: nameField; placeholderText: qsTr("Name der Analyse") }
+                            Controls.TextField { id: nameField; placeholderText: qsTr("Analysis name") }
 
                             RowLayout { Layout.fillWidth: true; spacing: 8
-                                Label { text: qsTr("Strategie"); Layout.preferredWidth: 120 }
+                                Label { text: qsTr("Strategy"); Layout.preferredWidth: 120 }
                                 ComboBox { id: strategyCombo; Layout.fillWidth: true; model: [ qsTr("Tab"), qsTr("Plot"), qsTr("Calc") ]; currentIndex: 1 }
                             }
 
                             RowLayout { Layout.fillWidth: true; spacing: 8; visible: strategyCombo.currentIndex === 1
-                                Label { text: qsTr("Plot-Typ"); Layout.preferredWidth: 120 }
+                                Label { text: qsTr("Plot type"); Layout.preferredWidth: 120 }
                                 ComboBox { id: plotTypeCombo; Layout.fillWidth: true; model: [ qsTr("pie"), qsTr("histogram") ]; currentIndex: 0 }
                             }
 
                             RowLayout { Layout.fillWidth: true; spacing: 8
-                                Label { text: qsTr("Datum von"); Layout.preferredWidth: 120 }
+                                Label { text: qsTr("Date from"); Layout.preferredWidth: 120 }
                                 Controls.TextField { id: dateFrom; placeholderText: qsTr("YYYY-MM-DD"); text: "2025-01-01" }
                             }
 
                             RowLayout { Layout.fillWidth: true; spacing: 8
-                                Label { text: qsTr("Datum bis"); Layout.preferredWidth: 120 }
+                                Label { text: qsTr("Date to"); Layout.preferredWidth: 120 }
                                 Controls.TextField { id: dateTo; placeholderText: qsTr("YYYY-MM-DD"); text: "2026-01-01" }
                             }
 
@@ -195,7 +195,7 @@ Item {
 
                             RowLayout { Layout.fillWidth: true; spacing: 8
                                 Controls.Button {
-                                    text: qsTr("Erstellen")
+                                    text: qsTr("Create")
                                     enabled: nameField.text.length > 0
                                     onClicked: {
                                         if (!uiData || !analysisController) return

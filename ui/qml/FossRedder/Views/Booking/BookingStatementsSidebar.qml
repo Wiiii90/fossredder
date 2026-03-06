@@ -30,7 +30,7 @@ Item {
                 width: parent.width
                 height: headerHeight
                 color: (uiData && statementId === uiData.selectedStatementId && (!uiData.selectedTransactionId || uiData.selectedTransactionId === ""))
-                           ? "#ffd39c" : "transparent"
+                           ? Theme.selectionHighlight : "transparent"
 
                 MouseArea {
                     id: headerMouse
@@ -44,12 +44,13 @@ Item {
 
                     RowLayout {
                     anchors.fill: parent
-                    anchors.margins: 6
+                    anchors.margins: Theme.spacingSmall
                     Label { text: statementName; Layout.fillWidth: true; elide: Label.ElideRight }
                     Item { Layout.fillWidth: true }
                     Controls.Button {
                         id: toggleBtn
-                        implicitWidth: 28; implicitHeight: 28
+                        implicitWidth: Theme.spacingLarge + Theme.margins * 4
+                        implicitHeight: Theme.spacingLarge + Theme.margins * 4
                         fillColor: "transparent"
                         textColor: Theme.textMuted
                         text: collapsed ? "\u25B6" : "\u25BC"
@@ -67,12 +68,12 @@ Item {
                 visible: !collapsed
                 interactive: false
                 clip: true
-                spacing: 2
-                leftMargin: 14
+                spacing: Theme.margins
+                leftMargin: Theme.spacing + Theme.margins
                 model: (uiData && statementId.length > 0) ? uiData.statementTransactions(statementId) : null
 
                 delegate: Components.ListRow {
-                    width: statementList.width - 14
+                    width: statementList.width - (Theme.spacing + Theme.margins)
                     text: name ? name : ""
                     subtitle: bookingDate ? bookingDate : ""
                     selected: uiData ? (id === uiData.selectedTransactionId) : false

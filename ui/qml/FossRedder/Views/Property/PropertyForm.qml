@@ -115,10 +115,10 @@ Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 10
+        anchors.margins: Theme.spacing
+        spacing: Theme.spacingMedium
 
-        Label { text: isEdit ? qsTr("Gebäudeübersicht") : qsTr("Neues Gebäude anlegen"); font.pointSize: 18 }
+        Label { text: isEdit ? qsTr("Building overview") : qsTr("Create new building"); font.pointSize: 18 }
 
         Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
 
@@ -129,7 +129,7 @@ Item {
             Layout.fillWidth: true
 
             Controls.Button {
-                text: qsTr("Hinzufügen")
+                text: qsTr("Add")
                 enabled: nameField.text.length > 0
                 onClicked: {
                     if (!propertyController) return
@@ -146,13 +146,13 @@ Item {
             visible: isEdit
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 8
+            spacing: Theme.spacingMedium
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 8
+                spacing: Theme.spacingMedium
 
-                Label { text: qsTr("Transaktionen"); Layout.alignment: Qt.AlignVCenter }
+                Label { text: qsTr("Transactions"); Layout.alignment: Qt.AlignVCenter }
 
                 Item { Layout.fillWidth: true }
 
@@ -167,7 +167,7 @@ Item {
                     id: typeMenu
                     onOpened: { rebuildTypes(); }
 
-                    MenuItem { text: qsTr("Alle"); onTriggered: { txTypeFilter = ""; computeFilteredSums() } }
+                    MenuItem { text: qsTr("All"); onTriggered: { txTypeFilter = ""; computeFilteredSums() } }
                     Repeater { model: txTypes; delegate: MenuItem { text: modelData; onTriggered: { txTypeFilter = modelData; computeFilteredSums() } } }
                 }
             }
@@ -179,39 +179,46 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 model: uiData ? uiData.propertyTransactions(current.id) : null
-                spacing: 6
+                spacing: Theme.spacingSmall
 
                 delegate: Rectangle {
                     width: parent ? parent.width : txList.width
                     height: 56
                     color: Theme.surface
-                    border.color: "#e6e6e6"
-                    border.width: 1
+                    border.color: Theme.borderSoft
+                    border.width: Theme.borderWidthThin
                     radius: Theme.radius
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: 8
-                        spacing: 12
+                        anchors.margins: Theme.spacingMedium
+                        spacing: Theme.spacing
                         Layout.fillWidth: true
 
                         Rectangle {
                             id: statusIndicator
-                            width: 12; height: 12; radius: 6
+                            width: Theme.spacing
+                            height: Theme.spacing
+                            radius: Theme.spacingSmall
                             Layout.alignment: Qt.AlignVCenter
-                            border.width: 1
-                            color: (typeof status !== 'undefined') ? (status === 0 ? "#9e9e9e" : (status === 1 ? "#ff9800" : (status === 2 ? "#2196f3" : (status === 3 ? "#4caf50" : "#9e9e9e")))) : "#9e9e9e"
+                            border.width: Theme.borderWidthThin
+                            color: (typeof status !== 'undefined')
+                                ? (status === 0 ? Theme.neutral
+                                   : (status === 1 ? Theme.warning
+                                      : (status === 2 ? Theme.info
+                                         : (status === 3 ? Theme.successStrong : Theme.neutral))))
+                                : Theme.neutral
                             border.color: Qt.darker(color, 1.2)
                         }
 
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 2
+                            spacing: Theme.margins
                             Layout.alignment: Qt.AlignVCenter
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: 8
+                                spacing: Theme.spacingMedium
                                 Layout.alignment: Qt.AlignVCenter
 
                                 Label {
@@ -257,48 +264,48 @@ Item {
 
             Rectangle {
                 color: Theme.surface
-                border.color: "#e6e6e6"
-                border.width: 1
+                border.color: Theme.borderSoft
+                border.width: Theme.borderWidthThin
                 radius: Theme.radius
                 Layout.fillWidth: true
                 Layout.preferredHeight: 72
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 16
+                    anchors.margins: Theme.spacingMedium
+                    spacing: Theme.spacingLarge
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignVCenter
 
                     ColumnLayout {
-                        spacing: 2
+                        spacing: Theme.margins
                         Layout.alignment: Qt.AlignVCenter
                         width: amountColumnWidth
-                        Label { text: qsTr("Umlegbar"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
+                        Label { text: qsTr("Allocatable"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
                         Label {
                             text: (root.shownSums && root.shownSums.allocatable !== undefined) ? (root.shownSums.allocatable).toFixed(2) : "0.00";
-                            font.pointSize: 14; font.bold: true; color: "#4caf50"; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
+                            font.pointSize: 14; font.bold: true; color: Theme.successStrong; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
                         }
                     }
 
                     ColumnLayout {
-                        spacing: 2
+                        spacing: Theme.margins
                         Layout.alignment: Qt.AlignVCenter
                         width: amountColumnWidth
-                        Label { text: qsTr("Nicht-umlegbar"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
+                        Label { text: qsTr("Non-allocatable"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
                         Label {
                             text: (root.shownSums && root.shownSums.nonAllocatable !== undefined) ? (root.shownSums.nonAllocatable).toFixed(2) : "0.00";
-                            font.pointSize: 14; font.bold: true; color: "#e53935"; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
+                            font.pointSize: 14; font.bold: true; color: Theme.dangerStrong; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
                         }
                     }
 
                     Item { Layout.fillWidth: true }
 
                     ColumnLayout {
-                        spacing: 2
+                        spacing: Theme.margins
                         Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
                         width: amountColumnWidth
-                        Label { text: qsTr("Summe"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true }
+                        Label { text: qsTr("Total"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true }
                         Label {
                             text: (root.shownSums && root.shownSums.total !== undefined) ? (root.shownSums.total).toFixed(2) : "0.00";
                             font.pointSize: 16; font.bold: true; color: Theme.textPrimary; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true
@@ -310,22 +317,22 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
-                anchors.margins: 2
-                spacing: 8
+                anchors.margins: Theme.margins
+                spacing: Theme.spacingMedium
 
                 RowLayout {
-                    spacing: 8
-                    Controls.Button { text: qsTr("Neues Gebäude anlegen"); onClicked: if (uiData) uiData.selectedPropertyId = "" }
-                    Controls.Button { text: qsTr("Gebäude aktualisieren"); enabled: nameField.text.length > 0; onClicked: if (propertyController) propertyController.updateProperty(current.id, nameField.text, "", "") }
+                    spacing: Theme.spacingMedium
+                    Controls.Button { text: qsTr("Create new building"); onClicked: if (uiData) uiData.selectedPropertyId = "" }
+                    Controls.Button { text: qsTr("Update building"); enabled: nameField.text.length > 0; onClicked: if (propertyController) propertyController.updateProperty(current.id, nameField.text, "", "") }
                 }
 
                 Item { Layout.fillWidth: true }
 
                 Controls.Button {
-                    text: qsTr("Löschen")
+                    text: qsTr("Delete")
                     onClicked: if (propertyController) { propertyController.deleteProperty(current.id); if (uiData) uiData.selectedPropertyId = "" }
                     Layout.alignment: Qt.AlignRight
-                    fillColor: "#e53935"
+                    fillColor: Theme.dangerStrong
                 }
             }
         }

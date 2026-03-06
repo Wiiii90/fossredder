@@ -16,7 +16,7 @@ Item {
 
         Label {
             visible: !draft
-            text: qsTr("Keine Entwürfe verfügbar!")
+            text: qsTr("No drafts available!")
             horizontalAlignment: Text.AlignHCenter
             font.pointSize: 14
             Layout.alignment: Qt.AlignHCenter
@@ -30,7 +30,7 @@ Item {
                 Layout.fillWidth: true
 
                 Label {
-                    text: qsTr("Bankauszug")
+                    text: qsTr("Statement")
                     Layout.preferredWidth: 80
                 }
 
@@ -44,7 +44,7 @@ Item {
             Label {
                 Layout.fillWidth: true
                 text: (draft && draft.current)
-                        ? (qsTr("Transaktion %1 / %2").arg(draft.currentIndex + 1).arg(draft.count))
+                        ? (qsTr("Transaction %1 / %2").arg(draft.currentIndex + 1).arg(draft.count))
                         : qsTr("No current transaction")
             }
 
@@ -60,7 +60,7 @@ Item {
                 Layout.fillWidth: true
 
                 Controls.Button {
-                    text: qsTr("Vorherige")
+                    text: qsTr("Previous")
                     enabled: draft && draft.currentIndex > 0
                     onClicked: {
                         if (draft) draft.prev()
@@ -69,7 +69,7 @@ Item {
                 }
 
                 Controls.Button {
-                    text: qsTr("Nächste")
+                    text: qsTr("Next")
                     enabled: draft && (draft.currentIndex < draft.count - 1)
                     onClicked: {
                         if (draft) draft.next()
@@ -80,7 +80,7 @@ Item {
                 Item { Layout.fillWidth: true }
 
                 Controls.Button {
-                    text: qsTr("Verwerfen")
+                    text: qsTr("Discard")
                     enabled: !!draft
                     onClicked: {
                         if (typeof importController !== 'undefined' && importController) importController.clearDraft()
@@ -93,7 +93,7 @@ Item {
                 }
 
                 Controls.Button {
-                    text: qsTr("Abschließen")
+                    text: qsTr("Finalize")
                     enabled: !!draft
                     onClicked: {
                         if (!draft) return;

@@ -12,8 +12,8 @@ TextField {
     background: Rectangle {
         color: Theme.surface
         radius: Theme.radius
-        border.color: control.activeFocus ? Theme.primary.lighter(140) : "#ddd"
-        border.width: control.activeFocus ? 1.5 : 1
+        border.color: control.activeFocus ? Theme.primary.lighter(140) : Theme.borderMedium
+        border.width: control.activeFocus ? 1.5 : Theme.borderWidthThin
         implicitHeight: Math.max(36, control.contentHeight + 12)
         anchors.fill: parent
         Behavior on border.color { ColorAnimation { duration: 160 } }

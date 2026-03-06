@@ -108,7 +108,7 @@ Item {
             }
         }
 
-        Label { text: qsTr("Transaktions-Typ"); Layout.alignment: Qt.AlignVCenter }
+        Label { text: qsTr("Transaction type"); Layout.alignment: Qt.AlignVCenter }
         Controls.TextField {
             Layout.fillWidth: true
             text: draft && draft.current ? (draft.current.type || "") : ""
@@ -117,7 +117,7 @@ Item {
         }
 
         GroupBox {
-            title: qsTr("Gebäude")
+            title: qsTr("Properties")
             Layout.fillWidth: true
 
             ColumnLayout {
@@ -166,7 +166,7 @@ Item {
                     id: propEmptyLabel
                     Layout.fillWidth: true
                     visible: propertyListView.count === 0
-                    text: qsTr("Keine Gebäude verfügbar, bitte neue Gebäude anlegen!")
+                    text: qsTr("No properties available, please create new properties first!")
                 }
             }
             }
@@ -176,7 +176,7 @@ Item {
             Controls.CheckBox {
                 id: allocCheck_local
                 Layout.alignment: Qt.AlignVCenter
-                text: qsTr("Umlegbar")
+                text: qsTr("Allocatable")
                 checked: draft && draft.current ? !!draft.current.allocatable : false
                 onCheckedChanged: if (draft) draft.transactions.setAllocatable(draft.currentIndex, checked)
             }

@@ -1,25 +1,27 @@
 ﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0
+import "../../Constants/UiText.js" as UiText
 
 Item {
     id: bar
 
     Rectangle {
         anchors.fill: parent
-        color: "#f6fbfd"
-        border.color: "#e3eef6"
+        color: Theme.statusBarBackground
+        border.color: Theme.statusBarBorder
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 8
+            anchors.margins: Theme.spacingMedium
 
             Label {
                 id: lblStatus
                 text: (typeof uiStatus !== 'undefined' && uiStatus && uiStatus.text && uiStatus.text.length > 0)
                       ? uiStatus.text
-                      : qsTr("Bereit")
-                color: "#213547"
+                      : UiText.statusReady
+                color: Theme.textPrimary
                 elide: Label.ElideRight
                 Layout.fillWidth: true
             }
