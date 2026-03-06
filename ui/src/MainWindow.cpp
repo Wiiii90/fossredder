@@ -18,13 +18,13 @@
 
 #include "ui/actions/Actions.h"
 #include "ui/bootstrap/QmlRuntime.h"
-#include "ui/config/UiDefaults.h"
+#include "ui/config/Defaults.h"
 #include "ui/dialogs/FileDialogs.h"
-#include "ui/observability/UiTrace.h"
+#include "ui/observability/Trace.h"
 #include "ui/state/StateFacade.h"
 #include "ui/state/NavigationState.h"
 #include "ui/state/StatusState.h"
-#include "ui/text/UiText.h"
+#include "ui/text/Text.h"
 #include "ui/controllers/FileSystemController.h"
 #include "ui/workflows/FileWorkflow.h"
 

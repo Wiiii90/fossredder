@@ -3,7 +3,7 @@
 #include "ui/models/PropertyList.h"
 #include "ui/models/TransactionList.h"
 #include "ui/models/ContractList.h"
-#include "ui/payload/UiPayloadKeys.h"
+#include "ui/payload/PayloadKeys.h"
 
 namespace ui {
 

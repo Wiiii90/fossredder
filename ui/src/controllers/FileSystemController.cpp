@@ -4,7 +4,7 @@
 #include <QDir>
 #include <QFileInfo>
 
-#include "ui/payload/UiPayloadKeys.h"
+#include "ui/payload/PayloadKeys.h"
 
 namespace ui {
 

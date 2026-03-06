@@ -1,8 +1,8 @@
 #include "ui/controllers/ExportController.h"
 
 #include "ui/controllers/ControllerGuard.h"
-#include "ui/controllers/UiControllerContracts.h"
-#include "ui/observability/UiTrace.h"
+#include "ui/controllers/ControllerContracts.h"
+#include "ui/observability/Trace.h"
 
 #include "core/controllers/CsvController.h"
 #include "core/controllers/ExportController.h"

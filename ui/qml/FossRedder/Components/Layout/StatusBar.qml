@@ -2,7 +2,7 @@
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
-import "../../Constants/UiText.js" as UiText
+import "../../Constants/Text.js" as Text
 
 Item {
     id: bar
@@ -20,7 +20,7 @@ Item {
                 id: lblStatus
                 text: (typeof uiStatus !== 'undefined' && uiStatus && uiStatus.text && uiStatus.text.length > 0)
                       ? uiStatus.text
-                      : UiText.statusReady
+                      : Text.statusReady
                 color: Theme.textPrimary
                 elide: Label.ElideRight
                 Layout.fillWidth: true

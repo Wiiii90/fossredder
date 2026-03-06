@@ -5,7 +5,7 @@
 #include <QLibraryInfo>
 #include <QQmlEngine>
 
-#include "ui/config/UiDefaults.h"
+#include "ui/config/Defaults.h"
 #include "ui/state/NavigationState.h"
 
 namespace ui::bootstrap {

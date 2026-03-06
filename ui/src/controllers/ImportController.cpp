@@ -11,11 +11,11 @@
 #include "core/jobs/JobManager.h"
 #include "core/jobs/JobSystem.h"
 #include "core/jobs/JobTypes.h"
-#include "ui/config/UiDefaults.h"
-#include "ui/controllers/UiControllerContracts.h"
+#include "ui/config/Defaults.h"
+#include "ui/controllers/ControllerContracts.h"
 #include "ui/import/ImportDraftMapper.h"
 #include "ui/import/ImportRunStore.h"
-#include "ui/observability/UiTrace.h"
+#include "ui/observability/Trace.h"
 
 namespace ui {
 

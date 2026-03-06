@@ -1,7 +1,7 @@
 #include "ui/controllers/StorageController.h"
 
 #include "ui/controllers/ControllerGuard.h"
-#include "ui/controllers/UiControllerContracts.h"
+#include "ui/controllers/ControllerContracts.h"
 
 namespace ui {
 

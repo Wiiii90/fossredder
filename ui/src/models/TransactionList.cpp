@@ -2,7 +2,7 @@
 
 #include <QVariant>
 #include "core/models/Contract.h"
-#include "ui/payload/UiPayloadKeys.h"
+#include "ui/payload/PayloadKeys.h"
 
 namespace ui {
 

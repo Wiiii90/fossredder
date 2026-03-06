@@ -1,6 +1,6 @@
 #include "ui/models/AnalysisList.h"
 
-#include "ui/config/UiDefaults.h"
+#include "ui/config/Defaults.h"
 
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
