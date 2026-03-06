@@ -42,3 +42,5 @@ docs/todo.txt
 
 # Repository-local exclusions
 .github/
+
+debug_output/
