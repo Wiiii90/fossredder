@@ -226,6 +226,20 @@ Item {
                                     }
                                 }
 
+                                Connections {
+                                    target: hasImportController ? importController : null
+                                    function onImportCanceled() {
+                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = qsTr("Import canceled")
+                                    }
+                                    function onImportFinished() {
+                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = qsTr("Import finished")
+                                    }
+                                    function onImportFailed(error) {
+                                        if (typeof uiStatus !== 'undefined' && uiStatus)
+                                            uiStatus.text = (error && error.length > 0) ? error : qsTr("Import failed")
+                                    }
+                                }
+
                         }
 
                         Controls.Panel {
