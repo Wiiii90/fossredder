@@ -18,8 +18,6 @@ Flickable {
         spacing: 8
         anchors.margins: 8
 
-        Label { text: qsTr("Export Settings"); font.pointSize: 18 }
-
         GroupBox {
             Layout.fillWidth: true
             ColumnLayout {
@@ -29,7 +27,7 @@ Flickable {
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: qsTr("Default export format"); Layout.fillWidth: true }
-                    Controls.ComboBox { model: ["CSV", "JSON", "XML"]; currentIndex: 0 }
+                    Controls.ComboBox { model: [qsTr("CSV"), qsTr("JSON"), qsTr("XML")]; currentIndex: 0 }
                 }
 
                 RowLayout {

@@ -6,11 +6,10 @@ import FossRedder.Controls 1.0 as Controls
 
 Item {
     id: toolBar
-    implicitHeight: 80
-        property int iconRowHeight: Math.round(implicitHeight * 0.55)
-        
+    implicitHeight: Theme.toolbarHeight
+    property int iconRowHeight: Math.round(implicitHeight * 0.55)
 
-        Rectangle {
+    Rectangle {
         id: bg
         anchors.left: parent.left
         anchors.right: parent.right
@@ -28,19 +27,19 @@ Item {
 
             ColumnLayout {
                 id: fileGroup
-                spacing: 6
+                spacing: Theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
                 RowLayout {
                     id: fileIcons
-                    spacing: 12
+                    spacing: Theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        Layout.preferredWidth: 72
+                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: fileIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/import.svg"
                         label: qsTr("Import")
@@ -48,7 +47,7 @@ Item {
                         onClicked: if (uiNav) uiNav.section = UiNavigation.Import
                     }
                     Controls.IconButton {
-                        Layout.preferredWidth: 72
+                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: fileIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/export.svg"
                         label: qsTr("Export")
@@ -73,19 +72,19 @@ Item {
 
             ColumnLayout {
                 id: domainGroup
-                spacing: 6
+                spacing: Theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
                 RowLayout {
                     id: domainIcons
-                    spacing: 12
+                    spacing: Theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        Layout.preferredWidth: 72
+                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/booking.svg"
                         label: qsTr("Booking")
@@ -102,7 +101,7 @@ Item {
                         }
                     }
                     Controls.IconButton {
-                        Layout.preferredWidth: 72
+                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/actor.svg"
                         label: qsTr("Actor")
@@ -117,7 +116,7 @@ Item {
                         }
                     }
                     Controls.IconButton {
-                        Layout.preferredWidth: 72
+                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/property.svg"
                         label: qsTr("Property")
@@ -132,7 +131,7 @@ Item {
                         }
                     }
                     Controls.IconButton {
-                        Layout.preferredWidth: 72
+                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/contract.svg"
                         label: qsTr("Contract")
@@ -164,19 +163,19 @@ Item {
 
             ColumnLayout {
                 id: toolsGroup
-                spacing: 6
+                spacing: Theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
                 RowLayout {
                     id: toolsIcons
-                    spacing: 12
+                    spacing: Theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        Layout.preferredWidth: 72
+                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/analysis.svg"
                         label: qsTr("Analysis")
@@ -191,7 +190,7 @@ Item {
                         }
                     }
                     Controls.IconButton {
-                        Layout.preferredWidth: 72
+                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/annual.svg"
                         label: qsTr("Annual")
@@ -223,25 +222,25 @@ Item {
 
             ColumnLayout {
                 id: appGroup
-                spacing: 6
+                spacing: Theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
                 RowLayout {
                     id: appIcons
-                    spacing: 12
+                    spacing: Theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        Layout.preferredWidth: 72
+                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: appIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/settings.svg"
                         label: qsTr("Settings")
                         active: uiNav && uiNav.section === UiNavigation.Settings
                         onClicked: if (uiNav) uiNav.section = UiNavigation.Settings
-                    }
+    }
                 }
 
                 Text {

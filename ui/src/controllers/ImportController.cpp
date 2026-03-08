@@ -16,6 +16,7 @@
 #include "ui/import/ImportDraftMapper.h"
 #include "ui/import/ImportRunStore.h"
 #include "ui/observability/Trace.h"
+#include "ui/text/Text.h"
 
 namespace ui {
 
@@ -61,7 +62,7 @@ void ImportController::handleImportCanceled(const QString& now)
                               "ui::ImportController::onJobTerminal",
                               "Import canceled",
                               {
-                                  {"status", controllers::contracts::importRuns::kStatusCanceled.toStdString()}
+                                  {"status", tr(ui::text::importRuns::kStatusCanceled).toStdString()}
                               });
     emit stateChanged();
     emit importCanceled();
@@ -85,7 +86,7 @@ bool ImportController::populateDraftFromResult(const QString& now)
     auto imported = jobBridge_.statementResult();
     if (!imported) {
         handleImportFailed(now,
-                           controllers::contracts::errors::kImportFailed,
+                           tr(ui::text::controllerErrors::kImportFailed),
                            "Import failed: missing statement result");
         return false;
     }
@@ -93,7 +94,7 @@ bool ImportController::populateDraftFromResult(const QString& now)
     const auto artifacts = jobBridge_.takeArtifacts();
     if (!state_.populateDraft(now, imported, artifacts, this)) {
         handleImportFailed(now,
-                           controllers::contracts::errors::kImportFailed,
+                           tr(ui::text::controllerErrors::kImportFailed),
                            "Import failed: unable to create statement draft");
         return false;
     }
@@ -102,7 +103,7 @@ bool ImportController::populateDraftFromResult(const QString& now)
                               "ui::ImportController::onJobTerminal",
                               "Import finished",
                               {
-                                  {"status", controllers::contracts::importRuns::kStatusSuccess.toStdString()},
+                                  {"status", tr(ui::text::importRuns::kStatusSuccess).toStdString()},
                                   {"artifactCount", std::to_string(state_.artifactCount())}
                               });
     emit stateChanged();
@@ -167,7 +168,7 @@ void ImportController::startImportForFile(const QString& path)
 {
     if (state_.isRunning()) return;
     if (!jobBridge_.isAvailable()) {
-        state_.rejectStart(controllers::contracts::errors::kImportControllerUnavailable);
+        state_.rejectStart(tr(ui::text::controllerErrors::kImportControllerUnavailable));
         observability::reportFlow(core::errors::ErrorSeverity::Warning,
                                   "ui::ImportController::startImportForFile",
                                   "Import start rejected: controller unavailable");
@@ -176,7 +177,7 @@ void ImportController::startImportForFile(const QString& path)
         return;
     }
     if (path.trimmed().isEmpty()) {
-        state_.rejectStart(controllers::contracts::errors::kNoFileSelected);
+        state_.rejectStart(tr(ui::text::controllerErrors::kNoFileSelected));
         observability::reportFlow(core::errors::ErrorSeverity::Warning,
                                   "ui::ImportController::startImportForFile",
                                   "Import start rejected: no file selected");
@@ -235,7 +236,7 @@ void ImportController::startImportForFile(const QString& path)
 
     if (!started) {
         handleImportFailed(QDateTime::currentDateTime().toString(Qt::ISODate),
-                           controllers::contracts::errors::kImportFailed,
+                           tr(ui::text::controllerErrors::kImportFailed),
                            "Import failed: unable to start job");
     }
 }
@@ -263,7 +264,7 @@ void ImportController::onJobTerminal(int state, const QString& message)
 
     if (s == core::jobs::JobState::Failed) {
         handleImportFailed(now,
-                           message.isEmpty() ? controllers::contracts::errors::kImportFailed : message,
+                           message.isEmpty() ? tr(ui::text::controllerErrors::kImportFailed) : message,
                            "Import failed");
         return;
     }

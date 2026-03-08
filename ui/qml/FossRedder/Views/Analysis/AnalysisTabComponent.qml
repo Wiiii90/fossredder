@@ -22,11 +22,8 @@ Item {
         propertiesList = []
         matrix = {}
         try {
-            try { console.log('AnalysisTabComponent.rebuild: node uiData present in rootContext?', (typeof Qt !== 'undefined' && Qt.binding) ? true : true) } catch(e) {}
-            try { if (typeof uiData !== 'undefined' && uiData && uiData.lastAnalysisResult && uiData.lastAnalysisResult.table && uiData.lastAnalysisResult.table.length>0) { for (var ri=0; ri<Math.min(3, uiData.lastAnalysisResult.table.length); ++ri) { try { console.log('  table['+ri+']=', JSON.stringify(uiData.lastAnalysisResult.table[ri])) } catch(e) {} } } } catch(e) {}
             if (typeof uiData === 'undefined' || !uiData || !uiData.lastAnalysisResult || !uiData.lastAnalysisResult.table) return
             var tbl = uiData.lastAnalysisResult.table
-            try { console.log('AnalysisTabComponent.rebuild: sampleRow=', JSON.stringify(tbl[0]), 'tableLen=', tbl.length) } catch(e) {}
             var simple = false
             try {
                 if (tbl && tbl.length > 0 && tbl[0].length >= 3) {
@@ -34,7 +31,6 @@ Item {
                     if (!isNaN(testVal)) simple = true
                 }
             } catch(e) { simple = false }
-            try { console.log('AnalysisTabComponent.rebuild: detect simple=', simple, 'type[2]=', typeof(tbl[0][2]), 'val[2]=', tbl[0][2]) } catch(e) {}
             if (simple) {
                 simpleRows = JSON.parse(JSON.stringify(tbl))
                 contractTypes = []; propertiesList = []; matrix = {}
@@ -43,13 +39,7 @@ Item {
                     try { if (typeof matrixContainer !== 'undefined') matrixContainer.visible = false } catch(e) {}
                     try { if (typeof simpleList !== 'undefined') { simpleList.model = simpleRows; simpleList.visible = true } } catch(e) {}
                     updateFlickSizes()
-                    console.log('AnalysisTabComponent.rebuild: simpleRows set length=', simpleRows ? simpleRows.length : 0,
-                                'innerCol.implicitHeight=', innerCol ? innerCol.implicitHeight : -1,
-                                'innerCol.childrenRect.height=', innerCol ? (innerCol.childrenRect ? innerCol.childrenRect.height : -1) : -1,
-                                'tabFlick.contentHeight=', tabFlick ? tabFlick.contentHeight : -1,
-                                'simpleList.visible=', simpleList ? simpleList.visible : 'n/a',
-                                'matrixContainer.visible=', matrixContainer ? matrixContainer.visible : 'n/a')
-                } catch(e) { console.log('AnalysisTabComponent.rebuild simpleRows update error', e) }
+                } catch(e) { }
                 return
             } else {
                 simpleRows = []
@@ -104,22 +94,20 @@ Item {
                 } catch(e) {}
             }
             try { updateFlickSizes() } catch(e) {}
-        } catch(e) { console.log('AnalysisTabComponent.rebuild error', e) }
+        } catch(e) { }
     }
 
     Component.onCompleted: {
         try {
             try { initDelay.start() } catch(e) {}
-            console.log('AnalysisTabComponent: component completed, visible=', root.visible, 'width=', root.width, 'height=', root.height)
             try { updateFlickSizes() } catch(e) {}
             try {
                 if ((root.width === 0 || root.height === 0) && root.parent) {
                     if (root.parent.width) root.width = root.parent.width
                     if (root.parent.height) root.height = root.parent.height
                     try { root.anchors.fill = root.parent } catch(e) {}
-                    console.log('AnalysisTabComponent: adopted parent size width=', root.width, 'height=', root.height)
                 }
-            } catch(e) { console.log('AnalysisTabComponent: adopt parent size error', e) }
+            } catch(e) { }
         } catch(e) {}
     }
 
@@ -138,12 +126,6 @@ Item {
     ColumnLayout { anchors.fill: parent; spacing: Theme.spacingSmall
         Flickable { id: tabFlick; Layout.fillWidth: true; Layout.preferredHeight: 320; clip: true
             Column { id: innerCol; width: tabFlick.width
-                Rectangle { id: debugHeader; color: 'transparent'; height: 26; Layout.fillWidth: true; border.color: Theme.borderMedium; border.width: 0
-                    RowLayout { anchors.fill: parent; anchors.margins: Theme.margins * 2; spacing: Theme.spacingMedium
-                        Label { id: dbgLabel; text: qsTr('Preview: rows=') + (simpleRows ? simpleRows.length : 0) + ' props=' + (propertiesList ? propertiesList.length : 0) + ' contracts=' + (contractTypes ? contractTypes.length : 0); color: Theme.debugText }
-                    }
-                }
-
                 Item {
                     id: fallbackSimple
                     visible: (table && table.length>0) && (propertiesList.length === 0 || simpleRows.length>0)

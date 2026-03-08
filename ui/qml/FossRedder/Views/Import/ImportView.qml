@@ -231,14 +231,14 @@ Item {
                                 Connections {
                                     target: hasImportController ? importController : null
                                     function onImportCanceled() {
-                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = Messages.statusImportCanceled
+                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = Messages.statusImportCanceled()
                                     }
                                     function onImportFinished() {
-                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = Messages.statusImportFinished
+                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = Messages.statusImportFinished()
                                     }
                                     function onImportFailed(error) {
                                         if (typeof uiStatus !== 'undefined' && uiStatus)
-                                            uiStatus.text = (error && error.length > 0) ? error : Messages.statusImportFailed
+                                            uiStatus.text = (error && error.length > 0) ? error : Messages.statusImportFailed()
                                     }
                                 }
 

@@ -35,6 +35,15 @@ std::vector<std::string> normalizeList(const std::vector<std::string>& values)
     return out;
 }
 
+std::string normalizePlotMeasure(const std::string& value)
+{
+    const auto normalized = normalizeValue(value);
+    if (normalized == "count") return "count";
+    if (normalized == "averageamount" || normalized == "average amount") return "averageAmount";
+    if (normalized == "totalamount" || normalized == "total amount") return "totalAmount";
+    return normalized;
+}
+
 }
 
 Analysis PlotAnalysisStrategy::compute(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const {
@@ -42,7 +51,7 @@ Analysis PlotAnalysisStrategy::compute(const Analysis& analysis, const AppState&
     res.createdAt = "";
 
     std::string plotType = analysis.type;
-    std::string plotMeasure = "Total Amount";
+    std::string plotMeasure = "totalAmount";
     std::vector<std::string> propertyFilter;
     std::vector<std::string> contractTypeFilter;
     try {
@@ -58,6 +67,9 @@ Analysis PlotAnalysisStrategy::compute(const Analysis& analysis, const AppState&
             }
         }
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::analysis::PlotAnalysisStrategy::parseConfig", std::current_exception()); }
+
+    plotType = normalizeValue(plotType);
+    plotMeasure = normalizePlotMeasure(plotMeasure);
 
     if (plotType == "pie") {
         // aggregate by contract.type (or "unassigned") using selected properties if provided
@@ -111,9 +123,9 @@ Analysis PlotAnalysisStrategy::compute(const Analysis& analysis, const AppState&
         for (const auto& kv : agg) { totalAll += std::fabs(kv.second); totalCount += count[kv.first]; }
         for (const auto& kv : agg) {
             double val = 0.0;
-            if (plotMeasure == "Count") {
+            if (plotMeasure == "count") {
                 val = static_cast<double>(count[kv.first]);
-            } else if (plotMeasure == "Average Amount") {
+            } else if (plotMeasure == "averageAmount") {
                 val = (count[kv.first] > 0) ? (std::fabs(kv.second) / count[kv.first]) : 0.0;
             } else {
                 // Total Amount: use absolute magnitude so pie slices reflect magnitude regardless of sign

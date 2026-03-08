@@ -18,8 +18,6 @@ Flickable {
         spacing: 8
         anchors.margins: 8
 
-        Label { text: qsTr("Import Settings"); font.pointSize: 18 }
-
         GroupBox {
             Layout.fillWidth: true
             ColumnLayout {
@@ -35,7 +33,7 @@ Flickable {
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: qsTr("Default encoding"); Layout.fillWidth: true }
-                        Controls.ComboBox { model: ["UTF-8", "ISO-8859-1"]; currentIndex: 0 }
+                        Controls.ComboBox { model: [qsTr("UTF-8"), qsTr("ISO-8859-1")]; currentIndex: 0 }
                 }
             }
         }

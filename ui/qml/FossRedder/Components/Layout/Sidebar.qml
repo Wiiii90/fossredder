@@ -5,6 +5,7 @@ import FossRedder 1.0
 
 Item {
     id: sidebar
+    clip: true
 
     property Component contentComponent: null
 
@@ -12,7 +13,9 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "transparent"
+        color: Theme.surfaceAlt
+        border.width: Theme.borderWidthThin
+        border.color: Theme.borderLight
     }
 
     ColumnLayout {
@@ -27,7 +30,7 @@ Item {
         Label {
             id: headerLabel
             text: ""
-            font.pointSize: 16
+            font.pointSize: Theme.fontSizeTitle
             color: Theme.textPrimary
             visible: headerLabel.text && headerLabel.text.length > 0
         }
@@ -47,8 +50,7 @@ Item {
             sourceComponent: sidebar.contentComponent
 
             onStatusChanged: {
-                var hasItem = (item !== undefined && item !== null);
-                sidebar.contentStatusChanged(status, source, hasItem ? 1 : 0);
+                sidebar.contentStatusChanged(status, source, item);
             }
         }
     }

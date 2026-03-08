@@ -1,6 +1,7 @@
 ﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0
 
 GridLayout {
     id: layoutRoot
@@ -23,46 +24,42 @@ GridLayout {
         Layout.fillWidth: true
     }
 
-    SplitView {
-        id: horizontalSplit
-        orientation: Qt.Horizontal
+    RowLayout {
+        id: horizontalLayout
         Layout.row: 2
         Layout.fillWidth: true
         Layout.fillHeight: true
-
-        property int minHeight: 100
-
-        Component.onCompleted: {
-            implicitHeight = Math.max(layoutRoot.height * 0.9, minHeight)
-            leftWrapper.implicitWidth = Math.max(width * 0.25, 100)
-            centerWrapper.implicitWidth = Math.max(width * 0.75, 200)
-        }
-
-        onWidthChanged: {
-            leftWrapper.implicitWidth = Math.max(width * 0.25, 100)
-            centerWrapper.implicitWidth = Math.max(width * 0.75, 200)
-        }
-
-        onHeightChanged: {
-            if (height < minHeight)
-                height = minHeight
-        }
+        Layout.minimumHeight: Theme.shellMinimumHeight
+        spacing: 0
 
         Item {
             id: leftWrapper
-            SidebarRouter { anchors.fill: parent }
+            Layout.preferredWidth: Theme.shellSidebarPreferredWidth
+            Layout.minimumWidth: Theme.shellSidebarMinimumWidth
+            Layout.maximumWidth: Theme.shellSidebarPreferredWidth
+            Layout.fillHeight: true
+
+            SidebarRouter {
+                anchors.fill: parent
+            }
         }
 
         Item {
             id: centerWrapper
-            ContentRouter { anchors.fill: parent }
+            Layout.minimumWidth: Theme.shellContentMinimumWidth
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            ContentRouter {
+                anchors.fill: parent
+            }
         }
     }
 
     StatusBar {
         id: statusBar
         Layout.row: 3
-        Layout.preferredHeight: 36
+        Layout.preferredHeight: Theme.statusBarHeight
         Layout.fillWidth: true
     }
 }

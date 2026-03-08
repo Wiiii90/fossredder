@@ -1,6 +1,6 @@
 .pragma library
 
-var statusReady = "Ready"
-var statusImportCanceled = "Import canceled"
-var statusImportFinished = "Import finished"
-var statusImportFailed = "Import failed"
+function statusReady() { return qsTr("Ready") }
+function statusImportCanceled() { return qsTr("Import canceled") }
+function statusImportFinished() { return qsTr("Import finished") }
+function statusImportFailed() { return qsTr("Import failed") }

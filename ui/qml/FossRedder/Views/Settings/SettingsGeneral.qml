@@ -28,70 +28,52 @@ Flickable {
         spacing: 8
         anchors.margins: 8
 
-        ColumnLayout {
-            Layout.fillWidth: true
+        GroupBox {
+            Layout.preferredWidth: 760
             Layout.alignment: Qt.AlignHCenter
-            spacing: 6
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 8
 
-            Label { text: qsTr("General Settings"); font.pointSize: 18; Layout.alignment: Qt.AlignHCenter }
-
-            Rectangle { color: "transparent"; Layout.preferredWidth: 760 }
-
-            GroupBox {
-                Layout.preferredWidth: 760
-                Layout.alignment: Qt.AlignHCenter
-                ColumnLayout {
+                RowLayout {
                     Layout.fillWidth: true
-                    spacing: 8
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: qsTr("Start application on system startup"); Layout.fillWidth: true }
-                        Controls.CheckBox { id: startOnStartup; checked: false }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: qsTr("Language"); Layout.fillWidth: true }
-                        Controls.ComboBox {
-                            id: language
-                            model: languageController ? languageController.availableLanguages : []
-                            textRole: "label"
-                            currentIndex: root.languageIndexFor(languageController ? languageController.currentLanguage : "")
-                            onActivated: function(index) {
-                                if (!languageController || index < 0 || index >= model.length) return
-                                var option = model[index]
-                                if (!option || option.available === false) {
-                                    currentIndex = root.languageIndexFor(languageController.currentLanguage)
-                                    return
-                                }
-                                languageController.currentLanguage = option.code
+                    Label { text: qsTr("Language"); Layout.fillWidth: true }
+                    Controls.ComboBox {
+                        id: language
+                        model: languageController ? languageController.availableLanguages : []
+                        textRole: "label"
+                        currentIndex: root.languageIndexFor(languageController ? languageController.currentLanguage : "")
+                        onActivated: function(index) {
+                            if (!languageController || index < 0 || index >= model.length) return
+                            var option = model[index]
+                            if (!option || option.available === false) {
+                                currentIndex = root.languageIndexFor(languageController.currentLanguage)
+                                return
                             }
+                            languageController.currentLanguage = option.code
+                        }
 
-                            Connections {
-                                target: languageController
-                                function onCurrentLanguageChanged() {
-                                    language.currentIndex = root.languageIndexFor(languageController.currentLanguage)
-                                }
+                        Connections {
+                            target: languageController
+                            function onCurrentLanguageChanged() {
+                                language.currentIndex = root.languageIndexFor(languageController.currentLanguage)
                             }
                         }
                     }
+                }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: qsTr("Default paths"); Layout.fillWidth: true }
-                    }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label { text: qsTr("Default paths"); Layout.fillWidth: true }
+                }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Controls.TextField { id: defaultDataPathField; Layout.fillWidth: true; placeholderText: qsTr("Select default data folder") }
-                        Controls.Button { text: qsTr("Browse"); onClicked: defaultPicker.open() }
-                        Controls.FilePicker { id: defaultPicker; onAccepted: function(path) { defaultDataPathField.text = path } }
-                    }
-
+                RowLayout {
+                    Layout.fillWidth: true
+                    Controls.TextField { id: defaultDataPathField; Layout.fillWidth: true; placeholderText: qsTr("Select default data folder") }
+                    Controls.Button { text: qsTr("Browse"); onClicked: defaultPicker.open() }
+                    Controls.FilePicker { id: defaultPicker; onAccepted: function(path) { defaultDataPathField.text = path } }
                 }
             }
         }
-
     }
 }

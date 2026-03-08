@@ -329,7 +329,7 @@ void MainWindow::handleStorageOperationFailed(const QString& operation, const QS
     pendingCloseAfterSave_ = false;
     allowImmediateClose_ = false;
 
-    const QString message = error.isEmpty() ? ui::controllers::contracts::errors::kStorageSaveFailed : error;
+    const QString message = error.isEmpty() ? tr(ui::text::controllerErrors::kStorageSaveFailed) : error;
     if (status_) status_->setText(message);
 
     ui::observability::reportFlow(core::errors::ErrorSeverity::Warning,

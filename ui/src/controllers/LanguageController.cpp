@@ -2,7 +2,6 @@
 
 #include <QApplication>
 #include <QCoreApplication>
-#include <QDir>
 #include <QFileInfo>
 #include <QLocale>
 #include <QQmlEngine>

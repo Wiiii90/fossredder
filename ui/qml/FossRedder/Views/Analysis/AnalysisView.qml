@@ -6,6 +6,16 @@ import FossRedder.Controls 1.0 as Controls
 import FossRedder.Views 1.0 as Views
 
 Item {
+    id: root
+    readonly property var plotTypeOptions: [
+        { value: "pie", label: qsTr("Pie chart") },
+        { value: "histogram", label: qsTr("Histogram") }
+    ]
+    readonly property var plotMeasureOptions: [
+        { value: "totalAmount", label: qsTr("Total Amount") },
+        { value: "count", label: qsTr("Count") },
+        { value: "averageAmount", label: qsTr("Average Amount") }
+    ]
     anchors.fill: parent
 
     StackView {
@@ -117,17 +127,17 @@ Item {
 
                             RowLayout { Layout.fillWidth: true; spacing: 8; visible: strategyCombo.currentIndex === 1
                                 Label { text: qsTr("Plot type"); Layout.preferredWidth: 120 }
-                                ComboBox { id: plotTypeCombo; Layout.fillWidth: true; model: [ qsTr("pie"), qsTr("histogram") ]; currentIndex: 0 }
+                                ComboBox { id: plotTypeCombo; Layout.fillWidth: true; model: root.plotTypeOptions; textRole: "label"; currentIndex: 0 }
                             }
 
                             RowLayout { Layout.fillWidth: true; spacing: 8
                                 Label { text: qsTr("Date from"); Layout.preferredWidth: 120 }
-                                Controls.TextField { id: dateFrom; placeholderText: qsTr("YYYY-MM-DD"); text: "2025-01-01" }
+                                Controls.TextField { id: dateFrom; placeholderText: qsTr("YYYY-MM-DD") }
                             }
 
                             RowLayout { Layout.fillWidth: true; spacing: 8
                                 Label { text: qsTr("Date to"); Layout.preferredWidth: 120 }
-                                Controls.TextField { id: dateTo; placeholderText: qsTr("YYYY-MM-DD"); text: "2026-01-01" }
+                                Controls.TextField { id: dateTo; placeholderText: qsTr("YYYY-MM-DD") }
                             }
 
                             ColumnLayout { Layout.fillWidth: true; spacing: 6
@@ -190,7 +200,7 @@ Item {
 
                             RowLayout { Layout.fillWidth: true; spacing: 8
                                 Label { text: qsTr("Plot Measure"); Layout.preferredWidth: 120 }
-                                ComboBox { id: plotMeasureCombo; Layout.fillWidth: true; model: [ qsTr("Total Amount"), qsTr("Count"), qsTr("Average Amount") ]; currentIndex: 0 }
+                                ComboBox { id: plotMeasureCombo; Layout.fillWidth: true; model: root.plotMeasureOptions; textRole: "label"; currentIndex: 0 }
                             }
 
                             RowLayout { Layout.fillWidth: true; spacing: 8
@@ -203,8 +213,8 @@ Item {
                                         if (strategyCombo.currentIndex === 1) strategy = "plot"
                                         else if (strategyCombo.currentIndex === 2) strategy = "calc"
 
-                                        var config = ""
-                                        if (strategy === "plot") config = plotTypeCombo.currentText
+                                        var selectedPlotType = root.plotTypeOptions[Math.max(0, plotTypeCombo.currentIndex)].value
+                                        var selectedPlotMeasure = root.plotMeasureOptions[Math.max(0, plotMeasureCombo.currentIndex)].value
 
                                         var filterSpec = ""
                                         if (dateFrom.text && dateFrom.text.length > 0) filterSpec += "date>=" + dateFrom.text
@@ -215,7 +225,7 @@ Item {
 
                                         createBox.rebuildChoices()
 
-                                        var cfg = { plotType: plotTypeCombo.currentText, plotMeasure: plotMeasureCombo.currentText, properties: createBox.selectedProps, contractTypes: createBox.selectedContractTypes }
+                                        var cfg = { plotType: selectedPlotType, plotMeasure: selectedPlotMeasure, properties: createBox.selectedProps, contractTypes: createBox.selectedContractTypes }
                                         var id = analysisController.addAnalysis(nameField.text, strategy, JSON.stringify(cfg), filterSpec)
                                         if (id && id.length > 0) {
                                             uiData.selectedAnalysisId = id

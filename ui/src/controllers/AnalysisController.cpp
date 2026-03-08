@@ -63,7 +63,9 @@ QVariantMap AnalysisController::computeAnalysis(const QString& analysisId, const
             tm[payload::keys::transaction::kDate] = QString::fromStdString(tx->bookingDate);
             tm[payload::keys::common::kAmount] = tx->amount;
             tm[payload::keys::transaction::kContractId] = QString::fromStdString(tx->contractId);
-            tm[payload::keys::transaction::kContractType] = QString::fromStdString(tx->contract ? tx->contract->type : ui::text::analysis::kUnassignedContractType.toStdString());
+            tm[payload::keys::transaction::kContractType] = tx->contract
+                ? QString::fromStdString(tx->contract->type)
+                : tr(ui::text::analysis::kUnassignedContractType);
             txlist.push_back(tm);
         }
 

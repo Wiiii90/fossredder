@@ -2,6 +2,7 @@
 
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerContracts.h"
+#include "ui/text/Text.h"
 
 namespace ui {
 
@@ -33,7 +34,7 @@ void StorageController::newFile(const QString& path)
     });
 
     if (!success) {
-        setLastError(controllers::contracts::errors::kStorageCreateFailed);
+        setLastError(tr(ui::text::controllerErrors::kStorageCreateFailed));
         emit operationFailed(controllers::contracts::operations::kNewFile, lastError_);
         return;
     }
@@ -51,7 +52,7 @@ void StorageController::openFile(const QString& path)
     });
 
     if (!success) {
-        setLastError(controllers::contracts::errors::kStorageOpenFailed);
+        setLastError(tr(ui::text::controllerErrors::kStorageOpenFailed));
         emit operationFailed(controllers::contracts::operations::kOpenFile, lastError_);
         return;
     }
@@ -69,7 +70,7 @@ void StorageController::saveFile()
     });
 
     if (!success) {
-        setLastError(controllers::contracts::errors::kStorageSaveFailed);
+        setLastError(tr(ui::text::controllerErrors::kStorageSaveFailed));
         emit operationFailed(controllers::contracts::operations::kSaveFile, lastError_);
         return;
     }
@@ -87,7 +88,7 @@ void StorageController::saveFileAs(const QString& path)
     });
 
     if (!success) {
-        setLastError(controllers::contracts::errors::kStorageSaveAsFailed);
+        setLastError(tr(ui::text::controllerErrors::kStorageSaveAsFailed));
         emit operationFailed(controllers::contracts::operations::kSaveFileAs, lastError_);
         return;
     }

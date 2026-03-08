@@ -40,6 +40,15 @@ QtObject {
     property int spacingSmall: 6
     property int spacingLarge: 20
     property int pageMargin: 12
+    property int shellMinimumHeight: 100
+    property int shellSidebarMinimumWidth: 100
+    property int shellSidebarPreferredWidth: 320
+    property int shellContentMinimumWidth: 200
+    property int toolbarHeight: 80
+    property int toolbarIconButtonWidth: 72
+    property int toolbarGroupSpacing: 12
+    property int toolbarSectionSpacing: 6
+    property int statusBarHeight: 36
     property int formLabelWidth: 120
     property int formFieldWidth: 200
     property int busyIndicatorSize: 24

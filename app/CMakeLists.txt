@@ -7,7 +7,7 @@ option(USE_QML "Build with QML UI" OFF)
 
 # Detect Qt early so we can auto-enable QML support and conditionally
 # include the QML-only translation unit (main_qml.cpp).
-find_package(Qt6 COMPONENTS Quick Qml Widgets QuickWidgets QUIET)
+find_package(Qt6 COMPONENTS Quick Qml Widgets QuickWidgets LinguistTools QUIET)
 if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
     if(NOT USE_QML)
         set(USE_QML ON CACHE BOOL "Build with QML UI" FORCE)
@@ -58,6 +58,66 @@ target_include_directories(fossredder PRIVATE
 )
 
 target_link_libraries(fossredder PRIVATE core_lib debug_lib services_poppler services_opencv services_tesseract ui_lib persistence_lib)
+
+set(TRANSLATION_CATALOG_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/i18n/fossredder_de.catalog.xml
+)
+
+set(TRANSLATION_SOURCE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/ui/src
+    ${CMAKE_SOURCE_DIR}/ui/include
+    ${CMAKE_SOURCE_DIR}/ui/qml
+)
+
+if(TARGET Qt6::lupdate AND TARGET Qt6::lrelease)
+    set(TRANSLATION_QM_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/i18n)
+    set(TRANSLATION_QM_FILES)
+
+    foreach(CATALOG_FILE IN LISTS TRANSLATION_CATALOG_FILES)
+        get_filename_component(CATALOG_NAME ${CATALOG_FILE} NAME)
+        string(REGEX REPLACE "\\.catalog\\.xml$" "" CATALOG_BASE ${CATALOG_NAME})
+        set(GENERATED_TS_FILE ${TRANSLATION_QM_OUTPUT_DIR}/${CATALOG_BASE}.ts)
+        set(QM_FILE ${TRANSLATION_QM_OUTPUT_DIR}/${CATALOG_BASE}.qm)
+
+        list(APPEND TRANSLATION_QM_FILES ${QM_FILE})
+
+        add_custom_command(
+            OUTPUT ${QM_FILE}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${TRANSLATION_QM_OUTPUT_DIR}
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CATALOG_FILE} ${GENERATED_TS_FILE}
+            COMMAND Qt6::lrelease ${GENERATED_TS_FILE} -qm ${QM_FILE}
+            DEPENDS ${CATALOG_FILE}
+            VERBATIM
+        )
+    endforeach()
+
+    add_custom_target(fossredder_translations DEPENDS ${TRANSLATION_QM_FILES})
+    add_dependencies(fossredder fossredder_translations)
+
+    add_custom_command(TARGET fossredder POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:fossredder>/i18n"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${TRANSLATION_QM_FILES} "$<TARGET_FILE_DIR:fossredder>/i18n"
+        VERBATIM
+    )
+
+    add_custom_target(update_translations)
+    foreach(CATALOG_FILE IN LISTS TRANSLATION_CATALOG_FILES)
+        get_filename_component(CATALOG_NAME ${CATALOG_FILE} NAME)
+        string(REGEX REPLACE "\\.catalog\\.xml$" "" CATALOG_BASE ${CATALOG_NAME})
+        set(GENERATED_TS_FILE ${TRANSLATION_QM_OUTPUT_DIR}/${CATALOG_BASE}.ts)
+        add_custom_command(TARGET update_translations POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${TRANSLATION_QM_OUTPUT_DIR}
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CATALOG_FILE} ${GENERATED_TS_FILE}
+            COMMAND Qt6::lupdate ${TRANSLATION_SOURCE_DIRS} -ts ${GENERATED_TS_FILE}
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GENERATED_TS_FILE} ${CATALOG_FILE}
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            VERBATIM
+        )
+    endforeach()
+else()
+    message(WARNING "Qt6 LinguistTools not found; translation catalogs will not be generated automatically")
+endif()
 
 # Link Qt Quick/Qml when available and define USE_QML for sources that check it
 if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
@@ -123,6 +183,10 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/i18n")
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/i18n/" DESTINATION "bin/i18n")
 elseif(EXISTS "${CMAKE_SOURCE_DIR}/i18n")
     install(DIRECTORY "${CMAKE_SOURCE_DIR}/i18n/" DESTINATION "bin/i18n")
+endif()
+
+if(TRANSLATION_QM_FILES)
+    install(FILES ${TRANSLATION_QM_FILES} DESTINATION "bin/i18n")
 endif()
 
 # Install additional assets if present (optional)

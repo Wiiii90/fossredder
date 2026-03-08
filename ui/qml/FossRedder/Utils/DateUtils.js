@@ -1,6 +1,21 @@
 .pragma library
 
-var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+function monthNames() {
+    return [
+        qsTr("January"),
+        qsTr("February"),
+        qsTr("March"),
+        qsTr("April"),
+        qsTr("May"),
+        qsTr("June"),
+        qsTr("July"),
+        qsTr("August"),
+        qsTr("September"),
+        qsTr("October"),
+        qsTr("November"),
+        qsTr("December")
+    ]
+}
 
 function formatMonthLabel(monthValue) {
     if (!monthValue)
@@ -11,8 +26,9 @@ function formatMonthLabel(monthValue) {
         var year = parts[0]
         var month = parts[1]
         var monthIndex = parseInt(month, 10) - 1
-        if (!isNaN(monthIndex) && monthIndex >= 0 && monthIndex < monthNames.length)
-            return monthNames[monthIndex] + " " + year
+        var names = monthNames()
+        if (!isNaN(monthIndex) && monthIndex >= 0 && monthIndex < names.length)
+            return names[monthIndex] + " " + year
     }
 
     return monthValue

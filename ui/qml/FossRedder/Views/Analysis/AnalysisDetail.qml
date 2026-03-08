@@ -16,8 +16,6 @@ Item {
         anchors.margins: 12
         spacing: 8
 
-        Component.onCompleted: { console.log("AnalysisDetail: page width=", page.width, "height=", page.height) }
-
         RowLayout { Layout.fillWidth: true
             Controls.Button { text: qsTr("Back"); onClicked: {
                     var sv = null
@@ -50,9 +48,7 @@ Item {
                     }
                     onStatusChanged: {
                         try {
-                            if (mainLoader.status === Loader.Error) {
-                                console.log("AnalysisDetail: Loader error loading", mainLoader.source, "errorString:", mainLoader.errorString)
-                            }
+                            if (mainLoader.status === Loader.Error) {}
                         } catch(e) {}
                     }
                 }
@@ -84,7 +80,6 @@ Item {
     Timer { id: loaderInitTimer; interval: 60; repeat: false; running: false; triggeredOnStart: false; onTriggered: {
         try {
             if (!mainLoader || !mainLoader.item) return
-            console.log('loaderInitTimer: reassign uiData to loaded item, uiData present=', !!uiData)
             try { mainLoader.item.uiData = uiData } catch(e) {}
             try { mainLoader.item.analysisController = analysisController } catch(e) {}
             try { if (mainLoader.item.rebuild) mainLoader.item.rebuild() } catch(e) {}

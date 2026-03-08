@@ -46,9 +46,41 @@ inline constexpr auto kAboutBody = "FOSSRedder";
 
 }
 
+namespace controllerErrors {
+
+inline constexpr auto kStorageCreateFailed = "Failed to create file";
+inline constexpr auto kStorageOpenFailed = "Failed to open file";
+inline constexpr auto kStorageSaveFailed = "Failed to save file";
+inline constexpr auto kStorageSaveAsFailed = "Failed to save file as";
+inline constexpr auto kExportFailed = "Export failed";
+inline constexpr auto kImportControllerUnavailable = "Import controller not available";
+inline constexpr auto kNoFileSelected = "No file selected";
+inline constexpr auto kImportFailed = "Import failed";
+
+}
+
+namespace importRuns {
+
+inline constexpr auto kTypeStatement = "Statement";
+inline constexpr auto kStatusCanceled = "Canceled";
+inline constexpr auto kStatusFailed = "Failed";
+inline constexpr auto kStatusSuccess = "Success";
+
+}
+
+namespace importPhases {
+
+inline constexpr auto kStopping = "Stopping...";
+inline constexpr auto kStarting = "Starting import...";
+inline constexpr auto kCanceled = "Import canceled";
+inline constexpr auto kFailed = "Import failed";
+inline constexpr auto kFinished = "Import finished";
+
+}
+
 namespace analysis {
 
-inline const auto kUnassignedContractType = QStringLiteral("unassigned");
+inline constexpr auto kUnassignedContractType = "unassigned";
 
 }
 

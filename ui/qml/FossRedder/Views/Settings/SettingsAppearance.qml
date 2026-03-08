@@ -18,8 +18,6 @@ Flickable {
         spacing: 8
         anchors.margins: 8
 
-        Label { text: qsTr("Appearance"); font.pointSize: 18 }
-
         GroupBox {
             Layout.fillWidth: true
             ColumnLayout {
@@ -35,7 +33,7 @@ Flickable {
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: qsTr("Font size"); Layout.fillWidth: true }
-                    Controls.ComboBox { model: ["Small", "Normal", "Large"]; currentIndex: 1 }
+                    Controls.ComboBox { model: [qsTr("Small"), qsTr("Normal"), qsTr("Large")]; currentIndex: 1 }
                 }
             }
         }

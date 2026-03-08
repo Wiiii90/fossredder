@@ -10,6 +10,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: Theme.statusBarBackground
+        border.width: Theme.borderWidthThin
         border.color: Theme.statusBarBorder
 
         RowLayout {
@@ -20,7 +21,7 @@ Item {
                 id: lblStatus
                 text: (typeof uiStatus !== 'undefined' && uiStatus && uiStatus.text && uiStatus.text.length > 0)
                       ? uiStatus.text
-                      : Messages.statusReady
+                      : Messages.statusReady()
                 color: Theme.textPrimary
                 elide: Label.ElideRight
                 Layout.fillWidth: true

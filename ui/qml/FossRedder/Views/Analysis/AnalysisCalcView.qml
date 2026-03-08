@@ -22,7 +22,7 @@ Item {
 
         RowLayout { spacing: 6; Layout.fillWidth: true
             Label { text: qsTr("Tax %") }
-            Controls.TextField { id: taxPercentField; placeholderText: "0.0"; width: 80 }
+            Controls.TextField { id: taxPercentField; width: 80 }
             Controls.Button { text: qsTr("Apply Tax to Selected"); onClicked: {
                 if (!analysisCalcView.uiData || !analysisCalcView.uiData.selectedAnalysis) return
                 var aid = analysisCalcView.uiData.selectedAnalysis.id

@@ -18,8 +18,6 @@ Flickable {
         spacing: 8
         anchors.margins: 8
 
-        Label { text: qsTr("Advanced"); font.pointSize: 18 }
-
         GroupBox {
             Layout.fillWidth: true
             ColumnLayout {
@@ -29,7 +27,7 @@ Flickable {
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: qsTr("Logging level"); Layout.fillWidth: true }
-                    Controls.ComboBox { model: ["Error", "Warning", "Info", "Debug"]; currentIndex: 2 }
+                    Controls.ComboBox { model: [qsTr("Error"), qsTr("Warning"), qsTr("Info"), qsTr("Debug")]; currentIndex: 2 }
                 }
 
                 RowLayout {

@@ -1,8 +1,11 @@
 #include "ui/import/ImportState.h"
 
+#include <QCoreApplication>
+
 #include "ui/config/Defaults.h"
 #include "ui/controllers/ControllerContracts.h"
 #include "ui/import/ImportDraftMapper.h"
+#include "ui/text/Text.h"
 
 namespace ui::importing {
 
@@ -125,7 +128,7 @@ void ImportState::beginImport(const QString& path)
 
     artifacts_.clear();
     error_.clear();
-    phase_ = controllers::contracts::importPhases::kStarting;
+    phase_ = QCoreApplication::translate("ImportState", ui::text::importPhases::kStarting);
     progress_ = ui::config::kInitialImportProgress;
     currentPage_ = 0;
     pageCount_ = 0;
@@ -151,13 +154,13 @@ void ImportState::beginCancel(bool clearQueue)
     canceled_ = true;
     cancelClearsQueue_ = clearQueue;
     if (clearQueue) queuedFiles_.clear();
-    phase_ = controllers::contracts::importPhases::kStopping;
+    phase_ = QCoreApplication::translate("ImportState", ui::text::importPhases::kStopping);
 }
 
 void ImportState::appendRun(const QString& now, const QString& status, const QString& message)
 {
     runs_.addRun(now,
-                 controllers::contracts::importRuns::kTypeStatement,
+                 QCoreApplication::translate("ImportState", ui::text::importRuns::kTypeStatement),
                  currentRunFile(),
                  status,
                  message);
@@ -165,11 +168,11 @@ void ImportState::appendRun(const QString& now, const QString& status, const QSt
 
 void ImportState::recordCanceled(const QString& now)
 {
-    phase_ = controllers::contracts::importPhases::kCanceled;
+    phase_ = QCoreApplication::translate("ImportState", ui::text::importPhases::kCanceled);
     error_.clear();
     clearTransientImportState();
     if (cancelClearsQueue_) queuedFiles_.clear();
-    appendRun(now, controllers::contracts::importRuns::kStatusCanceled, {});
+    appendRun(now, QCoreApplication::translate("ImportState", ui::text::importRuns::kStatusCanceled), {});
     selectedFile_.clear();
     currentImportFile_.clear();
     canceled_ = false;
@@ -179,10 +182,10 @@ void ImportState::recordCanceled(const QString& now)
 void ImportState::recordFailed(const QString& now, const QString& errorMessage)
 {
     error_ = errorMessage;
-    phase_ = controllers::contracts::importPhases::kFailed;
+    phase_ = QCoreApplication::translate("ImportState", ui::text::importPhases::kFailed);
     clearTransientImportState();
     queuedFiles_.clear();
-    appendRun(now, controllers::contracts::importRuns::kStatusFailed, error_);
+    appendRun(now, QCoreApplication::translate("ImportState", ui::text::importRuns::kStatusFailed), error_);
     currentImportFile_.clear();
     canceled_ = false;
     cancelClearsQueue_ = false;
@@ -204,10 +207,10 @@ bool ImportState::populateDraft(const QString& now,
     }
 
     draft_ = createStatementDraft(currentImportFile_, statement, parent);
-    phase_ = controllers::contracts::importPhases::kFinished;
+    phase_ = QCoreApplication::translate("ImportState", ui::text::importPhases::kFinished);
     progress_ = 1.0;
     isRunning_ = false;
-    appendRun(now, controllers::contracts::importRuns::kStatusSuccess, {});
+    appendRun(now, QCoreApplication::translate("ImportState", ui::text::importRuns::kStatusSuccess), {});
     currentImportFile_.clear();
     canceled_ = false;
     cancelClearsQueue_ = false;

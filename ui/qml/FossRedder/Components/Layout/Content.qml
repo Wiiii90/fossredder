@@ -15,14 +15,14 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
+        anchors.margins: Theme.pageMargin
         spacing: Theme.spacing
 
         Item {
             visible: showHeader && title && title.length > 0
             Layout.fillWidth: true
             ColumnLayout {
-                Label { text: title; font.pointSize: 18; color: Theme.textPrimary }
+                Label { text: title; font.pointSize: Theme.fontSizeTitle + Theme.margins; color: Theme.textPrimary }
                 Label { text: subtitle; font.pointSize: Math.max(12, Theme.fontSize - 2); color: Theme.textMuted; visible: subtitle && subtitle.length > 0 }
                 Rectangle { height: Theme.borderWidthThin; color: Theme.borderLight; Layout.fillWidth: true }
             }
@@ -34,8 +34,7 @@ Item {
             Layout.fillHeight: true
             sourceComponent: contentWrapper.contentComponent
             onStatusChanged: {
-                var hasItem = (item !== undefined && item !== null);
-                contentWrapper.contentStatusChanged(status, source, hasItem ? 1 : 0);
+                contentWrapper.contentStatusChanged(status, source, item);
             }
         }
     }

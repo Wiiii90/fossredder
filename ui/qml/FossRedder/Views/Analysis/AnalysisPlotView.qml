@@ -52,7 +52,6 @@ Item {
         var newProps = []
         var newHistTotal = 0
         try {
-            try { console.log('AnalysisPlotView.rebuild run uiData=', !!(typeof uiData !== 'undefined' && uiData), 'hasLast=', !!(typeof uiData !== 'undefined' && uiData && uiData.lastAnalysisResult)) } catch(e) {}
             if (typeof uiData === 'undefined' || !uiData || !uiData.lastAnalysisResult || !uiData.lastAnalysisResult.table) {
                 histLegendModel = newHist
                 histLegendTotal = newHistTotal
@@ -119,18 +118,12 @@ Item {
                 if (hist) hist.table = tbl
                 try { if (pie && pie.requestPaint) pie.requestPaint(); if (hist && hist.requestPaint) hist.requestPaint(); } catch(e) {}
             } catch(e) {}
-        } catch(e) { console.log('AnalysisPlotView.rebuild error', e) }
+        } catch(e) { }
     }
 
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spacingSmall
-
-        Label {
-            id: debugLabel
-            text: qsTr('Debug: type=') + ((uiData && uiData.lastAnalysisResult && uiData.lastAnalysisResult.type) ? uiData.lastAnalysisResult.type : qsTr('<none>')) + qsTr(' rows=') + ((uiData && uiData.lastAnalysisResult && uiData.lastAnalysisResult.table) ? uiData.lastAnalysisResult.table.length : 0)
-            color: Theme.chartText
-        }
 
         RowLayout {
             Layout.fillWidth: true
