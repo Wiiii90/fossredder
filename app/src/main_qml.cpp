@@ -19,6 +19,7 @@
 #include "ui/controllers/DraftController.h"
 #include "ui/controllers/ExportController.h"
 #include "ui/controllers/ImportController.h"
+#include "ui/export/ExportRunner.h"
 #include "ui/controllers/PropertyController.h"
 #include "ui/controllers/StatementController.h"
 #include "ui/controllers/StorageController.h"
@@ -95,7 +96,8 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
     w.setQmlContextProperty("draftController", ui.draft);
     w.setQmlContextProperty("analysisController", ui.analysisUi);
 
-    ui.exportCtrl = new ui::ExportController(&appStateCtrl, &w);
+    auto exportRunner = std::make_shared<ui::exporting::ExportRunner>();
+    ui.exportCtrl = new ui::ExportController(&appStateCtrl, exportRunner, &w);
     w.setQmlContextProperty("exportController", ui.exportCtrl);
 
     auto dbg = std::make_shared<FileDebugger>("", "import");

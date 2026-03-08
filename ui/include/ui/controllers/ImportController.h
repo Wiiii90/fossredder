@@ -5,13 +5,11 @@
 #include <QStringList>
 #include <exception>
 #include <memory>
-#include <QHash>
-#include <QByteArray>
 
 #include "core/errors/IErrorReporter.h"
 #include "ui/import/ImportJobBridge.h"
+#include "ui/import/ImportState.h"
 #include "ui/models/ImportRunList.h"
-#include "ui/models/StatementDraft.h"
 
 namespace core { namespace jobs { class JobSystem; } }
 
@@ -35,17 +33,17 @@ class ImportController : public QObject {
 public:
     explicit ImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent = nullptr);
 
-    bool isRunning() const noexcept { return isRunning_; }
-    double progress() const noexcept { return progress_; }
-    QString phase() const { return phase_; }
-    QString error() const { return error_; }
-    int currentPage() const noexcept { return currentPage_; }
-    int pageCount() const noexcept { return pageCount_; }
-    QString selectedFile() const { return selectedFile_; }
+    bool isRunning() const noexcept { return state_.isRunning(); }
+    double progress() const noexcept { return state_.progress(); }
+    QString phase() const { return state_.phase(); }
+    QString error() const { return state_.error(); }
+    int currentPage() const noexcept { return state_.currentPage(); }
+    int pageCount() const noexcept { return state_.pageCount(); }
+    QString selectedFile() const { return state_.selectedFile(); }
     void setSelectedFile(const QString& path);
-    int queuedCount() const noexcept { return queuedFiles_.size(); }
-    QStringList queuedFiles() const { return queuedFiles_; }
-    StatementDraft* draft() const noexcept { return draft_; }
+    int queuedCount() const noexcept { return state_.queuedFiles().size(); }
+    QStringList queuedFiles() const { return state_.queuedFiles(); }
+    StatementDraft* draft() const noexcept { return state_.draft(); }
 
     Q_INVOKABLE void startStatementImport();
     Q_INVOKABLE void addFiles(const QStringList& paths);
@@ -56,7 +54,7 @@ public:
     void setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter);
 
     ImportRunList* runs() noexcept { return &runs_; }
-    QByteArray artifactBytes(const QString& key) const;
+    QByteArray artifactBytes(const QString& key) const { return state_.artifactBytes(key); }
 
 signals:
     void stateChanged();
@@ -69,29 +67,12 @@ private slots:
     void onJobTerminal(int state, const QString& message);
 
 private:
-    QString currentRunFile() const;
-    void beginImportState(const QString& path);
-    void resetImportState();
-    void appendRun(const QString& now, const QString& status, const QString& message);
     void handleImportCanceled(const QString& now);
     void handleImportFailed(const QString& now, const QString& errorMessage, const char* traceMessage);
     bool populateDraftFromResult(const QString& now);
-    std::shared_ptr<core::jobs::JobSystem> jobSystem_;
-    bool isRunning_ = false;
-    double progress_ = 0.0;
-    QString phase_;
-    QString error_;
-    int currentPage_ = 0;
-    int pageCount_ = 0;
-    QString selectedFile_;
-    QStringList queuedFiles_;
     ImportRunList runs_;
-    StatementDraft* draft_ = nullptr;
-    QHash<QString, QByteArray> artifacts_;
-    bool canceled_ = false;
-    bool cancelClearsQueue_ = false;
+    importing::ImportState state_;
     importing::ImportJobBridge jobBridge_;
-    QString currentImportFile_;
     std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
 
     void startNextQueuedImport();

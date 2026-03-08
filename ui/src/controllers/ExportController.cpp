@@ -2,102 +2,21 @@
 
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerContracts.h"
+#include "ui/export/ExportRunner.h"
 #include "ui/observability/Trace.h"
-
-#include "core/controllers/CsvController.h"
-#include "core/controllers/ExportController.h"
-#include "core/controllers/XlsxController.h"
-#include "core/models/Actor.h"
-#include "core/models/Analysis.h"
-#include "core/models/Annual.h"
-#include "core/models/Contract.h"
-#include "core/models/Property.h"
-#include "core/models/Statement.h"
-#include "core/models/Transaction.h"
 
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <exception>
-#include <memory>
 #include <string>
 
 namespace ui {
 
-namespace {
-
-core::controllers::exporting::ExportOptions::Format toExportFormat(int format)
-{
-    using UiExportFormat = ui::controllers::contracts::ExportFormat;
-    switch (static_cast<UiExportFormat>(format)) {
-    case UiExportFormat::Csv:
-        return core::controllers::exporting::ExportOptions::Format::Csv;
-    case UiExportFormat::Xlsx:
-        return core::controllers::exporting::ExportOptions::Format::Xlsx;
-    default:
-        observability::reportFlow(core::errors::ErrorSeverity::Warning,
-                                  core::errors::codes::UiFlowExportFallback,
-                                  "ui::ExportController::toExportFormat",
-                                  "Unknown export format, fallback to CSV",
-                                  {
-                                      {"format", std::to_string(format)}
-                                  });
-        return core::controllers::exporting::ExportOptions::Format::Csv;
-    }
-}
-
-std::shared_ptr<const AppState> createExportSnapshot(const AppState& state)
-{
-    auto snapshot = std::make_shared<AppState>();
-
-    snapshot->properties.reserve(state.properties.size());
-    for (const auto& item : state.properties) {
-        if (!item) continue;
-        snapshot->properties.push_back(std::make_shared<Property>(*item));
-    }
-
-    snapshot->actors.reserve(state.actors.size());
-    for (const auto& item : state.actors) {
-        if (!item) continue;
-        snapshot->actors.push_back(std::make_shared<Actor>(*item));
-    }
-
-    snapshot->contracts.reserve(state.contracts.size());
-    for (const auto& item : state.contracts) {
-        if (!item) continue;
-        snapshot->contracts.push_back(std::make_shared<Contract>(*item));
-    }
-
-    snapshot->statements.reserve(state.statements.size());
-    for (const auto& item : state.statements) {
-        if (!item) continue;
-        snapshot->statements.push_back(std::make_shared<Statement>(*item));
-    }
-
-    snapshot->transactions.reserve(state.transactions.size());
-    for (const auto& item : state.transactions) {
-        if (!item) continue;
-        snapshot->transactions.push_back(std::make_shared<Transaction>(*item));
-    }
-
-    snapshot->analyses.reserve(state.analyses.size());
-    for (const auto& item : state.analyses) {
-        if (!item) continue;
-        snapshot->analyses.push_back(std::make_shared<Analysis>(*item));
-    }
-
-    snapshot->annuals.reserve(state.annuals.size());
-    for (const auto& item : state.annuals) {
-        if (!item) continue;
-        snapshot->annuals.push_back(std::make_shared<Annual>(*item));
-    }
-
-    return snapshot;
-}
-
-}
-
-ExportController::ExportController(AppStateController* core, QObject* parent)
+ExportController::ExportController(AppStateController* core,
+                                   std::shared_ptr<ui::exporting::ExportRunner> runner,
+                                   QObject* parent)
     : QObject(parent)
     , core_(core)
+    , runner_(runner ? std::move(runner) : std::make_shared<ui::exporting::ExportRunner>())
 {
     connect(&exportWatcher_, &QFutureWatcher<core::controllers::exporting::ExportOptions>::finished, this, &ExportController::onExportFinished);
 }
@@ -118,16 +37,13 @@ void ExportController::exportData(int format, const QString& path, bool includeF
         isRunning_ = true;
         emit stateChanged();
 
-        auto csv = std::make_shared<core::controllers::exporting::CsvController>();
-        auto xlsx = std::make_shared<core::controllers::exporting::XlsxController>();
-        core::controllers::exporting::ExportController exporter(xlsx, csv);
+        ui::exporting::ExportRequest request;
+        request.format = format;
+        request.path = path;
+        request.includeFormulas = includeFormulas;
+        request.locale = locale;
 
-        core::controllers::exporting::ExportOptions opts;
-        opts.outputPath = path.toStdString();
-        opts.includeFormulas = includeFormulas;
-        opts.locale = locale.toStdString();
-        opts.stateSnapshot = createExportSnapshot(core_->state());
-        opts.requestedFormat = toExportFormat(format);
+        auto opts = runner_->createOptions(core_->state(), request);
 
         observability::reportFlow(core::errors::ErrorSeverity::Info,
                                   core::errors::codes::UiFlowExportStarted,
@@ -140,9 +56,8 @@ void ExportController::exportData(int format, const QString& path, bool includeF
                                       {"locale", locale.toStdString()}
                                   });
 
-        exportFuture_ = QtConcurrent::run([exporter, opts]() mutable {
-            exporter.exportData(opts);
-            return opts;
+        exportFuture_ = QtConcurrent::run([runner = runner_, opts = std::move(opts)]() mutable {
+            return runner->run(std::move(opts));
         });
         exportWatcher_.setFuture(exportFuture_);
     } catch (const std::exception& ex) {

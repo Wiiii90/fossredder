@@ -19,18 +19,11 @@
 
 namespace ui {
 
-namespace {
-
-constexpr int kImportRunKeepCount = 20;
-constexpr double kInitialImportProgress = 0.01;
-
-}
-
 ImportController::ImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent)
     : QObject(parent)
-    , jobSystem_(std::move(jobSystem))
-    , jobBridge_(jobSystem_)
     , runs_(this)
+    , state_(runs_)
+    , jobBridge_(std::move(jobSystem))
 {
 }
 
@@ -41,123 +34,29 @@ void ImportController::setErrorReporter(std::shared_ptr<core::errors::IErrorRepo
 
 void ImportController::addFiles(const QStringList& paths)
 {
-    QStringList cleaned;
-    cleaned.reserve(paths.size());
-    for (const auto& p : paths) {
-        const auto t = p.trimmed();
-        if (t.isEmpty()) continue;
-        cleaned.push_back(t);
-    }
-    if (cleaned.isEmpty()) return;
-
-    const bool hasSelection = !selectedFile_.trimmed().isEmpty();
-    int startIndex = 0;
-    if (!hasSelection) {
-        setSelectedFile(cleaned.front());
-        startIndex = 1;
-    }
-
-    for (int i = startIndex; i < cleaned.size(); ++i) queuedFiles_.push_back(cleaned[i]);
-    emit stateChanged();
+    if (state_.addFiles(paths)) emit stateChanged();
 }
 
 void ImportController::setSelectedFile(const QString& path)
 {
-    if (selectedFile_ == path) return;
-    selectedFile_ = path;
-    emit stateChanged();
+    if (state_.setSelectedFile(path)) emit stateChanged();
 }
 
 void ImportController::resetStatus()
 {
-    if (isRunning_) return;
-    phase_.clear();
-    error_.clear();
-    progress_ = 0.0;
-    canceled_ = false;
-    cancelClearsQueue_ = false;
-    currentPage_ = 0;
-    pageCount_ = 0;
-    selectedFile_.clear();
-    currentImportFile_.clear();
-    queuedFiles_.clear();
-    artifacts_.clear();
-    emit stateChanged();
+    if (state_.resetStatus()) emit stateChanged();
 }
 
 void ImportController::clearDraft()
 {
-    if (draft_) {
-        draft_->deleteLater();
-        draft_ = nullptr;
-    }
-    artifacts_.clear();
-    if (!isRunning_ && queuedFiles_.isEmpty()) {
-        selectedFile_.clear();
-        currentImportFile_.clear();
-    }
+    const bool shouldStartNext = state_.clearDraft();
     emit stateChanged();
-    if (!isRunning_ && !queuedFiles_.isEmpty()) {
-        startNextQueuedImport();
-    }
-}
-
-QByteArray ImportController::artifactBytes(const QString& key) const
-{
-    const auto it = artifacts_.find(key);
-    if (it == artifacts_.end()) return {};
-    return it.value();
-}
-
-QString ImportController::currentRunFile() const
-{
-    return currentImportFile_.isEmpty() ? selectedFile_ : currentImportFile_;
-}
-
-void ImportController::beginImportState(const QString& path)
-{
-    selectedFile_ = path;
-    currentImportFile_ = path;
-
-    if (draft_) {
-        draft_->deleteLater();
-        draft_ = nullptr;
-    }
-
-    artifacts_.clear();
-    error_.clear();
-    phase_ = controllers::contracts::importPhases::kStarting;
-    progress_ = kInitialImportProgress;
-    isRunning_ = true;
-    canceled_ = false;
-    emit stateChanged();
-}
-
-void ImportController::resetImportState()
-{
-    isRunning_ = false;
-    progress_ = 0.0;
-}
-
-void ImportController::appendRun(const QString& now, const QString& status, const QString& message)
-{
-    runs_.addRun(now,
-                 controllers::contracts::importRuns::kTypeStatement,
-                 currentRunFile(),
-                 status,
-                 message);
+    if (shouldStartNext) startNextQueuedImport();
 }
 
 void ImportController::handleImportCanceled(const QString& now)
 {
-    phase_ = controllers::contracts::importPhases::kCanceled;
-    error_.clear();
-    resetImportState();
-    if (cancelClearsQueue_) queuedFiles_.clear();
-    appendRun(now, controllers::contracts::importRuns::kStatusCanceled, {});
-    selectedFile_.clear();
-    currentImportFile_.clear();
-    cancelClearsQueue_ = false;
+    state_.recordCanceled(now);
     observability::reportFlow(core::errors::ErrorSeverity::Info,
                               "ui::ImportController::onJobTerminal",
                               "Import canceled",
@@ -170,20 +69,15 @@ void ImportController::handleImportCanceled(const QString& now)
 
 void ImportController::handleImportFailed(const QString& now, const QString& errorMessage, const char* traceMessage)
 {
-    error_ = errorMessage;
-    phase_ = controllers::contracts::importPhases::kFailed;
-    resetImportState();
-    queuedFiles_.clear();
-    appendRun(now, controllers::contracts::importRuns::kStatusFailed, error_);
-    currentImportFile_.clear();
+    state_.recordFailed(now, errorMessage);
     observability::reportFlow(core::errors::ErrorSeverity::Warning,
                               "ui::ImportController::onJobTerminal",
                               traceMessage,
                               {
-                                  {"error", error_.toStdString()}
+                                  {"error", state_.error().toStdString()}
                               });
     emit stateChanged();
-    emit importFailed(error_);
+    emit importFailed(state_.error());
 }
 
 bool ImportController::populateDraftFromResult(const QString& now)
@@ -196,28 +90,21 @@ bool ImportController::populateDraftFromResult(const QString& now)
         return false;
     }
 
-    artifacts_.clear();
-    const auto arts = jobBridge_.takeArtifacts();
-    for (const auto& kv : arts) {
-        const QString k = QString::fromStdString(kv.first);
-        const auto& v = kv.second;
-        artifacts_.insert(k, v.empty() ? QByteArray() : QByteArray(reinterpret_cast<const char*>(v.data()), static_cast<int>(v.size())));
+    const auto artifacts = jobBridge_.takeArtifacts();
+    if (!state_.populateDraft(now, imported, artifacts, this)) {
+        handleImportFailed(now,
+                           controllers::contracts::errors::kImportFailed,
+                           "Import failed: unable to create statement draft");
+        return false;
     }
 
-    draft_ = importing::createStatementDraft(currentImportFile_, imported, this);
-
-    phase_ = controllers::contracts::importPhases::kFinished;
-    progress_ = 1.0;
-    isRunning_ = false;
-    appendRun(now, controllers::contracts::importRuns::kStatusSuccess, {});
     observability::reportFlow(core::errors::ErrorSeverity::Info,
                               "ui::ImportController::onJobTerminal",
                               "Import finished",
                               {
                                   {"status", controllers::contracts::importRuns::kStatusSuccess.toStdString()},
-                                  {"artifactCount", std::to_string(artifacts_.size())}
+                                  {"artifactCount", std::to_string(state_.artifactCount())}
                               });
-    currentImportFile_.clear();
     emit stateChanged();
     emit importFinished();
     return true;
@@ -225,59 +112,49 @@ bool ImportController::populateDraftFromResult(const QString& now)
 
 void ImportController::cancelImport()
 {
-    if (!isRunning_) return;
-    canceled_ = true;
-    cancelClearsQueue_ = false;
-    phase_ = controllers::contracts::importPhases::kStopping;
+    if (!state_.isRunning()) return;
+    state_.beginCancel(false);
     jobBridge_.cancelCurrent();
     observability::reportFlow(core::errors::ErrorSeverity::Info,
                               core::errors::codes::UiFlowImportCanceled,
                               "ui::ImportController::cancelImport",
                               "Import cancellation requested",
                               {
-                                  {"file", currentImportFile_.toStdString()},
-                                  {"queuedCount", std::to_string(queuedFiles_.size())}
+                                  {"file", state_.currentRunFile().toStdString()},
+                                  {"queuedCount", std::to_string(state_.queuedFiles().size())}
                               });
     emit stateChanged();
 }
 
 void ImportController::cancelAllImports()
 {
-    if (!isRunning_) return;
-    canceled_ = true;
-    cancelClearsQueue_ = true;
-    queuedFiles_.clear();
-    phase_ = controllers::contracts::importPhases::kStopping;
+    if (!state_.isRunning()) return;
+    state_.beginCancel(true);
     jobBridge_.cancelCurrent();
     observability::reportFlow(core::errors::ErrorSeverity::Info,
                               core::errors::codes::UiFlowImportCanceled,
                               "ui::ImportController::cancelAllImports",
                               "Cancel-all requested for import queue",
                               {
-                                  {"file", currentImportFile_.toStdString()}
+                                  {"file", state_.currentRunFile().toStdString()}
                               });
     emit stateChanged();
 }
 
 void ImportController::startNextQueuedImport()
 {
-    if (isRunning_) return;
-    if (draft_) return;
-    if (queuedFiles_.isEmpty()) return;
-
-    const auto next = queuedFiles_.takeFirst();
+    QString next;
+    if (!state_.takeNextQueuedFile(next)) return;
     emit stateChanged();
     startImportForFile(next);
 }
 
 void ImportController::startStatementImport()
 {
-    if (isRunning_) return;
-    if (draft_) return;
+    if (state_.isRunning() || state_.draft()) return;
 
-    const auto t = selectedFile_.trimmed();
+    const auto t = state_.takeSelectedFileForStart();
     if (!t.isEmpty()) {
-        selectedFile_.clear();
         emit stateChanged();
         startImportForFile(t);
         return;
@@ -288,34 +165,33 @@ void ImportController::startStatementImport()
 
 void ImportController::startImportForFile(const QString& path)
 {
-    if (isRunning_) return;
-    if (!jobSystem_) {
-        error_ = controllers::contracts::errors::kImportControllerUnavailable;
-        queuedFiles_.clear();
+    if (state_.isRunning()) return;
+    if (!jobBridge_.isAvailable()) {
+        state_.rejectStart(controllers::contracts::errors::kImportControllerUnavailable);
         observability::reportFlow(core::errors::ErrorSeverity::Warning,
                                   "ui::ImportController::startImportForFile",
                                   "Import start rejected: controller unavailable");
         emit stateChanged();
-        emit importFailed(error_);
+        emit importFailed(state_.error());
         return;
     }
     if (path.trimmed().isEmpty()) {
-        error_ = controllers::contracts::errors::kNoFileSelected;
-        queuedFiles_.clear();
+        state_.rejectStart(controllers::contracts::errors::kNoFileSelected);
         observability::reportFlow(core::errors::ErrorSeverity::Warning,
                                   "ui::ImportController::startImportForFile",
                                   "Import start rejected: no file selected");
         emit stateChanged();
-        emit importFailed(error_);
+        emit importFailed(state_.error());
         return;
     }
 
-    beginImportState(path);
+    state_.beginImport(path);
+    emit stateChanged();
 
     const QByteArray nativePath = QFile::encodeName(path);
     std::string p(nativePath.constData(), static_cast<size_t>(nativePath.size()));
 
-    importing::cleanupOldImportRuns(kImportRunKeepCount);
+    importing::cleanupOldImportRuns(ui::config::kImportRunKeepCount);
 
     const auto runInfo = importing::createImportRunInfo();
     const QString runRootQ = runInfo.runRoot;
@@ -338,7 +214,7 @@ void ImportController::startImportForFile(const QString& path)
                               {
                                   {"file", path.toStdString()},
                                   {"runRoot", runRootQ.toStdString()},
-                                  {"queuedCount", std::to_string(queuedFiles_.size())}
+                                  {"queuedCount", std::to_string(state_.queuedFiles().size())}
                               });
 
     const bool started = jobBridge_.startStatementImport(spec, [this](const core::jobs::JobEvent& ev) {
@@ -366,24 +242,8 @@ void ImportController::startImportForFile(const QString& path)
 
 void ImportController::updateProgress(double p, const QString& phase)
 {
-    if (!isRunning_ || canceled_) return;
-    progress_ = p;
-    if (!phase.isEmpty()) {
-        phase_ = phase;
-
-        static const QRegularExpression re(ui::config::kImportProgressPagePattern);
-        const auto m = re.match(phase);
-        if (m.hasMatch()) {
-            bool ok1 = false;
-            bool ok2 = false;
-            const int cur = m.captured(1).toInt(&ok1);
-            const int total = m.captured(2).toInt(&ok2);
-            if (ok1 && ok2) {
-                currentPage_ = cur;
-                pageCount_ = total;
-            }
-        }
-    }
+    static const QRegularExpression re(ui::config::kImportProgressPagePattern);
+    state_.updateProgress(p, phase, re);
     emit stateChanged();
 }
 
@@ -396,7 +256,7 @@ void ImportController::onJobTerminal(int state, const QString& message)
 
     const auto s = static_cast<core::jobs::JobState>(state);
 
-    if (s == core::jobs::JobState::Canceled || canceled_) {
+    if (s == core::jobs::JobState::Canceled || state_.cancelRequested()) {
         handleImportCanceled(now);
         return;
     }

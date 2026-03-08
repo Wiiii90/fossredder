@@ -30,6 +30,8 @@ public:
                               core::jobs::JobEventCallback callback,
                               const ExceptionReporter& exceptionReporter);
 
+    bool isAvailable() const noexcept { return static_cast<bool>(jobSystem_); }
+
     void cancelCurrent();
     void clearSubscription(const ExceptionReporter& exceptionReporter);
 

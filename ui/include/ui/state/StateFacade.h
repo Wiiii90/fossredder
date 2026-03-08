@@ -1,23 +1,11 @@
 #pragma once
 
 #include <QObject>
-#include <QHash>
-#include <QSet>
-#include <QString>
 #include <QVariant>
 
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
-#include "ui/models/ActorList.h"
-#include "ui/models/PropertyList.h"
-#include "ui/models/ContractList.h"
-#include "ui/models/StatementList.h"
-#include "ui/models/TransactionList.h"
-#include "ui/models/AnalysisList.h"
-#include "ui/models/AnnualList.h"
-#include "ui/state/SelectionState.h"
-#include "ui/state/FilterState.h"
-#include "ui/state/MetricsState.h"
+#include "ui/state/SessionStore.h"
 
 namespace ui {
 
@@ -52,13 +40,13 @@ class StateFacade : public QObject {
 public:
     explicit StateFacade(QObject* parent = nullptr);
 
-    ActorList* actors() noexcept { return &actors_; }
-    PropertyList* properties() noexcept { return &properties_; }
-    ContractList* contracts() noexcept { return &contracts_; }
-    StatementList* statements() noexcept { return &statements_; }
-    TransactionList* transactions() noexcept { return &transactions_; }
-    AnalysisList* analyses() noexcept { return &analyses_; }
-    AnnualList* annuals() noexcept { return &annuals_; }
+    ActorList* actors() noexcept;
+    PropertyList* properties() noexcept;
+    ContractList* contracts() noexcept;
+    StatementList* statements() noexcept;
+    TransactionList* transactions() noexcept;
+    AnalysisList* analyses() noexcept;
+    AnnualList* annuals() noexcept;
 
     void loadFromState(const AppState& state);
 
@@ -97,7 +85,7 @@ public:
     Q_INVOKABLE void setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds);
 
     QVariant lastAnalysisResult() const { return lastAnalysisResult_; }
-    void setLastAnalysisResult(const QVariant& v) { lastAnalysisResult_ = v; emit lastAnalysisResultChanged(); }
+    void setLastAnalysisResult(const QVariant& v) { if (lastAnalysisResult_ == v) return; lastAnalysisResult_ = v; emit lastAnalysisResultChanged(); }
 
 signals:
     void selectedActorIdChanged();
@@ -111,24 +99,7 @@ signals:
     void lastAnalysisResultChanged();
 
 private:
-    void rebuildPropertyNameIndex();
-    void recomputeAllMetrics();
-    void recomputeMetricsForRows(int firstRow, int lastRow);
-    void recomputeMetricsForPropertyIds(const QSet<QString>& propertyIds);
-    void notifyTransactionSumsForAllProperties();
-
-    ActorList actors_;
-    AnalysisList analyses_;
-    PropertyList properties_;
-    ContractList contracts_;
-    StatementList statements_;
-    TransactionList transactions_;
-    AnnualList annuals_;
-
-    SelectionState selection_;
-    FilterState filters_;
-    mutable MetricsState metrics_;
-    QHash<QString, QString> propertyNameIndex_;
+    SessionStore session_;
 
     QVariant lastAnalysisResult_;
 };
