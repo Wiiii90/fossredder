@@ -12,6 +12,11 @@ constexpr int kMainWindowDefaultHeight = 800;
 
 inline const auto kAppQmlDirName = QStringLiteral("qml");
 inline const auto kImageFormatsDirName = QStringLiteral("imageformats");
+inline const auto kTranslationsDirName = QStringLiteral("i18n");
+inline const auto kTranslationBaseName = QStringLiteral("fossredder");
+inline constexpr auto kLanguageEnglishCode = "en";
+inline constexpr auto kLanguageGermanCode = "de";
+inline constexpr auto kLanguageSettingsKey = "general/language";
 inline const auto kQrcQmlImportPath = QStringLiteral("qrc:/qml");
 
 constexpr int kImportRunKeepCount = 20;

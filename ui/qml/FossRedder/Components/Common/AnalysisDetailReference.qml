@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.3
 import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 import "../../Constants/Analysis.js" as Analysis
+import "../../Utils/DateUtils.js" as DateUtils
 
 Item {
     id: page
@@ -188,7 +189,7 @@ Item {
 
                                             try {
                                                 ctx.fillStyle = Theme.chartText
-                                                ctx.font = Theme.fontSizeSmall + "px " + Analysis.render.chartFontFamily
+                                                ctx.font = Theme.fontSizeSmall + "px " + Theme.fontFamily
                                                 ctx.textBaseline = "top"
                                                     var maxLabelWidth = Math.max(Theme.spacing * 2, gw - 4)
                                                 var hexRe = /^[0-9a-fA-F]{6,}$/
@@ -217,8 +218,8 @@ Item {
 
                                             ctx.globalAlpha = 1.0
                                         }
-                                        try { var totalVal = totals[i] || 0; ctx.fillStyle = Theme.shadow; ctx.font = Theme.fontSize + "px " + Analysis.render.chartFontFamily; var txt = totalVal.toFixed(2); var tw = ctx.measureText ? (ctx.measureText(txt).width || 0) : 0; var txv = x + ((bw - Analysis.render.histogramGroupPadding) / 2) - (tw/2); var hTotal = (maxv>0) ? (totals[i]/maxv)*(height-Analysis.render.histogramTopPadding) : 0; var labelYv = Math.max(Theme.chartPanelSpacing, height - Theme.spacingLarge - hTotal); ctx.textBaseline = "bottom"; ctx.fillText(txt, Math.max(x, txv), labelYv) } catch(e) {}
-                                        ctx.fillStyle = Theme.placeholderText; try { var label = Analysis.formatMonthLabel(months[i]); var fm = ctx.measureText ? ctx.measureText(label) : null; var tx = x + ((bw - Analysis.render.histogramGroupPadding) / 2) - (fm ? (fm.width/2) : 0); try { ctx.font = Theme.fontSizeSmall + "px " + Analysis.render.chartFontFamily } catch(e) {} ctx.textBaseline = "top"; ctx.fillText(label, Math.max(x, tx), height - Theme.spacingMedium - Theme.margins) } catch(e) { ctx.fillText(months[i], x, height + Theme.spacingMedium) }
+                                        try { var totalVal = totals[i] || 0; ctx.fillStyle = Theme.shadow; ctx.font = Theme.fontSize + "px " + Theme.fontFamily; var txt = totalVal.toFixed(2); var tw = ctx.measureText ? (ctx.measureText(txt).width || 0) : 0; var txv = x + ((bw - Analysis.render.histogramGroupPadding) / 2) - (tw/2); var hTotal = (maxv>0) ? (totals[i]/maxv)*(height-Analysis.render.histogramTopPadding) : 0; var labelYv = Math.max(Theme.chartPanelSpacing, height - Theme.spacingLarge - hTotal); ctx.textBaseline = "bottom"; ctx.fillText(txt, Math.max(x, txv), labelYv) } catch(e) {}
+                                        ctx.fillStyle = Theme.placeholderText; try { var label = DateUtils.formatMonthLabel(months[i]); var fm = ctx.measureText ? ctx.measureText(label) : null; var tx = x + ((bw - Analysis.render.histogramGroupPadding) / 2) - (fm ? (fm.width/2) : 0); try { ctx.font = Theme.fontSizeSmall + "px " + Theme.fontFamily } catch(e) {} ctx.textBaseline = "top"; ctx.fillText(label, Math.max(x, tx), height - Theme.spacingMedium - Theme.margins) } catch(e) { ctx.fillText(months[i], x, height + Theme.spacingMedium) }
                                     }
                                 }
                             }
@@ -233,7 +234,7 @@ Item {
                         Item { Layout.fillWidth: true }
                         ColumnLayout { Layout.preferredWidth: Analysis.layout.splitControlsWidth; spacing: Theme.chartPanelSpacing; Layout.alignment: Qt.AlignRight
                             RowLayout { spacing: Theme.chartPanelSpacing; Layout.fillWidth: true; visible: Analysis.shouldShowHistogramControls(uiData ? uiData.lastAnalysisResult : null)
-                                Label { text: qsTr("") }
+                                Label { text: "" }
                             }
                             RowLayout { spacing: Theme.chartPanelSpacing; Layout.fillWidth: true; visible: Analysis.shouldShowHistogramControls(uiData ? uiData.lastAnalysisResult : null)
                                 Label { text: qsTr("Split by property") }

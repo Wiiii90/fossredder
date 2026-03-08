@@ -29,6 +29,7 @@ inline const auto kDraftController = QStringLiteral("draftController");
 inline const auto kAnalysisController = QStringLiteral("analysisController");
 inline const auto kExportController = QStringLiteral("exportController");
 inline const auto kImportController = QStringLiteral("importController");
+inline const auto kLanguageController = QStringLiteral("languageController");
 inline const auto kIsDebugBuild = QStringLiteral("isDebugBuild");
 }
 

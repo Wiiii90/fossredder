@@ -20,6 +20,7 @@
 #include "ui/controllers/DraftController.h"
 #include "ui/controllers/ExportController.h"
 #include "ui/controllers/ImportController.h"
+#include "ui/controllers/LanguageController.h"
 #include "ui/export/ExportRunner.h"
 #include "ui/controllers/PropertyController.h"
 #include "ui/controllers/StatementController.h"
@@ -69,10 +70,14 @@ struct UiControllers {
     ui::AnalysisController* analysisUi = nullptr;
     ui::ExportController* exportCtrl = nullptr;
     ui::ImportController* import = nullptr;
+    ui::LanguageController* language = nullptr;
     std::unique_ptr<AnalysisController> analysis;
 };
 
-UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl, const std::shared_ptr<core::errors::IErrorReporter>& errorReporter)
+UiControllers setupUiControllers(QApplication& app,
+                                 MainWindow& w,
+                                 AppStateController& appStateCtrl,
+                                 const std::shared_ptr<core::errors::IErrorReporter>& errorReporter)
 {
     UiControllers ui;
 
@@ -100,6 +105,9 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
     auto exportRunner = std::make_shared<ui::exporting::ExportRunner>();
     ui.exportCtrl = new ui::ExportController(&appStateCtrl, exportRunner, &w);
     w.setQmlContextProperty(ui::qml::contracts::context::kExportController, ui.exportCtrl);
+
+    ui.language = new ui::LanguageController(&app, w.qmlEngine(), &w);
+    w.setQmlContextProperty(ui::qml::contracts::context::kLanguageController, ui.language);
 
     auto dbg = std::make_shared<FileDebugger>("", "import");
     auto popplerAdapter = createPopplerAdapter(dbg);
@@ -200,7 +208,7 @@ int startQmlApp(QApplication& app, AppStateController& appStateCtrl) {
         std::make_shared<FileDebugger>("", "errors"));
     appStateCtrl.setErrorReporter(errorReporter);
 
-    const UiControllers ui = setupUiControllers(w, appStateCtrl, errorReporter);
+    const UiControllers ui = setupUiControllers(app, w, appStateCtrl, errorReporter);
     wireAppStateToSession(w, appStateCtrl, errorReporter);
     wireFileSignals(w, ui.storage);
     wireQmlWarnings(w, errorReporter);

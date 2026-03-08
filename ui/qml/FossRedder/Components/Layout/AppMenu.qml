@@ -113,6 +113,29 @@ MenuBar {
     }
 
     Menu {
+        id: languageMenu
+        title: qsTr("Language")
+
+        Instantiator {
+            model: languageController ? languageController.availableLanguages : []
+
+            delegate: Action {
+                required property var modelData
+                text: modelData.label
+                checkable: true
+                checked: languageController && languageController.currentLanguage === modelData.code
+                enabled: modelData.available !== false
+                onTriggered: {
+                    if (languageController && enabled) languageController.currentLanguage = modelData.code
+                }
+            }
+
+            onObjectAdded: function(index, object) { languageMenu.insertAction(index, object) }
+            onObjectRemoved: function(index, object) { languageMenu.removeAction(object) }
+        }
+    }
+
+    Menu {
         title: qsTr("Help")
 
         Action {

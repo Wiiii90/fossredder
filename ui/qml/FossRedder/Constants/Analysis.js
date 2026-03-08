@@ -32,18 +32,13 @@ var render = {
     histogramBottomPadding: 18,
     histogramTopPadding: 30,
     propertyBarInset: 2,
-    propertyLabelMinWidth: 36,
-    chartFontFamily: "sans-serif"
+    propertyLabelMinWidth: 36
 }
 
 var text = {
     defaultLegendValue: "0.00",
     ellipsis: "...",
     percentSuffix: "%"
-}
-
-var calendar = {
-    monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 }
 
 function hashString(value) {
@@ -84,22 +79,6 @@ function plotType(result) {
     }
 
     return (result.table && result.table.length > 0) ? chartTypes.pie : ""
-}
-
-function formatMonthLabel(monthValue) {
-    if (!monthValue)
-        return monthValue
-
-    var parts = monthValue.split("-")
-    if (parts.length >= 2 && parts[0].length === 4) {
-        var year = parts[0]
-        var month = parts[1]
-        var monthIndex = parseInt(month, 10) - 1
-        if (!isNaN(monthIndex) && monthIndex >= 0 && monthIndex < calendar.monthNames.length)
-            return calendar.monthNames[monthIndex] + " " + year
-    }
-
-    return monthValue
 }
 
 function shouldShowHistogramControls(result) {

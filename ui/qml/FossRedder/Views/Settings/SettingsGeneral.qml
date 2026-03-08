@@ -5,10 +5,20 @@ import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 
 Flickable {
+    id: root
     Layout.fillWidth: true
     Layout.fillHeight: true
     contentHeight: column.implicitHeight
     clip: true
+
+    function languageIndexFor(code) {
+        if (!languageController || !languageController.availableLanguages) return -1
+        for (var i = 0; i < languageController.availableLanguages.length; ++i) {
+            var option = languageController.availableLanguages[i]
+            if (option && option.code === code) return i
+        }
+        return -1
+    }
 
     ColumnLayout {
         id: column
@@ -43,7 +53,28 @@ Flickable {
                     RowLayout {
                         Layout.fillWidth: true
                         Label { text: qsTr("Language"); Layout.fillWidth: true }
-                        Controls.ComboBox { id: language; model: ["English", "German"]; currentIndex: 0 }
+                        Controls.ComboBox {
+                            id: language
+                            model: languageController ? languageController.availableLanguages : []
+                            textRole: "label"
+                            currentIndex: root.languageIndexFor(languageController ? languageController.currentLanguage : "")
+                            onActivated: function(index) {
+                                if (!languageController || index < 0 || index >= model.length) return
+                                var option = model[index]
+                                if (!option || option.available === false) {
+                                    currentIndex = root.languageIndexFor(languageController.currentLanguage)
+                                    return
+                                }
+                                languageController.currentLanguage = option.code
+                            }
+
+                            Connections {
+                                target: languageController
+                                function onCurrentLanguageChanged() {
+                                    language.currentIndex = root.languageIndexFor(languageController.currentLanguage)
+                                }
+                            }
+                        }
                     }
 
                     RowLayout {

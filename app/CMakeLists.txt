@@ -119,6 +119,12 @@ elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/qml")
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/qml/" DESTINATION "bin/qml")
 endif()
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/i18n")
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/i18n/" DESTINATION "bin/i18n")
+elseif(EXISTS "${CMAKE_SOURCE_DIR}/i18n")
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/i18n/" DESTINATION "bin/i18n")
+endif()
+
 # Install additional assets if present (optional)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets")
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/" DESTINATION share/fossredder/assets FILES_MATCHING PATTERN "*")

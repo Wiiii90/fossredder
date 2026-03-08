@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
-import "../../Constants/Export.js" as ExportConfig
+import "../../Constants/FileFormats.js" as FileFormats
 
 Item {
     id: root
@@ -26,13 +26,13 @@ Item {
             Label { text: qsTr("Format:"); Layout.preferredWidth: Theme.formLabelWidth }
             Controls.ComboBox {
                 id: formatBox
-                model: [ qsTr("CSV"), qsTr("XLSX") ]
+                model: [qsTr("CSV"), qsTr("XLSX")]
                 Layout.preferredWidth: Theme.formFieldWidth
                 onCurrentIndexChanged: {
-                    if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(ExportConfig.fileNames.exportBaseName + ".") !== -1)) {
+                    if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(FileFormats.fileNames.exportBaseName + ".") !== -1)) {
                         var base = (typeof fileSystemController !== 'undefined' && fileSystemController) ? fileSystemController.appDir() : ""
-                        var ext = ExportConfig.extensionForFormat(currentIndex)
-                        if (base && base.length > 0) pathField.text = base + "/" + ExportConfig.fileNames.exportBaseName + "." + ext
+                        var ext = FileFormats.extensionForExportFormat(currentIndex)
+                        if (base && base.length > 0) pathField.text = base + "/" + FileFormats.fileNames.exportBaseName + "." + ext
                     }
                 }
             }
@@ -67,7 +67,7 @@ Item {
                 onClicked: {
                     var path = pathField.text
                     if (!path) return
-                    if (exportCtrl) exportCtrl.exportData((formatBox.currentIndex === ExportConfig.formatIndexes.csv) ? ExportConfig.formatIndexes.csv : ExportConfig.formatIndexes.xlsx, path, formulas.checked, localeField.text)
+                    if (exportCtrl) exportCtrl.exportData((formatBox.currentIndex === FileFormats.formatIds.csv) ? FileFormats.formatIds.csv : FileFormats.formatIds.xlsx, path, formulas.checked, localeField.text)
                 }
             }
         }

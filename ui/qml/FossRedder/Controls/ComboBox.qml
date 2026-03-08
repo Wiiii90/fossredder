@@ -47,9 +47,12 @@ ComboBox {
             delegate: ItemDelegate {
                 width: ListView.view ? ListView.view.width : control.width
                 text: model.display
+                enabled: typeof model.available === "undefined" ? true : model.available
+                opacity: enabled ? 1.0 : 0.5
                 font.family: Theme.fontFamily
                 font.pointSize: Theme.fontSize
                 onClicked: {
+                    if (!enabled) return
                     control.currentIndex = index
                     control.activated(index)
                     control.close()

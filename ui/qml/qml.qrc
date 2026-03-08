@@ -45,9 +45,10 @@
         <file>FossRedder/Components/Layout/Toolbar.qml</file>
 
         <file>FossRedder/Utils/FileUtils.js</file>
+        <file>FossRedder/Utils/DateUtils.js</file>
         <file>FossRedder/Utils/qmldir</file>
         <file>FossRedder/Constants/Analysis.js</file>
-        <file>FossRedder/Constants/Export.js</file>
+        <file>FossRedder/Constants/FileFormats.js</file>
         <file>FossRedder/Constants/Messages.js</file>
 
         <file>FossRedder/Main.qml</file>

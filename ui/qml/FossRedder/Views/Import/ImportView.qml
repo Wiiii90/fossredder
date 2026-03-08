@@ -3,14 +3,12 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
+import "../../Constants/FileFormats.js" as FileFormats
 import "../../Constants/Messages.js" as Messages
 
 Item {
     id: root
-    readonly property var fileExtensions: ({ pdf: ".pdf" })
     readonly property string automaticSettingsText: qsTr("Settings are currently managed automatically.")
-    readonly property var sourceOptions: [qsTr("PDF")]
-    readonly property var strategyOptions: [qsTr("Commerzbank26")]
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
@@ -32,7 +30,7 @@ Item {
         for (var i = 0; i < paths.length; ++i) {
             var p = String(paths[i])
             if (!p || p.length === 0) continue
-            if (p.toLowerCase().endsWith(root.fileExtensions.pdf)) pdfs.push(p)
+            if (p.toLowerCase().endsWith(FileFormats.dotExtension(FileFormats.extensions.pdf))) pdfs.push(p)
         }
         if (pdfs.length === 0) return
 
@@ -84,7 +82,7 @@ Item {
                                     Label { text: qsTr("Source"); Layout.preferredWidth: Theme.formLabelWidth }
                                     Controls.ComboBox {
                                         id: sourceKind
-                                        model: root.sourceOptions
+                                        model: [qsTr("PDF")]
                                         currentIndex: 0
                                     }
                                 }
@@ -94,7 +92,7 @@ Item {
                                     Label { text: qsTr("Strategy"); Layout.preferredWidth: Theme.formLabelWidth }
                                     Controls.ComboBox {
                                         id: strategy
-                                        model: root.strategyOptions
+                                        model: [qsTr("Commerzbank26")]
                                         currentIndex: 0
                                     }
                                 }
