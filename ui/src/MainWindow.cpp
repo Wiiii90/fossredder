@@ -14,11 +14,13 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
+#include <QMetaObject>
 #include <string>
 
 #include "ui/actions/Actions.h"
 #include "ui/bootstrap/QmlRuntime.h"
 #include "ui/config/Defaults.h"
+#include "ui/controllers/ControllerContracts.h"
 #include "ui/dialogs/FileDialogs.h"
 #include "ui/observability/Trace.h"
 #include "ui/state/StateFacade.h"
@@ -282,13 +284,60 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
+    if (allowImmediateClose_) {
+        allowImmediateClose_ = false;
+        QMainWindow::closeEvent(event);
+        return;
+    }
+
+    if (pendingCloseAfterSave_) {
+        event->ignore();
+        return;
+    }
+
     ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
                                   core::errors::codes::UiFlowMainWindowAction,
                                   "MainWindow::closeEvent",
                                   "Main window close requested; triggering save workflow");
+    pendingCloseAfterSave_ = true;
+    event->ignore();
     if (fileWorkflow_) fileWorkflow_->requestSaveFile();
     else emit saveFileRequested();
-    QMainWindow::closeEvent(event);
+}
+
+void MainWindow::handleStorageOperationSucceeded(const QString& operation)
+{
+    if (!pendingCloseAfterSave_) return;
+    if (operation != ui::controllers::contracts::operations::kSaveFile) return;
+
+    ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
+                                  core::errors::codes::UiFlowMainWindowAction,
+                                  "MainWindow::handleStorageOperationSucceeded",
+                                  "Pending close save finished; closing main window");
+
+    pendingCloseAfterSave_ = false;
+    allowImmediateClose_ = true;
+    QMetaObject::invokeMethod(this, [this]() { close(); }, Qt::QueuedConnection);
+}
+
+void MainWindow::handleStorageOperationFailed(const QString& operation, const QString& error)
+{
+    if (!pendingCloseAfterSave_) return;
+    if (operation != ui::controllers::contracts::operations::kSaveFile) return;
+
+    pendingCloseAfterSave_ = false;
+    allowImmediateClose_ = false;
+
+    const QString message = error.isEmpty() ? ui::controllers::contracts::errors::kStorageSaveFailed : error;
+    if (status_) status_->setText(message);
+
+    ui::observability::reportFlow(core::errors::ErrorSeverity::Warning,
+                                  core::errors::codes::UiFlowMainWindowAction,
+                                  "MainWindow::handleStorageOperationFailed",
+                                  "Pending close save failed; keeping main window open",
+                                  {
+                                      {"error", message.toStdString()}
+                                  });
 }
 
 void MainWindow::onAbout()

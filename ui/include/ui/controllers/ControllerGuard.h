@@ -20,10 +20,10 @@ inline bool ensureCore(const AppStateController* core, const char* origin)
     return false;
 }
 
-inline void reportException(const char* origin)
+inline void reportException(const char* origin, const char* code = core::errors::codes::ExceptionError)
 {
     core::errors::reportException(core::errors::ErrorSeverity::Error,
-                                  core::errors::codes::ExceptionError,
+                                  code,
                                   origin,
                                   std::current_exception());
 }
@@ -34,14 +34,10 @@ inline void invokeVoid(CorePtr core, const char* origin, Func&& func)
     if (!ensureCore(core, origin)) return;
     try {
         std::invoke(std::forward<Func>(func));
-    } catch (const std::exception& ex) {
-        core::errors::report(core::errors::ErrorSeverity::Error,
-                             core::errors::codes::ExceptionStd,
-                             origin,
-                             ex.what());
-        reportException(origin);
+    } catch (const std::exception&) {
+        reportException(origin, core::errors::codes::ExceptionStd);
     } catch (...) {
-        reportException(origin);
+        reportException(origin, core::errors::codes::ExceptionNonStd);
     }
 }
 
@@ -51,14 +47,10 @@ inline TValue invokeValue(CorePtr core, const char* origin, TValue fallback, Fun
     if (!ensureCore(core, origin)) return fallback;
     try {
         return std::invoke(std::forward<Func>(func));
-    } catch (const std::exception& ex) {
-        core::errors::report(core::errors::ErrorSeverity::Error,
-                             core::errors::codes::ExceptionStd,
-                             origin,
-                             ex.what());
-        reportException(origin);
+    } catch (const std::exception&) {
+        reportException(origin, core::errors::codes::ExceptionStd);
     } catch (...) {
-        reportException(origin);
+        reportException(origin, core::errors::codes::ExceptionNonStd);
     }
     return fallback;
 }

@@ -25,6 +25,10 @@ public:
     QQmlEngine* qmlEngine() const noexcept;
     ui::StateFacade* dataSession() const noexcept { return dataSession_; }
 
+public slots:
+    void handleStorageOperationSucceeded(const QString& operation);
+    void handleStorageOperationFailed(const QString& operation, const QString& error);
+
 signals:
     void newFileRequested(const QString& path);
     void openFileRequested(const QString& path);
@@ -49,4 +53,6 @@ private:
     ui::Actions* actions_ = nullptr;
     ui::workflows::FileWorkflow* fileWorkflow_ = nullptr;
     ui::StatusState* status_ = nullptr;
+    bool pendingCloseAfterSave_ = false;
+    bool allowImmediateClose_ = false;
 };

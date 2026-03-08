@@ -156,6 +156,8 @@ void wireFileSignals(MainWindow& w, ui::StorageController* storage)
     QObject::connect(&w, &MainWindow::saveFileAsRequested, [&](const QString& path){
         storage->saveFileAs(path);
     });
+    QObject::connect(storage, &ui::StorageController::operationSucceeded, &w, &MainWindow::handleStorageOperationSucceeded);
+    QObject::connect(storage, &ui::StorageController::operationFailed, &w, &MainWindow::handleStorageOperationFailed);
 }
 
 void wireQmlWarnings(MainWindow& w, const std::shared_ptr<core::errors::IErrorReporter>& errorReporter)

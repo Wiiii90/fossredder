@@ -136,7 +136,9 @@ void StateFacade::loadFromState(const AppState& state)
     recomputeAllMetrics();
 
     selection_.refreshAll();
+    const QVariant previousAnalysisResult = lastAnalysisResult_;
     lastAnalysisResult_.clear();
+    if (lastAnalysisResult_ != previousAnalysisResult) emit lastAnalysisResultChanged();
 }
 
 QString StateFacade::selectedActorId() const { return selection_.selectedActorId(); }
