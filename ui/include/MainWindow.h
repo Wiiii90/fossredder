@@ -3,6 +3,7 @@
 #include <QMainWindow>
 #include <QUrl>
 
+#include "ui/config/Defaults.h"
 #include "ui/state/StatusState.h"
 
 QT_FORWARD_DECLARE_CLASS(QQuickWidget)
@@ -21,7 +22,7 @@ public:
 
     void setQmlContextProperty(const QString& name, QObject* value);
     void addImageProvider(const QString& id, QQmlImageProviderBase* provider);
-    void loadQml(const QUrl& source = QUrl("qrc:/qml/FossRedder/Main.qml"));
+    void loadQml(const QUrl& source = QUrl(ui::config::kMainQmlSource));
     QQmlEngine* qmlEngine() const noexcept;
     ui::StateFacade* dataSession() const noexcept { return dataSession_; }
 

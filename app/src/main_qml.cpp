@@ -12,6 +12,7 @@
 #include <QQmlError>
 #include <QUrl>
 #include "MainWindow.h"
+#include "ui/bootstrap/QmlContracts.h"
 #include "ui/controllers/AnalysisController.h"
 #include "ui/controllers/ActorController.h"
 #include "ui/controllers/AnnualController.h"
@@ -76,7 +77,7 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
     UiControllers ui;
 
     ui.storage = new ui::StorageController(&appStateCtrl, &w);
-    w.setQmlContextProperty("storageController", ui.storage);
+    w.setQmlContextProperty(ui::qml::contracts::context::kStorageController, ui.storage);
 
     ui.analysis = std::make_unique<AnalysisController>();
     ui.annual = new ui::AnnualController(&appStateCtrl, &w);
@@ -87,18 +88,18 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
     ui.transaction = new ui::TransactionController(&appStateCtrl, &w);
     ui.draft = new ui::DraftController(&appStateCtrl, &w);
     ui.analysisUi = new ui::AnalysisController(&appStateCtrl, ui.analysis.get(), &w);
-    w.setQmlContextProperty("annualController", ui.annual);
-    w.setQmlContextProperty("actorController", ui.actor);
-    w.setQmlContextProperty("propertyController", ui.property);
-    w.setQmlContextProperty("contractController", ui.contract);
-    w.setQmlContextProperty("statementController", ui.statement);
-    w.setQmlContextProperty("transactionController", ui.transaction);
-    w.setQmlContextProperty("draftController", ui.draft);
-    w.setQmlContextProperty("analysisController", ui.analysisUi);
+    w.setQmlContextProperty(ui::qml::contracts::context::kAnnualController, ui.annual);
+    w.setQmlContextProperty(ui::qml::contracts::context::kActorController, ui.actor);
+    w.setQmlContextProperty(ui::qml::contracts::context::kPropertyController, ui.property);
+    w.setQmlContextProperty(ui::qml::contracts::context::kContractController, ui.contract);
+    w.setQmlContextProperty(ui::qml::contracts::context::kStatementController, ui.statement);
+    w.setQmlContextProperty(ui::qml::contracts::context::kTransactionController, ui.transaction);
+    w.setQmlContextProperty(ui::qml::contracts::context::kDraftController, ui.draft);
+    w.setQmlContextProperty(ui::qml::contracts::context::kAnalysisController, ui.analysisUi);
 
     auto exportRunner = std::make_shared<ui::exporting::ExportRunner>();
     ui.exportCtrl = new ui::ExportController(&appStateCtrl, exportRunner, &w);
-    w.setQmlContextProperty("exportController", ui.exportCtrl);
+    w.setQmlContextProperty(ui::qml::contracts::context::kExportController, ui.exportCtrl);
 
     auto dbg = std::make_shared<FileDebugger>("", "import");
     auto popplerAdapter = createPopplerAdapter(dbg);
@@ -116,9 +117,9 @@ UiControllers setupUiControllers(MainWindow& w, AppStateController& appStateCtrl
 
     ui.import = new ui::ImportController(jobSystem, &w);
     ui.import->setErrorReporter(errorReporter);
-    w.setQmlContextProperty("importController", ui.import);
+    w.setQmlContextProperty(ui::qml::contracts::context::kImportController, ui.import);
 
-    w.addImageProvider(QStringLiteral("importProof"), new ui::DraftProofProvider(ui.import));
+    w.addImageProvider(ui::qml::contracts::providers::kImportProof, new ui::DraftProofProvider(ui.import));
 
     return ui;
 }

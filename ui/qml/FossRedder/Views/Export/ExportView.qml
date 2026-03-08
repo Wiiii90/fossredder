@@ -2,70 +2,72 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
+import "../../Constants/Export.js" as ExportConfig
 
 Item {
     id: root
     property var exportCtrl: (typeof exportController !== 'undefined' ? exportController : null)
+    readonly property string defaultLocale: Qt.locale().name.replace("_", "-")
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 8
+        anchors.margins: Theme.pageMargin
+        spacing: Theme.spacingMedium
 
-        Label { text: qsTr("Export"); font.pointSize: 18 }
+        Label { text: qsTr("Export"); font.pointSize: Theme.fontSizeTitle + Theme.margins }
 
         RowLayout {
-            spacing: 8
+            spacing: Theme.spacingMedium
             Layout.fillWidth: true
 
-            Label { text: qsTr("Format:"); Layout.preferredWidth: 120 }
+            Label { text: qsTr("Format:"); Layout.preferredWidth: Theme.formLabelWidth }
             Controls.ComboBox {
                 id: formatBox
                 model: [ qsTr("CSV"), qsTr("XLSX") ]
-                Layout.preferredWidth: 200
+                Layout.preferredWidth: Theme.formFieldWidth
                 onCurrentIndexChanged: {
-                    if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf("export.") !== -1)) {
+                    if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(ExportConfig.fileNames.exportBaseName + ".") !== -1)) {
                         var base = (typeof fileSystemController !== 'undefined' && fileSystemController) ? fileSystemController.appDir() : ""
-                        var ext = (currentIndex === 0) ? "csv" : "xlsx"
-                        if (base && base.length > 0) pathField.text = base + "/export." + ext
+                        var ext = ExportConfig.extensionForFormat(currentIndex)
+                        if (base && base.length > 0) pathField.text = base + "/" + ExportConfig.fileNames.exportBaseName + "." + ext
                     }
                 }
             }
         }
 
         RowLayout {
-            spacing: 8
+            spacing: Theme.spacingMedium
             Layout.fillWidth: true
-            Label { text: qsTr("Include formulas (XLSX):"); Layout.preferredWidth: 200 }
+            Label { text: qsTr("Include formulas (XLSX):"); Layout.preferredWidth: Theme.formFieldWidth }
             Controls.CheckBox { id: formulas; checked: true }
         }
 
         RowLayout {
-            spacing: 8
+            spacing: Theme.spacingMedium
             Layout.fillWidth: true
-            Label { text: qsTr("Locale:"); Layout.preferredWidth: 120 }
-            Controls.TextField { id: localeField; text: "de-DE"; Layout.preferredWidth: 200 }
+            Label { text: qsTr("Locale:"); Layout.preferredWidth: Theme.formLabelWidth }
+            Controls.TextField { id: localeField; text: root.defaultLocale; Layout.preferredWidth: Theme.formFieldWidth }
         }
 
         Item { Layout.fillHeight: true }
 
         RowLayout {
-            spacing: 8
+            spacing: Theme.spacingMedium
             Layout.fillWidth: true
 
-            Label { text: qsTr("Save to:"); Layout.preferredWidth: 120 }
-            Controls.TextField { id: pathField; text: ""; placeholderText: qsTr("e.g. C:/Users/You/Documents/export.xlsx"); Layout.fillWidth: true }
-            Controls.Button { text: qsTr("Durchstöbern"); onClicked: if (uiActions) uiActions.browseExportFile() }
+            Label { text: qsTr("Save to:"); Layout.preferredWidth: Theme.formLabelWidth }
+            Controls.TextField { id: pathField; placeholderText: qsTr("e.g. C:/Users/You/Documents/export.xlsx"); Layout.fillWidth: true }
+            Controls.Button { text: qsTr("Browse..."); onClicked: if (uiActions) uiActions.browseExportFile() }
             Controls.Button {
                 text: qsTr("Export")
                 enabled: pathField.text.length > 0
                 onClicked: {
                     var path = pathField.text
                     if (!path) return
-                    if (exportCtrl) exportCtrl.exportData((formatBox.currentIndex === 0) ? 0 : 1, path, formulas.checked, localeField.text)
+                    if (exportCtrl) exportCtrl.exportData((formatBox.currentIndex === ExportConfig.formatIndexes.csv) ? ExportConfig.formatIndexes.csv : ExportConfig.formatIndexes.xlsx, path, formulas.checked, localeField.text)
                 }
             }
         }

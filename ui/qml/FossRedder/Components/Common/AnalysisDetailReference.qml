@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
+import "../../Constants/Analysis.js" as Analysis
 
 Item {
     id: page
@@ -10,21 +11,8 @@ Item {
     property var histLegendModel: []
     property real histLegendTotal: 0
     property var propListModel: []
-    function hashString(s) {
-        var h = 0;
-        if (!s) return 0;
-        for (var i=0;i<s.length;i++) {
-            h = ((h<<5) - h) + s.charCodeAt(i);
-            h |= 0;
-        }
-        return Math.abs(h);
-    }
     function colorForKey(k) {
-        try {
-            var palette = Theme.analysisPalette
-            var idx = hashString(k) % palette.length
-            return palette[idx]
-        } catch(e) { return Theme.chartFallback }
+        return Analysis.colorForKey(k, Theme.analysisPalette, Theme.chartFallback)
     }
     function rebuildHistLegend() {
         histLegendModel = []
@@ -58,18 +46,16 @@ Item {
             histLegendModel.sort(function(a,b){ return b.value - a.value })
             for (var p in propertyMap) { propListModel.push({ name: p, value: propertyMap[p] }) }
             propListModel.sort(function(a,b){ return b.value - a.value })
-        } catch(e) { console.log('rebuildHistLegend error', e) }
+        } catch(e) { }
     }
     
-    width: stackView ? stackView.width : (parent ? parent.width : 800)
-    height: stackView ? stackView.height : (parent ? parent.height : 600)
+    width: stackView ? stackView.width : (parent ? parent.width : Analysis.layout.defaultWidth)
+    height: stackView ? stackView.height : (parent ? parent.height : Analysis.layout.defaultHeight)
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 8
+        anchors.margins: Theme.pageMargin
+        spacing: Theme.spacingMedium
         
-        Component.onCompleted: { console.log("AnalysisDetail: page width=", page.width, "height=", page.height) }
-        onWidthChanged: { if (width < 80) console.log("AnalysisDetail: small page width=", width) }
         Connections { target: uiData; function onLastAnalysisResultChanged() { try { rebuildHistLegend(); } catch(e) {} } }
 
             RowLayout { Layout.fillWidth: true
@@ -84,56 +70,52 @@ Item {
         }
 
         GroupBox { title: qsTr("Preview"); Layout.fillWidth: true; Layout.fillHeight: true
-            ColumnLayout { anchors.fill: parent; anchors.margins: 6; spacing: 6
-                Timer { id: initialCanvasPaintTimer; interval: 300; repeat: true; running: false; property int attempts: 0
+            ColumnLayout { anchors.fill: parent; anchors.margins: Theme.chartPanelMargin; spacing: Theme.chartPanelSpacing
+                Timer { id: initialCanvasPaintTimer; interval: Analysis.layout.initialPaintIntervalMs; repeat: true; running: false; property int attempts: 0
                     onTriggered: {
                         try {
                             attempts++;
-                            if (plotCanvas.width >= 120 && page.visible) {
+                            if (plotCanvas.width >= Analysis.layout.initialPaintReadyWidth && page.visible) {
                                 plotCanvas.requestPaint(); rebuildHistLegend(); attempts = 0; stop();
                                 return
                             }
-                            if (attempts >= 6) { plotCanvas.requestPaint(); attempts = 0; stop(); }
+                            if (attempts >= Analysis.layout.initialPaintMaxAttempts) { plotCanvas.requestPaint(); attempts = 0; stop(); }
                         } catch(e) { attempts = 0; stop(); }
                     }
                 }
 
-                ColumnLayout { Layout.fillWidth: true; spacing: 6
-                    Item { Layout.fillWidth: true; Layout.preferredHeight: 320; Layout.minimumHeight: 200
+                ColumnLayout { Layout.fillWidth: true; spacing: Theme.chartPanelSpacing
+                    Item { Layout.fillWidth: true; Layout.preferredHeight: Theme.chartPlotPreferredHeight; Layout.minimumHeight: Theme.chartPlotMinimumHeight
                         Canvas {
                             id: plotCanvas
                             property real splitProgress: 0.0
                             property int repaintAttempts: 0
-                            Behavior on splitProgress { NumberAnimation { duration: 400; easing.type: Easing.InOutQuad } }
+                            Behavior on splitProgress { NumberAnimation { duration: Analysis.layout.splitAnimationDurationMs; easing.type: Easing.InOutQuad } }
                             anchors.fill: parent
                             focus: true
-                            Timer { id: repaintTimer; interval: 100; repeat: false; onTriggered: plotCanvas.requestPaint() }
+                            Timer { id: repaintTimer; interval: Analysis.layout.repaintDelayMs; repeat: false; onTriggered: plotCanvas.requestPaint() }
                             onSplitProgressChanged: { plotCanvas.requestPaint(); }
                             onPaint: {
-                                if (width >= 50) console.log("PlotCanvas:onPaint", "w=", width, "h=", height, "rows=", (uiData && uiData.lastAnalysisResult && uiData.lastAnalysisResult.table)? uiData.lastAnalysisResult.table.length : 0)
                                 var ctx = getContext("2d")
                                 ctx.reset()
                                 ctx.clearRect(0,0,width,height)
-                                if (!page.visible || width < 100) { if (!initialCanvasPaintTimer.running) initialCanvasPaintTimer.start(); return }
+                                if (!page.visible || width < Analysis.layout.minRenderWidth) { if (!initialCanvasPaintTimer.running) initialCanvasPaintTimer.start(); return }
                                 if (!uiData || !uiData.lastAnalysisResult) return
                                 plotCanvas.repaintAttempts = 0
                                 var tbl = uiData.lastAnalysisResult.table
                                 if (!tbl || tbl.length === 0) return
-                                var type = ""
-                                if (uiData.lastAnalysisResult && uiData.lastAnalysisResult.type) type = uiData.lastAnalysisResult.type
-                                else if (uiData.lastAnalysisResult && uiData.lastAnalysisResult.config) { try { var cfg = JSON.parse(uiData.lastAnalysisResult.config); if (cfg && cfg.plotType) type = cfg.plotType } catch(e) {} }
-                                if (!type && tbl && tbl.length > 0) type = "pie"
+                                var type = Analysis.plotType(uiData.lastAnalysisResult)
                                 if (width <= 0 || height <= 0) return
                                 var cx = width/2; var cy = height/2
-                                if (type === "pie") {
+                                if (type === Analysis.chartTypes.pie) {
                                     var total = 0.0
                                     for (var i=0;i<tbl.length;i++) total += Math.abs(parseFloat(tbl[i][1]) || 0.0)
-                                    var start = -Math.PI/2
-                                    var radius = Math.min(width, height)/2 - 10
+                                    var start = Analysis.render.pieStartAngle
+                                    var radius = Math.min(width, height)/2 - Analysis.render.pieRadiusPadding
                                     if (radius <= 0) {
                                         var maxv = 0
                                         for (var i=0;i<tbl.length;i++) maxv = Math.max(maxv, Math.abs(parseFloat(tbl[i][1])||0))
-                                        for (var i=0;i<tbl.length;i++) { var v = Math.abs(parseFloat(tbl[i][1])||0); var bw = Math.max(2, Math.floor((width-40) * (v / Math.max(1, maxv)))); ctx.fillStyle = "hsl(" + ((i*360/tbl.length) % 360) + ",60%,60%)"; ctx.fillRect(20, i*18 + 4, bw, 12) }
+                                        for (var i=0;i<tbl.length;i++) { var v = Math.abs(parseFloat(tbl[i][1])||0); var bw = Math.max(Analysis.render.compactBarMinWidth, Math.floor((width-Analysis.render.compactBarWidthPadding) * (v / Math.max(1, maxv)))); ctx.fillStyle = "hsl(" + ((i*360/tbl.length) % 360) + ",60%,60%)"; ctx.fillRect(Analysis.render.compactBarLeftPadding, i*Analysis.render.compactBarVerticalSpacing + Analysis.render.compactBarTopOffset, bw, Analysis.render.compactBarHeight) }
                                         return
                                     }
                                     for (var i=0;i<tbl.length;i++) {
@@ -144,7 +126,7 @@ Item {
                                         if (uiData && uiData._legendFilter && uiData._legendFilter.length > 0) sliceSelected = (uiData._legendFilter.indexOf(label) !== -1)
                                         ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, start, start+angle); ctx.closePath(); ctx.globalAlpha = sliceSelected ? 1.0 : 0.25; ctx.fillStyle = "hsl(" + ((i*360/tbl.length) % 360) + ",60%,60%)"; ctx.fill(); ctx.globalAlpha = 1.0; start += angle
                                     }
-                                } else if (type === "histogram") {
+                                } else if (type === Analysis.chartTypes.histogram) {
                                     var months = []; var byContract = []; var byProperty = []; var totals = []
                                     for (var i=0;i<tbl.length;i++) { months.push(tbl[i][0]); try { var j = JSON.parse(tbl[i][1]); totals.push(parseFloat(j.total) || 0); byContract.push(j.byContract || {}); byProperty.push(j.byProperty || {}) } catch(e) { totals.push(0); byContract.push({}); byProperty.push({}) } }
                                     var maxv = 0; for (var i=0;i<totals.length;i++) maxv = Math.max(maxv, totals[i])
@@ -152,9 +134,9 @@ Item {
                                     var categories = {}; for (var i=0;i<byContract.length;i++) for (var k in byContract[i]) categories[k]=true
                                     var catList = Object.keys(categories)
                                     for (var i=0;i<months.length;i++) {
-                                        var x = i*bw + 4; var y0 = height - 18
+                                        var x = i*bw + Analysis.render.compactBarTopOffset; var y0 = height - Analysis.render.histogramBottomPadding
                                         var stackedAlpha = 1.0 - plotCanvas.splitProgress
-                                        if (stackedAlpha > 0) { ctx.globalAlpha = stackedAlpha; for (var ci=0; ci<catList.length; ++ci) { var cat = catList[ci]; var v = parseFloat(byContract[i][cat]) || 0; var h = (maxv>0) ? (v/maxv)*(height-30) : 0; var hStack = h * (1.0 - plotCanvas.splitProgress); ctx.fillStyle = page.colorForKey(cat); ctx.fillRect(x, y0 - hStack, bw - 8, hStack); y0 -= hStack } ctx.globalAlpha = 1.0 }
+                                        if (stackedAlpha > 0) { ctx.globalAlpha = stackedAlpha; for (var ci=0; ci<catList.length; ++ci) { var cat = catList[ci]; var v = parseFloat(byContract[i][cat]) || 0; var h = (maxv>0) ? (v/maxv)*(height-Analysis.render.histogramTopPadding) : 0; var hStack = h * (1.0 - plotCanvas.splitProgress); ctx.fillStyle = page.colorForKey(cat); ctx.fillRect(x, y0 - hStack, bw - Analysis.render.histogramGroupPadding, hStack); y0 -= hStack } ctx.globalAlpha = 1.0 }
                                         var splitAlpha = plotCanvas.splitProgress
                                         if (splitAlpha > 0) {
                                             ctx.globalAlpha = splitAlpha
@@ -162,16 +144,16 @@ Item {
                                             for (var k in byProperty[i]) props.push({k:k,v:byProperty[i][k]})
                                             props.sort(function(a,b){ return b.v - a.v })
                                             var numProps = Math.max(1, props.length)
-                                            var gw = Math.max(2, Math.floor((bw-8)/numProps))
+                                            var gw = Math.max(Analysis.render.compactBarMinWidth, Math.floor((bw-Analysis.render.histogramGroupPadding)/numProps))
                                             var totalPropsWidth = gw * props.length
-                                            var startX = x + Math.floor(((bw - 8) - totalPropsWidth) / 2)
+                                            var startX = x + Math.floor(((bw - Analysis.render.histogramGroupPadding) - totalPropsWidth) / 2)
 
                                             var towerTops = []
                                             for (var pi=0; pi<props.length; ++pi) {
                                                 var propName = props[pi].k
                                                 var propVal = parseFloat(props[pi].v) || 0
                                                 var xprop = startX + pi*gw
-                                                var y0prop = height - 18
+                                                var y0prop = height - Analysis.render.histogramBottomPadding
 
                                                 var contractBreakdown = null
                                                 if (byProperty[i] && byProperty[i][propName] && typeof byProperty[i][propName] === 'object') contractBreakdown = byProperty[i][propName]
@@ -180,10 +162,10 @@ Item {
                                                     for (var ci=0; ci<catList.length; ++ci) {
                                                         var cat = catList[ci]
                                                         var v = parseFloat(contractBreakdown[cat]) || 0
-                                                        var h = (maxv>0) ? (v/maxv)*(height-30) : 0
+                                                        var h = (maxv>0) ? (v/maxv)*(height-Analysis.render.histogramTopPadding) : 0
                                                         var hScaled = h * plotCanvas.splitProgress
                                                         ctx.fillStyle = page.colorForKey(cat)
-                                                        ctx.fillRect(xprop, y0prop - hScaled, gw-2, hScaled)
+                                                        ctx.fillRect(xprop, y0prop - hScaled, gw-Analysis.render.propertyBarInset, hScaled)
                                                         y0prop -= hScaled
                                                     }
                                                 } else {
@@ -193,10 +175,10 @@ Item {
                                                         var cat = catList[ci]
                                                         var contractVal = parseFloat(byContract[i][cat]) || 0
                                                         var v = totalContractsVal > 0 ? (propVal * (contractVal / totalContractsVal)) : 0
-                                                        var h = (maxv>0) ? (v/maxv)*(height-30) : 0
+                                                        var h = (maxv>0) ? (v/maxv)*(height-Analysis.render.histogramTopPadding) : 0
                                                         var hScaled = h * plotCanvas.splitProgress
                                                         ctx.fillStyle = page.colorForKey(cat)
-                                                        ctx.fillRect(xprop, y0prop - hScaled, gw-2, hScaled)
+                                                        ctx.fillRect(xprop, y0prop - hScaled, gw-Analysis.render.propertyBarInset, hScaled)
                                                         y0prop -= hScaled
                                                     }
                                                 }
@@ -206,9 +188,9 @@ Item {
 
                                             try {
                                                 ctx.fillStyle = Theme.chartText
-                                                ctx.font = "11px sans-serif"
+                                                ctx.font = Theme.fontSizeSmall + "px " + Analysis.render.chartFontFamily
                                                 ctx.textBaseline = "top"
-                                                var maxLabelWidth = Math.max(24, gw - 4)
+                                                    var maxLabelWidth = Math.max(Theme.spacing * 2, gw - 4)
                                                 var hexRe = /^[0-9a-fA-F]{6,}$/
                                                 for (var pi=0; pi<props.length; ++pi) {
                                                     var propId = props[pi].k || ""
@@ -219,76 +201,76 @@ Item {
                                                     var label = propName
                                                     var twp = ctx.measureText ? (ctx.measureText(label).width || 0) : 0
                                                     if (twp > maxLabelWidth) {
-                                                        var ell = "..."
+                                                        var ell = Analysis.text.ellipsis
                                                         var sub = label
                                                         while (ctx.measureText(sub + ell).width > maxLabelWidth && sub.length > 0) sub = sub.substring(0, sub.length-1)
                                                         label = sub + ell
                                                         twp = ctx.measureText(label).width
                                                     }
-                                                    var centerX = xprop + ((gw - 2) / 2)
+                                                    var centerX = xprop + ((gw - Analysis.render.propertyBarInset) / 2)
                                                     var lx = centerX - (twp / 2)
-                                                    var towerTop = towerTops[pi] || (height - 18)
-                                                    var ly = Math.min(height - 36, Math.max(towerTop + 2, height - 60))
-                                                    if (gw >= 36) ctx.fillText(label, Math.max(xprop, lx), ly)
+                                                    var towerTop = towerTops[pi] || (height - Analysis.render.histogramBottomPadding)
+                                                    var ly = Math.min(height - (Theme.spacing * 3), Math.max(towerTop + Theme.margins, height - (Theme.spacing * 5)))
+                                                    if (gw >= Analysis.render.propertyLabelMinWidth) ctx.fillText(label, Math.max(xprop, lx), ly)
                                                 }
                                             } catch(e) {}
 
                                             ctx.globalAlpha = 1.0
                                         }
-                                        try { var totalVal = totals[i] || 0; ctx.fillStyle = Theme.shadow; ctx.font = "12px sans-serif"; var txt = totalVal.toFixed(2); var tw = ctx.measureText ? (ctx.measureText(txt).width || 0) : 0; var txv = x + ((bw - 8) / 2) - (tw/2); var hTotal = (maxv>0) ? (totals[i]/maxv)*(height-30) : 0; var labelYv = Math.max(6, height - 20 - hTotal); ctx.textBaseline = "bottom"; ctx.fillText(txt, Math.max(x, txv), labelYv) } catch(e) {}
-                                        ctx.fillStyle = Theme.placeholderText; try { function formatMonthLabel(m) { if (!m) return m; var parts = m.split('-'); if (parts.length >= 2 && parts[0].length==4) { var yy = parts[0]; var mm = parts[1]; var names = ["January","February","March","April","May","June","July","August","September","October","November","December"]; var mi = parseInt(mm,10)-1; if (!isNaN(mi) && mi>=0 && mi<12) return names[mi] + " " + yy } return m } var label = formatMonthLabel(months[i]); var fm = ctx.measureText ? ctx.measureText(label) : null; var tx = x + ((bw - 8) / 2) - (fm ? (fm.width/2) : 0); try { ctx.font = "11px sans-serif" } catch(e) {} ctx.textBaseline = "top"; ctx.fillText(label, Math.max(x, tx), height - 14) } catch(e) { ctx.fillText(months[i], x, height + 8) }
+                                        try { var totalVal = totals[i] || 0; ctx.fillStyle = Theme.shadow; ctx.font = Theme.fontSize + "px " + Analysis.render.chartFontFamily; var txt = totalVal.toFixed(2); var tw = ctx.measureText ? (ctx.measureText(txt).width || 0) : 0; var txv = x + ((bw - Analysis.render.histogramGroupPadding) / 2) - (tw/2); var hTotal = (maxv>0) ? (totals[i]/maxv)*(height-Analysis.render.histogramTopPadding) : 0; var labelYv = Math.max(Theme.chartPanelSpacing, height - Theme.spacingLarge - hTotal); ctx.textBaseline = "bottom"; ctx.fillText(txt, Math.max(x, txv), labelYv) } catch(e) {}
+                                        ctx.fillStyle = Theme.placeholderText; try { var label = Analysis.formatMonthLabel(months[i]); var fm = ctx.measureText ? ctx.measureText(label) : null; var tx = x + ((bw - Analysis.render.histogramGroupPadding) / 2) - (fm ? (fm.width/2) : 0); try { ctx.font = Theme.fontSizeSmall + "px " + Analysis.render.chartFontFamily } catch(e) {} ctx.textBaseline = "top"; ctx.fillText(label, Math.max(x, tx), height - Theme.spacingMedium - Theme.margins) } catch(e) { ctx.fillText(months[i], x, height + Theme.spacingMedium) }
                                     }
                                 }
                             }
                             Component.onCompleted: { if (!initialCanvasPaintTimer.running) initialCanvasPaintTimer.start(); }
-                            onWidthChanged: { if (width >= 50 && height >= 50) plotCanvas.requestPaint(); else if (!initialCanvasPaintTimer.running) initialCanvasPaintTimer.start() }
-                            onHeightChanged: { if (width >= 50 && height >= 50) plotCanvas.requestPaint(); else if (!initialCanvasPaintTimer.running) initialCanvasPaintTimer.start() }
+                            onWidthChanged: { if (width >= Analysis.layout.minDebugRepaintWidth && height >= Analysis.layout.minDebugRepaintWidth) plotCanvas.requestPaint(); else if (!initialCanvasPaintTimer.running) initialCanvasPaintTimer.start() }
+                            onHeightChanged: { if (width >= Analysis.layout.minDebugRepaintWidth && height >= Analysis.layout.minDebugRepaintWidth) plotCanvas.requestPaint(); else if (!initialCanvasPaintTimer.running) initialCanvasPaintTimer.start() }
                             Connections { target: uiData; function onLastAnalysisResultChanged() { try { rebuildHistLegend(); if (!initialCanvasPaintTimer.running) initialCanvasPaintTimer.start() } catch(e) {} } }
                         }
                     }
 
-                    RowLayout { Layout.fillWidth: true; spacing: 8
+                    RowLayout { Layout.fillWidth: true; spacing: Theme.spacingMedium
                         Item { Layout.fillWidth: true }
-                        ColumnLayout { Layout.preferredWidth: 220; spacing: 6; Layout.alignment: Qt.AlignRight
-                            RowLayout { spacing: 6; Layout.fillWidth: true; visible: (function(){ var t=""; if (!uiData || !uiData.lastAnalysisResult) return false; if (uiData.lastAnalysisResult.type) t=uiData.lastAnalysisResult.type; else if (uiData.lastAnalysisResult.config) { try { var c = JSON.parse(uiData.lastAnalysisResult.config); if (c && c.plotType) t = c.plotType } catch(e) {} } return t === "histogram"; })()
+                        ColumnLayout { Layout.preferredWidth: Analysis.layout.splitControlsWidth; spacing: Theme.chartPanelSpacing; Layout.alignment: Qt.AlignRight
+                            RowLayout { spacing: Theme.chartPanelSpacing; Layout.fillWidth: true; visible: Analysis.shouldShowHistogramControls(uiData ? uiData.lastAnalysisResult : null)
                                 Label { text: qsTr("") }
                             }
-                            RowLayout { spacing: 6; Layout.fillWidth: true; visible: (function(){ var t=""; if (!uiData || !uiData.lastAnalysisResult) return false; if (uiData.lastAnalysisResult.type) t=uiData.lastAnalysisResult.type; else if (uiData.lastAnalysisResult.config) { try { var c = JSON.parse(uiData.lastAnalysisResult.config); if (c && c.plotType) t = c.plotType } catch(e) {} } return t === "histogram"; })()
+                            RowLayout { spacing: Theme.chartPanelSpacing; Layout.fillWidth: true; visible: Analysis.shouldShowHistogramControls(uiData ? uiData.lastAnalysisResult : null)
                                 Label { text: qsTr("Split by property") }
                                 Switch { id: splitByPropertySwitch; onCheckedChanged: { plotCanvas.splitProgress = checked ? 1.0 : 0.0; rebuildHistLegend() } }
                             }
                         }
                     }
 
-                    ColumnLayout { id: legendCol; Layout.fillWidth: true; spacing: 6; Layout.topMargin: 8
+                    ColumnLayout { id: legendCol; Layout.fillWidth: true; spacing: Theme.chartPanelSpacing; Layout.topMargin: Analysis.layout.legendTopMargin
                         Label { text: qsTr("Legend") }
-                        Flickable { id: histLegendFlick; Layout.fillWidth: true; Layout.preferredHeight: 120; contentHeight: histLegendRepeater.implicitHeight; clip: true; visible: (function(){ if (!uiData || !uiData.lastAnalysisResult) return false; var t = uiData.lastAnalysisResult.type ? uiData.lastAnalysisResult.type : (uiData.lastAnalysisResult.config ? (function(){ try { var c = JSON.parse(uiData.lastAnalysisResult.config); return c.plotType } catch(e){ return "" } })() : ""); return t === "histogram" || (histLegendModel && histLegendModel.length>0); })()
+                        Flickable { id: histLegendFlick; Layout.fillWidth: true; Layout.preferredHeight: Theme.chartLegendHeight; contentHeight: histLegendRepeater.implicitHeight; clip: true; visible: Analysis.shouldShowHistogramLegend(uiData ? uiData.lastAnalysisResult : null, histLegendModel)
                             Column { id: histLegendList; width: parent.width
                                 Repeater { id: histLegendRepeater; model: histLegendModel
-                                    delegate: RowLayout { spacing: 8; width: parent.width
-                                        Rectangle { width: 12; height: 12; color: page.colorForKey(model.name) }
+                                    delegate: RowLayout { spacing: Theme.spacingMedium; width: parent.width
+                                        Rectangle { width: Theme.chartLegendMarkerSize; height: Theme.chartLegendMarkerSize; color: page.colorForKey(model.name) }
                                         Label { text: (model && model.name) ? model.name : ""; Layout.fillWidth: true }
-                                        Label { text: (model && model.value) ? model.value.toFixed(2) : "0.00"; Layout.preferredWidth: 80 }
-                                        Label { text: (model && model.value && histLegendTotal>0) ? ((model.value / histLegendTotal * 100).toFixed(1) + "%") : ""; Layout.preferredWidth: 60 }
+                                        Label { text: (model && model.value) ? model.value.toFixed(2) : Analysis.text.defaultLegendValue; Layout.preferredWidth: Theme.chartValueLabelWidth }
+                                        Label { text: (model && model.value && histLegendTotal>0) ? ((model.value / histLegendTotal * 100).toFixed(1) + Analysis.text.percentSuffix) : ""; Layout.preferredWidth: Theme.chartPercentLabelWidth }
                                     }
                                 }
                             }
                         }
-                        RowLayout { Layout.fillWidth: true; spacing: 6; visible: (function(){ if (!propListModel || propListModel.length === 0) return false; return true })()
+                        RowLayout { Layout.fillWidth: true; spacing: Theme.chartPanelSpacing; visible: (function(){ if (!propListModel || propListModel.length === 0) return false; return true })()
                             Repeater { model: propListModel
-                                delegate: Rectangle { radius: 6; color: "transparent"; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; height: 22; width: Math.max(80, childrenRect.width + 16)
+                                delegate: Rectangle { radius: Theme.radius + Theme.margins; color: "transparent"; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; height: Theme.chartPropertyChipHeight; width: Math.max(Theme.chartPropertyChipMinWidth, childrenRect.width + (Theme.spacing + Theme.margins * 2))
                                     RowLayout { anchors.fill: parent; anchors.margins: Theme.margins * 2; spacing: Theme.spacingSmall
                                         Label { text: (model && model.name) ? model.name : "" }
-                                        Label { text: (model && model.value) ? (model.value.toFixed(2)) : ""; font.pixelSize: 11; color: Theme.placeholderText }
+                                        Label { text: (model && model.value) ? (model.value.toFixed(2)) : ""; font.pixelSize: Theme.fontSizeSmall; color: Theme.placeholderText }
                                     }
                                 }
                             }
                         }
-                        Flickable { Layout.fillWidth: true; Layout.preferredHeight: 120; contentHeight: legendList.implicitHeight; clip: true; visible: (function(){ if (!uiData || !uiData.lastAnalysisResult) return false; var t = uiData.lastAnalysisResult.type ? uiData.lastAnalysisResult.type : (uiData.lastAnalysisResult.config ? (function(){ try { var c = JSON.parse(uiData.lastAnalysisResult.config); return c.plotType } catch(e){ return "" } })() : ""); return t !== "histogram"; })()
+                        Flickable { Layout.fillWidth: true; Layout.preferredHeight: Theme.chartLegendHeight; contentHeight: legendList.implicitHeight; clip: true; visible: Analysis.shouldShowNonHistogramLegend(uiData ? uiData.lastAnalysisResult : null)
                             Column { id: legendList; width: parent.width
                                 Repeater { model: (uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []
-                                    delegate: RowLayout { spacing: 8; width: parent.width
-                                        Rectangle { width: 12; height: 12; color: Qt.hsla(((index) / Math.max(1, ((uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table.length : 1))), 0.6, 0.6, 1.0) }
+                                    delegate: RowLayout { spacing: Theme.spacingMedium; width: parent.width
+                                        Rectangle { width: Theme.chartLegendMarkerSize; height: Theme.chartLegendMarkerSize; color: Qt.hsla(((index) / Math.max(1, ((uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table.length : 1))), 0.6, 0.6, 1.0) }
                                         Button {
                                             id: legendBtn
                                             text: (modelData && modelData.length>0) ? modelData[0] : ""
@@ -303,8 +285,8 @@ Item {
                                                 plotCanvas.requestPaint()
                                             }
                                         }
-                                        Label { text: (function(){ var v = (modelData && modelData.length>1) ? parseFloat(modelData[1])||0 : 0; return v.toFixed(2); })(); Layout.preferredWidth: 80 }
-                                        Label { text: (function(){ var total = 0; var tbl = (uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []; for (var i=0;i<tbl.length;i++) total += Math.abs(parseFloat(tbl[i][1])||0); var v = (modelData && modelData.length>1) ? Math.abs(parseFloat(modelData[1])||0) : 0; var pct = total>0 ? (v/total*100) : 0; return pct.toFixed(1) + "%"; })(); Layout.preferredWidth: 60 }
+                                        Label { text: (function(){ var v = (modelData && modelData.length>1) ? parseFloat(modelData[1])||0 : 0; return v.toFixed(2); })(); Layout.preferredWidth: Theme.chartValueLabelWidth }
+                                        Label { text: (function(){ var total = 0; var tbl = (uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []; for (var i=0;i<tbl.length;i++) total += Math.abs(parseFloat(tbl[i][1])||0); var v = (modelData && modelData.length>1) ? Math.abs(parseFloat(modelData[1])||0) : 0; var pct = total>0 ? (v/total*100) : 0; return pct.toFixed(1) + Analysis.text.percentSuffix; })(); Layout.preferredWidth: Theme.chartPercentLabelWidth }
                                     }
                                 }
                             }

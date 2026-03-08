@@ -18,6 +18,7 @@
 #include <string>
 
 #include "ui/actions/Actions.h"
+#include "ui/bootstrap/QmlContracts.h"
 #include "ui/bootstrap/QmlRuntime.h"
 #include "ui/config/Defaults.h"
 #include "ui/controllers/ControllerContracts.h"
@@ -70,19 +71,19 @@ void MainWindow::setupUiContext()
     auto fileSys = new ui::FileSystemController(this);
     fileWorkflow_ = new ui::workflows::FileWorkflow(this, this);
     status_ = new ui::StatusState(this);
-    status_->setText(ui::text::kStatusReady);
+    status_->setText(tr(ui::text::status::kReady));
 
     if (m_quickWidget->rootContext()) {
-        m_quickWidget->rootContext()->setContextProperty("uiActions", actions);
-        m_quickWidget->rootContext()->setContextProperty("uiNav", nav);
-        m_quickWidget->rootContext()->setContextProperty("uiData", dataSession_);
-        m_quickWidget->rootContext()->setContextProperty("fileSystemController", fileSys);
-        m_quickWidget->rootContext()->setContextProperty("uiStatus", status_);
+        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kActions, actions);
+        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kNavigation, nav);
+        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kData, dataSession_);
+        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kFileSystemController, fileSys);
+        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kStatus, status_);
 
 #ifdef _DEBUG
-        m_quickWidget->rootContext()->setContextProperty("isDebugBuild", true);
+        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kIsDebugBuild, true);
 #else
-        m_quickWidget->rootContext()->setContextProperty("isDebugBuild", false);
+        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kIsDebugBuild, false);
 #endif
     }
 }
@@ -152,7 +153,7 @@ void MainWindow::setupActionRouting()
                                           });
             emit actions->importFilesSelected(files);
             if (files.size() == 1) emit actions->importFileSelected(files.first());
-            if (status_) status_->setText(QString("Selected: %1").arg(files.front()));
+            if (status_) status_->setText(tr(ui::text::mainWindow::kSelectedStatusPattern).arg(files.front()));
         }
     });
 
@@ -167,7 +168,7 @@ void MainWindow::setupActionRouting()
                                               {"path", file.toStdString()}
                                           });
             emit actions->exportFileSelected(file);
-            if (status_) status_->setText(QString("Export path: %1").arg(file));
+            if (status_) status_->setText(tr(ui::text::mainWindow::kExportPathStatusPattern).arg(file));
         }
     });
 }
@@ -216,8 +217,8 @@ void MainWindow::loadQml(const QUrl& source)
 
     if (m_quickWidget->rootObject()) {
         QObject* root = m_quickWidget->rootObject();
-        root->setProperty("width", m_quickWidget->width());
-        root->setProperty("height", m_quickWidget->height());
+        root->setProperty(ui::qml::contracts::properties::kWidth, m_quickWidget->width());
+        root->setProperty(ui::qml::contracts::properties::kHeight, m_quickWidget->height());
     }
 }
 
@@ -231,8 +232,8 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
     if (obj == m_quickWidget && ev->type() == QEvent::Resize) {
         if (m_quickWidget->rootObject()) {
             QQuickItem* root = m_quickWidget->rootObject();
-            root->setProperty("width", m_quickWidget->width());
-            root->setProperty("height", m_quickWidget->height());
+            root->setProperty(ui::qml::contracts::properties::kWidth, m_quickWidget->width());
+            root->setProperty(ui::qml::contracts::properties::kHeight, m_quickWidget->height());
         }
     }
 
@@ -342,5 +343,7 @@ void MainWindow::handleStorageOperationFailed(const QString& operation, const QS
 
 void MainWindow::onAbout()
 {
-    QMessageBox::about(this, tr("About FOSSRedder"), tr("FOSSRedder - demo"));
+    QMessageBox::about(this,
+                       tr(ui::text::mainWindow::kAboutTitle),
+                       tr(ui::text::mainWindow::kAboutBody));
 }

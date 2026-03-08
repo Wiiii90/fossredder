@@ -2,24 +2,27 @@
 
 #include <QAction>
 
+#include "ui/config/Defaults.h"
+#include "ui/text/Text.h"
+
 namespace ui {
 
 Actions::Actions(QObject* parent)
     : QObject(parent)
-    , newFileAction_(new QAction(tr("New..."), this))
-    , openFileAction_(new QAction(tr("Open..."), this))
-    , saveFileAction_(new QAction(tr("Save"), this))
-    , saveFileAsAction_(new QAction(tr("Save As..."), this))
-    , quitAction_(new QAction(tr("Quit"), this))
-    , aboutAction_(new QAction(tr("About"), this))
+    , newFileAction_(new QAction(tr(ui::text::actions::kNewFile), this))
+    , openFileAction_(new QAction(tr(ui::text::actions::kOpenFile), this))
+    , saveFileAction_(new QAction(tr(ui::text::actions::kSaveFile), this))
+    , saveFileAsAction_(new QAction(tr(ui::text::actions::kSaveFileAs), this))
+    , quitAction_(new QAction(tr(ui::text::actions::kQuit), this))
+    , aboutAction_(new QAction(tr(ui::text::actions::kAbout), this))
 {
-    newFileAction_->setObjectName("actionNewFile");
-    openFileAction_->setObjectName("actionOpenFile");
-    saveFileAction_->setObjectName("actionSaveFile");
-    saveFileAsAction_->setObjectName("actionSaveFileAs");
+    newFileAction_->setObjectName(ui::config::objectNames::kActionNewFile);
+    openFileAction_->setObjectName(ui::config::objectNames::kActionOpenFile);
+    saveFileAction_->setObjectName(ui::config::objectNames::kActionSaveFile);
+    saveFileAsAction_->setObjectName(ui::config::objectNames::kActionSaveFileAs);
 
-    quitAction_->setObjectName("actionQuit");
-    aboutAction_->setObjectName("actionAbout");
+    quitAction_->setObjectName(ui::config::objectNames::kActionQuit);
+    aboutAction_->setObjectName(ui::config::objectNames::kActionAbout);
 }
 
 QAction* Actions::newFileAction() const { return newFileAction_; }
@@ -36,12 +39,12 @@ void Actions::saveFileAs() { if (saveFileAsAction_) saveFileAsAction_->trigger()
 
 void Actions::browseImportPdf()
 {
-    emit importBrowseRequested(tr("PDF Files (*.pdf)"));
+    emit importBrowseRequested(tr(ui::text::dialogs::kImportPdfFilter));
 }
 
 void Actions::browseExportFile()
 {
-    emit exportBrowseRequested(tr("Excel Files (*.xlsx);;CSV Files (*.csv)"));
+    emit exportBrowseRequested(tr(ui::text::dialogs::kExportFileFilter));
 }
 
 }

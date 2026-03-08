@@ -5,6 +5,7 @@
 #include <QLibraryInfo>
 #include <QQmlEngine>
 
+#include "ui/bootstrap/QmlContracts.h"
 #include "ui/config/Defaults.h"
 #include "ui/state/NavigationState.h"
 
@@ -15,8 +16,11 @@ void registerTypes()
     static bool registered = false;
     if (registered) return;
 
-    qmlRegisterUncreatableType<ui::NavigationState>("FossRedder", 1, 0, "UiNavigation",
-                                                    "UiNavigation is exposed via context property 'uiNav'");
+    qmlRegisterUncreatableType<ui::NavigationState>(ui::qml::contracts::module::kName,
+                                                    ui::qml::contracts::module::kMajorVersion,
+                                                    ui::qml::contracts::module::kMinorVersion,
+                                                    ui::qml::contracts::module::kNavigationTypeName,
+                                                    ui::qml::contracts::module::kNavigationTypeDescription);
     registered = true;
 }
 

@@ -4,6 +4,8 @@
 #include <QDir>
 #include <QStandardPaths>
 
+#include "ui/config/Defaults.h"
+
 namespace ui::importing {
 
 ImportRunInfo createImportRunInfo()
@@ -12,11 +14,11 @@ ImportRunInfo createImportRunInfo()
     QDir rootDir(base);
     rootDir.mkpath(".");
 
-    const QString timestamp = QDateTime::currentDateTimeUtc().toString("yyyyMMddHHmmsszzz");
+    const QString timestamp = QDateTime::currentDateTimeUtc().toString(ui::config::kImportRunTimestampFormat);
 
-    int suffix = 1;
+    int suffix = ui::config::kImportRunFirstSuffix;
     while (true) {
-        const QString runName = QStringLiteral("%1_import_%2").arg(timestamp).arg(suffix);
+        const QString runName = ui::config::kImportRunNamePattern.arg(timestamp).arg(suffix);
         if (!rootDir.exists(runName)) {
             rootDir.mkpath(runName);
             return {rootDir.filePath(runName), timestamp};
@@ -31,7 +33,7 @@ void cleanupOldImportRuns(int keepCount)
     QDir rootDir(base);
     if (!rootDir.exists()) return;
 
-    const QStringList runDirs = rootDir.entryList(QStringList() << "*_import_*",
+    const QStringList runDirs = rootDir.entryList(QStringList() << ui::config::kImportRunGlobPattern,
                                                   QDir::Dirs | QDir::NoDotAndDotDot,
                                                   QDir::Time);
     if (runDirs.size() <= keepCount) return;

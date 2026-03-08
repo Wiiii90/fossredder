@@ -3,6 +3,7 @@
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/payload/PayloadKeys.h"
+#include "ui/text/Text.h"
 
 #include "core/analysis/AnalysisController.h"
 #include "core/models/Contract.h"
@@ -62,7 +63,7 @@ QVariantMap AnalysisController::computeAnalysis(const QString& analysisId, const
             tm[payload::keys::transaction::kDate] = QString::fromStdString(tx->bookingDate);
             tm[payload::keys::common::kAmount] = tx->amount;
             tm[payload::keys::transaction::kContractId] = QString::fromStdString(tx->contractId);
-            tm[payload::keys::transaction::kContractType] = QString::fromStdString(tx->contract ? tx->contract->type : std::string("unassigned"));
+            tm[payload::keys::transaction::kContractType] = QString::fromStdString(tx->contract ? tx->contract->type : ui::text::analysis::kUnassignedContractType.toStdString());
             txlist.push_back(tm);
         }
 

@@ -3,13 +3,18 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
+import "../../Constants/Messages.js" as Messages
 
 Item {
     id: root
+    readonly property var fileExtensions: ({ pdf: ".pdf" })
+    readonly property string automaticSettingsText: qsTr("Settings are currently managed automatically.")
+    readonly property var sourceOptions: [qsTr("PDF")]
+    readonly property var strategyOptions: [qsTr("Commerzbank26")]
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
-    anchors.margins: 8
+    anchors.margins: Theme.spacingMedium
 
     property bool hasImportController: typeof importController !== 'undefined'
 
@@ -27,7 +32,7 @@ Item {
         for (var i = 0; i < paths.length; ++i) {
             var p = String(paths[i])
             if (!p || p.length === 0) continue
-            if (p.toLowerCase().endsWith(".pdf")) pdfs.push(p)
+            if (p.toLowerCase().endsWith(root.fileExtensions.pdf)) pdfs.push(p)
         }
         if (pdfs.length === 0) return
 
@@ -76,20 +81,20 @@ Item {
 
                                 RowLayout {
                                     Layout.fillWidth: true
-                                    Label { text: qsTr("Source"); Layout.preferredWidth: 120 }
+                                    Label { text: qsTr("Source"); Layout.preferredWidth: Theme.formLabelWidth }
                                     Controls.ComboBox {
                                         id: sourceKind
-                                        model: [qsTr("PDF")]
+                                        model: root.sourceOptions
                                         currentIndex: 0
                                     }
                                 }
 
                                 RowLayout {
                                     Layout.fillWidth: true
-                                    Label { text: qsTr("Strategy"); Layout.preferredWidth: 120 }
+                                    Label { text: qsTr("Strategy"); Layout.preferredWidth: Theme.formLabelWidth }
                                     Controls.ComboBox {
                                         id: strategy
-                                        model: [qsTr("Commerzbank26")]
+                                        model: root.strategyOptions
                                         currentIndex: 0
                                     }
                                 }
@@ -114,7 +119,7 @@ Item {
                                         Layout.fillWidth: true
                                         visible: root.showPoppler
                                         Layout.leftMargin: Theme.spacing
-                                        Label { text: qsTr("TODO: Poppler settings"); color: Theme.textMuted; wrapMode: Text.WordWrap }
+                                        Label { text: root.automaticSettingsText; color: Theme.textMuted; wrapMode: Text.WordWrap }
                                     }
 
                                     Controls.CheckBox {
@@ -126,7 +131,7 @@ Item {
                                         Layout.fillWidth: true
                                         visible: root.showTesseract
                                         Layout.leftMargin: Theme.spacing
-                                        Label { text: qsTr("TODO: Tesseract settings"); color: Theme.textMuted; wrapMode: Text.WordWrap }
+                                        Label { text: root.automaticSettingsText; color: Theme.textMuted; wrapMode: Text.WordWrap }
                                     }
 
                                     Controls.CheckBox {
@@ -138,7 +143,7 @@ Item {
                                         Layout.fillWidth: true
                                         visible: root.showParser
                                         Layout.leftMargin: Theme.spacing
-                                        Label { text: qsTr("TODO: Parser settings"); color: Theme.textMuted; wrapMode: Text.WordWrap }
+                                        Label { text: root.automaticSettingsText; color: Theme.textMuted; wrapMode: Text.WordWrap }
                                     }
                                 }
                         }
@@ -157,8 +162,7 @@ Item {
                                         enabled: hasImportController && !importController.isRunning
 
                                         Component.onCompleted: {
-                                            var def = "P:/.data/fossredder/April 2025.pdf"
-                                            text = def
+                                            text = ""
                                             if (hasImportController) importController.selectedFile = ""
                                             pendingFiles = []
                                         }
@@ -229,14 +233,14 @@ Item {
                                 Connections {
                                     target: hasImportController ? importController : null
                                     function onImportCanceled() {
-                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = UiText.statusImportCanceled
+                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = Messages.statusImportCanceled
                                     }
                                     function onImportFinished() {
-                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = UiText.statusImportFinished
+                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = Messages.statusImportFinished
                                     }
                                     function onImportFailed(error) {
                                         if (typeof uiStatus !== 'undefined' && uiStatus)
-                                            uiStatus.text = (error && error.length > 0) ? error : UiText.statusImportFailed
+                                            uiStatus.text = (error && error.length > 0) ? error : Messages.statusImportFailed
                                     }
                                 }
 
@@ -315,8 +319,8 @@ Item {
                     BusyIndicator {
                         running: hasImportController && importController.isRunning
                         visible: running
-                        width: 24
-                        height: 24
+                        width: Theme.busyIndicatorSize
+                        height: Theme.busyIndicatorSize
                     }
                 }
             }
