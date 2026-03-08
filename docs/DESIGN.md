@@ -27,16 +27,16 @@ See the detailed overview: [System Overview and Constraints](design/system_overv
 Component list and responsibilities: [Architecture](design/architecture.md).
 
 ## 4. Interfaces and Services
-API/interface summaries and DTO sketches: [Interfaces and Services](design/interfaces_and_services.md).
+API/interface summaries and DTO sketches: [Interfaces and Services](design/interfaces_and_services.md). (Maybe split into Interfaces and Services as subchapter each)
 
 ## 5. Pipelines and User Flows
-Combined pipelines and user interaction flows: [Pipelines and User Flows](design/pipelines_and_user_flows.md).
+Combined pipelines and user interaction flows: [Pipelines and User Flows](design/pipelines_and_user_flows.md). (Maybe order by User Flow Strategies -> Strategy Pattern)
 
 ## 6. Persistence
-Storage strategy, migration and backup notes: [Persistence](design/persistence.md).
+Storage strategy, migration and backup notes: [Persistence](design/persistence.md). (Maybe add Debug as well, since own Lib-Target)
 
 ## 7. Testing and Deployment
-Testing strategy and deployment options: [Testing and Deployment](design/testing_and_deployment.md).
+Testing strategy and deployment options: [Testing and Deployment](design/testing_and_deployment.md). (Maybe split into Testing and Deployment each -> Dev Phase Pattern)
 
 ## 8. Security and Privacy
 Security and privacy guidelines (short): [Security and Privacy](design/security_and_privacy.md).
