@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
-import FossRedder.Controls 1.0 as Controls
+import "../../Constants/FileFormats.js" as FileFormats
 
 Flickable {
     Layout.fillWidth: true
@@ -15,25 +15,30 @@ Flickable {
         Layout.fillWidth: true
         Layout.fillHeight: true
         anchors.fill: parent
-        spacing: 8
-        anchors.margins: 8
+        spacing: Theme.settings.spacing
+        anchors.margins: Theme.settings.margin
 
         GroupBox {
             Layout.fillWidth: true
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 8
+                spacing: Theme.settings.spacing
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Default CSV delimiter"); Layout.fillWidth: true }
-                        Controls.TextField { text: "," }
+                    Label { text: qsTr("Supported source format"); Layout.fillWidth: true }
+                    Label { text: FileFormats.importSources.pdf.label; color: Theme.textPrimary }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Default encoding"); Layout.fillWidth: true }
-                        Controls.ComboBox { model: [qsTr("UTF-8"), qsTr("ISO-8859-1")]; currentIndex: 0 }
+                    Label { text: qsTr("Pipeline configuration"); Layout.fillWidth: true }
+                    Label {
+                        Layout.fillWidth: true
+                        text: qsTr("PDF import is currently configured automatically by the application pipeline.")
+                        color: Theme.textMuted
+                        wrapMode: Text.WordWrap
+                    }
                 }
             }
         }

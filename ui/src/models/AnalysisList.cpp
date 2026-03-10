@@ -1,6 +1,9 @@
 #include "ui/models/AnalysisList.h"
 
 #include "ui/config/Defaults.h"
+#include "ui/controllers/ControllerStrings.h"
+#include "ui/observability/Origins.h"
+#include "ui/payload/PayloadKeys.h"
 
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
@@ -13,176 +16,162 @@
 
 namespace ui {
 
-AnalysisList::AnalysisList(QObject* parent) : QAbstractListModel(parent) {}
-
-int AnalysisList::rowCount(const QModelIndex& parent) const {
-    if (parent.isValid()) return 0;
-    return static_cast<int>(analyses_.size());
+QString AnalysisList::adjustmentsJsonFor(const Analysis &analysis) {
+  QString adjustmentsJson = ui::config::kJsonEmptyObject;
+  try {
+    QJsonObject obj;
+    for (const auto &pair : analysis.adjustments)
+      obj.insert(QString::fromStdString(pair.first), pair.second);
+    adjustmentsJson =
+        QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+  } catch (...) {
+    core::errors::reportException(
+        core::errors::ErrorSeverity::Warning,
+        core::errors::codes::ExceptionError,
+        observability::origins::model::analysisList::kAdjustmentsJson,
+        std::current_exception());
+  }
+  return adjustmentsJson;
 }
 
-QVariant AnalysisList::data(const QModelIndex& index, int role) const {
-    if (!index.isValid()) return {};
-    const int row = index.row();
-    if (row < 0 || row >= static_cast<int>(analyses_.size())) return {};
-    const auto& a = analyses_[row];
-    if (!a) return {};
-
-    QString adjustmentsJson = ui::config::kJsonEmptyObject;
-    try {
-        QJsonObject obj;
-        for (const auto& p : a->adjustments) obj.insert(QString::fromStdString(p.first), p.second);
-        adjustmentsJson = QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
-    } catch (...) {
-        core::errors::reportException(core::errors::ErrorSeverity::Warning,
-                                      core::errors::codes::ExceptionError,
-                                      "ui::AnalysisList::data::adjustmentsJson",
-                                      std::current_exception());
-        adjustmentsJson = ui::config::kJsonEmptyObject;
-    }
-
-    switch (role) {
-    case IdRole: return QString::fromStdString(a->id);
-    case NameRole: return QString::fromStdString(a->name);
-    case TypeRole: return QString::fromStdString(a->type);
-    case ConfigRole: return QString::fromStdString(a->configJson);
-    case FilterRole: return QString::fromStdString(a->filterSpec);
-    case AdjustmentsRole: return adjustmentsJson;
-    default: return {};
-    }
+void AnalysisList::rebuildAdjustmentsCache() {
+  adjustmentsJsonById_.clear();
+  adjustmentsJsonById_.reserve(static_cast<int>(analyses().size()));
+  for (const auto &analysis : analyses()) {
+    if (!analysis)
+      continue;
+    updateAdjustmentsCache(*analysis);
+  }
 }
 
-bool AnalysisList::setData(const QModelIndex& index, const QVariant& value, int role) {
-    if (!index.isValid()) return false;
-    const int row = index.row();
-    if (row < 0 || row >= static_cast<int>(analyses_.size())) return false;
-    auto& a = analyses_[row];
-    if (!a) return false;
-
-    bool changed = false;
-    switch (role) {
-    case NameRole: {
-        const auto v = value.toString().toStdString();
-        if (a->name != v) { a->name = v; changed = true; }
-        break;
-    }
-    case TypeRole: {
-        const auto v = value.toString().toStdString();
-        if (a->type != v) { a->type = v; changed = true; }
-        break;
-    }
-    case ConfigRole: {
-        const auto v = value.toString().toStdString();
-        if (a->configJson != v) { a->configJson = v; changed = true; }
-        break;
-    }
-    case FilterRole: {
-        const auto v = value.toString().toStdString();
-        if (a->filterSpec != v) { a->filterSpec = v; changed = true; }
-        break;
-    }
-    default:
-        return false;
-    }
-
-    if (changed) emit dataChanged(index, index, {role});
-    return changed;
+void AnalysisList::updateAdjustmentsCache(const Analysis &analysis) {
+  adjustmentsJsonById_.insert(QString::fromStdString(analysis.id),
+                              adjustmentsJsonFor(analysis));
 }
 
-Qt::ItemFlags AnalysisList::flags(const QModelIndex& index) const {
-    if (!index.isValid()) return Qt::NoItemFlags;
-    return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
+AnalysisList::AnalysisList(QObject *parent) : Base(parent) {}
+
+QVariant AnalysisList::data(const QModelIndex &index, int role) const {
+  if (!index.isValid())
+    return {};
+  const auto &a = itemAtRow(index.row());
+  if (!a)
+    return {};
+
+  const QString adjustmentsJson = adjustmentsJsonById_.value(
+      QString::fromStdString(a->id), ui::config::kJsonEmptyObject);
+
+  switch (role) {
+  case IdRole:
+    return QString::fromStdString(a->id);
+  case NameRole:
+    return QString::fromStdString(a->name);
+  case TypeRole:
+    return QString::fromStdString(a->type);
+  case ConfigRole:
+    return QString::fromStdString(a->configJson);
+  case FilterRole:
+    return QString::fromStdString(a->filterSpec);
+  case AdjustmentsRole:
+    return adjustmentsJson;
+  default:
+    return {};
+  }
 }
 
 QHash<int, QByteArray> AnalysisList::roleNames() const {
-    QHash<int, QByteArray> roles;
-    roles[IdRole] = "id";
-    roles[NameRole] = "name";
-    roles[TypeRole] = "type";
-    roles[ConfigRole] = "configJson";
-    roles[FilterRole] = "filterSpec";
-    roles[AdjustmentsRole] = "adjustments";
-    return roles;
+  QHash<int, QByteArray> roles;
+  roles[IdRole] = ui::payload::keys::common::kId.toUtf8();
+  roles[NameRole] = ui::payload::keys::common::kName.toUtf8();
+  roles[TypeRole] = ui::payload::keys::common::kType.toUtf8();
+  roles[ConfigRole] = ui::payload::keys::analysis::kConfig.toUtf8();
+  roles[FilterRole] = ui::payload::keys::analysis::kFilter.toUtf8();
+  roles[AdjustmentsRole] = ui::payload::keys::analysis::kAdjustments.toUtf8();
+  return roles;
 }
 
-void AnalysisList::setAnalyses(std::vector<std::shared_ptr<Analysis>> analyses) {
-    beginResetModel();
-    analyses_ = std::move(analyses);
-    endResetModel();
+int AnalysisList::addAnalysis(const QString &name, const QString &type) {
+  auto a = std::make_shared<Analysis>();
+  a->name = strings::toStdString(name);
+  a->type = strings::toStdString(type);
+  updateAdjustmentsCache(*a);
+  return appendItem(std::move(a));
 }
 
-const std::vector<std::shared_ptr<Analysis>>& AnalysisList::analyses() const {
-    return analyses_;
-}
-
-int AnalysisList::addAnalysis(const QString& name, const QString& type) {
-    auto a = std::make_shared<Analysis>();
-    a->name = name.toStdString();
-    a->type = type.toStdString();
-
-    const int row = static_cast<int>(analyses_.size());
-    beginInsertRows(QModelIndex(), row, row);
-    analyses_.push_back(std::move(a));
-    endInsertRows();
-
-    return row;
+void AnalysisList::setAnalyses(
+    std::vector<std::shared_ptr<Analysis>> analyses) {
+  setItems(std::move(analyses));
+  rebuildAdjustmentsCache();
 }
 
 void AnalysisList::removeAt(int row) {
-    if (row < 0 || row >= static_cast<int>(analyses_.size())) return;
-    beginRemoveRows(QModelIndex(), row, row);
-    analyses_.erase(analyses_.begin() + row);
-    endRemoveRows();
+  const auto &analysis = itemAtRow(row);
+  if (analysis)
+    adjustmentsJsonById_.remove(QString::fromStdString(analysis->id));
+  removeItemAt(row);
 }
 
-bool AnalysisList::updateAnalysisById(const QString& id, const QString& name, const QString& type, const QString& configJson, const QString& filterSpec) {
-    for (int i = 0; i < static_cast<int>(analyses_.size()); ++i) {
-        const auto& a = analyses_[i];
-        if (!a) continue;
-        if (QString::fromStdString(a->id) == id) {
-            a->name = name.toStdString();
-            a->type = type.toStdString();
-            a->configJson = configJson.toStdString();
-            a->filterSpec = filterSpec.toStdString();
-            const QModelIndex idx = index(i);
-            emit dataChanged(idx, idx, {NameRole, TypeRole, ConfigRole, FilterRole, AdjustmentsRole});
-            return true;
-        }
-    }
+bool AnalysisList::updateAnalysisById(const QString &id, const QString &name,
+                                      const QString &type,
+                                      const QString &configJson,
+                                      const QString &filterSpec) {
+  const int row = findRowById(id);
+  if (row < 0)
     return false;
+
+  const auto &a = itemAtRow(row);
+  if (!a)
+    return false;
+
+  a->name = strings::toStdString(name);
+  a->type = strings::toStdString(type);
+  a->configJson = strings::toStdString(configJson);
+  a->filterSpec = strings::toStdString(filterSpec);
+  updateAdjustmentsCache(*a);
+  const QModelIndex idx = index(row);
+  emit dataChanged(
+      idx, idx, {NameRole, TypeRole, ConfigRole, FilterRole, AdjustmentsRole});
+  return true;
 }
 
-void AnalysisList::setAdjustmentsById(const QString& id, const QString& json) {
-    for (int i = 0; i < static_cast<int>(analyses_.size()); ++i) {
-        const auto& a = analyses_[i];
-        if (!a) continue;
-        if (QString::fromStdString(a->id) == id) {
-            a->adjustments.clear();
-            try {
-                QJsonParseError parseError;
-                const auto doc = QJsonDocument::fromJson(json.toUtf8(), &parseError);
-                if (parseError.error != QJsonParseError::NoError) {
-                    core::errors::report(core::errors::ErrorSeverity::Warning,
-                                         core::errors::codes::GenericError,
-                                         "ui::AnalysisList::setAdjustmentsById::parseJson",
-                                         parseError.errorString().toStdString());
-                } else if (doc.isObject()) {
-                    const auto obj = doc.object();
-                    for (auto it = obj.begin(); it != obj.end(); ++it) {
-                        if (!it.value().isDouble()) continue;
-                        a->adjustments.emplace(it.key().toStdString(), it.value().toDouble());
-                    }
-                }
-            } catch (...) {
-                core::errors::reportException(core::errors::ErrorSeverity::Warning,
-                                              core::errors::codes::ExceptionError,
-                                              "ui::AnalysisList::setAdjustmentsById",
-                                              std::current_exception());
-            }
-            const QModelIndex idx = index(i);
-            emit dataChanged(idx, idx, {AdjustmentsRole});
-            return;
-        }
+void AnalysisList::setAdjustmentsById(const QString &id, const QString &json) {
+  const int row = findRowById(id);
+  if (row < 0)
+    return;
+
+  const auto &a = itemAtRow(row);
+  if (!a)
+    return;
+
+  a->adjustments.clear();
+  try {
+    QJsonParseError parseError;
+    const auto doc = QJsonDocument::fromJson(json.toUtf8(), &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+      core::errors::report(
+          core::errors::ErrorSeverity::Warning,
+          core::errors::codes::GenericError,
+          observability::origins::model::analysisList::kAdjustmentsParse,
+          strings::toStdString(parseError.errorString()));
+    } else if (doc.isObject()) {
+      const auto obj = doc.object();
+      for (auto it = obj.begin(); it != obj.end(); ++it) {
+        if (!it.value().isDouble())
+          continue;
+        a->adjustments.emplace(strings::toStdString(it.key()),
+                               it.value().toDouble());
+      }
     }
+  } catch (...) {
+    core::errors::reportException(
+        core::errors::ErrorSeverity::Warning,
+        core::errors::codes::ExceptionError,
+        observability::origins::model::analysisList::kSetAdjustments,
+        std::current_exception());
+  }
+  updateAdjustmentsCache(*a);
+  const QModelIndex idx = index(row);
+  emit dataChanged(idx, idx, {AdjustmentsRole});
 }
 
-}
+} // namespace ui

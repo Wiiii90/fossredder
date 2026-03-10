@@ -8,19 +8,36 @@ Item {
     id: root
 
     property var current: uiData ? uiData.selectedProperty : null
-    property int amountColumnWidth: 120
+    readonly property int amountColumnWidth: Theme.formLabelWidth
     property bool isEdit: current && current.id && String(current.id).length > 0
 
     function clearFields() { nameField.text = ""; sums = ({}) }
 
+    function refreshSums() {
+        if (!current || !uiData) {
+            sums = ({})
+            return
+        }
+        try { sums = uiData.propertyTransactionSums(current.id) } catch(e) {
+            try { sums = uiData.propertyTransactionSums(current.id, "") } catch(e2) { sums = ({}) }
+        }
+    }
+
+    function submitProperty() {
+        if (!propertyController) return
+        if (isEdit) {
+            propertyController.updateProperty(current.id, nameField.text, "", "")
+            return
+        }
+        var id = propertyController.addProperty(nameField.text, "", "")
+        clearFields()
+        if (uiData && id && id.length > 0) uiData.selectedPropertyId = id
+    }
+
     function syncFields() {
         if (!isEdit) { clearFields(); return }
         nameField.text = current.name || ""
-        if (uiData) {
-            try { sums = uiData.propertyTransactionSums(current.id) } catch(e) {
-                try { sums = uiData.propertyTransactionSums(current.id, "") } catch(e2) { sums = ({}) }
-            }
-        } else sums = ({})
+        refreshSums()
         rebuildTypes()
         computeFilteredSums()
     }
@@ -34,9 +51,7 @@ Item {
         function onTransactionSumsUpdated(propertyId) {
             if (!current) return
             if (propertyId === current.id) {
-                try { sums = uiData.propertyTransactionSums(current.id) } catch(e) {
-                    try { sums = uiData.propertyTransactionSums(current.id, "") } catch(e2) { sums = ({}) }
-                }
+                refreshSums()
                 rebuildTypes()
                 computeFilteredSums()
             }
@@ -118,7 +133,7 @@ Item {
         anchors.margins: Theme.spacing
         spacing: Theme.spacingMedium
 
-        Label { text: isEdit ? qsTr("Building overview") : qsTr("Create new building"); font.pointSize: 18 }
+        Label { text: isEdit ? qsTr("Building overview") : qsTr("Create new building"); font.pointSize: Theme.fontSizeTitle + Theme.margins }
 
         Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
 
@@ -131,12 +146,7 @@ Item {
             Controls.Button {
                 text: qsTr("Add")
                 enabled: nameField.text.length > 0
-                onClicked: {
-                    if (!propertyController) return
-                    var id = propertyController.addProperty(nameField.text, "", "")
-                    clearFields()
-                    if (uiData && id && id.length > 0) uiData.selectedPropertyId = id
-                }
+                onClicked: submitProperty()
             }
 
             Item { Layout.fillWidth: true }
@@ -159,7 +169,7 @@ Item {
                 Controls.Button {
                     id: filterButton
                     text: txTypeFilter && txTypeFilter.length > 0 ? txTypeFilter : qsTr("Filter")
-                    implicitWidth: 120
+                    implicitWidth: amountColumnWidth
                     onClicked: { try { typeMenu.open() } catch(e) {} }
                 }
 
@@ -323,7 +333,7 @@ Item {
                 RowLayout {
                     spacing: Theme.spacingMedium
                     Controls.Button { text: qsTr("Create new building"); onClicked: if (uiData) uiData.selectedPropertyId = "" }
-                    Controls.Button { text: qsTr("Update building"); enabled: nameField.text.length > 0; onClicked: if (propertyController) propertyController.updateProperty(current.id, nameField.text, "", "") }
+                    Controls.Button { text: qsTr("Update building"); enabled: nameField.text.length > 0; onClicked: submitProperty() }
                 }
 
                 Item { Layout.fillWidth: true }

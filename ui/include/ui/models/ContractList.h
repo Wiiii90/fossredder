@@ -1,18 +1,15 @@
 #pragma once
 
-#include <QAbstractListModel>
-#include <QHash>
-#include <QString>
 #include <QStringList>
-#include <vector>
-#include <memory>
 
 #include "core/models/Contract.h"
+#include "ui/models/IndexedListModel.h"
 
 namespace ui {
 
-class ContractList : public QAbstractListModel {
+class ContractList : public models::IndexedListModel<Contract> {
     Q_OBJECT
+    using Base = models::IndexedListModel<Contract>;
 
 public:
     enum Roles {
@@ -31,27 +28,17 @@ public:
 
     explicit ContractList(QObject* parent = nullptr);
 
-    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;
-    bool setData(const QModelIndex& index, const QVariant& value, int role) override;
-    Qt::ItemFlags flags(const QModelIndex& index) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void setContracts(std::vector<std::shared_ptr<Contract>> contracts);
-    const std::vector<std::shared_ptr<Contract>>& contracts() const;
-    int findRowById(const QString& id) const;
+    void setContracts(std::vector<std::shared_ptr<Contract>> contracts) { setItems(std::move(contracts)); }
+    const std::vector<std::shared_ptr<Contract>>& contracts() const { return items(); }
+    int findRowById(const QString& id) const { return findIndexedRow(id); }
 
     Q_INVOKABLE int addContract(const QString& name, const QString& type, const QString& description);
-    Q_INVOKABLE void removeAt(int row);
-
-private:
-    void rebuildIdIndex();
-
-    std::vector<std::shared_ptr<Contract>> contracts_;
-    QHash<QString, int> idToRow_;
+    Q_INVOKABLE void removeAt(int row) { removeItemAt(row); }
 
     static QStringList toQStringList(const std::vector<std::string>& v);
-    static std::vector<std::string> toStdVectorStrings(const QVariant& v);
 };
 
 }

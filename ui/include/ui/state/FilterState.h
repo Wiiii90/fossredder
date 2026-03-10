@@ -12,8 +12,8 @@ class TransactionFilter;
 
 class FilterState {
 public:
-    QObject* statementTransactions(const QString& statementId, TransactionList& sourceModel, QObject* parent);
-    QObject* propertyTransactions(const QString& propertyId, TransactionList& sourceModel, QObject* parent);
+    TransactionFilter* statementTransactions(const QString& statementId, TransactionList& sourceModel, QObject* parent);
+    TransactionFilter* propertyTransactions(const QString& propertyId, TransactionList& sourceModel, QObject* parent);
 
     void clear();
     void removeStatement(const QString& statementId);

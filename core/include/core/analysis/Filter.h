@@ -7,7 +7,7 @@
 
 namespace core { }
 
-class AppState;
+struct AppState;
 class Transaction;
 
 // Simple filter object produced by parseFilterSpec. Predicates are ANDed.

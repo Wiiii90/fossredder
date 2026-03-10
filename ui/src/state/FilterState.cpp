@@ -7,26 +7,38 @@
 
 namespace ui {
 
-QObject* FilterState::statementTransactions(const QString& statementId, TransactionList& sourceModel, QObject* parent)
+namespace {
+
+TransactionFilter* ensureFilter(QHash<QString, TransactionFilter*>& filters,
+                                const QString& key,
+                                TransactionList& sourceModel,
+                                QObject* parent,
+                                const std::function<void(TransactionFilter&)>& configure)
 {
-    if (statementId.isEmpty() || !parent) return nullptr;
-    if (statementFilters_.contains(statementId)) return statementFilters_.value(statementId);
+    if (key.isEmpty() || !parent) return nullptr;
+    if (filters.contains(key)) return filters.value(key);
+
     auto* proxy = new TransactionFilter(parent);
     proxy->setSourceModel(&sourceModel);
-    proxy->setStatementId(statementId);
-    statementFilters_.insert(statementId, proxy);
+    configure(*proxy);
+    filters.insert(key, proxy);
     return proxy;
 }
 
-QObject* FilterState::propertyTransactions(const QString& propertyId, TransactionList& sourceModel, QObject* parent)
+}
+
+TransactionFilter* FilterState::statementTransactions(const QString& statementId, TransactionList& sourceModel, QObject* parent)
 {
-    if (propertyId.isEmpty() || !parent) return nullptr;
-    if (propertyFilters_.contains(propertyId)) return propertyFilters_.value(propertyId);
-    auto* proxy = new TransactionFilter(parent);
-    proxy->setSourceModel(&sourceModel);
-    proxy->setPropertyId(propertyId);
-    propertyFilters_.insert(propertyId, proxy);
-    return proxy;
+    return ensureFilter(statementFilters_, statementId, sourceModel, parent, [&statementId](TransactionFilter& filter) {
+        filter.setStatementId(statementId);
+    });
+}
+
+TransactionFilter* FilterState::propertyTransactions(const QString& propertyId, TransactionList& sourceModel, QObject* parent)
+{
+    return ensureFilter(propertyFilters_, propertyId, sourceModel, parent, [&propertyId](TransactionFilter& filter) {
+        filter.setPropertyId(propertyId);
+    });
 }
 
 void FilterState::clear()

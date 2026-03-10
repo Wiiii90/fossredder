@@ -2,127 +2,50 @@
 
 #include <QVariant>
 
+#include "ui/controllers/ControllerStrings.h"
+#include "ui/payload/PayloadKeys.h"
+
 namespace ui {
 
-void ActorList::rebuildIdIndex()
-{
-    idToRow_.clear();
-    idToRow_.reserve(static_cast<int>(actors_.size()));
-    for (int i = 0; i < static_cast<int>(actors_.size()); ++i) {
-        const auto& a = actors_[static_cast<size_t>(i)];
-        if (!a) continue;
-        idToRow_.insert(QString::fromStdString(a->id), i);
-    }
-}
+ActorList::ActorList(QObject *parent) : Base(parent) {}
 
-ActorList::ActorList(QObject* parent) : QAbstractListModel(parent) {}
+QVariant ActorList::data(const QModelIndex &index, int role) const {
+  if (!index.isValid())
+    return {};
+  const auto &a = itemAtRow(index.row());
+  if (!a)
+    return {};
 
-int ActorList::rowCount(const QModelIndex& parent) const {
-    if (parent.isValid()) return 0;
-    return static_cast<int>(actors_.size());
-}
-
-QVariant ActorList::data(const QModelIndex& index, int role) const {
-    if (!index.isValid()) return {};
-    const int row = index.row();
-    if (row < 0 || row >= static_cast<int>(actors_.size())) return {};
-    const auto& a = actors_[row];
-    if (!a) return {};
-
-    switch (role) {
-    case IdRole: return QString::fromStdString(a->id);
-    case NameRole: return QString::fromStdString(a->name);
-    case TypeRole: return QString::fromStdString(a->type);
-    case DescriptionRole: return QString::fromStdString(a->description);
-    default: return {};
-    }
-}
-
-bool ActorList::setData(const QModelIndex& index, const QVariant& value, int role) {
-    if (!index.isValid()) return false;
-    const int row = index.row();
-    if (row < 0 || row >= static_cast<int>(actors_.size())) return false;
-    auto& a = actors_[row];
-    if (!a) return false;
-
-    bool changed = false;
-    switch (role) {
-    case NameRole: {
-        const auto v = value.toString().toStdString();
-        if (a->name != v) { a->name = v; changed = true; }
-        break;
-    }
-    case TypeRole: {
-        const auto v = value.toString().toStdString();
-        if (a->type != v) { a->type = v; changed = true; }
-        break;
-    }
-    case DescriptionRole: {
-        const auto v = value.toString().toStdString();
-        if (a->description != v) { a->description = v; changed = true; }
-        break;
-    }
-    default:
-        return false;
-    }
-
-    if (changed) emit dataChanged(index, index, {role});
-    return changed;
-}
-
-Qt::ItemFlags ActorList::flags(const QModelIndex& index) const {
-    if (!index.isValid()) return Qt::NoItemFlags;
-    return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
+  switch (role) {
+  case IdRole:
+    return QString::fromStdString(a->id);
+  case NameRole:
+    return QString::fromStdString(a->name);
+  case TypeRole:
+    return QString::fromStdString(a->type);
+  case DescriptionRole:
+    return QString::fromStdString(a->description);
+  default:
+    return {};
+  }
 }
 
 QHash<int, QByteArray> ActorList::roleNames() const {
-    QHash<int, QByteArray> roles;
-    roles[IdRole] = "id";
-    roles[NameRole] = "name";
-    roles[TypeRole] = "type";
-    roles[DescriptionRole] = "description";
-    return roles;
+  QHash<int, QByteArray> roles;
+  roles[IdRole] = ui::payload::keys::common::kId.toUtf8();
+  roles[NameRole] = ui::payload::keys::common::kName.toUtf8();
+  roles[TypeRole] = ui::payload::keys::common::kType.toUtf8();
+  roles[DescriptionRole] = ui::payload::keys::common::kDescription.toUtf8();
+  return roles;
 }
 
-void ActorList::setActors(std::vector<std::shared_ptr<Actor>> actors) {
-    beginResetModel();
-    actors_ = std::move(actors);
-    rebuildIdIndex();
-    endResetModel();
+int ActorList::addActor(const QString &name, const QString &type,
+                        const QString &description) {
+  auto a = std::make_shared<Actor>();
+  a->name = strings::toStdString(name);
+  a->type = strings::toStdString(type);
+  a->description = strings::toStdString(description);
+  return appendItem(std::move(a));
 }
 
-const std::vector<std::shared_ptr<Actor>>& ActorList::actors() const {
-    return actors_;
-}
-
-int ActorList::findRowById(const QString& id) const
-{
-    if (id.isEmpty()) return -1;
-    const auto it = idToRow_.find(id);
-    return it == idToRow_.end() ? -1 : it.value();
-}
-
-int ActorList::addActor(const QString& name, const QString& type, const QString& description) {
-    auto a = std::make_shared<Actor>();
-    a->name = name.toStdString();
-    a->type = type.toStdString();
-    a->description = description.toStdString();
-
-    const int row = static_cast<int>(actors_.size());
-    beginInsertRows(QModelIndex(), row, row);
-    actors_.push_back(std::move(a));
-    if (actors_.back()) idToRow_.insert(QString::fromStdString(actors_.back()->id), row);
-    endInsertRows();
-
-    return row;
-}
-
-void ActorList::removeAt(int row) {
-    if (row < 0 || row >= static_cast<int>(actors_.size())) return;
-    beginRemoveRows(QModelIndex(), row, row);
-    actors_.erase(actors_.begin() + row);
-    rebuildIdIndex();
-    endRemoveRows();
-}
-
-}
+} // namespace ui

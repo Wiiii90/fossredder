@@ -1,101 +1,81 @@
 #include "ui/controllers/StorageController.h"
 
-#include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerContracts.h"
+#include "ui/controllers/ControllerGuard.h"
+#include "ui/controllers/ControllerStrings.h"
+#include "ui/observability/Origins.h"
 #include "ui/text/Text.h"
 
 namespace ui {
 
-void StorageController::setLastError(const QString& error)
-{
-    if (lastError_ == error) return;
-    lastError_ = error;
-    emit errorChanged();
+void StorageController::setLastError(const QString &error) {
+  if (lastError_ == error)
+    return;
+  lastError_ = error;
+  emit errorChanged();
 }
 
-StorageController::StorageController(AppStateController* core, QObject* parent)
-    : QObject(parent)
-    , core_(core)
-{
+bool StorageController::runCoreOperation(const char *context,
+                                         const std::function<void()> &action) {
+  return controllers::guard::invokeValue<bool>(core_, context, false, [&]() {
+    action();
+    return true;
+  });
 }
 
-QString StorageController::currentPath() const
-{
-    return controllers::guard::invokeValue<QString>(core_, "ui::StorageController::currentPath", {}, [&]() {
-        return QString::fromStdString(core_->currentPath());
-    });
+void StorageController::finishOperation(bool success,
+                                        const QString &failureText,
+                                        const QString &operation) {
+  if (!success) {
+    setLastError(failureText);
+    emit operationFailed(operation, lastError_);
+    return;
+  }
+
+  setLastError({});
+  emit currentPathChanged();
+  emit operationSucceeded(operation);
 }
 
-void StorageController::newFile(const QString& path)
-{
-    const bool success = controllers::guard::invokeValue<bool>(core_, "ui::StorageController::newFile", false, [&]() {
-        core_->newFile(path.toStdString());
-        return true;
-    });
+StorageController::StorageController(AppStateController *core, QObject *parent)
+    : QObject(parent), core_(core) {}
 
-    if (!success) {
-        setLastError(tr(ui::text::controllerErrors::kStorageCreateFailed));
-        emit operationFailed(controllers::contracts::operations::kNewFile, lastError_);
-        return;
-    }
-
-    setLastError({});
-    emit currentPathChanged();
-    emit operationSucceeded(controllers::contracts::operations::kNewFile);
+QString StorageController::currentPath() const {
+  return controllers::guard::invokeValue<QString>(
+      core_, observability::origins::controller::storage::kCurrentPath, {},
+      [&]() { return QString::fromStdString(core_->currentPath()); });
 }
 
-void StorageController::openFile(const QString& path)
-{
-    const bool success = controllers::guard::invokeValue<bool>(core_, "ui::StorageController::openFile", false, [&]() {
-        core_->openFile(path.toStdString());
-        return true;
-    });
-
-    if (!success) {
-        setLastError(tr(ui::text::controllerErrors::kStorageOpenFailed));
-        emit operationFailed(controllers::contracts::operations::kOpenFile, lastError_);
-        return;
-    }
-
-    setLastError({});
-    emit currentPathChanged();
-    emit operationSucceeded(controllers::contracts::operations::kOpenFile);
+void StorageController::newFile(const QString &path) {
+  const bool success =
+      runCoreOperation(observability::origins::controller::storage::kNewFile,
+                       [&]() { core_->newFile(strings::toEncodedPath(path)); });
+  finishOperation(success, tr(ui::text::controllerErrors::kStorageCreateFailed),
+                  controllers::contracts::operations::kNewFile);
 }
 
-void StorageController::saveFile()
-{
-    const bool success = controllers::guard::invokeValue<bool>(core_, "ui::StorageController::saveFile", false, [&]() {
-        core_->saveFile();
-        return true;
-    });
-
-    if (!success) {
-        setLastError(tr(ui::text::controllerErrors::kStorageSaveFailed));
-        emit operationFailed(controllers::contracts::operations::kSaveFile, lastError_);
-        return;
-    }
-
-    setLastError({});
-    emit currentPathChanged();
-    emit operationSucceeded(controllers::contracts::operations::kSaveFile);
+void StorageController::openFile(const QString &path) {
+  const bool success = runCoreOperation(
+      observability::origins::controller::storage::kOpenFile,
+      [&]() { core_->openFile(strings::toEncodedPath(path)); });
+  finishOperation(success, tr(ui::text::controllerErrors::kStorageOpenFailed),
+                  controllers::contracts::operations::kOpenFile);
 }
 
-void StorageController::saveFileAs(const QString& path)
-{
-    const bool success = controllers::guard::invokeValue<bool>(core_, "ui::StorageController::saveFileAs", false, [&]() {
-        core_->saveFileAs(path.toStdString());
-        return true;
-    });
-
-    if (!success) {
-        setLastError(tr(ui::text::controllerErrors::kStorageSaveAsFailed));
-        emit operationFailed(controllers::contracts::operations::kSaveFileAs, lastError_);
-        return;
-    }
-
-    setLastError({});
-    emit currentPathChanged();
-    emit operationSucceeded(controllers::contracts::operations::kSaveFileAs);
+void StorageController::saveFile() {
+  const bool success =
+      runCoreOperation(observability::origins::controller::storage::kSaveFile,
+                       [&]() { core_->saveFile(); });
+  finishOperation(success, tr(ui::text::controllerErrors::kStorageSaveFailed),
+                  controllers::contracts::operations::kSaveFile);
 }
 
+void StorageController::saveFileAs(const QString &path) {
+  const bool success = runCoreOperation(
+      observability::origins::controller::storage::kSaveFileAs,
+      [&]() { core_->saveFileAs(strings::toEncodedPath(path)); });
+  finishOperation(success, tr(ui::text::controllerErrors::kStorageSaveAsFailed),
+                  controllers::contracts::operations::kSaveFileAs);
 }
+
+} // namespace ui

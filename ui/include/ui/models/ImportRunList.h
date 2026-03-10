@@ -1,13 +1,20 @@
 #pragma once
 
-#include <QAbstractListModel>
 #include <QString>
 
-#include <vector>
+#include "ui/models/RowListModel.h"
 
 namespace ui {
 
-class ImportRunList : public QAbstractListModel {
+struct ImportRunRow {
+    QString time;
+    QString type;
+    QString file;
+    QString status;
+    QString message;
+};
+
+class ImportRunList : public models::RowListModel<ImportRunRow> {
     Q_OBJECT
 public:
     enum Roles {
@@ -18,9 +25,13 @@ public:
         MessageRole
     };
 
+private:
+    using Base = models::RowListModel<ImportRunRow>;
+
+public:
+
     explicit ImportRunList(QObject* parent = nullptr);
 
-    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
@@ -28,17 +39,6 @@ public:
 
     Q_INVOKABLE void removeAt(int index);
     Q_INVOKABLE void clear();
-
-private:
-    struct Run {
-        QString time;
-        QString type;
-        QString file;
-        QString status;
-        QString message;
-    };
-
-    std::vector<Run> runs_;
 };
 
 }

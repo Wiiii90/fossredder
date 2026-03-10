@@ -1,87 +1,117 @@
 #include "ui/controllers/AnalysisController.h"
 
+#include <QSet>
+
+#include "core/analysis/AnalysisEngine.h"
+#include "core/controllers/AppStateController.h"
+#include "core/errors/ErrorCodes.h"
+#include "core/errors/ErrorReporterRegistry.h"
+#include "core/models/AppState.h"
+#include "core/models/Contract.h"
+#include "ui/analysis/AnalysisPayloadMapper.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
-#include "ui/payload/PayloadKeys.h"
+#include "ui/observability/Origins.h"
 #include "ui/text/Text.h"
-
-#include "core/analysis/AnalysisController.h"
-#include "core/models/Contract.h"
-#include "core/models/Transaction.h"
 
 namespace ui {
 
-AnalysisController::AnalysisController(AppStateController* core, const ::AnalysisController* analysisController, QObject* parent)
-    : QObject(parent)
-    , core_(core)
-    , analysisController_(analysisController)
-{
+namespace {
+
+void reportMissingAnalysisEngine() {
+  core::errors::report(core::errors::ErrorSeverity::Warning,
+                       core::errors::codes::GenericError,
+                       observability::origins::controller::analysis::kCompute,
+                       ui::text::controllerErrors::kAnalysisEngineUnavailable);
 }
 
-QString AnalysisController::addAnalysis(const QString& name, const QString& type, const QString& configJson, const QString& filterSpec)
-{
-    return controllers::guard::invokeValue<QString>(core_, "ui::AnalysisController::addAnalysis", {}, [&]() {
-        return QString::fromStdString(core_->addAnalysis(strings::toStdString(name), strings::toStdString(type), strings::toStdString(configJson), strings::toStdString(filterSpec)));
-    });
+void reportMissingAnalysisState() {
+  core::errors::report(core::errors::ErrorSeverity::Warning,
+                       core::errors::codes::GenericError,
+                       observability::origins::controller::analysis::kCompute,
+                       ui::text::controllerErrors::kAnalysisStateUnavailable);
 }
 
-QVariantMap AnalysisController::computeAnalysis(const QString& analysisId, const QString& filterSpec) const
-{
-    QVariantMap out;
-    if (!controllers::guard::ensureCore(core_, "ui::AnalysisController::computeAnalysis")) return out;
-    if (!analysisController_) {
-        core::errors::report(core::errors::ErrorSeverity::Warning,
-                             core::errors::codes::GenericError,
-                             "ui::AnalysisController::computeAnalysis",
-                             "AnalysisController is null");
-        return out;
-    }
+QStringList collectContractTypes(const AppState &state) {
+  QStringList contractTypes;
+  QSet<QString> seen;
 
-    try {
-        const auto result = analysisController_->computeAnalysisById(analysisId.toStdString(), core_->state(), filterSpec.toStdString());
-        if (!result.found) return out;
+  for (const auto &contract : state.contracts) {
+    if (!contract)
+      continue;
+    const QString type = QString::fromStdString(contract->type).trimmed();
+    if (type.isEmpty() || seen.contains(type))
+      continue;
+    seen.insert(type);
+    contractTypes.push_back(type);
+  }
 
-        QVariantMap metrics;
-        for (const auto& kv : result.metrics) metrics.insert(QString::fromStdString(kv.first), kv.second);
+  contractTypes.sort(Qt::CaseInsensitive);
+  return contractTypes;
+}
 
-        QVariantList table;
-        for (const auto& row : result.table) {
-            QVariantList r;
-            for (const auto& col : row) r.push_back(QString::fromStdString(col));
-            table.push_back(r);
-        }
+} // namespace
 
-        QVariantList artifacts;
-        for (const auto& art : result.artifacts) artifacts.push_back(QString::fromStdString(art));
+AnalysisController::AnalysisController(
+    AppStateController *core, StateSnapshotProvider stateSnapshotProvider,
+    const AnalysisEngine *analysisEngine, QObject *parent)
+    : QObject(parent), core_(core),
+      stateSnapshotProvider_(std::move(stateSnapshotProvider)),
+      analysisEngine_(analysisEngine) {}
 
-        QVariantList txlist;
-        for (const auto& tx : result.transactions) {
-            if (!tx) continue;
-            QVariantMap tm;
-            tm[payload::keys::common::kId] = QString::fromStdString(tx->id);
-            tm[payload::keys::common::kName] = QString::fromStdString(tx->name);
-            tm[payload::keys::transaction::kDate] = QString::fromStdString(tx->bookingDate);
-            tm[payload::keys::common::kAmount] = tx->amount;
-            tm[payload::keys::transaction::kContractId] = QString::fromStdString(tx->contractId);
-            tm[payload::keys::transaction::kContractType] = tx->contract
-                ? QString::fromStdString(tx->contract->type)
-                : tr(ui::text::analysis::kUnassignedContractType);
-            txlist.push_back(tm);
-        }
+QString AnalysisController::addAnalysis(const QString &name,
+                                        const QString &type,
+                                        const QString &configJson,
+                                        const QString &filterSpec) {
+  return controllers::guard::invokeValue<QString>(
+      core_, observability::origins::controller::analysis::kAdd, {}, [&]() {
+        return QString::fromStdString(core_->addAnalysis(
+            strings::toStdString(name), strings::toStdString(type),
+            strings::toStdString(configJson),
+            strings::toStdString(filterSpec)));
+      });
+}
 
-        out[payload::keys::analysis::kMetrics] = metrics;
-        out[payload::keys::analysis::kTable] = table;
-        out[payload::keys::common::kType] = QString::fromStdString(result.type);
-        out[payload::keys::analysis::kConfig] = QString::fromStdString(result.configJson);
-        out[payload::keys::analysis::kTransactions] = txlist;
-        out[payload::keys::analysis::kArtifacts] = artifacts;
-        out[payload::keys::analysis::kGeneratedAt] = QString::fromStdString(result.createdAt);
-        return out;
-    } catch (...) {
-        controllers::guard::reportException("ui::AnalysisController::computeAnalysis");
-    }
-
+QVariantMap
+AnalysisController::computeAnalysis(const QString &analysisId,
+                                    const QString &filterSpec) const {
+  QVariantMap out;
+  if (!analysisEngine_) {
+    reportMissingAnalysisEngine();
     return out;
+  }
+
+  const auto snapshot = stateSnapshot();
+  if (!snapshot) {
+    reportMissingAnalysisState();
+    return out;
+  }
+
+  try {
+    const auto result = analysisEngine_->computeAnalysisById(
+        strings::toStdString(analysisId), *snapshot,
+        strings::toStdString(filterSpec));
+    if (!result.found)
+      return out;
+    return ui::analysis::toPayload(result);
+  } catch (...) {
+    controllers::guard::reportException(
+        observability::origins::controller::analysis::kCompute);
+  }
+
+  return out;
 }
 
+QStringList AnalysisController::getContractTypes() const {
+  const auto snapshot = stateSnapshot();
+  if (!snapshot)
+    return {};
+  return collectContractTypes(*snapshot);
 }
+
+std::shared_ptr<const AppState> AnalysisController::stateSnapshot() const {
+  return stateSnapshotProvider_ ? stateSnapshotProvider_()
+                                : std::shared_ptr<const AppState>{};
+}
+
+} // namespace ui

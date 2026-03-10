@@ -17,6 +17,7 @@ inline constexpr const char* QtFatal = "QT_FATAL";
 inline constexpr const char* QmlWarning = "QML_WARNING";
 
 inline constexpr const char* UiFlowImportStarted = "UI_FLOW_IMPORT_STARTED";
+inline constexpr const char* UiFlowImportFinished = "UI_FLOW_IMPORT_FINISHED";
 inline constexpr const char* UiFlowImportCanceled = "UI_FLOW_IMPORT_CANCELED";
 inline constexpr const char* UiFlowImportFailed = "UI_FLOW_IMPORT_FAILED";
 inline constexpr const char* UiFlowImportRejected = "UI_FLOW_IMPORT_REJECTED";

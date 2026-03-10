@@ -9,8 +9,8 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 8
-        spacing: 6
+        anchors.margins: Theme.spacingMedium
+        spacing: Theme.spacingSmall
 
 
         ListView {

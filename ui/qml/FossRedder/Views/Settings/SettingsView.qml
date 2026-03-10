@@ -12,8 +12,8 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 8
+        anchors.margins: Theme.pageMargin
+        spacing: Theme.settings.spacing
 
         Loader {
             id: settingsLoader

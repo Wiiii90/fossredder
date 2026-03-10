@@ -1,30 +1,51 @@
 #include "ui/models/TransactionList.h"
 
 #include <QVariant>
-#include "core/models/Contract.h"
 #include "ui/payload/PayloadKeys.h"
 
 namespace ui {
 
+namespace {
+
+const QVector<int>& transactionRoles()
+{
+    static const QVector<int> roles{
+        TransactionList::IdRole,
+        TransactionList::StatementIdRole,
+        TransactionList::NameRole,
+        TransactionList::BookingDateRole,
+        TransactionList::ValutaRole,
+        TransactionList::AmountRole,
+        TransactionList::DescriptionRole,
+        TransactionList::StatusRole,
+        TransactionList::ActorIdRole,
+        TransactionList::ActorProposalRole,
+        TransactionList::MetadataRole,
+        TransactionList::ProofImagePathRole,
+        TransactionList::TypeRole,
+        TransactionList::AllocatableRole,
+        TransactionList::PropertyIdsRole
+    };
+    return roles;
+}
+
+}
+
 void TransactionList::rebuildIdIndex()
 {
     idToRow_.clear();
-    idToRow_.reserve(static_cast<int>(transactions_.size()));
-    for (int i = 0; i < static_cast<int>(transactions_.size()); ++i) {
-        const auto& t = transactions_[static_cast<size_t>(i)];
+    const auto& items = rows();
+    idToRow_.reserve(static_cast<int>(items.size()));
+    for (int i = 0; i < static_cast<int>(items.size()); ++i) {
+        const auto& t = items[static_cast<size_t>(i)];
         if (!t) continue;
         idToRow_.insert(QString::fromStdString(t->id), i);
     }
 }
 
-void TransactionList::rebuildContractTypeIndex()
+QVector<int> TransactionList::allRoles() const
 {
-    contractTypeById_.clear();
-    contractTypeById_.reserve(static_cast<int>(contracts_.size()));
-    for (const auto& contract : contracts_) {
-        if (!contract) continue;
-        contractTypeById_.insert(QString::fromStdString(contract->id), QString::fromStdString(contract->type));
-    }
+    return transactionRoles();
 }
 
 QString TransactionList::contractTypeForTransaction(const Transaction& transaction) const
@@ -63,38 +84,31 @@ void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& tr
     map[payload::keys::transaction::kPropertyIds] = toPropertyIdList(transaction.propertyIds);
 }
 
-TransactionList::TransactionList(QObject* parent) : QAbstractListModel(parent) {}
-
-int TransactionList::rowCount(const QModelIndex& parent) const
-{
-    if (parent.isValid()) return 0;
-    return static_cast<int>(transactions_.size());
-}
+TransactionList::TransactionList(QObject* parent) : Base(parent) {}
 
 QVariant TransactionList::data(const QModelIndex& index, int role) const
 {
     if (!index.isValid()) return {};
-    const int row = index.row();
-    if (row < 0 || row >= static_cast<int>(transactions_.size())) return {};
-    const auto& t = transactions_[row];
-    if (!t) return {};
+    const auto* entry = rowPtr(index.row());
+    if (!entry || !*entry) return {};
+    const auto& t = **entry;
 
     switch (role) {
-    case IdRole: return QString::fromStdString(t->id);
-    case StatementIdRole: return QString::fromStdString(t->statementId);
-    case NameRole: return QString::fromStdString(t->name);
-    case BookingDateRole: return QString::fromStdString(t->bookingDate);
-    case ValutaRole: return QString::fromStdString(t->valuta);
-    case AmountRole: return t->amount;
-    case DescriptionRole: return QString::fromStdString(t->description);
-    case StatusRole: return static_cast<int>(t->status);
-    case ActorIdRole: return QString::fromStdString(t->actorId);
-    case ActorProposalRole: return QString::fromStdString(t->actorProposal);
-    case MetadataRole: return QString::fromStdString(t->metadata);
-    case ProofImagePathRole: return QString::fromStdString(t->proofImagePath);
-    case TypeRole: return contractTypeForTransaction(*t);
-    case AllocatableRole: return t->allocatable;
-    case PropertyIdsRole: return toPropertyIdList(t->propertyIds);
+    case IdRole: return QString::fromStdString(t.id);
+    case StatementIdRole: return QString::fromStdString(t.statementId);
+    case NameRole: return QString::fromStdString(t.name);
+    case BookingDateRole: return QString::fromStdString(t.bookingDate);
+    case ValutaRole: return QString::fromStdString(t.valuta);
+    case AmountRole: return t.amount;
+    case DescriptionRole: return QString::fromStdString(t.description);
+    case StatusRole: return static_cast<int>(t.status);
+    case ActorIdRole: return QString::fromStdString(t.actorId);
+    case ActorProposalRole: return QString::fromStdString(t.actorProposal);
+    case MetadataRole: return QString::fromStdString(t.metadata);
+    case ProofImagePathRole: return QString::fromStdString(t.proofImagePath);
+    case TypeRole: return contractTypeForTransaction(t);
+    case AllocatableRole: return t.allocatable;
+    case PropertyIdsRole: return toPropertyIdList(t.propertyIds);
     default: return {};
     }
 }
@@ -102,44 +116,34 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
 QHash<int, QByteArray> TransactionList::roleNames() const
 {
     QHash<int, QByteArray> roles;
-    roles[IdRole] = "id";
-    roles[StatementIdRole] = "statementId";
-    roles[NameRole] = "name";
-    roles[BookingDateRole] = "bookingDate";
-    roles[ValutaRole] = "valuta";
-    roles[AmountRole] = "amount";
-    roles[DescriptionRole] = "description";
-    roles[StatusRole] = "status";
-    roles[ActorIdRole] = "actorId";
-    roles[ActorProposalRole] = "actorProposal";
-    roles[MetadataRole] = "metadata";
-    roles[ProofImagePathRole] = "proofImagePath";
-    roles[TypeRole] = "type";
-    roles[AllocatableRole] = "allocatable";
-    roles[PropertyIdsRole] = "propertyIds";
+    roles[IdRole] = payload::keys::common::kId.toUtf8();
+    roles[StatementIdRole] = payload::keys::statement::kStatementId.toUtf8();
+    roles[NameRole] = payload::keys::common::kName.toUtf8();
+    roles[BookingDateRole] = payload::keys::transaction::kBookingDate.toUtf8();
+    roles[ValutaRole] = payload::keys::transaction::kValuta.toUtf8();
+    roles[AmountRole] = payload::keys::common::kAmount.toUtf8();
+    roles[DescriptionRole] = payload::keys::common::kDescription.toUtf8();
+    roles[StatusRole] = payload::keys::common::kStatus.toUtf8();
+    roles[ActorIdRole] = payload::keys::transaction::kActorId.toUtf8();
+    roles[ActorProposalRole] = payload::keys::transaction::kActorProposal.toUtf8();
+    roles[MetadataRole] = payload::keys::common::kMetadata.toUtf8();
+    roles[ProofImagePathRole] = payload::keys::transaction::kProofImagePath.toUtf8();
+    roles[TypeRole] = payload::keys::common::kType.toUtf8();
+    roles[AllocatableRole] = payload::keys::transaction::kAllocatable.toUtf8();
+    roles[PropertyIdsRole] = payload::keys::transaction::kPropertyIds.toUtf8();
     return roles;
 }
 
 void TransactionList::setTransactions(std::vector<std::shared_ptr<Transaction>> transactions)
 {
-    beginResetModel();
-    transactions_ = std::move(transactions);
+    setRows(std::move(transactions));
     rebuildIdIndex();
-    endResetModel();
 }
 
-void TransactionList::setContracts(std::vector<std::shared_ptr<::Contract>> contracts)
+void TransactionList::setContractTypes(QHash<QString, QString> contractTypes)
 {
-    contracts_ = std::move(contracts);
-    rebuildContractTypeIndex();
-    const int rows = rowCount();
-    if (rows == 0) return;
-    emit dataChanged(index(0), index(rows - 1), { TypeRole });
-}
-
-const std::vector<std::shared_ptr<Transaction>>& TransactionList::transactions() const
-{
-    return transactions_;
+    contractTypeById_ = std::move(contractTypes);
+    emitAllRowsChanged({TypeRole});
 }
 
 int TransactionList::findRowById(const QString& id) const
@@ -151,33 +155,26 @@ int TransactionList::findRowById(const QString& id) const
 
 void TransactionList::setTransactionAt(int row, std::shared_ptr<Transaction> tx)
 {
-    if (row < 0 || row >= static_cast<int>(transactions_.size())) return;
-    transactions_[static_cast<size_t>(row)] = std::move(tx);
+    if (!hasRow(row)) return;
+    replaceRow(row, std::move(tx));
     rebuildIdIndex();
-    const QModelIndex mi = index(row);
-    QVector<int> rolesVec;
-    const auto roleKeys = roleNames().keys();
-    rolesVec.reserve(roleKeys.size());
-    for (int k : roleKeys) rolesVec.append(k);
-    emit dataChanged(mi, mi, rolesVec);
+    const QModelIndex modelIndex = index(row);
+    emit dataChanged(modelIndex, modelIndex, allRoles());
 }
 
 void TransactionList::removeAt(int row)
 {
-    if (row < 0 || row >= static_cast<int>(transactions_.size())) return;
-    beginRemoveRows(QModelIndex(), row, row);
-    transactions_.erase(transactions_.begin() + row);
+    if (!hasRow(row)) return;
+    removeRow(row);
     rebuildIdIndex();
-    endRemoveRows();
 }
 
 QVariantMap TransactionList::get(int index) const
 {
     QVariantMap m;
-    if (index < 0 || index >= static_cast<int>(transactions_.size())) return m;
-    const auto& t = transactions_.at(static_cast<size_t>(index));
-    if (!t) return m;
-    fillTransactionMap(m, *t);
+    const auto* entry = rowPtr(index);
+    if (!entry || !*entry) return m;
+    fillTransactionMap(m, **entry);
     return m;
 }
 

@@ -5,8 +5,8 @@ import FossRedder 1.0
 
 Item {
     id: root
-    implicitWidth: 600
-    implicitHeight: 320
+    implicitWidth: Theme.analysis.layout.defaultWidth
+    implicitHeight: Theme.chartPlotPreferredHeight
     property var uiData: null
     property var analysisController: null
     property var table: []
@@ -14,35 +14,55 @@ Item {
     property var contractTypes: []
     property var propertiesList: []
     property var matrix: ({})
-    property var _lastConn: null
-    Timer { id: initDelay; interval: 60; repeat: false; running: false; triggeredOnStart: false; onTriggered: { try { table = (typeof uiData !== 'undefined' && uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []; rebuild() } catch(e) {} } }
+    Timer { id: initDelay; interval: 60; repeat: false; running: false; triggeredOnStart: false; onTriggered: { try { syncTableFromState(); rebuild() } catch(e) {} } }
 
-    function rebuild() {
+    function syncTableFromState() {
+        table = (typeof uiData !== 'undefined' && uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []
+    }
+
+    function resetDerivedData() {
         contractTypes = []
         propertiesList = []
         matrix = {}
+        simpleRows = []
+    }
+
+    function isSimpleTable(tbl) {
+        try {
+            if (!tbl || tbl.length === 0 || tbl[0].length < 3)
+                return false
+            return !isNaN(parseFloat(tbl[0][2]))
+        } catch (e) {
+            return false
+        }
+    }
+
+    function matrixValue(contractName, propertyId) {
+        try {
+            if (matrix && matrix[contractName] && matrix[contractName][propertyId])
+                return matrix[contractName][propertyId]
+        } catch (e) {
+        }
+        return 0
+    }
+
+    function matrixRowTotal(contractName) {
+        var total = 0
+        for (var pi = 0; pi < propertiesList.length; ++pi)
+            total += matrixValue(contractName, propertiesList[pi])
+        return total
+    }
+
+    function rebuild() {
+        resetDerivedData()
         try {
             if (typeof uiData === 'undefined' || !uiData || !uiData.lastAnalysisResult || !uiData.lastAnalysisResult.table) return
             var tbl = uiData.lastAnalysisResult.table
-            var simple = false
-            try {
-                if (tbl && tbl.length > 0 && tbl[0].length >= 3) {
-                    var testVal = parseFloat(tbl[0][2])
-                    if (!isNaN(testVal)) simple = true
-                }
-            } catch(e) { simple = false }
-            if (simple) {
+            if (isSimpleTable(tbl)) {
                 simpleRows = JSON.parse(JSON.stringify(tbl))
-                contractTypes = []; propertiesList = []; matrix = {}
                 table = simpleRows
-                try {
-                    try { if (typeof matrixContainer !== 'undefined') matrixContainer.visible = false } catch(e) {}
-                    try { if (typeof simpleList !== 'undefined') { simpleList.model = simpleRows; simpleList.visible = true } } catch(e) {}
-                    updateFlickSizes()
-                } catch(e) { }
+                try { updateFlickSizes() } catch(e) { }
                 return
-            } else {
-                simpleRows = []
             }
             var cset = {}
             var pset = {}
@@ -124,44 +144,44 @@ Item {
     }
 
     ColumnLayout { anchors.fill: parent; spacing: Theme.spacingSmall
-        Flickable { id: tabFlick; Layout.fillWidth: true; Layout.preferredHeight: 320; clip: true
+        Flickable { id: tabFlick; Layout.fillWidth: true; Layout.preferredHeight: Theme.chartPlotPreferredHeight; clip: true
             Column { id: innerCol; width: tabFlick.width
                 Item {
                     id: fallbackSimple
                     visible: (table && table.length>0) && (propertiesList.length === 0 || simpleRows.length>0)
                     Layout.fillWidth: true
                     Column { spacing: Theme.margins * 2; anchors.fill: parent
-                        RowLayout { spacing: Theme.spacingMedium; height: 28
-                            Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.preferredWidth: 140; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Date') } }
+                        RowLayout { spacing: Theme.spacingMedium; height: Theme.analysis.table.rowHeight
+                            Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.preferredWidth: Theme.analysis.table.dateColumnWidth; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Date') } }
                             Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.fillWidth: true; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Description') } }
-                            Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.preferredWidth: 100; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Amount') } }
+                            Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.preferredWidth: Theme.analysis.table.amountColumnWidth; height: parent.height; Label { anchors.centerIn: parent; text: qsTr('Amount') } }
                         }
                         Repeater { model: (table && table.length>0) ? table : []
-                            delegate: RowLayout { spacing: Theme.spacingMedium; height: 28
-                                Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; Layout.preferredWidth: 140; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>0) ? modelData[0] : '' } }
+                            delegate: RowLayout { spacing: Theme.spacingMedium; height: Theme.analysis.table.rowHeight
+                                Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; Layout.preferredWidth: Theme.analysis.table.dateColumnWidth; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>0) ? modelData[0] : '' } }
                                 Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; Layout.fillWidth: true; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>1) ? modelData[1] : '' } }
-                                Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; Layout.preferredWidth: 100; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>2) ? (parseFloat(modelData[2])||0).toFixed(2) : '' } }
+                                Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; Layout.preferredWidth: Theme.analysis.table.amountColumnWidth; height: parent.height; Label { anchors.centerIn: parent; text: (modelData && modelData.length>2) ? (parseFloat(modelData[2])||0).toFixed(2) : '' } }
                             }
                         }
                     }
                 }
                 Item { id: matrixContainer; visible: simpleRows.length === 0; Layout.fillWidth: true
                     GridLayout { id: grid; columns: Math.max(2, propertiesList.length + 2); columnSpacing: Theme.spacingMedium; rowSpacing: Theme.spacingSmall; Layout.fillWidth: true; Layout.fillHeight: true
-                    Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.preferredWidth: 160; height: 28; Label { anchors.centerIn: parent; text: qsTr('Contract Type'); font.bold: true } }
-                    Repeater { model: propertiesList; delegate: Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; height: 28; Layout.preferredWidth: 100; Label { anchors.centerIn: parent; text: modelData; font.bold: true } } }
-                    Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; height: 28; Label { anchors.centerIn: parent; text: qsTr('Total'); font.bold: true } }
+                    Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; Layout.preferredWidth: Theme.analysis.table.contractColumnWidth; height: Theme.analysis.table.rowHeight; Label { anchors.centerIn: parent; text: qsTr('Contract Type'); font.bold: true } }
+                    Repeater { model: propertiesList; delegate: Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; height: Theme.analysis.table.rowHeight; Layout.preferredWidth: Theme.analysis.table.amountColumnWidth; Label { anchors.centerIn: parent; text: modelData; font.bold: true } } }
+                    Rectangle { color: 'transparent'; border.color: Theme.borderStrong; border.width: Theme.borderWidthThin; height: Theme.analysis.table.rowHeight; Label { anchors.centerIn: parent; text: qsTr('Total'); font.bold: true } }
 
                     Repeater { model: contractTypes
                         delegate: Column { spacing: 0
                             property string contractName: modelData
                             RowLayout { spacing: 0
-                                Rectangle { color: 'transparent'; border.color: Theme.borderMedium; border.width: Theme.borderWidthThin; height: 28; Layout.preferredWidth: 160; Label { anchors.centerIn: parent; text: contractName } }
+                                Rectangle { color: 'transparent'; border.color: Theme.borderMedium; border.width: Theme.borderWidthThin; height: Theme.analysis.table.rowHeight; Layout.preferredWidth: Theme.analysis.table.contractColumnWidth; Label { anchors.centerIn: parent; text: contractName } }
                                 Repeater { model: propertiesList
-                                    delegate: Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; height: 28; Layout.preferredWidth: 100
-                                        Label { anchors.centerIn: parent; text: (function(){ var pid = modelData; var val = 0; try { if (matrix && matrix[contractName] && matrix[contractName][pid]) val = matrix[contractName][pid] } catch(e) { val = 0 } return (typeof val === 'number') ? val.toFixed(2) : String(val) })() }
+                                    delegate: Rectangle { color: 'transparent'; border.color: Theme.borderLight; border.width: Theme.borderWidthThin; height: Theme.analysis.table.rowHeight; Layout.preferredWidth: Theme.analysis.table.amountColumnWidth
+                                        Label { anchors.centerIn: parent; text: matrixValue(contractName, modelData).toFixed(2) }
                                     }
                                 }
-                                Rectangle { color: 'transparent'; border.color: Theme.borderMedium; border.width: Theme.borderWidthThin; height: 28; Layout.preferredWidth: 100; Label { anchors.centerIn: parent; text: (function(){ var total=0; for (var pi=0; pi<propertiesList.length; ++pi) { var pid = propertiesList[pi]; total += (matrix && matrix[contractName] && matrix[contractName][pid]) ? matrix[contractName][pid] : 0 } return total.toFixed(2) })() } }
+                                Rectangle { color: 'transparent'; border.color: Theme.borderMedium; border.width: Theme.borderWidthThin; height: Theme.analysis.table.rowHeight; Layout.preferredWidth: Theme.analysis.table.amountColumnWidth; Label { anchors.centerIn: parent; text: matrixRowTotal(contractName).toFixed(2) } }
                             }
                         }
                     }
@@ -172,14 +192,14 @@ Item {
                     visible: simpleRows && simpleRows.length > 0
                     model: simpleRows
                     clip: true
-                    delegate: RowLayout { spacing: Theme.spacingMedium; height: 28
-                        Label { text: modelData.length>0 ? modelData[0] : ''; Layout.preferredWidth: 140 }
+                    delegate: RowLayout { spacing: Theme.spacingMedium; height: Theme.analysis.table.rowHeight
+                        Label { text: modelData.length>0 ? modelData[0] : ''; Layout.preferredWidth: Theme.analysis.table.dateColumnWidth }
                         Label { text: modelData.length>1 ? modelData[1] : ''; Layout.fillWidth: true }
-                        Label { text: (modelData.length>2) ? (parseFloat(modelData[2])||0).toFixed(2) : ''; Layout.preferredWidth: 100; horizontalAlignment: Text.AlignRight }
+                        Label { text: (modelData.length>2) ? (parseFloat(modelData[2])||0).toFixed(2) : ''; Layout.preferredWidth: Theme.analysis.table.amountColumnWidth; horizontalAlignment: Text.AlignRight }
                     }
                     anchors.left: parent.left; anchors.right: parent.right
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 300
+                    Layout.preferredHeight: Theme.analysis.table.detailListHeight
                 }
             }
             }
@@ -188,12 +208,12 @@ Item {
 
     onUiDataChanged: {
         try {
-            table = (uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []
-            if (uiData && uiData.lastAnalysisResult) rebuild(); else { contractTypes = []; propertiesList = []; matrix = {} }
+            syncTableFromState()
+            if (uiData && uiData.lastAnalysisResult) rebuild(); else resetDerivedData()
         } catch(e) {}
     }
 
     Connections { target: (typeof uiData !== 'undefined') ? uiData : null
-        function onLastAnalysisResultChanged() { try { table = (typeof uiData !== 'undefined' && uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []; rebuild() } catch(e) {} }
+        function onLastAnalysisResultChanged() { try { syncTableFromState(); rebuild() } catch(e) {} }
     }
 }

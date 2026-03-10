@@ -9,6 +9,10 @@ Item {
     id: txRoot
 
     property var draft
+    function currentTransaction() {
+        return draft && draft.current ? draft.current : null
+    }
+
     function proofSource(p) {
         var s = p || ""
         if (s.length === 0) return ""
@@ -25,17 +29,55 @@ Item {
             return s;
         } catch (e) { return String(a); }
     }
+
+    function updateAmount(text) {
+        if (!draft) return
+        var value = text ? text.trim() : ""
+        if (value.length === 0) {
+            draft.transactions.setAmount(draft.currentIndex, 0.0)
+            return
+        }
+        try {
+            if (value.indexOf(',') !== -1) {
+                value = value.replace(/\./g, '')
+            }
+            value = value.replace(/,/g, '.')
+            value = value.replace(/\s/g, '')
+        } catch(e) {
+        }
+        var amount = parseFloat(value)
+        if (isNaN(amount)) amount = 0.0
+        draft.transactions.setAmount(draft.currentIndex, amount)
+    }
+
+    function setPropertySelected(propertyId, checked) {
+        if (!draft || !currentTransaction() || !propertyId) return
+
+        var selected = currentTransaction().propertyIds ? currentTransaction().propertyIds.slice(0) : []
+        var index = selected.indexOf(propertyId)
+
+        if (checked) {
+            if (index === -1) selected.push(propertyId)
+        } else if (index !== -1) {
+            selected.splice(index, 1)
+        }
+
+        draft.transactions.setProperties(draft.currentIndex, selected)
+        if (draft.refresh) draft.refresh()
+    }
+
     implicitHeight: txLayout.implicitHeight
     implicitWidth: txLayout.implicitWidth
 
     ColumnLayout {
         id: txLayout
         width: txRoot.width
+        spacing: Theme.spacingSmall
 
         RowLayout {
             Layout.fillWidth: true
 
-            Label { text: qsTr("Name"); Layout.preferredWidth: 80 }
+            Label { text: qsTr("Name"); Layout.preferredWidth: Theme.chartValueLabelWidth }
 
             Controls.TextField {
                 Layout.fillWidth: true
@@ -87,25 +129,8 @@ Item {
         Label { text: qsTr("Betrag"); Layout.alignment: Qt.AlignVCenter }
         Controls.TextField {
             Layout.fillWidth: true
-            text: draft && draft.current ? formatAmount(draft.current.amount) : ""
-            onTextChanged: {
-                if (!draft) return
-                var s = text ? text.trim() : ""
-                if (s.length === 0) {
-                    draft.transactions.setAmount(draft.currentIndex, 0.0)
-                    return
-                }
-                try {
-                    if (s.indexOf(',') !== -1) {
-                        s = s.replace(/\./g, '')
-                    }
-                    s = s.replace(/,/g, '.')
-                    s = s.replace(/\s/g, '')
-                } catch(e) { }
-                var v = parseFloat(s)
-                if (isNaN(v)) v = 0.0
-                draft.transactions.setAmount(draft.currentIndex, v)
-            }
+            text: currentTransaction() ? formatAmount(currentTransaction().amount) : ""
+            onTextChanged: updateAmount(text)
         }
 
         Label { text: qsTr("Transaction type"); Layout.alignment: Qt.AlignVCenter }
@@ -122,8 +147,8 @@ Item {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 2
-                spacing: 2
+                anchors.margins: Theme.margins
+                spacing: Theme.margins
 
                 ListView {
                     id: propertyListView
@@ -135,23 +160,15 @@ Item {
 
                     delegate: RowLayout {
                         Layout.fillWidth: true
-                        spacing: 2
+                        spacing: Theme.margins
                         Layout.alignment: Qt.AlignVCenter
 
                         Controls.CheckBox {
                             id: propCheck
                             Layout.preferredWidth: 28
-                            Layout.margins: 2
+                            Layout.margins: Theme.margins
                             checked: (draft && draft.current && draft.current.propertyIds && model.id) ? draft.current.propertyIds.indexOf(model.id) !== -1 : false
-                            onClicked: {
-                                if (!draft || !draft.current || !model.id) return
-                                if (propCheck.checked) {
-                                    draft.transactions.setProperties(draft.currentIndex, [model.id])
-                                } else {
-                                    draft.transactions.setProperties(draft.currentIndex, [])
-                                }
-                                if (draft && draft.refresh) draft.refresh()
-                            }
+                            onClicked: setPropertySelected(model.id, propCheck.checked)
                         }
 
                         ColumnLayout {

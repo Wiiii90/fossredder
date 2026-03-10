@@ -18,10 +18,10 @@ Item {
                 anchors.fill: parent
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 8
-                    spacing: 8
+                    anchors.margins: Theme.pageMargin
+                    spacing: Theme.spacingMedium
 
-                    Label { text: qsTr("Annual"); font.pointSize: 18 }
+                    Label { text: qsTr("Annual"); font.pointSize: Theme.fontSizeTitle + Theme.margins }
 
                     RowLayout {
                         Layout.fillWidth: true

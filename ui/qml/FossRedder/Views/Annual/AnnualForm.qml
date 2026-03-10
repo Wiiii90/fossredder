@@ -6,12 +6,27 @@ import FossRedder.Controls 1.0 as Controls
 
 Item {
     anchors.fill: parent
+
+    function createAnnual() {
+        if (typeof annualController === 'undefined' || !annualController) return
+        try {
+            var year = parseInt(yearField.text)
+            if (isNaN(year)) return
+            if (typeof annualController.addAnnual === 'function') {
+                var id = annualController.addAnnual(year)
+                if (id && id.length > 0) uiData.selectedAnnualId = id
+            }
+        } catch(e) {
+        }
+        if (stackView) stackView.pop()
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 8
+        anchors.margins: Theme.pageMargin
+        spacing: Theme.spacingMedium
 
-        Label { text: qsTr("New Year"); font.pointSize: 18 }
+        Label { text: qsTr("New Year"); font.pointSize: Theme.fontSizeTitle + Theme.margins }
 
         Controls.TextField { id: yearField; placeholderText: qsTr("Year (e.g. 2025)") }
 
@@ -21,20 +36,7 @@ Item {
             Controls.Button {
                 text: qsTr("Create")
                 enabled: yearField.text.length > 0
-                onClicked: {
-                    if (typeof annualController === 'undefined' || !annualController) return
-                    try {
-                        var y = parseInt(yearField.text)
-                        if (isNaN(y)) return
-                        if (typeof annualController.addAnnual === 'function') {
-                            var id = annualController.addAnnual(y)
-                            if (id && id.length > 0) uiData.selectedAnnualId = id
-                        } else {
-                            var idx = uiData.annuals.rowCount ? uiData.annuals.rowCount() : -1
-                        }
-                    } catch(e) {}
-                    if (stackView) stackView.pop()
-                }
+                onClicked: createAnnual()
             }
         }
     }

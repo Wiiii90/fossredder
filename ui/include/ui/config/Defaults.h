@@ -13,14 +13,41 @@ constexpr int kMainWindowDefaultHeight = 800;
 inline const auto kAppQmlDirName = QStringLiteral("qml");
 inline const auto kImageFormatsDirName = QStringLiteral("imageformats");
 inline const auto kTranslationsDirName = QStringLiteral("i18n");
+inline const auto kTranslationResourcePrefix = QStringLiteral(":/i18n/");
 inline const auto kTranslationBaseName = QStringLiteral("fossredder");
 inline constexpr auto kLanguageEnglishCode = "en";
 inline constexpr auto kLanguageGermanCode = "de";
 inline constexpr auto kLanguageSettingsKey = "general/language";
 inline const auto kQrcQmlImportPath = QStringLiteral("qrc:/qml");
 
+namespace qmlRegistration {
+
+inline constexpr auto kContractsTypeName = "UIContracts";
+inline constexpr auto kContractsTypeDescription = "UI controller contracts are exposed as enums only";
+
+}
+
+namespace errorCodes {
+
+inline constexpr auto kExportRunnerUnavailable = "UI_EXPORT_RUNNER_UNAVAILABLE";
+
+}
+
 constexpr int kImportRunKeepCount = 20;
-constexpr double kInitialImportProgress = 0.01;
+
+namespace importProgress {
+
+constexpr double kMinimum = 0.0;
+constexpr double kInitial = 0.01;
+constexpr double kMaximum = 1.0;
+
+}
+
+namespace importPaging {
+
+constexpr int kNone = 0;
+
+}
 
 inline const auto kImportProgressPagePattern = QStringLiteral("\\[(\\d+)\\s*/\\s*(\\d+)\\]");
 inline const auto kImportRunTimestampFormat = QStringLiteral("yyyyMMddHHmmsszzz");

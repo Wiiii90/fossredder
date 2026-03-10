@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 
 Item {
@@ -31,6 +32,31 @@ Item {
         aliasesField.text = aliases.join("\n")
     }
 
+    function cleanedAliases() {
+        var lines = aliasesField.text.split(/\r?\n/)
+        var cleaned = []
+        for (var i = 0; i < lines.length; ++i) {
+            var value = lines[i].trim()
+            if (value.length === 0) continue
+            cleaned.push(value)
+        }
+        return cleaned
+    }
+
+    function submitActor() {
+        if (!actorController) return
+
+        var cleaned = cleanedAliases()
+        if (isEdit) {
+            actorController.updateActor(current.id, nameField.text, typeField.text, descField.text, cleaned)
+            return
+        }
+
+        var id = actorController.addActor(nameField.text, typeField.text, descField.text, cleaned)
+        clearFields()
+        if (uiData && id && id.length > 0) uiData.selectedActorId = id
+    }
+
     Connections {
         target: current
         function onChanged() { syncFields() }
@@ -40,12 +66,12 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 10
+        anchors.margins: Theme.pageMargin
+        spacing: Theme.spacingMedium
 
         Label {
             text: isEdit ? qsTr("Edit Actor") : qsTr("Create Actor")
-            font.pointSize: 18
+            font.pointSize: Theme.fontSizeTitle + Theme.margins
         }
 
         Controls.TextField {
@@ -64,7 +90,7 @@ Item {
             id: descField
             placeholderText: qsTr("Description")
             Layout.fillWidth: true
-            Layout.preferredHeight: 120
+            Layout.preferredHeight: Theme.chartLegendHeight
             wrapMode: TextArea.Wrap
         }
 
@@ -75,8 +101,8 @@ Item {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 8
-                spacing: 6
+                anchors.margins: Theme.spacingMedium
+                spacing: Theme.spacingSmall
 
                 Label {
                     text: qsTr("One alias per line. Used for auto-matching during import.")
@@ -108,25 +134,7 @@ Item {
             Controls.Button {
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: nameField.text.length > 0
-                onClicked: {
-                    if (!actorController) return
-
-                    var lines = aliasesField.text.split(/\r?\n/)
-                    var cleaned = []
-                    for (var i = 0; i < lines.length; ++i) {
-                        var t = lines[i].trim()
-                        if (t.length === 0) continue
-                        cleaned.push(t)
-                    }
-
-                    if (isEdit) {
-                        actorController.updateActor(current.id, nameField.text, typeField.text, descField.text, cleaned)
-                    } else {
-                        var id = actorController.addActor(nameField.text, typeField.text, descField.text, cleaned)
-                        clearFields()
-                        if (uiData && id && id.length > 0) uiData.selectedActorId = id
-                    }
-                }
+                onClicked: submitActor()
             }
 
             Controls.Button {

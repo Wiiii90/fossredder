@@ -1,16 +1,15 @@
 #pragma once
 
-#include <QAbstractListModel>
 #include <QObject>
 
-#include <vector>
-
+#include "ui/models/RowListModel.h"
 #include "ui/models/TransactionDraft.h"
 
 namespace ui {
 
-class TransactionDraftList : public QAbstractListModel {
+class TransactionDraftList : public models::RowListModel<TransactionDraft> {
     Q_OBJECT
+    using Base = models::RowListModel<TransactionDraft>;
 public:
     enum Roles {
         NameRole = Qt::UserRole + 1,
@@ -30,12 +29,11 @@ public:
 
     explicit TransactionDraftList(QObject* parent = nullptr);
 
-    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
     void setDrafts(std::vector<TransactionDraft> drafts);
-    const std::vector<TransactionDraft>& drafts() const noexcept { return drafts_; }
+    const std::vector<TransactionDraft>& drafts() const noexcept { return rows(); }
 
     Q_INVOKABLE QVariantMap get(int index) const;
 
@@ -58,7 +56,18 @@ public:
     Q_INVOKABLE void setType(int index, const QString& v);
 
 private:
-    std::vector<TransactionDraft> drafts_;
+    template <typename TValue, typename Accessor>
+    void updateField(int index, TValue value, int role, Accessor&& accessor)
+    {
+        auto* draft = rowPtr(index);
+        if (!draft) return;
+
+        auto& field = accessor(*draft);
+        if (field == value) return;
+
+        field = std::move(value);
+        emitRowChanged(index, {role});
+    }
 };
 
 }

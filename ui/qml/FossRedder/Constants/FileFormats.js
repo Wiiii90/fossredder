@@ -1,24 +1,31 @@
 .pragma library
 
-var formatIds = {
-    csv: 0,
-    xlsx: 1
+var importSources = {
+    pdf: {
+        extension: "pdf",
+        label: "PDF"
+    }
 }
 
-var extensions = {
-    pdf: "pdf",
-    csv: "csv",
-    xlsx: "xlsx"
+var exportFormats = {
+    csv: {
+        extension: "csv",
+        label: "CSV"
+    },
+    xlsx: {
+        extension: "xlsx",
+        label: "XLSX"
+    }
 }
 
-var fileNames = {
-    exportBaseName: "export"
+var exportDefaults = {
+    baseName: "export"
 }
 
 function dotExtension(extension) {
     return "." + extension
 }
 
-function extensionForExportFormat(formatId) {
-    return formatId === formatIds.csv ? extensions.csv : extensions.xlsx
+function supportedExportLabels() {
+    return [exportFormats.csv.label, exportFormats.xlsx.label]
 }

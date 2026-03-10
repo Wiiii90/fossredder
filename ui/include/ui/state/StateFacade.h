@@ -5,6 +5,8 @@
 
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
+#include "ui/models/TransactionFilter.h"
+#include "ui/state/SelectionState.h"
 #include "ui/state/SessionStore.h"
 
 namespace ui {
@@ -75,8 +77,8 @@ public:
     AnnualSelection* selectedAnnual();
 
     Q_INVOKABLE QVariantList statementTransactionIds(const QString& statementId) const;
-    Q_INVOKABLE QObject* statementTransactions(const QString& statementId);
-    Q_INVOKABLE QObject* propertyTransactions(const QString& propertyId);
+    Q_INVOKABLE TransactionFilter* statementTransactions(const QString& statementId);
+    Q_INVOKABLE TransactionFilter* propertyTransactions(const QString& propertyId);
     Q_INVOKABLE QStringList propertyContractTypes(const QString& propertyId) const;
     Q_INVOKABLE QVariantMap propertyTransactionSums(const QString& propertyId, const QString& contractType = QString()) const;
     Q_INVOKABLE QString propertyName(const QString& id) const;
@@ -99,7 +101,8 @@ signals:
     void lastAnalysisResultChanged();
 
 private:
-    SessionStore session_;
+    SessionStore store_;
+    SelectionState selection_;
 
     QVariant lastAnalysisResult_;
 };

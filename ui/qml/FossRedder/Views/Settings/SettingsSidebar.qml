@@ -11,7 +11,7 @@ Item {
     ColumnLayout {
         id: col
         anchors.fill: parent
-        anchors.margins: 8
+        anchors.margins: Theme.settings.margin
         spacing: Theme.spacingSmall
 
         
@@ -27,7 +27,7 @@ Item {
                 { id: "export", cat: 3, text: qsTr("Export") },
                 { id: "advanced", cat: 4, text: qsTr("Advanced") }
             ]
-            spacing: 6
+            spacing: Theme.settings.sidebarSpacing
 
             delegate: Components.ListRow {
                 width: list.width

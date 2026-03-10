@@ -1,34 +1,30 @@
 #include "ui/controllers/AnnualController.h"
 
 #include "ui/controllers/ControllerGuard.h"
+#include "ui/controllers/ControllerStrings.h"
+#include "ui/observability/Origins.h"
 
 namespace ui {
 
-AnnualController::AnnualController(AppStateController* core, QObject* parent)
-    : QObject(parent)
-    , core_(core)
-{
+AnnualController::AnnualController(AppStateController *core, QObject *parent)
+    : QObject(parent), core_(core) {}
+
+QString AnnualController::addAnnual(int year) {
+  return controllers::guard::invokeValue<QString>(
+      core_, observability::origins::controller::annual::kAdd, {},
+      [&]() { return QString::fromStdString(core_->addAnnual(year)); });
 }
 
-QString AnnualController::addAnnual(int year)
-{
-    return controllers::guard::invokeValue<QString>(core_, "ui::AnnualController::addAnnual", {}, [&]() {
-        return QString::fromStdString(core_->addAnnual(year));
-    });
+void AnnualController::updateAnnual(const QString &id, int year) {
+  controllers::guard::invokeVoid(
+      core_, observability::origins::controller::annual::kUpdate,
+      [&]() { core_->updateAnnual(strings::toStdString(id), year); });
 }
 
-void AnnualController::updateAnnual(const QString& id, int year)
-{
-    controllers::guard::invokeVoid(core_, "ui::AnnualController::updateAnnual", [&]() {
-        core_->updateAnnual(id.toStdString(), year);
-    });
+void AnnualController::deleteAnnual(const QString &id) {
+  controllers::guard::invokeVoid(
+      core_, observability::origins::controller::annual::kDelete,
+      [&]() { core_->deleteAnnual(strings::toStdString(id)); });
 }
 
-void AnnualController::deleteAnnual(const QString& id)
-{
-    controllers::guard::invokeVoid(core_, "ui::AnnualController::deleteAnnual", [&]() {
-        core_->deleteAnnual(id.toStdString());
-    });
-}
-
-}
+} // namespace ui

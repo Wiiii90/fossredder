@@ -2,20 +2,15 @@
 
 #include <QVariant>
 
+#include "ui/payload/PayloadKeys.h"
+
 namespace ui {
 
-AnnualList::AnnualList(QObject* parent) : QAbstractListModel(parent) {}
-
-int AnnualList::rowCount(const QModelIndex& parent) const {
-    if (parent.isValid()) return 0;
-    return static_cast<int>(annuals_.size());
-}
+AnnualList::AnnualList(QObject* parent) : Base(parent) {}
 
 QVariant AnnualList::data(const QModelIndex& index, int role) const {
     if (!index.isValid()) return {};
-    const int row = index.row();
-    if (row < 0 || row >= static_cast<int>(annuals_.size())) return {};
-    const auto& a = annuals_[row];
+    const auto& a = itemAtRow(index.row());
     if (!a) return {};
 
     switch (role) {
@@ -28,27 +23,10 @@ QVariant AnnualList::data(const QModelIndex& index, int role) const {
 
 QHash<int, QByteArray> AnnualList::roleNames() const {
     QHash<int, QByteArray> roles;
-    roles[IdRole] = "id";
-    roles[YearRole] = "year";
-    roles[VerificationRole] = "verificationState";
+    roles[IdRole] = ui::payload::keys::common::kId.toUtf8();
+    roles[YearRole] = ui::payload::keys::annual::kYear.toUtf8();
+    roles[VerificationRole] = ui::payload::keys::annual::kVerificationState.toUtf8();
     return roles;
-}
-
-void AnnualList::setAnnuals(std::vector<std::shared_ptr<Annual>> annuals) {
-    beginResetModel();
-    annuals_ = std::move(annuals);
-    endResetModel();
-}
-
-const std::vector<std::shared_ptr<Annual>>& AnnualList::annuals() const {
-    return annuals_;
-}
-
-void AnnualList::removeAt(int row) {
-    if (row < 0 || row >= static_cast<int>(annuals_.size())) return;
-    beginRemoveRows(QModelIndex(), row, row);
-    annuals_.erase(annuals_.begin() + row);
-    endRemoveRows();
 }
 
 }

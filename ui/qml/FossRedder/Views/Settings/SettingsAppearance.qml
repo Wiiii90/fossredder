@@ -2,7 +2,6 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
-import FossRedder.Controls 1.0 as Controls
 
 Flickable {
     Layout.fillWidth: true
@@ -15,25 +14,35 @@ Flickable {
         Layout.fillWidth: true
         Layout.fillHeight: true
         anchors.fill: parent
-        spacing: 8
-        anchors.margins: 8
+        spacing: Theme.settings.spacing
+        anchors.margins: Theme.settings.margin
 
         GroupBox {
             Layout.fillWidth: true
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 8
+                spacing: Theme.settings.spacing
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Theme"); Layout.fillWidth: true }
-                    Controls.ComboBox { model: [qsTr("System"), qsTr("Light"), qsTr("Dark")]; currentIndex: 0 }
+                    Label { text: qsTr("Theme source"); Layout.fillWidth: true }
+                    Label {
+                        Layout.fillWidth: true
+                        text: qsTr("The current appearance is defined centrally in Theme.qml.")
+                        color: Theme.textMuted
+                        wrapMode: Text.WordWrap
+                    }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Font size"); Layout.fillWidth: true }
-                    Controls.ComboBox { model: [qsTr("Small"), qsTr("Normal"), qsTr("Large")]; currentIndex: 1 }
+                    Label { text: qsTr("Font sizing"); Layout.fillWidth: true }
+                    Label {
+                        Layout.fillWidth: true
+                        text: qsTr("Typography currently follows the shared theme and is not configured per user yet.")
+                        color: Theme.textMuted
+                        wrapMode: Text.WordWrap
+                    }
                 }
             }
         }

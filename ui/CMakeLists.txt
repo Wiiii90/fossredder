@@ -9,21 +9,128 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt6 COMPONENTS Quick Qml QuickControls2 Widgets QuickWidgets Svg QUIET)
 find_package(Qt6 COMPONENTS Concurrent QUIET)
 
-file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.qrc)
+set(UI_SOURCES
+    src/MainWindow.cpp
+    src/actions/Actions.cpp
+    src/analysis/AnalysisPayloadMapper.cpp
+    src/bootstrap/QmlRuntime.cpp
+    src/controllers/ActorController.cpp
+    src/controllers/AnalysisController.cpp
+    src/controllers/AnnualController.cpp
+    src/controllers/ContractController.cpp
+    src/controllers/DraftController.cpp
+    src/controllers/ExportController.cpp
+    src/controllers/FileSystemController.cpp
+    src/controllers/ImportController.cpp
+    src/controllers/LanguageController.cpp
+    src/controllers/PropertyController.cpp
+    src/controllers/StatementController.cpp
+    src/controllers/StorageController.cpp
+    src/controllers/TransactionController.cpp
+    src/dialogs/FileDialogs.cpp
+    src/export/AppStateSnapshot.cpp
+    src/export/ExportRunner.cpp
+    src/import/ImportDraftMapper.cpp
+    src/import/ImportJobBridge.cpp
+    src/import/ImportRunStore.cpp
+    src/import/ImportState.cpp
+    src/models/ActorList.cpp
+    src/models/AnalysisList.cpp
+    src/models/AnnualList.cpp
+    src/models/ContractList.cpp
+    src/models/ImportRunList.cpp
+    src/models/PropertyList.cpp
+    src/models/StatementDraft.cpp
+    src/models/StatementList.cpp
+    src/models/TransactionDraftList.cpp
+    src/models/TransactionFilter.cpp
+    src/models/TransactionList.cpp
+    src/providers/DraftProofProvider.cpp
+    src/state/FilterState.cpp
+    src/state/MetricsState.cpp
+    src/state/NavigationState.cpp
+    src/state/PropertyNameCatalog.cpp
+    src/state/SelectionState.cpp
+    src/state/SessionModels.cpp
+    src/state/SessionMutationState.cpp
+    src/state/SessionStore.cpp
+    src/state/StateFacade.cpp
+    src/window/CloseWorkflow.cpp
+    src/window/DropController.cpp
+    src/window/MainWindowContext.cpp
+    src/workflows/FileWorkflow.cpp
+    qml/qml.qrc
+)
 
-# Also include public headers so AUTOMOC picks up Q_OBJECT macros in headers
-file(GLOB_RECURSE HDRS CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
+set(UI_HEADERS
+    include/MainWindow.h
+    include/ui/pch.h
+    include/ui/actions/Actions.h
+    include/ui/analysis/AnalysisPayloadMapper.h
+    include/ui/bootstrap/QmlContracts.h
+    include/ui/bootstrap/QmlRuntime.h
+    include/ui/config/Defaults.h
+    include/ui/controllers/ActorController.h
+    include/ui/controllers/AnalysisController.h
+    include/ui/controllers/AnnualController.h
+    include/ui/controllers/ContractController.h
+    include/ui/controllers/ControllerContracts.h
+    include/ui/controllers/ControllerGuard.h
+    include/ui/controllers/ControllerStrings.h
+    include/ui/controllers/DraftController.h
+    include/ui/controllers/ExportController.h
+    include/ui/controllers/FileSystemController.h
+    include/ui/controllers/ImportController.h
+    include/ui/controllers/LanguageController.h
+    include/ui/controllers/PropertyController.h
+    include/ui/controllers/StatementController.h
+    include/ui/controllers/StorageController.h
+    include/ui/controllers/TransactionController.h
+    include/ui/dialogs/FileDialogs.h
+    include/ui/export/AppStateSnapshot.h
+    include/ui/export/ExportRunner.h
+    include/ui/import/ImportDraftMapper.h
+    include/ui/import/ImportJobBridge.h
+    include/ui/import/ImportRunStore.h
+    include/ui/import/ImportState.h
+    include/ui/models/ActorList.h
+    include/ui/models/AnalysisList.h
+    include/ui/models/AnnualList.h
+    include/ui/models/ContractList.h
+    include/ui/models/ImportRunList.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/models/IndexedListModel.h
+    include/ui/models/PropertyList.h
+    include/ui/models/RowListModel.h
+    include/ui/models/StatementDraft.h
+    include/ui/models/StatementList.h
+    include/ui/models/TransactionDraft.h
+    include/ui/models/TransactionDraftList.h
+    include/ui/models/TransactionFilter.h
+    include/ui/models/TransactionList.h
+    include/ui/observability/Origins.h
+    include/ui/observability/Trace.h
+    include/ui/payload/PayloadKeys.h
+    include/ui/providers/DraftProofProvider.h
+    include/ui/state/FilterState.h
+    include/ui/state/MetricsState.h
+    include/ui/state/NavigationState.h
+    include/ui/state/AppStateClone.h
+    include/ui/state/PropertyNameCatalog.h
+    include/ui/state/SelectionState.h
+    include/ui/state/SessionModels.h
+    include/ui/state/SessionMutationState.h
+    include/ui/state/SessionStore.h
+    include/ui/state/StateFacade.h
+    include/ui/state/StatusState.h
+    include/ui/text/Text.h
+    include/ui/window/CloseWorkflow.h
+    include/ui/window/DropController.h
+    include/ui/window/MainWindowContext.h
+    include/ui/window/MainWindowTrace.h
+    include/ui/workflows/FileWorkflow.h
+)
 
-# Add QML resources if present (qml folder moved to ui/qml)
-set(QML_QRC "${CMAKE_CURRENT_SOURCE_DIR}/qml/qml.qrc")
-if(EXISTS ${QML_QRC})
-    list(APPEND SRCS ${QML_QRC})
-endif()
-
-add_library(ui_lib STATIC ${SRCS} ${HDRS})
+add_library(ui_lib STATIC ${UI_SOURCES} ${UI_HEADERS})
 
 target_include_directories(ui_lib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

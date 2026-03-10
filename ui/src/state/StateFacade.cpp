@@ -2,131 +2,182 @@
 
 namespace ui {
 
+namespace {
+
+struct SelectionIdsSnapshot {
+    QString actorId;
+    QString propertyId;
+    QString contractId;
+    QString statementId;
+    QString transactionId;
+    QString analysisId;
+    QString annualId;
+};
+
+SelectionIdsSnapshot captureSelectionIds(const SelectionState& selection)
+{
+    return {
+        selection.selectedActorId(),
+        selection.selectedPropertyId(),
+        selection.selectedContractId(),
+        selection.selectedStatementId(),
+        selection.selectedTransactionId(),
+        selection.selectedAnalysisId(),
+        selection.selectedAnnualId()
+    };
+}
+
+void emitSelectionChanges(StateFacade& facade, const SelectionIdsSnapshot& before, const SelectionState& selection)
+{
+    if (selection.selectedActorId() != before.actorId) emit facade.selectedActorIdChanged();
+    if (selection.selectedPropertyId() != before.propertyId) emit facade.selectedPropertyIdChanged();
+    if (selection.selectedContractId() != before.contractId) emit facade.selectedContractIdChanged();
+    if (selection.selectedStatementId() != before.statementId) emit facade.selectedStatementIdChanged();
+    if (selection.selectedTransactionId() != before.transactionId) emit facade.selectedTransactionIdChanged();
+    if (selection.selectedAnalysisId() != before.analysisId) emit facade.selectedAnalysisIdChanged();
+    if (selection.selectedAnnualId() != before.annualId) emit facade.selectedAnnualIdChanged();
+}
+
+}
+
 StateFacade::StateFacade(QObject* parent)
     : QObject(parent)
-    , session_(this, [this](const QString& propertyId) {
-        emit transactionSumsUpdated(propertyId);
-    })
+    , store_(this)
+    , selection_(store_.models().actors(),
+                 store_.models().properties(),
+                 store_.models().contracts(),
+                 store_.models().statements(),
+                 store_.models().transactions(),
+                 store_.models().analyses(),
+                 store_.models().annuals(),
+                 this)
 {
+    QObject::connect(&store_, &SessionStore::selectionRefreshRequested, this, [this]() {
+        const auto before = captureSelectionIds(selection_);
+        selection_.refreshAll();
+        emitSelectionChanges(*this, before, selection_);
+    });
+    QObject::connect(&store_, &SessionStore::transactionSumsUpdated, this, &StateFacade::transactionSumsUpdated);
 }
 
 void StateFacade::loadFromState(const AppState& state)
 {
-    session_.loadFromState(state);
+    store_.loadFromState(state);
     const QVariant previousAnalysisResult = lastAnalysisResult_;
     lastAnalysisResult_.clear();
     if (lastAnalysisResult_ != previousAnalysisResult) emit lastAnalysisResultChanged();
 }
 
-ActorList* StateFacade::actors() noexcept { return session_.actors(); }
-PropertyList* StateFacade::properties() noexcept { return session_.properties(); }
-ContractList* StateFacade::contracts() noexcept { return session_.contracts(); }
-StatementList* StateFacade::statements() noexcept { return session_.statements(); }
-TransactionList* StateFacade::transactions() noexcept { return session_.transactions(); }
-AnalysisList* StateFacade::analyses() noexcept { return session_.analyses(); }
-AnnualList* StateFacade::annuals() noexcept { return session_.annuals(); }
+ActorList* StateFacade::actors() noexcept { return &store_.models().actors(); }
+PropertyList* StateFacade::properties() noexcept { return &store_.models().properties(); }
+ContractList* StateFacade::contracts() noexcept { return &store_.models().contracts(); }
+StatementList* StateFacade::statements() noexcept { return &store_.models().statements(); }
+TransactionList* StateFacade::transactions() noexcept { return &store_.models().transactions(); }
+AnalysisList* StateFacade::analyses() noexcept { return &store_.models().analyses(); }
+AnnualList* StateFacade::annuals() noexcept { return &store_.models().annuals(); }
 
-QString StateFacade::selectedActorId() const { return session_.selectedActorId(); }
-QString StateFacade::selectedPropertyId() const { return session_.selectedPropertyId(); }
-QString StateFacade::selectedContractId() const { return session_.selectedContractId(); }
-QString StateFacade::selectedStatementId() const { return session_.selectedStatementId(); }
-QString StateFacade::selectedTransactionId() const { return session_.selectedTransactionId(); }
-QString StateFacade::selectedAnalysisId() const { return session_.selectedAnalysisId(); }
-QString StateFacade::selectedAnnualId() const { return session_.selectedAnnualId(); }
+QString StateFacade::selectedActorId() const { return selection_.selectedActorId(); }
+QString StateFacade::selectedPropertyId() const { return selection_.selectedPropertyId(); }
+QString StateFacade::selectedContractId() const { return selection_.selectedContractId(); }
+QString StateFacade::selectedStatementId() const { return selection_.selectedStatementId(); }
+QString StateFacade::selectedTransactionId() const { return selection_.selectedTransactionId(); }
+QString StateFacade::selectedAnalysisId() const { return selection_.selectedAnalysisId(); }
+QString StateFacade::selectedAnnualId() const { return selection_.selectedAnnualId(); }
 
 void StateFacade::setSelectedActorId(const QString& id)
 {
-    if (session_.setSelectedActorId(id)) emit selectedActorIdChanged();
+    if (selection_.setSelectedActorId(id)) emit selectedActorIdChanged();
 }
 
 void StateFacade::setSelectedPropertyId(const QString& id)
 {
-    if (session_.setSelectedPropertyId(id)) emit selectedPropertyIdChanged();
+    if (selection_.setSelectedPropertyId(id)) emit selectedPropertyIdChanged();
 }
 
 void StateFacade::setSelectedContractId(const QString& id)
 {
-    if (session_.setSelectedContractId(id)) emit selectedContractIdChanged();
+    if (selection_.setSelectedContractId(id)) emit selectedContractIdChanged();
 }
 
 void StateFacade::setSelectedStatementId(const QString& id)
 {
-    if (session_.setSelectedStatementId(id)) emit selectedStatementIdChanged();
+    if (selection_.setSelectedStatementId(id)) emit selectedStatementIdChanged();
 }
 
 void StateFacade::setSelectedTransactionId(const QString& id)
 {
-    if (session_.setSelectedTransactionId(id)) emit selectedTransactionIdChanged();
+    if (selection_.setSelectedTransactionId(id)) emit selectedTransactionIdChanged();
 }
 
 void StateFacade::setSelectedAnalysisId(const QString& id)
 {
-    if (session_.setSelectedAnalysisId(id)) emit selectedAnalysisIdChanged();
+    if (!selection_.setSelectedAnalysisId(id)) return;
+
+    if (lastAnalysisResult_.isValid()) {
+        lastAnalysisResult_.clear();
+        emit lastAnalysisResultChanged();
+    }
+
+    emit selectedAnalysisIdChanged();
 }
 
 void StateFacade::setSelectedAnnualId(const QString& id)
 {
-    if (session_.setSelectedAnnualId(id)) emit selectedAnnualIdChanged();
+    if (selection_.setSelectedAnnualId(id)) emit selectedAnnualIdChanged();
 }
 
-ActorSelection* StateFacade::selectedActor() { return session_.selectedActor(); }
-PropertySelection* StateFacade::selectedProperty() { return session_.selectedProperty(); }
-ContractSelection* StateFacade::selectedContract() { return session_.selectedContract(); }
-StatementSelection* StateFacade::selectedStatement() { return session_.selectedStatement(); }
-TransactionSelection* StateFacade::selectedTransaction() { return session_.selectedTransaction(); }
-AnalysisSelection* StateFacade::selectedAnalysis() { return session_.selectedAnalysis(); }
-AnnualSelection* StateFacade::selectedAnnual() { return session_.selectedAnnual(); }
+ActorSelection* StateFacade::selectedActor() { return selection_.selectedActor(); }
+PropertySelection* StateFacade::selectedProperty() { return selection_.selectedProperty(); }
+ContractSelection* StateFacade::selectedContract() { return selection_.selectedContract(); }
+StatementSelection* StateFacade::selectedStatement() { return selection_.selectedStatement(); }
+TransactionSelection* StateFacade::selectedTransaction() { return selection_.selectedTransaction(); }
+AnalysisSelection* StateFacade::selectedAnalysis() { return selection_.selectedAnalysis(); }
+AnnualSelection* StateFacade::selectedAnnual() { return selection_.selectedAnnual(); }
 
 QVariantList StateFacade::statementTransactionIds(const QString& statementId) const
 {
-    return session_.statementTransactionIds(statementId);
+    QVariantList out;
+    if (statementId.isEmpty()) return out;
+    for (const auto& transaction : store_.models().transactions().transactions()) {
+        if (!transaction) continue;
+        if (QString::fromStdString(transaction->statementId) == statementId) out.push_back(QString::fromStdString(transaction->id));
+    }
+    return out;
 }
 
-QObject* StateFacade::statementTransactions(const QString& statementId)
+TransactionFilter* StateFacade::statementTransactions(const QString& statementId)
 {
-    return session_.statementTransactions(statementId);
+    return store_.statementTransactions(statementId, this);
 }
 
-QObject* StateFacade::propertyTransactions(const QString& propertyId)
+TransactionFilter* StateFacade::propertyTransactions(const QString& propertyId)
 {
-    return session_.propertyTransactions(propertyId);
+    return store_.propertyTransactions(propertyId, this);
 }
 
 QStringList StateFacade::propertyContractTypes(const QString& propertyId) const
 {
-    return session_.propertyContractTypes(propertyId);
+    return store_.propertyContractTypes(propertyId);
 }
 
 QVariantMap StateFacade::propertyTransactionSums(const QString& propertyId, const QString& contractType) const
 {
-    return session_.propertyTransactionSums(propertyId, contractType);
+    return store_.propertyTransactionSums(propertyId, contractType);
 }
 
 QString StateFacade::propertyName(const QString& id) const
 {
-    return session_.propertyName(id);
+    return store_.propertyName(id);
 }
 
 void StateFacade::applyDeletionImpact(const DeletionImpact& impact)
 {
-    const QString previousActorId = session_.selectedActorId();
-    const QString previousPropertyId = session_.selectedPropertyId();
-    const QString previousContractId = session_.selectedContractId();
-    const QString previousStatementId = session_.selectedStatementId();
-    const QString previousTransactionId = session_.selectedTransactionId();
-
-    session_.applyDeletionImpact(impact);
-
-    if (session_.selectedActorId() != previousActorId) emit selectedActorIdChanged();
-    if (session_.selectedPropertyId() != previousPropertyId) emit selectedPropertyIdChanged();
-    if (session_.selectedContractId() != previousContractId) emit selectedContractIdChanged();
-    if (session_.selectedStatementId() != previousStatementId) emit selectedStatementIdChanged();
-    if (session_.selectedTransactionId() != previousTransactionId) emit selectedTransactionIdChanged();
+    store_.applyDeletionImpact(impact);
 }
 
 void StateFacade::setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds)
 {
-    session_.setTransactionPropertyIdsImmediate(txId, propertyIds);
+    store_.setTransactionPropertyIdsImmediate(txId, propertyIds);
 }
 
 }

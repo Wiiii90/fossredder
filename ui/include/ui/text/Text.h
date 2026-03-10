@@ -53,9 +53,12 @@ inline constexpr auto kStorageOpenFailed = "Failed to open file";
 inline constexpr auto kStorageSaveFailed = "Failed to save file";
 inline constexpr auto kStorageSaveAsFailed = "Failed to save file as";
 inline constexpr auto kExportFailed = "Export failed";
+inline constexpr auto kExportStateUnavailable = "Export state not available";
 inline constexpr auto kImportControllerUnavailable = "Import controller not available";
 inline constexpr auto kNoFileSelected = "No file selected";
 inline constexpr auto kImportFailed = "Import failed";
+inline constexpr auto kAnalysisEngineUnavailable = "Analysis engine not available";
+inline constexpr auto kAnalysisStateUnavailable = "Analysis state not available";
 
 }
 
@@ -81,6 +84,27 @@ inline constexpr auto kFinished = "Import finished";
 namespace analysis {
 
 inline constexpr auto kUnassignedContractType = "unassigned";
+
+}
+
+namespace exportRunner {
+
+inline constexpr auto kRunnerUnavailable = "Export runner is not configured";
+inline constexpr auto kStateSnapshotUnavailable = "Export state snapshot is null";
+
+}
+
+namespace contexts {
+
+inline constexpr auto kImportState = "ImportState";
+inline constexpr auto kAnalysisPayloadMapper = "AnalysisPayloadMapper";
+
+}
+
+namespace language {
+
+inline constexpr auto kEnglishLabel = "English";
+inline constexpr auto kGermanLabel = "Deutsch";
 
 }
 

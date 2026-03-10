@@ -5,20 +5,37 @@
 
 namespace ui {
 
-template <typename Selection, typename Collection, typename Mapper>
-void refreshSelection(const QString& selectedId,
-                      const Collection& items,
+template <typename Selection, typename Model, typename CollectionGetter, typename Mapper>
+void refreshSelection(QString& selectedId,
+                      const Model& model,
+                      CollectionGetter&& collectionGetter,
                       Selection& selection,
                       Mapper&& mapper)
 {
     if (selectedId.isEmpty()) { selection.clear(); return; }
-    for (const auto& item : items) {
-        if (!item) continue;
-        if (QString::fromStdString(item->id) != selectedId) continue;
-        mapper(*item, selection);
+
+    const int row = model.findRowById(selectedId);
+    if (row < 0) {
+        selectedId.clear();
+        selection.clear();
         return;
     }
-    selection.clear();
+
+    const auto& items = collectionGetter(model);
+    if (row >= static_cast<int>(items.size())) {
+        selectedId.clear();
+        selection.clear();
+        return;
+    }
+
+    const auto& item = items[static_cast<size_t>(row)];
+    if (!item) {
+        selectedId.clear();
+        selection.clear();
+        return;
+    }
+
+    mapper(*item, selection);
 }
 
 template <typename RefreshFn>
@@ -253,7 +270,7 @@ void SelectionState::refreshAll()
 
 void SelectionState::refreshSelectedActor()
 {
-    refreshSelection(selectedActorId_, actors_.actors(), selectedActor_, [](const Actor& actor, ActorSelection& selection) {
+    refreshSelection(selectedActorId_, actors_, [](const ActorList& model) -> const auto& { return model.actors(); }, selectedActor_, [](const Actor& actor, ActorSelection& selection) {
         QStringList aliases;
         for (const auto& alias : actor.aliases) aliases.push_back(QString::fromStdString(alias));
         selection.set(QString::fromStdString(actor.id),
@@ -266,7 +283,7 @@ void SelectionState::refreshSelectedActor()
 
 void SelectionState::refreshSelectedProperty()
 {
-    refreshSelection(selectedPropertyId_, properties_.properties(), selectedProperty_, [](const Property& property, PropertySelection& selection) {
+    refreshSelection(selectedPropertyId_, properties_, [](const PropertyList& model) -> const auto& { return model.properties(); }, selectedProperty_, [](const Property& property, PropertySelection& selection) {
         selection.set(QString::fromStdString(property.id),
                       QString::fromStdString(property.name),
                       QString::fromStdString(property.address),
@@ -276,7 +293,7 @@ void SelectionState::refreshSelectedProperty()
 
 void SelectionState::refreshSelectedContract()
 {
-    refreshSelection(selectedContractId_, contracts_.contracts(), selectedContract_, [](const Contract& contract, ContractSelection& selection) {
+    refreshSelection(selectedContractId_, contracts_, [](const ContractList& model) -> const auto& { return model.contracts(); }, selectedContract_, [](const Contract& contract, ContractSelection& selection) {
         QStringList actorIds;
         for (const auto& actorId : contract.actorIds) actorIds.push_back(QString::fromStdString(actorId));
         QStringList propertyIds;
@@ -292,14 +309,14 @@ void SelectionState::refreshSelectedContract()
 
 void SelectionState::refreshSelectedStatement()
 {
-    refreshSelection(selectedStatementId_, statements_.statements(), selectedStatement_, [](const Statement& statement, StatementSelection& selection) {
+    refreshSelection(selectedStatementId_, statements_, [](const StatementList& model) -> const auto& { return model.statements(); }, selectedStatement_, [](const Statement& statement, StatementSelection& selection) {
         selection.set(QString::fromStdString(statement.id), QString::fromStdString(statement.name));
     });
 }
 
 void SelectionState::refreshSelectedTransaction()
 {
-    refreshSelection(selectedTransactionId_, transactions_.transactions(), selectedTransaction_, [](const Transaction& transaction, TransactionSelection& selection) {
+    refreshSelection(selectedTransactionId_, transactions_, [](const TransactionList& model) -> const auto& { return model.transactions(); }, selectedTransaction_, [](const Transaction& transaction, TransactionSelection& selection) {
         QStringList propertyIds;
         for (const auto& propertyId : transaction.propertyIds) propertyIds.push_back(QString::fromStdString(propertyId));
         selection.set(QString::fromStdString(transaction.id),
@@ -317,7 +334,7 @@ void SelectionState::refreshSelectedTransaction()
 
 void SelectionState::refreshSelectedAnalysis()
 {
-    refreshSelection(selectedAnalysisId_, analyses_.analyses(), selectedAnalysis_, [](const Analysis& analysis, AnalysisSelection& selection) {
+    refreshSelection(selectedAnalysisId_, analyses_, [](const AnalysisList& model) -> const auto& { return model.analyses(); }, selectedAnalysis_, [](const Analysis& analysis, AnalysisSelection& selection) {
         selection.set(QString::fromStdString(analysis.id),
                       QString::fromStdString(analysis.name),
                       QString::fromStdString(analysis.type));
@@ -326,7 +343,7 @@ void SelectionState::refreshSelectedAnalysis()
 
 void SelectionState::refreshSelectedAnnual()
 {
-    refreshSelection(selectedAnnualId_, annuals_.annuals(), selectedAnnual_, [](const Annual& annual, AnnualSelection& selection) {
+    refreshSelection(selectedAnnualId_, annuals_, [](const AnnualList& model) -> const auto& { return model.annuals(); }, selectedAnnual_, [](const Annual& annual, AnnualSelection& selection) {
         selection.set(QString::fromStdString(annual.id), QString::number(annual.year));
     });
 }

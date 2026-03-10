@@ -25,15 +25,15 @@ Flickable {
         Layout.fillWidth: true
         Layout.fillHeight: true
         anchors.fill: parent
-        spacing: 8
-        anchors.margins: 8
+        spacing: Theme.settings.spacing
+        anchors.margins: Theme.settings.margin
 
         GroupBox {
-            Layout.preferredWidth: 760
+            Layout.preferredWidth: Theme.settings.panelPreferredWidth
             Layout.alignment: Qt.AlignHCenter
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 8
+                spacing: Theme.settings.spacing
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -64,14 +64,20 @@ Flickable {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Default paths"); Layout.fillWidth: true }
+                    Label { text: qsTr("Application directory"); Layout.fillWidth: true }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Controls.TextField { id: defaultDataPathField; Layout.fillWidth: true; placeholderText: qsTr("Select default data folder") }
-                    Controls.Button { text: qsTr("Browse"); onClicked: defaultPicker.open() }
-                    Controls.FilePicker { id: defaultPicker; onAccepted: function(path) { defaultDataPathField.text = path } }
+                    Controls.TextField {
+                        id: appDirectoryField
+                        Layout.fillWidth: true
+                        readOnly: true
+                        text: (typeof fileSystemController !== 'undefined' && fileSystemController)
+                              ? fileSystemController.appDir()
+                              : ""
+                        placeholderText: qsTr("Application directory is not available")
+                    }
                 }
             }
         }

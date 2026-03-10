@@ -10,7 +10,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 8
+        anchors.margins: Theme.spacingMedium
         spacing: Theme.spacingSmall
 
         RowLayout {
@@ -28,8 +28,6 @@ Item {
             Controls.Button {
                 text: qsTr("Clear")
                 enabled: typeof importController !== 'undefined' && importController && importController.runs && importController.runs.count > 0
-                implicitHeight: 32
-                implicitWidth: 88
                 fillColor: Theme.surface
                 textColor: Theme.textPrimary
                 onClicked: if (typeof importController !== 'undefined' && importController && importController.runs) importController.runs.clear()

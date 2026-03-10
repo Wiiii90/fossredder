@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
 import FossRedder.Components 1.0 as Components
+import "../../Constants/Analysis.js" as Analysis
 
 Item {
     id: root
@@ -10,41 +11,18 @@ Item {
     property real histLegendTotal: 0
     property var propListModel: []
 
-    function hashString(s) {
-        var h = 0
-        if (!s) return 0
-        for (var i = 0; i < s.length; ++i) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0 }
-        return Math.abs(h)
-    }
-
     Timer { id: rebuildRetry; interval: 80; repeat: false; running: false; triggeredOnStart: false; onTriggered: { try { rebuild() } catch(e) {} } }
 
-    function detectPlotType() {
+    function currentPlotType() {
         try {
-            if (!uiData || !uiData.lastAnalysisResult || !uiData.lastAnalysisResult.table) return ""
-            var tbl = uiData.lastAnalysisResult.table
-            if (!tbl || tbl.length === 0) return ""
-            var sample = tbl[0]
-            if (!sample || sample.length < 2) return ""
-            var col = (sample.length > 1) ? sample[1] : null
-            var col2 = (sample.length > 2) ? sample[2] : null
-            try {
-                var j = JSON.parse(col)
-                if (j && (j.total !== undefined || j.byContract !== undefined || j.byProperty !== undefined)) return "histogram"
-            } catch(e) {}
-            var n = parseFloat(col)
-            if (!isNaN(n)) return "pie"
-            var n2 = parseFloat(col2)
-            if (!isNaN(n2)) return "pie"
+            return Analysis.plotType(uiData ? uiData.lastAnalysisResult : null)
+        } catch (e) {
             return ""
-        } catch(e) { return "" }
+        }
     }
 
     function colorForKey(k) {
-        try {
-            var palette = Theme.analysisPalette
-            return palette[hashString(k) % palette.length]
-        } catch(e) { return Theme.chartFallback }
+        return Analysis.colorForKey(k, Theme.analysis.palette, Theme.chartFallback)
     }
 
     function rebuild() {
@@ -132,30 +110,29 @@ Item {
             Item {
                 id: pieArea
                 Layout.fillWidth: true
-                Layout.preferredHeight: 320
+                Layout.preferredHeight: Theme.chartPlotPreferredHeight
                 visible: (function() {
-                    var t = ""
                     try {
-                        if (uiData && uiData.lastAnalysisResult && uiData.lastAnalysisResult.type) t = uiData.lastAnalysisResult.type
-                        if (!t) { var d = detectPlotType(); if (d) t = d }
-                        return t === 'pie'
-                    } catch(e) { return false }
+                        return currentPlotType() === Analysis.chartTypes.pie
+                    } catch (e) {
+                        return false
+                    }
                 })()
             
                 RowLayout { anchors.fill: parent; spacing: Theme.spacing
-                    Column { id: pieLegendCol; Layout.preferredWidth: 220; Layout.fillHeight: true; spacing: Theme.spacingSmall
+                    Column { id: pieLegendCol; Layout.preferredWidth: Theme.analysis.layout.splitControlsWidth; Layout.fillHeight: true; spacing: Theme.spacingSmall
                         Label { text: qsTr('Legend'); font.bold: false; color: Theme.chartText }
                         Repeater { model: (uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []
                             delegate: RowLayout { spacing: Theme.spacingSmall; height: 20
-                                Rectangle { width: 10; height: 10; color: colorForKey(modelData && modelData.length>0 ? modelData[0] : index) }
+                                Rectangle { width: Theme.chartLegendMarkerSize; height: Theme.chartLegendMarkerSize; color: colorForKey(modelData && modelData.length>0 ? modelData[0] : index) }
                                 Label { text: (modelData && modelData.length>0) ? modelData[0] : ''; horizontalAlignment: Text.AlignLeft; Layout.preferredWidth: 120 }
-                                Label { text: (function(){ var v = (modelData && modelData.length>1) ? parseFloat(modelData[1])||0 : 0; return ' ' + v.toFixed(2); })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 80 }
-                                Label { text: (function(){ var v = (modelData && modelData.length>1) ? parseFloat(modelData[1])||0 : 0; return (histLegendTotal>0) ? (' ' + ((parseFloat(modelData[1]) / histLegendTotal * 100).toFixed(1) + '%')) : '' })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: 60 }
+                                Label { text: (function(){ var v = (modelData && modelData.length>1) ? parseFloat(modelData[1])||0 : 0; return ' ' + v.toFixed(2); })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: Theme.chartValueLabelWidth }
+                                Label { text: (function(){ var v = (modelData && modelData.length>1) ? parseFloat(modelData[1])||0 : 0; return (histLegendTotal>0) ? (' ' + ((parseFloat(modelData[1]) / histLegendTotal * 100).toFixed(1) + Analysis.text.percentSuffix)) : '' })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: Theme.chartPercentLabelWidth }
                             }
                         }
                     }
 
-                    Components.Pie { id: pie; Layout.fillWidth: true; Layout.preferredHeight: 320 }
+                    Components.Pie { id: pie; Layout.fillWidth: true; Layout.preferredHeight: Theme.chartPlotPreferredHeight }
                 }
             }
 
@@ -163,14 +140,13 @@ Item {
                 id: hist
                 splitProgress: 0.0
                 Layout.fillWidth: true
-                Layout.preferredHeight: 320
+                Layout.preferredHeight: Theme.chartPlotPreferredHeight
                 visible: (function() {
-                    var t = ""
                     try {
-                        if (uiData && uiData.lastAnalysisResult && uiData.lastAnalysisResult.type) t = uiData.lastAnalysisResult.type
-                        if (!t) { var d = detectPlotType(); if (d) t = d }
-                        return t === 'histogram'
-                    } catch(e) { return false }
+                        return currentPlotType() === Analysis.chartTypes.histogram
+                    } catch (e) {
+                        return false
+                    }
                 })()
             }
         }
@@ -181,7 +157,7 @@ Item {
             Item { Layout.fillWidth: true }
             RowLayout {
                 spacing: Theme.spacingSmall
-                visible: Boolean(uiData && uiData.lastAnalysisResult && (uiData.lastAnalysisResult.type === 'histogram' || (uiData.lastAnalysisResult.config && (function(){ try { var c = JSON.parse(uiData.lastAnalysisResult.config); return c.plotType === 'histogram' } catch(e){ return false } })())) )
+                visible: currentPlotType() === Analysis.chartTypes.histogram
                 Label { text: qsTr('Split by property') }
                 Switch { id: splitSwitch; onCheckedChanged: { hist.splitProgress = checked ? 1.0 : 0.0; try { if (hist.requestPaint) hist.requestPaint(); } catch(e) {} } }
             }
@@ -191,7 +167,7 @@ Item {
         Flickable {
             id: histLegendFlick
             Layout.fillWidth: true
-            Layout.preferredHeight: 120
+            Layout.preferredHeight: Theme.chartLegendHeight
             clip: true
             contentWidth: histLegendFlow.implicitWidth
             contentHeight: histLegendFlow.implicitHeight
@@ -209,10 +185,10 @@ Item {
                     model: histLegendModel
                     delegate: RowLayout {
                         spacing: Theme.spacingSmall
-                        Rectangle { width: 10; height: 10; color: colorForKey(modelData && modelData.name ? modelData.name : modelData) }
-                        Label { text: (modelData && modelData.name) ? modelData.name : ''; font.pixelSize: 12 }
-                        Label { text: (modelData && modelData.value) ? (' ' + parseFloat(modelData.value).toFixed(2)) : ' 0.00'; font.pixelSize: 12 }
-                        Label { text: (modelData && modelData.value && histLegendTotal>0) ? (' ' + ((parseFloat(modelData.value) / histLegendTotal * 100).toFixed(1) + '%')) : '' ; font.pixelSize: 12 }
+                        Rectangle { width: Theme.chartLegendMarkerSize; height: Theme.chartLegendMarkerSize; color: colorForKey(modelData && modelData.name ? modelData.name : modelData) }
+                        Label { text: (modelData && modelData.name) ? modelData.name : ''; font.pixelSize: Theme.fontSize }
+                        Label { text: (modelData && modelData.value) ? (' ' + parseFloat(modelData.value).toFixed(2)) : (' ' + Analysis.text.defaultLegendValue); font.pixelSize: Theme.fontSize }
+                        Label { text: (modelData && modelData.value && histLegendTotal>0) ? (' ' + ((parseFloat(modelData.value) / histLegendTotal * 100).toFixed(1) + Analysis.text.percentSuffix)) : '' ; font.pixelSize: Theme.fontSize }
                     }
                 }
             }

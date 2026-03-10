@@ -8,13 +8,13 @@ import FossRedder.Views 1.0 as Views
 Item {
     id: page
     property var stackView
-    width: stackView ? stackView.width : (parent ? parent.width : 800)
-    height: stackView ? stackView.height : (parent ? parent.height : 600)
+    width: stackView ? stackView.width : (parent ? parent.width : Theme.analysis.layout.defaultWidth)
+    height: stackView ? stackView.height : (parent ? parent.height : Theme.analysis.layout.defaultHeight)
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 8
+        anchors.margins: Theme.pageMargin
+        spacing: Theme.settings.spacing
 
         RowLayout { Layout.fillWidth: true
             Controls.Button { text: qsTr("Back"); onClicked: {
@@ -27,7 +27,7 @@ Item {
         }
 
         GroupBox { title: qsTr("Preview"); Layout.fillWidth: true; Layout.fillHeight: true
-            ColumnLayout { anchors.fill: parent; anchors.margins: 6; spacing: 6
+            ColumnLayout { anchors.fill: parent; anchors.margins: Theme.chartPanelMargin; spacing: Theme.chartPanelSpacing
                 Loader {
                     id: mainLoader
                     active: true

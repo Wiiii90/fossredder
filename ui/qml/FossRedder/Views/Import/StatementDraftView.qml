@@ -10,9 +10,40 @@ Item {
     property var draft
     implicitWidth: stmtLayout.implicitWidth
 
+    function discardDraft() {
+        if (typeof importController !== 'undefined' && importController) importController.clearDraft()
+        if (typeof uiData !== 'undefined' && uiData) {
+            uiData.selectedStatementId = ""
+            uiData.selectedTransactionId = ""
+        }
+        if (typeof uiNav !== 'undefined' && uiNav) uiNav.section = UiNavigation.Import
+    }
+
+    function finalizeDraft() {
+        if (!draft || typeof draftController === 'undefined' || !draftController) return
+
+        var sid = draftController.finalizeStatementDraft(draft)
+        if (typeof importController !== 'undefined' && importController) importController.clearDraft()
+
+        if (!(sid && sid.length > 0 && uiNav && uiData)) return
+
+        uiData.selectedStatementId = sid
+        try {
+            var transactions = uiData.statementTransactionIds(sid)
+            if (transactions && transactions.length > 0) uiData.selectedTransactionId = transactions[0]
+        } catch(e) {
+        }
+
+        Qt.callLater(function() {
+            uiNav.section = UiNavigation.Booking
+            try { uiNav.bookingView = UiNavigation.Statements } catch(e) {}
+        })
+    }
+
     ColumnLayout {
         id: stmtLayout
         width: parent.width
+        spacing: Theme.spacingSmall
 
         Label {
             visible: !draft
@@ -31,7 +62,7 @@ Item {
 
                 Label {
                     text: qsTr("Statement")
-                    Layout.preferredWidth: 80
+                    Layout.preferredWidth: Theme.chartValueLabelWidth
                 }
 
                 Controls.TextField {
@@ -82,42 +113,13 @@ Item {
                 Controls.Button {
                     text: qsTr("Discard")
                     enabled: !!draft
-                    onClicked: {
-                        if (typeof importController !== 'undefined' && importController) importController.clearDraft()
-                        if (typeof uiData !== 'undefined' && uiData) {
-                            uiData.selectedStatementId = ""
-                            uiData.selectedTransactionId = ""
-                        }
-                        if (typeof uiNav !== 'undefined' && uiNav) uiNav.section = UiNavigation.Import
-                    }
+                    onClicked: discardDraft()
                 }
 
                 Controls.Button {
                     text: qsTr("Finalize")
                     enabled: !!draft
-                    onClicked: {
-                        if (!draft) return;
-                        if (typeof draftController !== 'undefined' && draftController) {
-                            var sid = draftController.finalizeStatementDraft(draft)
-
-                            if (typeof importController !== 'undefined' && importController) importController.clearDraft()
-
-                            if (sid && sid.length > 0 && uiNav && uiData) {
-                                uiData.selectedStatementId = sid
-                                try {
-                                    var txs = uiData.statementTransactionIds(sid)
-                                    if (txs && txs.length > 0) uiData.selectedTransactionId = txs[0]
-                                } catch(e) { /* ignore if method not available */ }
-
-                                Qt.callLater(function() {
-                                    uiNav.section = UiNavigation.Booking
-                                    try { uiNav.bookingView = UiNavigation.Statements } catch(e) {}
-                                })
-                            }
-                            return
-                        }
-
-                    }
+                    onClicked: finalizeDraft()
                 }
             }
         }        

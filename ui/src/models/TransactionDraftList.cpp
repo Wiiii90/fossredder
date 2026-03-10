@@ -7,37 +7,30 @@
 namespace ui {
 
 TransactionDraftList::TransactionDraftList(QObject* parent)
-    : QAbstractListModel(parent)
+    : Base(parent)
 {
-}
-
-int TransactionDraftList::rowCount(const QModelIndex& parent) const
-{
-    if (parent.isValid()) return 0;
-    return static_cast<int>(drafts_.size());
 }
 
 QVariant TransactionDraftList::data(const QModelIndex& index, int role) const
 {
     if (!index.isValid()) return {};
-    const int row = index.row();
-    if (row < 0 || row >= static_cast<int>(drafts_.size())) return {};
-    const auto& t = drafts_[row];
+    const auto* t = rowPtr(index.row());
+    if (!t) return {};
 
     switch (role) {
-    case NameRole: return t.name;
-    case BookingDateRole: return t.bookingDate;
-    case ValutaRole: return t.valuta;
-    case AmountRole: return t.amount;
-    case DescriptionRole: return t.description;
-    case ActorIdRole: return t.actorId;
-    case ActorProposalRole: return t.actorProposal;
-    case MetadataRole: return t.metadata;
-    case ProofImagePathRole: return t.proofImagePath;
-    case AllocatableRole: return t.allocatable;
-    case StatusRole: return t.status;
-    case PropertyIdsRole: return QVariant::fromValue(t.propertyIds);
-    case TypeRole: return t.type;
+    case NameRole: return t->name;
+    case BookingDateRole: return t->bookingDate;
+    case ValutaRole: return t->valuta;
+    case AmountRole: return t->amount;
+    case DescriptionRole: return t->description;
+    case ActorIdRole: return t->actorId;
+    case ActorProposalRole: return t->actorProposal;
+    case MetadataRole: return t->metadata;
+    case ProofImagePathRole: return t->proofImagePath;
+    case AllocatableRole: return t->allocatable;
+    case StatusRole: return t->status;
+    case PropertyIdsRole: return QVariant::fromValue(t->propertyIds);
+    case TypeRole: return t->type;
     default: return {};
     }
 }
@@ -45,170 +38,137 @@ QVariant TransactionDraftList::data(const QModelIndex& index, int role) const
 QHash<int, QByteArray> TransactionDraftList::roleNames() const
 {
     QHash<int, QByteArray> roles;
-    roles[NameRole] = "name";
-    roles[BookingDateRole] = "bookingDate";
-    roles[ValutaRole] = "valuta";
-    roles[AmountRole] = "amount";
-    roles[DescriptionRole] = "description";
-    roles[ActorIdRole] = "actorId";
-    roles[ActorProposalRole] = "actorProposal";
-    roles[MetadataRole] = "metadata";
-    roles[ProofImagePathRole] = "proofImagePath";
-    roles[AllocatableRole] = "allocatable";
-    roles[StatusRole] = "status";
-    roles[PropertyIdsRole] = "propertyIds";
-    roles[TypeRole] = "type";
+    roles[NameRole] = payload::keys::common::kName.toUtf8();
+    roles[BookingDateRole] = payload::keys::transaction::kBookingDate.toUtf8();
+    roles[ValutaRole] = payload::keys::transaction::kValuta.toUtf8();
+    roles[AmountRole] = payload::keys::common::kAmount.toUtf8();
+    roles[DescriptionRole] = payload::keys::common::kDescription.toUtf8();
+    roles[ActorIdRole] = payload::keys::transaction::kActorId.toUtf8();
+    roles[ActorProposalRole] = payload::keys::transaction::kActorProposal.toUtf8();
+    roles[MetadataRole] = payload::keys::common::kMetadata.toUtf8();
+    roles[ProofImagePathRole] = payload::keys::transaction::kProofImagePath.toUtf8();
+    roles[AllocatableRole] = payload::keys::transaction::kAllocatable.toUtf8();
+    roles[StatusRole] = payload::keys::common::kStatus.toUtf8();
+    roles[PropertyIdsRole] = payload::keys::transaction::kPropertyIds.toUtf8();
+    roles[TypeRole] = payload::keys::common::kType.toUtf8();
     return roles;
 }
 
 void TransactionDraftList::setDrafts(std::vector<TransactionDraft> drafts)
 {
-    beginResetModel();
-    drafts_ = std::move(drafts);
-    endResetModel();
+    setRows(std::move(drafts));
 }
 
 QVariantMap TransactionDraftList::get(int index) const
 {
     QVariantMap m;
-    if (index < 0 || index >= static_cast<int>(drafts_.size())) return m;
-    const auto& t = drafts_[index];
-    m[payload::keys::common::kName] = t.name;
-    m[payload::keys::transaction::kBookingDate] = t.bookingDate;
-    m[payload::keys::transaction::kValuta] = t.valuta;
-    m[payload::keys::common::kAmount] = t.amount;
-    m[payload::keys::common::kDescription] = t.description;
-    m[payload::keys::transaction::kActorId] = t.actorId;
-    m[payload::keys::transaction::kActorProposal] = t.actorProposal;
-    m[payload::keys::common::kMetadata] = t.metadata;
-    m[payload::keys::transaction::kProofImagePath] = t.proofImagePath;
-    m[payload::keys::transaction::kAllocatable] = t.allocatable;
-    m[payload::keys::common::kStatus] = t.status;
-    m[payload::keys::transaction::kPropertyIds] = t.propertyIds;
-    m[payload::keys::common::kType] = t.type;
+    const auto* t = rowPtr(index);
+    if (!t) return m;
+    m[payload::keys::common::kName] = t->name;
+    m[payload::keys::transaction::kBookingDate] = t->bookingDate;
+    m[payload::keys::transaction::kValuta] = t->valuta;
+    m[payload::keys::common::kAmount] = t->amount;
+    m[payload::keys::common::kDescription] = t->description;
+    m[payload::keys::transaction::kActorId] = t->actorId;
+    m[payload::keys::transaction::kActorProposal] = t->actorProposal;
+    m[payload::keys::common::kMetadata] = t->metadata;
+    m[payload::keys::transaction::kProofImagePath] = t->proofImagePath;
+    m[payload::keys::transaction::kAllocatable] = t->allocatable;
+    m[payload::keys::common::kStatus] = t->status;
+    m[payload::keys::transaction::kPropertyIds] = t->propertyIds;
+    m[payload::keys::common::kType] = t->type;
     return m;
-}
-
-static bool validIndex(int idx, int size)
-{
-    return idx >= 0 && idx < size;
 }
 
 void TransactionDraftList::setActorId(int index, const QString& actorId)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].actorId == actorId) return;
-    drafts_[index].actorId = actorId;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { ActorIdRole });
+    updateField(index, actorId, ActorIdRole, [](TransactionDraft& draft) -> QString& {
+        return draft.actorId;
+    });
 }
 
 void TransactionDraftList::setActorProposal(int index, const QString& actorProposal)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].actorProposal == actorProposal) return;
-    drafts_[index].actorProposal = actorProposal;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { ActorProposalRole });
+    updateField(index, actorProposal, ActorProposalRole, [](TransactionDraft& draft) -> QString& {
+        return draft.actorProposal;
+    });
 }
 
 void TransactionDraftList::setName(int index, const QString& name)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].name == name) return;
-    drafts_[index].name = name;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { NameRole });
+    updateField(index, name, NameRole, [](TransactionDraft& draft) -> QString& {
+        return draft.name;
+    });
 }
 
 void TransactionDraftList::setBookingDate(int index, const QString& bookingDate)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].bookingDate == bookingDate) return;
-    drafts_[index].bookingDate = bookingDate;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { BookingDateRole });
+    updateField(index, bookingDate, BookingDateRole, [](TransactionDraft& draft) -> QString& {
+        return draft.bookingDate;
+    });
 }
 
 void TransactionDraftList::setValuta(int index, const QString& valuta)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].valuta == valuta) return;
-    drafts_[index].valuta = valuta;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { ValutaRole });
+    updateField(index, valuta, ValutaRole, [](TransactionDraft& draft) -> QString& {
+        return draft.valuta;
+    });
 }
 
 void TransactionDraftList::setAmount(int index, double amount)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].amount == amount) return;
-    drafts_[index].amount = amount;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { AmountRole });
+    updateField(index, amount, AmountRole, [](TransactionDraft& draft) -> double& {
+        return draft.amount;
+    });
 }
 
 void TransactionDraftList::setDescription(int index, const QString& description)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].description == description) return;
-    drafts_[index].description = description;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { DescriptionRole });
+    updateField(index, description, DescriptionRole, [](TransactionDraft& draft) -> QString& {
+        return draft.description;
+    });
 }
 
 void TransactionDraftList::setStatus(int index, int status)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].status == status) return;
-    drafts_[index].status = status;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { StatusRole });
+    updateField(index, status, StatusRole, [](TransactionDraft& draft) -> int& {
+        return draft.status;
+    });
 }
 
 void TransactionDraftList::setMetadata(int index, const QString& v)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].metadata == v) return;
-    drafts_[index].metadata = v;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { MetadataRole });
+    updateField(index, v, MetadataRole, [](TransactionDraft& draft) -> QString& {
+        return draft.metadata;
+    });
 }
 
 void TransactionDraftList::setProofImagePath(int index, const QString& v)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].proofImagePath == v) return;
-    drafts_[index].proofImagePath = v;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { ProofImagePathRole });
+    updateField(index, v, ProofImagePathRole, [](TransactionDraft& draft) -> QString& {
+        return draft.proofImagePath;
+    });
 }
 
 void TransactionDraftList::setAllocatable(int index, bool v)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].allocatable == v) return;
-    drafts_[index].allocatable = v;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { AllocatableRole });
+    updateField(index, v, AllocatableRole, [](TransactionDraft& draft) -> bool& {
+        return draft.allocatable;
+    });
 }
 
 void TransactionDraftList::setProperties(int index, const QStringList& ids)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].propertyIds == ids) return;
-    drafts_[index].propertyIds = ids;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { PropertyIdsRole });
+    updateField(index, ids, PropertyIdsRole, [](TransactionDraft& draft) -> QStringList& {
+        return draft.propertyIds;
+    });
 }
 
 void TransactionDraftList::setType(int index, const QString& v)
 {
-    if (!validIndex(index, static_cast<int>(drafts_.size()))) return;
-    if (drafts_[index].type == v) return;
-    drafts_[index].type = v;
-    const QModelIndex mi = this->index(index);
-    emit dataChanged(mi, mi, { TypeRole });
+    updateField(index, v, TypeRole, [](TransactionDraft& draft) -> QString& {
+        return draft.type;
+    });
 }
 
 }

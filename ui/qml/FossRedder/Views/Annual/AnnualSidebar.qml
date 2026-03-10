@@ -5,15 +5,17 @@ import FossRedder 1.0
 import FossRedder.Components 1.0 as Components
 
 Item {
-    width: 240
-    Column {
+    ColumnLayout {
         anchors.fill: parent
-        spacing: 8
+        anchors.margins: Theme.spacingMedium
+        spacing: Theme.spacingSmall
         ListView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
             model: uiData ? uiData.annuals : null
             spacing: Theme.spacingSmall
             delegate: Components.ListRow {
-                width: parent.width
+                width: ListView.view ? ListView.view.width : parent.width
                 text: model.year ? model.year : ""
                 subtitle: model.verificationState ? model.verificationState : ""
                 selected: uiData ? (model.id === uiData.selectedAnnualId) : false

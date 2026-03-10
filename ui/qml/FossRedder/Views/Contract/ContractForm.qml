@@ -48,21 +48,21 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
+        anchors.margins: Theme.pageMargin
         spacing: Theme.spacing
 
-        Label { text: isEdit ? qsTr("Edit Contract") : qsTr("Create Contract"); font.pointSize: 18 }
+        Label { text: isEdit ? qsTr("Edit Contract") : qsTr("Create Contract"); font.pointSize: Theme.fontSizeTitle + Theme.margins }
 
         Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
         Controls.TextField { id: typeField; placeholderText: qsTr("Type"); Layout.fillWidth: true }
-        Controls.TextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.preferredHeight: 120; wrapMode: TextArea.Wrap }
+        Controls.TextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.preferredHeight: Theme.chartLegendHeight; wrapMode: TextArea.Wrap }
 
         GroupBox {
             title: qsTr("Actors (min 1)")
             Layout.fillWidth: true
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 8
+                anchors.margins: Theme.spacingMedium
                 spacing: Theme.spacingSmall
 
                 Components.EntityPicker {
@@ -83,7 +83,7 @@ Item {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 8
+                anchors.margins: Theme.spacingMedium
                 spacing: Theme.spacingSmall
 
                 Components.EntityPicker {

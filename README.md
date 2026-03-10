@@ -20,11 +20,10 @@
 
 - **Programmiersprache:** C++20
 - **GUI:** Qt6
-- **Buildsystem:** CMake (Generator: Ninja)
+- **Buildsystem:** CMake
 - **Abhängigkeitsverwaltung:** vcpkg
-- **Datenspeicherung:** SQLite oder JSON
-- **PDF-Verarbeitung:** Poppler, Tesseract, Leptonica
-- **KI/LLM-Integration:** TinyLLaMA (optional)
+- **Datenspeicherung:** SQLite 
+- **PDF-Verarbeitung:** Poppler, Tesseract, OpenCV
 - **Plattform:** Windows 10+ (offline)
 
 ## Projektstruktur

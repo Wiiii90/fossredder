@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <QObject>
 
 #include "core/controllers/AppStateController.h"
@@ -33,6 +34,8 @@ private:
     AppStateController* core_ = nullptr;
     QString lastError_;
     void setLastError(const QString& error);
+    bool runCoreOperation(const char* context, const std::function<void()>& action);
+    void finishOperation(bool success, const QString& failureText, const QString& operation);
 };
 
 }

@@ -1,20 +1,15 @@
 #include "MainWindow.h"
 
-#include <QAction>
 #include <QCloseEvent>
 #include <QEvent>
 #include <QMessageBox>
+#include <QMetaObject>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQmlImageProviderBase>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QSizePolicy>
-#include <QMimeData>
-#include <QDragEnterEvent>
-#include <QDragMoveEvent>
-#include <QDropEvent>
-#include <QMetaObject>
 #include <string>
 
 #include "ui/actions/Actions.h"
@@ -22,328 +17,190 @@
 #include "ui/bootstrap/QmlRuntime.h"
 #include "ui/config/Defaults.h"
 #include "ui/controllers/ControllerContracts.h"
-#include "ui/dialogs/FileDialogs.h"
-#include "ui/observability/Trace.h"
-#include "ui/state/StateFacade.h"
-#include "ui/state/NavigationState.h"
-#include "ui/state/StatusState.h"
+#include "ui/controllers/ControllerStrings.h"
+#include "ui/observability/Origins.h"
 #include "ui/text/Text.h"
-#include "ui/controllers/FileSystemController.h"
+#include "ui/window/MainWindowContext.h"
+#include "ui/window/MainWindowTrace.h"
 #include "ui/workflows/FileWorkflow.h"
 
-MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent)
-{
-    setWindowTitle(ui::config::kMainWindowTitle);
-    resize(ui::config::kMainWindowDefaultWidth, ui::config::kMainWindowDefaultHeight);
+namespace {
 
-    setupQuickWidget();
-    setupUiContext();
-    setupActionRouting();
+using ui::observability::context::kError;
 
-    setCentralWidget(m_quickWidget);
-
-    setupQmlRuntime();
+void syncRootObjectSize(QQuickWidget *quickWidget) {
+  if (!quickWidget || !quickWidget->rootObject())
+    return;
+  QObject *root = quickWidget->rootObject();
+  root->setProperty(ui::qml::contracts::properties::kWidth,
+                    quickWidget->width());
+  root->setProperty(ui::qml::contracts::properties::kHeight,
+                    quickWidget->height());
 }
 
-void MainWindow::setupQuickWidget()
-{
-    if (m_quickWidget) return;
+} // namespace
 
-    m_quickWidget = new QQuickWidget(this);
-    m_quickWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    m_quickWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    m_quickWidget->setMinimumSize(0, 0);
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+  setWindowTitle(ui::config::kMainWindowTitle);
+  resize(ui::config::kMainWindowDefaultWidth,
+         ui::config::kMainWindowDefaultHeight);
 
-    m_quickWidget->setAcceptDrops(true);
+  setupQuickWidget();
+  setupUiContext();
+  setupActionRouting();
 
-    m_quickWidget->installEventFilter(this);
+  setCentralWidget(m_quickWidget);
 
-    ui::bootstrap::registerTypes();
+  setupQmlRuntime();
 }
 
-void MainWindow::setupUiContext()
-{
-    auto actions = new ui::Actions(this);
-    actions_ = actions;
-    auto nav = new ui::NavigationState(this);
-    dataSession_ = new ui::StateFacade(this);
-    auto fileSys = new ui::FileSystemController(this);
-    fileWorkflow_ = new ui::workflows::FileWorkflow(this, this);
-    status_ = new ui::StatusState(this);
-    status_->setText(tr(ui::text::status::kReady));
+void MainWindow::setupQuickWidget() {
+  if (m_quickWidget)
+    return;
 
-    if (m_quickWidget->rootContext()) {
-        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kActions, actions);
-        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kNavigation, nav);
-        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kData, dataSession_);
-        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kFileSystemController, fileSys);
-        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kStatus, status_);
+  m_quickWidget = new QQuickWidget(this);
+  m_quickWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  m_quickWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  m_quickWidget->setMinimumSize(0, 0);
 
-#ifdef _DEBUG
-        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kIsDebugBuild, true);
-#else
-        m_quickWidget->rootContext()->setContextProperty(ui::qml::contracts::context::kIsDebugBuild, false);
-#endif
-    }
+  m_quickWidget->setAcceptDrops(true);
+
+  m_quickWidget->installEventFilter(this);
+
+  ui::bootstrap::registerTypes();
 }
 
-void MainWindow::setupActionRouting()
-{
-    if (!actions_) return;
+void MainWindow::setupUiContext() {
+  if (!m_quickWidget)
+    return;
 
-    auto actions = actions_;
-    if (fileWorkflow_) {
-        connect(actions->newFileAction(), &QAction::triggered, fileWorkflow_, &ui::workflows::FileWorkflow::requestNewFile);
-        connect(actions->openFileAction(), &QAction::triggered, fileWorkflow_, &ui::workflows::FileWorkflow::requestOpenFile);
-        connect(actions->saveFileAction(), &QAction::triggered, fileWorkflow_, &ui::workflows::FileWorkflow::requestSaveFile);
-        connect(actions->saveFileAsAction(), &QAction::triggered, fileWorkflow_, &ui::workflows::FileWorkflow::requestSaveFileAs);
-
-        connect(fileWorkflow_, &ui::workflows::FileWorkflow::newFileRequested, this, [this](const QString& file) {
-            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
-                                          core::errors::codes::UiFlowMainWindowAction,
-                                          "MainWindow::setupActionRouting",
-                                          "UI requested new file",
-                                          {
-                                              {"path", file.toStdString()}
-                                          });
-            emit newFileRequested(file);
-        });
-        connect(fileWorkflow_, &ui::workflows::FileWorkflow::openFileRequested, this, [this](const QString& file) {
-            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
-                                          core::errors::codes::UiFlowMainWindowAction,
-                                          "MainWindow::setupActionRouting",
-                                          "UI requested open file",
-                                          {
-                                              {"path", file.toStdString()}
-                                          });
-            emit openFileRequested(file);
-        });
-        connect(fileWorkflow_, &ui::workflows::FileWorkflow::saveFileRequested, this, [this]() {
-            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
-                                          core::errors::codes::UiFlowMainWindowAction,
-                                          "MainWindow::setupActionRouting",
-                                          "UI requested save file");
-            emit saveFileRequested();
-        });
-        connect(fileWorkflow_, &ui::workflows::FileWorkflow::saveFileAsRequested, this, [this](const QString& file) {
-            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
-                                          core::errors::codes::UiFlowMainWindowAction,
-                                          "MainWindow::setupActionRouting",
-                                          "UI requested save file as",
-                                          {
-                                              {"path", file.toStdString()}
-                                          });
-            emit saveFileAsRequested(file);
-        });
-    }
-    connect(actions->quitAction(), &QAction::triggered, this, &QWidget::close);
-    connect(actions->aboutAction(), &QAction::triggered, this, &MainWindow::onAbout);
-
-    connect(actions, &ui::Actions::importBrowseRequested, this, [this, actions](const QString& filter) {
-        const QStringList files = ui::dialogs::pickImportFiles(this, filter);
-        if (!files.isEmpty()) {
-            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
-                                          core::errors::codes::UiFlowMainWindowAction,
-                                          "MainWindow::setupActionRouting",
-                                          "UI selected import files",
-                                          {
-                                              {"count", std::to_string(files.size())},
-                                              {"firstFile", files.front().toStdString()}
-                                          });
-            emit actions->importFilesSelected(files);
-            if (files.size() == 1) emit actions->importFileSelected(files.first());
-            if (status_) status_->setText(tr(ui::text::mainWindow::kSelectedStatusPattern).arg(files.front()));
-        }
-    });
-
-    connect(actions, &ui::Actions::exportBrowseRequested, this, [this, actions](const QString& filter) {
-        const QString file = ui::dialogs::pickExportFile(this, filter);
-        if (!file.isEmpty()) {
-            ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
-                                          core::errors::codes::UiFlowMainWindowAction,
-                                          "MainWindow::setupActionRouting",
-                                          "UI selected export path",
-                                          {
-                                              {"path", file.toStdString()}
-                                          });
-            emit actions->exportFileSelected(file);
-            if (status_) status_->setText(tr(ui::text::mainWindow::kExportPathStatusPattern).arg(file));
-        }
-    });
+  const auto services =
+      ui::window::installMainWindowContext(*m_quickWidget, this, this);
+  actions_ = services.actions;
+  dataSession_ = services.dataSession;
+  fileWorkflow_ = services.fileWorkflow;
+  status_ = services.status;
 }
 
-void MainWindow::setupQmlRuntime()
-{
-    Q_INIT_RESOURCE(qml);
-    ui::bootstrap::configureRuntime(m_quickWidget ? m_quickWidget->engine() : nullptr);
+void MainWindow::setupActionRouting() {
+  ui::window::wireMainWindowActions(
+      *this, {actions_, dataSession_, fileWorkflow_, status_},
+      [this]() { onAbout(); });
 }
 
-static QStringList droppedLocalFiles(const QMimeData* md)
-{
-    QStringList out;
-    if (!md) return out;
-    if (!md->hasUrls()) return out;
-    const auto urls = md->urls();
-    for (const auto& u : urls) {
-        const QString lf = u.toLocalFile();
-        if (lf.isEmpty()) continue;
-        out.push_back(lf);
-    }
-    return out;
+void MainWindow::setupQmlRuntime() {
+  Q_INIT_RESOURCE(qml);
+  ui::bootstrap::configureRuntime(m_quickWidget ? m_quickWidget->engine()
+                                                : nullptr);
 }
 
 MainWindow::~MainWindow() = default;
 
-void MainWindow::setQmlContextProperty(const QString& name, QObject* value)
-{
-    if (!m_quickWidget) return;
-    if (!m_quickWidget->rootContext()) return;
-    m_quickWidget->rootContext()->setContextProperty(name, value);
+void MainWindow::setQmlContextProperty(const QString &name, QObject *value) {
+  if (!m_quickWidget)
+    return;
+  if (!m_quickWidget->rootContext())
+    return;
+  m_quickWidget->rootContext()->setContextProperty(name, value);
 }
 
-void MainWindow::addImageProvider(const QString& id, QQmlImageProviderBase* provider)
-{
-    if (!m_quickWidget) return;
-    if (!m_quickWidget->engine()) return;
-    m_quickWidget->engine()->addImageProvider(id, provider);
+void MainWindow::addImageProvider(const QString &id,
+                                  QQmlImageProviderBase *provider) {
+  if (!m_quickWidget)
+    return;
+  if (!m_quickWidget->engine())
+    return;
+  m_quickWidget->engine()->addImageProvider(id, provider);
 }
 
-void MainWindow::loadQml(const QUrl& source)
-{
-    if (!m_quickWidget) return;
-    if (m_quickWidget->source() == source) return;
-    m_quickWidget->setSource(source);
+void MainWindow::loadQml(const QUrl &source) {
+  if (!m_quickWidget)
+    return;
+  if (m_quickWidget->source() == source)
+    return;
+  m_quickWidget->setSource(source);
+  syncRootObjectSize(m_quickWidget);
+}
 
-    if (m_quickWidget->rootObject()) {
-        QObject* root = m_quickWidget->rootObject();
-        root->setProperty(ui::qml::contracts::properties::kWidth, m_quickWidget->width());
-        root->setProperty(ui::qml::contracts::properties::kHeight, m_quickWidget->height());
+QQmlEngine *MainWindow::qmlEngine() const noexcept {
+  return m_quickWidget ? m_quickWidget->engine() : nullptr;
+}
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *ev) {
+  if (obj == m_quickWidget && ev->type() == QEvent::Resize) {
+    syncRootObjectSize(m_quickWidget);
+  }
+
+  if (obj == m_quickWidget) {
+    const auto outcome = dropController_.handle(ev);
+    if (outcome.handled) {
+      if (ev->type() == QEvent::Drop && outcome.accepted && actions_) {
+        ui::window::reportMainWindowFlow(
+            ui::observability::origins::mainWindow::kDragDrop,
+            "Import files dropped", core::errors::ErrorSeverity::Info,
+            ui::window::makeFileListContext(outcome.files));
+        emit actions_->importFilesDropped(outcome.files);
+        if (outcome.files.size() == 1)
+          emit actions_->importFileDropped(outcome.files.first());
+      }
+      return true;
     }
+  }
+  return QMainWindow::eventFilter(obj, ev);
 }
 
-QQmlEngine* MainWindow::qmlEngine() const noexcept
-{
-    return m_quickWidget ? m_quickWidget->engine() : nullptr;
+void MainWindow::closeEvent(QCloseEvent *event) {
+  if (closeWorkflow_.allowImmediateClose(event)) {
+    QMainWindow::closeEvent(event);
+    return;
+  }
+
+  ui::window::reportMainWindowFlow(
+      ui::observability::origins::mainWindow::kClose,
+      "Main window close requested; triggering save workflow");
+  closeWorkflow_.requestClose(event, [this]() {
+    if (fileWorkflow_)
+      fileWorkflow_->requestSaveFile();
+    else
+      emit saveFileRequested();
+  });
 }
 
-bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
-{
-    if (obj == m_quickWidget && ev->type() == QEvent::Resize) {
-        if (m_quickWidget->rootObject()) {
-            QQuickItem* root = m_quickWidget->rootObject();
-            root->setProperty(ui::qml::contracts::properties::kWidth, m_quickWidget->width());
-            root->setProperty(ui::qml::contracts::properties::kHeight, m_quickWidget->height());
-        }
-    }
+void MainWindow::handleStorageOperationSucceeded(const QString &operation) {
+  if (!closeWorkflow_.handleStorageOperationSucceeded(
+          operation, ui::controllers::contracts::operations::kSaveFile,
+          [this]() {
+            QMetaObject::invokeMethod(
+                this, [this]() { close(); }, Qt::QueuedConnection);
+          })) {
+    return;
+  }
 
-    if (obj == m_quickWidget) {
-        switch (ev->type()) {
-        case QEvent::DragEnter: {
-            auto* e = static_cast<QDragEnterEvent*>(ev);
-            const auto files = droppedLocalFiles(e->mimeData());
-            if (!files.isEmpty()) e->acceptProposedAction();
-            else e->ignore();
-            return true;
-        }
-        case QEvent::DragMove: {
-            auto* e = static_cast<QDragMoveEvent*>(ev);
-            const auto files = droppedLocalFiles(e->mimeData());
-            if (!files.isEmpty()) e->acceptProposedAction();
-            else e->ignore();
-            return true;
-        }
-        case QEvent::Drop: {
-            auto* e = static_cast<QDropEvent*>(ev);
-            const auto files = droppedLocalFiles(e->mimeData());
-            if (files.isEmpty()) {
-                e->ignore();
-                return true;
-            }
-
-            if (actions_) {
-                ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
-                                              core::errors::codes::UiFlowMainWindowAction,
-                                              "MainWindow::eventFilter",
-                                              "Import files dropped",
-                                              {
-                                                  {"count", std::to_string(files.size())},
-                                                  {"firstFile", files.front().toStdString()}
-                                              });
-                emit actions_->importFilesDropped(files);
-                if (files.size() == 1) emit actions_->importFileDropped(files.first());
-            }
-            e->acceptProposedAction();
-            return true;
-        }
-        default:
-            break;
-        }
-    }
-    return QMainWindow::eventFilter(obj, ev);
+  ui::window::reportMainWindowFlow(
+      ui::observability::origins::mainWindow::kCloseSucceeded,
+      "Pending close save finished; closing main window");
 }
 
-void MainWindow::closeEvent(QCloseEvent* event)
-{
-    if (allowImmediateClose_) {
-        allowImmediateClose_ = false;
-        QMainWindow::closeEvent(event);
-        return;
-    }
+void MainWindow::handleStorageOperationFailed(const QString &operation,
+                                              const QString &error) {
+  if (!closeWorkflow_.handleStorageOperationFailed(
+          operation, ui::controllers::contracts::operations::kSaveFile))
+    return;
 
-    if (pendingCloseAfterSave_) {
-        event->ignore();
-        return;
-    }
+  const QString message =
+      error.isEmpty() ? tr(ui::text::controllerErrors::kStorageSaveFailed)
+                      : error;
+  if (status_)
+    status_->setText(message);
 
-    ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
-                                  core::errors::codes::UiFlowMainWindowAction,
-                                  "MainWindow::closeEvent",
-                                  "Main window close requested; triggering save workflow");
-    pendingCloseAfterSave_ = true;
-    event->ignore();
-    if (fileWorkflow_) fileWorkflow_->requestSaveFile();
-    else emit saveFileRequested();
+  ui::window::reportMainWindowFlow(
+      ui::observability::origins::mainWindow::kCloseFailed,
+      "Pending close save failed; keeping main window open",
+      core::errors::ErrorSeverity::Warning,
+      {{kError, ui::strings::toStdString(message)}});
 }
 
-void MainWindow::handleStorageOperationSucceeded(const QString& operation)
-{
-    if (!pendingCloseAfterSave_) return;
-    if (operation != ui::controllers::contracts::operations::kSaveFile) return;
-
-    ui::observability::reportFlow(core::errors::ErrorSeverity::Info,
-                                  core::errors::codes::UiFlowMainWindowAction,
-                                  "MainWindow::handleStorageOperationSucceeded",
-                                  "Pending close save finished; closing main window");
-
-    pendingCloseAfterSave_ = false;
-    allowImmediateClose_ = true;
-    QMetaObject::invokeMethod(this, [this]() { close(); }, Qt::QueuedConnection);
-}
-
-void MainWindow::handleStorageOperationFailed(const QString& operation, const QString& error)
-{
-    if (!pendingCloseAfterSave_) return;
-    if (operation != ui::controllers::contracts::operations::kSaveFile) return;
-
-    pendingCloseAfterSave_ = false;
-    allowImmediateClose_ = false;
-
-    const QString message = error.isEmpty() ? tr(ui::text::controllerErrors::kStorageSaveFailed) : error;
-    if (status_) status_->setText(message);
-
-    ui::observability::reportFlow(core::errors::ErrorSeverity::Warning,
-                                  core::errors::codes::UiFlowMainWindowAction,
-                                  "MainWindow::handleStorageOperationFailed",
-                                  "Pending close save failed; keeping main window open",
-                                  {
-                                      {"error", message.toStdString()}
-                                  });
-}
-
-void MainWindow::onAbout()
-{
-    QMessageBox::about(this,
-                       tr(ui::text::mainWindow::kAboutTitle),
-                       tr(ui::text::mainWindow::kAboutBody));
+void MainWindow::onAbout() {
+  QMessageBox::about(this, tr(ui::text::mainWindow::kAboutTitle),
+                     tr(ui::text::mainWindow::kAboutBody));
 }

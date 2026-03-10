@@ -4,15 +4,16 @@
 #include <QUrl>
 
 #include "ui/config/Defaults.h"
+#include "ui/actions/Actions.h"
+#include "ui/state/StateFacade.h"
 #include "ui/state/StatusState.h"
+#include "ui/window/CloseWorkflow.h"
+#include "ui/window/DropController.h"
+#include "ui/workflows/FileWorkflow.h"
 
 QT_FORWARD_DECLARE_CLASS(QQuickWidget)
 QT_FORWARD_DECLARE_CLASS(QQmlImageProviderBase)
 QT_FORWARD_DECLARE_CLASS(QQmlEngine)
-
-namespace ui { class StateFacade; }
-namespace ui { class Actions; }
-namespace ui::workflows { class FileWorkflow; }
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -54,6 +55,6 @@ private:
     ui::Actions* actions_ = nullptr;
     ui::workflows::FileWorkflow* fileWorkflow_ = nullptr;
     ui::StatusState* status_ = nullptr;
-    bool pendingCloseAfterSave_ = false;
-    bool allowImmediateClose_ = false;
+    ui::window::CloseWorkflow closeWorkflow_;
+    ui::window::DropController dropController_;
 };

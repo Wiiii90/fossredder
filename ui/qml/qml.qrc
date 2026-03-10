@@ -27,7 +27,6 @@
 
         <file>FossRedder/Components/qmldir</file>
 
-        <file>FossRedder/Components/Common/AnalysisDetailReference.qml</file>
         <file>FossRedder/Components/Charts/Pie.qml</file>
         <file>FossRedder/Components/Charts/Histogram.qml</file>
 
@@ -49,7 +48,6 @@
         <file>FossRedder/Utils/qmldir</file>
         <file>FossRedder/Constants/Analysis.js</file>
         <file>FossRedder/Constants/FileFormats.js</file>
-        <file>FossRedder/Constants/Messages.js</file>
 
         <file>FossRedder/Main.qml</file>
 

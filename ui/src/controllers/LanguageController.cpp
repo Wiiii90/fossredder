@@ -8,6 +8,8 @@
 #include <QSettings>
 
 #include "ui/config/Defaults.h"
+#include "ui/payload/PayloadKeys.h"
+#include "ui/text/Text.h"
 
 namespace ui {
 
@@ -16,9 +18,9 @@ namespace {
 QVariantMap makeLanguageOption(const char* code, const char* label, bool available)
 {
     QVariantMap option;
-    option.insert(QStringLiteral("code"), QString::fromLatin1(code));
-    option.insert(QStringLiteral("label"), QString::fromLatin1(label));
-    option.insert(QStringLiteral("available"), available);
+    option.insert(payload::keys::language::kCode, QString::fromLatin1(code));
+    option.insert(payload::keys::language::kLabel, QString::fromLatin1(label));
+    option.insert(payload::keys::language::kAvailable, available);
     return option;
 }
 
@@ -29,9 +31,9 @@ LanguageController::LanguageController(QApplication* application, QQmlEngine* en
     , application_(application)
     , engine_(engine)
 {
-    availableLanguages_.append(makeLanguageOption(ui::config::kLanguageEnglishCode, "English", true));
+    availableLanguages_.append(makeLanguageOption(ui::config::kLanguageEnglishCode, ui::text::language::kEnglishLabel, true));
     availableLanguages_.append(makeLanguageOption(ui::config::kLanguageGermanCode,
-                                                  "Deutsch",
+                                                  ui::text::language::kGermanLabel,
                                                   translationFileExists(ui::config::kLanguageGermanCode)));
 
     const QString preferredLanguage = normalizeLanguageCode(persistedLanguage());
@@ -88,7 +90,7 @@ bool LanguageController::translationFileExists(const QString& languageCode) cons
     const QString appTranslationPath = QCoreApplication::applicationDirPath() + QLatin1Char('/') + ui::config::kTranslationsDirName + QLatin1Char('/') + fileName;
     if (QFileInfo::exists(appTranslationPath)) return true;
 
-    const QString resourceTranslationPath = QStringLiteral(":/i18n/") + fileName;
+    const QString resourceTranslationPath = ui::config::kTranslationResourcePrefix + fileName;
     return QFileInfo::exists(resourceTranslationPath);
 }
 
@@ -102,7 +104,7 @@ bool LanguageController::loadTranslation(const QString& languageCode)
         return true;
     }
 
-    if (translator_.load(QStringLiteral(":/i18n/") + fileName)) {
+    if (translator_.load(ui::config::kTranslationResourcePrefix + fileName)) {
         if (application_) application_->installTranslator(&translator_);
         return true;
     }

@@ -54,11 +54,11 @@ bool ImportState::resetStatus()
 
     phase_.clear();
     error_.clear();
-    progress_ = 0.0;
+    progress_ = ui::config::importProgress::kMinimum;
     canceled_ = false;
     cancelClearsQueue_ = false;
-    currentPage_ = 0;
-    pageCount_ = 0;
+    currentPage_ = ui::config::importPaging::kNone;
+    pageCount_ = ui::config::importPaging::kNone;
     selectedFile_.clear();
     currentImportFile_.clear();
     queuedFiles_.clear();
@@ -111,9 +111,9 @@ bool ImportState::takeNextQueuedFile(QString& nextFile)
 void ImportState::clearTransientImportState()
 {
     isRunning_ = false;
-    progress_ = 0.0;
-    currentPage_ = 0;
-    pageCount_ = 0;
+    progress_ = ui::config::importProgress::kMinimum;
+    currentPage_ = ui::config::importPaging::kNone;
+    pageCount_ = ui::config::importPaging::kNone;
 }
 
 void ImportState::beginImport(const QString& path)
@@ -128,10 +128,10 @@ void ImportState::beginImport(const QString& path)
 
     artifacts_.clear();
     error_.clear();
-    phase_ = QCoreApplication::translate("ImportState", ui::text::importPhases::kStarting);
-    progress_ = ui::config::kInitialImportProgress;
-    currentPage_ = 0;
-    pageCount_ = 0;
+    phase_ = QCoreApplication::translate(ui::text::contexts::kImportState, ui::text::importPhases::kStarting);
+    progress_ = ui::config::importProgress::kInitial;
+    currentPage_ = ui::config::importPaging::kNone;
+    pageCount_ = ui::config::importPaging::kNone;
     isRunning_ = true;
     canceled_ = false;
     cancelClearsQueue_ = false;
@@ -154,13 +154,13 @@ void ImportState::beginCancel(bool clearQueue)
     canceled_ = true;
     cancelClearsQueue_ = clearQueue;
     if (clearQueue) queuedFiles_.clear();
-    phase_ = QCoreApplication::translate("ImportState", ui::text::importPhases::kStopping);
+    phase_ = QCoreApplication::translate(ui::text::contexts::kImportState, ui::text::importPhases::kStopping);
 }
 
 void ImportState::appendRun(const QString& now, const QString& status, const QString& message)
 {
     runs_.addRun(now,
-                 QCoreApplication::translate("ImportState", ui::text::importRuns::kTypeStatement),
+                 QCoreApplication::translate(ui::text::contexts::kImportState, ui::text::importRuns::kTypeStatement),
                  currentRunFile(),
                  status,
                  message);
@@ -168,11 +168,11 @@ void ImportState::appendRun(const QString& now, const QString& status, const QSt
 
 void ImportState::recordCanceled(const QString& now)
 {
-    phase_ = QCoreApplication::translate("ImportState", ui::text::importPhases::kCanceled);
+    phase_ = QCoreApplication::translate(ui::text::contexts::kImportState, ui::text::importPhases::kCanceled);
     error_.clear();
     clearTransientImportState();
     if (cancelClearsQueue_) queuedFiles_.clear();
-    appendRun(now, QCoreApplication::translate("ImportState", ui::text::importRuns::kStatusCanceled), {});
+    appendRun(now, QCoreApplication::translate(ui::text::contexts::kImportState, ui::text::importRuns::kStatusCanceled), {});
     selectedFile_.clear();
     currentImportFile_.clear();
     canceled_ = false;
@@ -182,10 +182,10 @@ void ImportState::recordCanceled(const QString& now)
 void ImportState::recordFailed(const QString& now, const QString& errorMessage)
 {
     error_ = errorMessage;
-    phase_ = QCoreApplication::translate("ImportState", ui::text::importPhases::kFailed);
+    phase_ = QCoreApplication::translate(ui::text::contexts::kImportState, ui::text::importPhases::kFailed);
     clearTransientImportState();
     queuedFiles_.clear();
-    appendRun(now, QCoreApplication::translate("ImportState", ui::text::importRuns::kStatusFailed), error_);
+    appendRun(now, QCoreApplication::translate(ui::text::contexts::kImportState, ui::text::importRuns::kStatusFailed), error_);
     currentImportFile_.clear();
     canceled_ = false;
     cancelClearsQueue_ = false;
@@ -207,10 +207,10 @@ bool ImportState::populateDraft(const QString& now,
     }
 
     draft_ = createStatementDraft(currentImportFile_, statement, parent);
-    phase_ = QCoreApplication::translate("ImportState", ui::text::importPhases::kFinished);
-    progress_ = 1.0;
+    phase_ = QCoreApplication::translate(ui::text::contexts::kImportState, ui::text::importPhases::kFinished);
+    progress_ = ui::config::importProgress::kMaximum;
     isRunning_ = false;
-    appendRun(now, QCoreApplication::translate("ImportState", ui::text::importRuns::kStatusSuccess), {});
+    appendRun(now, QCoreApplication::translate(ui::text::contexts::kImportState, ui::text::importRuns::kStatusSuccess), {});
     currentImportFile_.clear();
     canceled_ = false;
     cancelClearsQueue_ = false;
@@ -225,8 +225,8 @@ void ImportState::updateProgress(double progress, const QString& phase, const QR
     if (phase.isEmpty()) return;
 
     phase_ = phase;
-    currentPage_ = 0;
-    pageCount_ = 0;
+    currentPage_ = ui::config::importPaging::kNone;
+    pageCount_ = ui::config::importPaging::kNone;
 
     const auto match = pagePattern.match(phase);
     if (!match.hasMatch()) return;

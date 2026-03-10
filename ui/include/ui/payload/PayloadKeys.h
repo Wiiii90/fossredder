@@ -14,6 +14,29 @@ inline const auto kStatus = QStringLiteral("status");
 inline const auto kMetadata = QStringLiteral("metadata");
 }
 
+namespace actor {
+inline const auto kAliases = QStringLiteral("aliases");
+}
+
+namespace property {
+inline const auto kAddress = QStringLiteral("address");
+inline const auto kConsumption = QStringLiteral("consumption");
+inline const auto kConsumptionUnit = QStringLiteral("consumptionUnit");
+}
+
+namespace contract {
+inline const auto kStartDate = QStringLiteral("startDate");
+inline const auto kEndDate = QStringLiteral("endDate");
+inline const auto kBasePrice = QStringLiteral("basePrice");
+inline const auto kConsumptionPrice = QStringLiteral("consumptionPrice");
+inline const auto kMonthlyAdvance = QStringLiteral("monthlyAdvance");
+inline const auto kActorIds = QStringLiteral("actorIds");
+}
+
+namespace statement {
+inline const auto kStatementId = QStringLiteral("statementId");
+}
+
 namespace transaction {
 inline const auto kBookingDate = QStringLiteral("bookingDate");
 inline const auto kValuta = QStringLiteral("valuta");
@@ -31,14 +54,33 @@ namespace analysis {
 inline const auto kMetrics = QStringLiteral("metrics");
 inline const auto kTable = QStringLiteral("table");
 inline const auto kConfig = QStringLiteral("config");
+inline const auto kFilter = QStringLiteral("filterSpec");
+inline const auto kAdjustments = QStringLiteral("adjustments");
 inline const auto kTransactions = QStringLiteral("transactions");
 inline const auto kArtifacts = QStringLiteral("artifacts");
 inline const auto kGeneratedAt = QStringLiteral("generatedAt");
 }
 
+namespace annual {
+inline const auto kYear = QStringLiteral("year");
+inline const auto kVerificationState = QStringLiteral("verificationState");
+}
+
 namespace fileSystem {
 inline const auto kPath = QStringLiteral("path");
 inline const auto kIsDir = QStringLiteral("isDir");
+}
+
+namespace importRun {
+inline const auto kTime = QStringLiteral("time");
+inline const auto kFile = QStringLiteral("file");
+inline const auto kMessage = QStringLiteral("message");
+}
+
+namespace language {
+inline const auto kCode = QStringLiteral("code");
+inline const auto kLabel = QStringLiteral("label");
+inline const auto kAvailable = QStringLiteral("available");
 }
 
 namespace metrics {

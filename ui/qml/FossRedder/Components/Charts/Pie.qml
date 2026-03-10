@@ -1,6 +1,7 @@
 ﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import FossRedder 1.0
+import "../../Constants/Analysis.js" as Analysis
 
 Item {
     id: root
@@ -11,18 +12,10 @@ Item {
     implicitHeight: 320
     onTableChanged: { try { if (pieCanvas) pieCanvas.requestPaint(); } catch(e) {} }
 
-    function hashString(s) {
-        var h = 0
-        if (!s) return 0
-        for (var i = 0; i < s.length; ++i) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0 }
-        return Math.abs(h)
-    }
-
     function colorForKey(k, i) {
         try {
-            var palette = Theme.analysisPalette
-            if (k) return palette[hashString(k) % palette.length]
-            return palette[i % palette.length]
+            if (k) return Analysis.colorForKey(k, Theme.analysis.palette, Theme.chartFallback)
+            return Theme.analysis.palette[i % Theme.analysis.palette.length]
         } catch(e) { return Theme.chartFallback }
     }
 
@@ -30,19 +23,18 @@ Item {
         id: pieCanvas
         anchors.fill: parent
         onPaint: {
-            try { console.log('AppPie.onPaint width=', width, 'height=', height, 'rows=', (table ? table.length : 0)) } catch(e) {}
             var ctx = getContext("2d"); ctx.reset(); ctx.clearRect(0,0,width,height)
-            if (!root.visible || width < 50 || !table || table.length === 0) return
+            if (!root.visible || width < Theme.analysis.layout.minDebugRepaintWidth || !table || table.length === 0) return
 
             var total = 0
             for (var i=0;i<table.length;i++) total += Math.abs(parseFloat(table[i][1])||0)
-            var start = -Math.PI/2
-            var radius = Math.min(width, height)/2 - 10
+            var start = Theme.analysis.render.pieStartAngle
+            var radius = Math.min(width, height)/2 - Theme.analysis.render.pieRadiusPadding
             var cx = width/2; var cy = height/2
             if (radius <= 0) {
                 var maxv = 0
                 for (var i=0;i<table.length;i++) maxv = Math.max(maxv, Math.abs(parseFloat(table[i][1])||0))
-                for (var i=0;i<table.length;i++) { var v = Math.abs(parseFloat(table[i][1])||0); var bw = Math.max(2, Math.floor((width-40) * (v / Math.max(1, maxv)))); ctx.fillStyle = colorForKey((table[i] && table[i].length>0) ? table[i][0] : null, i); ctx.fillRect(20, i*18 + 4, bw, 12) }
+                for (var i=0;i<table.length;i++) { var v = Math.abs(parseFloat(table[i][1])||0); var bw = Math.max(Theme.analysis.render.compactBarMinWidth, Math.floor((width-Theme.analysis.render.compactBarWidthPadding) * (v / Math.max(1, maxv)))); ctx.fillStyle = colorForKey((table[i] && table[i].length>0) ? table[i][0] : null, i); ctx.fillRect(Theme.analysis.render.compactBarLeftPadding, i*Theme.analysis.render.compactBarVerticalSpacing + Theme.analysis.render.compactBarTopOffset, bw, Theme.analysis.render.compactBarHeight) }
                 return
             }
             for (var i=0;i<table.length;i++) {

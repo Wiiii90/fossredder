@@ -4,9 +4,11 @@
 #include <QDir>
 #include <QLibraryInfo>
 #include <QQmlEngine>
+#include <qqml.h>
 
 #include "ui/bootstrap/QmlContracts.h"
 #include "ui/config/Defaults.h"
+#include "ui/controllers/ControllerContracts.h"
 #include "ui/state/NavigationState.h"
 
 namespace ui::bootstrap {
@@ -21,6 +23,12 @@ void registerTypes()
                                                     ui::qml::contracts::module::kMinorVersion,
                                                     ui::qml::contracts::module::kNavigationTypeName,
                                                     ui::qml::contracts::module::kNavigationTypeDescription);
+    qmlRegisterUncreatableMetaObject(ui::controllers::contracts::staticMetaObject,
+                                     ui::qml::contracts::module::kName,
+                                     ui::qml::contracts::module::kMajorVersion,
+                                     ui::qml::contracts::module::kMinorVersion,
+                                     ui::config::qmlRegistration::kContractsTypeName,
+                                     ui::config::qmlRegistration::kContractsTypeDescription);
     registered = true;
 }
 

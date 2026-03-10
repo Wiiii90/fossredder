@@ -1,39 +1,62 @@
 #include "ui/state/SessionStore.h"
 
 #include <algorithm>
+#include <utility>
 
 #include <QAbstractItemModel>
+#include <QSet>
+
+#include "ui/models/TransactionFilter.h"
+#include "ui/state/SessionMutationState.h"
 
 namespace ui {
 
-SessionStore::SessionStore(QObject* owner, TransactionSumsNotifier notifier)
-    : owner_(owner)
-    , transactionSumsNotifier_(std::move(notifier))
-    , actors_(owner)
-    , analyses_(owner)
-    , properties_(owner)
-    , contracts_(owner)
-    , statements_(owner)
-    , transactions_(owner)
-    , annuals_(owner)
-    , selection_(actors_, properties_, contracts_, statements_, transactions_, analyses_, annuals_, owner)
+namespace {
+
+template <typename RefreshFn>
+void bindSelectionRefresh(QAbstractItemModel& model, QObject* context, RefreshFn&& refresh)
 {
-    bindModelSignals();
+    auto trigger = [refresh = std::forward<RefreshFn>(refresh)]() mutable {
+        refresh();
+    };
+
+    QObject::connect(&model, &QAbstractItemModel::dataChanged, context, [trigger](const QModelIndex&, const QModelIndex&, const QVector<int>&) mutable {
+        trigger();
+    });
+    QObject::connect(&model, &QAbstractItemModel::rowsInserted, context, [trigger](const QModelIndex&, int, int) mutable {
+        trigger();
+    });
+    QObject::connect(&model, &QAbstractItemModel::rowsRemoved, context, [trigger](const QModelIndex&, int, int) mutable {
+        trigger();
+    });
+    QObject::connect(&model, &QAbstractItemModel::modelReset, context, [trigger]() mutable {
+        trigger();
+    });
 }
 
-void SessionStore::bindModelSignals()
+template <typename RefreshFn, typename... Models>
+void bindSelectionRefreshes(QObject* context, RefreshFn&& refresh, Models&... models)
 {
-    QObject::connect(&transactions_, &QAbstractItemModel::rowsRemoved, &transactions_, [this](const QModelIndex&, int, int) {
-        recomputeAllMetrics();
+    (bindSelectionRefresh(models, context, refresh), ...);
+}
+
+template <typename RecomputeAllFn, typename RecomputeRangeFn>
+void bindTransactionMetricSignals(TransactionList& transactions,
+                                  QObject* context,
+                                  RecomputeAllFn&& recomputeAll,
+                                  RecomputeRangeFn&& recomputeRange)
+{
+    QObject::connect(&transactions, &QAbstractItemModel::rowsRemoved, context, [recomputeAll](const QModelIndex&, int, int) mutable {
+        recomputeAll();
     });
 
-    QObject::connect(&transactions_, &QAbstractItemModel::rowsInserted, &transactions_, [this](const QModelIndex&, int first, int last) {
-        recomputeMetricsForRows(first, last);
+    QObject::connect(&transactions, &QAbstractItemModel::rowsInserted, context, [recomputeRange](const QModelIndex&, int first, int last) mutable {
+        recomputeRange(first, last);
     });
 
-    QObject::connect(&transactions_, &QAbstractItemModel::dataChanged, &transactions_, [this](const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles) {
+    QObject::connect(&transactions, &QAbstractItemModel::dataChanged, context, [recomputeAll, recomputeRange](const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles) mutable {
         if (roles.isEmpty()) {
-            recomputeAllMetrics();
+            recomputeAll();
             return;
         }
 
@@ -45,7 +68,7 @@ void SessionStore::bindModelSignals()
         }
 
         if (propertyIdsChanged) {
-            recomputeAllMetrics();
+            recomputeAll();
             return;
         }
 
@@ -53,44 +76,76 @@ void SessionStore::bindModelSignals()
 
         const int first = topLeft.isValid() ? topLeft.row() : -1;
         const int last = bottomRight.isValid() ? bottomRight.row() : first;
-        recomputeMetricsForRows(first, last);
+        recomputeRange(first, last);
     });
 
-    QObject::connect(&transactions_, &QAbstractItemModel::modelReset, &transactions_, [this]() {
-        recomputeAllMetrics();
-    });
-
-    QObject::connect(&analyses_, &QAbstractItemModel::modelReset, &analyses_, [this]() {
-        metrics_.clearCache();
-        notifyTransactionSumsForAllProperties();
+    QObject::connect(&transactions, &QAbstractItemModel::modelReset, context, [recomputeAll]() mutable {
+        recomputeAll();
     });
 }
 
-void SessionStore::rebuildPropertyNameIndex()
+template <typename ClearCacheFn, typename NotifyFn>
+void bindAnalysisMetricSignals(AnalysisList& analyses,
+                               QObject* context,
+                               ClearCacheFn&& clearCache,
+                               NotifyFn&& notifyAll)
 {
-    propertyNameIndex_.clear();
-    const auto& rows = properties_.properties();
-    propertyNameIndex_.reserve(static_cast<int>(rows.size()));
-    for (const auto& property : rows) {
-        if (!property) continue;
-        propertyNameIndex_.insert(QString::fromStdString(property->id), QString::fromStdString(property->name));
-    }
+    QObject::connect(&analyses, &QAbstractItemModel::modelReset, context, [clearCache, notifyAll]() mutable {
+        clearCache();
+        notifyAll();
+    });
+}
+
+}
+
+SessionStore::SessionStore(QObject* parent)
+    : QObject(parent)
+    , models_(this)
+{
+    bindModelSignals();
+}
+
+void SessionStore::bindModelSignals()
+{
+    bindSelectionRefreshes(this,
+                           [this]() {
+                               emit selectionRefreshRequested();
+                           },
+                           models_.actors(),
+                           models_.properties(),
+                           models_.contracts(),
+                           models_.statements(),
+                           models_.transactions(),
+                           models_.analyses(),
+                           models_.annuals());
+
+    bindTransactionMetricSignals(models_.transactions(),
+                                 this,
+                                 [this]() {
+                                     recomputeAllMetrics();
+                                 },
+                                 [this](int first, int last) {
+                                     recomputeMetricsForRows(first, last);
+                                 });
+
+    bindAnalysisMetricSignals(models_.analyses(),
+                              this,
+                              [this]() {
+                                  metrics_.clearCache();
+                              },
+                              [this]() {
+                                  notifyTransactionSumsForAllProperties();
+                              });
 }
 
 void SessionStore::recomputeAllMetrics()
 {
-    metrics_.recomputeAll(properties_, transactions_, contracts_, [this](const QString& propertyId) {
-        if (transactionSumsNotifier_) transactionSumsNotifier_(propertyId);
+    metrics_.recomputeAll(models_.properties(),
+                          models_.transactions(),
+                          models_.contracts(),
+                          [this](const QString& propertyId) {
+        emit transactionSumsUpdated(propertyId);
     });
-}
-
-void SessionStore::recomputeMetricsForPropertyIds(const QSet<QString>& propertyIds)
-{
-    for (const auto& propertyId : propertyIds) {
-        metrics_.recomputeProperty(propertyId, transactions_, contracts_, [this](const QString& id) {
-            if (transactionSumsNotifier_) transactionSumsNotifier_(id);
-        });
-    }
 }
 
 void SessionStore::recomputeMetricsForRows(int firstRow, int lastRow)
@@ -101,7 +156,7 @@ void SessionStore::recomputeMetricsForRows(int firstRow, int lastRow)
     }
 
     QSet<QString> affectedPropertyIds;
-    const auto rows = transactions_.transactions();
+    const auto& rows = models_.transactions().transactions();
     const int safeLast = std::min(lastRow, static_cast<int>(rows.size()) - 1);
     for (int row = firstRow; row <= safeLast; ++row) {
         const auto& transaction = rows[static_cast<size_t>(row)];
@@ -114,173 +169,79 @@ void SessionStore::recomputeMetricsForRows(int firstRow, int lastRow)
         return;
     }
 
-    recomputeMetricsForPropertyIds(affectedPropertyIds);
+    for (const auto& propertyId : affectedPropertyIds) {
+        metrics_.recomputeProperty(propertyId,
+                                   models_.transactions(),
+                                   models_.contracts(),
+                                   [this](const QString& id) {
+            emit transactionSumsUpdated(id);
+        });
+    }
 }
 
-void SessionStore::notifyTransactionSumsForAllProperties() const
+void SessionStore::notifyTransactionSumsForAllProperties()
 {
-    if (!transactionSumsNotifier_) return;
-
-    for (const auto& property : properties_.properties()) {
+    for (const auto& property : models_.properties().properties()) {
         if (!property) continue;
-        transactionSumsNotifier_(QString::fromStdString(property->id));
+        emit transactionSumsUpdated(QString::fromStdString(property->id));
     }
 }
 
 void SessionStore::loadFromState(const AppState& state)
 {
     filters_.clear();
-
-    actors_.setActors(state.actors);
-    properties_.setProperties(state.properties);
-    contracts_.setContracts(state.contracts);
-    statements_.setStatements(state.statements);
-    transactions_.setTransactions(state.transactions);
-    analyses_.setAnalyses(state.analyses);
-    annuals_.setAnnuals(state.annuals);
-    transactions_.setContracts(state.contracts);
-    rebuildPropertyNameIndex();
+    models_.loadFromState(state);
+    propertyNames_.rebuild(models_.properties());
     recomputeAllMetrics();
-    selection_.refreshAll();
+    emit selectionRefreshRequested();
 }
 
-QString SessionStore::selectedActorId() const { return selection_.selectedActorId(); }
-QString SessionStore::selectedPropertyId() const { return selection_.selectedPropertyId(); }
-QString SessionStore::selectedContractId() const { return selection_.selectedContractId(); }
-QString SessionStore::selectedStatementId() const { return selection_.selectedStatementId(); }
-QString SessionStore::selectedTransactionId() const { return selection_.selectedTransactionId(); }
-QString SessionStore::selectedAnalysisId() const { return selection_.selectedAnalysisId(); }
-QString SessionStore::selectedAnnualId() const { return selection_.selectedAnnualId(); }
-
-bool SessionStore::setSelectedActorId(const QString& id) { return selection_.setSelectedActorId(id); }
-bool SessionStore::setSelectedPropertyId(const QString& id) { return selection_.setSelectedPropertyId(id); }
-bool SessionStore::setSelectedContractId(const QString& id) { return selection_.setSelectedContractId(id); }
-bool SessionStore::setSelectedStatementId(const QString& id) { return selection_.setSelectedStatementId(id); }
-bool SessionStore::setSelectedTransactionId(const QString& id) { return selection_.setSelectedTransactionId(id); }
-bool SessionStore::setSelectedAnalysisId(const QString& id) { return selection_.setSelectedAnalysisId(id); }
-bool SessionStore::setSelectedAnnualId(const QString& id) { return selection_.setSelectedAnnualId(id); }
-
-ActorSelection* SessionStore::selectedActor() { return selection_.selectedActor(); }
-PropertySelection* SessionStore::selectedProperty() { return selection_.selectedProperty(); }
-ContractSelection* SessionStore::selectedContract() { return selection_.selectedContract(); }
-StatementSelection* SessionStore::selectedStatement() { return selection_.selectedStatement(); }
-TransactionSelection* SessionStore::selectedTransaction() { return selection_.selectedTransaction(); }
-AnalysisSelection* SessionStore::selectedAnalysis() { return selection_.selectedAnalysis(); }
-AnnualSelection* SessionStore::selectedAnnual() { return selection_.selectedAnnual(); }
-
-QVariantList SessionStore::statementTransactionIds(const QString& statementId) const
+TransactionFilter* SessionStore::statementTransactions(const QString& statementId, QObject* parent)
 {
-    QVariantList out;
-    if (statementId.isEmpty()) return out;
-    for (const auto& transaction : transactions_.transactions()) {
-        if (!transaction) continue;
-        if (QString::fromStdString(transaction->statementId) == statementId) out.push_back(QString::fromStdString(transaction->id));
-    }
-    return out;
+    return filters_.statementTransactions(statementId, models_.transactions(), parent);
 }
 
-QObject* SessionStore::statementTransactions(const QString& statementId)
+TransactionFilter* SessionStore::propertyTransactions(const QString& propertyId, QObject* parent)
 {
-    return filters_.statementTransactions(statementId, transactions_, owner_);
-}
-
-QObject* SessionStore::propertyTransactions(const QString& propertyId)
-{
-    return filters_.propertyTransactions(propertyId, transactions_, owner_);
+    return filters_.propertyTransactions(propertyId, models_.transactions(), parent);
 }
 
 QStringList SessionStore::propertyContractTypes(const QString& propertyId) const
 {
-    return metrics_.propertyContractTypes(propertyId, transactions_, contracts_);
+    return metrics_.propertyContractTypes(propertyId, models_.transactions(), models_.contracts());
 }
 
 QVariantMap SessionStore::propertyTransactionSums(const QString& propertyId, const QString& contractType) const
 {
-    return metrics_.propertyTransactionSums(propertyId, contractType, transactions_, contracts_);
+    return metrics_.propertyTransactionSums(propertyId, contractType, models_.transactions(), models_.contracts());
 }
 
 QString SessionStore::propertyName(const QString& id) const
 {
-    if (id.isEmpty()) return {};
-    const auto it = propertyNameIndex_.find(id);
-    return it == propertyNameIndex_.end() ? id : it.value();
+    return propertyNames_.name(id);
 }
 
 void SessionStore::applyDeletionImpact(const DeletionImpact& impact)
 {
-    for (const auto& transactionId : impact.deletedTransactionIds) {
-        const QString id = QString::fromStdString(transactionId);
-        const int row = transactions_.findRowById(id);
-        if (row >= 0) {
-            const auto transaction = transactions_.transactions().at(static_cast<size_t>(row));
-            QSet<QString> affectedPropertyIds;
-            if (transaction) {
-                for (const auto& propertyId : transaction->propertyIds) affectedPropertyIds.insert(QString::fromStdString(propertyId));
-            }
-            transactions_.removeAt(row);
-            recomputeMetricsForPropertyIds(affectedPropertyIds);
-        }
-        selection_.clearTransactionIfSelected(id);
-    }
-
-    for (const auto& statementId : impact.deletedStatementIds) {
-        const QString id = QString::fromStdString(statementId);
-        const int row = statements_.findRowById(id);
-        if (row >= 0) statements_.removeAt(row);
-        filters_.removeStatement(id);
-        selection_.clearStatementIfSelected(id);
-    }
-
-    for (const auto& propertyId : impact.deletedPropertyIds) {
-        const QString id = QString::fromStdString(propertyId);
-        const int row = properties_.findRowById(id);
-        if (row >= 0) properties_.removeAt(row);
-        propertyNameIndex_.remove(id);
-        metrics_.removePropertyCache(id);
-        filters_.removeProperty(id);
-        selection_.clearPropertyIfSelected(id);
-    }
-
-    for (const auto& actorId : impact.deletedActorIds) {
-        const QString id = QString::fromStdString(actorId);
-        const int row = actors_.findRowById(id);
-        if (row >= 0) actors_.removeAt(row);
-        selection_.clearActorIfSelected(id);
-    }
-
-    for (const auto& contractId : impact.deletedContractIds) {
-        const QString id = QString::fromStdString(contractId);
-        const int row = contracts_.findRowById(id);
-        if (row >= 0) contracts_.removeAt(row);
-        selection_.clearContractIfSelected(id);
-    }
+    SessionMutationState::applyDeletionImpact(impact,
+                                              models_,
+                                              filters_,
+                                              metrics_,
+                                              propertyNames_);
+    models_.refreshContractTypes();
+    emit selectionRefreshRequested();
 }
 
 void SessionStore::setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds)
 {
-    if (txId.isEmpty()) return;
-    const int row = transactions_.findRowById(txId);
-    if (row < 0) return;
-
-    auto current = transactions_.transactions().at(static_cast<size_t>(row));
-    if (!current) return;
-
-    QSet<QString> oldSet;
-    for (const auto& propertyId : current->propertyIds) oldSet.insert(QString::fromStdString(propertyId));
-
-    QSet<QString> newSet;
-    for (const auto& propertyId : propertyIds) newSet.insert(propertyId);
-
-    if (oldSet == newSet) return;
-
-    current->propertyIds.clear();
-    for (const auto& propertyId : propertyIds) current->propertyIds.push_back(propertyId.toStdString());
-
-    const QModelIndex modelIndex = transactions_.index(row);
-    emit transactions_.dataChanged(modelIndex, modelIndex, {TransactionList::PropertyIdsRole});
-
-    oldSet.unite(newSet);
-    recomputeMetricsForPropertyIds(oldSet);
+    SessionMutationState::setTransactionPropertyIdsImmediate(txId,
+                                                             propertyIds,
+                                                             models_,
+                                                             metrics_,
+                                                             [this](const QString& propertyId) {
+        emit transactionSumsUpdated(propertyId);
+    });
+    emit selectionRefreshRequested();
 }
 
 }

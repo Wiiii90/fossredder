@@ -1,16 +1,13 @@
 #pragma once
 
-#include <QAbstractListModel>
-#include <QString>
-#include <vector>
-#include <memory>
-
 #include "core/models/Annual.h"
+#include "ui/models/IndexedListModel.h"
 
 namespace ui {
 
-class AnnualList : public QAbstractListModel {
+class AnnualList : public models::IndexedListModel<Annual> {
     Q_OBJECT
+    using Base = models::IndexedListModel<Annual>;
 public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
@@ -20,17 +17,14 @@ public:
 
     explicit AnnualList(QObject* parent = nullptr);
 
-    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void setAnnuals(std::vector<std::shared_ptr<Annual>> annuals);
-    const std::vector<std::shared_ptr<Annual>>& annuals() const;
+    void setAnnuals(std::vector<std::shared_ptr<Annual>> annuals) { setItems(std::move(annuals)); }
+    const std::vector<std::shared_ptr<Annual>>& annuals() const { return items(); }
+    int findRowById(const QString& id) const { return findIndexedRow(id); }
 
-    Q_INVOKABLE void removeAt(int row);
-
-private:
-    std::vector<std::shared_ptr<Annual>> annuals_;
+    Q_INVOKABLE void removeAt(int row) { removeItemAt(row); }
 };
 
 }

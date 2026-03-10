@@ -1,8 +1,11 @@
 #pragma once
 
+#include <QObject>
 #include <QString>
 
 namespace ui::controllers::contracts {
+
+Q_NAMESPACE
 
 namespace operations {
 
@@ -17,5 +20,7 @@ enum class ExportFormat : int {
     Csv = 0,
     Xlsx = 1
 };
+
+Q_ENUM_NS(ExportFormat)
 
 }

@@ -1,21 +1,17 @@
 #pragma once
 
-#include <QAbstractListModel>
 #include <QHash>
 #include <QString>
 #include <QVariant>
 
-#include <memory>
-#include <vector>
-
 #include "core/models/Transaction.h"
-
-class Contract;
+#include "ui/models/RowListModel.h"
 
 namespace ui {
 
-class TransactionList : public QAbstractListModel {
+class TransactionList : public models::RowListModel<std::shared_ptr<Transaction>> {
     Q_OBJECT
+    using Base = models::RowListModel<std::shared_ptr<Transaction>>;
 public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
@@ -38,13 +34,12 @@ public:
 
     explicit TransactionList(QObject* parent = nullptr);
 
-    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
     void setTransactions(std::vector<std::shared_ptr<Transaction>> transactions);
-    void setContracts(std::vector<std::shared_ptr<::Contract>> contracts);
-    const std::vector<std::shared_ptr<Transaction>>& transactions() const;
+    void setContractTypes(QHash<QString, QString> contractTypes);
+    const std::vector<std::shared_ptr<Transaction>>& transactions() const { return rows(); }
     int findRowById(const QString& id) const;
     void setTransactionAt(int row, std::shared_ptr<Transaction> tx);
     Q_INVOKABLE void removeAt(int row);
@@ -52,13 +47,11 @@ public:
 
 private:
     void rebuildIdIndex();
-    void rebuildContractTypeIndex();
     QString contractTypeForTransaction(const Transaction& transaction) const;
     static QVariantList toPropertyIdList(const std::vector<std::string>& propertyIds);
     void fillTransactionMap(QVariantMap& map, const Transaction& transaction) const;
+    QVector<int> allRoles() const;
 
-    std::vector<std::shared_ptr<Transaction>> transactions_;
-    std::vector<std::shared_ptr<::Contract>> contracts_;
     QHash<QString, int> idToRow_;
     QHash<QString, QString> contractTypeById_;
 };

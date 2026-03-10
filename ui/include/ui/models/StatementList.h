@@ -1,18 +1,13 @@
 #pragma once
 
-#include <QAbstractListModel>
-#include <QHash>
-#include <QString>
-
-#include <memory>
-#include <vector>
-
 #include "core/models/Statement.h"
+#include "ui/models/IndexedListModel.h"
 
 namespace ui {
 
-class StatementList : public QAbstractListModel {
+class StatementList : public models::IndexedListModel<Statement> {
     Q_OBJECT
+    using Base = models::IndexedListModel<Statement>;
 public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
@@ -21,20 +16,13 @@ public:
 
     explicit StatementList(QObject* parent = nullptr);
 
-    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void setStatements(std::vector<std::shared_ptr<Statement>> statements);
-    const std::vector<std::shared_ptr<Statement>>& statements() const;
-    int findRowById(const QString& id) const;
-    Q_INVOKABLE void removeAt(int row);
-
-private:
-    void rebuildIdIndex();
-
-    std::vector<std::shared_ptr<Statement>> statements_;
-    QHash<QString, int> idToRow_;
+    void setStatements(std::vector<std::shared_ptr<Statement>> statements) { setItems(std::move(statements)); }
+    const std::vector<std::shared_ptr<Statement>>& statements() const { return items(); }
+    int findRowById(const QString& id) const { return findIndexedRow(id); }
+    Q_INVOKABLE void removeAt(int row) { removeItemAt(row); }
 };
 
 }

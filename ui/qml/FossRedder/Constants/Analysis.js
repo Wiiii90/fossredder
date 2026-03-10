@@ -5,39 +5,8 @@ var chartTypes = {
     histogram: "histogram"
 }
 
-var layout = {
-    defaultWidth: 800,
-    defaultHeight: 600,
-    splitControlsWidth: 220,
-    splitAnimationDurationMs: 400,
-    initialPaintIntervalMs: 300,
-    initialPaintReadyWidth: 120,
-    initialPaintMaxAttempts: 6,
-    repaintDelayMs: 100,
-    minDebugRepaintWidth: 50,
-    minRenderWidth: 100,
-    legendTopMargin: 8
-}
-
-var render = {
-    pieStartAngle: -Math.PI / 2,
-    pieRadiusPadding: 10,
-    compactBarLeftPadding: 20,
-    compactBarVerticalSpacing: 18,
-    compactBarTopOffset: 4,
-    compactBarHeight: 12,
-    compactBarWidthPadding: 40,
-    compactBarMinWidth: 2,
-    histogramGroupPadding: 8,
-    histogramBottomPadding: 18,
-    histogramTopPadding: 30,
-    propertyBarInset: 2,
-    propertyLabelMinWidth: 36
-}
-
 var text = {
     defaultLegendValue: "0.00",
-    ellipsis: "...",
     percentSuffix: "%"
 }
 
@@ -78,17 +47,29 @@ function plotType(result) {
         }
     }
 
-    return (result.table && result.table.length > 0) ? chartTypes.pie : ""
-}
+    if (!result.table || result.table.length === 0)
+        return ""
 
-function shouldShowHistogramControls(result) {
-    return plotType(result) === chartTypes.histogram
-}
+    var sample = result.table[0]
+    if (!sample || sample.length < 2)
+        return chartTypes.pie
 
-function shouldShowHistogramLegend(result, legendModel) {
-    return plotType(result) === chartTypes.histogram || (legendModel && legendModel.length > 0)
-}
+    try {
+        var histogramConfig = JSON.parse(sample[1])
+        if (histogramConfig && (histogramConfig.total !== undefined || histogramConfig.byContract !== undefined || histogramConfig.byProperty !== undefined))
+            return chartTypes.histogram
+    } catch (e) {
+    }
 
-function shouldShowNonHistogramLegend(result) {
-    return plotType(result) !== chartTypes.histogram
+    var numericValue = parseFloat(sample[1])
+    if (!isNaN(numericValue))
+        return chartTypes.pie
+
+    if (sample.length > 2) {
+        var secondaryNumericValue = parseFloat(sample[2])
+        if (!isNaN(secondaryNumericValue))
+            return chartTypes.pie
+    }
+
+    return chartTypes.pie
 }

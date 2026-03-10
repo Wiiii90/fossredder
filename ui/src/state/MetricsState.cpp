@@ -9,7 +9,20 @@ namespace ui {
 
 namespace {
 
-constexpr double kZeroAmount = 0.0;
+struct PropertySums {
+    double total = 0.0;
+    double allocatable = 0.0;
+    double nonAllocatable = 0.0;
+
+    QVariantMap toVariantMap() const
+    {
+        return {
+            {payload::keys::metrics::kTotal, total},
+            {payload::keys::metrics::kAllocatable, allocatable},
+            {payload::keys::metrics::kNonAllocatable, nonAllocatable}
+        };
+    }
+};
 
 QHash<QString, QString> buildContractTypeById(const ContractList& contracts)
 {
@@ -99,11 +112,8 @@ QVariantMap MetricsState::computePropertySums(const QString& propertyId,
                                               const TransactionList& transactions,
                                               const ContractList& contracts) const
 {
-    QVariantMap out;
-    out[payload::keys::metrics::kTotal] = kZeroAmount;
-    out[payload::keys::metrics::kAllocatable] = kZeroAmount;
-    out[payload::keys::metrics::kNonAllocatable] = kZeroAmount;
-    if (propertyId.isEmpty()) return out;
+    PropertySums sums;
+    if (propertyId.isEmpty()) return sums.toVariantMap();
 
     const auto contractTypeById = buildContractTypeById(contracts);
 
@@ -118,12 +128,12 @@ QVariantMap MetricsState::computePropertySums(const QString& propertyId,
             if (currentType != contractType) continue;
         }
 
-        out[payload::keys::metrics::kTotal] = out[payload::keys::metrics::kTotal].toDouble() + t->amount;
-        if (t->allocatable) out[payload::keys::metrics::kAllocatable] = out[payload::keys::metrics::kAllocatable].toDouble() + t->amount;
-        else out[payload::keys::metrics::kNonAllocatable] = out[payload::keys::metrics::kNonAllocatable].toDouble() + t->amount;
+        sums.total += t->amount;
+        if (t->allocatable) sums.allocatable += t->amount;
+        else sums.nonAllocatable += t->amount;
     }
 
-    return out;
+    return sums.toVariantMap();
 }
 
 }

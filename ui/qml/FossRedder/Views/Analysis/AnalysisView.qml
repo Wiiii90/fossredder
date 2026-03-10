@@ -4,12 +4,13 @@ import QtQuick.Layouts 1.3
 import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 import FossRedder.Views 1.0 as Views
+import "../../Constants/Analysis.js" as Analysis
 
 Item {
     id: root
     readonly property var plotTypeOptions: [
-        { value: "pie", label: qsTr("Pie chart") },
-        { value: "histogram", label: qsTr("Histogram") }
+        { value: Analysis.chartTypes.pie, label: qsTr("Pie chart") },
+        { value: Analysis.chartTypes.histogram, label: qsTr("Histogram") }
     ]
     readonly property var plotMeasureOptions: [
         { value: "totalAmount", label: qsTr("Total Amount") },
@@ -32,13 +33,13 @@ Item {
         initialItem: Component {
             Rectangle {
                 id: pageRect
-                width: stackView ? stackView.width : 800
-                height: stackView ? stackView.height : 600
+                width: stackView ? stackView.width : Theme.analysis.layout.defaultWidth
+                height: stackView ? stackView.height : Theme.analysis.layout.defaultHeight
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 8
-                    spacing: 8
+                    anchors.margins: Theme.pageMargin
+                    spacing: Theme.settings.spacing
 
                     GroupBox {
                         id: createBox
@@ -117,35 +118,35 @@ Item {
                             }
                         }
 
-                        ColumnLayout { anchors.fill: parent; anchors.margins: 6; spacing: 8
+                        ColumnLayout { anchors.fill: parent; anchors.margins: Theme.chartPanelMargin; spacing: Theme.settings.spacing
                             Controls.TextField { id: nameField; placeholderText: qsTr("Analysis name") }
 
-                            RowLayout { Layout.fillWidth: true; spacing: 8
-                                Label { text: qsTr("Strategy"); Layout.preferredWidth: 120 }
+                            RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing
+                                Label { text: qsTr("Strategy"); Layout.preferredWidth: Theme.formLabelWidth }
                                 ComboBox { id: strategyCombo; Layout.fillWidth: true; model: [ qsTr("Tab"), qsTr("Plot"), qsTr("Calc") ]; currentIndex: 1 }
                             }
 
-                            RowLayout { Layout.fillWidth: true; spacing: 8; visible: strategyCombo.currentIndex === 1
-                                Label { text: qsTr("Plot type"); Layout.preferredWidth: 120 }
+                            RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing; visible: strategyCombo.currentIndex === 1
+                                Label { text: qsTr("Plot type"); Layout.preferredWidth: Theme.formLabelWidth }
                                 ComboBox { id: plotTypeCombo; Layout.fillWidth: true; model: root.plotTypeOptions; textRole: "label"; currentIndex: 0 }
                             }
 
-                            RowLayout { Layout.fillWidth: true; spacing: 8
-                                Label { text: qsTr("Date from"); Layout.preferredWidth: 120 }
+                            RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing
+                                Label { text: qsTr("Date from"); Layout.preferredWidth: Theme.formLabelWidth }
                                 Controls.TextField { id: dateFrom; placeholderText: qsTr("YYYY-MM-DD") }
                             }
 
-                            RowLayout { Layout.fillWidth: true; spacing: 8
-                                Label { text: qsTr("Date to"); Layout.preferredWidth: 120 }
+                            RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing
+                                Label { text: qsTr("Date to"); Layout.preferredWidth: Theme.formLabelWidth }
                                 Controls.TextField { id: dateTo; placeholderText: qsTr("YYYY-MM-DD") }
                             }
 
-                            ColumnLayout { Layout.fillWidth: true; spacing: 6
-                                Label { text: qsTr("Contract Types (select)"); Layout.preferredWidth: 120 }
-                                Flickable { Layout.fillWidth: true; contentHeight: contractTypeList.count * 28; clip: true; height: 120
+                            ColumnLayout { Layout.fillWidth: true; spacing: Theme.spacingSmall
+                                Label { text: qsTr("Contract Types (select)"); Layout.preferredWidth: Theme.formLabelWidth }
+                                Flickable { Layout.fillWidth: true; contentHeight: contractTypeList.count * 28; clip: true; height: Theme.chartLegendHeight
                                     Column { width: parent.width
                                         Repeater { model: contractTypeList
-                                            delegate: RowLayout { width: parent.width; spacing: 8
+                                            delegate: RowLayout { width: parent.width; spacing: Theme.settings.spacing
                                                 CheckBox {
                                                     id: ctcb
                                                     checked: true
@@ -169,12 +170,12 @@ Item {
                                 }
                             }
 
-                            ColumnLayout { Layout.fillWidth: true; spacing: 6
+                            ColumnLayout { Layout.fillWidth: true; spacing: Theme.spacingSmall
                                 Label { text: qsTr("Properties (select)") }
-                                Flickable { Layout.fillWidth: true; contentHeight: propList.implicitHeight; clip: true; height: 120
+                                Flickable { Layout.fillWidth: true; contentHeight: propList.implicitHeight; clip: true; height: Theme.chartLegendHeight
                                     Column { id: propList; width: parent.width
                                         Repeater { model: uiData ? uiData.properties : []
-                                            delegate: RowLayout { width: parent.width; spacing: 8
+                                            delegate: RowLayout { width: parent.width; spacing: Theme.settings.spacing
                                                 CheckBox {
                                                     id: cb
                                                     checked: true
@@ -198,12 +199,12 @@ Item {
                                 }
                             }
 
-                            RowLayout { Layout.fillWidth: true; spacing: 8
-                                Label { text: qsTr("Plot Measure"); Layout.preferredWidth: 120 }
+                            RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing
+                                Label { text: qsTr("Plot Measure"); Layout.preferredWidth: Theme.formLabelWidth }
                                 ComboBox { id: plotMeasureCombo; Layout.fillWidth: true; model: root.plotMeasureOptions; textRole: "label"; currentIndex: 0 }
                             }
 
-                            RowLayout { Layout.fillWidth: true; spacing: 8
+                            RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing
                                 Controls.Button {
                                     text: qsTr("Create")
                                     enabled: nameField.text.length > 0

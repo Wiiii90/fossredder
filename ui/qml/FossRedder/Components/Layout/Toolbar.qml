@@ -9,6 +9,20 @@ Item {
     implicitHeight: Theme.toolbarHeight
     property int iconRowHeight: Math.round(implicitHeight * 0.55)
 
+    function clearDomainSelection() {
+        if (!uiData) return
+        uiData.selectedActorId = ""
+        uiData.selectedPropertyId = ""
+        uiData.selectedContractId = ""
+    }
+
+    function navigateTo(section, clearSelection, bookingView) {
+        if (!uiNav) return
+        if (clearSelection) clearDomainSelection()
+        if (bookingView !== undefined) uiNav.bookingView = bookingView
+        uiNav.section = section
+    }
+
     Rectangle {
         id: bg
         anchors.left: parent.left
@@ -94,10 +108,7 @@ Item {
                                 uiData.selectedStatementId = ""
                                 uiData.selectedTransactionId = ""
                             }
-                            if (uiNav) {
-                                uiNav.bookingView = UiNavigation.Statements
-                                uiNav.section = UiNavigation.Booking
-                            }
+                            navigateTo(UiNavigation.Booking, false, UiNavigation.Statements)
                         }
                     }
                     Controls.IconButton {
@@ -106,14 +117,7 @@ Item {
                         svgSource: "qrc:/qml/FossRedder/Assets/actor.svg"
                         label: qsTr("Actor")
                         active: uiNav && uiNav.section === UiNavigation.Actors
-                        onClicked: {
-                            if (uiData) {
-                                uiData.selectedActorId = ""
-                                uiData.selectedPropertyId = ""
-                                uiData.selectedContractId = ""
-                            }
-                            if (uiNav) uiNav.section = UiNavigation.Actors
-                        }
+                        onClicked: navigateTo(UiNavigation.Actors, true)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
@@ -121,14 +125,7 @@ Item {
                         svgSource: "qrc:/qml/FossRedder/Assets/property.svg"
                         label: qsTr("Property")
                         active: uiNav && uiNav.section === UiNavigation.Properties
-                        onClicked: {
-                            if (uiData) {
-                                uiData.selectedActorId = ""
-                                uiData.selectedPropertyId = ""
-                                uiData.selectedContractId = ""
-                            }
-                            if (uiNav) uiNav.section = UiNavigation.Properties
-                        }
+                        onClicked: navigateTo(UiNavigation.Properties, true)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
@@ -136,14 +133,7 @@ Item {
                         svgSource: "qrc:/qml/FossRedder/Assets/contract.svg"
                         label: qsTr("Contract")
                         active: uiNav && uiNav.section === UiNavigation.Contracts
-                        onClicked: {
-                            if (uiData) {
-                                uiData.selectedActorId = ""
-                                uiData.selectedPropertyId = ""
-                                uiData.selectedContractId = ""
-                            }
-                            if (uiNav) uiNav.section = UiNavigation.Contracts
-                        }
+                        onClicked: navigateTo(UiNavigation.Contracts, true)
                     }
                 }
 
@@ -180,14 +170,7 @@ Item {
                         svgSource: "qrc:/qml/FossRedder/Assets/analysis.svg"
                         label: qsTr("Analysis")
                         active: uiNav && uiNav.section === UiNavigation.Analysis
-                        onClicked: {
-                            if (uiData) {
-                                uiData.selectedActorId = ""
-                                uiData.selectedPropertyId = ""
-                                uiData.selectedContractId = ""
-                            }
-                            if (uiNav) uiNav.section = UiNavigation.Analysis
-                        }
+                        onClicked: navigateTo(UiNavigation.Analysis, true)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
@@ -195,14 +178,7 @@ Item {
                         svgSource: "qrc:/qml/FossRedder/Assets/annual.svg"
                         label: qsTr("Annual")
                         active: uiNav && uiNav.section === UiNavigation.Annual
-                        onClicked: {
-                            if (uiData) {
-                                uiData.selectedActorId = ""
-                                uiData.selectedPropertyId = ""
-                                uiData.selectedContractId = ""
-                            }
-                            if (uiNav) uiNav.section = UiNavigation.Annual
-                        }
+                        onClicked: navigateTo(UiNavigation.Annual, true)
                     }
                 }
 

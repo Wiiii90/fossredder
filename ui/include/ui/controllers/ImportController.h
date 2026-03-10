@@ -64,9 +64,12 @@ signals:
 
 private slots:
     void updateProgress(double p, const QString& phase);
-    void onJobTerminal(int state, const QString& message);
+    void onJobTerminal(core::jobs::JobState state, const QString& message);
 
 private:
+    void rejectImportStart(const QString& errorMessage, const char* traceMessage);
+    void requestImportCancellation(bool clearQueue, const char* origin, const char* traceMessage);
+    void handleJobEvent(const core::jobs::JobEvent& event);
     void handleImportCanceled(const QString& now);
     void handleImportFailed(const QString& now, const QString& errorMessage, const char* traceMessage);
     bool populateDraftFromResult(const QString& now);

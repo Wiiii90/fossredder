@@ -65,7 +65,57 @@ QtObject {
     property int radius: 4
     property int borderWidthThin: 1
 
-    property var analysisPalette: ["#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#d9d9d9", "#bc80bd", "#ccebc5", "#ffed6f"]
+    property var settings: ({
+        margin: 8,
+        spacing: 8,
+        panelPreferredWidth: 760,
+        sidebarSpacing: 6
+    })
+
+    property var analysis: ({
+        palette: ["#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#d9d9d9", "#bc80bd", "#ccebc5", "#ffed6f"],
+        layout: {
+            defaultWidth: 800,
+            defaultHeight: 600,
+            splitControlsWidth: 220,
+            splitAnimationDurationMs: 400,
+            initialPaintIntervalMs: 300,
+            initialPaintReadyWidth: 120,
+            initialPaintMaxAttempts: 6,
+            repaintDelayMs: 100,
+            minDebugRepaintWidth: 50,
+            minRenderWidth: 100,
+            legendTopMargin: 8
+        },
+        render: {
+            pieStartAngle: -Math.PI / 2,
+            pieRadiusPadding: 10,
+            compactBarLeftPadding: 20,
+            compactBarVerticalSpacing: 18,
+            compactBarTopOffset: 4,
+            compactBarHeight: 12,
+            compactBarWidthPadding: 40,
+            compactBarMinWidth: 2,
+            histogramGroupPadding: 8,
+            histogramBottomPadding: 18,
+            histogramTopPadding: 30,
+            propertyBarInset: 2,
+            propertyLabelMinWidth: 36
+        },
+        table: {
+            rowHeight: 28,
+            dateColumnWidth: 140,
+            amountColumnWidth: 100,
+            contractColumnWidth: 160,
+            detailListHeight: 300
+        },
+        calc: {
+            defaultWidth: 400,
+            taxFieldWidth: 80,
+            transactionListHeight: 220,
+            nameColumnWidth: 200
+        }
+    })
 
     property string fontFamily: "Segoe UI"
 

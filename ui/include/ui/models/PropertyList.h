@@ -1,17 +1,13 @@
 #pragma once
 
-#include <QAbstractListModel>
-#include <QHash>
-#include <QString>
-#include <vector>
-#include <memory>
-
 #include "core/models/Property.h"
+#include "ui/models/IndexedListModel.h"
 
 namespace ui {
 
-class PropertyList : public QAbstractListModel {
+class PropertyList : public models::IndexedListModel<Property> {
     Q_OBJECT
+    using Base = models::IndexedListModel<Property>;
 
 public:
     enum Roles {
@@ -25,24 +21,15 @@ public:
 
     explicit PropertyList(QObject* parent = nullptr);
 
-    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;
-    bool setData(const QModelIndex& index, const QVariant& value, int role) override;
-    Qt::ItemFlags flags(const QModelIndex& index) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void setProperties(std::vector<std::shared_ptr<Property>> props);
-    const std::vector<std::shared_ptr<Property>>& properties() const;
-    int findRowById(const QString& id) const;
+    void setProperties(std::vector<std::shared_ptr<Property>> props) { setItems(std::move(props)); }
+    const std::vector<std::shared_ptr<Property>>& properties() const { return items(); }
+    int findRowById(const QString& id) const { return findIndexedRow(id); }
 
     Q_INVOKABLE int addProperty(const QString& name, const QString& address, const QString& description);
-    Q_INVOKABLE void removeAt(int row);
-
-private:
-    void rebuildIdIndex();
-
-    std::vector<std::shared_ptr<Property>> props_;
-    QHash<QString, int> idToRow_;
+    Q_INVOKABLE void removeAt(int row) { removeItemAt(row); }
 };
 
 }

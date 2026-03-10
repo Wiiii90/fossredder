@@ -4,11 +4,13 @@ import QtQuick.Layouts 1.3
 import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 import "../../Constants/FileFormats.js" as FileFormats
-import "../../Constants/Messages.js" as Messages
 
 Item {
     id: root
     readonly property string automaticSettingsText: qsTr("Settings are currently managed automatically.")
+    readonly property string importCanceledStatusText: qsTr("Import canceled")
+    readonly property string importFinishedStatusText: qsTr("Import finished")
+    readonly property string importFailedStatusText: qsTr("Import failed")
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
@@ -30,7 +32,7 @@ Item {
         for (var i = 0; i < paths.length; ++i) {
             var p = String(paths[i])
             if (!p || p.length === 0) continue
-            if (p.toLowerCase().endsWith(FileFormats.dotExtension(FileFormats.extensions.pdf))) pdfs.push(p)
+            if (p.toLowerCase().endsWith(FileFormats.dotExtension(FileFormats.importSources.pdf.extension))) pdfs.push(p)
         }
         if (pdfs.length === 0) return
 
@@ -82,7 +84,7 @@ Item {
                                     Label { text: qsTr("Source"); Layout.preferredWidth: Theme.formLabelWidth }
                                     Controls.ComboBox {
                                         id: sourceKind
-                                        model: [qsTr("PDF")]
+                                        model: [FileFormats.importSources.pdf.label]
                                         currentIndex: 0
                                     }
                                 }
@@ -231,14 +233,14 @@ Item {
                                 Connections {
                                     target: hasImportController ? importController : null
                                     function onImportCanceled() {
-                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = Messages.statusImportCanceled()
+                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = root.importCanceledStatusText
                                     }
                                     function onImportFinished() {
-                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = Messages.statusImportFinished()
+                                        if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = root.importFinishedStatusText
                                     }
                                     function onImportFailed(error) {
                                         if (typeof uiStatus !== 'undefined' && uiStatus)
-                                            uiStatus.text = (error && error.length > 0) ? error : Messages.statusImportFailed()
+                                            uiStatus.text = (error && error.length > 0) ? error : root.importFailedStatusText
                                     }
                                 }
 
