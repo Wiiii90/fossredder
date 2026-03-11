@@ -54,17 +54,16 @@ ActorSelection::ActorSelection(QObject* parent)
 
 void ActorSelection::clear()
 {
-    set({}, {}, {}, {}, {});
+    set({}, {}, {}, {});
 }
 
-void ActorSelection::set(QString id, QString name, QString type, QString description, QStringList aliases)
+void ActorSelection::set(QString id, QString name, QString type, QString description)
 {
-    if (std::tie(id_, name_, type_, description_, aliases_) == std::tie(id, name, type, description, aliases)) return;
+    if (std::tie(id_, name_, type_, description_) == std::tie(id, name, type, description)) return;
     id_ = std::move(id);
     name_ = std::move(name);
     type_ = std::move(type);
     description_ = std::move(description);
-    aliases_ = std::move(aliases);
     emit changed();
 }
 
@@ -140,7 +139,7 @@ TransactionSelection::TransactionSelection(QObject* parent)
 
 void TransactionSelection::clear()
 {
-    set({}, {}, {}, 0.0, {}, {}, {}, {}, {}, false);
+    set({}, {}, {}, 0.0, {}, {}, {}, {}, false);
 }
 
 void TransactionSelection::set(QString id,
@@ -150,12 +149,11 @@ void TransactionSelection::set(QString id,
                                QString description,
                                QString statementId,
                                QString actorId,
-                               QString actorProposal,
                                QStringList propertyIds,
                                bool allocatable)
 {
-    if (std::tie(id_, name_, bookingDate_, amount_, description_, statementId_, actorId_, actorProposal_, propertyIds_, allocatable_)
-        == std::tie(id, name, bookingDate, amount, description, statementId, actorId, actorProposal, propertyIds, allocatable)) {
+    if (std::tie(id_, name_, bookingDate_, amount_, description_, statementId_, actorId_, propertyIds_, allocatable_)
+        == std::tie(id, name, bookingDate, amount, description, statementId, actorId, propertyIds, allocatable)) {
         return;
     }
     id_ = std::move(id);
@@ -165,7 +163,6 @@ void TransactionSelection::set(QString id,
     description_ = std::move(description);
     statementId_ = std::move(statementId);
     actorId_ = std::move(actorId);
-    actorProposal_ = std::move(actorProposal);
     propertyIds_ = std::move(propertyIds);
     allocatable_ = allocatable;
     emit changed();
@@ -271,13 +268,10 @@ void SelectionState::refreshAll()
 void SelectionState::refreshSelectedActor()
 {
     refreshSelection(selectedActorId_, actors_, [](const ActorList& model) -> const auto& { return model.actors(); }, selectedActor_, [](const Actor& actor, ActorSelection& selection) {
-        QStringList aliases;
-        for (const auto& alias : actor.aliases) aliases.push_back(QString::fromStdString(alias));
         selection.set(QString::fromStdString(actor.id),
                       QString::fromStdString(actor.name),
                       QString::fromStdString(actor.type),
-                      QString::fromStdString(actor.description),
-                      aliases);
+                      QString::fromStdString(actor.description));
     });
 }
 
@@ -326,7 +320,6 @@ void SelectionState::refreshSelectedTransaction()
                       QString::fromStdString(transaction.description),
                       QString::fromStdString(transaction.statementId),
                       QString::fromStdString(transaction.actorId),
-                      QString::fromStdString(transaction.actorProposal),
                       propertyIds,
                       transaction.allocatable);
     });

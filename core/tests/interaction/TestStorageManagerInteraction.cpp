@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include "core/managers/StorageManager.h"
+#include "core/storage/StorageManager.h"
 #include "mocks/MockStorageManager.h"
 
 #include "mocks/MockActorRepository.h"

@@ -2,10 +2,13 @@
 
 #include "core/parser/DefaultStatementParser.h"
 
+#include "core/constants/CoreDefaults.h"
+
 #include "core/parser/DefaultTransactionParser.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "core/parser/ParserHeuristics.h"
 #include "core/parser/ParserHelpers.h"
+#include "core/parser/StatementParseHelpers.h"
 #include "core/utils/Util.h"
 #include "core/utils/UniqId.h"
 
@@ -20,6 +23,16 @@
 using core::parser::DefaultTransactionParser;
 using core::parser::OcrLine;
 using core::parser::TransactionBlock;
+using core::parser::detail::ColumnModel;
+using core::parser::detail::HeaderAnalysis;
+using core::parser::detail::RawLine;
+using core::parser::detail::analyzeHeaderWindow;
+using core::parser::detail::appendPageSummary;
+using core::parser::detail::appendTransactionsFromBlocks;
+using core::parser::detail::isLikelyTransactionHeaderLine;
+using core::parser::detail::isLikelyTransactionMainRowGeom;
+using core::parser::detail::rawToOcrLine;
+using core::parser::detail::rescueOrphanBlocks;
 using utils::lowerAscii;
 using utils::trim;
 
@@ -30,71 +43,9 @@ static bool isValutaHeaderLine(const std::string& line) {
     return n.find("valuta") != std::string::npos;
 }
 
-struct RawLine {
-    int cy = 0;
-    int minX = std::numeric_limits<int>::max();
-    int maxX = std::numeric_limits<int>::min();
-    int minY = std::numeric_limits<int>::max();
-    int maxY = std::numeric_limits<int>::min();
-    std::vector<std::pair<int, int>> wordSpans;
-    std::string text;
-};
-
-struct ColumnModel {
-    int valutaX = -1;
-    int debitX = -1;
-    int creditX = -1;
-    int valutaCol = -1;
-    int debitCol = -1;
-    int creditCol = -1;
-    bool hasValuta() const { return valutaX >= 0; }
-    bool hasDebit() const { return debitX >= 0; }
-    bool hasCredit() const { return creditX >= 0; }
-};
-
 struct RowModel {
     bool inSection = false;
 };
-
-// Forward declarations to ensure visibility before use
-static core::parser::OcrLine rawToOcrLine(const RawLine& l);
-static bool isLikelyTransactionMainRowGeom(const RawLine& l, const ColumnModel& cols);
-
-// Convert internal RawLine to public OcrLine structure
-static core::parser::OcrLine rawToOcrLine(const RawLine& l) {
-    core::parser::OcrLine ol;
-    ol.minX = l.minX; ol.maxX = l.maxX; ol.minY = l.minY; ol.maxY = l.maxY; ol.wordSpans = l.wordSpans; ol.text = l.text;
-    return ol;
-}
-
-// Geometry-based heuristic: detect whether a raw line looks like a transaction main row
-static bool isLikelyTransactionMainRowGeom(const RawLine& l, const ColumnModel& cols) {
-    if (!cols.hasValuta() || (!cols.hasDebit() && !cols.hasCredit())) return false;
-    const auto toks = utils::splitWhitespace(l.text);
-    if (toks.size() != l.wordSpans.size() || toks.size() < 3) return false;
-
-    const int band = core::parser::helpers::parserConfig.tokenNearBandForMainRow;
-    const bool hasValuta = core::parser::helpers::hasTokenNearX(rawToOcrLine(l), cols.valutaX, band);
-    bool hasDebit = cols.hasDebit() ? core::parser::helpers::hasTokenNearX(rawToOcrLine(l), cols.debitX, band) : false;
-    bool hasCredit = cols.hasCredit() ? core::parser::helpers::hasTokenNearX(rawToOcrLine(l), cols.creditX, band) : false;
-
-    // If neither debit nor credit detected, accept numeric-like token near the valuta column
-    if (!hasDebit && !hasCredit) {
-        try {
-            auto amtIdx = core::parser::helpers::findAmountTokenIndices(rawToOcrLine(l), cols.valutaX, core::parser::helpers::parserConfig.amountNearValutaBandPx);
-            if (!amtIdx.empty()) hasDebit = true;
-        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::isLikelyTransactionMainRowGeom", std::current_exception()); }
-    }
-
-    bool hasLeft = false;
-    for (size_t i = 0; i < toks.size(); ++i) {
-        const auto& sp = l.wordSpans[i];
-        const int cx = (sp.first + sp.second) / 2;
-        if (cx < cols.valutaX - core::parser::helpers::parserConfig.leftDescriptiveOffsetPx) { hasLeft = true; break; }
-    }
-
-    return hasLeft && hasValuta && (hasDebit || hasCredit);
-}
 
 using core::parser::heuristics::isFooterLine;
 using core::parser::heuristics::isHeaderNoiseLine;
@@ -106,11 +57,6 @@ static bool isLikelyTransactionMainRowText(const std::string& line) {
     // Allow optional whitespace between day and month produced by OCR (e.g. "01. 04")
     static const std::regex re(R"((\d{2}\.\s*\d{2})\s+\d{1,3}(?:[\.,]\d{3})*[\.,]\d{1,2}-?(?:\s+.*)?\s*$)");
     return std::regex_search(line, re);
-}
-
-// Returns true if the line is likely a transaction header line
-static bool isLikelyTransactionHeaderLine(const OcrLine& l, const ColumnModel& cols) {
-    return (cols.hasValuta() && core::parser::helpers::hasTokenNearX(l, cols.valutaX, 100));
 }
 
 } // anonymous namespace
@@ -194,65 +140,12 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
     ColumnModel cols = seedCols;
     RowModel rows;
 
-    // Pre-scan lines to determine a conservative header bottom Y so we do not start parsing
-    // transactions from text that is clearly part of the page header. This prevents lookahead
-    // from combining header lines into a transaction before header detection runs in the loop.
-    const size_t headerScanLines = 12; // reduced window for header detection
-    auto [preHeaderBottomY, headerFound] = core::parser::helpers::detectHeaderRegion(ocrLines, headerScanLines, seed.valutaX);
-    out.debugLines.push_back(std::string("header.prebottomY\t") + std::to_string(preHeaderBottomY));
-    out.debugLines.push_back(std::string("header.found\t") + (headerFound ? "1" : "0"));
-    // Diagnostic: enumerate first scan window lines and log header-like signals to aid debugging
-    try {
-        const size_t dbgN = std::min(ocrLines.size(), headerScanLines);
-        for (size_t hi = 0; hi < dbgN; ++hi) {
-            const auto& hl = ocrLines[hi];
-            const auto text = hl.text;
-            try {
-                bool isTxSection = core::parser::heuristics::isTransactionsSectionHeader(text);
-                bool isDebitCredit = core::parser::heuristics::isDebitCreditHeaderLine(text);
-                bool isNoise = core::parser::heuristics::isHeaderNoiseLine(text);
-                bool hasFullDate = core::parser::helpers::findFirstFullDate(text).has_value();
-                core::parser::OcrLine ol = hl;
-                bool hasAmt = core::parser::helpers::hasAmountLikeTokenInLine(ol, seed.valutaX);
-                bool hasValutaTokenNear = false;
-                try { if (seed.valutaX >= 0) hasValutaTokenNear = core::parser::helpers::hasTokenNearX(ol, seed.valutaX, core::parser::helpers::parserConfig.tokenNearBandForMainRow); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerCandidateValutaNear", std::current_exception()); }
-                std::ostringstream ss; ss << "header.candidate\tline=" << hi << "\ttext=" << text << "\ttxSection=" << (isTxSection?"1":"0") << "\tdebitcredit=" << (isDebitCredit?"1":"0") << "\tnoise=" << (isNoise?"1":"0") << "\tfullDate=" << (hasFullDate?"1":"0") << "\thasAmt=" << (hasAmt?"1":"0") << "\tvalutaNear=" << (hasValutaTokenNear?"1":"0");
-                out.debugLines.push_back(ss.str());
-            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::txt", std::current_exception()); }
-        }
-    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerCandidates", std::current_exception()); }
-
-    int headerBottomY = preHeaderBottomY; // track lowest (largest y) header line encountered
-    // If we find an early line that already contains an amount-like token or short-date+left-text,
-    // lower the headerBottomY so we do not skip legitimate transaction starts.
-    try {
-        int earliestAmtY = std::numeric_limits<int>::max();
-        bool found = false;
-        for (size_t i = 0; i < lines.size(); ++i) {
-            try {
-                core::parser::OcrLine ol = rawToOcrLine(lines[i]);
-                bool hasAmt = core::parser::helpers::hasAmountLikeTokenInLine(ol, seed.valutaX);
-                bool dateLeft = core::parser::helpers::hasShortDateToken(ol.text) && core::parser::helpers::hasLeftDescriptiveText(ol, seed.valutaX);
-                if (hasAmt || dateLeft) {
-                    earliestAmtY = std::min(earliestAmtY, lines[i].maxY);
-                    found = true;
-                }
-            } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::combined", std::current_exception()); }
-        }
-        if (found && earliestAmtY != std::numeric_limits<int>::max()) {
-            // reduce header bottom to just above earliest amount line to avoid skipping it
-            headerBottomY = std::min(headerBottomY, earliestAmtY - 2);
-            out.debugLines.push_back(std::string("header.adjustedForEarliestAmount\t") + std::to_string(headerBottomY));
-        }
-    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerAdjustEarliestAmount", std::current_exception()); }
-
-    const int headerMarginPx = 8; // smaller margin to avoid skipping legitimate lines
-
-    // Compute page maximum Y for heuristics (used to decide if a footnote is truly at page bottom)
-    int pageMaxY = -1;
-    try {
-        for (const auto& l : lines) pageMaxY = std::max(pageMaxY, l.maxY);
-    } catch(...) { pageMaxY = -1; }
+    const HeaderAnalysis headerAnalysis = analyzeHeaderWindow(ocrLines, lines, seedCols, out);
+    static constexpr size_t headerScanLines = 12;
+    int headerBottomY = headerAnalysis.headerBottomY;
+    const int headerMarginPx = headerAnalysis.headerMarginPx;
+    const int pageMaxY = headerAnalysis.pageMaxY;
+    const bool headerFound = headerAnalysis.headerFound;
 
     // Booking-date fallback: try centralized helper
     if (currentBookingDate.empty()) {
@@ -593,138 +486,12 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
         }
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::rescue", std::current_exception()); }
 
-    core::parser::helpers::attachOrphansToBlocks(blocks, orphanLines, 80, cols.valutaX);
+    core::parser::helpers::attachOrphansToBlocks(blocks, orphanLines, core::constants::parser::kAttachOrphanMaxDistance, cols.valutaX);
 
     out.debugLines.push_back(std::string("blocks\t") + std::to_string(blocks.size()));
 
-    // concise page summary
-    try {
-        std::ostringstream ps;
-        ps << "page.summary\tocr.lines=" << lines.size() << "\theader.prebottomY=" << headerBottomY << "\tblocks=" << blocks.size() << "\ttxStartLoose=" << txStartLooseCount;
-        out.debugLines.push_back(ps.str());
-    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::pageSummary", std::current_exception()); }
-
-    for (const auto& b : blocks) {
-        if (b.main.left.empty()) continue;
-
-        // Diagnostic debug: log block main cell texts and column model state
-        try {
-            out.debugLines.push_back(std::string("block.debug\tbookingDateGroup=") + b.bookingDateGroup);
-            out.debugLines.push_back(std::string("block.main.left.text\t") + b.main.left.line.text);
-            out.debugLines.push_back(std::string("block.main.valuta.empty\t") + (b.main.valuta.empty() ? "1" : "0"));
-            out.debugLines.push_back(std::string("block.main.valuta.text\t") + (b.main.valuta.empty() ? std::string("(none)") : b.main.valuta.line.text));
-            out.debugLines.push_back(std::string("block.main.debit.empty\t") + (b.main.debit.empty() ? "1" : "0"));
-            out.debugLines.push_back(std::string("block.main.debit.text\t") + (b.main.debit.empty() ? std::string("(none)") : b.main.debit.line.text));
-            out.debugLines.push_back(std::string("block.main.credit.empty\t") + (b.main.credit.empty() ? "1" : "0"));
-            out.debugLines.push_back(std::string("block.main.credit.text\t") + (b.main.credit.empty() ? std::string("(none)") : b.main.credit.line.text));
-            out.debugLines.push_back(std::string("cols.state\tvalutaX=") + std::to_string(cols.valutaX) + std::string("\tdebitX=") + std::to_string(cols.debitX) + std::string("\tcreditX=") + std::to_string(cols.creditX));
-        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::blockDebug", std::current_exception()); }
-
-        // collect per-transaction debug lines
-        std::vector<std::string> txDebug;
-        const auto txp = DefaultTransactionParser::parseTransaction(b, &txDebug);
-        for (const auto &d : txDebug) out.debugLines.push_back(std::string("txdbg\t") + d);
-
-        Transaction tx;
-        tx.name = "Transaction " + std::to_string(txIndex++);
-        tx.bookingDate = txp.bookingDate;
-        tx.valuta = txp.valuta;
-        tx.amount = txp.amount;
-        tx.description = txp.description;
-        tx.actorProposal = txp.actorProposal;
-        tx.metadata = txp.metadata;
-
-        // If OCR table cells exist, prefer parsing amounts from the corresponding cell text
-         try {
-             if (!ocr.tables.empty() && ocr.tables[0].cells.size() > 0) {
-                const auto& t = ocr.tables[0];
-                auto overlapsLine = [&](const api::tesseract::Cell& c)->bool{
-                    const int cTop = c.bbox.y;
-                    const int cBot = c.bbox.y + c.bbox.height;
-                    return !(cTop > b.main.left.line.maxY || cBot < b.main.left.line.minY);
-                };
-
-                bool usedCell = false;
-                // Prefer exact column matches if we inferred table columns
-                if (cols.hasCredit() && cols.creditCol >= 0) {
-                    for (const auto& c : t.cells) {
-                        if (c.col == cols.creditCol && overlapsLine(c)) {
-                            out.debugLines.push_back(std::string("cell.amount_used\t") + c.text);
-                            if (auto v = core::parser::parseAmountString(c.text)) { tx.amount = *v; usedCell = true; out.debugLines.push_back(std::string("cell.override->") + std::to_string(tx.amount)); }
-                            break;
-                        }
-                    }
-                }
-                if (!usedCell && cols.hasDebit() && cols.debitCol >= 0) {
-                    for (const auto& c : t.cells) {
-                        if (c.col == cols.debitCol && overlapsLine(c)) {
-                            out.debugLines.push_back(std::string("cell.amount_used\t") + c.text);
-                            if (auto v = core::parser::parseAmountString(c.text)) { tx.amount = -std::abs(*v); usedCell = true; out.debugLines.push_back(std::string("cell.override->") + std::to_string(tx.amount)); }
-                            break;
-                        }
-                    }
-                }
-             }
-         } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::cellOverride", std::current_exception()); }
-
-        // Per-transaction proof crop
-        try {
-            if (opencv && (!pageCropImagePath.empty() || !pageCropImageBytes.empty())) {
-                int minX = std::numeric_limits<int>::max();
-                int maxX = std::numeric_limits<int>::min();
-                int minY = std::numeric_limits<int>::max();
-                int maxY = std::numeric_limits<int>::min();
-
-                auto accBounds = [&](const OcrLine& l) {
-                    minX = std::min(minX, l.minX);
-                    maxX = std::max(maxX, l.maxX);
-                    minY = std::min(minY, l.minY);
-                    maxY = std::max(maxY, l.maxY);
-                };
-
-                if (!b.main.left.empty()) accBounds(b.main.left.line);
-                for (const auto& l : b.detailLines) accBounds(l);
-
-                if (minX != std::numeric_limits<int>::max()) {
-                    api::opencv::CropRequest creq;
-                    if (!pageCropImagePath.empty()) creq.imagePath = std::filesystem::path(pageCropImagePath);
-                    creq.imageBytes = pageCropImageBytes;
-                    creq.outputDir = proofOutputDir; // optional (empty => in-memory only)
-                    creq.uniqIdPrefix = std::string(utils::makeUniqId());
-                    creq.filePrefix = std::string("opencv_proof_tx") + std::to_string(txIndex);
-                    creq.outputFormat = api::opencv::CropRequest::OutputFormat::Jpg;
-                    creq.jpegQuality = 92;
-
-                    // keep original behavior: use full width so proof crop contains valida/debit/credit columns
-                    creq.bbox.x = 0;
-                    creq.bbox.y = std::max(0, minY - 20);
-                    creq.bbox.width = 1 << 30;
-
-                    creq.bbox.height = std::max(1, (maxY - minY) + 24);
-                    try {
-                        out.debugLines.push_back(std::string("crop.request\t") + creq.imagePath.string() + std::string("\tfilePrefix=") + creq.filePrefix);
-                        const auto cres = opencv->crop(creq);
-                        out.debugLines.push_back(std::string("crop.result.count\t") + std::to_string(cres.croppedImagePaths.size()));
-                        if (!cres.croppedImageBytes.empty() && !cres.croppedImageBytes.front().empty()) {
-                            std::string proofKey = std::string("proof/tx_") + std::string(utils::makeUniqId()) + std::string(".jpg");
-                            tx.proofImagePath = proofKey;
-                            out.artifacts.emplace(proofKey, cres.croppedImageBytes.front());
-                        } else if (!cres.croppedImagePaths.empty()) {
-                            // fallback if service only produced a file
-                            try { tx.proofImagePath = std::filesystem::absolute(cres.croppedImagePaths.front()).string(); }
-                            catch (...) { tx.proofImagePath = cres.croppedImagePaths.front().string(); }
-                        }
-                    } catch (const std::exception& ex) {
-                        out.debugLines.push_back(std::string("crop.exception\t") + ex.what());
-                    } catch (...) {
-                        out.debugLines.push_back(std::string("crop.exception\tunknown"));
-                    }
-                }
-            }
-        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::proofCrop", std::current_exception()); }
-
-         out.transactions.push_back(std::make_shared<Transaction>(std::move(tx)));
-    }
+    appendPageSummary(lines, headerBottomY, blocks, txStartLooseCount, out);
+    appendTransactionsFromBlocks(blocks, cols, ocr, opencv, pageCropImagePath, pageCropImageBytes, proofOutputDir, txIndex, out);
 
     out.debugLines.push_back(std::string("transactions\t") + std::to_string(out.transactions.size()));
 

@@ -1,272 +1,313 @@
 #include "core/analysis/strategies/PlotAnalysisStrategy.h"
-#include "core/errors/ErrorReporterRegistry.h"
-#include "core/models/Transaction.h"
-#include "core/models/Contract.h"
+
 #include "core/analysis/Filter.h"
+#include "core/constants/CoreDefaults.h"
+#include "core/errors/ErrorReporterRegistry.h"
+#include "core/models/Contract.h"
+#include "core/models/Transaction.h"
+
 #include <algorithm>
+#include <cctype>
+#include <cmath>
 #include <map>
 #include <sstream>
-#include <cmath>
+#include <unordered_map>
+
 #include <nlohmann/json.hpp>
 
 namespace {
 
-std::string normalizeValue(const std::string& s)
-{
-    size_t a = 0;
-    while (a < s.size() && std::isspace(static_cast<unsigned char>(s[a]))) ++a;
-    size_t b = s.size();
-    while (b > a && std::isspace(static_cast<unsigned char>(s[b - 1]))) --b;
-    if (b <= a) return {};
+using ContractTypeIndex = std::unordered_map<std::string, std::string>;
 
-    std::string out = s.substr(a, b - a);
-    for (auto& ch : out) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-    return out;
+std::string trimCopy(const std::string& value)
+{
+    std::size_t first = 0;
+    while (first < value.size() && std::isspace(static_cast<unsigned char>(value[first]))) ++first;
+
+    std::size_t last = value.size();
+    while (last > first && std::isspace(static_cast<unsigned char>(value[last - 1]))) --last;
+
+    return value.substr(first, last - first);
+}
+
+std::string normalizeValue(const std::string& value)
+{
+    std::string normalized = trimCopy(value);
+    if (normalized.empty()) return {};
+
+    for (auto& ch : normalized) {
+        ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    }
+
+    return normalized;
 }
 
 std::vector<std::string> normalizeList(const std::vector<std::string>& values)
 {
-    std::vector<std::string> out;
-    out.reserve(values.size());
-    for (const auto& v : values) {
-        const auto n = normalizeValue(v);
-        if (!n.empty()) out.push_back(n);
+    std::vector<std::string> normalizedValues;
+    normalizedValues.reserve(values.size());
+    for (const auto& value : values) {
+        const auto normalized = normalizeValue(value);
+        if (!normalized.empty()) normalizedValues.push_back(normalized);
     }
-    return out;
+    return normalizedValues;
 }
 
 std::string normalizePlotMeasure(const std::string& value)
 {
     const auto normalized = normalizeValue(value);
-    if (normalized == "count") return "count";
-    if (normalized == "averageamount" || normalized == "average amount") return "averageAmount";
-    if (normalized == "totalamount" || normalized == "total amount") return "totalAmount";
+    if (normalized == core::constants::analysis::plotMeasures::kCount) return std::string(core::constants::analysis::plotMeasures::kCount);
+    if (normalized == "averageamount" || normalized == "average amount") return std::string(core::constants::analysis::plotMeasures::kAverageAmount);
+    if (normalized == "totalamount" || normalized == "total amount") return std::string(core::constants::analysis::plotMeasures::kTotalAmount);
     return normalized;
 }
 
+ContractTypeIndex buildContractTypeIndex(const AppState& state, bool normalize)
+{
+    ContractTypeIndex index;
+    index.reserve(state.contracts.size());
+    for (const auto& contract : state.contracts) {
+        if (!contract) continue;
+        index.emplace(contract->id, normalize ? normalizeValue(contract->type) : contract->type);
+    }
+    return index;
 }
 
-Analysis PlotAnalysisStrategy::compute(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const {
-    Analysis res;
-    res.createdAt = "";
+bool matchesPropertyFilter(const Transaction& transaction, const std::vector<std::string>& propertyFilter)
+{
+    if (propertyFilter.empty()) return true;
 
-    std::string plotType = analysis.type;
-    std::string plotMeasure = "totalAmount";
+    for (const auto& propertyId : transaction.propertyIds) {
+        if (std::find(propertyFilter.begin(), propertyFilter.end(), propertyId) != propertyFilter.end()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool matchesContractTypeFilter(const Transaction& transaction,
+                               const std::vector<std::string>& normalizedContractTypeFilter,
+                               const ContractTypeIndex& normalizedContractTypeById)
+{
+    if (normalizedContractTypeFilter.empty()) return true;
+
+    if (transaction.contractId.empty()) {
+        return std::find(normalizedContractTypeFilter.begin(),
+                         normalizedContractTypeFilter.end(),
+                         std::string(core::constants::filters::kUnassigned)) != normalizedContractTypeFilter.end();
+    }
+
+    const auto it = normalizedContractTypeById.find(transaction.contractId);
+    if (it == normalizedContractTypeById.end()) return false;
+
+    return std::find(normalizedContractTypeFilter.begin(),
+                     normalizedContractTypeFilter.end(),
+                     it->second) != normalizedContractTypeFilter.end();
+}
+
+std::vector<std::shared_ptr<Transaction>> collectMatchedTransactions(const AppState& state,
+                                                                     const std::string& filterSpec,
+                                                                     const std::vector<std::string>& propertyFilter,
+                                                                     const std::vector<std::string>& normalizedContractTypeFilter,
+                                                                     const ContractTypeIndex& normalizedContractTypeById)
+{
+    core::analysis::Filter filter = core::analysis::parseFilterSpec(filterSpec);
+
+    std::vector<std::shared_ptr<Transaction>> matched;
+    matched.reserve(state.transactions.size());
+    for (const auto& transaction : state.transactions) {
+        if (!transaction) continue;
+        if (!filterSpec.empty() && !filter.matches(transaction, state)) continue;
+        if (!matchesPropertyFilter(*transaction, propertyFilter)) continue;
+        if (!matchesContractTypeFilter(*transaction, normalizedContractTypeFilter, normalizedContractTypeById)) continue;
+        matched.push_back(transaction);
+    }
+
+    return matched;
+}
+
+std::string extractYearMonth(const std::string& bookingDate)
+{
+    const std::string value = trimCopy(bookingDate);
+    if (value.empty()) return {};
+
+    if (value.size() >= 7
+        && std::isdigit(static_cast<unsigned char>(value[0]))
+        && std::isdigit(static_cast<unsigned char>(value[1]))
+        && std::isdigit(static_cast<unsigned char>(value[2]))
+        && std::isdigit(static_cast<unsigned char>(value[3]))) {
+        const std::string year = value.substr(0, 4);
+        if (value[4] == '-') {
+            return year + "-" + value.substr(5, 2);
+        }
+
+        if (value.size() >= 6) {
+            return year + "-" + value.substr(4, 2);
+        }
+    }
+
+    if (value.find('.') != std::string::npos) {
+        std::vector<std::string> parts;
+        std::istringstream stream(value);
+        std::string token;
+        while (std::getline(stream, token, '.')) {
+            parts.push_back(trimCopy(token));
+        }
+
+        if (parts.size() == 3) {
+            std::string month = parts[1];
+            if (parts[2].size() == 4 && (month.size() == 1 || month.size() == 2)) {
+                if (month.size() == 1) month.insert(month.begin(), '0');
+                return parts[2] + "-" + month;
+            }
+        }
+    }
+
+    return value;
+}
+
+}
+
+AnalysisResult PlotAnalysisStrategy::compute(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const {
+    AnalysisResult res;
+
+    std::string plotType = std::string(core::constants::analysis::plotTypes::kPie);
+    std::string plotMeasure = std::string(core::constants::analysis::plotMeasures::kTotalAmount);
     std::vector<std::string> propertyFilter;
     std::vector<std::string> contractTypeFilter;
     try {
         if (!analysis.configJson.empty()) {
-            auto j = nlohmann::json::parse(analysis.configJson);
-            if (j.contains("plotType")) plotType = j["plotType"].get<std::string>();
-            if (j.contains("plotMeasure")) plotMeasure = j["plotMeasure"].get<std::string>();
-            if (j.contains("properties") && j["properties"].is_array()) {
-                for (const auto& p : j["properties"]) propertyFilter.push_back(p.get<std::string>());
+            const auto config = nlohmann::json::parse(analysis.configJson);
+            if (config.contains(core::constants::analysis::kPlotTypeKey)) {
+                plotType = config[core::constants::analysis::kPlotTypeKey].get<std::string>();
             }
-            if (j.contains("contractTypes") && j["contractTypes"].is_array()) {
-                for (const auto& ct : j["contractTypes"]) contractTypeFilter.push_back(ct.get<std::string>());
+            if (config.contains(core::constants::analysis::kPlotMeasureKey)) {
+                plotMeasure = config[core::constants::analysis::kPlotMeasureKey].get<std::string>();
+            }
+            if (config.contains(core::constants::analysis::kPropertiesKey) && config[core::constants::analysis::kPropertiesKey].is_array()) {
+                for (const auto& property : config[core::constants::analysis::kPropertiesKey]) {
+                    propertyFilter.push_back(property.get<std::string>());
+                }
+            }
+            if (config.contains(core::constants::analysis::kContractTypesKey) && config[core::constants::analysis::kContractTypesKey].is_array()) {
+                for (const auto& contractType : config[core::constants::analysis::kContractTypesKey]) {
+                    contractTypeFilter.push_back(contractType.get<std::string>());
+                }
             }
         }
-    } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::analysis::PlotAnalysisStrategy::parseConfig", std::current_exception()); }
+    } catch (...) {
+        core::errors::reportException(core::errors::ErrorSeverity::Warning,
+                                      "core::analysis::PlotAnalysisStrategy::parseConfig",
+                                      std::current_exception());
+    }
 
     plotType = normalizeValue(plotType);
     plotMeasure = normalizePlotMeasure(plotMeasure);
+    const auto normalizedContractTypeFilter = normalizeList(contractTypeFilter);
+    const auto normalizedContractTypeById = buildContractTypeIndex(state, true);
+    const auto matched = collectMatchedTransactions(state,
+                                                   filterSpec,
+                                                   propertyFilter,
+                                                   normalizedContractTypeFilter,
+                                                   normalizedContractTypeById);
 
-    if (plotType == "pie") {
-        // aggregate by contract.type (or "unassigned") using selected properties if provided
-        std::map<std::string, double> agg;
-        std::map<std::string, int> count;
-        // build contractId -> contract.type map (normalized lowercase trimmed) for reliable comparisons
-        std::map<std::string, std::string> contractTypeById;
-        for (const auto& cptr : state.contracts) {
-            if (!cptr) continue;
-            contractTypeById[cptr->id] = normalizeValue(cptr->type);
+    if (plotType == core::constants::analysis::plotTypes::kPie) {
+        std::map<std::string, double> aggregatedAmounts;
+        std::map<std::string, int> transactionCounts;
+        for (const auto& transaction : matched) {
+            std::string key = std::string(core::constants::filters::kUnassigned);
+            if (!transaction->contractId.empty()) {
+                const auto it = normalizedContractTypeById.find(transaction->contractId);
+                if (it != normalizedContractTypeById.end() && !it->second.empty()) key = it->second;
+                else key = transaction->contractId;
+            }
+
+            aggregatedAmounts[key] += transaction->amount;
+            transactionCounts[key]++;
         }
-        // parse generic filter spec and apply it per-transaction so strategies can respect it
-        Filter f = parseFilterSpec(filterSpec);
-        for (const auto& tptr : state.transactions) {
-            if (!tptr) continue;
-            // apply filterSpec if provided
-            if (!filterSpec.empty() && !f.matches(tptr, state)) continue;
-            // apply property filter if present
-            if (!propertyFilter.empty()) {
-                bool any = false;
-                for (const auto& pid : tptr->propertyIds) {
-                    for (const auto& fp : propertyFilter) if (pid == fp) { any = true; break; }
-                    if (any) break;
-                }
-                if (!any) continue;
-            }
-            // apply contract type filter if present (normalize comparisons)
-            if (!contractTypeFilter.empty()) {
-                bool ok = false;
-                const auto wantedNorm = normalizeList(contractTypeFilter);
-                if (tptr->contractId.empty()) {
-                    for (const auto& w : wantedNorm) if (w == "unassigned") { ok = true; break; }
-                } else {
-                    auto it = contractTypeById.find(tptr->contractId);
-                    if (it != contractTypeById.end()) {
-                        for (const auto& w : wantedNorm) if (it->second == w) { ok = true; break; }
-                    }
-                }
-                if (!ok) continue;
-            }
-            std::string key = "unassigned";
-            if (!tptr->contractId.empty()) {
-                auto it = contractTypeById.find(tptr->contractId);
-                if (it != contractTypeById.end() && !it->second.empty()) key = it->second; else key = tptr->contractId;
-            }
-            agg[key] += tptr->amount;
-            count[key]++;
+
+        double totalAmount = 0.0;
+        std::size_t totalCount = 0;
+        for (const auto& [key, amount] : aggregatedAmounts) {
+            totalAmount += std::fabs(amount);
+            totalCount += transactionCounts[key];
         }
-        // convert to table rows [label,value]
-        double totalAll = 0.0; size_t totalCount = 0;
-        for (const auto& kv : agg) { totalAll += std::fabs(kv.second); totalCount += count[kv.first]; }
-        for (const auto& kv : agg) {
-            double val = 0.0;
-            if (plotMeasure == "count") {
-                val = static_cast<double>(count[kv.first]);
-            } else if (plotMeasure == "averageAmount") {
-                val = (count[kv.first] > 0) ? (std::fabs(kv.second) / count[kv.first]) : 0.0;
+
+        for (const auto& [key, amount] : aggregatedAmounts) {
+            double value = 0.0;
+            if (plotMeasure == core::constants::analysis::plotMeasures::kCount) {
+                value = static_cast<double>(transactionCounts[key]);
+            } else if (plotMeasure == core::constants::analysis::plotMeasures::kAverageAmount) {
+                value = transactionCounts[key] > 0 ? std::fabs(amount) / transactionCounts[key] : 0.0;
             } else {
-                // Total Amount: use absolute magnitude so pie slices reflect magnitude regardless of sign
-                val = std::fabs(kv.second);
+                value = std::fabs(amount);
             }
-            res.table.push_back({ kv.first, std::to_string(val) });
-        }
-        // simple metrics
-        res.metrics["totalAmount"] = totalAll;
-        res.metrics["rowCount"] = static_cast<double>(totalCount);
-    } else if (plotType == "histogram") {
-        // monthly histogram with breakdown by contract type and by property
-        // determine matching transactions first (respecting filterSpec and property/contractType filters)
-        Filter f = parseFilterSpec(filterSpec);
-        std::vector<std::shared_ptr<Transaction>> matched;
-        for (const auto& tptr : state.transactions) {
-            if (!tptr) continue;
-            if (!filterSpec.empty() && !f.matches(tptr, state)) continue;
-            // apply property filter if present (must have at least one)
-            if (!propertyFilter.empty()) {
-                bool any = false;
-                for (const auto& pid : tptr->propertyIds) {
-                    for (const auto& fp : propertyFilter) if (pid == fp) { any = true; break; }
-                    if (any) break;
-                }
-                if (!any) continue;
-            }
-            // apply contract type filter if present
-            if (!contractTypeFilter.empty()) {
-                bool ok = false;
-                for (const auto& ct : contractTypeFilter) {
-                    if (ct == "unassigned" && tptr->contractId.empty()) { ok = true; break; }
-                }
-                if (!ok && !tptr->contractId.empty()) {
-                    // check contract type text
-                    for (const auto& cptr : state.contracts) {
-                        if (!cptr) continue;
-                        if (cptr->id == tptr->contractId) {
-                            for (const auto& ct : contractTypeFilter) {
-                                if (normalizeValue(cptr->type) == normalizeValue(ct)) { ok = true; break; }
-                            }
-                            break;
-                        }
-                    }
-                }
-                if (!ok) continue;
-            }
-            matched.push_back(tptr);
+
+            res.table.push_back({ key, std::to_string(value) });
         }
 
+        res.metrics[std::string(core::constants::analysis::metricKeys::kTotalAmount)] = totalAmount;
+        res.metrics[std::string(core::constants::analysis::metricKeys::kRowCount)] = static_cast<double>(totalCount);
+    } else if (plotType == core::constants::analysis::plotTypes::kHistogram) {
         if (matched.empty()) return res;
 
-        // helper: parse YYYY-MM from bookingDate
-        auto yearMonth = [](const std::string &d)->std::string {
-            if (d.empty()) return std::string();
-            // trim
-            size_t a = 0; while (a < d.size() && isspace((unsigned char)d[a])) ++a;
-            size_t b = d.size(); while (b > a && isspace((unsigned char)d[b-1])) --b;
-            if (b <= a) return std::string();
-            std::string s = d.substr(a, b-a);
-            // handle YYYY-MM-DD or YYYYMMDD
-            if (s.size() >= 7 && isdigit((unsigned char)s[0]) && isdigit((unsigned char)s[1]) && isdigit((unsigned char)s[2]) && isdigit((unsigned char)s[3])) {
-                std::string y = s.substr(0,4);
-                if (s.size() >= 7 && s[4] == '-') {
-                    std::string m = s.substr(5,2);
-                    return y + "-" + m;
-                }
-                if (s.size() >= 6) {
-                    std::string m = s.substr(4,2);
-                    return y + "-" + m;
-                }
-            }
-            // handle DD.MM.YYYY -> convert to YYYY-MM
-            if (s.find('.') != std::string::npos) {
-                std::vector<std::string> parts;
-                std::istringstream ss(s);
-                std::string tok;
-                while (std::getline(ss, tok, '.')) parts.push_back(tok);
-                if (parts.size() == 3) {
-                    std::string dd = parts[0]; std::string mm = parts[1]; std::string yyyy = parts[2];
-                    // normalize
-                    auto trimLocal = [](std::string str){ size_t a=0; while(a<str.size() && isspace((unsigned char)str[a])) ++a; size_t b=str.size(); while(b>a && isspace((unsigned char)str[b-1])) --b; return str.substr(a,b-a); };
-                    dd = trimLocal(dd); mm = trimLocal(mm); yyyy = trimLocal(yyyy);
-                    if (yyyy.size() == 4 && (mm.size()==1 || mm.size()==2)) {
-                        if (mm.size() == 1) mm = std::string("0") + mm;
-                        return yyyy + "-" + mm;
-                    }
-                }
-            }
-            // fallback: unknown -> use raw date
-            return s;
-        };
-
-        // build contractId -> contract.type map (raw type strings)
-        std::map<std::string, std::string> contractTypeByIdRaw;
-        for (const auto& cptr : state.contracts) { if (!cptr) continue; contractTypeByIdRaw[cptr->id] = cptr->type; }
-
-        // aggregate per month
+        const auto contractTypeByIdRaw = buildContractTypeIndex(state, false);
         std::map<std::string, double> monthTotal;
         std::map<std::string, std::map<std::string, double>> monthByContract;
         std::map<std::string, std::map<std::string, double>> monthByProperty;
-        for (const auto& tptr : matched) {
-            std::string mon = yearMonth(tptr->bookingDate);
-            double amt = std::fabs(tptr->amount);
-            monthTotal[mon] += amt;
-            // contract type bucket
-            std::string ctype = "unassigned";
-            if (!tptr->contractId.empty()) {
-                auto it = contractTypeByIdRaw.find(tptr->contractId);
-                if (it != contractTypeByIdRaw.end() && !it->second.empty()) ctype = it->second; else ctype = tptr->contractId;
+
+        for (const auto& transaction : matched) {
+            const std::string month = extractYearMonth(transaction->bookingDate);
+            const double amount = std::fabs(transaction->amount);
+            monthTotal[month] += amount;
+
+            std::string contractType = std::string(core::constants::filters::kUnassigned);
+            if (!transaction->contractId.empty()) {
+                const auto it = contractTypeByIdRaw.find(transaction->contractId);
+                if (it != contractTypeByIdRaw.end() && !it->second.empty()) contractType = it->second;
+                else contractType = transaction->contractId;
             }
-            monthByContract[mon][ctype] += amt;
-            // property buckets
-            if (!tptr->propertyIds.empty()) {
-                for (const auto& pid : tptr->propertyIds) monthByProperty[mon][pid] += amt;
+            monthByContract[month][contractType] += amount;
+
+            if (!transaction->propertyIds.empty()) {
+                for (const auto& propertyId : transaction->propertyIds) {
+                    monthByProperty[month][propertyId] += amount;
+                }
             } else {
-                monthByProperty[mon]["(no-property)"] += amt;
+                monthByProperty[month][std::string(core::constants::analysis::labels::kNoProperty)] += amount;
             }
         }
 
-        // produce ordered months
         std::vector<std::string> months;
-        for (const auto& kv : monthTotal) months.push_back(kv.first);
+        months.reserve(monthTotal.size());
+        for (const auto& [month, amount] : monthTotal) {
+            (void)amount;
+            months.push_back(month);
+        }
         std::sort(months.begin(), months.end());
 
-        double totalAll = 0.0; // sum of all months
-        for (const auto& m : months) {
-            nlohmann::json obj;
-            obj["month"] = m;
-            obj["total"] = monthTotal[m];
-            obj["byContract"] = nlohmann::json::object();
-            for (const auto& kv : monthByContract[m]) obj["byContract"][kv.first] = kv.second;
-            obj["byProperty"] = nlohmann::json::object();
-            for (const auto& kv : monthByProperty[m]) obj["byProperty"][kv.first] = kv.second;
-            res.table.push_back({ m, obj.dump() });
-            totalAll += monthTotal[m];
+        double totalAmount = 0.0;
+        for (const auto& month : months) {
+            nlohmann::json summary;
+            summary[core::constants::analysis::resultFields::kMonth] = month;
+            summary[core::constants::analysis::resultFields::kTotal] = monthTotal[month];
+            summary[core::constants::analysis::resultFields::kByContract] = nlohmann::json::object();
+            for (const auto& [label, amount] : monthByContract[month]) {
+                summary[core::constants::analysis::resultFields::kByContract][label] = amount;
+            }
+            summary[core::constants::analysis::resultFields::kByProperty] = nlohmann::json::object();
+            for (const auto& [label, amount] : monthByProperty[month]) {
+                summary[core::constants::analysis::resultFields::kByProperty][label] = amount;
+            }
+
+            res.table.push_back({ month, summary.dump() });
+            totalAmount += monthTotal[month];
         }
-        // metrics for histogram: total amount and number of months and matched transactions
-        res.metrics["totalAmount"] = totalAll;
-        res.metrics["rowCount"] = static_cast<double>(months.size());
-        res.metrics["matchedTx"] = static_cast<double>(matched.size());
+
+        res.metrics[std::string(core::constants::analysis::metricKeys::kTotalAmount)] = totalAmount;
+        res.metrics[std::string(core::constants::analysis::metricKeys::kRowCount)] = static_cast<double>(months.size());
+        res.metrics[std::string(core::constants::analysis::metricKeys::kMatchedTransactions)] = static_cast<double>(matched.size());
     }
 
     return res;

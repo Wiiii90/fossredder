@@ -103,10 +103,17 @@ void ImportJobBridge::clearSubscription(
   currentJobId_.clear();
 }
 
-std::shared_ptr<Statement> ImportJobBridge::statementResult() const {
+std::shared_ptr<core::domain::Statement> ImportJobBridge::statementResult() const {
   if (!jobSystem_ || currentJobId_.isEmpty())
     return nullptr;
   return jobSystem_->manager().statementResult(
+      strings::toStdString(currentJobId_));
+}
+
+std::vector<ImportedTransaction> ImportJobBridge::statementTransactions() const {
+  if (!jobSystem_ || currentJobId_.isEmpty())
+    return {};
+  return jobSystem_->manager().statementTransactions(
       strings::toStdString(currentJobId_));
 }
 

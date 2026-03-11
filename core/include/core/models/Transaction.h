@@ -1,11 +1,15 @@
-﻿#pragma once
+﻿/**
+ * @file core/include/core/models/Transaction.h
+ * @brief Domain model for transactions.
+ */
+
+#pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
-class Actor;
-class Contract;
-class Statement;
+namespace core::domain {
 
 class Transaction {
 public:
@@ -21,45 +25,29 @@ public:
                 std::string bookingDate,
                 std::string valuta,
                 double amount,
-                Contract* contract = nullptr,
-                Actor* actor = nullptr,
                 std::string description = {},
-                bool allocatable = false);
+                bool allocatable = false)
+        : name(std::move(name)),
+          bookingDate(std::move(bookingDate)),
+          valuta(std::move(valuta)),
+          amount(amount),
+          description(std::move(description)),
+          allocatable(allocatable) {}
 
     std::string id;
     std::string name;
     std::string bookingDate;
     std::string valuta;
     double amount = 0.0;
-
-
     Status status = Status::Neutral;
-
     std::string contractId;
-    Contract* contract = nullptr;
-
     std::string actorId;
-    Actor* actor = nullptr;
-
     std::string statementId;
-
-    // Raw/legacy free text (still kept for backward compatibility and UI display)
     std::string description;
-
-    // OCR/import suggestion
-    std::string actorProposal;
-
-    // Geometry-based OCR metadata block (read-only, derived during import).
-    std::string metadata;
-
-    // Optional image path for user verification (crop of the original statement page).
-    std::string proofImagePath;
-
-    // Whether this transaction's costs are allocatable to tenants (umlegbar)
     bool allocatable = false;
-
-    // Associated properties (many-to-many)
     std::vector<std::string> propertyIds;
-
-    bool operator==(const Transaction& other) const noexcept;
 };
+
+}
+
+using Transaction = core::domain::Transaction;

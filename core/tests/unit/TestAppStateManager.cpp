@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 
-#include "core/managers/AppStateManager.h"
+#include "core/application/AppStateManager.h"
 #include "core/repositories/IActorRepository.h"
 #include "core/repositories/IPropertyRepository.h"
 #include "core/repositories/IContractRepository.h"
@@ -137,15 +137,13 @@ TEST(AppStateManagerTests, LoadRehydratesRelationships) {
     ASSERT_EQ(s.properties.size(), 1u);
     ASSERT_EQ(s.contracts.size(), 1u);
 
-    // After rehydrate, contract should have pointers to actor and property
+    // After rehydrate, contract should keep the authoritative relation ids
     auto cptr = s.contracts.front();
     ASSERT_TRUE(cptr);
     EXPECT_FALSE(cptr->actorIds.empty());
     EXPECT_FALSE(cptr->propertyIds.empty());
-    EXPECT_EQ(cptr->actors.size(), 1u);
-    EXPECT_EQ(cptr->properties.size(), 1u);
-    EXPECT_EQ(cptr->actors.front()->id, std::string("A1"));
-    EXPECT_EQ(cptr->properties.front()->id, std::string("P1"));
+    EXPECT_EQ(cptr->actorIds.front(), std::string("A1"));
+    EXPECT_EQ(cptr->propertyIds.front(), std::string("P1"));
 }
 
 TEST(AppStateManagerTests, SaveSyncsIdsAndCallsRepos) {
@@ -172,8 +170,8 @@ TEST(AppStateManagerTests, SaveSyncsIdsAndCallsRepos) {
     state.properties.push_back(prop);
 
     auto contract = std::make_shared<Contract>(); contract->id = ""; contract->name = "Ct";
-    contract->actors.push_back(a.get());
-    contract->properties.push_back(prop.get());
+    contract->actorIds.push_back(a->id);
+    contract->propertyIds.push_back(prop->id);
     state.contracts.push_back(contract);
 
     mgr.save(state);

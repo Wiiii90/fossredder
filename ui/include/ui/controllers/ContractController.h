@@ -11,7 +11,7 @@ namespace ui {
 class ContractController : public QObject {
     Q_OBJECT
 public:
-    explicit ContractController(AppStateController* core, QObject* parent = nullptr);
+    explicit ContractController(core::controllers::AppStateController* core, QObject* parent = nullptr);
 
     Q_INVOKABLE QString addContract(const QString& name, const QString& type, const QString& description,
                                     const QStringList& actorIds, const QStringList& propertyIds);
@@ -21,7 +21,7 @@ public:
     Q_INVOKABLE QStringList getContractTypes() const;
 
 private:
-    AppStateController* core_ = nullptr;
+    core::controllers::AppStateController* core_ = nullptr;
 };
 
 }

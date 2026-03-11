@@ -23,7 +23,6 @@ public:
         DescriptionRole,
         StatusRole,
         ActorIdRole,
-        ActorProposalRole,
         MetadataRole,
         ProofImagePathRole,
         TypeRole,

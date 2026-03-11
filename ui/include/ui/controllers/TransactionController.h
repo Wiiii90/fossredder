@@ -12,7 +12,7 @@ namespace ui {
 class TransactionController : public QObject {
     Q_OBJECT
 public:
-    explicit TransactionController(AppStateController* core, QObject* parent = nullptr);
+    explicit TransactionController(core::controllers::AppStateController* core, QObject* parent = nullptr);
 
     Q_INVOKABLE QString addTransaction(const QString& name,
                                        const QString& bookingDate,
@@ -38,7 +38,7 @@ public:
     Q_INVOKABLE void deleteTransaction(const QString& id);
 
 private:
-    AppStateController* core_ = nullptr;
+    core::controllers::AppStateController* core_ = nullptr;
 };
 
 }

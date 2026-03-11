@@ -10,7 +10,9 @@
 #include <string>
 #include <vector>
 
+namespace core::domain {
 class Property;
+}
 
 class IPropertyRepository {
 public:
@@ -20,20 +22,20 @@ public:
      * @brief Insert a new property into the repository.
      * @param property Shared pointer to the Property to add.
      */
-    virtual void addProperty(const std::shared_ptr<Property>& property) = 0;
+    virtual void addProperty(const std::shared_ptr<core::domain::Property>& property) = 0;
 
     /**
      * @brief Return all properties stored in the repository.
      * @return Vector of shared_ptr to Property.
      */
-    virtual std::vector<std::shared_ptr<Property>> getProperties() const = 0;
+    virtual std::vector<std::shared_ptr<core::domain::Property>> getProperties() const = 0;
 
     /**
      * @brief Retrieve a property by its identifier.
      * @param id Property identifier string.
      * @return Optional shared_ptr to Property if found.
      */
-    virtual std::optional<std::shared_ptr<Property>> getPropertyById(const std::string& id) const = 0;
+    virtual std::optional<std::shared_ptr<core::domain::Property>> getPropertyById(const std::string& id) const = 0;
 
     /**
      * @brief Remove a property identified by id from the repository.
@@ -45,13 +47,13 @@ public:
      * @brief Update an existing property record in the repository.
      * @param property Shared pointer to the Property with updated fields.
      */
-    virtual void updateProperty(const std::shared_ptr<Property>& property) = 0;
+    virtual void updateProperty(const std::shared_ptr<core::domain::Property>& property) = 0;
 
     /**
      * @brief Upsert a property: insert or update depending on existence.
      * @param property Shared pointer to the Property to upsert.
      */
-    virtual void upsertProperty(const std::shared_ptr<Property>& property) = 0;
+    virtual void upsertProperty(const std::shared_ptr<core::domain::Property>& property) = 0;
 
     /**
      * @brief Remove all properties from the repository.

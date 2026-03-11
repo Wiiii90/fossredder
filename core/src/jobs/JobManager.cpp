@@ -20,7 +20,7 @@ JobId JobManager::submitImportStatement(const ImportStatementJobSpec& spec) {
     data->snap.state = JobState::Pending;
     data->snap.stage = JobStage::None;
     data->snap.progress = 0.0;
-    data->snap.message = "Queued";
+    data->snap.message = std::string(core::constants::jobs::messages::kQueued);
     data->cancel = std::make_shared<std::atomic<bool>>(false);
 
     (void)spec;
@@ -81,7 +81,7 @@ void JobManager::cancel(const JobId& id) {
     {
         std::lock_guard<std::mutex> g(job->m);
         job->snap.state = JobState::Canceled;
-        job->snap.message = "Canceled";
+        job->snap.message = std::string(core::constants::jobs::messages::kCanceled);
         ev.jobId = job->snap.jobId;
         ev.kind = job->snap.kind;
         ev.state = job->snap.state;
@@ -116,7 +116,7 @@ std::shared_ptr<std::atomic<bool>> JobManager::cancelFlag(const JobId& id) const
     return it->second->cancel;
 }
 
-void JobManager::setStatementResult(const JobId& id, std::shared_ptr<Statement> stmt) {
+void JobManager::setStatementResult(const JobId& id, std::shared_ptr<core::domain::Statement> stmt) {
     std::shared_ptr<JobData> job;
     {
         std::lock_guard<std::mutex> g(jobsMutex_);
@@ -129,7 +129,7 @@ void JobManager::setStatementResult(const JobId& id, std::shared_ptr<Statement> 
     job->statement = std::move(stmt);
 }
 
-std::shared_ptr<Statement> JobManager::statementResult(const JobId& id) const {
+std::shared_ptr<core::domain::Statement> JobManager::statementResult(const JobId& id) const {
     std::shared_ptr<JobData> job;
     {
         std::lock_guard<std::mutex> g(jobsMutex_);
@@ -140,6 +140,32 @@ std::shared_ptr<Statement> JobManager::statementResult(const JobId& id) const {
 
     std::lock_guard<std::mutex> g(job->m);
     return job->statement;
+}
+
+void JobManager::setStatementTransactions(const JobId& id, std::vector<ImportedTransaction> transactions) {
+    std::shared_ptr<JobData> job;
+    {
+        std::lock_guard<std::mutex> g(jobsMutex_);
+        auto it = jobs_.find(id);
+        if (it == jobs_.end()) return;
+        job = it->second;
+    }
+
+    std::lock_guard<std::mutex> g(job->m);
+    job->transactions = std::move(transactions);
+}
+
+std::vector<ImportedTransaction> JobManager::statementTransactions(const JobId& id) const {
+    std::shared_ptr<JobData> job;
+    {
+        std::lock_guard<std::mutex> g(jobsMutex_);
+        auto it = jobs_.find(id);
+        if (it == jobs_.end()) return {};
+        job = it->second;
+    }
+
+    std::lock_guard<std::mutex> g(job->m);
+    return job->transactions;
 }
 
 void JobManager::setStatementArtifacts(const JobId& id, std::map<std::string, std::vector<uint8_t>> artifacts) {
@@ -225,7 +251,7 @@ void JobManager::start(const JobId& id) {
     {
         std::lock_guard<std::mutex> g(job->m);
         job->snap.state = JobState::Running;
-        job->snap.message = "Running";
+        job->snap.message = std::string(core::constants::jobs::messages::kRunning);
         ev.jobId = job->snap.jobId;
         ev.kind = job->snap.kind;
         ev.state = job->snap.state;
@@ -255,7 +281,7 @@ void JobManager::finish(const JobId& id) {
         std::lock_guard<std::mutex> g(job->m);
         job->snap.state = JobState::Finished;
         job->snap.progress = 1.0;
-        job->snap.message = "Finished";
+        job->snap.message = std::string(core::constants::jobs::messages::kFinished);
         ev.jobId = job->snap.jobId;
         ev.kind = job->snap.kind;
         ev.state = job->snap.state;
@@ -326,7 +352,7 @@ void JobManager::fail(const JobId& id, const std::string& error) {
         std::lock_guard<std::mutex> g(job->m);
         job->snap.state = JobState::Failed;
         job->snap.error = error;
-        job->snap.message = "Failed";
+        job->snap.message = std::string(core::constants::jobs::messages::kFailed);
         ev.jobId = job->snap.jobId;
         ev.kind = job->snap.kind;
         ev.state = job->snap.state;

@@ -1,6 +1,14 @@
+/**
+ * @file core/include/core/models/Property.h
+ * @brief Domain model for properties.
+ */
+
 #pragma once
 
 #include <string>
+#include <utility>
+
+namespace core::domain {
 
 class Property {
 public:
@@ -8,10 +16,16 @@ public:
     std::string name;
     std::string address;
     std::string description;
-
     double consumption = 0.0;
     std::string consumptionUnit;
 
     Property() = default;
-    Property(const std::string& name, const std::string& address, const std::string& description = "");
+    Property(std::string name, std::string address, std::string description = {})
+        : name(std::move(name)),
+          address(std::move(address)),
+          description(std::move(description)) {}
 };
+
+}
+
+using Property = core::domain::Property;

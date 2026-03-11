@@ -39,7 +39,6 @@ struct DefaultTransactionParser {
     std::string valuta;
     double amount = 0.0;
     std::string description;
-    std::string actorProposal;
     std::string metadata;
     std::string proofImagePath;
     int status = 0;

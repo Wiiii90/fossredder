@@ -9,12 +9,12 @@
 #include "api/opencv/Types.h"
 #include "api/opencv/IOpenCvService.h"
 #include "api/tesseract/TesseractResponse.h"
-#include "core/models/Transaction.h"
+#include "core/import/ImportedTransaction.h"
 
 class DefaultStatementParser {
 public:
     struct ParseResult {
-        std::vector<std::shared_ptr<Transaction>> transactions;
+        std::vector<ImportedTransaction> transactions;
         std::vector<std::string> debugLines;
         std::unordered_map<std::string, std::vector<uint8_t>> artifacts;
         std::string lastBookingDate;

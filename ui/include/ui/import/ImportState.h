@@ -10,10 +10,11 @@
 #include <QString>
 #include <QStringList>
 
+#include "core/import/ImportedTransaction.h"
 #include "ui/models/ImportRunList.h"
 #include "ui/models/StatementDraft.h"
 
-class Statement;
+namespace core::domain { class Statement; }
 class QObject;
 
 namespace ui::importing {
@@ -50,7 +51,8 @@ public:
     void recordCanceled(const QString& now);
     void recordFailed(const QString& now, const QString& errorMessage);
     bool populateDraft(const QString& now,
-                       const std::shared_ptr<Statement>& statement,
+                       const std::shared_ptr<core::domain::Statement>& statement,
+                       const std::vector<ImportedTransaction>& transactions,
                        const std::map<std::string, std::vector<uint8_t>>& artifacts,
                        QObject* parent);
     void updateProgress(double progress, const QString& phase, const QRegularExpression& pagePattern);

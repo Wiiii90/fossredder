@@ -96,7 +96,7 @@ void ImportController::rejectImportStart(const QString &errorMessage,
   state_.rejectStart(errorMessage);
   observability::reportFlow(
       core::errors::ErrorSeverity::Warning,
-      core::errors::codes::UiFlowImportRejected,
+      observability::codes::FlowImportRejected,
       observability::origins::controller::importFlow::kStart, traceMessage);
   emit stateChanged();
   emit importFailed(state_.error());
@@ -111,7 +111,7 @@ void ImportController::requestImportCancellation(bool clearQueue,
   state_.beginCancel(clearQueue);
   jobBridge_.cancelCurrent();
   observability::reportFlow(core::errors::ErrorSeverity::Info,
-                            core::errors::codes::UiFlowImportCanceled, origin,
+                            observability::codes::FlowImportCanceled, origin,
                             traceMessage,
                             {{observability::context::kFile,
                               strings::toStdString(state_.currentRunFile())},
@@ -143,7 +143,7 @@ void ImportController::handleImportCanceled(const QString &now) {
   state_.recordCanceled(now);
   observability::reportFlow(
       core::errors::ErrorSeverity::Info,
-      core::errors::codes::UiFlowImportCanceled,
+      observability::codes::FlowImportCanceled,
       observability::origins::controller::importFlow::kTerminal,
       "Import canceled",
       {{observability::context::kStatus,
@@ -158,7 +158,7 @@ void ImportController::handleImportFailed(const QString &now,
   state_.recordFailed(now, errorMessage);
   observability::reportFlow(
       core::errors::ErrorSeverity::Warning,
-      core::errors::codes::UiFlowImportFailed,
+      observability::codes::FlowImportFailed,
       observability::origins::controller::importFlow::kTerminal, traceMessage,
       {{observability::context::kError, strings::toStdString(state_.error())}});
   emit stateChanged();
@@ -173,8 +173,9 @@ bool ImportController::populateDraftFromResult(const QString &now) {
     return false;
   }
 
+  const auto importedTransactions = jobBridge_.statementTransactions();
   const auto artifacts = jobBridge_.takeArtifacts();
-  if (!state_.populateDraft(now, imported, artifacts, this)) {
+  if (!state_.populateDraft(now, imported, importedTransactions, artifacts, this)) {
     handleImportFailed(now, tr(ui::text::controllerErrors::kImportFailed),
                        "Import failed: unable to create statement draft");
     return false;
@@ -182,7 +183,7 @@ bool ImportController::populateDraftFromResult(const QString &now) {
 
   observability::reportFlow(
       core::errors::ErrorSeverity::Info,
-      core::errors::codes::UiFlowImportFinished,
+      observability::codes::FlowImportFinished,
       observability::origins::controller::importFlow::kTerminal,
       "Import finished",
       {{observability::context::kStatus,
@@ -251,7 +252,7 @@ void ImportController::startImportForFile(const QString &path) {
 
   observability::reportFlow(
       core::errors::ErrorSeverity::Info,
-      core::errors::codes::UiFlowImportStarted,
+      observability::codes::FlowImportStarted,
       observability::origins::controller::importFlow::kStart, "Import started",
       {{observability::context::kFile, strings::toStdString(path)},
        {observability::context::kRunRoot, strings::toStdString(runRootQ)},

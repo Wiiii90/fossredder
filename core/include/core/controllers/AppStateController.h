@@ -12,12 +12,17 @@
 #include <vector>
 
 #include "core/controllers/Callbacks.h"
+#include "core/application/CatalogService.h"
+#include "core/application/WorkspaceSession.h"
 #include "core/errors/IErrorReporter.h"
-#include "core/managers/IStorageManager.h"
+#include "core/storage/IStorageManager.h"
 #include "core/models/DraftStatement.h"
+#include "core/models/Transaction.h"
 
 /// UI/domain facing controller that manages the in-memory AppState and uses
 /// an IStorageManager for persistence operations.
+namespace core::controllers {
+
 class AppStateController {
 public:
     using StateChanged = std::function<void(const AppState&)>;
@@ -26,13 +31,13 @@ public:
      * @brief Construct with unique ownership of an IStorageManager.
      * @param storageManager Unique pointer to the storage manager implementation.
      */
-    explicit AppStateController(std::unique_ptr<IStorageManager> storageManager);
+    explicit AppStateController(std::unique_ptr<core::storage::IStorageManager> storageManager);
 
     /** Disable copy, allow move. */
     AppStateController(const AppStateController&) = delete;
     AppStateController& operator=(const AppStateController&) = delete;
-    AppStateController(AppStateController&&) noexcept(std::is_nothrow_move_constructible_v<std::unique_ptr<IStorageManager>>) = default;
-    AppStateController& operator=(AppStateController&&) noexcept(std::is_nothrow_move_assignable_v<std::unique_ptr<IStorageManager>>) = default;
+    AppStateController(AppStateController&&) noexcept(std::is_nothrow_move_constructible_v<std::unique_ptr<core::storage::IStorageManager>>) = default;
+    AppStateController& operator=(AppStateController&&) noexcept(std::is_nothrow_move_assignable_v<std::unique_ptr<core::storage::IStorageManager>>) = default;
 
     /**
      * @brief Register a callback invoked when the AppState changes.
@@ -45,25 +50,25 @@ public:
      * @brief Configure repository factory used for repository-backed persistence.
      * @param factory Factory function producing repositories for a DB path.
      */
-    void setRepoFactory(IStorageManager::RepoFactory factory);
+    void setRepoFactory(core::storage::IStorageManager::RepoFactory factory);
 
     /**
      * @brief Configure an atomic save callback used to persist AppState.
      * @param saveFn Callback that performs atomic save and returns DeletionImpact.
      */
-    void setAtomicStoreSave(IStorageManager::AtomicStoreSave saveFn);
+    void setAtomicStoreSave(core::storage::IStorageManager::AtomicStoreSave saveFn);
 
     /**
      * @brief Configure an atomic load callback used to load AppState.
      * @param loadFn Callback that loads state from a DB path.
      */
-    void setAtomicStoreLoad(IStorageManager::AtomicStoreLoad loadFn);
+    void setAtomicStoreLoad(core::storage::IStorageManager::AtomicStoreLoad loadFn);
 
     /**
      * @brief Register a callback reporting IDs deleted during save operations.
      * @param cb Callback receiving a DeletionImpact describing removed IDs.
      */
-    void setDeletionImpactCallback(IStorageManager::DeletionImpactCallback cb);
+    void setDeletionImpactCallback(core::storage::IStorageManager::DeletionImpactCallback cb);
 
     /**
      * @brief Load the latest configured storage file (if any) and update state.
@@ -97,19 +102,19 @@ public:
      * @brief Accessor for the current AppState (const).
      * @return const reference to the current AppState.
      */
-    const AppState& state() const noexcept { return state_; }
+    const AppState& state() const noexcept { return session_->state(); }
 
     /**
      * @brief Return the current storage path managed by the underlying storage manager.
      * @return path string (may be empty if none set).
      */
-    const std::string& currentPath() const noexcept { return storageManager_ ? storageManager_->currentPath() : emptyPath_; }
+    const std::string& currentPath() const noexcept { return session_->currentPath(); }
 
     /**
      * @brief Actor mutations.
      */
-    std::string addActor(const std::string& name, const std::string& type, const std::string& description, const std::vector<std::string>& aliases);
-    void updateActor(const std::string& id, const std::string& name, const std::string& type, const std::string& description, const std::vector<std::string>& aliases);
+    std::string addActor(const std::string& name, const std::string& type, const std::string& description);
+    void updateActor(const std::string& id, const std::string& name, const std::string& type, const std::string& description);
     void deleteActor(const std::string& id);
 
     /**
@@ -127,6 +132,7 @@ public:
     void updateContract(const std::string& id, const std::string& name, const std::string& type, const std::string& description,
                         const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds);
     void deleteContract(const std::string& id);
+    std::vector<std::string> contractTypes() const;
 
     /**
      * @brief Statement mutations.
@@ -143,7 +149,7 @@ public:
                                double amount,
                                const std::string& description,
                                const std::string& statementId,
-                               int status,
+                               Transaction::Status status,
                                const std::string& actorId,
                                bool allocatable,
                                const std::vector<std::string>& propertyIds);
@@ -153,7 +159,7 @@ public:
                            double amount,
                            const std::string& description,
                            const std::string& statementId,
-                           int status,
+                           Transaction::Status status,
                            const std::string& actorId,
                            bool allocatable,
                            const std::vector<std::string>& propertyIds);
@@ -193,18 +199,11 @@ public:
     void notifyState();
 
 private:
-    std::unique_ptr<IStorageManager> storageManager_;
-    AppState state_;
-    StateChanged onStateChanged_;
-    std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
-    std::string emptyPath_;
-    // Callback forwarded when persistence reports deletions
-    IStorageManager::DeletionImpactCallback onDeletionImpact_;
+    AppState& mutableState() noexcept { return session_->mutableState(); }
 
-    /**
-     * @brief Internal helper to notify registered listeners of the current state.
-     */
-    void notify();
-    void reportException(core::errors::ErrorSeverity severity, const char* origin, std::exception_ptr exception) const;
+    core::application::CatalogService catalog_;
+    std::unique_ptr<core::application::WorkspaceSession> session_;
 
 };
+
+}

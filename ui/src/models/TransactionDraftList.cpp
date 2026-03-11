@@ -24,7 +24,6 @@ QVariant TransactionDraftList::data(const QModelIndex& index, int role) const
     case AmountRole: return t->amount;
     case DescriptionRole: return t->description;
     case ActorIdRole: return t->actorId;
-    case ActorProposalRole: return t->actorProposal;
     case MetadataRole: return t->metadata;
     case ProofImagePathRole: return t->proofImagePath;
     case AllocatableRole: return t->allocatable;
@@ -44,7 +43,6 @@ QHash<int, QByteArray> TransactionDraftList::roleNames() const
     roles[AmountRole] = payload::keys::common::kAmount.toUtf8();
     roles[DescriptionRole] = payload::keys::common::kDescription.toUtf8();
     roles[ActorIdRole] = payload::keys::transaction::kActorId.toUtf8();
-    roles[ActorProposalRole] = payload::keys::transaction::kActorProposal.toUtf8();
     roles[MetadataRole] = payload::keys::common::kMetadata.toUtf8();
     roles[ProofImagePathRole] = payload::keys::transaction::kProofImagePath.toUtf8();
     roles[AllocatableRole] = payload::keys::transaction::kAllocatable.toUtf8();
@@ -70,7 +68,6 @@ QVariantMap TransactionDraftList::get(int index) const
     m[payload::keys::common::kAmount] = t->amount;
     m[payload::keys::common::kDescription] = t->description;
     m[payload::keys::transaction::kActorId] = t->actorId;
-    m[payload::keys::transaction::kActorProposal] = t->actorProposal;
     m[payload::keys::common::kMetadata] = t->metadata;
     m[payload::keys::transaction::kProofImagePath] = t->proofImagePath;
     m[payload::keys::transaction::kAllocatable] = t->allocatable;
@@ -84,13 +81,6 @@ void TransactionDraftList::setActorId(int index, const QString& actorId)
 {
     updateField(index, actorId, ActorIdRole, [](TransactionDraft& draft) -> QString& {
         return draft.actorId;
-    });
-}
-
-void TransactionDraftList::setActorProposal(int index, const QString& actorProposal)
-{
-    updateField(index, actorProposal, ActorProposalRole, [](TransactionDraft& draft) -> QString& {
-        return draft.actorProposal;
     });
 }
 

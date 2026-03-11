@@ -8,20 +8,21 @@
 #include <QStringList>
 #include <QVariant>
 
-class AnalysisEngine;
-struct AppState;
-class AppStateController;
+namespace core::application { class AnalysisService; }
+namespace core::analysis { class AnalysisEngine; }
+namespace core::domain { struct AppState; }
+namespace core::controllers { class AppStateController; }
 
 namespace ui {
 
 class AnalysisController : public QObject {
     Q_OBJECT
 public:
-    using StateSnapshotProvider = std::function<std::shared_ptr<const AppState>()>;
+    using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::AppState>()>;
 
-    explicit AnalysisController(AppStateController* core,
+    explicit AnalysisController(core::controllers::AppStateController* core,
                                 StateSnapshotProvider stateSnapshotProvider,
-                                const AnalysisEngine* analysisEngine,
+                                const core::application::AnalysisService* analysisService,
                                 QObject* parent = nullptr);
 
     Q_INVOKABLE QString addAnalysis(const QString& name, const QString& type, const QString& configJson, const QString& filterSpec);
@@ -29,11 +30,11 @@ public:
     Q_INVOKABLE QStringList getContractTypes() const;
 
 private:
-    std::shared_ptr<const AppState> stateSnapshot() const;
+    std::shared_ptr<const core::domain::AppState> stateSnapshot() const;
 
-    AppStateController* core_ = nullptr;
+    core::controllers::AppStateController* core_ = nullptr;
     StateSnapshotProvider stateSnapshotProvider_;
-    const AnalysisEngine* analysisEngine_ = nullptr;
+    const core::application::AnalysisService* analysisService_ = nullptr;
 };
 
 }

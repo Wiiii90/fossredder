@@ -10,14 +10,14 @@ namespace ui {
 class AnnualController : public QObject {
     Q_OBJECT
 public:
-    explicit AnnualController(AppStateController* core, QObject* parent = nullptr);
+    explicit AnnualController(core::controllers::AppStateController* core, QObject* parent = nullptr);
 
     Q_INVOKABLE QString addAnnual(int year);
     Q_INVOKABLE void updateAnnual(const QString& id, int year);
     Q_INVOKABLE void deleteAnnual(const QString& id);
 
 private:
-    AppStateController* core_ = nullptr;
+    core::controllers::AppStateController* core_ = nullptr;
 };
 
 }

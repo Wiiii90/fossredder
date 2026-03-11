@@ -10,7 +10,7 @@
 
 namespace ui::controllers::guard {
 
-inline bool ensureCore(const AppStateController* core, const char* origin)
+inline bool ensureCore(const core::controllers::AppStateController* core, const char* origin)
 {
     if (core) return true;
     core::errors::report(core::errors::ErrorSeverity::Warning,

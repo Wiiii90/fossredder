@@ -4,13 +4,9 @@
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
 
-#include "core/models/Contract.h"
-
-#include <unordered_set>
-
 namespace ui {
 
-ContractController::ContractController(AppStateController *core,
+ContractController::ContractController(core::controllers::AppStateController *core,
                                        QObject *parent)
     : QObject(parent), core_(core) {}
 
@@ -53,16 +49,7 @@ QStringList ContractController::getContractTypes() const {
       core_, observability::origins::controller::contract::kGetTypes, {},
       [&]() {
         QStringList out;
-        std::unordered_set<std::string> seen;
-        for (const auto &c : core_->state().contracts) {
-          if (!c)
-            continue;
-          const std::string type = c->type;
-          if (type.empty())
-            continue;
-          if (seen.find(type) != seen.end())
-            continue;
-          seen.insert(type);
+        for (const auto &type : core_->contractTypes()) {
           out.push_back(QString::fromStdString(type));
         }
         return out;

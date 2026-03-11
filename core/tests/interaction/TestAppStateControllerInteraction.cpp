@@ -15,7 +15,7 @@ TEST(AppStateControllerInteraction, SaveFile_calls_storage_save_once) {
 
     EXPECT_CALL(*mptr, save(_)).Times(1);
 
-    AppStateController ctrl(std::move(mock));
+    core::controllers::AppStateController ctrl(std::move(mock));
 
     auto a = std::make_shared<Actor>();
     a->id = "id1";

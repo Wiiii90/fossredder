@@ -18,7 +18,6 @@ public:
         AmountRole,
         DescriptionRole,
         ActorIdRole,
-        ActorProposalRole,
         MetadataRole,
         ProofImagePathRole,
         AllocatableRole,
@@ -38,7 +37,6 @@ public:
     Q_INVOKABLE QVariantMap get(int index) const;
 
     Q_INVOKABLE void setActorId(int index, const QString& actorId);
-    Q_INVOKABLE void setActorProposal(int index, const QString& actorProposal);
 
     Q_INVOKABLE void setName(int index, const QString& name);
     Q_INVOKABLE void setBookingDate(int index, const QString& bookingDate);

@@ -5,6 +5,7 @@
 
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
+#include "ui/observability/ErrorCodes.h"
 
 namespace ui::observability {
 

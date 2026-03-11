@@ -7,9 +7,10 @@
 #include <functional>
 #include <atomic>
 
-namespace core { namespace jobs { class Scheduler; class SlotLimiter; } }
+#include "core/import/ImportedTransaction.h"
 
-class Statement;
+namespace core { namespace jobs { class Scheduler; class SlotLimiter; } }
+namespace core::domain { class Statement; }
 
 struct ImportRequest {
     std::string sourcePath;
@@ -29,7 +30,8 @@ struct ImportRequest {
 };
 
 struct ImportResult {
-    std::shared_ptr<Statement> data;
+    std::shared_ptr<core::domain::Statement> data;
+    std::vector<ImportedTransaction> transactions;
     std::map<std::string, std::vector<uint8_t>> artifacts;
 };
 

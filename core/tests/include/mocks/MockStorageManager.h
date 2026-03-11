@@ -1,12 +1,12 @@
 #pragma once
 
-#include "core/managers/IStorageManager.h"
+#include "core/storage/IStorageManager.h"
 #include "gtest/gtest.h"
 #include <gmock/gmock.h>
 #include <optional>
 #include <string>
 
-class MockStorageManager : public IStorageManager {
+class MockStorageManager : public core::storage::IStorageManager {
 public:
     MOCK_METHOD(void, setRepoFactory, (RepoFactory), (override));
     MOCK_METHOD(void, setAtomicStoreSave, (AtomicStoreSave), (override));

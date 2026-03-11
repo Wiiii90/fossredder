@@ -10,7 +10,9 @@
 #include <string>
 #include <vector>
 
+namespace core::domain {
 class Transaction;
+}
 
 class ITransactionRepository {
 public:
@@ -20,20 +22,20 @@ public:
      * @brief Insert a new transaction into the repository.
      * @param transaction Shared pointer to the Transaction to add.
      */
-    virtual void addTransaction(const std::shared_ptr<Transaction>& transaction) = 0;
+    virtual void addTransaction(const std::shared_ptr<core::domain::Transaction>& transaction) = 0;
 
     /**
      * @brief Return all transactions stored in the repository.
      * @return Vector of shared_ptr to Transaction.
      */
-    virtual std::vector<std::shared_ptr<Transaction>> getTransactions() const = 0;
+    virtual std::vector<std::shared_ptr<core::domain::Transaction>> getTransactions() const = 0;
 
     /**
      * @brief Retrieve a transaction by its identifier.
      * @param id Transaction identifier string.
      * @return Optional shared_ptr to Transaction if found.
      */
-    virtual std::optional<std::shared_ptr<Transaction>> getTransactionById(const std::string& id) const = 0;
+    virtual std::optional<std::shared_ptr<core::domain::Transaction>> getTransactionById(const std::string& id) const = 0;
 
     /**
      * @brief Remove a transaction identified by id from the repository.
@@ -45,13 +47,13 @@ public:
      * @brief Update an existing transaction record in the repository.
      * @param transaction Shared pointer to the Transaction with updated fields.
      */
-    virtual void updateTransaction(const std::shared_ptr<Transaction>& transaction) = 0;
+    virtual void updateTransaction(const std::shared_ptr<core::domain::Transaction>& transaction) = 0;
 
     /**
      * @brief Upsert a transaction: insert or update depending on existence.
      * @param transaction Shared pointer to the Transaction to upsert.
      */
-    virtual void upsertTransaction(const std::shared_ptr<Transaction>& transaction) = 0;
+    virtual void upsertTransaction(const std::shared_ptr<core::domain::Transaction>& transaction) = 0;
 
     /**
      * @brief Remove all transactions from the repository.
@@ -61,7 +63,7 @@ public:
     /**
      * @brief Return transactions associated with a given contract id.
      */
-    virtual std::vector<std::shared_ptr<Transaction>> getTransactionsForContract(const std::string& contractId) const = 0;
+    virtual std::vector<std::shared_ptr<core::domain::Transaction>> getTransactionsForContract(const std::string& contractId) const = 0;
 
     /**
      * @brief Assign a list of transactions to a contract (bulk operation).

@@ -12,13 +12,13 @@ public:
     explicit SqlitePropertyRepository(std::shared_ptr<SqliteDb> db);
     ~SqlitePropertyRepository() override;
 
-    void addProperty(const std::shared_ptr<Property>& property) override;
-    std::vector<std::shared_ptr<Property>> getProperties() const override;
-    std::optional<std::shared_ptr<Property>> getPropertyById(const std::string& id) const override;
+    void addProperty(const std::shared_ptr<core::domain::Property>& property) override;
+    std::vector<std::shared_ptr<core::domain::Property>> getProperties() const override;
+    std::optional<std::shared_ptr<core::domain::Property>> getPropertyById(const std::string& id) const override;
     void removeProperty(const std::string& id) override;
-    void updateProperty(const std::shared_ptr<Property>& property) override;
+    void updateProperty(const std::shared_ptr<core::domain::Property>& property) override;
 
-    void upsertProperty(const std::shared_ptr<Property>& property) override;
+    void upsertProperty(const std::shared_ptr<core::domain::Property>& property) override;
     void clearProperties() override;
 
 private:

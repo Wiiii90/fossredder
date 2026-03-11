@@ -14,7 +14,9 @@
 #include <vector>
 #include <memory>
 
-class Config;
+namespace core::domain {
+struct Config;
+}
 
 class IConfigRepository {
 public:
@@ -26,14 +28,14 @@ public:
      * @param config Shared pointer to the configuration object.
      * @return true on success.
      */
-    virtual bool saveConfig(const std::string& name, const std::shared_ptr<Config>& config) = 0;
+    virtual bool saveConfig(const std::string& name, const std::shared_ptr<core::domain::Config>& config) = 0;
 
     /**
      * @brief Load a named configuration.
      * @param name Logical name of the configuration to load.
      * @return Optional shared_ptr to the Config when present.
      */
-    virtual std::optional<std::shared_ptr<Config>> loadConfig(const std::string& name) const = 0;
+    virtual std::optional<std::shared_ptr<core::domain::Config>> loadConfig(const std::string& name) const = 0;
 
     /**
      * @brief List all available configuration names.
@@ -58,7 +60,7 @@ public:
      * @brief Retrieve the currently configured default configuration.
      * @return Optional shared_ptr to the default Config.
      */
-    virtual std::optional<std::shared_ptr<Config>> getDefaultConfig() const = 0;
+    virtual std::optional<std::shared_ptr<core::domain::Config>> getDefaultConfig() const = 0;
 
     /**
      * @brief Return the name of the default configuration (may be empty).

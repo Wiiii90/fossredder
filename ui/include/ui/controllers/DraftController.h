@@ -12,12 +12,12 @@ class StatementDraft;
 class DraftController : public QObject {
     Q_OBJECT
 public:
-    explicit DraftController(AppStateController* core, QObject* parent = nullptr);
+    explicit DraftController(core::controllers::AppStateController* core, QObject* parent = nullptr);
 
     Q_INVOKABLE QString finalizeStatementDraft(StatementDraft* draft);
 
 private:
-    AppStateController* core_ = nullptr;
+    core::controllers::AppStateController* core_ = nullptr;
 };
 
 }

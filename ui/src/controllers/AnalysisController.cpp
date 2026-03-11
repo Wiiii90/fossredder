@@ -1,8 +1,6 @@
 #include "ui/controllers/AnalysisController.h"
 
-#include <QSet>
-
-#include "core/analysis/AnalysisEngine.h"
+#include "core/application/AnalysisService.h"
 #include "core/controllers/AppStateController.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
@@ -18,7 +16,7 @@ namespace ui {
 
 namespace {
 
-void reportMissingAnalysisEngine() {
+void reportMissingAnalysisService() {
   core::errors::report(core::errors::ErrorSeverity::Warning,
                        core::errors::codes::GenericError,
                        observability::origins::controller::analysis::kCompute,
@@ -32,32 +30,16 @@ void reportMissingAnalysisState() {
                        ui::text::controllerErrors::kAnalysisStateUnavailable);
 }
 
-QStringList collectContractTypes(const AppState &state) {
-  QStringList contractTypes;
-  QSet<QString> seen;
-
-  for (const auto &contract : state.contracts) {
-    if (!contract)
-      continue;
-    const QString type = QString::fromStdString(contract->type).trimmed();
-    if (type.isEmpty() || seen.contains(type))
-      continue;
-    seen.insert(type);
-    contractTypes.push_back(type);
-  }
-
-  contractTypes.sort(Qt::CaseInsensitive);
-  return contractTypes;
-}
-
 } // namespace
 
 AnalysisController::AnalysisController(
-    AppStateController *core, StateSnapshotProvider stateSnapshotProvider,
-    const AnalysisEngine *analysisEngine, QObject *parent)
+    core::controllers::AppStateController *core,
+    StateSnapshotProvider stateSnapshotProvider,
+    const core::application::AnalysisService *analysisService,
+    QObject *parent)
     : QObject(parent), core_(core),
       stateSnapshotProvider_(std::move(stateSnapshotProvider)),
-      analysisEngine_(analysisEngine) {}
+      analysisService_(analysisService) {}
 
 QString AnalysisController::addAnalysis(const QString &name,
                                         const QString &type,
@@ -76,8 +58,8 @@ QVariantMap
 AnalysisController::computeAnalysis(const QString &analysisId,
                                     const QString &filterSpec) const {
   QVariantMap out;
-  if (!analysisEngine_) {
-    reportMissingAnalysisEngine();
+  if (!analysisService_) {
+    reportMissingAnalysisService();
     return out;
   }
 
@@ -88,8 +70,9 @@ AnalysisController::computeAnalysis(const QString &analysisId,
   }
 
   try {
-    const auto result = analysisEngine_->computeAnalysisById(
-        strings::toStdString(analysisId), *snapshot,
+    const auto result = analysisService_->computeAnalysisById(
+        *snapshot,
+        strings::toStdString(analysisId),
         strings::toStdString(filterSpec));
     if (!result.found)
       return out;
@@ -106,7 +89,13 @@ QStringList AnalysisController::getContractTypes() const {
   const auto snapshot = stateSnapshot();
   if (!snapshot)
     return {};
-  return collectContractTypes(*snapshot);
+
+  QStringList values;
+  for (const auto &type : analysisService_ ? analysisService_->contractTypes(*snapshot)
+                                           : std::vector<std::string>{}) {
+    values.push_back(QString::fromStdString(type));
+  }
+  return values;
 }
 
 std::shared_ptr<const AppState> AnalysisController::stateSnapshot() const {

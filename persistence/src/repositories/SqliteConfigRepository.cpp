@@ -18,7 +18,7 @@ SqliteConfigRepository::SqliteConfigRepository(std::shared_ptr<SqliteDb> db)
 
 SqliteConfigRepository::~SqliteConfigRepository() = default;
 
-bool SqliteConfigRepository::saveConfig(const std::string& name, const std::shared_ptr<Config>& config) {
+bool SqliteConfigRepository::saveConfig(const std::string& name, const std::shared_ptr<core::domain::Config>& config) {
     const char* sql = "INSERT OR REPLACE INTO configs (name, value) VALUES (?, ?);";
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return false;
@@ -30,7 +30,7 @@ bool SqliteConfigRepository::saveConfig(const std::string& name, const std::shar
     return true;
 }
 
-std::optional<std::shared_ptr<Config>> SqliteConfigRepository::loadConfig(const std::string& name) const {
+std::optional<std::shared_ptr<core::domain::Config>> SqliteConfigRepository::loadConfig(const std::string& name) const {
     const char* sql = "SELECT value FROM configs WHERE name = ?;";
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return std::nullopt;
@@ -39,8 +39,8 @@ std::optional<std::shared_ptr<Config>> SqliteConfigRepository::loadConfig(const 
     const unsigned char* v = sqlite3_column_text(stmt,0);
     std::string s = v ? reinterpret_cast<const char*>(v) : std::string();
     sqlite3_finalize(stmt);
-    auto cfg = std::make_shared<Config>();
-    cfg->language = Config::languageFromString(s);
+    auto cfg = std::make_shared<core::domain::Config>();
+    cfg->language = core::domain::Config::languageFromString(s);
     return cfg;
 }
 
@@ -73,7 +73,7 @@ void SqliteConfigRepository::setDefaultConfig(const std::string& name){
     sqlite3_finalize(stmt);
 }
 
-std::optional<std::shared_ptr<Config>> SqliteConfigRepository::getDefaultConfig() const {
+std::optional<std::shared_ptr<core::domain::Config>> SqliteConfigRepository::getDefaultConfig() const {
     const char* sql = "SELECT value FROM configs WHERE name='__default__';";
     sqlite3_stmt* stmt=nullptr;
     if (sqlite3_prepare_v2(pimpl_->db->handle(),sql,-1,&stmt,nullptr)!=SQLITE_OK) return std::nullopt;

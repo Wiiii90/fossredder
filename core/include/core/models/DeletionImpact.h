@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+namespace core::domain {
+
 struct DeletionImpact {
     std::vector<std::string> deletedActorIds;
     std::vector<std::string> deletedPropertyIds;
@@ -15,3 +17,7 @@ struct DeletionImpact {
                deletedStatementIds.empty() && deletedTransactionIds.empty();
     }
 };
+
+}
+
+using DeletionImpact = core::domain::DeletionImpact;

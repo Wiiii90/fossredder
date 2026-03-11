@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include "core/managers/AppStateManager.h"
+#include "core/application/AppStateManager.h"
 #include "core/models/AppState.h"
 #include "core/models/Actor.h"
 #include "core/models/Property.h"

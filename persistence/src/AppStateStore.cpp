@@ -2,7 +2,7 @@
 
 #include <sqlite3.h>
 
-#include "core/managers/AppStateManager.h"
+#include "core/application/AppStateManager.h"
 #include "core/models/Actor.h"
 #include "core/models/Analysis.h"
 #include "core/models/Annual.h"
@@ -38,24 +38,8 @@ static long long db_count(sqlite3* db, const char* sql) {
 AppStateStore::AppStateStore(std::shared_ptr<SqliteDb> db) : db_(std::move(db)) {}
 
 AppState AppStateStore::load() {
-    auto actors = createSqliteActorRepository(db_);
-    auto props = createSqlitePropertyRepository(db_);
-    auto contracts = createSqliteContractRepository(db_);
-    auto statements = createSqliteStatementRepository(db_);
-    auto txRepo = createSqliteTransactionRepository(db_);
-    auto analyses = createSqliteAnalysisRepository(db_);
-    auto annuals = createSqliteAnnualRepository(db_);
-
-    AppStateManager::Repositories mgrRepos;
-    mgrRepos.actors = actors;
-    mgrRepos.properties = props;
-    mgrRepos.contracts = contracts;
-    mgrRepos.statements = statements;
-    mgrRepos.transactions = txRepo;
-    mgrRepos.analyses = analyses;
-    mgrRepos.annuals = annuals;
-
-    AppStateManager mgr(std::move(mgrRepos));
+    auto repos = createSqliteRepositoryBundle(db_);
+    core::application::AppStateManager mgr(std::move(repos));
     AppState state = mgr.load();
 
     
@@ -66,13 +50,8 @@ AppState AppStateStore::load() {
 AppStateStoreResult AppStateStore::save(const AppState& state) {
     AppStateStoreResult result;
 
-    auto actors = createSqliteActorRepository(db_);
-    auto props = createSqlitePropertyRepository(db_);
-    auto contracts = createSqliteContractRepository(db_);
-    auto statements = createSqliteStatementRepository(db_);
-    auto txRepo = createSqliteTransactionRepository(db_);
-    auto analyses = createSqliteAnalysisRepository(db_);
-    auto annuals = createSqliteAnnualRepository(db_);
+    auto repos = createSqliteRepositoryBundle(db_);
+    auto txRepo = repos.transactions;
 
     SqliteTransaction tx(db_->handle());
 
@@ -84,16 +63,7 @@ AppStateStoreResult AppStateStore::save(const AppState& state) {
     
 
     // Persist current state (upserts).
-    AppStateManager::Repositories mgrRepos;
-    mgrRepos.actors = actors;
-    mgrRepos.properties = props;
-    mgrRepos.contracts = contracts;
-    mgrRepos.statements = statements;
-    mgrRepos.transactions = txRepo;
-    mgrRepos.analyses = analyses;
-    mgrRepos.annuals = annuals;
-
-    AppStateManager mgr(std::move(mgrRepos));
+    core::application::AppStateManager mgr(std::move(repos));
     mgr.save(state);
 
     auto collectActorIds = [&](const auto& vec) {
@@ -123,55 +93,55 @@ AppStateStoreResult AppStateStore::save(const AppState& state) {
         }
     }
 
-    if (statements) {
-        for (const auto& s : statements->getStatements()) {
+    if (repos.statements) {
+        for (const auto& s : repos.statements->getStatements()) {
             if (!s || s->id.empty()) continue;
             if (statementIds.find(s->id) != statementIds.end()) continue;
-            statements->removeStatement(s->id);
+            repos.statements->removeStatement(s->id);
             result.impact.deletedStatementIds.push_back(s->id);
         }
     }
 
-    if (contracts) {
-        for (const auto& c : contracts->getContracts()) {
+    if (repos.contracts) {
+        for (const auto& c : repos.contracts->getContracts()) {
             if (!c || c->id.empty()) continue;
             if (contractIds.find(c->id) != contractIds.end()) continue;
-            contracts->removeContract(c->id);
+            repos.contracts->removeContract(c->id);
             result.impact.deletedContractIds.push_back(c->id);
         }
     }
 
-    if (actors) {
-        for (const auto& a : actors->getActors()) {
+    if (repos.actors) {
+        for (const auto& a : repos.actors->getActors()) {
             if (!a || a->id.empty()) continue;
             if (actorIds.find(a->id) != actorIds.end()) continue;
-            actors->removeActor(a->id);
+            repos.actors->removeActor(a->id);
             result.impact.deletedActorIds.push_back(a->id);
         }
     }
 
-    if (props) {
-        for (const auto& p : props->getProperties()) {
+    if (repos.properties) {
+        for (const auto& p : repos.properties->getProperties()) {
             if (!p || p->id.empty()) continue;
             if (propertyIds.find(p->id) != propertyIds.end()) continue;
-            props->removeProperty(p->id);
+            repos.properties->removeProperty(p->id);
             result.impact.deletedPropertyIds.push_back(p->id);
         }
     }
 
-    if (analyses) {
-        for (const auto& a : analyses->getAnalyses()) {
+    if (repos.analyses) {
+        for (const auto& a : repos.analyses->getAnalyses()) {
             if (!a || a->id.empty()) continue;
             if (analysisIds.find(a->id) != analysisIds.end()) continue;
-            analyses->removeAnalysis(a->id);
+            repos.analyses->removeAnalysis(a->id);
         }
     }
 
-    if (annuals) {
-        for (const auto& an : annuals->getAnnuals()) {
+    if (repos.annuals) {
+        for (const auto& an : repos.annuals->getAnnuals()) {
             if (!an || an->id.empty()) continue;
             if (annualIds.find(an->id) != annualIds.end()) continue;
-            annuals->removeAnnual(an->id);
+            repos.annuals->removeAnnual(an->id);
         }
     }
 

@@ -1,88 +1,244 @@
 #include "core/analysis/Filter.h"
 
+#include "core/constants/CoreDefaults.h"
 #include "core/models/AppState.h"
-#include "core/models/Transaction.h"
 #include "core/models/Contract.h"
-#include <memory>
+#include "core/models/Transaction.h"
 
-#include <sstream>
 #include <algorithm>
 #include <cctype>
-
-using namespace std;
+#include <memory>
+#include <optional>
+#include <sstream>
+#include <string_view>
 
 namespace {
 
-static inline string trim(const string& s) {
-    size_t a = 0; while (a < s.size() && isspace((unsigned char)s[a])) ++a;
-    size_t b = s.size(); while (b > a && isspace((unsigned char)s[b-1])) --b;
-    return s.substr(a, b-a);
+enum class FilterOperator {
+    GreaterEqual,
+    LessEqual,
+    NotEqual,
+    Greater,
+    Less,
+    Equal
+};
+
+struct FilterClause {
+    std::string key;
+    std::string value;
+    FilterOperator op;
+};
+
+std::string trim(const std::string& value)
+{
+    std::size_t first = 0;
+    while (first < value.size() && std::isspace(static_cast<unsigned char>(value[first]))) ++first;
+
+    std::size_t last = value.size();
+    while (last > first && std::isspace(static_cast<unsigned char>(value[last - 1]))) --last;
+
+    return value.substr(first, last - first);
 }
 
-static inline int dateToInt(const string& ymd) {
-    // accept YYYY-MM-DD, YYYYMMDD or DD.MM.YYYY input; return integer YYYYMMDD or 0 on parse error
-    if (ymd.empty()) return 0;
-    string tmp = trim(ymd);
-    // strip surrounding quotes if present
-    if (tmp.size() >= 2 && ((tmp.front() == '"' && tmp.back() == '"') || (tmp.front() == '\'' && tmp.back() == '\''))) tmp = tmp.substr(1, tmp.size()-2);
-    tmp = trim(tmp);
+std::string cleanValue(const std::string& value)
+{
+    auto cleaned = trim(value);
+    if (cleaned.size() >= 2
+        && ((cleaned.front() == '"' && cleaned.back() == '"')
+            || (cleaned.front() == '\'' && cleaned.back() == '\''))) {
+        cleaned = cleaned.substr(1, cleaned.size() - 2);
+    }
+    return trim(cleaned);
+}
 
-    // If format contains '-', assume YYYY-MM-DD or similar
-    if (tmp.find('-') != string::npos) {
-        string s = tmp;
-        s.erase(remove(s.begin(), s.end(), '-'), s.end());
-        if (s.size() == 8) {
-            try { return stoi(s); } catch(...) { return 0; }
+std::string toLowerStr(const std::string& value)
+{
+    std::string lowered;
+    lowered.reserve(value.size());
+    for (const char ch : value) {
+        lowered.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
+    }
+    return lowered;
+}
+
+int dateToInt(const std::string& value)
+{
+    if (value.empty()) return 0;
+
+    std::string cleaned = cleanValue(value);
+    if (cleaned.find('-') != std::string::npos) {
+        std::string digits = cleaned;
+        digits.erase(std::remove(digits.begin(), digits.end(), '-'), digits.end());
+        if (digits.size() == 8) {
+            try { return std::stoi(digits); } catch (...) { return 0; }
         }
         return 0;
     }
 
-    // If format contains '.', assume DD.MM.YYYY -> convert to YYYYMMDD
-    if (tmp.find('.') != string::npos) {
-        // split by '.'
-        std::vector<string> parts;
-        std::istringstream ss(tmp);
-        string tok;
-        while (std::getline(ss, tok, '.')) {
-            parts.push_back(trim(tok));
+    if (cleaned.find(core::constants::filters::separators::kDateParts) != std::string::npos) {
+        std::vector<std::string> parts;
+        std::istringstream stream(cleaned);
+        std::string token;
+        while (std::getline(stream, token, core::constants::filters::separators::kDateParts)) {
+            parts.push_back(trim(token));
         }
+
         if (parts.size() == 3) {
-            // expected DD.MM.YYYY
-            string dd = parts[0]; string mm = parts[1]; string yyyy = parts[2];
-            if (yyyy.size() == 4 && dd.size() > 0 && mm.size() > 0) {
-                // zero-pad day/month
-                if (dd.size() == 1) dd = string("0") + dd;
-                if (mm.size() == 1) mm = string("0") + mm;
-                string out = yyyy + mm + dd;
-                try { return stoi(out); } catch(...) { return 0; }
+            std::string dd = parts[0];
+            std::string mm = parts[1];
+            std::string yyyy = parts[2];
+            if (yyyy.size() == 4 && !dd.empty() && !mm.empty()) {
+                if (dd.size() == 1) dd = std::string("0") + dd;
+                if (mm.size() == 1) mm = std::string("0") + mm;
+                const std::string out = yyyy + mm + dd;
+                try { return std::stoi(out); } catch (...) { return 0; }
             }
         }
         return 0;
     }
 
-    // If pure digits like YYYYMMDD
-    string digits;
-    for (char c : tmp) if (isdigit((unsigned char)c)) digits.push_back(c);
+    std::string digits;
+    for (const char ch : cleaned) {
+        if (std::isdigit(static_cast<unsigned char>(ch))) digits.push_back(ch);
+    }
     if (digits.size() == 8) {
-        try { return stoi(digits); } catch(...) { return 0; }
+        try { return std::stoi(digits); } catch (...) { return 0; }
     }
     return 0;
 }
 
-static inline std::string cleanValue(const std::string& s) {
-    auto t = trim(s);
-    if (t.size() >= 2 && ((t.front() == '"' && t.back() == '"') || (t.front() == '\'' && t.back() == '\''))) t = t.substr(1, t.size()-2);
-    // trim again in case quotes had spaces inside
-    return trim(t);
+bool compareInt(FilterOperator op, int lhs, int rhs)
+{
+    switch (op) {
+    case FilterOperator::GreaterEqual: return lhs >= rhs;
+    case FilterOperator::LessEqual: return lhs <= rhs;
+    case FilterOperator::Greater: return lhs > rhs;
+    case FilterOperator::Less: return lhs < rhs;
+    case FilterOperator::Equal: return lhs == rhs;
+    case FilterOperator::NotEqual: return lhs != rhs;
+    }
+    return false;
 }
 
-static inline std::string toLowerStr(const std::string& s) {
-    std::string out; out.reserve(s.size());
-    for (char c : s) out.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
-    return out;
+bool compareDouble(FilterOperator op, double lhs, double rhs)
+{
+    switch (op) {
+    case FilterOperator::GreaterEqual: return lhs >= rhs;
+    case FilterOperator::LessEqual: return lhs <= rhs;
+    case FilterOperator::Greater: return lhs > rhs;
+    case FilterOperator::Less: return lhs < rhs;
+    case FilterOperator::Equal: return lhs == rhs;
+    case FilterOperator::NotEqual: return lhs != rhs;
+    }
+    return false;
+}
+
+std::optional<FilterClause> parseClause(const std::string& token)
+{
+    struct OperatorSpec {
+        std::string_view token;
+        FilterOperator op;
+    };
+
+    static constexpr OperatorSpec operators[] = {
+        {core::constants::filters::operators::kGreaterEqual, FilterOperator::GreaterEqual},
+        {core::constants::filters::operators::kLessEqual, FilterOperator::LessEqual},
+        {core::constants::filters::operators::kNotEqual, FilterOperator::NotEqual},
+        {core::constants::filters::operators::kGreater, FilterOperator::Greater},
+        {core::constants::filters::operators::kLess, FilterOperator::Less},
+        {core::constants::filters::operators::kEqual, FilterOperator::Equal},
+    };
+
+    for (const auto& spec : operators) {
+        const auto pos = token.find(spec.token);
+        if (pos == std::string::npos) continue;
+
+        return FilterClause{
+            trim(token.substr(0, pos)),
+            trim(token.substr(pos + spec.token.size())),
+            spec.op,
+        };
+    }
+
+    return std::nullopt;
+}
+
+std::vector<std::string> splitContractTypes(const std::string& value)
+{
+    std::vector<std::string> wanted;
+    std::string current;
+    for (const char ch : toLowerStr(cleanValue(value))) {
+        if (ch == core::constants::filters::separators::kAlternatives
+            || ch == core::constants::filters::separators::kList) {
+            const auto token = trim(current);
+            if (!token.empty()) wanted.push_back(token);
+            current.clear();
+            continue;
+        }
+
+        current.push_back(ch);
+    }
+
+    const auto tail = trim(current);
+    if (!tail.empty()) wanted.push_back(tail);
+    return wanted;
+}
+
+void addDatePredicate(core::analysis::Filter& filter, const FilterClause& clause)
+{
+    const int target = dateToInt(clause.value);
+    filter.addPredicate([target, op = clause.op](const std::shared_ptr<Transaction>& transaction, const AppState&) {
+        if (!transaction) return false;
+        return compareInt(op, dateToInt(transaction->bookingDate), target);
+    });
+}
+
+void addAmountPredicate(core::analysis::Filter& filter, const FilterClause& clause)
+{
+    double value = 0.0;
+    try { value = std::stod(clause.value); } catch (...) { value = 0.0; }
+
+    filter.addPredicate([value, op = clause.op](const std::shared_ptr<Transaction>& transaction, const AppState&) {
+        return transaction && compareDouble(op, transaction->amount, value);
+    });
+}
+
+void addContractTypePredicate(core::analysis::Filter& filter, const FilterClause& clause)
+{
+    const auto wanted = splitContractTypes(clause.value);
+    if (wanted.empty()) return;
+
+    filter.addPredicate([wanted](const std::shared_ptr<Transaction>& transaction, const AppState& state) {
+        if (!transaction) return false;
+
+        const bool allowUnassigned = std::find(wanted.begin(), wanted.end(), std::string(core::constants::filters::kUnassigned)) != wanted.end();
+        if (transaction->contractId.empty()) return allowUnassigned;
+
+        const std::string contractId = toLowerStr(cleanValue(transaction->contractId));
+        for (const auto& contract : state.contracts) {
+            if (!contract) continue;
+            if (toLowerStr(cleanValue(contract->id)) != contractId) continue;
+
+            const std::string contractType = toLowerStr(cleanValue(contract->type));
+            return std::find(wanted.begin(), wanted.end(), contractType) != wanted.end();
+        }
+
+        return false;
+    });
+}
+
+void addPropertyPredicate(core::analysis::Filter& filter, const FilterClause& clause)
+{
+    const std::string propertyId = cleanValue(clause.value);
+    filter.addPredicate([propertyId](const std::shared_ptr<Transaction>& transaction, const AppState&) {
+        if (!transaction) return false;
+        return std::find(transaction->propertyIds.begin(), transaction->propertyIds.end(), propertyId) != transaction->propertyIds.end();
+    });
 }
 
 }
+
+namespace core::analysis {
 
 Filter parseFilterSpec(const std::string& spec) {
     Filter f;
@@ -90,86 +246,25 @@ Filter parseFilterSpec(const std::string& spec) {
 
     std::istringstream ss(spec);
     std::string token;
-    while (std::getline(ss, token, ';')) {
+    while (std::getline(ss, token, core::constants::filters::separators::kClause)) {
         token = trim(token);
         if (token.empty()) continue;
-        // find op position
-        const std::vector<std::string> ops = {">=", "<=", "!=", ">", "<", "="};
-        size_t opPos = string::npos; string op;
-        for (const auto& o : ops) {
-            auto p = token.find(o);
-            if (p != string::npos) { opPos = p; op = o; break; }
-        }
-        if (opPos == string::npos) continue;
-        string key = trim(token.substr(0, opPos));
-        string val = trim(token.substr(opPos + op.size()));
-        if (key == "date") {
-            int v = dateToInt(val);
-            if (op == ">=") {
-            f.addPredicate([v](const shared_ptr<Transaction>& t, const AppState&){ return dateToInt(cleanValue(t->bookingDate)) >= v; });
-            } else if (op == "<=") {
-                f.addPredicate([v](const shared_ptr<Transaction>& t, const AppState&){ return dateToInt(cleanValue(t->bookingDate)) <= v; });
-            } else if (op == ">") {
-                f.addPredicate([v](const shared_ptr<Transaction>& t, const AppState&){ return dateToInt(cleanValue(t->bookingDate)) > v; });
-            } else if (op == "<") {
-                f.addPredicate([v](const shared_ptr<Transaction>& t, const AppState&){ return dateToInt(cleanValue(t->bookingDate)) < v; });
-            } else if (op == "=") {
-                f.addPredicate([v](const shared_ptr<Transaction>& t, const AppState&){ return dateToInt(cleanValue(t->bookingDate)) == v; });
-            }
-        } else if (key == "amount") {
-            double dv = 0.0; try { dv = stod(val); } catch(...) { dv = 0.0; }
-            if (op == ">=") f.addPredicate([dv](const shared_ptr<Transaction>& t, const AppState&){ return t->amount >= dv; });
-            else if (op == "<=") f.addPredicate([dv](const shared_ptr<Transaction>& t, const AppState&){ return t->amount <= dv; });
-            else if (op == ">") f.addPredicate([dv](const shared_ptr<Transaction>& t, const AppState&){ return t->amount > dv; });
-            else if (op == "<") f.addPredicate([dv](const shared_ptr<Transaction>& t, const AppState&){ return t->amount < dv; });
-            else if (op == "=") f.addPredicate([dv](const shared_ptr<Transaction>& t, const AppState&){ return t->amount == dv; });
-            else if (op == "!=") f.addPredicate([dv](const shared_ptr<Transaction>& t, const AppState&){ return t->amount != dv; });
-        } else if (key == "contract.type") {
-            // support exact or OR list of types (pipe '|' or comma separated)
-            string desired = val;
-            if (desired.size() >= 2 && ((desired.front() == '"' && desired.back() == '"') || (desired.front() == '\'' && desired.back() == '\''))) desired = desired.substr(1, desired.size()-2);
-            std::string s = toLowerStr(cleanValue(desired));
-            std::vector<std::string> wanted;
-            std::string cur;
-            for (char ch : s) {
-                if (ch == '|' || ch == ',') { auto t = trim(cur); if (!t.empty()) wanted.push_back(t); cur.clear(); }
-                else cur.push_back(ch);
-            }
-            if (!cur.empty()) wanted.push_back(trim(cur));
 
-            // trim whitespace on wanted parts
-            for (auto &w : wanted) w = trim(w);
+        const auto clause = parseClause(token);
+        if (!clause) continue;
 
-            // if no wanted parts, ignore
-            if (wanted.empty()) continue;
-
-            f.addPredicate([wanted](const shared_ptr<Transaction>& t, const AppState& st){
-                if (!t) return false;
-                // explicit support for 'unassigned' token: match transactions without contract
-                bool anyUnassigned = false;
-                for (const auto &w : wanted) if (w == "unassigned") anyUnassigned = true;
-                if (anyUnassigned && t->contractId.empty()) return true;
-                if (t->contractId.empty()) return false;
-                // find the contract by id and compare its type exactly (case-insensitive)
-                for (const auto& cptr : st.contracts) {
-                    if (!cptr) continue;
-                    if (toLowerStr(cleanValue(cptr->id)) == toLowerStr(cleanValue(t->contractId))) {
-                        std::string ctype = toLowerStr(cleanValue(std::string(cptr->type)));
-                        for (const auto &w : wanted) {
-                            if (w == "unassigned") continue;
-                            if (ctype == w) return true;
-                        }
-                        return false;
-                    }
-                }
-                return false;
-            });
-        } else if (key == "propertyId") {
-            string pid = val;
-            if (pid.size() >= 2 && ((pid.front() == '"' && pid.back() == '"') || (pid.front() == '\'' && pid.back() == '\''))) pid = pid.substr(1, pid.size()-2);
-            f.addPredicate([pid](const shared_ptr<Transaction>& t, const AppState&){ if (!t) return false; for (const auto& p : t->propertyIds) if (p == pid) return true; return false; });
+        if (clause->key == core::constants::filters::kDate) {
+            addDatePredicate(f, *clause);
+        } else if (clause->key == core::constants::filters::kAmount) {
+            addAmountPredicate(f, *clause);
+        } else if (clause->key == core::constants::filters::kContractType) {
+            addContractTypePredicate(f, *clause);
+        } else if (clause->key == core::constants::filters::kPropertyId) {
+            addPropertyPredicate(f, *clause);
         }
     }
 
     return f;
+}
+
 }

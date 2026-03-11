@@ -50,3 +50,15 @@ std::shared_ptr<IAnalysisRepository> createSqliteAnalysisRepository(const std::s
 std::shared_ptr<IAnnualRepository> createSqliteAnnualRepository(const std::shared_ptr<SqliteDb>& db) {
     return std::make_shared<SqliteAnnualRepository>(db);
 }
+
+core::storage::RepositoryBundle createSqliteRepositoryBundle(const std::shared_ptr<SqliteDb>& db) {
+    core::storage::RepositoryBundle bundle;
+    bundle.actors = createSqliteActorRepository(db);
+    bundle.properties = createSqlitePropertyRepository(db);
+    bundle.contracts = createSqliteContractRepository(db);
+    bundle.statements = createSqliteStatementRepository(db);
+    bundle.transactions = createSqliteTransactionRepository(db);
+    bundle.analyses = createSqliteAnalysisRepository(db);
+    bundle.annuals = createSqliteAnnualRepository(db);
+    return bundle;
+}

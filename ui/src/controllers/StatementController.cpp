@@ -6,7 +6,7 @@
 
 namespace ui {
 
-StatementController::StatementController(AppStateController *core,
+StatementController::StatementController(core::controllers::AppStateController *core,
                                          QObject *parent)
     : QObject(parent), core_(core) {}
 

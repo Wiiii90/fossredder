@@ -9,9 +9,10 @@
 
 #include <QString>
 
+#include "core/import/ImportedTransaction.h"
 #include "core/jobs/JobManager.h"
 
-class Statement;
+namespace core::domain { class Statement; }
 
 namespace core::jobs {
 class JobSystem;
@@ -35,7 +36,8 @@ public:
     void cancelCurrent();
     void clearSubscription(const ExceptionReporter& exceptionReporter);
 
-    std::shared_ptr<Statement> statementResult() const;
+    std::shared_ptr<core::domain::Statement> statementResult() const;
+    std::vector<ImportedTransaction> statementTransactions() const;
     std::map<std::string, std::vector<uint8_t>> takeArtifacts();
 
 private:

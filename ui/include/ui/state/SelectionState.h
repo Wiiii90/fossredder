@@ -20,19 +20,17 @@ class ActorSelection : public QObject {
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QString type READ type NOTIFY changed)
     Q_PROPERTY(QString description READ description NOTIFY changed)
-    Q_PROPERTY(QStringList aliases READ aliases NOTIFY changed)
 
 public:
     explicit ActorSelection(QObject* parent = nullptr);
 
     void clear();
-    void set(QString id, QString name, QString type, QString description, QStringList aliases);
+    void set(QString id, QString name, QString type, QString description);
 
     QString id() const { return id_; }
     QString name() const { return name_; }
     QString type() const { return type_; }
     QString description() const { return description_; }
-    QStringList aliases() const { return aliases_; }
 
 signals:
     void changed();
@@ -42,7 +40,6 @@ private:
     QString name_;
     QString type_;
     QString description_;
-    QStringList aliases_;
 };
 
 class PropertySelection : public QObject {
@@ -138,7 +135,6 @@ class TransactionSelection : public QObject {
     Q_PROPERTY(QString description READ description NOTIFY changed)
     Q_PROPERTY(QString statementId READ statementId NOTIFY changed)
     Q_PROPERTY(QString actorId READ actorId NOTIFY changed)
-    Q_PROPERTY(QString actorProposal READ actorProposal NOTIFY changed)
     Q_PROPERTY(QStringList propertyIds READ propertyIds NOTIFY changed)
     Q_PROPERTY(bool allocatable READ allocatable NOTIFY changed)
 
@@ -153,7 +149,6 @@ public:
              QString description,
              QString statementId,
              QString actorId,
-             QString actorProposal,
              QStringList propertyIds,
              bool allocatable);
 
@@ -164,7 +159,6 @@ public:
     QString description() const { return description_; }
     QString statementId() const { return statementId_; }
     QString actorId() const { return actorId_; }
-    QString actorProposal() const { return actorProposal_; }
     QStringList propertyIds() const { return propertyIds_; }
     bool allocatable() const { return allocatable_; }
 
@@ -185,7 +179,6 @@ private:
     QString description_;
     QString statementId_;
     QString actorId_;
-    QString actorProposal_;
     QStringList propertyIds_;
     bool allocatable_ = false;
 };

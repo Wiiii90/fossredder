@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/constants/CoreDefaults.h"
+#include "core/import/ImportedTransaction.h"
 #include "core/jobs/JobTypes.h"
 
 #include <atomic>
@@ -13,7 +15,9 @@
 #include <vector>
 #include <deque>
 
+namespace core::domain {
 class Statement;
+}
 
 namespace core::jobs {
 
@@ -38,8 +42,11 @@ public:
 
     std::shared_ptr<std::atomic<bool>> cancelFlag(const JobId& id) const;
 
-    void setStatementResult(const JobId& id, std::shared_ptr<Statement> stmt);
-    std::shared_ptr<Statement> statementResult(const JobId& id) const;
+    void setStatementResult(const JobId& id, std::shared_ptr<core::domain::Statement> stmt);
+    std::shared_ptr<core::domain::Statement> statementResult(const JobId& id) const;
+
+    void setStatementTransactions(const JobId& id, std::vector<ImportedTransaction> transactions);
+    std::vector<ImportedTransaction> statementTransactions(const JobId& id) const;
 
     void setStatementArtifacts(const JobId& id, std::map<std::string, std::vector<uint8_t>> artifacts);
     std::map<std::string, std::vector<uint8_t>> statementArtifacts(const JobId& id) const;
@@ -56,7 +63,8 @@ private:
     struct JobData {
         JobSnapshot snap;
         std::shared_ptr<std::atomic<bool>> cancel;
-        std::shared_ptr<Statement> statement;
+        std::shared_ptr<core::domain::Statement> statement;
+        std::vector<ImportedTransaction> transactions;
         std::map<std::string, std::vector<uint8_t>> artifacts;
         std::unordered_map<SubscriptionId, JobEventCallback> subs;
         SubscriptionId nextSub = 1;
@@ -65,7 +73,7 @@ private:
 
     static JobId makeJobId();
 
-    static constexpr std::size_t kMaxJobs = 64;
+    static constexpr std::size_t kMaxJobs = core::constants::jobs::kJobHistoryLimit;
 
     std::unordered_map<JobId, std::shared_ptr<JobData>> jobs_;
     std::deque<JobId> order_;

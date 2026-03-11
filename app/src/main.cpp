@@ -7,13 +7,13 @@
 #include "persistence/Factory.h"
 #include "persistence/AppStateStore.h"
 #include "core/repositories/IConfigRepository.h"
-#include "core/managers/ConfigManager.h"
-#include "core/managers/StorageManager.h"
+#include "core/storage/StorageManager.h"
 #include "core/controllers/AppStateController.h"
 #include "core/errors/DebuggerErrorReporter.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "debug/FileDebugger.h"
+#include "ui/observability/ErrorCodes.h"
 
 #include <QDir>
 #include <filesystem>
@@ -34,19 +34,19 @@ static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, 
     };
     switch (type) {
     case QtDebugMsg:
-        core::errors::report(core::errors::ErrorSeverity::Info, core::errors::codes::QtDebug, "app::qtMessageHandler", text, ctx);
+        core::errors::report(core::errors::ErrorSeverity::Info, ui::observability::codes::QtDebug, "app::qtMessageHandler", text, ctx);
         break;
     case QtInfoMsg:
-        core::errors::report(core::errors::ErrorSeverity::Info, core::errors::codes::QtInfo, "app::qtMessageHandler", text, ctx);
+        core::errors::report(core::errors::ErrorSeverity::Info, ui::observability::codes::QtInfo, "app::qtMessageHandler", text, ctx);
         break;
     case QtWarningMsg:
-        core::errors::report(core::errors::ErrorSeverity::Warning, core::errors::codes::QtWarning, "app::qtMessageHandler", text, ctx);
+        core::errors::report(core::errors::ErrorSeverity::Warning, ui::observability::codes::QtWarning, "app::qtMessageHandler", text, ctx);
         break;
     case QtCriticalMsg:
-        core::errors::report(core::errors::ErrorSeverity::Error, core::errors::codes::QtCritical, "app::qtMessageHandler", text, ctx);
+        core::errors::report(core::errors::ErrorSeverity::Error, ui::observability::codes::QtCritical, "app::qtMessageHandler", text, ctx);
         break;
     case QtFatalMsg:
-        core::errors::report(core::errors::ErrorSeverity::Critical, core::errors::codes::QtFatal, "app::qtMessageHandler", text, ctx);
+        core::errors::report(core::errors::ErrorSeverity::Critical, ui::observability::codes::QtFatal, "app::qtMessageHandler", text, ctx);
         abort();
     }
 }
@@ -57,7 +57,7 @@ static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, 
  *
  * Implemented in `main_qml.cpp`. Only available when built with USE_QML.
  */
-extern int startQmlApp(QApplication& app, AppStateController& appStateCtrl);
+extern int startQmlApp(QApplication& app, core::controllers::AppStateController& appStateCtrl);
 #endif
 
 int main(int argc, char* argv[]) {
@@ -77,9 +77,9 @@ int main(int argc, char* argv[]) {
 
     // Setup storage manager and controller (manages application state files)
     const std::string appDataRoot = QDir::homePath().toStdString() + std::string("/.fossredder");
-    StorageManager sm(appDataRoot);
-    auto smPtr = std::make_unique<StorageManager>(std::move(sm));
-    AppStateController appStateCtrl(std::move(smPtr));
+    core::storage::StorageManager sm(appDataRoot);
+    auto smPtr = std::make_unique<core::storage::StorageManager>(std::move(sm));
+    core::controllers::AppStateController appStateCtrl(std::move(smPtr));
 
     auto errorReporter = std::make_shared<core::errors::DebuggerErrorReporter>(
         std::make_shared<FileDebugger>("", "errors"));
@@ -122,13 +122,7 @@ int main(int argc, char* argv[]) {
             core::errors::reportException(core::errors::ErrorSeverity::Warning, "app::main::setRepoFactory::create_directories", std::current_exception());
         }
         auto db = createSqliteDb(dbPath);
-        IStorageManager::Repositories r;
-        r.actors = createSqliteActorRepository(db);
-        r.properties = createSqlitePropertyRepository(db);
-        r.contracts = createSqliteContractRepository(db);
-        r.statements = createSqliteStatementRepository(db);
-        r.transactions = createSqliteTransactionRepository(db);
-        return r;
+        return createSqliteRepositoryBundle(db);
     });
 
     appStateCtrl.setAtomicStoreLoad([](const std::string& dbPath) {
@@ -160,17 +154,6 @@ int main(int argc, char* argv[]) {
         && appStateCtrl.state().statements.empty()
         && appStateCtrl.state().transactions.empty()) {
         appStateCtrl.newFile((std::filesystem::path(appDataRoot) / "fossredder.db").string());
-    }
-
-    // Apply default configuration if available
-    ConfigManager cfgMgr;
-    if (cfgRepo) {
-        try {
-            if (auto def = cfgRepo->getDefaultConfig())
-                cfgMgr.setConfig(*def);
-        } catch (const std::exception& ex) {
-            core::errors::reportException(core::errors::ErrorSeverity::Warning, "app::main::getDefaultConfig", std::current_exception());
-        }
     }
 
     // Ensure Qt finds deployed plugins and QML modules next to the executable

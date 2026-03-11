@@ -6,7 +6,6 @@
 #include <QString>
 #include <QStringList>
 
-#include "core/errors/ErrorCodes.h"
 #include "ui/observability/Trace.h"
 
 namespace ui::window {
@@ -30,7 +29,7 @@ inline void reportMainWindowFlow(
     core::errors::ErrorSeverity severity = core::errors::ErrorSeverity::Info,
     core::errors::ErrorContext context = {}) {
   ui::observability::reportFlow(severity,
-                                core::errors::codes::UiFlowMainWindowAction,
+                                ui::observability::codes::FlowMainWindowAction,
                                 origin, std::move(message), std::move(context));
 }
 

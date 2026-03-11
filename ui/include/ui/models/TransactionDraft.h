@@ -15,7 +15,6 @@ struct TransactionDraft {
     QString description;
 
     QString actorId;
-    QString actorProposal;
 
     QString metadata;
     QString proofImagePath;

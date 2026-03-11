@@ -14,13 +14,13 @@ public:
     explicit SqliteAnnualRepository(std::shared_ptr<SqliteDb> db);
     ~SqliteAnnualRepository() override;
 
-    void addAnnual(const std::shared_ptr<Annual>& annual) override;
-    std::vector<std::shared_ptr<Annual>> getAnnuals() const override;
-    std::optional<std::shared_ptr<Annual>> getAnnualById(const std::string& id) const override;
+    void addAnnual(const std::shared_ptr<core::domain::Annual>& annual) override;
+    std::vector<std::shared_ptr<core::domain::Annual>> getAnnuals() const override;
+    std::optional<std::shared_ptr<core::domain::Annual>> getAnnualById(const std::string& id) const override;
     void removeAnnual(const std::string& id) override;
-    void updateAnnual(const std::shared_ptr<Annual>& annual) override;
+    void updateAnnual(const std::shared_ptr<core::domain::Annual>& annual) override;
 
-    void upsertAnnual(const std::shared_ptr<Annual>& annual) override;
+    void upsertAnnual(const std::shared_ptr<core::domain::Annual>& annual) override;
     void clearAnnuals() override;
 
     sqlite3* sqliteHandle() const noexcept override;

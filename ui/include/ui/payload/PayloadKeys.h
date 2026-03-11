@@ -41,7 +41,6 @@ namespace transaction {
 inline const auto kBookingDate = QStringLiteral("bookingDate");
 inline const auto kValuta = QStringLiteral("valuta");
 inline const auto kActorId = QStringLiteral("actorId");
-inline const auto kActorProposal = QStringLiteral("actorProposal");
 inline const auto kProofImagePath = QStringLiteral("proofImagePath");
 inline const auto kAllocatable = QStringLiteral("allocatable");
 inline const auto kPropertyIds = QStringLiteral("propertyIds");

@@ -396,7 +396,6 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
     for (const auto& l : nameLines) nm += l;
     tx.name = collapseWhitespace(std::move(nm));
     if (tx.name.size() > 120) tx.name.resize(120);
-    tx.actorProposal = tx.name;
 
     std::string meta;
     bool lastWasLabel = false;

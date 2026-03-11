@@ -53,7 +53,7 @@ void ExportController::exportData(int format, const QString &path,
   if (isRunning_) {
     observability::reportFlow(
         core::errors::ErrorSeverity::Info,
-        core::errors::codes::UiFlowExportStarted,
+        observability::codes::FlowExportStarted,
         observability::origins::controller::exportFlow::kStart,
         "Export ignored: already running");
     return;
@@ -70,7 +70,7 @@ void ExportController::exportData(int format, const QString &path,
       emit stateChanged();
       observability::reportFlow(
           core::errors::ErrorSeverity::Warning,
-          core::errors::codes::UiFlowExportFailed,
+          observability::codes::FlowExportFailed,
           observability::origins::controller::exportFlow::kStart,
           "Export rejected: state snapshot unavailable",
           {{observability::context::kPath, strings::toStdString(path)}});
@@ -84,7 +84,7 @@ void ExportController::exportData(int format, const QString &path,
 
     observability::reportFlow(
         core::errors::ErrorSeverity::Info,
-        core::errors::codes::UiFlowExportStarted,
+        observability::codes::FlowExportStarted,
         observability::origins::controller::exportFlow::kStart,
         "Export started",
         {{observability::context::kPath, strings::toStdString(path)},
@@ -106,7 +106,7 @@ void ExportController::exportData(int format, const QString &path,
     lastError_ = tr(ui::text::controllerErrors::kExportFailed);
     observability::reportFlow(
         core::errors::ErrorSeverity::Error,
-        core::errors::codes::UiFlowExportFailed,
+        observability::codes::FlowExportFailed,
         observability::origins::controller::exportFlow::kStart,
         "Export failed with exception",
         {{observability::context::kException, ex.what()},
@@ -118,7 +118,7 @@ void ExportController::exportData(int format, const QString &path,
     lastError_ = tr(ui::text::controllerErrors::kExportFailed);
     observability::reportFlow(
         core::errors::ErrorSeverity::Error,
-        core::errors::codes::UiFlowExportFailed,
+        observability::codes::FlowExportFailed,
         observability::origins::controller::exportFlow::kStart,
         "Export failed with non-std exception",
         {{observability::context::kPath, strings::toStdString(path)}});
@@ -143,7 +143,7 @@ void ExportController::onExportFinished() {
           strings::toStdString(lastError_));
       observability::reportFlow(
           core::errors::ErrorSeverity::Warning,
-          core::errors::codes::UiFlowExportFailed,
+          observability::codes::FlowExportFailed,
           observability::origins::controller::exportFlow::kFinish,
           "Export finished with failure",
           {{observability::context::kError, strings::toStdString(lastError_)}});
@@ -151,7 +151,7 @@ void ExportController::onExportFinished() {
       lastError_.clear();
       observability::reportFlow(
           core::errors::ErrorSeverity::Info,
-          core::errors::codes::UiFlowExportFinished,
+          observability::codes::FlowExportFinished,
           observability::origins::controller::exportFlow::kFinish,
           "Export finished successfully");
     }
@@ -162,7 +162,7 @@ void ExportController::onExportFinished() {
     lastError_ = tr(ui::text::controllerErrors::kExportFailed);
     observability::reportFlow(
         core::errors::ErrorSeverity::Error,
-        core::errors::codes::UiFlowExportFailed,
+        observability::codes::FlowExportFailed,
         observability::origins::controller::exportFlow::kFinish,
         "Export finished with std exception",
         {{observability::context::kException, ex.what()}});
@@ -173,7 +173,7 @@ void ExportController::onExportFinished() {
     lastError_ = tr(ui::text::controllerErrors::kExportFailed);
     observability::reportFlow(
         core::errors::ErrorSeverity::Error,
-        core::errors::codes::UiFlowExportFailed,
+        observability::codes::FlowExportFailed,
         observability::origins::controller::exportFlow::kFinish,
         "Export finished with non-std exception");
     success = false;

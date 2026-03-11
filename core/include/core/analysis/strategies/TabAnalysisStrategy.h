@@ -8,5 +8,5 @@ public:
     TabAnalysisStrategy() = default;
     ~TabAnalysisStrategy() override = default;
 
-    Analysis compute(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const override;
+    AnalysisResult compute(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const override;
 };

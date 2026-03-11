@@ -1,4 +1,6 @@
 #include "core/controllers/ExportController.h"
+
+#include "core/constants/CoreDefaults.h"
 #include "core/controllers/CsvController.h"
 #include "core/controllers/XlsxController.h"
 
@@ -16,8 +18,8 @@ ExportOptions::Status ExportController::exportData(ExportOptions& opts) {
     if (opts.requestedFormat == ExportOptions::Format::Csv) {
         if (!csv_) {
             opts.status = ExportOptions::Status::InternalError;
-            opts.errorCode = "EXPORT_CSV_CONTROLLER_MISSING";
-            opts.message = "CSV controller is not available";
+            opts.errorCode = std::string(core::constants::exportFlow::kErrorCsvControllerMissing);
+            opts.message = std::string(core::constants::exportFlow::kMessageCsvControllerMissing);
             return opts.status;
         }
         return csv_->exportData(opts);
@@ -25,16 +27,16 @@ ExportOptions::Status ExportController::exportData(ExportOptions& opts) {
     if (opts.requestedFormat == ExportOptions::Format::Xlsx) {
         if (!xlsx_) {
             opts.status = ExportOptions::Status::InternalError;
-            opts.errorCode = "EXPORT_XLSX_CONTROLLER_MISSING";
-            opts.message = "XLSX controller is not available";
+            opts.errorCode = std::string(core::constants::exportFlow::kErrorXlsxControllerMissing);
+            opts.message = std::string(core::constants::exportFlow::kMessageXlsxControllerMissing);
             return opts.status;
         }
         return xlsx_->exportData(opts);
     }
 
     opts.status = ExportOptions::Status::UnsupportedFormat;
-    opts.errorCode = "EXPORT_UNSUPPORTED_FORMAT";
-    opts.message = "Unsupported export format";
+    opts.errorCode = std::string(core::constants::exportFlow::kErrorUnsupportedFormat);
+    opts.message = std::string(core::constants::exportFlow::kMessageUnsupportedFormat);
     return opts.status;
 }
 

@@ -1,7 +1,14 @@
+/**
+ * @file core/include/core/models/Actor.h
+ * @brief Domain model for actors.
+ */
+
 #pragma once
 
 #include <string>
-#include <vector>
+#include <utility>
+
+namespace core::domain {
 
 class Actor {
 public:
@@ -10,8 +17,13 @@ public:
     std::string type;
     std::string description;
 
-    std::vector<std::string> aliases;
-
     Actor() = default;
-    Actor(const std::string& name, const std::string& type = "", const std::string& description = "");
+    Actor(std::string name, std::string type = {}, std::string description = {})
+        : name(std::move(name)),
+          type(std::move(type)),
+          description(std::move(description)) {}
 };
+
+}
+
+using Actor = core::domain::Actor;

@@ -6,7 +6,7 @@
 #include "gtest/gtest.h"
 
 #include "core/controllers/AppStateController.h"
-#include "core/managers/IStorageManager.h"
+#include "core/storage/IStorageManager.h"
 #include "core/models/AppState.h"
 #include "core/models/Actor.h"
 
@@ -76,7 +76,7 @@ TEST(AppStateControllerTests, OpenLatest_loads_state_and_notifies) {
     FakeStorageManager* fptr = fake.get();
     fptr->nextLatestPath = "db_with_actor";
 
-    AppStateController ctrl(std::move(fake));
+    core::controllers::AppStateController ctrl(std::move(fake));
 
     std::atomic<bool> notified{false};
     ctrl.setStateChangedCallback([&](const AppState& s){
@@ -95,7 +95,7 @@ TEST(AppStateControllerTests, NewFile_creates_empty_state_and_notifies) {
     auto fake = std::make_unique<FakeStorageManager>();
     FakeStorageManager* fptr = fake.get();
 
-    AppStateController ctrl(std::move(fake));
+    core::controllers::AppStateController ctrl(std::move(fake));
 
     std::atomic<bool> notified{false};
     ctrl.setStateChangedCallback([&](const AppState& s){
@@ -112,7 +112,7 @@ TEST(AppStateControllerTests, SaveFile_delegates_to_storage) {
     auto fake = std::make_unique<FakeStorageManager>();
     FakeStorageManager* fptr = fake.get();
 
-    AppStateController ctrl(std::move(fake));
+    core::controllers::AppStateController ctrl(std::move(fake));
 
     auto a = std::make_shared<Actor>();
     a->id = "x";

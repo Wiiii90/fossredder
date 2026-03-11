@@ -18,7 +18,7 @@ ExportResult ExportRunner::run(std::shared_ptr<const AppState> state,
   if (!execute_) {
     ui::observability::reportFlow(
         core::errors::ErrorSeverity::Warning,
-        core::errors::codes::UiFlowExportFailed,
+        ui::observability::codes::FlowExportFailed,
         ui::observability::origins::service::exportRunner::kRun,
         ui::text::exportRunner::kRunnerUnavailable);
     return {
@@ -30,7 +30,7 @@ ExportResult ExportRunner::run(std::shared_ptr<const AppState> state,
   if (!state) {
     ui::observability::reportFlow(
         core::errors::ErrorSeverity::Warning,
-        core::errors::codes::UiFlowExportFailed,
+        ui::observability::codes::FlowExportFailed,
         ui::observability::origins::service::exportRunner::kRun,
         ui::text::exportRunner::kStateSnapshotUnavailable);
     return {

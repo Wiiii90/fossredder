@@ -19,7 +19,6 @@ const QVector<int>& transactionRoles()
         TransactionList::DescriptionRole,
         TransactionList::StatusRole,
         TransactionList::ActorIdRole,
-        TransactionList::ActorProposalRole,
         TransactionList::MetadataRole,
         TransactionList::ProofImagePathRole,
         TransactionList::TypeRole,
@@ -76,9 +75,8 @@ void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& tr
     map[payload::keys::common::kDescription] = QString::fromStdString(transaction.description);
     map[payload::keys::common::kStatus] = static_cast<int>(transaction.status);
     map[payload::keys::transaction::kActorId] = QString::fromStdString(transaction.actorId);
-    map[payload::keys::transaction::kActorProposal] = QString::fromStdString(transaction.actorProposal);
-    map[payload::keys::common::kMetadata] = QString::fromStdString(transaction.metadata);
-    map[payload::keys::transaction::kProofImagePath] = QString::fromStdString(transaction.proofImagePath);
+    map[payload::keys::common::kMetadata] = QString();
+    map[payload::keys::transaction::kProofImagePath] = QString();
     map[payload::keys::common::kType] = contractTypeForTransaction(transaction);
     map[payload::keys::transaction::kAllocatable] = transaction.allocatable;
     map[payload::keys::transaction::kPropertyIds] = toPropertyIdList(transaction.propertyIds);
@@ -103,9 +101,8 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case DescriptionRole: return QString::fromStdString(t.description);
     case StatusRole: return static_cast<int>(t.status);
     case ActorIdRole: return QString::fromStdString(t.actorId);
-    case ActorProposalRole: return QString::fromStdString(t.actorProposal);
-    case MetadataRole: return QString::fromStdString(t.metadata);
-    case ProofImagePathRole: return QString::fromStdString(t.proofImagePath);
+    case MetadataRole: return QString();
+    case ProofImagePathRole: return QString();
     case TypeRole: return contractTypeForTransaction(t);
     case AllocatableRole: return t.allocatable;
     case PropertyIdsRole: return toPropertyIdList(t.propertyIds);
@@ -125,7 +122,6 @@ QHash<int, QByteArray> TransactionList::roleNames() const
     roles[DescriptionRole] = payload::keys::common::kDescription.toUtf8();
     roles[StatusRole] = payload::keys::common::kStatus.toUtf8();
     roles[ActorIdRole] = payload::keys::transaction::kActorId.toUtf8();
-    roles[ActorProposalRole] = payload::keys::transaction::kActorProposal.toUtf8();
     roles[MetadataRole] = payload::keys::common::kMetadata.toUtf8();
     roles[ProofImagePathRole] = payload::keys::transaction::kProofImagePath.toUtf8();
     roles[TypeRole] = payload::keys::common::kType.toUtf8();

@@ -8,6 +8,9 @@ add_library(core_lib STATIC ${CORE_SRCS})
 target_include_directories(core_lib PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
+)
+
+target_include_directories(core_lib PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/debug/include>
 )
 
@@ -16,7 +19,7 @@ if(TARGET api)
 endif()
 
 if(TARGET debug_lib)
-    target_link_libraries(core_lib PUBLIC debug_lib)
+    target_link_libraries(core_lib PRIVATE debug_lib)
 endif()
 
 target_compile_features(core_lib PUBLIC cxx_std_20)
@@ -25,10 +28,10 @@ target_compile_features(core_lib PUBLIC cxx_std_20)
 find_package(xlnt CONFIG QUIET)
 if(TARGET xlnt::xlnt)
     message(STATUS "xlnt found; linking to core_lib")
-    target_link_libraries(core_lib PUBLIC xlnt::xlnt)
+    target_link_libraries(core_lib PRIVATE xlnt::xlnt)
 elseif(TARGET xlnt)
     message(STATUS "xlnt target found; linking to core_lib")
-    target_link_libraries(core_lib PUBLIC xlnt)
+    target_link_libraries(core_lib PRIVATE xlnt)
 else()
     message(WARNING "xlnt library not found; XLSX export may fail to link")
 endif()

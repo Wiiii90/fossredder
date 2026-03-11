@@ -9,7 +9,7 @@
 
 namespace ui {
 
-DraftController::DraftController(AppStateController *core, QObject *parent)
+DraftController::DraftController(core::controllers::AppStateController *core, QObject *parent)
     : QObject(parent), core_(core) {}
 
 QString DraftController::finalizeStatementDraft(StatementDraft *draft) {

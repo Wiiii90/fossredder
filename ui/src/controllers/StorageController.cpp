@@ -37,7 +37,7 @@ void StorageController::finishOperation(bool success,
   emit operationSucceeded(operation);
 }
 
-StorageController::StorageController(AppStateController *core, QObject *parent)
+StorageController::StorageController(core::controllers::AppStateController *core, QObject *parent)
     : QObject(parent), core_(core) {}
 
 QString StorageController::currentPath() const {

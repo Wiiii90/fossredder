@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+namespace core::domain {
+
 struct DraftTransaction {
     std::string name;
     std::string bookingDate;
@@ -19,3 +21,8 @@ struct DraftStatement {
     std::string name;
     std::vector<DraftTransaction> transactions;
 };
+
+}
+
+using DraftTransaction = core::domain::DraftTransaction;
+using DraftStatement = core::domain::DraftStatement;

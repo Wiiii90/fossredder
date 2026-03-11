@@ -1,10 +1,13 @@
+/**
+ * @file core/include/core/models/Statement.h
+ * @brief Domain model for statements.
+ */
+
 #pragma once
 
 #include <string>
-#include <vector>
-#include <memory>
 
-class Transaction;
+namespace core::domain {
 
 class Statement {
 public:
@@ -12,7 +15,8 @@ public:
 
     std::string id;
     std::string name;
-
-    // Associated transactions (shared pointers into global transaction store)
-    std::vector<std::shared_ptr<Transaction>> transactions;
 };
+
+}
+
+using Statement = core::domain::Statement;

@@ -2,10 +2,10 @@
 
 #include <QVariantMap>
 
-class Analysis;
+#include "core/models/AnalysisResult.h"
 
 namespace ui::analysis {
 
-QVariantMap toPayload(const Analysis& result);
+QVariantMap toPayload(const AnalysisResult& result);
 
 }

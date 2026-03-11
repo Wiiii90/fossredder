@@ -13,7 +13,7 @@ class StorageController : public QObject {
     Q_PROPERTY(QString lastError READ lastError NOTIFY errorChanged)
 
 public:
-    explicit StorageController(AppStateController* core, QObject* parent = nullptr);
+    explicit StorageController(core::controllers::AppStateController* core, QObject* parent = nullptr);
 
     QString currentPath() const;
     QString lastError() const { return lastError_; }
@@ -31,7 +31,7 @@ signals:
     void operationSucceeded(const QString& operation);
 
 private:
-    AppStateController* core_ = nullptr;
+    core::controllers::AppStateController* core_ = nullptr;
     QString lastError_;
     void setLastError(const QString& error);
     bool runCoreOperation(const char* context, const std::function<void()>& action);

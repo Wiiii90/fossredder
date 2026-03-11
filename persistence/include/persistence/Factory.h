@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include "core/storage/RepositoryBundle.h"
+
 class SqliteDb;
 
 std::shared_ptr<SqliteDb> createSqliteDb(const std::string& dbPath);
@@ -15,3 +17,5 @@ std::shared_ptr<class ITransactionRepository> createSqliteTransactionRepository(
 std::shared_ptr<class IContractRepository> createSqliteContractRepository(const std::shared_ptr<SqliteDb>& db);
 std::shared_ptr<class IAnalysisRepository> createSqliteAnalysisRepository(const std::shared_ptr<SqliteDb>& db);
 std::shared_ptr<class IAnnualRepository> createSqliteAnnualRepository(const std::shared_ptr<SqliteDb>& db);
+
+core::storage::RepositoryBundle createSqliteRepositoryBundle(const std::shared_ptr<SqliteDb>& db);

@@ -5,8 +5,8 @@
 
 #include "gtest/gtest.h"
 
-#include "core/managers/StorageManager.h"
-#include "core/managers/IStorageManager.h"
+#include "core/storage/StorageManager.h"
+#include "core/storage/IStorageManager.h"
 #include "core/models/AppState.h"
 
 #include <filesystem>
@@ -21,7 +21,7 @@ TEST(StorageManagerTests, SetAndLoadLatestPathRegistry) {
     auto dir = tmp / std::filesystem::path("fossredder_test_storage");
     std::filesystem::create_directories(dir);
 
-    StorageManager sm(dir.string());
+    core::storage::StorageManager sm(dir.string());
 
     // initially no latest path
     auto maybe = sm.loadLatestPath();

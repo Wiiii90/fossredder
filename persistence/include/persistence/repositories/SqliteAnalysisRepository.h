@@ -14,13 +14,13 @@ public:
     explicit SqliteAnalysisRepository(std::shared_ptr<SqliteDb> db);
     ~SqliteAnalysisRepository() override;
 
-    void addAnalysis(const std::shared_ptr<Analysis>& analysis) override;
-    std::vector<std::shared_ptr<Analysis>> getAnalyses() const override;
-    std::optional<std::shared_ptr<Analysis>> getAnalysisById(const std::string& id) const override;
+    void addAnalysis(const std::shared_ptr<core::domain::Analysis>& analysis) override;
+    std::vector<std::shared_ptr<core::domain::Analysis>> getAnalyses() const override;
+    std::optional<std::shared_ptr<core::domain::Analysis>> getAnalysisById(const std::string& id) const override;
     void removeAnalysis(const std::string& id) override;
-    void updateAnalysis(const std::shared_ptr<Analysis>& analysis) override;
+    void updateAnalysis(const std::shared_ptr<core::domain::Analysis>& analysis) override;
 
-    void upsertAnalysis(const std::shared_ptr<Analysis>& analysis) override;
+    void upsertAnalysis(const std::shared_ptr<core::domain::Analysis>& analysis) override;
     void clearAnalyses() override;
 
     sqlite3* sqliteHandle() const noexcept override;

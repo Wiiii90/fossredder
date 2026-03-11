@@ -192,7 +192,8 @@ void ImportState::recordFailed(const QString& now, const QString& errorMessage)
 }
 
 bool ImportState::populateDraft(const QString& now,
-                                const std::shared_ptr<Statement>& statement,
+                                const std::shared_ptr<core::domain::Statement>& statement,
+                                const std::vector<ImportedTransaction>& transactions,
                                 const std::map<std::string, std::vector<uint8_t>>& artifacts,
                                 QObject* parent)
 {
@@ -206,7 +207,7 @@ bool ImportState::populateDraft(const QString& now,
                               : QByteArray(reinterpret_cast<const char*>(value.data()), static_cast<int>(value.size())));
     }
 
-    draft_ = createStatementDraft(currentImportFile_, statement, parent);
+    draft_ = createStatementDraft(currentImportFile_, statement, transactions, parent);
     phase_ = QCoreApplication::translate(ui::text::contexts::kImportState, ui::text::importPhases::kFinished);
     progress_ = ui::config::importProgress::kMaximum;
     isRunning_ = false;

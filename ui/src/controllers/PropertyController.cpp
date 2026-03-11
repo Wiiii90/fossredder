@@ -6,7 +6,7 @@
 
 namespace ui {
 
-PropertyController::PropertyController(AppStateController *core,
+PropertyController::PropertyController(core::controllers::AppStateController *core,
                                        QObject *parent)
     : QObject(parent), core_(core) {}
 

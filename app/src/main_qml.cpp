@@ -15,11 +15,9 @@
 #include "api/poppler/IPopplerService.h"
 #include "api/tesseract/ITesseractAdapter.h"
 #include "api/tesseract/ITesseractService.h"
-#include "core/analysis/AnalysisEngine.h"
+#include "core/application/AnalysisService.h"
 #include "core/controllers/CsvController.h"
 #include "core/controllers/ExportController.h"
-#include "core/controllers/ImportController.h"
-#include "core/controllers/StatementController.h"
 #include "core/controllers/XlsxController.h"
 #include "core/errors/DebuggerErrorReporter.h"
 #include "core/errors/ErrorCodes.h"
@@ -30,6 +28,7 @@
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
 #include "debug/FileDebugger.h"
+#include "ui/observability/ErrorCodes.h"
 #include "ui/bootstrap/QmlContracts.h"
 #include "ui/controllers/ActorController.h"
 #include "ui/controllers/AnalysisController.h"
@@ -97,7 +96,7 @@ toCoreExportFormat(ui::controllers::contracts::ExportFormat format) {
   default:
     ui::observability::reportFlow(
         core::errors::ErrorSeverity::Warning,
-        core::errors::codes::UiFlowExportFallback,
+        ui::observability::codes::FlowExportFallback,
         ui::observability::origins::app::kToCoreExportFormat,
         "Unknown export format, fallback to CSV",
         {{ui::observability::context::kFormat,
@@ -140,11 +139,12 @@ struct UiControllers {
   ui::ExportController *exportCtrl = nullptr;
   ui::ImportController *import = nullptr;
   ui::LanguageController *language = nullptr;
-  std::unique_ptr<AnalysisEngine> analysisEngine;
+  std::unique_ptr<core::application::AnalysisService> analysisService;
 };
 
 UiControllers setupUiControllers(
-    QApplication &app, MainWindow &w, AppStateController &appStateCtrl,
+    QApplication &app, MainWindow &w,
+    core::controllers::AppStateController &appStateCtrl,
     const std::shared_ptr<core::errors::IErrorReporter> &errorReporter) {
   UiControllers ui;
 
@@ -156,7 +156,7 @@ UiControllers setupUiControllers(
     return ui::exporting::createSnapshot(appStateCtrl.state());
   };
 
-  ui.analysisEngine = std::make_unique<AnalysisEngine>();
+  ui.analysisService = std::make_unique<core::application::AnalysisService>();
   ui.annual = new ui::AnnualController(&appStateCtrl, &w);
   ui.actor = new ui::ActorController(&appStateCtrl, &w);
   ui.property = new ui::PropertyController(&appStateCtrl, &w);
@@ -165,7 +165,7 @@ UiControllers setupUiControllers(
   ui.transaction = new ui::TransactionController(&appStateCtrl, &w);
   ui.draft = new ui::DraftController(&appStateCtrl, &w);
   ui.analysisController = new ui::AnalysisController(
-      &appStateCtrl, stateSnapshotProvider, ui.analysisEngine.get(), &w);
+      &appStateCtrl, stateSnapshotProvider, ui.analysisService.get(), &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kAnnualController,
                           ui.annual);
   w.setQmlContextProperty(ui::qml::contracts::context::kActorController,
@@ -204,9 +204,7 @@ UiControllers setupUiControllers(
   auto tesseract = api::tesseract::createTesseractService(tesseractAdapter);
 
   auto importSvc = createImportStatement(poppler, opencv, tesseract, dbg);
-  auto stmtCtrl = std::make_shared<::StatementController>(importSvc);
-  auto importCtrl = std::make_shared<::ImportController>(stmtCtrl);
-  auto jobSystem = std::make_shared<core::jobs::JobSystem>(importCtrl);
+  auto jobSystem = std::make_shared<core::jobs::JobSystem>(importSvc);
 
   ui.import = new ui::ImportController(jobSystem, &w);
   ui.import->setErrorReporter(errorReporter);
@@ -220,7 +218,7 @@ UiControllers setupUiControllers(
 }
 
 void wireAppStateToSession(
-    MainWindow &w, AppStateController &appStateCtrl,
+    MainWindow &w, core::controllers::AppStateController &appStateCtrl,
     const std::shared_ptr<core::errors::IErrorReporter> &errorReporter) {
   if (w.dataSession()) {
     w.dataSession()->loadFromState(appStateCtrl.state());
@@ -274,7 +272,7 @@ void wireQmlWarnings(
         for (const auto &warning : warnings) {
           core::errors::ErrorEvent event;
           event.severity = core::errors::ErrorSeverity::Warning;
-          event.code = core::errors::codes::QmlWarning;
+          event.code = ui::observability::codes::QmlWarning;
           event.origin = ui::observability::origins::app::kQmlWarnings;
           event.message = warning.description().toStdString();
           event.context = {{ui::observability::context::kUrl,
@@ -297,7 +295,7 @@ void wireQmlWarnings(
  * application state.
  * @return Return value from `QApplication::exec()`.
  */
-int startQmlApp(QApplication &app, AppStateController &appStateCtrl) {
+int startQmlApp(QApplication &app, core::controllers::AppStateController &appStateCtrl) {
   MainWindow w;
 
   auto errorReporter = core::errors::globalErrorReporter();

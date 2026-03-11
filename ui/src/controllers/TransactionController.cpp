@@ -6,7 +6,24 @@
 
 namespace ui {
 
-TransactionController::TransactionController(AppStateController *core,
+namespace {
+
+Transaction::Status toTransactionStatus(int status)
+{
+    switch (static_cast<Transaction::Status>(status)) {
+    case Transaction::Status::Neutral:
+    case Transaction::Status::Unverified:
+    case Transaction::Status::Verified:
+    case Transaction::Status::Completed:
+        return static_cast<Transaction::Status>(status);
+    }
+
+    return Transaction::Status::Neutral;
+}
+
+}
+
+TransactionController::TransactionController(core::controllers::AppStateController *core,
                                              QObject *parent)
     : QObject(parent), core_(core) {}
 
@@ -19,7 +36,7 @@ QString TransactionController::addTransaction(
         return QString::fromStdString(core_->addTransaction(
             strings::toStdString(name), strings::toStdString(bookingDate),
             amount, strings::toStdString(description),
-            strings::toStdString(statementId), status,
+            strings::toStdString(statementId), toTransactionStatus(status),
             strings::toStdString(actorId), allocatable,
             strings::toStdList(propertyIds)));
       });
@@ -36,7 +53,8 @@ void TransactionController::updateTransaction(
                                  strings::toStdString(name),
                                  strings::toStdString(bookingDate), amount,
                                  strings::toStdString(description),
-                                 strings::toStdString(statementId), status,
+                                 strings::toStdString(statementId),
+                                 toTransactionStatus(status),
                                  strings::toStdString(actorId), allocatable,
                                  strings::toStdList(propertyIds));
       });

@@ -6,7 +6,7 @@
 
 namespace ui {
 
-AnnualController::AnnualController(AppStateController *core, QObject *parent)
+AnnualController::AnnualController(core::controllers::AppStateController *core, QObject *parent)
     : QObject(parent), core_(core) {}
 
 QString AnnualController::addAnnual(int year) {

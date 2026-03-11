@@ -117,8 +117,6 @@ std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransa
         const unsigned char* contractTxt = sqlite3_column_text(stmt, 8);
         const unsigned char* statementTxt = sqlite3_column_text(stmt, 9);
 
-        const unsigned char* meta = sqlite3_column_text(stmt, 11);
-        const unsigned char* proof = sqlite3_column_text(stmt, 12);
         int alloc = sqlite3_column_int(stmt, 13);
 
         auto tx = std::make_shared<Transaction>(
@@ -126,8 +124,6 @@ std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransa
             bdate ? reinterpret_cast<const char*>(bdate) : std::string(),
             valuta ? reinterpret_cast<const char*>(valuta) : std::string(),
             amount,
-            nullptr,
-            nullptr,
             desc ? reinterpret_cast<const char*>(desc) : std::string(),
             alloc != 0
         );
@@ -136,10 +132,6 @@ std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransa
         if (actorTxt) tx->actorId = reinterpret_cast<const char*>(actorTxt);
         if (contractTxt) tx->contractId = reinterpret_cast<const char*>(contractTxt);
         if (statementTxt) tx->statementId = reinterpret_cast<const char*>(statementTxt);
-
-        tx->metadata = meta ? reinterpret_cast<const char*>(meta) : std::string();
-        tx->proofImagePath = proof ? reinterpret_cast<const char*>(proof) : std::string();
-
         out.push_back(std::move(tx));
     }
     sqlite3_finalize(stmt);
@@ -247,8 +239,8 @@ void SqliteTransactionRepository::addTransaction(const std::shared_ptr<Transacti
     if (!transaction->contractId.empty()) sqlite3_bind_text(stmt, 9, transaction->contractId.c_str(), -1, SQLITE_TRANSIENT); else sqlite3_bind_null(stmt, 9);
     if (!transaction->statementId.empty()) sqlite3_bind_text(stmt, 10, transaction->statementId.c_str(), -1, SQLITE_TRANSIENT); else sqlite3_bind_null(stmt, 10);
 
-    sqlite3_bind_text(stmt, 11, transaction->metadata.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 12, transaction->proofImagePath.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_null(stmt, 11);
+    sqlite3_bind_null(stmt, 12);
     sqlite3_bind_int(stmt, 13, transaction->allocatable ? 1 : 0);
 
     if (sqlite3_step(stmt) == SQLITE_DONE) {
@@ -290,8 +282,6 @@ std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransa
         const unsigned char* contractTxt = sqlite3_column_text(stmt, 8);
         const unsigned char* statementTxt = sqlite3_column_text(stmt, 9);
 
-        const unsigned char* meta = sqlite3_column_text(stmt, 11);
-        const unsigned char* proof = sqlite3_column_text(stmt, 12);
         int alloc = sqlite3_column_int(stmt, 13);
 
         auto tx = std::make_shared<Transaction>(
@@ -299,8 +289,6 @@ std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransa
             bdate ? reinterpret_cast<const char*>(bdate) : std::string(),
             valuta ? reinterpret_cast<const char*>(valuta) : std::string(),
             amount,
-            nullptr,
-            nullptr,
             desc ? reinterpret_cast<const char*>(desc) : std::string(),
             alloc != 0
         );
@@ -309,10 +297,6 @@ std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransa
         if (actorTxt) tx->actorId = reinterpret_cast<const char*>(actorTxt);
         if (contractTxt) tx->contractId = reinterpret_cast<const char*>(contractTxt);
         if (statementTxt) tx->statementId = reinterpret_cast<const char*>(statementTxt);
-
-        tx->metadata = meta ? reinterpret_cast<const char*>(meta) : std::string();
-        tx->proofImagePath = proof ? reinterpret_cast<const char*>(proof) : std::string();
-
         out.push_back(std::move(tx));
     }
     sqlite3_finalize(stmt);
@@ -353,8 +337,6 @@ std::optional<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTran
     const unsigned char* contractTxt = sqlite3_column_text(stmt, 8);
     const unsigned char* statementTxt = sqlite3_column_text(stmt, 9);
 
-    const unsigned char* meta = sqlite3_column_text(stmt, 11);
-    const unsigned char* proof = sqlite3_column_text(stmt, 12);
     int alloc = sqlite3_column_int(stmt, 13);
 
     auto tx = std::make_shared<Transaction>(
@@ -362,8 +344,6 @@ std::optional<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTran
         bdate ? reinterpret_cast<const char*>(bdate) : std::string(),
         valuta ? reinterpret_cast<const char*>(valuta) : std::string(),
         amount,
-        nullptr,
-        nullptr,
         desc ? reinterpret_cast<const char*>(desc) : std::string(),
         alloc != 0
     );
@@ -372,10 +352,6 @@ std::optional<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTran
     if (actorTxt) tx->actorId = reinterpret_cast<const char*>(actorTxt);
     if (contractTxt) tx->contractId = reinterpret_cast<const char*>(contractTxt);
     if (statementTxt) tx->statementId = reinterpret_cast<const char*>(statementTxt);
-
-    tx->metadata = meta ? reinterpret_cast<const char*>(meta) : std::string();
-    tx->proofImagePath = proof ? reinterpret_cast<const char*>(proof) : std::string();
-
     sqlite3_finalize(stmt);
     return tx;
 }
@@ -399,8 +375,8 @@ void SqliteTransactionRepository::updateTransaction(const std::shared_ptr<Transa
     if (!transaction->contractId.empty()) sqlite3_bind_text(stmt, 8, transaction->contractId.c_str(), -1, SQLITE_TRANSIENT); else sqlite3_bind_null(stmt, 8);
     if (!transaction->statementId.empty()) sqlite3_bind_text(stmt, 9, transaction->statementId.c_str(), -1, SQLITE_TRANSIENT); else sqlite3_bind_null(stmt, 9);
 
-    sqlite3_bind_text(stmt, 10, transaction->metadata.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 11, transaction->proofImagePath.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_null(stmt, 10);
+    sqlite3_bind_null(stmt, 11);
     sqlite3_bind_int(stmt, 12, transaction->allocatable ? 1 : 0);
 
     sqlite3_bind_text(stmt, 13, transaction->id.c_str(), -1, SQLITE_TRANSIENT);
