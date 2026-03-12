@@ -18,7 +18,7 @@ class SessionMutationState {
 public:
     using TransactionSumsNotifier = std::function<void(const QString& propertyId)>;
 
-    static void applyDeletionImpact(const DeletionImpact& impact,
+    static void applyDeletionImpact(const core::domain::DeletionImpact& impact,
                                     SessionModels& models,
                                     FilterState& filters,
                                     MetricsState& metrics,

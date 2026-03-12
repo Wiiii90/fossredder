@@ -1,15 +1,14 @@
 #include "persistence/repositories/SqliteActorRepository.h"
-#include <sqlite3.h>
-#include <stdexcept>
-#include "persistence/Uuid.h"
+#include "persistence/StmtGuard.h"
 #include "core/models/Actor.h"
 #include "persistence/SqliteDb.h"
+#include <sqlite3.h>
+#include <stdexcept>
 
 struct SqliteActorRepository::Impl { std::shared_ptr<SqliteDb> db; };
 
 SqliteActorRepository::SqliteActorRepository(const std::string& dbPath)
-    : SqliteActorRepository(std::make_shared<SqliteDb>(dbPath)) {
-}
+    : SqliteActorRepository(std::make_shared<SqliteDb>(dbPath)) {}
 
 SqliteActorRepository::SqliteActorRepository(std::shared_ptr<SqliteDb> db)
     : pimpl_(std::make_unique<Impl>()) {
@@ -20,105 +19,63 @@ SqliteActorRepository::SqliteActorRepository(std::shared_ptr<SqliteDb> db)
 SqliteActorRepository::~SqliteActorRepository() = default;
 
 void SqliteActorRepository::addActor(const std::shared_ptr<Actor>& actor) {
-    if (!actor) return;
-    if (actor->id.empty()) actor->id = persistence::generateUuid();
-
-    const char* sql = "INSERT INTO actors (id, name, type, description) VALUES (?, ?, ?, ?);";
-    sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
-
-    sqlite3_bind_text(stmt, 1, actor->id.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, actor->name.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 3, actor->type.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 4, actor->description.c_str(), -1, SQLITE_TRANSIENT);
-
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
+    if (!actor || actor->id.empty()) return;
+    persistence::StmtGuard stmt(pimpl_->db->handle(),
+        "INSERT OR IGNORE INTO actors (id, name, type, description) VALUES (?, ?, ?, ?);");
+    if (!stmt) return;
+    stmt.bindText(1, actor->id);  stmt.bindText(2, actor->name);
+    stmt.bindText(3, actor->type); stmt.bindText(4, actor->description);
+    stmt.step();
 }
 
 std::vector<std::shared_ptr<Actor>> SqliteActorRepository::getActors() const {
     std::vector<std::shared_ptr<Actor>> out;
-    const char* sql = "SELECT id, name, type, description FROM actors ORDER BY id;";
-    sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return out;
-
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        const unsigned char* idtxt = sqlite3_column_text(stmt, 0);
-        const unsigned char* name = sqlite3_column_text(stmt, 1);
-        const unsigned char* type = sqlite3_column_text(stmt, 2);
-        const unsigned char* desc = sqlite3_column_text(stmt, 3);
-
+    persistence::StmtGuard stmt(pimpl_->db->handle(),
+        "SELECT id, name, type, description FROM actors ORDER BY id;");
+    if (!stmt) return out;
+    while (stmt.step() == SQLITE_ROW) {
         auto a = std::make_shared<Actor>();
-        a->id = idtxt ? reinterpret_cast<const char*>(idtxt) : std::string();
-        a->name = name ? reinterpret_cast<const char*>(name) : std::string();
-        a->type = type ? reinterpret_cast<const char*>(type) : std::string();
-        a->description = desc ? reinterpret_cast<const char*>(desc) : std::string();
+        a->id = stmt.columnText(0); a->name = stmt.columnText(1);
+        a->type = stmt.columnText(2); a->description = stmt.columnText(3);
         out.push_back(std::move(a));
     }
-
-    sqlite3_finalize(stmt);
     return out;
 }
 
 std::optional<std::shared_ptr<Actor>> SqliteActorRepository::getActorById(const std::string& id) const {
     if (id.empty()) return std::nullopt;
-
-    const char* sql = "SELECT id, name, type, description FROM actors WHERE id = ?;";
-    sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return std::nullopt;
-
-    sqlite3_bind_text(stmt, 1, id.c_str(), -1, SQLITE_TRANSIENT);
-    if (sqlite3_step(stmt) != SQLITE_ROW) { sqlite3_finalize(stmt); return std::nullopt; }
-
-    const unsigned char* idtxt = sqlite3_column_text(stmt, 0);
-    const unsigned char* name = sqlite3_column_text(stmt, 1);
-    const unsigned char* type = sqlite3_column_text(stmt, 2);
-    const unsigned char* desc = sqlite3_column_text(stmt, 3);
-
+    persistence::StmtGuard stmt(pimpl_->db->handle(),
+        "SELECT id, name, type, description FROM actors WHERE id = ?;");
+    if (!stmt) return std::nullopt;
+    stmt.bindText(1, id);
+    if (stmt.step() != SQLITE_ROW) return std::nullopt;
     auto a = std::make_shared<Actor>();
-    a->id = idtxt ? reinterpret_cast<const char*>(idtxt) : std::string();
-    a->name = name ? reinterpret_cast<const char*>(name) : std::string();
-    a->type = type ? reinterpret_cast<const char*>(type) : std::string();
-    a->description = desc ? reinterpret_cast<const char*>(desc) : std::string();
-
-    sqlite3_finalize(stmt);
+    a->id = stmt.columnText(0); a->name = stmt.columnText(1);
+    a->type = stmt.columnText(2); a->description = stmt.columnText(3);
     return a;
 }
 
 void SqliteActorRepository::removeActor(const std::string& id) {
     if (id.empty()) return;
-
-    const char* sql = "DELETE FROM actors WHERE id = ?;";
-    sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
-    sqlite3_bind_text(stmt, 1, id.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
+    persistence::StmtGuard stmt(pimpl_->db->handle(), "DELETE FROM actors WHERE id = ?;");
+    if (!stmt) return;
+    stmt.bindText(1, id); stmt.step();
 }
 
 void SqliteActorRepository::updateActor(const std::shared_ptr<Actor>& actor) {
-    if (!actor) return;
-    if (actor->id.empty()) return;
-
-    const char* sql = "UPDATE actors SET name = ?, type = ?, description = ? WHERE id = ?;";
-    sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
-    sqlite3_bind_text(stmt, 1, actor->name.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, actor->type.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 3, actor->description.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 4, actor->id.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
+    if (!actor || actor->id.empty()) return;
+    persistence::StmtGuard stmt(pimpl_->db->handle(),
+        "UPDATE actors SET name = ?, type = ?, description = ? WHERE id = ?;");
+    if (!stmt) return;
+    stmt.bindText(1, actor->name); stmt.bindText(2, actor->type);
+    stmt.bindText(3, actor->description); stmt.bindText(4, actor->id);
+    stmt.step();
 }
 
 void SqliteActorRepository::upsertActor(const std::shared_ptr<Actor>& actor) {
-    if (!actor) return;
-    if (actor->id.empty()) { addActor(actor); return; }
+    if (!actor || actor->id.empty()) return;
     updateActor(actor);
-    if (pimpl_ && pimpl_->db && sqlite3_changes(pimpl_->db->handle()) == 0) {
-        // nothing updated -> try insert
-        addActor(actor);
-    }
+    if (sqlite3_changes(pimpl_->db->handle()) == 0) addActor(actor);
 }
 
 void SqliteActorRepository::clearActors() {

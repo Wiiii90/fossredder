@@ -29,5 +29,3 @@ public:
 
 }
 
-using AnalysisTransaction = core::domain::AnalysisTransaction;
-using AnalysisResult = core::domain::AnalysisResult;

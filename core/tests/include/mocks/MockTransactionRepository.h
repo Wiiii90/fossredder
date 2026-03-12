@@ -3,6 +3,8 @@
 #include "core/repositories/ITransactionRepository.h"
 #include <gmock/gmock.h>
 
+using core::domain::Transaction;
+
 class MockTransactionRepository : public ITransactionRepository {
 public:
     MOCK_METHOD(void, addTransaction, (const std::shared_ptr<Transaction>&), (override));
@@ -12,4 +14,6 @@ public:
     MOCK_METHOD(void, updateTransaction, (const std::shared_ptr<Transaction>&), (override));
     MOCK_METHOD(void, upsertTransaction, (const std::shared_ptr<Transaction>&), (override));
     MOCK_METHOD(void, clearTransactions, (), (override));
+    MOCK_METHOD(std::vector<std::shared_ptr<Transaction>>, getTransactionsForContract, (const std::string&), (const, override));
+    MOCK_METHOD(void, assignTransactionsToContract, (const std::string&, const std::vector<std::string>&), (override));
 };

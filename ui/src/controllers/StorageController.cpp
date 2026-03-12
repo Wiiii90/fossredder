@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/controllers/StorageController.cpp
+ * @brief Implements UI-facing storage operations and error propagation.
+ */
+
 #include "ui/controllers/StorageController.h"
 
 #include "ui/controllers/ControllerContracts.h"
@@ -37,7 +42,8 @@ void StorageController::finishOperation(bool success,
   emit operationSucceeded(operation);
 }
 
-StorageController::StorageController(core::controllers::AppStateController *core, QObject *parent)
+StorageController::StorageController(core::controllers::AppStateController *core,
+                                     QObject *parent)
     : QObject(parent), core_(core) {}
 
 QString StorageController::currentPath() const {
@@ -50,7 +56,7 @@ void StorageController::newFile(const QString &path) {
   const bool success =
       runCoreOperation(observability::origins::controller::storage::kNewFile,
                        [&]() { core_->newFile(strings::toEncodedPath(path)); });
-  finishOperation(success, tr(ui::text::controllerErrors::kStorageCreateFailed),
+  finishOperation(success, ui::text::controllerErrors::storageCreateFailed(),
                   controllers::contracts::operations::kNewFile);
 }
 
@@ -58,7 +64,7 @@ void StorageController::openFile(const QString &path) {
   const bool success = runCoreOperation(
       observability::origins::controller::storage::kOpenFile,
       [&]() { core_->openFile(strings::toEncodedPath(path)); });
-  finishOperation(success, tr(ui::text::controllerErrors::kStorageOpenFailed),
+  finishOperation(success, ui::text::controllerErrors::storageOpenFailed(),
                   controllers::contracts::operations::kOpenFile);
 }
 
@@ -66,7 +72,7 @@ void StorageController::saveFile() {
   const bool success =
       runCoreOperation(observability::origins::controller::storage::kSaveFile,
                        [&]() { core_->saveFile(); });
-  finishOperation(success, tr(ui::text::controllerErrors::kStorageSaveFailed),
+  finishOperation(success, ui::text::controllerErrors::storageSaveFailed(),
                   controllers::contracts::operations::kSaveFile);
 }
 
@@ -74,7 +80,7 @@ void StorageController::saveFileAs(const QString &path) {
   const bool success = runCoreOperation(
       observability::origins::controller::storage::kSaveFileAs,
       [&]() { core_->saveFileAs(strings::toEncodedPath(path)); });
-  finishOperation(success, tr(ui::text::controllerErrors::kStorageSaveAsFailed),
+  finishOperation(success, ui::text::controllerErrors::storageSaveAsFailed(),
                   controllers::contracts::operations::kSaveFileAs);
 }
 

@@ -9,6 +9,9 @@
 
 # Build directories
 .build/
+build/
+out/
+cmake-build-*/
 vcpkg_installed/
 
 # Compiled artifacts
@@ -39,8 +42,5 @@ third_party/
 # Project-local misc
 LOCAL_APPDATA_FONTCONFIG_CACHE/
 docs/todo.txt
-
-# Repository-local exclusions
-.github/
 
 debug_output/

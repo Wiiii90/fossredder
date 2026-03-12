@@ -1,6 +1,10 @@
+/**
+ * @file ui/src/analysis/AnalysisPayloadMapper.cpp
+ * @brief Maps core analysis results into QVariant payloads for the UI layer.
+ */
+
 #include "ui/analysis/AnalysisPayloadMapper.h"
 
-#include <QCoreApplication>
 #include <QVariantList>
 
 #include "core/models/AnalysisResult.h"
@@ -11,6 +15,7 @@ namespace ui::analysis {
 
 namespace {
 
+/** @brief Converts scalar analysis metrics into a QVariant map. */
 QVariantMap toMetricsMap(const AnalysisResult& result)
 {
     QVariantMap metrics;
@@ -20,6 +25,7 @@ QVariantMap toMetricsMap(const AnalysisResult& result)
     return metrics;
 }
 
+/** @brief Converts table-style analysis rows into QML-friendly lists. */
 QVariantList toTableList(const AnalysisResult& result)
 {
     QVariantList table;
@@ -33,6 +39,7 @@ QVariantList toTableList(const AnalysisResult& result)
     return table;
 }
 
+/** @brief Converts artifact names into a QML-friendly list. */
 QVariantList toArtifactList(const AnalysisResult& result)
 {
     QVariantList artifacts;
@@ -42,6 +49,7 @@ QVariantList toArtifactList(const AnalysisResult& result)
     return artifacts;
 }
 
+/** @brief Converts analysis transactions into a structured QVariant list. */
 QVariantList toTransactionList(const AnalysisResult& result)
 {
     QVariantList transactions;
@@ -53,7 +61,7 @@ QVariantList toTransactionList(const AnalysisResult& result)
         item[ui::payload::keys::common::kAmount] = transaction.amount;
         item[ui::payload::keys::transaction::kContractId] = QString::fromStdString(transaction.contractId);
         item[ui::payload::keys::transaction::kContractType] = transaction.contractType.empty()
-            ? QCoreApplication::translate(ui::text::contexts::kAnalysisPayloadMapper, ui::text::analysis::kUnassignedContractType)
+            ? ui::text::analysis::unassignedContractType()
             : QString::fromStdString(transaction.contractType);
         transactions.push_back(item);
     }
@@ -62,6 +70,7 @@ QVariantList toTransactionList(const AnalysisResult& result)
 
 }
 
+/** @brief Converts a core analysis result into the UI payload contract. */
 QVariantMap toPayload(const AnalysisResult& result)
 {
     QVariantMap payload;

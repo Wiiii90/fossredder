@@ -6,6 +6,6 @@
 
 namespace ui::exporting {
 
-std::shared_ptr<const AppState> createSnapshot(const AppState& state);
+std::shared_ptr<const core::domain::AppState> createSnapshot(const core::domain::AppState& state);
 
 }

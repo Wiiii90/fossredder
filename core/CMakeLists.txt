@@ -18,11 +18,17 @@ if(TARGET api)
     target_link_libraries(core_lib PUBLIC api)
 endif()
 
-if(TARGET debug_lib)
-    target_link_libraries(core_lib PRIVATE debug_lib)
-endif()
-
 target_compile_features(core_lib PUBLIC cxx_std_20)
+
+find_package(SQLite3 QUIET)
+if (SQLite3_FOUND)
+    target_link_libraries(core_lib PRIVATE SQLite::SQLite3)
+else()
+    find_library(SQLITE3_LIBRARY sqlite3)
+    if(SQLITE3_LIBRARY)
+        target_link_libraries(core_lib PRIVATE ${SQLITE3_LIBRARY})
+    endif()
+endif()
 
 # xlnt is used by the Xlsx export implementation (xlnt workbook/cell APIs)
 find_package(xlnt CONFIG QUIET)

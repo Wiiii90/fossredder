@@ -37,7 +37,9 @@
         "VCPKG_INSTALLED_DIR": "${sourceDir}/third_party/vcpkg/installed",
         "VCPKG_TARGET_TRIPLET": "x64-windows",
         "VCPKG_APPLOCAL_DEPS": "ON",
-        "BUILD_CORE_TESTS": "ON"
+        "BUILD_CORE_TESTS": "ON",
+        "BUILD_PERSISTENCE_TESTS": "ON",
+        "BUILD_DEBUG_TESTS": "ON"
       },
       "environment": {
         "QT_DEBUG_PLUGINS": "1"

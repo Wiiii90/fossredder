@@ -6,6 +6,6 @@
 
 namespace ui::analysis {
 
-QVariantMap toPayload(const AnalysisResult& result);
+QVariantMap toPayload(const core::domain::AnalysisResult& result);
 
 }

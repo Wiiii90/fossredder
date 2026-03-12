@@ -1,219 +1,164 @@
+/**
+ * @file core/src/controllers/CsvController.cpp
+ * @brief Implements CSV export for the property/contract-type matrix.
+ */
 #include "core/controllers/CsvController.h"
 
+#include "core/constants/CoreDefaults.h"
 #include "core/errors/ErrorReporterRegistry.h"
+#include "core/models/AppState.h"
+#include "core/models/Contract.h"
+#include "core/models/Property.h"
+#include "core/models/Transaction.h"
+#include "core/utils/Util.h"
 
 #include <fstream>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-#include "core/models/AppState.h"
-#include "core/models/Property.h"
-#include "core/models/Contract.h"
-#include "core/models/Transaction.h"
-#include <algorithm>
-#include <cctype>
+namespace {
 
-namespace core::controllers::exporting {
-
-static std::string escapeCsvField(const std::string& s, char sep) {
-    bool needQuote = false;
-    for (char c : s) {
-        if (c == '"' || c == '\n' || c == '\r' || c == sep) { needQuote = true; break; }
-    }
-    if (!needQuote) return s;
+std::string escapeCsv(const std::string& s, char sep)
+{
+    bool q = false;
+    for (char c : s) if (c == '"' || c == '\n' || c == '\r' || c == sep) { q = true; break; }
+    if (!q) return s;
     std::string out;
     out.push_back('"');
-    for (char c : s) {
-        if (c == '"') out.push_back('"');
-        out.push_back(c);
-    }
+    for (char c : s) { if (c == '"') out.push_back('"'); out.push_back(c); }
     out.push_back('"');
     return out;
 }
 
-ExportOptions::Status CsvController::exportData(ExportOptions& opts) {
-    opts.actualFormat = ExportOptions::Format::Csv;
-    opts.resolvedOutputPath = opts.outputPath;
-    if (opts.outputPath.empty()) {
-        opts.status = ExportOptions::Status::InvalidInput;
-        opts.errorCode = "EXPORT_OUTPUT_PATH_EMPTY";
-        opts.message = "Output path is empty";
-        return opts.status;
-    }
-    if (!opts.stateSnapshot) {
-        opts.status = ExportOptions::Status::InvalidInput;
-        opts.errorCode = "EXPORT_STATE_MISSING";
-        opts.message = "State snapshot is missing";
-        return opts.status;
-    }
-
-    const AppState& state = *opts.stateSnapshot;
-
-    // Build helper maps
-    std::unordered_map<std::string, std::string> propIdToName;
-    propIdToName.reserve(state.properties.size());
-    for (const auto& p : state.properties) {
-        if (!p) continue;
-        propIdToName[p->id] = p->name;
-    }
-
-    std::unordered_map<std::string, std::string> contractIdToType;
-    contractIdToType.reserve(state.contracts.size());
+std::string resolveContractType(const std::string& contractId,
+                                const std::unordered_map<std::string, std::string>& idToType,
+                                const AppState& state)
+{
+    const std::string cid = utils::trim(contractId);
+    if (cid.empty()) return std::string(core::constants::exportFlow::labels::kUnassigned);
+    const auto it = idToType.find(cid);
+    if (it != idToType.end() && !utils::trim(it->second).empty()) return utils::trim(it->second);
     for (const auto& c : state.contracts) {
         if (!c) continue;
-        contractIdToType[c->id] = c->type;
+        if (utils::trim(c->id) == cid && !utils::trim(c->type).empty()) return utils::trim(c->type);
+    }
+    static std::unordered_set<std::string> logged;
+    if (logged.insert(cid).second)
+        core::errors::report({ core::errors::ErrorSeverity::Warning, "CsvController",
+            "missing contractId->type for id='" + cid + "'", {} });
+    return std::string(core::constants::exportFlow::labels::kUnassigned);
+}
+
+} // namespace
+
+namespace core::controllers::exporting {
+
+ExportResult CsvController::exportData(const ExportRequest& request)
+{
+    ExportResult result;
+    result.actualFormat = ExportFormat::Csv;
+    result.resolvedOutputPath = request.outputPath;
+
+    if (request.outputPath.empty()) {
+        result.status    = ExportStatus::InvalidInput;
+        result.errorCode = std::string(core::constants::exportFlow::errors::kOutputPathEmpty);
+        result.message   = std::string(core::constants::exportFlow::messages::kOutputPathEmpty);
+        return result;
+    }
+    if (!request.stateSnapshot) {
+        result.status    = ExportStatus::InvalidInput;
+        result.errorCode = std::string(core::constants::exportFlow::errors::kStateMissing);
+        result.message   = std::string(core::constants::exportFlow::messages::kStateMissing);
+        return result;
     }
 
-    // Derive contract types from dataRows (stable order of first appearance)
+    const AppState& state = *request.stateSnapshot;
+
+    std::unordered_map<std::string, std::string> propIdToName;
+    for (const auto& p : state.properties) if (p) propIdToName[p->id] = p->name;
+
+    std::unordered_map<std::string, std::string> contractIdToType;
+    for (const auto& c : state.contracts) if (c) contractIdToType[c->id] = c->type;
+
+    struct Row { std::string prop; std::string type; double amount; };
+    std::vector<Row> rows;
+    rows.reserve(256);
+
+    for (const auto& t : state.transactions) {
+        if (!t || t->propertyIds.empty()) continue;
+        const std::string ct = resolveContractType(t->contractId, contractIdToType, state);
+        for (const auto& pid : t->propertyIds) {
+            const auto it = propIdToName.find(pid);
+            rows.push_back({ it != propIdToName.end() ? it->second : pid, ct, t->amount });
+        }
+    }
+
+    std::unordered_map<std::string, std::unordered_map<std::string, double>> matrix;
+    for (const auto& r : rows) matrix[r.prop][r.type] += r.amount;
+
     std::vector<std::string> contractTypes;
     std::unordered_set<std::string> seenTypes;
+    for (const auto& r : rows) if (seenTypes.insert(r.type).second) contractTypes.push_back(r.type);
 
-    // Build Data rows: vector of tuples (propName, contractType, amount)
-    struct DataRow { std::string prop; std::string type; double amount; };
-    std::vector<DataRow> dataRows;
-    dataRows.reserve(256);
-    auto trim = [](std::string s)->std::string {
-        s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch){ return !std::isspace(ch); }));
-        s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch){ return !std::isspace(ch); }).base(), s.end());
-        return s;
-    };
-
-    auto findContractType = [&](const std::string& cid_in)->std::string {
-        const std::string cid = trim(cid_in);
-        if (cid.empty()) return std::string("(Unassigned)");
-        auto it = contractIdToType.find(cid);
-        if (it != contractIdToType.end() && !trim(it->second).empty()) return trim(it->second);
-        // fallback: search contracts vector (in case map wasn't populated or ids differ in whitespace)
-        for (const auto& c : state.contracts) {
-            if (!c) continue;
-            if (trim(c->id) == cid && !trim(c->type).empty()) return trim(c->type);
-        }
-        // diagnostic: print missing id once
-        static std::unordered_set<std::string> missingLogged;
-        if (missingLogged.insert(cid).second) {
-            core::errors::report({
-                core::errors::ErrorSeverity::Warning,
-                "core::CsvController::exportData",
-                std::string("missing contractId->type mapping for id='") + cid + "'",
-                {}
-            });
-        }
-        return std::string("(Unassigned)");
-    };
-
-    for (const auto& tptr : state.transactions) {
-        if (!tptr) continue;
-        // resolve contract type, but only include transactions that are assigned to at least one property
-        if (tptr->propertyIds.empty()) continue; // skip transactions without property
-        const std::string contractType = findContractType(tptr->contractId);
-        for (const auto& pid : tptr->propertyIds) {
-            const std::string propName = propIdToName.count(pid) ? propIdToName[pid] : pid;
-            dataRows.push_back({ propName, contractType, tptr->amount });
-        }
-    }
-
-    // Precompute matrix sums: map prop -> map type -> sum
-    std::unordered_map<std::string, std::unordered_map<std::string, double>> matrix;
-    for (const auto& r : dataRows) {
-        matrix[r.prop][r.type] += r.amount;
-    }
-
-    // Build contractTypes in stable order based on dataRows
-    for (const auto& r : dataRows) {
-        if (seenTypes.insert(r.type).second) contractTypes.push_back(r.type);
-    }
-
-    // Diagnostic logging to help understand why types may be empty
-    {
-        core::errors::report({
-            core::errors::ErrorSeverity::Info,
-            "core::CsvController::exportData",
-            std::string("dataRows=") + std::to_string(dataRows.size()) + " contractTypes=" + std::to_string(contractTypes.size()),
-            {}
-        });
-    }
-
-    // Build unique property list: include properties from state in defined order only if they have data,
-    // then append any additional property names found in the matrix.
-    std::vector<std::string> propertyList;
+    std::vector<std::string> propList;
     std::unordered_set<std::string> seenProps;
     for (const auto& p : state.properties) {
-        if (!p) continue;
-        if (matrix.find(p->name) != matrix.end()) {
-            if (seenProps.insert(p->name).second) propertyList.push_back(p->name);
-        }
+        if (!p || !matrix.count(p->name)) continue;
+        if (seenProps.insert(p->name).second) propList.push_back(p->name);
     }
-    for (const auto& kv : matrix) {
-        if (seenProps.insert(kv.first).second) propertyList.push_back(kv.first);
-    }
+    for (const auto& kv : matrix) if (seenProps.insert(kv.first).second) propList.push_back(kv.first);
 
-    // Determine decimal separator based on locale (simple heuristic)
-    char decimalSep = '.';
-    if (!opts.locale.empty()) {
-        if (opts.locale.rfind("de", 0) == 0) decimalSep = ','; // German-like
-    }
+    char decSep = '.';
+    if (!request.locale.empty() && request.locale.rfind("de", 0) == 0) decSep = ',';
+    constexpr char sep = ';';
 
-    const char sep = ';';
-
-    std::ofstream out(opts.outputPath, std::ios::binary);
+    std::ofstream out(request.outputPath, std::ios::binary);
     if (!out) {
-        opts.status = ExportOptions::Status::WriteFailed;
-        opts.errorCode = "EXPORT_FILE_OPEN_FAILED";
-        opts.message = "Failed to open export output file";
-        return opts.status;
+        result.status    = ExportStatus::WriteFailed;
+        result.errorCode = std::string(core::constants::exportFlow::errors::kFileOpenFailed);
+        result.message   = std::string(core::constants::exportFlow::messages::kFileOpenFailed);
+        return result;
     }
-    // BOM
+
     const unsigned char bom[] = { 0xEF, 0xBB, 0xBF };
     out.write(reinterpret_cast<const char*>(bom), sizeof(bom));
 
-    auto formatNumber = [&](double v)->std::string {
-        std::ostringstream ss;
-        ss.setf(std::ios::fixed);
-        ss << std::setprecision(2) << v;
+    auto fmt = [&](double v) {
+        std::ostringstream ss; ss << std::fixed << std::setprecision(2) << v;
         std::string s = ss.str();
-        if (decimalSep != '.') {
-            for (auto& ch : s) if (ch == '.') ch = decimalSep;
-        }
+        if (decSep != '.') for (auto& c : s) if (c == '.') c = decSep;
         return s;
     };
 
-    // Write only the Matrix (header + aggregated rows). No separate Data block or extra title.
-    // header
-    out << "Gebäude";
-    for (const auto& ct : contractTypes) out << sep << escapeCsvField(ct.empty() ? std::string("(Unassigned)") : ct, sep);
-    out << sep << "Summe" << "\n";
+    out << std::string(core::constants::exportFlow::labels::kPropertyHeader);
+    for (const auto& ct : contractTypes) out << sep << escapeCsv(ct, sep);
+    out << sep << std::string(core::constants::exportFlow::labels::kTotal) << "\n";
 
-    for (const auto& pname : propertyList) {
-        out << escapeCsvField(pname, sep);
+    for (const auto& pname : propList) {
+        out << escapeCsv(pname, sep);
         double rowSum = 0.0;
-        auto pit = matrix.find(pname);
+        const auto pit = matrix.find(pname);
         for (const auto& ct : contractTypes) {
             double v = 0.0;
-            if (pit != matrix.end()) {
-                auto tit = pit->second.find(ct.empty() ? std::string("(Unassigned)") : ct);
-                if (tit != pit->second.end()) v = tit->second;
-            }
-            out << sep << formatNumber(v);
-            rowSum += v;
+            if (pit != matrix.end()) { const auto tit = pit->second.find(ct); if (tit != pit->second.end()) v = tit->second; }
+            out << sep << fmt(v); rowSum += v;
         }
-        out << sep << formatNumber(rowSum) << "\n";
+        out << sep << fmt(rowSum) << "\n";
     }
 
     out.close();
     if (!out) {
-        opts.status = ExportOptions::Status::WriteFailed;
-        opts.errorCode = "EXPORT_FILE_WRITE_FAILED";
-        opts.message = "Failed while writing export output file";
-        return opts.status;
+        result.status    = ExportStatus::WriteFailed;
+        result.errorCode = std::string(core::constants::exportFlow::errors::kFileWriteFailed);
+        result.message   = std::string(core::constants::exportFlow::messages::kFileWriteFailed);
+        return result;
     }
 
-    opts.status = ExportOptions::Status::Ok;
-    opts.errorCode.clear();
-    opts.message.clear();
-    return opts.status;
+    result.status = ExportStatus::Ok;
+    return result;
 }
 
 } // namespace core::controllers::exporting

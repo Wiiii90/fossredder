@@ -1,4 +1,12 @@
-﻿#include "core/utils/Environment.h"
+﻿/**
+ * @file app/src/main.cpp
+ * @brief Initializes the desktop application and shared runtime infrastructure.
+ */
+
+#include "core/utils/Environment.h"
+#include "core/models/AppState.h"
+
+using core::domain::AppState;
 #include <QApplication>
 #include <QMessageBox>
 #include <QObject>
@@ -6,18 +14,32 @@
 
 #include "persistence/Factory.h"
 #include "persistence/AppStateStore.h"
+#include "core/constants/CoreDefaults.h"
 #include "core/repositories/IConfigRepository.h"
 #include "core/storage/StorageManager.h"
 #include "core/controllers/AppStateController.h"
-#include "core/errors/DebuggerErrorReporter.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
-#include "debug/FileDebugger.h"
+#include "debug/ErrorReporter.h"
+#include "ui/config/Defaults.h"
 #include "ui/observability/ErrorCodes.h"
 
 #include <QDir>
 #include <filesystem>
 #include <cstdio>
+
+namespace {
+
+void ensureParentDirectoryExists(const std::filesystem::path& path, const char* origin)
+{
+    try {
+        if (path.has_parent_path()) std::filesystem::create_directories(path.parent_path());
+    } catch (...) {
+        core::errors::reportException(core::errors::ErrorSeverity::Warning, origin, std::current_exception());
+    }
+}
+
+}
 
 /**
  * @brief Global Qt message handler that redirects Qt logging to stderr with context.
@@ -69,60 +91,49 @@ int main(int argc, char* argv[]) {
 
     // Ensure Qt Quick Controls uses a non-native style that supports customization
     // Call before creating the QApplication/QGuiApplication
-    QQuickStyle::setStyle("Fusion");
+    QQuickStyle::setStyle(core::constants::runtime::kQtStyle.data());
 
     // Create the Qt application (manages event loop and GUI resources)
     QApplication app(argc, argv);
-    app.setStyle("Fusion");
+    app.setStyle(core::constants::runtime::kQtStyle.data());
+    app.setOrganizationName(ui::config::kSettingsOrganizationName);
+    app.setApplicationName(ui::config::kSettingsApplicationName);
 
     // Setup storage manager and controller (manages application state files)
-    const std::string appDataRoot = QDir::homePath().toStdString() + std::string("/.fossredder");
-    core::storage::StorageManager sm(appDataRoot);
+    const std::filesystem::path appDataRoot = std::filesystem::path(QDir::homePath().toStdString())
+        / std::string(core::constants::runtime::kAppDataDirectoryName);
+    core::storage::StorageManager sm(appDataRoot.string());
     auto smPtr = std::make_unique<core::storage::StorageManager>(std::move(sm));
     core::controllers::AppStateController appStateCtrl(std::move(smPtr));
 
-    auto errorReporter = std::make_shared<core::errors::DebuggerErrorReporter>(
-        std::make_shared<FileDebugger>("", "errors"));
+    auto errorReporter = debug::createDefaultErrorReporter();
     core::errors::setGlobalErrorReporter(errorReporter);
     appStateCtrl.setErrorReporter(errorReporter);
 
     // Initialize configuration repository (uses persistence factory)
     // Use a per-user path so the installed app does not attempt to write into Program Files.
-    std::string cfgDbPath = (std::filesystem::path(appDataRoot) / "fossredder.db").string();
-
-    // ensure parent directory exists
-    try {
-        std::filesystem::path p(cfgDbPath);
-        if (p.has_parent_path()) std::filesystem::create_directories(p.parent_path());
-    } catch (const std::exception& ex) {
-        core::errors::reportException(core::errors::ErrorSeverity::Warning, "app::main::createConfigDirectory", std::current_exception());
-    }
+    const std::filesystem::path cfgDbPath = appDataRoot / std::string(core::constants::runtime::kDatabaseFileName);
+    ensureParentDirectoryExists(cfgDbPath, "app::main::createConfigDirectory");
 
     std::shared_ptr<IConfigRepository> cfgRepo;
     try {
-        auto cfgDb = createSqliteDb(cfgDbPath);
+        auto cfgDb = createSqliteDb(cfgDbPath.string());
         cfgRepo = createSqliteConfigRepository(cfgDb);
     } catch (const std::exception& ex) {
         core::errors::report(
             core::errors::ErrorSeverity::Warning,
             core::errors::codes::ConfigDbOpenFailed,
             "app::main::openConfigDb",
-            std::string("failed to open config DB '") + cfgDbPath + "': " + ex.what(),
-            {{"path", cfgDbPath}}
+            std::string("failed to open config DB '") + cfgDbPath.string() + "': " + ex.what(),
+            {{"path", cfgDbPath.string()}}
         );
         cfgRepo = nullptr;
     }
 
     appStateCtrl.setRepoFactory([&](const std::string& dbPath) {
-        // ensure directory exists for requested dbPath
-        try {
-            std::filesystem::path p(dbPath);
-            if (p.has_parent_path()) std::filesystem::create_directories(p.parent_path());
-        } catch (...) {
-            core::errors::reportException(core::errors::ErrorSeverity::Warning, "app::main::setRepoFactory::create_directories", std::current_exception());
-        }
+        ensureParentDirectoryExists(std::filesystem::path(dbPath), "app::main::setRepoFactory::create_directories");
         auto db = createSqliteDb(dbPath);
-        return createSqliteRepositoryBundle(db);
+        return createSqliteRepositoryBundle(db, errorReporter);
     });
 
     appStateCtrl.setAtomicStoreLoad([](const std::string& dbPath) {
@@ -147,13 +158,8 @@ int main(int argc, char* argv[]) {
     // Only create a new file if no path was found AND the loaded state is empty.
     // This avoids accidentally overwriting a valid loaded state due to
     // registry or ordering issues at startup.
-    if (appStateCtrl.currentPath().empty()
-        && appStateCtrl.state().actors.empty()
-        && appStateCtrl.state().properties.empty()
-        && appStateCtrl.state().contracts.empty()
-        && appStateCtrl.state().statements.empty()
-        && appStateCtrl.state().transactions.empty()) {
-        appStateCtrl.newFile((std::filesystem::path(appDataRoot) / "fossredder.db").string());
+    if (appStateCtrl.currentPath().empty() && appStateCtrl.state().empty()) {
+        appStateCtrl.newFile((appDataRoot / std::string(core::constants::runtime::kDatabaseFileName)).string());
     }
 
     // Ensure Qt finds deployed plugins and QML modules next to the executable

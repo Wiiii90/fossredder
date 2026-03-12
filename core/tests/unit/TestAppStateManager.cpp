@@ -6,11 +6,13 @@
 #include "gtest/gtest.h"
 
 #include "core/application/AppStateManager.h"
+#include "core/models/AppState.h"
 #include "core/repositories/IActorRepository.h"
 #include "core/repositories/IPropertyRepository.h"
 #include "core/repositories/IContractRepository.h"
 #include "core/repositories/IStatementRepository.h"
 #include "core/repositories/ITransactionRepository.h"
+#include "core/storage/RepositoryBundle.h"
 
 #include "core/models/Actor.h"
 #include "core/models/Property.h"
@@ -18,10 +20,19 @@
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 #include <string>
 #include <stdexcept>
+
+using core::application::AppStateManager;
+using core::domain::Actor;
+using core::domain::AppState;
+using core::domain::Contract;
+using core::domain::Property;
+using core::domain::Statement;
+using core::domain::Transaction;
 
 // Minimal fake repository implementations for testing
 class FakeActorRepository : public IActorRepository {
@@ -61,6 +72,7 @@ class FakeContractRepository : public IContractRepository {
 public:
     std::vector<std::shared_ptr<Contract>> contracts;
     bool upsertCalled = false;
+    std::shared_ptr<Contract> lastUpserted;
     void addContract(const std::shared_ptr<Contract>& contract) override { contracts.push_back(contract); }
     std::vector<std::shared_ptr<Contract>> getContracts() const override { return contracts; }
     std::optional<std::shared_ptr<Contract>> getContractById(const std::string& id) const override {
@@ -69,8 +81,36 @@ public:
     }
     void removeContract(const std::string&) override {}
     void updateContract(const std::shared_ptr<Contract>&) override {}
-    void upsertContract(const std::shared_ptr<Contract>& contract) override { upsertCalled = true; (void)contract; }
+    void upsertContract(const std::shared_ptr<Contract>& contract) override { upsertCalled = true; lastUpserted = contract; }
     void clearContracts() override { contracts.clear(); }
+    std::vector<std::shared_ptr<Contract>> getContractsForActor(const std::string& actorId) const override {
+        std::vector<std::shared_ptr<Contract>> out;
+        for (const auto& contract : contracts) {
+            if (!contract) continue;
+            if (std::find(contract->actorIds.begin(), contract->actorIds.end(), actorId) != contract->actorIds.end()) {
+                out.push_back(contract);
+            }
+        }
+        return out;
+    }
+    std::vector<std::shared_ptr<Contract>> getContractsForProperty(const std::string& propertyId) const override {
+        std::vector<std::shared_ptr<Contract>> out;
+        for (const auto& contract : contracts) {
+            if (!contract) continue;
+            if (std::find(contract->propertyIds.begin(), contract->propertyIds.end(), propertyId) != contract->propertyIds.end()) {
+                out.push_back(contract);
+            }
+        }
+        return out;
+    }
+    std::vector<std::string> getActorIdsForContract(const std::string& contractId) const override {
+        const auto contract = getContractById(contractId);
+        return contract && *contract ? (*contract)->actorIds : std::vector<std::string>{};
+    }
+    std::vector<std::string> getPropertyIdsForContract(const std::string& contractId) const override {
+        const auto contract = getContractById(contractId);
+        return contract && *contract ? (*contract)->propertyIds : std::vector<std::string>{};
+    }
 };
 
 class FakeStatementRepository : public IStatementRepository {
@@ -103,6 +143,21 @@ public:
     void updateTransaction(const std::shared_ptr<Transaction>&) override {}
     void upsertTransaction(const std::shared_ptr<Transaction>& transaction) override { upsertCalled = true; (void)transaction; }
     void clearTransactions() override { transactions.clear(); }
+    std::vector<std::shared_ptr<Transaction>> getTransactionsForContract(const std::string& contractId) const override {
+        std::vector<std::shared_ptr<Transaction>> out;
+        for (const auto& transaction : transactions) {
+            if (transaction && transaction->contractId == contractId) out.push_back(transaction);
+        }
+        return out;
+    }
+    void assignTransactionsToContract(const std::string& contractId, const std::vector<std::string>& transactionIds) override {
+        for (const auto& transaction : transactions) {
+            if (!transaction) continue;
+            if (std::find(transactionIds.begin(), transactionIds.end(), transaction->id) != transactionIds.end()) {
+                transaction->contractId = contractId;
+            }
+        }
+    }
 };
 
 TEST(AppStateManagerTests, LoadRehydratesRelationships) {
@@ -121,7 +176,8 @@ TEST(AppStateManagerTests, LoadRehydratesRelationships) {
 
     // contract references by id
     auto contract = std::make_shared<Contract>(); contract->id = "C1"; contract->name = "Cname";
-    contract->actorIds.push_back("A1"); contract->propertyIds.push_back("P1");
+    contract->actorIds = {"A1", "A1"};
+    contract->propertyIds = {"P1", "P1"};
     contractRepo->contracts.push_back(contract);
 
     repos.actors = actorRepo;
@@ -140,10 +196,8 @@ TEST(AppStateManagerTests, LoadRehydratesRelationships) {
     // After rehydrate, contract should keep the authoritative relation ids
     auto cptr = s.contracts.front();
     ASSERT_TRUE(cptr);
-    EXPECT_FALSE(cptr->actorIds.empty());
-    EXPECT_FALSE(cptr->propertyIds.empty());
-    EXPECT_EQ(cptr->actorIds.front(), std::string("A1"));
-    EXPECT_EQ(cptr->propertyIds.front(), std::string("P1"));
+    EXPECT_EQ(cptr->actorIds, (std::vector<std::string>{"A1"}));
+    EXPECT_EQ(cptr->propertyIds, (std::vector<std::string>{"P1"}));
 }
 
 TEST(AppStateManagerTests, SaveSyncsIdsAndCallsRepos) {
@@ -204,4 +258,45 @@ TEST(AppStateManagerTests, ValidateThrowsOnInvalidContractWhenStrict) {
     state.contracts.push_back(c);
 
     EXPECT_THROW(mgr.save(state), std::runtime_error);
+}
+
+TEST(AppStateManagerTests, LoadThrowsOnUnresolvedTransactionReferenceWhenStrict) {
+    AppStateManager::Repositories repos;
+    auto txRepo = std::make_shared<FakeTransactionRepository>();
+    repos.transactions = txRepo;
+
+    auto tx = std::make_shared<Transaction>();
+    tx->id = "T1";
+    tx->name = "Rent";
+    tx->actorId = "missing-actor";
+    txRepo->transactions.push_back(tx);
+
+    AppStateManager mgr(repos);
+    mgr.setStrictValidation(true);
+
+    EXPECT_THROW(mgr.load(), std::runtime_error);
+}
+
+TEST(AppStateManagerTests, SaveProjectsContractRelationsWithoutMutatingOriginalState) {
+    AppStateManager::Repositories repos;
+    auto contractRepo = std::make_shared<FakeContractRepository>();
+    repos.contracts = contractRepo;
+
+    AppStateManager mgr(repos);
+
+    AppState state;
+    auto contract = std::make_shared<Contract>();
+    contract->id = "C3";
+    contract->name = "Lease";
+    contract->actorIds = {"A2", "A1", "A1"};
+    contract->propertyIds = {"P2", "P1", "P1"};
+    state.contracts.push_back(contract);
+
+    mgr.save(state);
+
+    ASSERT_TRUE(contractRepo->lastUpserted);
+    EXPECT_EQ(contractRepo->lastUpserted->actorIds, (std::vector<std::string>{"A1", "A2"}));
+    EXPECT_EQ(contractRepo->lastUpserted->propertyIds, (std::vector<std::string>{"P1", "P2"}));
+    EXPECT_EQ(state.contracts.front()->actorIds, (std::vector<std::string>{"A2", "A1", "A1"}));
+    EXPECT_EQ(state.contracts.front()->propertyIds, (std::vector<std::string>{"P2", "P1", "P1"}));
 }

@@ -5,9 +5,9 @@
 
 namespace ui {
 
-class AnnualList : public models::IndexedListModel<Annual> {
+class AnnualList : public models::IndexedListModel<core::domain::Annual> {
     Q_OBJECT
-    using Base = models::IndexedListModel<Annual>;
+    using Base = models::IndexedListModel<core::domain::Annual>;
 public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
@@ -20,8 +20,8 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void setAnnuals(std::vector<std::shared_ptr<Annual>> annuals) { setItems(std::move(annuals)); }
-    const std::vector<std::shared_ptr<Annual>>& annuals() const { return items(); }
+    void setAnnuals(std::vector<std::shared_ptr<core::domain::Annual>> annuals) { setItems(std::move(annuals)); }
+    const std::vector<std::shared_ptr<core::domain::Annual>>& annuals() const { return items(); }
     int findRowById(const QString& id) const { return findIndexedRow(id); }
 
     Q_INVOKABLE void removeAt(int row) { removeItemAt(row); }

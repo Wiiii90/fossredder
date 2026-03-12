@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/config/Defaults.h
+ * @brief Defines shared UI runtime constants, resource names and settings keys.
+ */
+
 #pragma once
 
 #include <QString>
@@ -15,6 +20,8 @@ inline const auto kImageFormatsDirName = QStringLiteral("imageformats");
 inline const auto kTranslationsDirName = QStringLiteral("i18n");
 inline const auto kTranslationResourcePrefix = QStringLiteral(":/i18n/");
 inline const auto kTranslationBaseName = QStringLiteral("fossredder");
+inline const auto kSettingsOrganizationName = QStringLiteral("FOSSRedder");
+inline const auto kSettingsApplicationName = QStringLiteral("FOSSRedder");
 inline constexpr auto kLanguageEnglishCode = "en";
 inline constexpr auto kLanguageGermanCode = "de";
 inline constexpr auto kLanguageSettingsKey = "general/language";

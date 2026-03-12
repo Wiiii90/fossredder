@@ -27,6 +27,3 @@ struct Config {
 };
 
 }
-
-using Language = core::domain::Language;
-using Config = core::domain::Config;

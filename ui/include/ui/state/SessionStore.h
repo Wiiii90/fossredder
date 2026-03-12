@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/SessionStore.h
+ * @brief Declares the UI session store that owns models, filters and derived metrics.
+ */
+
 #pragma once
 
 #include <QObject>
@@ -13,26 +18,37 @@
 
 namespace ui {
 
+/**
+ * @brief Owns the UI-facing session models and derived lookup/filter state.
+ */
 class SessionStore : public QObject {
     Q_OBJECT
 
 public:
+    /** @brief Creates the session store and connects derived-state recomputation. */
     explicit SessionStore(QObject* parent = nullptr);
 
     SessionModels& models() noexcept { return models_; }
     const SessionModels& models() const noexcept { return models_; }
 
-    void loadFromState(const AppState& state);
+    /** @brief Replaces all UI model data from a domain application state snapshot. */
+    void loadFromState(const core::domain::AppState& state);
+    /** @brief Returns a live filter over transactions for a statement. */
     TransactionFilter* statementTransactions(const QString& statementId, QObject* parent);
+    /** @brief Returns a live filter over transactions for a property. */
     TransactionFilter* propertyTransactions(const QString& propertyId, QObject* parent);
+    /** @brief Returns the currently observed contract types for a property. */
     QStringList propertyContractTypes(const QString& propertyId) const;
+    /** @brief Returns cached transaction sums for a property and optional contract type. */
     QVariantMap propertyTransactionSums(const QString& propertyId, const QString& contractType = QString()) const;
+    /** @brief Resolves a property id to the cached display name. */
     QString propertyName(const QString& id) const;
-    void applyDeletionImpact(const DeletionImpact& impact);
+    /** @brief Applies domain deletion effects to session models and derived caches. */
+    void applyDeletionImpact(const core::domain::DeletionImpact& impact);
+    /** @brief Applies an immediate property reassignment for a single transaction. */
     void setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds);
 
 signals:
-    void selectionRefreshRequested();
     void transactionSumsUpdated(const QString& propertyId);
 
 private:

@@ -1,196 +1,153 @@
+/**
+ * @file core/src/controllers/XlsxController.cpp
+ * @brief Implements XLSX export for the property/contract-type matrix.
+ */
 #include "core/controllers/XlsxController.h"
 
+#include "core/constants/CoreDefaults.h"
 #include "core/errors/ErrorReporterRegistry.h"
+#include "core/models/AppState.h"
+#include "core/models/Contract.h"
+#include "core/models/Property.h"
+#include "core/models/Transaction.h"
+#include "core/utils/Util.h"
 
-#include <xlnt/xlnt.hpp>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-#include "core/models/AppState.h"
-#include "core/models/Property.h"
-#include "core/models/Contract.h"
-#include "core/models/Transaction.h"
+#include <xlnt/xlnt.hpp>
+
+namespace {
+
+constexpr auto kWorksheetTitle = "Export";
+
+std::string resolveContractType(const std::string& contractId,
+                                const std::unordered_map<std::string, std::string>& idToType,
+                                const AppState& state)
+{
+    const std::string cid = utils::trim(contractId);
+    if (cid.empty()) return std::string(core::constants::exportFlow::labels::kUnassigned);
+    const auto it = idToType.find(cid);
+    if (it != idToType.end() && !utils::trim(it->second).empty()) return utils::trim(it->second);
+    for (const auto& c : state.contracts) {
+        if (!c) continue;
+        if (utils::trim(c->id) == cid && !utils::trim(c->type).empty()) return utils::trim(c->type);
+    }
+    return std::string(core::constants::exportFlow::labels::kUnassigned);
+}
+
+} // namespace
 
 namespace core::controllers::exporting {
 
-ExportOptions::Status XlsxController::exportData(ExportOptions& opts) {
+ExportResult XlsxController::exportData(const ExportRequest& request)
+{
+    ExportResult result;
+    result.actualFormat       = ExportFormat::Xlsx;
+    result.resolvedOutputPath = request.outputPath;
+
     try {
-        opts.actualFormat = ExportOptions::Format::Xlsx;
-        opts.resolvedOutputPath = opts.outputPath;
-
-        if (opts.outputPath.empty()) {
-            opts.status = ExportOptions::Status::InvalidInput;
-            opts.errorCode = "EXPORT_OUTPUT_PATH_EMPTY";
-            opts.message = "Output path is empty";
-            return opts.status;
+        if (request.outputPath.empty()) {
+            result.status    = ExportStatus::InvalidInput;
+            result.errorCode = std::string(core::constants::exportFlow::errors::kOutputPathEmpty);
+            result.message   = std::string(core::constants::exportFlow::messages::kOutputPathEmpty);
+            return result;
+        }
+        if (!request.stateSnapshot) {
+            result.status    = ExportStatus::InvalidInput;
+            result.errorCode = std::string(core::constants::exportFlow::errors::kStateMissing);
+            result.message   = std::string(core::constants::exportFlow::messages::kStateMissing);
+            return result;
         }
 
-        xlnt::workbook wb;
+        const AppState& state = *request.stateSnapshot;
 
-        // Validate AppState
-        if (!opts.stateSnapshot) {
-            opts.status = ExportOptions::Status::InvalidInput;
-            opts.errorCode = "EXPORT_STATE_MISSING";
-            opts.message = "State snapshot is missing";
-            return opts.status;
-        }
-        const AppState& state = *opts.stateSnapshot;
-
-        // Collect properties map id->name for lookups
         std::unordered_map<std::string, std::string> propIdToName;
-        propIdToName.reserve(state.properties.size());
-        for (const auto& p : state.properties) {
-            if (!p) continue;
-            propIdToName[p->id] = p->name;
-        }
-
-        // Collect contract id->type map
+        for (const auto& p : state.properties) if (p) propIdToName[p->id] = p->name;
         std::unordered_map<std::string, std::string> contractIdToType;
-        contractIdToType.reserve(state.contracts.size());
-        for (const auto& c : state.contracts) {
-            if (!c) continue;
-            contractIdToType[c->id] = c->type;
+        for (const auto& c : state.contracts) if (c) contractIdToType[c->id] = c->type;
+
+        struct Row { std::string prop; std::string type; double amount; };
+        std::vector<Row> rows;
+        rows.reserve(512);
+
+        for (const auto& t : state.transactions) {
+            if (!t || t->propertyIds.empty()) continue;
+            const std::string ct = resolveContractType(t->contractId, contractIdToType, state);
+            for (const auto& pid : t->propertyIds) {
+                const auto it = propIdToName.find(pid);
+                rows.push_back({ it != propIdToName.end() ? it->second : pid, ct, t->amount });
+            }
         }
 
-        // Matrix sheet: properties vs contract types
-        // Collect distinct contract types in stable order (appearance order of contracts)
+        std::unordered_map<std::string, std::unordered_map<std::string, double>> matrix;
+        for (const auto& r : rows) matrix[r.prop][r.type] += r.amount;
+
         std::vector<std::string> contractTypes;
         std::unordered_set<std::string> seenTypes;
-        for (const auto& c : state.contracts) {
-            if (!c) continue;
-            const std::string& ct = c->type;
-            if (ct.empty()) continue;
-            if (seenTypes.insert(ct).second) contractTypes.push_back(ct);
-        }
+        for (const auto& r : rows) if (seenTypes.insert(r.type).second) contractTypes.push_back(r.type);
 
-        // Also include contractTypes referenced by transactions even if contract not in list
-        for (const auto& tptr : state.transactions) {
-            if (!tptr) continue;
-            if (tptr->contractId.empty()) continue;
-            const auto it = contractIdToType.find(tptr->contractId);
-            if (it == contractIdToType.end()) continue;
-            const std::string& ct = it->second;
-            if (ct.empty()) continue;
-            if (seenTypes.insert(ct).second) contractTypes.push_back(ct);
-        }
-
-        // Build aggregated data rows similar to CSV exporter
-        struct DataRow { std::string prop; std::string type; double amount; };
-        std::vector<DataRow> dataRows;
-        dataRows.reserve(512);
-
-        auto trim = [](std::string s)->std::string {
-            s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch){ return !std::isspace(ch); }));
-            s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch){ return !std::isspace(ch); }).base(), s.end());
-            return s;
-        };
-
-        auto findContractType = [&](const std::string& cid_in)->std::string {
-            const std::string cid = trim(cid_in);
-            if (cid.empty()) return std::string("(Unassigned)");
-            auto it = contractIdToType.find(cid);
-            if (it != contractIdToType.end() && !trim(it->second).empty()) return trim(it->second);
-            for (const auto& c : state.contracts) {
-                if (!c) continue;
-                if (trim(c->id) == cid && !trim(c->type).empty()) return trim(c->type);
-            }
-            return std::string("(Unassigned)");
-        };
-
-        for (const auto& tptr : state.transactions) {
-            if (!tptr) continue;
-            if (tptr->propertyIds.empty()) continue;
-            std::string contractType = findContractType(tptr->contractId);
-            for (const auto& pid : tptr->propertyIds) {
-                const std::string propName = propIdToName.count(pid) ? propIdToName[pid] : pid;
-                dataRows.push_back({ propName, contractType, tptr->amount });
-            }
-        }
-
-        // Precompute matrix sums: prop -> type -> sum
-        std::unordered_map<std::string, std::unordered_map<std::string, double>> matrix;
-        for (const auto& r : dataRows) matrix[r.prop][r.type] += r.amount;
-
-        // Derive contractTypes by first appearance in dataRows
-        std::vector<std::string> contractTypesByData;
-        std::unordered_set<std::string> seenTypesByData;
-        for (const auto& r : dataRows) if (seenTypesByData.insert(r.type).second) contractTypesByData.push_back(r.type);
-
-        // Build unique property list: prefer state.properties order but only include those with data
-        std::vector<std::string> propertyList;
+        std::vector<std::string> propList;
         std::unordered_set<std::string> seenProps;
         for (const auto& p : state.properties) {
-            if (!p) continue;
-            if (matrix.find(p->name) != matrix.end()) { seenProps.insert(p->name); propertyList.push_back(p->name); }
+            if (!p || !matrix.count(p->name)) continue;
+            if (seenProps.insert(p->name).second) propList.push_back(p->name);
         }
-        for (const auto& kv : matrix) if (seenProps.insert(kv.first).second) propertyList.push_back(kv.first);
+        for (const auto& kv : matrix) if (seenProps.insert(kv.first).second) propList.push_back(kv.first);
 
-        // write matrix sheet
-        xlnt::worksheet wsMatrix = wb.active_sheet();
-        wsMatrix.title("Export");
+        xlnt::workbook wb;
+        xlnt::worksheet ws = wb.active_sheet();
+        ws.title(kWorksheetTitle);
 
-        // Transposed layout: header row lists properties, rows represent contract types.
-        // Header: first cell = "Gebäude", then one column per property, then final "Summe" column.
-        wsMatrix.cell(1, 1).value("Gebäude");
-        for (size_t j = 0; j < propertyList.size(); ++j) {
-            wsMatrix.cell(1, static_cast<int>(2 + j)).value(propertyList[j]);
-        }
-        wsMatrix.cell(1, static_cast<int>(2 + propertyList.size())).value("Summe");
+        ws.cell(1, 1).value(std::string(core::constants::exportFlow::labels::kPropertyHeader));
+        for (size_t j = 0; j < propList.size(); ++j)
+            ws.cell(1, static_cast<int>(2 + j)).value(propList[j]);
+        ws.cell(1, static_cast<int>(2 + propList.size())).value(
+            std::string(core::constants::exportFlow::labels::kTotal));
 
-        // Write one row per contract type and accumulate column sums
-        int typeRow = 2;
-        std::vector<double> colSums(propertyList.size(), 0.0);
-        double grandTotal = 0.0;
-        for (size_t i = 0; i < contractTypesByData.size(); ++i) {
-            const auto& ctype = contractTypesByData[i];
-            wsMatrix.cell(typeRow, 1).value(ctype.empty() ? std::string("(Unassigned)") : ctype);
+        int row = 2;
+        std::vector<double> colSums(propList.size(), 0.0);
+        for (const auto& ct : contractTypes) {
+            ws.cell(row, 1).value(ct);
             double rowSum = 0.0;
-            for (size_t j = 0; j < propertyList.size(); ++j) {
+            for (size_t j = 0; j < propList.size(); ++j) {
                 double v = 0.0;
-                const auto pit = matrix.find(propertyList[j]);
-                if (pit != matrix.end()) {
-                    auto tit = pit->second.find(ctype);
-                    if (tit != pit->second.end()) v = tit->second;
-                }
-                wsMatrix.cell(typeRow, static_cast<int>(2 + j)).value(v);
-                rowSum += v;
-                colSums[j] += v;
+                const auto pit = matrix.find(propList[j]);
+                if (pit != matrix.end()) { const auto tit = pit->second.find(ct); if (tit != pit->second.end()) v = tit->second; }
+                ws.cell(row, static_cast<int>(2 + j)).value(v);
+                rowSum += v; colSums[j] += v;
             }
-            wsMatrix.cell(typeRow, static_cast<int>(2 + propertyList.size())).value(rowSum);
-            grandTotal += rowSum;
-            ++typeRow;
+            ws.cell(row, static_cast<int>(2 + propList.size())).value(rowSum);
+            ++row;
+        }
+        if (!propList.empty()) {
+            ws.cell(row, 1).value(std::string(core::constants::exportFlow::labels::kTotal));
+            double grand = 0.0;
+            for (size_t j = 0; j < propList.size(); ++j) {
+                ws.cell(row, static_cast<int>(2 + j)).value(colSums[j]);
+                grand += colSums[j];
+            }
+            ws.cell(row, static_cast<int>(2 + propList.size())).value(grand);
         }
 
-        // Totals row: sums per property and grand total
-        if (!propertyList.empty()) {
-            wsMatrix.cell(typeRow, 1).value("Summe");
-            double totalRow = 0.0;
-            for (size_t j = 0; j < propertyList.size(); ++j) {
-                wsMatrix.cell(typeRow, static_cast<int>(2 + j)).value(colSums[j]);
-                totalRow += colSums[j];
-            }
-            wsMatrix.cell(typeRow, static_cast<int>(2 + propertyList.size())).value(totalRow);
-        }
+        wb.save(request.outputPath);
+        result.status = ExportStatus::Ok;
 
-        wb.save(opts.outputPath);
-        opts.status = ExportOptions::Status::Ok;
-        opts.errorCode.clear();
-        opts.message.clear();
-        return opts.status;
     } catch (const std::exception&) {
-        core::errors::reportException(core::errors::ErrorSeverity::Error, "core::XlsxController::exportData", std::current_exception());
-        opts.status = ExportOptions::Status::XlsxGenerationFailed;
-        opts.errorCode = "EXPORT_XLSX_GENERATION_FAILED";
-        opts.message = "XLSX generation failed";
-        return opts.status;
+        core::errors::reportException(core::errors::ErrorSeverity::Error,
+            "XlsxController::exportData", std::current_exception());
+        result.status    = ExportStatus::XlsxGenerationFailed;
+        result.errorCode = std::string(core::constants::exportFlow::errors::kXlsxGenerationFailed);
+        result.message   = std::string(core::constants::exportFlow::messages::kXlsxGenerationFailed);
     } catch (...) {
-        core::errors::reportException(core::errors::ErrorSeverity::Error, "core::XlsxController::exportDataUnknown", std::current_exception());
-        opts.status = ExportOptions::Status::InternalError;
-        opts.errorCode = "EXPORT_INTERNAL_ERROR";
-        opts.message = "Unexpected error during XLSX export";
-        return opts.status;
+        core::errors::reportException(core::errors::ErrorSeverity::Error,
+            "XlsxController::exportData", std::current_exception());
+        result.status    = ExportStatus::InternalError;
+        result.errorCode = std::string(core::constants::exportFlow::errors::kInternalError);
+        result.message   = std::string(core::constants::exportFlow::messages::kInternalError);
     }
+    return result;
 }
 
 } // namespace core::controllers::exporting

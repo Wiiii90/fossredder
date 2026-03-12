@@ -1,14 +1,71 @@
-#include "core/import/ImportPipelineHelpers.h"
+/**
+ * @file core/src/import/ImportPipelineHelpers.cpp
+ * @brief Implements private helper functions used by the import pipeline.
+ */
+
+#include "ImportPipelineHelpers.h"
+#include "ImportPageRequests.h"
 
 #include "core/constants/CoreDefaults.h"
 #include "core/errors/ErrorReporting.h"
-#include "core/parser/DefaultStatementParser.h"
+#include "parsing/DefaultStatementParser.h"
 #include "core/utils/UniqId.h"
 
 #include <algorithm>
 #include <fstream>
 
 namespace core::importing::detail {
+
+namespace {
+
+constexpr auto kTsvArtifactPrefix = "tesseract/page_";
+constexpr auto kTsvArtifactSuffix = "_crop_0.tsv";
+
+void safeReleaseLimiter(core::jobs::SlotLimiter* ocrLimiter,
+                        core::errors::IErrorReporter* errorReporter,
+                        const char* origin)
+{
+    try {
+        if (ocrLimiter) ocrLimiter->release();
+    } catch (...) {
+        core::errors::reportException(errorReporter, core::errors::ErrorSeverity::Warning, origin, std::current_exception());
+    }
+}
+
+api::tesseract::ExtractResult extractWithLimiter(const std::shared_ptr<api::tesseract::ITesseractService>& tesseract,
+                                                 const api::tesseract::ExtractRequest& request,
+                                                 core::jobs::SlotLimiter* ocrLimiter,
+                                                 double& accumulatedOcrSec)
+{
+    if (ocrLimiter) ocrLimiter->acquire();
+    const auto ocrStart = std::chrono::steady_clock::now();
+    auto result = tesseract->extract(request);
+    accumulatedOcrSec += std::chrono::duration<double>(std::chrono::steady_clock::now() - ocrStart).count();
+    if (ocrLimiter) ocrLimiter->release();
+    return result;
+}
+
+std::string makeTsvArtifactKey(size_t pageIndex)
+{
+    return std::string(kTsvArtifactPrefix) + std::to_string(pageIndex) + kTsvArtifactSuffix;
+}
+
+void storeTsvArtifact(ImportResult& out,
+                      size_t pageIndex,
+                      const api::tesseract::ExtractResult& extractResult,
+                      std::mutex& artifactsMutex,
+                      core::errors::IErrorReporter* errorReporter)
+{
+    try {
+        std::vector<uint8_t> tsvData(extractResult.tsv.begin(), extractResult.tsv.end());
+        std::lock_guard<std::mutex> guard(artifactsMutex);
+        out.artifacts[makeTsvArtifactKey(pageIndex)] = std::move(tsvData);
+    } catch (...) {
+        core::errors::reportException(errorReporter, core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::storeTsvArtifact", std::current_exception());
+    }
+}
+
+}
 
 std::vector<uint8_t> readImportBytes(const std::filesystem::path& path)
 {
@@ -75,49 +132,16 @@ PageWork processImportPage(size_t pageIndex,
         return page;
     }
 
-    api::opencv::MaskRequest maskRequest;
-    maskRequest.imageBytes = pageBytes;
-    maskRequest.uniqIdPrefix = utils::makeUniqId();
-    maskRequest.filePrefix = std::string(core::constants::importing::kOpenCvMaskPrefix) + std::to_string(pageIndex + 1);
-    maskRequest.usePoppler = true;
-    maskRequest.useMorphology = true;
-    maskRequest.useTesseract = false;
-    maskRequest.cancelFlag = req.cancelFlag;
-
-    if (pageIndex < extractRes.pages.size()) {
-        const auto& pageExtract = extractRes.pages[pageIndex];
-        const double scaleX = pageExtract.dpiX / 72.0;
-        const double scaleY = pageExtract.dpiY / 72.0;
-        for (const auto& textElement : pageExtract.textElements) {
-            api::opencv::Rect rect;
-            rect.x = static_cast<int>(std::round(textElement.x * scaleX));
-            rect.y = static_cast<int>(std::round(textElement.y * scaleY));
-            rect.width = static_cast<int>(std::round(textElement.width * scaleX));
-            rect.height = static_cast<int>(std::round(textElement.height * scaleY));
-            if (rect.width <= 1 || rect.height <= 1) continue;
-            maskRequest.textElements.push_back(rect);
-        }
-    }
-
-    if (maskRequest.textElements.empty()) maskRequest.useTesseract = true;
+    auto maskRequest = buildMaskRequest(pageBytes, pageIndex, req, extractRes);
 
     if (maskRequest.useTesseract) {
         try {
-            api::tesseract::ExtractRequest tessRequest;
-            tessRequest.imageBytes = pageBytes;
-            tessRequest.tessdataPath = {};
-            tessRequest.psm = core::constants::importing::kDefaultTesseractPsm;
-            tessRequest.cancelFlag = req.cancelFlag;
-
-            if (ocrLimiter) ocrLimiter->acquire();
-            const auto ocrStart = std::chrono::steady_clock::now();
-            auto tessResponse = tesseract->extract(tessRequest);
-            page.ocrSec += std::chrono::duration<double>(std::chrono::steady_clock::now() - ocrStart).count();
-            if (ocrLimiter) ocrLimiter->release();
+            const auto tessRequest = buildMaskOcrRequest(pageBytes, req);
+            const auto tessResponse = extractWithLimiter(tesseract, tessRequest, ocrLimiter, page.ocrSec);
 
             maskRequest.tesseractTsv = tessResponse.tsv;
         } catch (...) {
-            try { if (ocrLimiter) ocrLimiter->release(); } catch (...) { core::errors::reportException(errorReporter, core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::ocrLimiterReleaseMask", std::current_exception()); }
+            safeReleaseLimiter(ocrLimiter, errorReporter, "core::import::DefaultImportStatementStrategy::ocrLimiterReleaseMask");
             core::errors::reportException(errorReporter, core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::tesseractMaskExtract", std::current_exception());
         }
     }
@@ -126,12 +150,7 @@ PageWork processImportPage(size_t pageIndex,
     std::vector<uint8_t> maskedBytes = !maskResponse.maskedImageBytes.empty() ? maskResponse.maskedImageBytes : pageBytes;
     unitDone(1, std::string(core::constants::importing::pageSteps::kMask));
 
-    api::opencv::DetectRequest detectRequest;
-    detectRequest.imageBytes = maskedBytes;
-    detectRequest.uniqIdPrefix = utils::makeUniqId();
-    detectRequest.filePrefix = std::string(core::constants::importing::kOpenCvDetectPrefix) + std::to_string(pageIndex + 1);
-    detectRequest.kind = api::opencv::DetectRequest::DetectKind::Tables;
-    detectRequest.cancelFlag = req.cancelFlag;
+    const auto detectRequest = buildDetectRequest(maskedBytes, pageIndex, req);
     auto detectResponse = opencv->detect(detectRequest);
     unitDone(1, std::string(core::constants::importing::pageSteps::kDetect));
 
@@ -140,12 +159,7 @@ PageWork processImportPage(size_t pageIndex,
         return page;
     }
 
-    api::opencv::CropRequest cropRequest;
-    cropRequest.imageBytes = pageBytes;
-    cropRequest.uniqIdPrefix = utils::makeUniqId();
-    cropRequest.filePrefix = std::string(core::constants::importing::kOpenCvCropPrefix) + std::to_string(pageIndex + 1);
-    cropRequest.bbox = detectResponse.table.bbox;
-    cropRequest.cancelFlag = req.cancelFlag;
+    const auto cropRequest = buildCropRequest(pageBytes, pageIndex, req, detectResponse);
     auto cropResponse = opencv->crop(cropRequest);
     unitDone(1, std::string(core::constants::importing::pageSteps::kCrop));
 
@@ -154,35 +168,12 @@ PageWork processImportPage(size_t pageIndex,
         return page;
     }
 
-    api::tesseract::ExtractRequest tableRequest;
-    tableRequest.kind = api::tesseract::ExtractRequest::Kind::Table;
-    tableRequest.imageBytes = cropResponse.croppedImageBytes.front();
-    tableRequest.uniqIdPrefix = utils::makeUniqId();
-    tableRequest.filePrefix = std::string(core::constants::importing::kTableTesseractPrefix) + std::to_string(pageIndex + 1);
-    tableRequest.tessdataPath = {};
-    tableRequest.psm = core::constants::importing::kDefaultTableTesseractPsm;
-    tableRequest.cancelFlag = req.cancelFlag;
-
-    tableRequest.cells.reserve(detectResponse.table.cells.size());
-    for (const auto& cell : detectResponse.table.cells) {
-        api::tesseract::Cell mappedCell;
-        mappedCell.row = cell.row;
-        mappedCell.col = cell.col;
-        mappedCell.bbox.x = cell.bbox.x - detectResponse.table.bbox.x;
-        mappedCell.bbox.y = cell.bbox.y - detectResponse.table.bbox.y;
-        mappedCell.bbox.width = cell.bbox.width;
-        mappedCell.bbox.height = cell.bbox.height;
-        tableRequest.cells.push_back(mappedCell);
-    }
+    const auto tableRequest = buildTableOcrRequest(cropResponse.croppedImageBytes.front(), pageIndex, req, detectResponse);
 
     try {
-        if (ocrLimiter) ocrLimiter->acquire();
-        const auto ocrStart = std::chrono::steady_clock::now();
-        page.ocr = tesseract->extract(tableRequest);
-        page.ocrSec += std::chrono::duration<double>(std::chrono::steady_clock::now() - ocrStart).count();
-        if (ocrLimiter) ocrLimiter->release();
+        page.ocr = extractWithLimiter(tesseract, tableRequest, ocrLimiter, page.ocrSec);
     } catch (...) {
-        try { if (ocrLimiter) ocrLimiter->release(); } catch (...) { core::errors::reportException(errorReporter, core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::ocrLimiterReleaseTable", std::current_exception()); }
+        safeReleaseLimiter(ocrLimiter, errorReporter, "core::import::DefaultImportStatementStrategy::ocrLimiterReleaseTable");
         core::errors::reportException(errorReporter, core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::tesseractTableExtract", std::current_exception());
         finishUnits(std::string(core::constants::importing::pageSteps::kOcrFailed));
         return page;
@@ -195,12 +186,7 @@ PageWork processImportPage(size_t pageIndex,
     page.cropBytes = std::move(cropResponse.croppedImageBytes.front());
     page.ocrWords = page.ocr.words.size();
 
-    try {
-        std::string tsvKey = "tesseract/page_" + std::to_string(pageIndex) + "_crop_0.tsv";
-        std::vector<uint8_t> tsvData(page.ocr.tsv.begin(), page.ocr.tsv.end());
-        std::lock_guard<std::mutex> guard(artifactsMutex);
-        out.artifacts[tsvKey] = std::move(tsvData);
-    } catch (...) { core::errors::reportException(errorReporter, core::errors::ErrorSeverity::Warning, "core::import::DefaultImportStatementStrategy::storeTsvArtifact", std::current_exception()); }
+    storeTsvArtifact(out, pageIndex, page.ocr, artifactsMutex, errorReporter);
 
     finishUnits(std::string(core::constants::importing::pageSteps::kDone));
     page.totalSec = std::chrono::duration<double>(std::chrono::steady_clock::now() - pageStart).count();

@@ -3,6 +3,8 @@
 #include "core/repositories/IPropertyRepository.h"
 #include <gmock/gmock.h>
 
+using core::domain::Property;
+
 class MockPropertyRepository : public IPropertyRepository {
 public:
     MOCK_METHOD(void, addProperty, (const std::shared_ptr<Property>&), (override));

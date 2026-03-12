@@ -54,13 +54,12 @@ set_target_properties(fossredder PROPERTIES
 # Rely on target_link_libraries to provide transitive include dirs.
 target_include_directories(fossredder PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    third_party/llama.cpp/include
 )
 
 target_link_libraries(fossredder PRIVATE core_lib debug_lib services_poppler services_opencv services_tesseract ui_lib persistence_lib)
 
-set(TRANSLATION_CATALOG_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/i18n/fossredder_de.catalog.xml
+set(TRANSLATION_TS_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/i18n/fossredder_de.ts
 )
 
 set(TRANSLATION_SOURCE_DIRS
@@ -74,20 +73,17 @@ if(TARGET Qt6::lupdate AND TARGET Qt6::lrelease)
     set(TRANSLATION_QM_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/i18n)
     set(TRANSLATION_QM_FILES)
 
-    foreach(CATALOG_FILE IN LISTS TRANSLATION_CATALOG_FILES)
-        get_filename_component(CATALOG_NAME ${CATALOG_FILE} NAME)
-        string(REGEX REPLACE "\\.catalog\\.xml$" "" CATALOG_BASE ${CATALOG_NAME})
-        set(GENERATED_TS_FILE ${TRANSLATION_QM_OUTPUT_DIR}/${CATALOG_BASE}.ts)
-        set(QM_FILE ${TRANSLATION_QM_OUTPUT_DIR}/${CATALOG_BASE}.qm)
+    foreach(TS_FILE IN LISTS TRANSLATION_TS_FILES)
+        get_filename_component(TS_NAME ${TS_FILE} NAME_WE)
+        set(QM_FILE ${TRANSLATION_QM_OUTPUT_DIR}/${TS_NAME}.qm)
 
         list(APPEND TRANSLATION_QM_FILES ${QM_FILE})
 
         add_custom_command(
             OUTPUT ${QM_FILE}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${TRANSLATION_QM_OUTPUT_DIR}
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CATALOG_FILE} ${GENERATED_TS_FILE}
-            COMMAND Qt6::lrelease ${GENERATED_TS_FILE} -qm ${QM_FILE}
-            DEPENDS ${CATALOG_FILE}
+            COMMAND Qt6::lrelease ${TS_FILE} -qm ${QM_FILE}
+            DEPENDS ${TS_FILE}
             VERBATIM
         )
     endforeach()
@@ -102,15 +98,10 @@ if(TARGET Qt6::lupdate AND TARGET Qt6::lrelease)
     )
 
     add_custom_target(update_translations)
-    foreach(CATALOG_FILE IN LISTS TRANSLATION_CATALOG_FILES)
-        get_filename_component(CATALOG_NAME ${CATALOG_FILE} NAME)
-        string(REGEX REPLACE "\\.catalog\\.xml$" "" CATALOG_BASE ${CATALOG_NAME})
-        set(GENERATED_TS_FILE ${TRANSLATION_QM_OUTPUT_DIR}/${CATALOG_BASE}.ts)
+    foreach(TS_FILE IN LISTS TRANSLATION_TS_FILES)
         add_custom_command(TARGET update_translations POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory ${TRANSLATION_QM_OUTPUT_DIR}
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CATALOG_FILE} ${GENERATED_TS_FILE}
-            COMMAND Qt6::lupdate ${TRANSLATION_SOURCE_DIRS} -ts ${GENERATED_TS_FILE}
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GENERATED_TS_FILE} ${CATALOG_FILE}
+            COMMAND Qt6::lupdate ${TRANSLATION_SOURCE_DIRS} -no-obsolete -ts ${TS_FILE}
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             VERBATIM
         )

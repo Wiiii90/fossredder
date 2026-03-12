@@ -1,14 +1,19 @@
+/**
+ * @file ui/src/controllers/ImportController.cpp
+ * @brief Implements the import workflow controller used by the QML UI.
+ */
+
 #include "ui/controllers/ImportController.h"
 
 #include <QDateTime>
-#include <QFile>
 #include <QMetaObject>
 #include <QRegularExpression>
 
 #include <exception>
+#include <stdexcept>
 #include <string>
 
-#include "core/jobs/JobManager.h"
+#include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobSystem.h"
 #include "core/jobs/JobTypes.h"
 #include "ui/config/Defaults.h"
@@ -23,15 +28,12 @@ namespace ui {
 
 namespace {
 
+/** @brief Returns an ISO timestamp for import run bookkeeping. */
 QString currentTimestamp() {
   return QDateTime::currentDateTime().toString(Qt::ISODate);
 }
 
-std::string encodeNativePath(const QString &path) {
-  const QByteArray nativePath = QFile::encodeName(path);
-  return {nativePath.constData(), static_cast<size_t>(nativePath.size())};
-}
-
+/** @brief Clamps import progress values to the configured UI range. */
 double clampProgress(double progress) {
   if (progress < ui::config::importProgress::kMinimum)
     return ui::config::importProgress::kMinimum;
@@ -40,6 +42,7 @@ double clampProgress(double progress) {
   return progress;
 }
 
+/** @brief Builds the import job specification and prepares a fresh import run folder. */
 core::jobs::ImportStatementJobSpec buildImportSpec(const QString &path,
                                                    QString &runRoot) {
   importing::cleanupOldImportRuns(ui::config::kImportRunKeepCount);
@@ -60,13 +63,18 @@ core::jobs::ImportStatementJobSpec buildImportSpec(const QString &path,
 } // namespace
 
 ImportController::ImportController(
-    std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject *parent)
+    std::shared_ptr<core::jobs::JobSystem> jobSystem,
+    std::shared_ptr<core::errors::IErrorReporter> errorReporter,
+    QObject *parent)
     : QObject(parent), runs_(this), state_(runs_),
-      jobBridge_(std::move(jobSystem)) {}
+      jobBridge_(std::move(jobSystem)), errorReporter_(std::move(errorReporter)) {
+  if (!errorReporter_)
+    throw std::invalid_argument("ImportController requires an error reporter");
 
-void ImportController::setErrorReporter(
-    std::shared_ptr<core::errors::IErrorReporter> reporter) {
-  errorReporter_ = std::move(reporter);
+  jobBridge_.setExceptionReporter(
+      [this](const char *origin, std::exception_ptr exception) {
+        reportException(origin, exception);
+      });
 }
 
 void ImportController::addFiles(const QStringList &paths) {
@@ -147,7 +155,7 @@ void ImportController::handleImportCanceled(const QString &now) {
       observability::origins::controller::importFlow::kTerminal,
       "Import canceled",
       {{observability::context::kStatus,
-        strings::toStdString(tr(ui::text::importRuns::kStatusCanceled))}});
+        strings::toStdString(ui::text::importRuns::statusCanceled())}});
   emit stateChanged();
   emit importCanceled();
 }
@@ -168,7 +176,7 @@ void ImportController::handleImportFailed(const QString &now,
 bool ImportController::populateDraftFromResult(const QString &now) {
   auto imported = jobBridge_.statementResult();
   if (!imported) {
-    handleImportFailed(now, tr(ui::text::controllerErrors::kImportFailed),
+    handleImportFailed(now, ui::text::controllerErrors::importFailed(),
                        "Import failed: missing statement result");
     return false;
   }
@@ -176,7 +184,7 @@ bool ImportController::populateDraftFromResult(const QString &now) {
   const auto importedTransactions = jobBridge_.statementTransactions();
   const auto artifacts = jobBridge_.takeArtifacts();
   if (!state_.populateDraft(now, imported, importedTransactions, artifacts, this)) {
-    handleImportFailed(now, tr(ui::text::controllerErrors::kImportFailed),
+    handleImportFailed(now, ui::text::controllerErrors::importFailed(),
                        "Import failed: unable to create statement draft");
     return false;
   }
@@ -187,7 +195,7 @@ bool ImportController::populateDraftFromResult(const QString &now) {
       observability::origins::controller::importFlow::kTerminal,
       "Import finished",
       {{observability::context::kStatus,
-        strings::toStdString(tr(ui::text::importRuns::kStatusSuccess))},
+        strings::toStdString(ui::text::importRuns::statusSuccess())},
        {observability::context::kArtifactCount,
         std::to_string(state_.artifactCount())}});
   emit stateChanged();
@@ -234,12 +242,12 @@ void ImportController::startImportForFile(const QString &path) {
     return;
   if (!jobBridge_.isAvailable()) {
     rejectImportStart(
-        tr(ui::text::controllerErrors::kImportControllerUnavailable),
+        ui::text::controllerErrors::importControllerUnavailable(),
         "Import start rejected: controller unavailable");
     return;
   }
   if (path.trimmed().isEmpty()) {
-    rejectImportStart(tr(ui::text::controllerErrors::kNoFileSelected),
+    rejectImportStart(ui::text::controllerErrors::noFileSelected(),
                       "Import start rejected: no file selected");
     return;
   }
@@ -261,14 +269,11 @@ void ImportController::startImportForFile(const QString &path) {
 
   const bool started = jobBridge_.startStatementImport(
       spec,
-      [this](const core::jobs::JobEvent &event) { handleJobEvent(event); },
-      [this](const char *origin, std::exception_ptr exception) {
-        reportException(origin, exception);
-      });
+      [this](const core::jobs::JobEvent &event) { handleJobEvent(event); });
 
   if (!started) {
     handleImportFailed(currentTimestamp(),
-                       tr(ui::text::controllerErrors::kImportFailed),
+                       ui::text::controllerErrors::importFailed(),
                        "Import failed: unable to start job");
   }
 }
@@ -282,10 +287,7 @@ void ImportController::updateProgress(double p, const QString &phase) {
 void ImportController::onJobTerminal(core::jobs::JobState state,
                                      const QString &message) {
   const auto now = currentTimestamp();
-  jobBridge_.clearSubscription(
-      [this](const char *origin, std::exception_ptr exception) {
-        reportException(origin, exception);
-      });
+  jobBridge_.clearSubscription();
 
   if (state == core::jobs::JobState::Canceled || state_.cancelRequested()) {
     handleImportCanceled(now);
@@ -295,7 +297,7 @@ void ImportController::onJobTerminal(core::jobs::JobState state,
   if (state == core::jobs::JobState::Failed) {
     handleImportFailed(now,
                        message.isEmpty()
-                           ? tr(ui::text::controllerErrors::kImportFailed)
+                           ? ui::text::controllerErrors::importFailed()
                            : message,
                        "Import failed");
     return;
@@ -306,15 +308,11 @@ void ImportController::onJobTerminal(core::jobs::JobState state,
 
 void ImportController::reportException(const char *origin,
                                        std::exception_ptr exception) const {
-  if (errorReporter_) {
-    errorReporter_->reportException(core::errors::ErrorSeverity::Error, origin,
-                                    exception);
+  if (!errorReporter_)
     return;
-  }
 
-  core::errors::reportException(core::errors::ErrorSeverity::Error,
-                                core::errors::codes::ExceptionError, origin,
-                                exception);
+  errorReporter_->reportException(core::errors::ErrorSeverity::Error, origin,
+                                  exception);
 }
 
 } // namespace ui

@@ -30,7 +30,7 @@ QString DraftController::finalizeStatementDraft(StatementDraft *draft) {
           transaction.bookingDate = strings::toStdString(d.bookingDate);
           transaction.amount = d.amount;
           transaction.description = strings::toStdString(d.description);
-          transaction.status = d.status;
+          transaction.status = static_cast<Transaction::Status>(d.status);
           transaction.actorId = strings::toStdString(d.actorId);
           transaction.allocatable = d.allocatable;
           transaction.propertyIds = strings::toStdList(d.propertyIds);

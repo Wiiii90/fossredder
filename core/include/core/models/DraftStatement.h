@@ -1,4 +1,10 @@
+/**
+ * @file core/include/core/models/DraftStatement.h
+ * @brief Transient draft models for imported statements before they become domain entities.
+ */
 #pragma once
+
+#include "core/models/Transaction.h"
 
 #include <string>
 #include <vector>
@@ -10,7 +16,7 @@ struct DraftTransaction {
     std::string bookingDate;
     double amount = 0.0;
     std::string description;
-    int status = 0;
+    Transaction::Status status = Transaction::Status::Neutral;
     std::string actorId;
     bool allocatable = false;
     std::vector<std::string> propertyIds;
@@ -24,5 +30,3 @@ struct DraftStatement {
 
 }
 
-using DraftTransaction = core::domain::DraftTransaction;
-using DraftStatement = core::domain::DraftStatement;

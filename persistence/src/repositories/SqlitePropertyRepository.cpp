@@ -1,182 +1,102 @@
 #include "persistence/repositories/SqlitePropertyRepository.h"
-#include "core/errors/ErrorReporterRegistry.h"
-#include <sqlite3.h>
-#include <stdexcept>
+#include "persistence/StmtGuard.h"
 #include "core/models/Property.h"
 #include "persistence/SqliteDb.h"
-#include "persistence/Uuid.h"
+#include <sqlite3.h>
+#include <stdexcept>
 
-struct SqlitePropertyRepository::Impl { std::shared_ptr<SqliteDb> db; };
+struct SqlitePropertyRepository::Impl {
+    std::shared_ptr<SqliteDb> db;
+    std::shared_ptr<core::errors::IErrorReporter> errorReporter;
+};
 
 SqlitePropertyRepository::SqlitePropertyRepository(const std::string& dbPath)
-    : SqlitePropertyRepository(std::make_shared<SqliteDb>(dbPath)) {
-}
+    : SqlitePropertyRepository(std::make_shared<SqliteDb>(dbPath), nullptr) {}
+
+SqlitePropertyRepository::SqlitePropertyRepository(const std::string& dbPath,
+                                                   std::shared_ptr<core::errors::IErrorReporter> er)
+    : SqlitePropertyRepository(std::make_shared<SqliteDb>(dbPath), std::move(er)) {}
 
 SqlitePropertyRepository::SqlitePropertyRepository(std::shared_ptr<SqliteDb> db)
+    : SqlitePropertyRepository(std::move(db), nullptr) {}
+
+SqlitePropertyRepository::SqlitePropertyRepository(std::shared_ptr<SqliteDb> db,
+                                                   std::shared_ptr<core::errors::IErrorReporter> er)
     : pimpl_(std::make_unique<Impl>()) {
     if (!db) throw std::runtime_error("db is null");
     pimpl_->db = std::move(db);
+    pimpl_->errorReporter = std::move(er);
 }
 
 SqlitePropertyRepository::~SqlitePropertyRepository() = default;
 
+namespace {
+constexpr auto kSelectProperty =
+    "SELECT id, name, address, description, consumption, consumption_unit FROM properties";
+
+std::shared_ptr<Property> readProperty(persistence::StmtGuard& s) {
+    auto p = std::make_shared<Property>();
+    p->id = s.columnText(0); p->name = s.columnText(1); p->address = s.columnText(2);
+    p->description = s.columnText(3); p->consumption = s.columnDouble(4);
+    p->consumptionUnit = s.columnText(5);
+    return p;
+}
+} // namespace
+
 void SqlitePropertyRepository::addProperty(const std::shared_ptr<Property>& property) {
-    if (!property) return;
-    // Ensure property has a string id (UUID) before insert
-    if (property->id.empty()) property->id = persistence::generateUuid();
-
-    const char* sql = "INSERT INTO properties (id, name, address, description, consumption, consumption_unit) VALUES (?, ?, ?, ?, ?, ?);";
-    sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
-    sqlite3_bind_text(stmt, 1, property->id.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, property->name.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 3, property->address.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 4, property->description.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_double(stmt, 5, property->consumption);
-    sqlite3_bind_text(stmt, 6, property->consumptionUnit.c_str(), -1, SQLITE_TRANSIENT);
-
-    if (sqlite3_step(stmt) == SQLITE_DONE) {
-        core::errors::report({
-            core::errors::ErrorSeverity::Info,
-            "persistence::SqlitePropertyRepository::addProperty",
-            std::string("inserted property id='") + property->id + "' name='" + property->name + "'",
-            {}
-        });
-    } else {
-        // Insertion failed (e.g., UNIQUE constraint). Try to find existing property by name
-        const char* err = sqlite3_errmsg(pimpl_->db->handle());
-        core::errors::report({
-            core::errors::ErrorSeverity::Error,
-            "persistence::SqlitePropertyRepository::addProperty",
-            std::string("insert failed for name='") + property->name + "': " + (err ? err : "unknown"),
-            {}
-        });
-        sqlite3_finalize(stmt);
-        const char* sel = "SELECT id FROM properties WHERE name = ? LIMIT 1;";
-        sqlite3_stmt* selStmt = nullptr;
-        if (sqlite3_prepare_v2(pimpl_->db->handle(), sel, -1, &selStmt, nullptr) == SQLITE_OK) {
-            sqlite3_bind_text(selStmt, 1, property->name.c_str(), -1, SQLITE_TRANSIENT);
-            if (sqlite3_step(selStmt) == SQLITE_ROW) {
-                const unsigned char* rid = sqlite3_column_text(selStmt, 0);
-                if (rid) {
-                    property->id = reinterpret_cast<const char*>(rid);
-                    core::errors::report({
-                        core::errors::ErrorSeverity::Info,
-                        "persistence::SqlitePropertyRepository::addProperty",
-                        std::string("found existing property id='") + property->id + "' for name='" + property->name + "'",
-                        {}
-                    });
-                }
-            }
-            sqlite3_finalize(selStmt);
-        }
-        return;
-    }
-
-    sqlite3_finalize(stmt);
+    if (!property || property->id.empty()) return;
+    persistence::StmtGuard stmt(pimpl_->db->handle(),
+        "INSERT OR IGNORE INTO properties (id, name, address, description, consumption, consumption_unit)"
+        " VALUES (?, ?, ?, ?, ?, ?);");
+    if (!stmt) return;
+    stmt.bindText  (1, property->id);    stmt.bindText  (2, property->name);
+    stmt.bindText  (3, property->address); stmt.bindText(4, property->description);
+    stmt.bindDouble(5, property->consumption); stmt.bindText(6, property->consumptionUnit);
+    stmt.step();
 }
 
 std::vector<std::shared_ptr<Property>> SqlitePropertyRepository::getProperties() const {
     std::vector<std::shared_ptr<Property>> out;
-    const char* sql = "SELECT id, name, address, description, consumption, consumption_unit FROM properties ORDER BY id;";
-    sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return out;
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        const unsigned char* idtxt = sqlite3_column_text(stmt, 0);
-        const unsigned char* n = sqlite3_column_text(stmt, 1);
-        const unsigned char* a = sqlite3_column_text(stmt, 2);
-        const unsigned char* d = sqlite3_column_text(stmt, 3);
-        double c = sqlite3_column_double(stmt, 4);
-        const unsigned char* u = sqlite3_column_text(stmt, 5);
-
-        auto p = std::make_shared<Property>(
-            n ? reinterpret_cast<const char*>(n) : std::string(),
-            a ? reinterpret_cast<const char*>(a) : std::string(),
-            d ? reinterpret_cast<const char*>(d) : std::string()
-        );
-        p->id = idtxt ? reinterpret_cast<const char*>(idtxt) : std::string();
-        p->consumption = c;
-        p->consumptionUnit = u ? reinterpret_cast<const char*>(u) : std::string();
-        out.push_back(std::move(p));
-    }
-    sqlite3_finalize(stmt);
+    persistence::StmtGuard stmt(pimpl_->db->handle(),
+        std::string(kSelectProperty) + " ORDER BY id;");
+    if (!stmt) return out;
+    while (stmt.step() == SQLITE_ROW) out.push_back(readProperty(stmt));
     return out;
 }
 
 std::optional<std::shared_ptr<Property>> SqlitePropertyRepository::getPropertyById(const std::string& id) const {
     if (id.empty()) return std::nullopt;
-
-    const char* sql = "SELECT id, name, address, description, consumption, consumption_unit FROM properties WHERE id = ?;";
-    sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return std::nullopt;
-    sqlite3_bind_text(stmt, 1, id.c_str(), -1, SQLITE_TRANSIENT);
-
-    if (sqlite3_step(stmt) != SQLITE_ROW) {
-        sqlite3_finalize(stmt);
-        return std::nullopt;
-    }
-
-    const unsigned char* rid = sqlite3_column_text(stmt, 0);
-    const unsigned char* n = sqlite3_column_text(stmt, 1);
-    const unsigned char* a = sqlite3_column_text(stmt, 2);
-    const unsigned char* d = sqlite3_column_text(stmt, 3);
-    double c = sqlite3_column_double(stmt, 4);
-    const unsigned char* u = sqlite3_column_text(stmt, 5);
-
-    auto p = std::make_shared<Property>(
-        n ? reinterpret_cast<const char*>(n) : std::string(),
-        a ? reinterpret_cast<const char*>(a) : std::string(),
-        d ? reinterpret_cast<const char*>(d) : std::string()
-    );
-    p->id = rid ? reinterpret_cast<const char*>(rid) : std::string();
-    p->consumption = c;
-    p->consumptionUnit = u ? reinterpret_cast<const char*>(u) : std::string();
-
-    sqlite3_finalize(stmt);
-    return p;
+    persistence::StmtGuard stmt(pimpl_->db->handle(),
+        std::string(kSelectProperty) + " WHERE id = ?;");
+    if (!stmt) return std::nullopt;
+    stmt.bindText(1, id);
+    if (stmt.step() != SQLITE_ROW) return std::nullopt;
+    return readProperty(stmt);
 }
 
-void SqlitePropertyRepository::removeProperty(const std::string& id){
+void SqlitePropertyRepository::removeProperty(const std::string& id) {
     if (id.empty()) return;
-
-    const char* sql = "DELETE FROM properties WHERE id=?;";
-    sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
-    sqlite3_bind_text(stmt, 1, id.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
+    persistence::StmtGuard stmt(pimpl_->db->handle(), "DELETE FROM properties WHERE id = ?;");
+    if (!stmt) return;
+    stmt.bindText(1, id); stmt.step();
 }
 
-void SqlitePropertyRepository::updateProperty(const std::shared_ptr<Property>& property){
-    if (!property) return;
-    if (property->id.empty()) return;
-
-    const char* sql = "UPDATE properties SET name = ?, address = ?, description = ?, consumption = ?, consumption_unit = ? WHERE id = ?;";
-    sqlite3_stmt* stmt = nullptr;
-    if (sqlite3_prepare_v2(pimpl_->db->handle(), sql, -1, &stmt, nullptr) != SQLITE_OK) return;
-    sqlite3_bind_text(stmt, 1, property->name.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, property->address.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 3, property->description.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_double(stmt, 4, property->consumption);
-    sqlite3_bind_text(stmt, 5, property->consumptionUnit.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 6, property->id.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-    core::errors::report({
-        core::errors::ErrorSeverity::Info,
-        "persistence::SqlitePropertyRepository::updateProperty",
-        std::string("updated id='") + property->id + "' name='" + property->name + "'",
-        {}
-    });
+void SqlitePropertyRepository::updateProperty(const std::shared_ptr<Property>& property) {
+    if (!property || property->id.empty()) return;
+    persistence::StmtGuard stmt(pimpl_->db->handle(),
+        "UPDATE properties SET name=?, address=?, description=?, consumption=?, consumption_unit=?"
+        " WHERE id=?;");
+    if (!stmt) return;
+    stmt.bindText  (1, property->name);    stmt.bindText  (2, property->address);
+    stmt.bindText  (3, property->description); stmt.bindDouble(4, property->consumption);
+    stmt.bindText  (5, property->consumptionUnit); stmt.bindText(6, property->id);
+    stmt.step();
 }
 
 void SqlitePropertyRepository::upsertProperty(const std::shared_ptr<Property>& property) {
-    if (!property) return;
-    if (property->id.empty()) { addProperty(property); return; }
+    if (!property || property->id.empty()) return;
     updateProperty(property);
-    if (pimpl_ && pimpl_->db && sqlite3_changes(pimpl_->db->handle()) == 0) {
-        addProperty(property);
-    }
+    if (sqlite3_changes(pimpl_->db->handle()) == 0) addProperty(property);
 }
 
 void SqlitePropertyRepository::clearProperties() {
@@ -184,3 +104,5 @@ void SqlitePropertyRepository::clearProperties() {
     sqlite3_exec(pimpl_->db->handle(), "DELETE FROM properties;", nullptr, nullptr, &err);
     if (err) sqlite3_free(err);
 }
+
+

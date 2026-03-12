@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/actions/Actions.cpp
+ * @brief Implements QAction creation and browse request forwarding for the UI.
+ */
+
 #include "ui/actions/Actions.h"
 
 #include <QAction>
@@ -9,12 +14,12 @@ namespace ui {
 
 Actions::Actions(QObject* parent)
     : QObject(parent)
-    , newFileAction_(new QAction(tr(ui::text::actions::kNewFile), this))
-    , openFileAction_(new QAction(tr(ui::text::actions::kOpenFile), this))
-    , saveFileAction_(new QAction(tr(ui::text::actions::kSaveFile), this))
-    , saveFileAsAction_(new QAction(tr(ui::text::actions::kSaveFileAs), this))
-    , quitAction_(new QAction(tr(ui::text::actions::kQuit), this))
-    , aboutAction_(new QAction(tr(ui::text::actions::kAbout), this))
+    , newFileAction_(new QAction(ui::text::actions::newFile(), this))
+    , openFileAction_(new QAction(ui::text::actions::openFile(), this))
+    , saveFileAction_(new QAction(ui::text::actions::saveFile(), this))
+    , saveFileAsAction_(new QAction(ui::text::actions::saveFileAs(), this))
+    , quitAction_(new QAction(ui::text::actions::quit(), this))
+    , aboutAction_(new QAction(ui::text::actions::about(), this))
 {
     newFileAction_->setObjectName(ui::config::objectNames::kActionNewFile);
     openFileAction_->setObjectName(ui::config::objectNames::kActionOpenFile);
@@ -39,12 +44,12 @@ void Actions::saveFileAs() { if (saveFileAsAction_) saveFileAsAction_->trigger()
 
 void Actions::browseImportPdf()
 {
-    emit importBrowseRequested(tr(ui::text::dialogs::kImportPdfFilter));
+    emit importBrowseRequested(ui::text::dialogs::importPdfFilter());
 }
 
 void Actions::browseExportFile()
 {
-    emit exportBrowseRequested(tr(ui::text::dialogs::kExportFileFilter));
+    emit exportBrowseRequested(ui::text::dialogs::exportFileFilter());
 }
 
 }

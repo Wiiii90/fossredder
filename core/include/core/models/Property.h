@@ -27,5 +27,3 @@ public:
 };
 
 }
-
-using Property = core::domain::Property;

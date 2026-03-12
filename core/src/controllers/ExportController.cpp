@@ -1,43 +1,29 @@
+/**
+ * @file core/src/controllers/ExportController.cpp
+ * @brief Dispatches export requests to the format-specific CsvController / XlsxController.
+ */
 #include "core/controllers/ExportController.h"
-
-#include "core/constants/CoreDefaults.h"
 #include "core/controllers/CsvController.h"
 #include "core/controllers/XlsxController.h"
+#include "core/constants/CoreDefaults.h"
 
 namespace core::controllers::exporting {
 
-ExportController::ExportController(std::shared_ptr<XlsxController> xlsx, std::shared_ptr<CsvController> csv)
-    : xlsx_(std::move(xlsx)), csv_(std::move(csv)) {}
-
-ExportOptions::Status ExportController::exportData(ExportOptions& opts) {
-    opts.actualFormat = opts.requestedFormat;
-    opts.resolvedOutputPath = opts.outputPath;
-    opts.errorCode.clear();
-    opts.message.clear();
-
-    if (opts.requestedFormat == ExportOptions::Format::Csv) {
-        if (!csv_) {
-            opts.status = ExportOptions::Status::InternalError;
-            opts.errorCode = std::string(core::constants::exportFlow::kErrorCsvControllerMissing);
-            opts.message = std::string(core::constants::exportFlow::kMessageCsvControllerMissing);
-            return opts.status;
-        }
-        return csv_->exportData(opts);
+ExportResult ExportController::exportData(const ExportRequest& request) const
+{
+    switch (request.format) {
+    case ExportFormat::Csv:
+        return CsvController{}.exportData(request);
+    case ExportFormat::Xlsx:
+        return XlsxController{}.exportData(request);
     }
-    if (opts.requestedFormat == ExportOptions::Format::Xlsx) {
-        if (!xlsx_) {
-            opts.status = ExportOptions::Status::InternalError;
-            opts.errorCode = std::string(core::constants::exportFlow::kErrorXlsxControllerMissing);
-            opts.message = std::string(core::constants::exportFlow::kMessageXlsxControllerMissing);
-            return opts.status;
-        }
-        return xlsx_->exportData(opts);
-    }
-
-    opts.status = ExportOptions::Status::UnsupportedFormat;
-    opts.errorCode = std::string(core::constants::exportFlow::kErrorUnsupportedFormat);
-    opts.message = std::string(core::constants::exportFlow::kMessageUnsupportedFormat);
-    return opts.status;
+    return ExportResult{
+        ExportStatus::UnsupportedFormat,
+        request.format,
+        {},
+        std::string(core::constants::exportFlow::kErrorUnsupportedFormat),
+        std::string(core::constants::exportFlow::kMessageUnsupportedFormat)
+    };
 }
 
 } // namespace core::controllers::exporting

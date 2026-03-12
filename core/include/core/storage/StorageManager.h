@@ -38,10 +38,10 @@ public:
     void setDeletionImpactCallback(DeletionImpactCallback cb) override;
     std::optional<std::string> loadLatestPath() const override;
     void setLatestPath(const std::string& filePath) override;
-    AppState load() override;
-    AppState loadFrom(const std::string& filePath) override;
-    void save(const AppState& state) override;
-    void saveAs(const std::string& filePath, const AppState& state) override;
+    core::domain::AppState load() override;
+    core::domain::AppState loadFrom(const std::string& filePath) override;
+    void save(const core::domain::AppState& state) override;
+    void saveAs(const std::string& filePath, const core::domain::AppState& state) override;
     void createNew(const std::string& filePath) override;
     const std::string& currentPath() const noexcept override { return currentPath_; }
 

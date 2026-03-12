@@ -1,4 +1,9 @@
-#include "core/analysis/TransactionCollector.h"
+/**
+ * @file core/src/analysis/TransactionCollector.cpp
+ * @brief Implements private transaction projection helpers for analysis execution.
+ */
+
+#include "TransactionCollector.h"
 
 #include "core/analysis/Filter.h"
 #include "core/models/AppState.h"

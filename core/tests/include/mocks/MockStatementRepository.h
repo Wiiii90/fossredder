@@ -3,6 +3,8 @@
 #include "core/repositories/IStatementRepository.h"
 #include <gmock/gmock.h>
 
+using core::domain::Statement;
+
 class MockStatementRepository : public IStatementRepository {
 public:
     MOCK_METHOD(void, addStatement, (const std::shared_ptr<Statement>&), (override));

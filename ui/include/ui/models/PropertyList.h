@@ -5,9 +5,9 @@
 
 namespace ui {
 
-class PropertyList : public models::IndexedListModel<Property> {
+class PropertyList : public models::IndexedListModel<core::domain::Property> {
     Q_OBJECT
-    using Base = models::IndexedListModel<Property>;
+    using Base = models::IndexedListModel<core::domain::Property>;
 
 public:
     enum Roles {
@@ -24,8 +24,8 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void setProperties(std::vector<std::shared_ptr<Property>> props) { setItems(std::move(props)); }
-    const std::vector<std::shared_ptr<Property>>& properties() const { return items(); }
+    void setProperties(std::vector<std::shared_ptr<core::domain::Property>> props) { setItems(std::move(props)); }
+    const std::vector<std::shared_ptr<core::domain::Property>>& properties() const { return items(); }
     int findRowById(const QString& id) const { return findIndexedRow(id); }
 
     Q_INVOKABLE int addProperty(const QString& name, const QString& address, const QString& description);

@@ -6,6 +6,8 @@
 #include <optional>
 #include <string>
 
+using core::domain::AppState;
+
 class MockStorageManager : public core::storage::IStorageManager {
 public:
     MOCK_METHOD(void, setRepoFactory, (RepoFactory), (override));

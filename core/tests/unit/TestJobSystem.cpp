@@ -10,6 +10,8 @@
 #include <fstream>
 #include <thread>
 
+using core::domain::Statement;
+
 namespace {
 
 class FakeImportStatement : public IImportStatement {
@@ -33,7 +35,7 @@ std::optional<core::jobs::JobSnapshot> waitForSnapshot(core::jobs::JobSystem& jo
                                                        const core::jobs::JobId& jobId)
 {
     for (int attempt = 0; attempt < 100; ++attempt) {
-        auto snapshot = jobSystem.manager().snapshot(jobId);
+        auto snapshot = jobSystem.snapshot(jobId);
         if (snapshot && (snapshot->state == core::jobs::JobState::Finished
                          || snapshot->state == core::jobs::JobState::Failed
                          || snapshot->state == core::jobs::JobState::Canceled)) {
@@ -43,7 +45,7 @@ std::optional<core::jobs::JobSnapshot> waitForSnapshot(core::jobs::JobSystem& jo
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    return jobSystem.manager().snapshot(jobId);
+    return jobSystem.snapshot(jobId);
 }
 
 }
@@ -71,7 +73,7 @@ TEST(JobSystemTests, StartImportStatement_finishes_and_stores_statement_result)
     EXPECT_EQ(snapshot->state, core::jobs::JobState::Finished);
     EXPECT_EQ(snapshot->message, std::string(core::constants::jobs::messages::kFinished));
 
-    auto statement = jobSystem.manager().statementResult(jobId);
+    auto statement = jobSystem.statementResult(jobId);
     ASSERT_TRUE(statement);
     EXPECT_EQ(statement->id, std::string("statement-1"));
     EXPECT_EQ(importService->lastRequest.jobId, jobId);

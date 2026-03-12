@@ -1,11 +1,10 @@
-#include "core/analysis/strategies/CalcAnalysisStrategy.h"
+#include "CalcAnalysisStrategy.h"
 
-#include "core/analysis/Filter.h"
+#include "../FilteredTransactions.h"
 #include "core/constants/CoreDefaults.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/Analysis.h"
 #include "core/models/AppState.h"
-#include "core/models/Transaction.h"
 
 #include <nlohmann/json.hpp>
 
@@ -51,15 +50,14 @@ TaxConfig parseTax(const Analysis& analysis)
 
 }
 
+namespace core::analysis {
+
 AnalysisResult CalcAnalysisStrategy::compute(const Analysis& analysis, const AppState& state, const std::string& filterSpec) const {
     AnalysisResult out;
-    core::analysis::Filter filter = core::analysis::parseFilterSpec(filterSpec);
     const std::unordered_map<std::string, double> adjustments = analysis.adjustments;
     const TaxConfig taxConfig = parseTax(analysis);
 
-    for (const auto& transaction : state.transactions) {
-        if (!transaction) continue;
-        if (!filterSpec.empty() && !filter.matches(transaction, state)) continue;
+    for (const auto& transaction : core::analysis::detail::collectFilteredTransactions(state, filterSpec)) {
 
         const std::string label = transaction->bookingDate.empty() ? transaction->name : transaction->bookingDate;
 
@@ -82,4 +80,6 @@ AnalysisResult CalcAnalysisStrategy::compute(const Analysis& analysis, const App
 
     out.metrics[std::string(core::constants::analysis::metricKeys::kRows)] = static_cast<double>(out.table.size());
     return out;
+}
+
 }

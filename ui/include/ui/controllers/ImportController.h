@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/controllers/ImportController.h
+ * @brief Declares the import workflow controller exposed to QML.
+ */
+
 #pragma once
 
 #include <QObject>
@@ -31,7 +36,9 @@ class ImportController : public QObject {
     Q_PROPERTY(StatementDraft* draft READ draft NOTIFY stateChanged)
 
 public:
-    explicit ImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem, QObject* parent = nullptr);
+    explicit ImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem,
+                              std::shared_ptr<core::errors::IErrorReporter> errorReporter,
+                              QObject* parent = nullptr);
 
     bool isRunning() const noexcept { return state_.isRunning(); }
     double progress() const noexcept { return state_.progress(); }
@@ -51,7 +58,6 @@ public:
     Q_INVOKABLE void clearDraft();
     Q_INVOKABLE void cancelImport();
     Q_INVOKABLE void cancelAllImports();
-    void setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter);
 
     ImportRunList* runs() noexcept { return &runs_; }
     QByteArray artifactBytes(const QString& key) const { return state_.artifactBytes(key); }

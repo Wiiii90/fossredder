@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/controllers/StorageController.h
+ * @brief Declares the UI storage controller that forwards file operations to core.
+ */
+
 #pragma once
 
 #include <functional>
@@ -7,14 +12,19 @@
 
 namespace ui {
 
+/**
+ * @brief Exposes file create/open/save operations to the UI layer.
+ */
 class StorageController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString currentPath READ currentPath NOTIFY currentPathChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY errorChanged)
 
 public:
+    /** @brief Creates a controller that delegates storage operations to the core controller. */
     explicit StorageController(core::controllers::AppStateController* core, QObject* parent = nullptr);
 
+    /** @brief Returns the currently active storage path. */
     QString currentPath() const;
     QString lastError() const { return lastError_; }
 

@@ -28,24 +28,17 @@
 
 ## Projektstruktur
 
-
 ```
 fossredder/
-├── docs/               # Dokumentation
-├── include/            # Header-Dateien
-│   ├── models/         # Datenmodelle (Property, Tenant, etc.)
-│   ├── views/          # GUI- oder Konsolenansichten
-│   ├── controllers/    # Steuerungsklassen
-│   ├── ocr/            # OCR-Schnittstellen (z.B. IOcrEngine)
-│   └── poppler/        # PDF-Renderer-Schnittstellen (z.B. IPdfRenderer)
-├── src/                # Quellcode
-│   ├── models/         # Implementierung der Datenmodelle
-│   ├── views/          # Implementierung der Ansichten
-│   ├── controllers/    # Implementierung der Steuerung
-│   ├── ocr/            # Implementierung der OCR-Logik (z.B. TesseractOcrEngine)
-│   └── poppler/        # Implementierung der PDF-Renderer (z.B. PopplerPdfRenderer)
-├── CMakeLists.txt
-└── README.md
+├── app/                # Desktop-Entry-Point, i18n und Packaging
+├── core/               # Domänenlogik, Analysen, Import/Export, Controller-Basis
+├── debug/              # Debug- und Error-Reporting-Helfer
+├── docs/               # Produkt- und Design-Dokumentation
+├── persistence/        # SQLite-Backends und Persistenzadapter
+├── services/           # Anbindungen an Poppler, OpenCV und Tesseract
+├── ui/                 # Qt Widgets/QML, Controller und UI-State
+├── CMakeLists.txt      # Root-Buildkonfiguration
+└── vcpkg.json          # Abhängigkeiten
 ```
 
 ## Build-Anleitung
@@ -73,8 +66,8 @@ fossredder/
 4. **Projekt mit CMake konfigurieren und bauen**  
    - **Kommandozeile:**
      ```bash
-     cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
-     cmake --build build
+      cmake -B out/build -S . -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
+      cmake --build out/build --config Release
      ```
    - **Visual Studio 2022:**  
      Öffne das Projektordner direkt in Visual Studio. Die CMake-Integration erkennt die `CMakeSettings.json` und verwendet automatisch die vcpkg-Toolchain.
@@ -86,6 +79,12 @@ Für weitere Details zur Einrichtung siehe die [offizielle vcpkg-Dokumentation](
 
 - [Pflichtenheft](docs/pflichtenheft.md)
 
+## Laufzeitdateien
+
+- Das Release-Binary wird unter `out/build/bin/Release/` oder dem entsprechenden CMake-Binärverzeichnis abgelegt.
+- Übersetzungen werden beim Build nach `bin/i18n/` kopiert.
+- Die QML-Ressourcen stammen aus `ui/qml/`.
+
 ## Lizenz
 
-Dieses Projekt ist unter der MIT-Lizenz lizenziert. Weitere Details finden Sie in der [LICENSE](./LICENSE)-Datei.Dieses Projekt ist unter der MIT-Lizenz lizenziert. Weitere Details finden Sie in der [LICENSE](./LICENSE)-Datei.
+Dieses Projekt ist unter der MIT-Lizenz lizenziert. Weitere Details finden Sie in der [LICENSE](./LICENSE)-Datei.

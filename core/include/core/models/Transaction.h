@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file core/include/core/models/Transaction.h
  * @brief Domain model for transactions.
  */
@@ -50,4 +50,3 @@ public:
 
 }
 
-using Transaction = core::domain::Transaction;

@@ -33,7 +33,7 @@ public:
     const AnalysisList& analyses() const noexcept { return analyses_; }
     const AnnualList& annuals() const noexcept { return annuals_; }
 
-    void loadFromState(const AppState& state);
+    void loadFromState(const core::domain::AppState& state);
     void refreshContractTypes();
 
 private:

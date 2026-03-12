@@ -29,4 +29,3 @@ public:
 
 }
 
-using Contract = core::domain::Contract;

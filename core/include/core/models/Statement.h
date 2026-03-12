@@ -19,4 +19,3 @@ public:
 
 }
 
-using Statement = core::domain::Statement;

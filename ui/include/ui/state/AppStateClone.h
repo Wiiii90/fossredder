@@ -26,9 +26,9 @@ std::vector<std::shared_ptr<T>> cloneStateItems(const std::vector<std::shared_pt
     return clones;
 }
 
-inline AppState cloneAppState(const AppState& state)
+inline core::domain::AppState cloneAppState(const core::domain::AppState& state)
 {
-    AppState clone;
+    core::domain::AppState clone;
     clone.actors = cloneStateItems(state.actors);
     clone.properties = cloneStateItems(state.properties);
     clone.contracts = cloneStateItems(state.contracts);

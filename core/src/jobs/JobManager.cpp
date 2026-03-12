@@ -1,4 +1,4 @@
-#include "core/jobs/JobManager.h"
+#include "JobManager.h"
 
 #include "core/errors/ErrorReporterRegistry.h"
 #include "core/utils/UniqId.h"
@@ -6,6 +6,35 @@
 #include <utility>
 
 namespace core::jobs {
+
+namespace {
+
+JobEvent snapshotToEvent(const JobSnapshot& snapshot, std::string message = {})
+{
+    JobEvent event;
+    event.jobId = snapshot.jobId;
+    event.kind = snapshot.kind;
+    event.state = snapshot.state;
+    event.stage = snapshot.stage;
+    event.progress = snapshot.progress;
+    event.message = message.empty() ? snapshot.message : std::move(message);
+    event.pageIndex = snapshot.pageIndex;
+    event.pageCount = snapshot.pageCount;
+    return event;
+}
+
+void applyEventToSnapshot(JobSnapshot& snapshot, const JobEvent& event)
+{
+    snapshot.kind = event.kind;
+    snapshot.state = event.state;
+    snapshot.stage = event.stage;
+    snapshot.progress = event.progress;
+    if (!event.message.empty()) snapshot.message = event.message;
+    snapshot.pageIndex = event.pageIndex;
+    snapshot.pageCount = event.pageCount;
+}
+
+}
 
 JobManager::JobManager() = default;
 
@@ -82,14 +111,7 @@ void JobManager::cancel(const JobId& id) {
         std::lock_guard<std::mutex> g(job->m);
         job->snap.state = JobState::Canceled;
         job->snap.message = std::string(core::constants::jobs::messages::kCanceled);
-        ev.jobId = job->snap.jobId;
-        ev.kind = job->snap.kind;
-        ev.state = job->snap.state;
-        ev.stage = job->snap.stage;
-        ev.progress = job->snap.progress;
-        ev.message = job->snap.message;
-        ev.pageIndex = job->snap.pageIndex;
-        ev.pageCount = job->snap.pageCount;
+        ev = snapshotToEvent(job->snap);
     }
     publish(ev);
 
@@ -221,13 +243,7 @@ void JobManager::publish(const JobEvent& ev) {
     std::vector<JobEventCallback> cbs;
     {
         std::lock_guard<std::mutex> g(job->m);
-        job->snap.kind = ev.kind;
-        job->snap.state = ev.state;
-        job->snap.stage = ev.stage;
-        job->snap.progress = ev.progress;
-        if (!ev.message.empty()) job->snap.message = ev.message;
-        job->snap.pageIndex = ev.pageIndex;
-        job->snap.pageCount = ev.pageCount;
+        applyEventToSnapshot(job->snap, ev);
 
         cbs.reserve(job->subs.size());
         for (auto& kv : job->subs) cbs.push_back(kv.second);
@@ -252,14 +268,7 @@ void JobManager::start(const JobId& id) {
         std::lock_guard<std::mutex> g(job->m);
         job->snap.state = JobState::Running;
         job->snap.message = std::string(core::constants::jobs::messages::kRunning);
-        ev.jobId = job->snap.jobId;
-        ev.kind = job->snap.kind;
-        ev.state = job->snap.state;
-        ev.stage = job->snap.stage;
-        ev.progress = job->snap.progress;
-        ev.message = job->snap.message;
-        ev.pageIndex = job->snap.pageIndex;
-        ev.pageCount = job->snap.pageCount;
+        ev = snapshotToEvent(job->snap);
     }
 
     publish(ev);
@@ -282,14 +291,7 @@ void JobManager::finish(const JobId& id) {
         job->snap.state = JobState::Finished;
         job->snap.progress = 1.0;
         job->snap.message = std::string(core::constants::jobs::messages::kFinished);
-        ev.jobId = job->snap.jobId;
-        ev.kind = job->snap.kind;
-        ev.state = job->snap.state;
-        ev.stage = job->snap.stage;
-        ev.progress = job->snap.progress;
-        ev.message = job->snap.message;
-        ev.pageIndex = job->snap.pageIndex;
-        ev.pageCount = job->snap.pageCount;
+        ev = snapshotToEvent(job->snap);
     }
 
     publish(ev);
@@ -353,14 +355,7 @@ void JobManager::fail(const JobId& id, const std::string& error) {
         job->snap.state = JobState::Failed;
         job->snap.error = error;
         job->snap.message = std::string(core::constants::jobs::messages::kFailed);
-        ev.jobId = job->snap.jobId;
-        ev.kind = job->snap.kind;
-        ev.state = job->snap.state;
-        ev.stage = job->snap.stage;
-        ev.progress = job->snap.progress;
-        ev.message = error.empty() ? job->snap.message : error;
-        ev.pageIndex = job->snap.pageIndex;
-        ev.pageCount = job->snap.pageCount;
+        ev = snapshotToEvent(job->snap, error);
     }
 
     publish(ev);

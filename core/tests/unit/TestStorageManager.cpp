@@ -9,6 +9,7 @@
 #include "core/storage/IStorageManager.h"
 #include "core/models/AppState.h"
 
+#include <chrono>
 #include <filesystem>
 #include <cstdio>
 
@@ -18,7 +19,8 @@
 TEST(StorageManagerTests, SetAndLoadLatestPathRegistry) {
     // create temp dir
     auto tmp = std::filesystem::temp_directory_path();
-    auto dir = tmp / std::filesystem::path("fossredder_test_storage");
+    auto dir = tmp / std::filesystem::path(
+        "fossredder_test_storage_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::filesystem::create_directories(dir);
 
     core::storage::StorageManager sm(dir.string());

@@ -3,6 +3,8 @@
 #include "core/repositories/IActorRepository.h"
 #include <gmock/gmock.h>
 
+using core::domain::Actor;
+
 class MockActorRepository : public IActorRepository {
 public:
     MOCK_METHOD(void, addActor, (const std::shared_ptr<Actor>&), (override));

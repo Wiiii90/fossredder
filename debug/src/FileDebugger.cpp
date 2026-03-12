@@ -1,4 +1,10 @@
+/**
+ * @file debug/src/FileDebugger.cpp
+ * @brief Implements a debugger backend that writes artifacts to the filesystem.
+ */
+
 #include "debug/pch.h"
+#include "debug/DebugDefaults.h"
 #include "debug/FileDebugger.h"
 #include "debug/RunManager.h"
 #include <nlohmann/json.hpp>
@@ -31,10 +37,10 @@ FileDebugger::FileDebugger(const std::string& baseOrProcess, const std::string& 
         std::filesystem::path base;
         std::string proc;
         if (processName.empty()) {
-            base = std::filesystem::current_path() / "debug_output";
+            base = std::filesystem::current_path() / debug::defaults::kOutputDirectoryName;
             proc = baseOrProcess;
         } else {
-            base = baseOrProcess.empty() ? (std::filesystem::current_path() / "debug_output") : std::filesystem::path(baseOrProcess);
+            base = baseOrProcess.empty() ? (std::filesystem::current_path() / debug::defaults::kOutputDirectoryName) : std::filesystem::path(baseOrProcess);
             proc = processName;
         }
         std::filesystem::create_directories(base);
@@ -42,7 +48,7 @@ FileDebugger::FileDebugger(const std::string& baseOrProcess, const std::string& 
         baseDir_ = sess;
         processName_ = proc;
     } catch (...) {
-        baseDir_ = (std::filesystem::current_path() / "debug_output").string();
+        baseDir_ = (std::filesystem::current_path() / debug::defaults::kOutputDirectoryName).string();
         processName_ = processName.empty() ? baseOrProcess : processName;
     }
 }
@@ -88,7 +94,7 @@ void FileDebugger::writeText(const std::string& relPath, const std::string& text
     std::lock_guard<std::mutex> g(mtx_);
     try {
         // Do not persist short poppler log messages to files; they should appear on console only
-        if (relPath.rfind("poppler/log", 0) == 0) return;
+        if (relPath.rfind(std::string(debug::defaults::kPopplerLogPrefix), 0) == 0) return;
 
         auto runid = debug::currentRun();
         if (runid.empty()) runid = debug::startRun(processName_);

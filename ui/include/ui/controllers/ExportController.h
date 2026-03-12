@@ -17,7 +17,7 @@ class ExportController : public QObject {
     Q_PROPERTY(bool isRunning READ isRunning NOTIFY stateChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY stateChanged)
 public:
-    using StateSnapshotProvider = std::function<std::shared_ptr<const AppState>()>;
+    using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::AppState>()>;
 
     explicit ExportController(StateSnapshotProvider stateSnapshotProvider,
                               std::shared_ptr<ui::exporting::ExportRunner> runner,
@@ -42,7 +42,7 @@ private:
                                               bool includeFormulas,
                                               const QString& locale) const;
     void finishExport(bool success);
-    std::shared_ptr<const AppState> stateSnapshot() const;
+    std::shared_ptr<const core::domain::AppState> stateSnapshot() const;
 
     StateSnapshotProvider stateSnapshotProvider_;
     std::shared_ptr<ui::exporting::ExportRunner> runner_;

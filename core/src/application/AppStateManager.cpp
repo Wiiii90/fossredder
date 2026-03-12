@@ -12,6 +12,11 @@
 #include "core/application/StateHydrator.h"
 #include "core/application/StateProjector.h"
 
+#include "core/models/AppState.h"
+#include "core/models/Actor.h"
+#include "core/models/Analysis.h"
+#include "core/models/Annual.h"
+#include "core/models/Contract.h"
 #include "core/repositories/IActorRepository.h"
 #include "core/repositories/IAnalysisRepository.h"
 #include "core/repositories/IAnnualRepository.h"
@@ -19,85 +24,93 @@
 #include "core/repositories/IPropertyRepository.h"
 #include "core/repositories/IStatementRepository.h"
 #include "core/repositories/ITransactionRepository.h"
+#include "core/storage/RepositoryBundle.h"
 
 #include "core/models/Property.h"
 #include "core/models/Statement.h"
+#include "core/models/Transaction.h"
 
 namespace core::application {
 
-AppStateManager::AppStateManager(Repositories repos) : repos_(std::move(repos)) {}
+namespace {
+
+/** @brief Loads a collection from a repository when the repository is present. */
+template <typename RepoPtr, typename LoadFn>
+auto loadCollection(const RepoPtr& repo, LoadFn&& load)
+{
+    using Collection = std::decay_t<decltype(load(*repo))>;
+    if (!repo) return Collection{};
+    return load(*repo);
+}
+
+/** @brief Upserts a collection into a repository while skipping null items. */
+template <typename RepoPtr, typename Collection, typename UpsertFn>
+void upsertCollection(const RepoPtr& repo, const Collection& items, UpsertFn&& upsert)
+{
+    if (!repo) return;
+    for (const auto& item : items) {
+        if (!item) continue;
+        upsert(*repo, item);
+    }
+}
+
+}
+
+class AppStateManager::Impl {
+public:
+    explicit Impl(Repositories repositories)
+        : repos(std::move(repositories))
+    {
+    }
+
+    Repositories repos;
+    bool strictValidation = false;
+};
+
+AppStateManager::AppStateManager(Repositories repos)
+    : impl_(std::make_unique<Impl>(std::move(repos)))
+{
+}
+
+AppStateManager::~AppStateManager() = default;
+
+AppStateManager::AppStateManager(AppStateManager&&) noexcept = default;
+
+AppStateManager& AppStateManager::operator=(AppStateManager&&) noexcept = default;
 
 AppState AppStateManager::load() {
     AppState state;
 
-    if (repos_.actors) state.actors = repos_.actors->getActors();
-    if (repos_.properties) state.properties = repos_.properties->getProperties();
-    if (repos_.contracts) state.contracts = repos_.contracts->getContracts();
-    if (repos_.statements) state.statements = repos_.statements->getStatements();
-    if (repos_.transactions) state.transactions = repos_.transactions->getTransactions();
-    if (repos_.analyses) {
-        auto vec = repos_.analyses->getAnalyses();
-        state.analyses.clear();
-        for (const auto& a : vec) state.analyses.push_back(a);
-    }
-    if (repos_.annuals) {
-        auto vec = repos_.annuals->getAnnuals();
-        state.annuals.clear();
-        for (const auto& an : vec) state.annuals.push_back(an);
-    }
+    state.actors = loadCollection(impl_->repos.actors, [](const auto& repo) { return repo.getActors(); });
+    state.properties = loadCollection(impl_->repos.properties, [](const auto& repo) { return repo.getProperties(); });
+    state.contracts = loadCollection(impl_->repos.contracts, [](const auto& repo) { return repo.getContracts(); });
+    state.statements = loadCollection(impl_->repos.statements, [](const auto& repo) { return repo.getStatements(); });
+    state.transactions = loadCollection(impl_->repos.transactions, [](const auto& repo) { return repo.getTransactions(); });
+    state.analyses = loadCollection(impl_->repos.analyses, [](const auto& repo) { return repo.getAnalyses(); });
+    state.annuals = loadCollection(impl_->repos.annuals, [](const auto& repo) { return repo.getAnnuals(); });
 
     StateHydrator::rehydrate(state);
-    StateHydrator::validate(state, strictValidation_);
+    StateHydrator::validate(state, impl_->strictValidation);
 
     return state;
 }
 
 void AppStateManager::save(const AppState& state) {
-    AppState projected = StateProjector::prepareForSave(state);
-    StateHydrator::validate(projected, strictValidation_);
+    const AppState projected = StateProjector::prepareForSave(state);
+    StateHydrator::validate(projected, impl_->strictValidation);
 
-    if (repos_.actors) {
-        for (const auto& a : projected.actors) {
-            if (!a) continue;
-            repos_.actors->upsertActor(a);
-        }
-    }
+    upsertCollection(impl_->repos.actors, projected.actors, [](auto& repo, const auto& actor) { repo.upsertActor(actor); });
+    upsertCollection(impl_->repos.properties, projected.properties, [](auto& repo, const auto& property) { repo.upsertProperty(property); });
+    upsertCollection(impl_->repos.contracts, projected.contracts, [](auto& repo, const auto& contract) { repo.upsertContract(contract); });
+    upsertCollection(impl_->repos.statements, projected.statements, [](auto& repo, const auto& statement) { repo.upsertStatement(statement); });
+    upsertCollection(impl_->repos.transactions, projected.transactions, [](auto& repo, const auto& transaction) { repo.upsertTransaction(transaction); });
+    upsertCollection(impl_->repos.analyses, projected.analyses, [](auto& repo, const auto& analysis) { repo.upsertAnalysis(analysis); });
+    upsertCollection(impl_->repos.annuals, projected.annuals, [](auto& repo, const auto& annual) { repo.upsertAnnual(annual); });
+}
 
-    if (repos_.properties) {
-        for (const auto& p : projected.properties) {
-            if (!p) continue;
-            repos_.properties->upsertProperty(p);
-        }
-    }
-
-    if (repos_.contracts) {
-        for (const auto& c : projected.contracts) {
-            if (!c) continue;
-            repos_.contracts->upsertContract(c);
-        }
-    }
-
-    if (repos_.statements) {
-        for (const auto& s : projected.statements) {
-            if (!s) continue;
-            repos_.statements->upsertStatement(s);
-        }
-    }
-
-    if (repos_.transactions) {
-        for (const auto& t : projected.transactions) {
-            if (!t) continue;
-            repos_.transactions->upsertTransaction(t);
-        }
-    }
-
-    if (repos_.analyses) {
-        for (const auto& a : projected.analyses) if (a) repos_.analyses->upsertAnalysis(a);
-    }
-
-    if (repos_.annuals) {
-        for (const auto& an : projected.annuals) if (an) repos_.annuals->upsertAnnual(an);
-    }
+void AppStateManager::setStrictValidation(bool enabled) noexcept
+{
+    impl_->strictValidation = enabled;
 }
 
 }

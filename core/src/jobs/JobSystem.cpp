@@ -1,53 +1,84 @@
+/**
+ * @file core/src/jobs/JobSystem.cpp
+ * @brief Implements the import job orchestration facade.
+ */
+
 #include "core/jobs/JobSystem.h"
 
 #include "core/constants/CoreDefaults.h"
 #include "core/import/IImportStatement.h"
+#include "JobManager.h"
+#include "core/jobs/Scheduler.h"
 
 #include <filesystem>
 #include <thread>
 
-namespace core::jobs {
+namespace {
 
-static std::size_t defaultWorkers() {
-    auto hc = std::thread::hardware_concurrency();
+std::size_t defaultWorkers()
+{
+    const auto hc = std::thread::hardware_concurrency();
     if (hc == 0) return core::constants::jobs::kFallbackWorkerCount;
     if (hc <= 2) return 1;
     return static_cast<std::size_t>(hc - 1);
 }
 
-static std::size_t resolveWorkerCount(std::size_t workers)
+std::size_t resolveWorkerCount(std::size_t workers)
 {
     return workers == 0 ? defaultWorkers() : workers;
 }
 
-JobSystem::JobSystem(std::shared_ptr<IImportStatement> importService, std::size_t workers)
-    : importService_(std::move(importService))
-    , manager_()
-    , scheduler_(resolveWorkerCount(workers), core::constants::jobs::kQueueCapacity)
-    , ocrLimiter_(std::max<std::size_t>(1, resolveWorkerCount(workers) / core::constants::jobs::kOcrWorkerDivisor)) {
 }
 
-JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec) {
-    JobId id = manager_.submitImportStatement(spec);
+namespace core::jobs {
 
-    scheduler_.enqueue([this, id, spec]() {
-        manager_.start(id);
+class JobSystem::Impl {
+public:
+    Impl(std::shared_ptr<IImportStatement> importService, std::size_t workers)
+        : importService(std::move(importService))
+        , manager()
+        , scheduler(resolveWorkerCount(workers), core::constants::jobs::kQueueCapacity)
+        , ocrLimiter(std::max<std::size_t>(std::size_t{1}, resolveWorkerCount(workers) / core::constants::jobs::kOcrWorkerDivisor))
+    {
+    }
+
+    std::shared_ptr<IImportStatement> importService;
+    JobManager manager;
+    Scheduler scheduler;
+    SlotLimiter ocrLimiter;
+};
+
+JobSystem::JobSystem(std::shared_ptr<IImportStatement> importService, std::size_t workers)
+    : impl_(std::make_unique<Impl>(std::move(importService), workers)) {
+}
+
+JobSystem::~JobSystem() = default;
+
+JobSystem::JobSystem(JobSystem&&) noexcept = default;
+
+JobSystem& JobSystem::operator=(JobSystem&&) noexcept = default;
+
+JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec) {
+    JobId id = impl_->manager.submitImportStatement(spec);
+
+    impl_->scheduler.enqueue([this, id, spec]() {
+        impl_->manager.start(id);
 
         try {
-            if (!importService_) {
-                manager_.fail(id, std::string(core::constants::jobs::messages::kImportServiceUnavailable));
+            if (!impl_->importService) {
+                impl_->manager.fail(id, std::string(core::constants::jobs::messages::kImportServiceUnavailable));
                 return;
             }
             if (spec.sourcePath.empty() || !std::filesystem::exists(spec.sourcePath)) {
-                manager_.fail(id, std::string(core::constants::importing::kErrorSourceMissing));
+                impl_->manager.fail(id, std::string(core::constants::importing::kErrorSourceMissing));
                 return;
             }
             if (spec.runRoot.empty()) {
-                manager_.fail(id, std::string(core::constants::importing::kErrorRunRootMissing));
+                impl_->manager.fail(id, std::string(core::constants::importing::kErrorRunRootMissing));
                 return;
             }
 
-            auto cancel = manager_.cancelFlag(id);
+            auto cancel = impl_->manager.cancelFlag(id);
             auto progressCb = [this, id](double p, const std::string& msg) {
                 JobEvent ev;
                 ev.jobId = id;
@@ -56,7 +87,7 @@ JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec) {
                 ev.stage = JobStage::None;
                 ev.progress = p;
                 ev.message = msg;
-                manager_.publish(ev);
+                impl_->manager.publish(ev);
             };
 
             ImportRequest req;
@@ -66,37 +97,72 @@ JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec) {
             req.jobId = id;
             req.progressCallback = std::move(progressCb);
             req.cancelFlag = cancel;
-            req.scheduler = &scheduler_;
-            req.ocrLimiter = &ocrLimiter_;
+            req.scheduler = &impl_->scheduler;
+            req.ocrLimiter = &impl_->ocrLimiter;
 
-            auto result = importService_->importStatement(req);
+            auto result = impl_->importService->importStatement(req);
             if (!result.data) {
-                manager_.fail(id, std::string(core::constants::importing::kErrorExtractionFailed));
+                impl_->manager.fail(id, std::string(core::constants::importing::kErrorExtractionFailed));
                 return;
             }
 
-            manager_.setStatementResult(id, result.data);
-            manager_.setStatementTransactions(id, std::move(result.transactions));
-            manager_.setStatementArtifacts(id, std::move(result.artifacts));
+            impl_->manager.setStatementResult(id, result.data);
+            impl_->manager.setStatementTransactions(id, std::move(result.transactions));
+            impl_->manager.setStatementArtifacts(id, std::move(result.artifacts));
 
             if (cancel && cancel->load()) {
-                manager_.cancel(id);
+                impl_->manager.cancel(id);
                 return;
             }
 
-            manager_.finish(id);
+            impl_->manager.finish(id);
         } catch (const std::exception& ex) {
-            manager_.fail(id, ex.what());
+            impl_->manager.fail(id, ex.what());
         } catch (...) {
-            manager_.fail(id, std::string(core::constants::jobs::messages::kUnknownError));
+            impl_->manager.fail(id, std::string(core::constants::jobs::messages::kUnknownError));
         }
     });
 
     return id;
 }
 
+SubscriptionId JobSystem::subscribe(const JobId& id, JobEventCallback cb)
+{
+    return impl_->manager.subscribe(id, std::move(cb));
+}
+
+void JobSystem::unsubscribe(const JobId& id, SubscriptionId subId)
+{
+    impl_->manager.unsubscribe(id, subId);
+}
+
+void JobSystem::cancel(const JobId& id)
+{
+    impl_->manager.cancel(id);
+}
+
+std::optional<JobSnapshot> JobSystem::snapshot(const JobId& id) const
+{
+    return impl_->manager.snapshot(id);
+}
+
+std::shared_ptr<core::domain::Statement> JobSystem::statementResult(const JobId& id) const
+{
+    return impl_->manager.statementResult(id);
+}
+
+std::vector<ImportedTransaction> JobSystem::statementTransactions(const JobId& id) const
+{
+    return impl_->manager.statementTransactions(id);
+}
+
+std::map<std::string, std::vector<uint8_t>> JobSystem::takeStatementArtifacts(const JobId& id)
+{
+    return impl_->manager.takeStatementArtifacts(id);
+}
+
 void JobSystem::shutdown() {
-    scheduler_.stop();
+    impl_->scheduler.stop();
 }
 
 }

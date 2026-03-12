@@ -1,12 +1,19 @@
 #include "gtest/gtest.h"
 
 #include "core/application/AppStateManager.h"
+#include "core/models/AppState.h"
 
 #include "core/models/Analysis.h"
 #include "core/models/Annual.h"
 
 #include "core/repositories/IAnalysisRepository.h"
 #include "core/repositories/IAnnualRepository.h"
+#include "core/storage/RepositoryBundle.h"
+
+using core::application::AppStateManager;
+using core::domain::Analysis;
+using core::domain::Annual;
+using core::domain::AppState;
 
 class FakeAnalysisRepository : public IAnalysisRepository {
 public:

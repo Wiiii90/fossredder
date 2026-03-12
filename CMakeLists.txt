@@ -1,6 +1,8 @@
 ﻿cmake_minimum_required(VERSION 4.0.1)
 project(FossRedder)
 
+include(CTest)
+
 set(CMAKE_CXX_STANDARD 20)
 
 # MSVC/CMake module dependency scanning has caused unstable diagnostics/build breaks in this repo.

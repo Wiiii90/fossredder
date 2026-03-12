@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/state/SessionStore.cpp
+ * @brief Implements the UI session store and its derived metrics maintenance.
+ */
+
 #include "ui/state/SessionStore.h"
 
 #include <algorithm>
@@ -13,33 +18,7 @@ namespace ui {
 
 namespace {
 
-template <typename RefreshFn>
-void bindSelectionRefresh(QAbstractItemModel& model, QObject* context, RefreshFn&& refresh)
-{
-    auto trigger = [refresh = std::forward<RefreshFn>(refresh)]() mutable {
-        refresh();
-    };
-
-    QObject::connect(&model, &QAbstractItemModel::dataChanged, context, [trigger](const QModelIndex&, const QModelIndex&, const QVector<int>&) mutable {
-        trigger();
-    });
-    QObject::connect(&model, &QAbstractItemModel::rowsInserted, context, [trigger](const QModelIndex&, int, int) mutable {
-        trigger();
-    });
-    QObject::connect(&model, &QAbstractItemModel::rowsRemoved, context, [trigger](const QModelIndex&, int, int) mutable {
-        trigger();
-    });
-    QObject::connect(&model, &QAbstractItemModel::modelReset, context, [trigger]() mutable {
-        trigger();
-    });
-}
-
-template <typename RefreshFn, typename... Models>
-void bindSelectionRefreshes(QObject* context, RefreshFn&& refresh, Models&... models)
-{
-    (bindSelectionRefresh(models, context, refresh), ...);
-}
-
+/** @brief Binds transaction model mutations to metric recomputation hooks. */
 template <typename RecomputeAllFn, typename RecomputeRangeFn>
 void bindTransactionMetricSignals(TransactionList& transactions,
                                   QObject* context,
@@ -84,6 +63,7 @@ void bindTransactionMetricSignals(TransactionList& transactions,
     });
 }
 
+/** @brief Binds analysis model resets to metric cache invalidation. */
 template <typename ClearCacheFn, typename NotifyFn>
 void bindAnalysisMetricSignals(AnalysisList& analyses,
                                QObject* context,
@@ -107,18 +87,6 @@ SessionStore::SessionStore(QObject* parent)
 
 void SessionStore::bindModelSignals()
 {
-    bindSelectionRefreshes(this,
-                           [this]() {
-                               emit selectionRefreshRequested();
-                           },
-                           models_.actors(),
-                           models_.properties(),
-                           models_.contracts(),
-                           models_.statements(),
-                           models_.transactions(),
-                           models_.analyses(),
-                           models_.annuals());
-
     bindTransactionMetricSignals(models_.transactions(),
                                  this,
                                  [this]() {
@@ -193,7 +161,6 @@ void SessionStore::loadFromState(const AppState& state)
     models_.loadFromState(state);
     propertyNames_.rebuild(models_.properties());
     recomputeAllMetrics();
-    emit selectionRefreshRequested();
 }
 
 TransactionFilter* SessionStore::statementTransactions(const QString& statementId, QObject* parent)
@@ -229,7 +196,6 @@ void SessionStore::applyDeletionImpact(const DeletionImpact& impact)
                                               metrics_,
                                               propertyNames_);
     models_.refreshContractTypes();
-    emit selectionRefreshRequested();
 }
 
 void SessionStore::setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds)
@@ -241,7 +207,6 @@ void SessionStore::setTransactionPropertyIdsImmediate(const QString& txId, const
                                                              [this](const QString& propertyId) {
         emit transactionSumsUpdated(propertyId);
     });
-    emit selectionRefreshRequested();
 }
 
 }

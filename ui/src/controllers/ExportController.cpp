@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/controllers/ExportController.cpp
+ * @brief Implements the asynchronous export workflow exposed to the UI.
+ */
+
 #include "ui/controllers/ExportController.h"
 
 #include "ui/controllers/ControllerGuard.h"
@@ -66,7 +71,7 @@ void ExportController::exportData(int format, const QString &path,
         includeFormulas, locale);
     const auto snapshot = stateSnapshot();
     if (!snapshot) {
-      lastError_ = tr(ui::text::controllerErrors::kExportStateUnavailable);
+      lastError_ = ui::text::controllerErrors::exportStateUnavailable();
       emit stateChanged();
       observability::reportFlow(
           core::errors::ErrorSeverity::Warning,
@@ -103,7 +108,7 @@ void ExportController::exportData(int format, const QString &path,
     core::errors::report(
         core::errors::ErrorSeverity::Error, core::errors::codes::ExceptionStd,
         observability::origins::controller::exportFlow::kStart, ex.what());
-    lastError_ = tr(ui::text::controllerErrors::kExportFailed);
+    lastError_ = ui::text::controllerErrors::exportFailed();
     observability::reportFlow(
         core::errors::ErrorSeverity::Error,
         observability::codes::FlowExportFailed,
@@ -115,7 +120,7 @@ void ExportController::exportData(int format, const QString &path,
   } catch (...) {
     controllers::guard::reportException(
         observability::origins::controller::exportFlow::kStart);
-    lastError_ = tr(ui::text::controllerErrors::kExportFailed);
+    lastError_ = ui::text::controllerErrors::exportFailed();
     observability::reportFlow(
         core::errors::ErrorSeverity::Error,
         observability::codes::FlowExportFailed,
@@ -133,7 +138,7 @@ void ExportController::onExportFinished() {
     success = result.success;
     if (!success) {
       lastError_ = result.message.isEmpty()
-                       ? tr(ui::text::controllerErrors::kExportFailed)
+                       ? ui::text::controllerErrors::exportFailed()
                        : result.message;
       core::errors::report(
           core::errors::ErrorSeverity::Warning,
@@ -159,7 +164,7 @@ void ExportController::onExportFinished() {
     core::errors::report(
         core::errors::ErrorSeverity::Error, core::errors::codes::ExceptionStd,
         observability::origins::controller::exportFlow::kFinish, ex.what());
-    lastError_ = tr(ui::text::controllerErrors::kExportFailed);
+    lastError_ = ui::text::controllerErrors::exportFailed();
     observability::reportFlow(
         core::errors::ErrorSeverity::Error,
         observability::codes::FlowExportFailed,
@@ -170,7 +175,7 @@ void ExportController::onExportFinished() {
   } catch (...) {
     controllers::guard::reportException(
         observability::origins::controller::exportFlow::kFinish);
-    lastError_ = tr(ui::text::controllerErrors::kExportFailed);
+    lastError_ = ui::text::controllerErrors::exportFailed();
     observability::reportFlow(
         core::errors::ErrorSeverity::Error,
         observability::codes::FlowExportFailed,

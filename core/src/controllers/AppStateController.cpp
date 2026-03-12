@@ -8,7 +8,10 @@
 
 #include "core/pch.h"
 #include "core/controllers/AppStateController.h"
+
 #include "core/application/DraftFinalizer.h"
+#include "core/application/WorkspaceSession.h"
+#include "core/errors/ErrorReporterRegistry.h"
 
 namespace {
 
@@ -30,6 +33,27 @@ namespace core::controllers {
 
 AppStateController::AppStateController(std::unique_ptr<core::storage::IStorageManager> storageManager)
     : session_(std::make_unique<core::application::WorkspaceSession>(std::move(storageManager))) {
+}
+
+AppStateController::~AppStateController() = default;
+
+AppStateController::AppStateController(AppStateController&&) noexcept = default;
+
+AppStateController& AppStateController::operator=(AppStateController&&) noexcept = default;
+
+const AppState& AppStateController::state() const noexcept
+{
+    return session_->state();
+}
+
+const std::string& AppStateController::currentPath() const noexcept
+{
+    return session_->currentPath();
+}
+
+AppState& AppStateController::mutableState() noexcept
+{
+    return session_->mutableState();
 }
 
 void AppStateController::notifyState() {
@@ -83,12 +107,12 @@ void AppStateController::saveFileAs(const std::string& path) {
 
 std::string AppStateController::addActor(const std::string& name, const std::string& type, const std::string& description)
 {
-    return commitCreated(*this, catalog_.addActor(mutableState(), name, type, description));
+    return commitCreated(*this, catalog_.addActor(mutableState(), {name, type, description}));
 }
 
 void AppStateController::updateActor(const std::string& id, const std::string& name, const std::string& type, const std::string& description)
 {
-    commitIfChanged(*this, catalog_.updateActor(mutableState(), id, name, type, description));
+    commitIfChanged(*this, catalog_.updateActor(mutableState(), id, {name, type, description}));
 }
 
 void AppStateController::deleteActor(const std::string& id)
@@ -98,12 +122,12 @@ void AppStateController::deleteActor(const std::string& id)
 
 std::string AppStateController::addProperty(const std::string& name, const std::string& address, const std::string& description)
 {
-    return commitCreated(*this, catalog_.addProperty(mutableState(), name, address, description));
+    return commitCreated(*this, catalog_.addProperty(mutableState(), {name, address, description}));
 }
 
 void AppStateController::updateProperty(const std::string& id, const std::string& name, const std::string& address, const std::string& description)
 {
-    commitIfChanged(*this, catalog_.updateProperty(mutableState(), id, name, address, description));
+    commitIfChanged(*this, catalog_.updateProperty(mutableState(), id, {name, address, description}));
 }
 
 void AppStateController::deleteProperty(const std::string& id)
@@ -114,13 +138,13 @@ void AppStateController::deleteProperty(const std::string& id)
 std::string AppStateController::addContract(const std::string& name, const std::string& type, const std::string& description,
                                             const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds)
 {
-    return commitCreated(*this, catalog_.addContract(mutableState(), name, type, description, actorIds, propertyIds));
+    return commitCreated(*this, catalog_.addContract(mutableState(), {name, type, description, actorIds, propertyIds}));
 }
 
 void AppStateController::updateContract(const std::string& id, const std::string& name, const std::string& type, const std::string& description,
                                         const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds)
 {
-    commitIfChanged(*this, catalog_.updateContract(mutableState(), id, name, type, description, actorIds, propertyIds));
+    commitIfChanged(*this, catalog_.updateContract(mutableState(), id, {name, type, description, actorIds, propertyIds}));
 }
 
 void AppStateController::deleteContract(const std::string& id)
@@ -158,7 +182,17 @@ std::string AppStateController::addTransaction(const std::string& name,
                                                bool allocatable,
                                                const std::vector<std::string>& propertyIds)
 {
-    return commitCreated(*this, catalog_.addTransaction(mutableState(), name, bookingDate, amount, description, statementId, status, actorId, allocatable, propertyIds));
+    return commitCreated(*this, catalog_.addTransaction(mutableState(), {
+        name,
+        bookingDate,
+        amount,
+        description,
+        statementId,
+        status,
+        actorId,
+        allocatable,
+        propertyIds
+    }));
 }
 
 void AppStateController::updateTransaction(const std::string& id,
@@ -172,7 +206,17 @@ void AppStateController::updateTransaction(const std::string& id,
                                            bool allocatable,
                                            const std::vector<std::string>& propertyIds)
 {
-    commitIfChanged(*this, catalog_.updateTransaction(mutableState(), id, name, bookingDate, amount, description, statementId, status, actorId, allocatable, propertyIds));
+    commitIfChanged(*this, catalog_.updateTransaction(mutableState(), id, {
+        name,
+        bookingDate,
+        amount,
+        description,
+        statementId,
+        status,
+        actorId,
+        allocatable,
+        propertyIds
+    }));
 }
 
 void AppStateController::deleteTransaction(const std::string& id)
@@ -182,12 +226,12 @@ void AppStateController::deleteTransaction(const std::string& id)
 
 std::string AppStateController::addAnalysis(const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec)
 {
-    return commitCreated(*this, catalog_.addAnalysis(mutableState(), name, type, configJson, filterSpec));
+    return commitCreated(*this, catalog_.addAnalysis(mutableState(), {name, type, configJson, filterSpec}));
 }
 
 void AppStateController::updateAnalysis(const std::string& id, const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec)
 {
-    commitIfChanged(*this, catalog_.updateAnalysis(mutableState(), id, name, type, configJson, filterSpec));
+    commitIfChanged(*this, catalog_.updateAnalysis(mutableState(), id, {name, type, configJson, filterSpec}));
 }
 
 void AppStateController::deleteAnalysis(const std::string& id)

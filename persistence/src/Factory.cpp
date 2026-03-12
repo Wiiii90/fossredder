@@ -1,3 +1,8 @@
+/**
+ * @file persistence/src/Factory.cpp
+ * @brief Implements factories for SQLite storage dependencies and repository bundles.
+ */
+
 #include "persistence/Factory.h"
 #include "persistence/repositories/SqliteActorRepository.h"
 #include "persistence/repositories/SqlitePropertyRepository.h"
@@ -24,11 +29,21 @@ std::shared_ptr<IActorRepository> createSqliteActorRepository(const std::shared_
 }
 
 std::shared_ptr<IPropertyRepository> createSqlitePropertyRepository(const std::shared_ptr<SqliteDb>& db) {
-    return std::make_shared<SqlitePropertyRepository>(db);
+    return createSqlitePropertyRepository(db, nullptr);
+}
+
+std::shared_ptr<IPropertyRepository> createSqlitePropertyRepository(const std::shared_ptr<SqliteDb>& db,
+                                                                    std::shared_ptr<core::errors::IErrorReporter> errorReporter) {
+    return std::make_shared<SqlitePropertyRepository>(db, std::move(errorReporter));
 }
 
 std::shared_ptr<IStatementRepository> createSqliteStatementRepository(const std::shared_ptr<SqliteDb>& db) {
-    return std::make_shared<SqliteStatementRepository>(db);
+    return createSqliteStatementRepository(db, nullptr);
+}
+
+std::shared_ptr<IStatementRepository> createSqliteStatementRepository(const std::shared_ptr<SqliteDb>& db,
+                                                                      std::shared_ptr<core::errors::IErrorReporter> errorReporter) {
+    return std::make_shared<SqliteStatementRepository>(db, std::move(errorReporter));
 }
 
 std::shared_ptr<IConfigRepository> createSqliteConfigRepository(const std::shared_ptr<SqliteDb>& db) {
@@ -36,7 +51,12 @@ std::shared_ptr<IConfigRepository> createSqliteConfigRepository(const std::share
 }
 
 std::shared_ptr<ITransactionRepository> createSqliteTransactionRepository(const std::shared_ptr<SqliteDb>& db) {
-    return std::make_shared<SqliteTransactionRepository>(db);
+    return createSqliteTransactionRepository(db, nullptr);
+}
+
+std::shared_ptr<ITransactionRepository> createSqliteTransactionRepository(const std::shared_ptr<SqliteDb>& db,
+                                                                          std::shared_ptr<core::errors::IErrorReporter> errorReporter) {
+    return std::make_shared<SqliteTransactionRepository>(db, std::move(errorReporter));
 }
 
 std::shared_ptr<IContractRepository> createSqliteContractRepository(const std::shared_ptr<SqliteDb>& db) {
@@ -52,12 +72,17 @@ std::shared_ptr<IAnnualRepository> createSqliteAnnualRepository(const std::share
 }
 
 core::storage::RepositoryBundle createSqliteRepositoryBundle(const std::shared_ptr<SqliteDb>& db) {
+    return createSqliteRepositoryBundle(db, nullptr);
+}
+
+core::storage::RepositoryBundle createSqliteRepositoryBundle(const std::shared_ptr<SqliteDb>& db,
+                                                             std::shared_ptr<core::errors::IErrorReporter> errorReporter) {
     core::storage::RepositoryBundle bundle;
     bundle.actors = createSqliteActorRepository(db);
-    bundle.properties = createSqlitePropertyRepository(db);
+    bundle.properties = createSqlitePropertyRepository(db, errorReporter);
     bundle.contracts = createSqliteContractRepository(db);
-    bundle.statements = createSqliteStatementRepository(db);
-    bundle.transactions = createSqliteTransactionRepository(db);
+    bundle.statements = createSqliteStatementRepository(db, errorReporter);
+    bundle.transactions = createSqliteTransactionRepository(db, std::move(errorReporter));
     bundle.analyses = createSqliteAnalysisRepository(db);
     bundle.annuals = createSqliteAnnualRepository(db);
     return bundle;

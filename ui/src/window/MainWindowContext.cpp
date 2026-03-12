@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/window/MainWindowContext.cpp
+ * @brief Implements main window service wiring between widgets, QML and controllers.
+ */
+
 #include "ui/window/MainWindowContext.h"
 
 #include <QAction>
@@ -30,7 +35,7 @@ MainWindowServices installMainWindowContext(QQuickWidget &quickWidget,
   auto *fileSystem = new ui::FileSystemController(parent);
   services.fileWorkflow = new ui::workflows::FileWorkflow(parentWindow, parent);
   services.status = new ui::StatusState(parent);
-  services.status->setText(QObject::tr(ui::text::status::kReady));
+  services.status->setText(ui::text::status::ready());
 
   if (auto *context = quickWidget.rootContext()) {
     context->setContextProperty(ui::qml::contracts::context::kActions,
@@ -137,8 +142,7 @@ void wireMainWindowActions(MainWindow &window,
             emit actions->importFileSelected(files.first());
           if (status)
             status->setText(
-                QObject::tr(ui::text::mainWindow::kSelectedStatusPattern)
-                    .arg(files.front()));
+                ui::text::mainWindow::selectedStatusPattern().arg(files.front()));
         }
       });
 
@@ -154,8 +158,7 @@ void wireMainWindowActions(MainWindow &window,
           emit actions->exportFileSelected(file);
           if (status)
             status->setText(
-                QObject::tr(ui::text::mainWindow::kExportPathStatusPattern)
-                    .arg(file));
+                ui::text::mainWindow::exportPathStatusPattern().arg(file));
         }
       });
 }

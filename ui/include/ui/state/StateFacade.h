@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/StateFacade.h
+ * @brief Declares the aggregated session and selection facade exposed to QML.
+ */
+
 #pragma once
 
 #include <QObject>
@@ -6,13 +11,18 @@
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
 #include "ui/models/TransactionFilter.h"
-#include "ui/state/SelectionState.h"
+#include "ui/state/SessionSelection.h"
 #include "ui/state/SessionStore.h"
 
 namespace ui {
 
+/**
+ * @brief Aggregates session data and current selection state for the UI.
+ */
 class StateFacade : public QObject {
     Q_OBJECT
+    Q_PROPERTY(SessionStore* session READ session CONSTANT)
+    Q_PROPERTY(SessionSelection* selection READ selection CONSTANT)
     Q_PROPERTY(ActorList* actors READ actors CONSTANT)
     Q_PROPERTY(PropertyList* properties READ properties CONSTANT)
     Q_PROPERTY(ContractList* contracts READ contracts CONSTANT)
@@ -40,7 +50,13 @@ class StateFacade : public QObject {
     Q_PROPERTY(QVariant lastAnalysisResult READ lastAnalysisResult WRITE setLastAnalysisResult NOTIFY lastAnalysisResultChanged)
 
 public:
+    /** @brief Creates the facade and its owned session state objects. */
     explicit StateFacade(QObject* parent = nullptr);
+
+    /** @brief Returns the session store that owns UI model collections and metrics. */
+    SessionStore* session() noexcept;
+    /** @brief Returns the selection state synchronized with the current session models. */
+    SessionSelection* selection() noexcept;
 
     ActorList* actors() noexcept;
     PropertyList* properties() noexcept;
@@ -50,7 +66,8 @@ public:
     AnalysisList* analyses() noexcept;
     AnnualList* annuals() noexcept;
 
-    void loadFromState(const AppState& state);
+    /** @brief Loads the UI session from the supplied application state snapshot. */
+    void loadFromState(const core::domain::AppState& state);
 
     QString selectedActorId() const;
     QString selectedPropertyId() const;
@@ -76,18 +93,26 @@ public:
     AnalysisSelection* selectedAnalysis();
     AnnualSelection* selectedAnnual();
 
+    /** @brief Returns transaction ids that belong to the given statement. */
     Q_INVOKABLE QVariantList statementTransactionIds(const QString& statementId) const;
+    /** @brief Returns a live filter over transactions that belong to the given statement. */
     Q_INVOKABLE TransactionFilter* statementTransactions(const QString& statementId);
+    /** @brief Returns a live filter over transactions assigned to the given property. */
     Q_INVOKABLE TransactionFilter* propertyTransactions(const QString& propertyId);
+    /** @brief Returns the distinct contract types currently associated with a property. */
     Q_INVOKABLE QStringList propertyContractTypes(const QString& propertyId) const;
+    /** @brief Returns computed transaction sums for a property and optional contract type. */
     Q_INVOKABLE QVariantMap propertyTransactionSums(const QString& propertyId, const QString& contractType = QString()) const;
+    /** @brief Resolves a property id to its display name. */
     Q_INVOKABLE QString propertyName(const QString& id) const;
 
-    Q_INVOKABLE void applyDeletionImpact(const DeletionImpact& impact);
+    /** @brief Applies deletion side effects from the domain layer to UI state. */
+    Q_INVOKABLE void applyDeletionImpact(const core::domain::DeletionImpact& impact);
+    /** @brief Updates property assignments for a transaction without a full reload. */
     Q_INVOKABLE void setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds);
 
-    QVariant lastAnalysisResult() const { return lastAnalysisResult_; }
-    void setLastAnalysisResult(const QVariant& v) { if (lastAnalysisResult_ == v) return; lastAnalysisResult_ = v; emit lastAnalysisResultChanged(); }
+    QVariant lastAnalysisResult() const { return selection_.lastAnalysisResult(); }
+    void setLastAnalysisResult(const QVariant& value) { selection_.setLastAnalysisResult(value); }
 
 signals:
     void selectedActorIdChanged();
@@ -101,10 +126,8 @@ signals:
     void lastAnalysisResultChanged();
 
 private:
-    SessionStore store_;
-    SelectionState selection_;
-
-    QVariant lastAnalysisResult_;
+    SessionStore session_;
+    SessionSelection selection_;
 };
 
 }

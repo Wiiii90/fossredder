@@ -1,10 +1,6 @@
 /**
- * @file main_qml.cpp
- * @brief QML startup implementation.
- *
- * This translation unit implements `startQmlApp` which initializes the main
- * window, registers UI controllers and services, connects signals/slots and
- * starts the Qt event loop.
+ * @file app/src/main_qml.cpp
+ * @brief Boots the QML application shell and wires UI-facing services.
  */
 
 #ifdef USE_QML
@@ -16,17 +12,21 @@
 #include "api/tesseract/ITesseractAdapter.h"
 #include "api/tesseract/ITesseractService.h"
 #include "core/application/AnalysisService.h"
-#include "core/controllers/CsvController.h"
 #include "core/controllers/ExportController.h"
-#include "core/controllers/XlsxController.h"
-#include "core/errors/DebuggerErrorReporter.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
-#include "core/export/ExportOptions.h"
+#include "core/export/ExportRequest.h"
+#include "core/export/ExportResult.h"
+#include "core/export/ExportTypes.h"
 #include "core/import/IImportStatement.h"
 #include "core/jobs/JobSystem.h"
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
+#include "debug/DebugDefaults.h"
+
+using core::domain::AppState;
+using core::domain::DeletionImpact;
+#include "debug/ErrorReporter.h"
 #include "debug/FileDebugger.h"
 #include "ui/observability/ErrorCodes.h"
 #include "ui/bootstrap/QmlContracts.h"
@@ -86,13 +86,13 @@ createTesseractService(std::shared_ptr<ITesseractAdapter> adapter);
 
 namespace {
 
-core::controllers::exporting::ExportOptions::Format
+core::controllers::exporting::ExportFormat
 toCoreExportFormat(ui::controllers::contracts::ExportFormat format) {
   switch (format) {
   case ui::controllers::contracts::ExportFormat::Csv:
-    return core::controllers::exporting::ExportOptions::Format::Csv;
+    return core::controllers::exporting::ExportFormat::Csv;
   case ui::controllers::contracts::ExportFormat::Xlsx:
-    return core::controllers::exporting::ExportOptions::Format::Xlsx;
+    return core::controllers::exporting::ExportFormat::Xlsx;
   default:
     ui::observability::reportFlow(
         core::errors::ErrorSeverity::Warning,
@@ -101,29 +101,26 @@ toCoreExportFormat(ui::controllers::contracts::ExportFormat format) {
         "Unknown export format, fallback to CSV",
         {{ui::observability::context::kFormat,
           std::to_string(static_cast<int>(format))}});
-    return core::controllers::exporting::ExportOptions::Format::Csv;
+    return core::controllers::exporting::ExportFormat::Csv;
   }
 }
 
 ui::exporting::ExportResult
 executeExport(std::shared_ptr<const AppState> snapshot,
               const ui::exporting::ExportRequest &request) {
-  core::controllers::exporting::ExportOptions options;
-  options.outputPath = request.path.toStdString();
-  options.includeFormulas = request.includeFormulas;
-  options.locale = request.locale.toStdString();
-  options.stateSnapshot = std::move(snapshot);
-  options.requestedFormat = toCoreExportFormat(request.format);
+  core::controllers::exporting::ExportRequest exportRequest;
+  exportRequest.outputPath = request.path.toStdString();
+  exportRequest.includeFormulas = request.includeFormulas;
+  exportRequest.locale = request.locale.toStdString();
+  exportRequest.stateSnapshot = std::move(snapshot);
+  exportRequest.format = toCoreExportFormat(request.format);
 
-  auto csv = std::make_shared<core::controllers::exporting::CsvController>();
-  auto xlsx = std::make_shared<core::controllers::exporting::XlsxController>();
-  core::controllers::exporting::ExportController exporter(xlsx, csv);
-  exporter.exportData(options);
+  core::controllers::exporting::ExportController exporter;
+  const auto result = exporter.exportData(exportRequest);
 
-  return {options.status ==
-              core::controllers::exporting::ExportOptions::Status::Ok,
-          QString::fromStdString(options.errorCode),
-          QString::fromStdString(options.message)};
+  return {result.status == core::controllers::exporting::ExportStatus::Ok,
+          QString::fromStdString(result.errorCode),
+          QString::fromStdString(result.message)};
 }
 
 struct UiControllers {
@@ -194,7 +191,8 @@ UiControllers setupUiControllers(
   w.setQmlContextProperty(ui::qml::contracts::context::kLanguageController,
                           ui.language);
 
-  auto dbg = std::make_shared<FileDebugger>("", "import");
+  auto dbg = std::make_shared<FileDebugger>(
+      "", std::string(debug::defaults::kImportProcessName));
   auto popplerAdapter = createPopplerAdapter(dbg);
   auto opencvAdapter = createOpenCvAdapter(dbg);
   auto tesseractAdapter = createTesseractAdapter(dbg);
@@ -206,8 +204,7 @@ UiControllers setupUiControllers(
   auto importSvc = createImportStatement(poppler, opencv, tesseract, dbg);
   auto jobSystem = std::make_shared<core::jobs::JobSystem>(importSvc);
 
-  ui.import = new ui::ImportController(jobSystem, &w);
-  ui.import->setErrorReporter(errorReporter);
+  ui.import = new ui::ImportController(jobSystem, errorReporter, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kImportController,
                           ui.import);
 
@@ -300,8 +297,7 @@ int startQmlApp(QApplication &app, core::controllers::AppStateController &appSta
 
   auto errorReporter = core::errors::globalErrorReporter();
   if (!errorReporter) {
-    errorReporter = std::make_shared<core::errors::DebuggerErrorReporter>(
-        std::make_shared<FileDebugger>("", "errors"));
+    errorReporter = debug::createDefaultErrorReporter();
     core::errors::setGlobalErrorReporter(errorReporter);
   }
   appStateCtrl.setErrorReporter(errorReporter);

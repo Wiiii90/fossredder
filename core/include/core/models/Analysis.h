@@ -29,4 +29,3 @@ public:
 
 }
 
-using Analysis = core::domain::Analysis;

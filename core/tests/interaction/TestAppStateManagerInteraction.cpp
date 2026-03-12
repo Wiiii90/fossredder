@@ -8,6 +8,7 @@
 #include "core/models/Contract.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
+#include "core/storage/RepositoryBundle.h"
 
 #include "mocks/MockActorRepository.h"
 #include "mocks/MockPropertyRepository.h"
@@ -18,6 +19,13 @@
 using ::testing::Return;
 using ::testing::NiceMock;
 using ::testing::_;
+using core::application::AppStateManager;
+using core::domain::Actor;
+using core::domain::AppState;
+using core::domain::Contract;
+using core::domain::Property;
+using core::domain::Statement;
+using core::domain::Transaction;
 
 TEST(AppStateManagerInteraction, Save_calls_all_repo_upserts) {
     AppStateManager::Repositories repos;

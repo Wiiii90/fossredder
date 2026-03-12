@@ -24,7 +24,7 @@ struct TransactionDraft {
     bool allocatable = false;
 
     // Default to Unverified so new transactions require user verification
-    int status = static_cast<int>(Transaction::Status::Unverified);
+    int status = static_cast<int>(core::domain::Transaction::Status::Unverified);
 
     // Associated property ids (UI-level)
     QStringList propertyIds;

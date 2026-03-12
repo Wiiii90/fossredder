@@ -1,13 +1,16 @@
+/**
+ * @file core/include/core/application/AnalysisService.h
+ * @brief Declares application-level analysis execution services.
+ */
+
 #pragma once
 
-#include "core/analysis/AnalysisEngine.h"
 #include "core/models/AnalysisResult.h"
 
+#include <memory>
 #include <string>
-#include <vector>
 
 namespace core::domain {
-class Analysis;
 struct AppState;
 }
 
@@ -15,14 +18,21 @@ namespace core::application {
 
 class AnalysisService {
 public:
-    AnalysisResult computeAnalysisById(const core::domain::AppState& state,
+    AnalysisService();
+    ~AnalysisService();
+
+    AnalysisService(const AnalysisService&) = delete;
+    AnalysisService& operator=(const AnalysisService&) = delete;
+    AnalysisService(AnalysisService&&) noexcept;
+    AnalysisService& operator=(AnalysisService&&) noexcept;
+
+    core::domain::AnalysisResult computeAnalysisById(const core::domain::AppState& state,
                                        const std::string& analysisId,
                                        const std::string& filterSpec = {}) const;
 
-    std::vector<std::string> contractTypes(const core::domain::AppState& state) const;
-
 private:
-    core::analysis::AnalysisEngine engine_;
+    class Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 }

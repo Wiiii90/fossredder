@@ -7,8 +7,10 @@
 
 namespace debug {
 
-static std::mutex mtx;
-static std::string current_run;
+namespace {
+    std::mutex mtx;
+    std::string current_run;
+} // namespace
 
 std::string startRun(const std::string& processName) {
     std::lock_guard<std::mutex> g(mtx);

@@ -1,7 +1,11 @@
+/**
+ * @file ui/src/dialogs/FileDialogs.cpp
+ * @brief Implements reusable native file dialog entry points for the UI.
+ */
+
 #include "ui/dialogs/FileDialogs.h"
 
 #include <QFileDialog>
-#include <QObject>
 
 #include "ui/text/Text.h"
 
@@ -9,36 +13,36 @@ namespace ui::dialogs {
 
 QStringList pickImportFiles(QWidget* parent, const QString& filter)
 {
-    return QFileDialog::getOpenFileNames(parent, QObject::tr(ui::text::dialogs::kSelectPdfTitle), QString(), filter);
-}
+    return QFileDialog::getOpenFileNames(parent, ui::text::dialogs::selectPdfTitle(), QString(), filter);
+} // namespace ui::dialogs
 
 QString pickExportFile(QWidget* parent, const QString& filter)
 {
-    return QFileDialog::getSaveFileName(parent, QObject::tr(ui::text::dialogs::kExportFileTitle), QString(), filter);
+    return QFileDialog::getSaveFileName(parent, ui::text::dialogs::exportFileTitle(), QString(), filter);
 }
 
 QString pickNewStorageFile(QWidget* parent)
 {
     return QFileDialog::getSaveFileName(parent,
-                                        QObject::tr(ui::text::dialogs::kNewFileTitle),
+                                        ui::text::dialogs::newFileTitle(),
                                         QString(),
-                                        QObject::tr(ui::text::dialogs::kDatabaseFilter));
+                                        ui::text::dialogs::databaseFilter());
 }
 
 QString pickOpenStorageFile(QWidget* parent)
 {
     return QFileDialog::getOpenFileName(parent,
-                                        QObject::tr(ui::text::dialogs::kOpenFileTitle),
+                                        ui::text::dialogs::openFileTitle(),
                                         QString(),
-                                        QObject::tr(ui::text::dialogs::kDatabaseFilter));
+                                        ui::text::dialogs::databaseFilter());
 }
 
 QString pickSaveStorageFileAs(QWidget* parent)
 {
     return QFileDialog::getSaveFileName(parent,
-                                        QObject::tr(ui::text::dialogs::kSaveFileAsTitle),
+                                        ui::text::dialogs::saveFileAsTitle(),
                                         QString(),
-                                        QObject::tr(ui::text::dialogs::kDatabaseFilter));
+                                        ui::text::dialogs::databaseFilter());
 }
 
 }

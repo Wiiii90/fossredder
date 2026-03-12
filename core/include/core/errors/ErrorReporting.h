@@ -1,7 +1,13 @@
+/**
+ * @file core/include/core/errors/ErrorReporting.h
+ * @brief Provides shared helpers for reporting structured errors and exceptions.
+ */
+
 #pragma once
 
 #include <exception>
 
+#include "core/errors/ErrorEventFactory.h"
 #include "core/errors/IErrorReporter.h"
 
 namespace core::errors {

@@ -7,9 +7,9 @@
 
 namespace ui {
 
-class ContractList : public models::IndexedListModel<Contract> {
+class ContractList : public models::IndexedListModel<core::domain::Contract> {
     Q_OBJECT
-    using Base = models::IndexedListModel<Contract>;
+    using Base = models::IndexedListModel<core::domain::Contract>;
 
 public:
     enum Roles {
@@ -31,8 +31,8 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void setContracts(std::vector<std::shared_ptr<Contract>> contracts) { setItems(std::move(contracts)); }
-    const std::vector<std::shared_ptr<Contract>>& contracts() const { return items(); }
+    void setContracts(std::vector<std::shared_ptr<core::domain::Contract>> contracts) { setItems(std::move(contracts)); }
+    const std::vector<std::shared_ptr<core::domain::Contract>>& contracts() const { return items(); }
     int findRowById(const QString& id) const { return findIndexedRow(id); }
 
     Q_INVOKABLE int addContract(const QString& name, const QString& type, const QString& description);

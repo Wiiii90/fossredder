@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace core::domain {
-class Analysis;
+class core::domain::Analysis;
 }
 
 class IAnalysisRepository {

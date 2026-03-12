@@ -1,22 +1,18 @@
+/**
+ * @file core/include/core/controllers/ExportController.h
+ * @brief Declares the export entry point used by the application shell.
+ */
+
 #pragma once
 
-#include <memory>
-#include "core/export/ExportOptions.h"
+#include "core/export/ExportRequest.h"
+#include "core/export/ExportResult.h"
 
 namespace core::controllers::exporting {
 
-class XlsxController;
-class CsvController;
-
 class ExportController {
 public:
-    explicit ExportController(std::shared_ptr<XlsxController> xlsx, std::shared_ptr<CsvController> csv);
-
-    ExportOptions::Status exportData(ExportOptions& opts);
-
-private:
-    std::shared_ptr<XlsxController> xlsx_;
-    std::shared_ptr<CsvController> csv_;
+    ExportResult exportData(const ExportRequest& request) const;
 };
 
 } // namespace core::controllers::exporting

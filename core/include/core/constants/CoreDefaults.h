@@ -5,6 +5,12 @@
 
 namespace core::constants {
 
+namespace runtime {
+inline constexpr std::string_view kQtStyle = "Fusion";
+inline constexpr std::string_view kAppDataDirectoryName = ".fossredder";
+inline constexpr std::string_view kDatabaseFileName = "fossredder.db";
+}
+
 namespace ids {
 inline constexpr std::size_t kStableHexLength = 32;
 inline constexpr std::string_view kHexAlphabet = "0123456789abcdef";
@@ -143,7 +149,7 @@ inline constexpr std::string_view kRunning = "Running";
 inline constexpr std::string_view kFinished = "Finished";
 inline constexpr std::string_view kFailed = "Failed";
 inline constexpr std::string_view kCanceled = "Canceled";
-inline constexpr std::string_view kImportServiceUnavailable = "Statement import service not available";
+inline constexpr std::string_view kImportServiceUnavailable = "core::domain::Statement import service not available";
 inline constexpr std::string_view kUnknownError = "Unknown error";
 }
 }
@@ -180,7 +186,7 @@ inline constexpr std::string_view kProgressExtractedMessage = "Extracted text";
 inline constexpr std::string_view kProgressDoneMessage = "Done";
 inline constexpr std::string_view kErrorSourceMissing = "Source statement file does not exist";
 inline constexpr std::string_view kErrorRunRootMissing = "Import run root is not configured";
-inline constexpr std::string_view kErrorExtractionFailed = "Statement extraction failed";
+inline constexpr std::string_view kErrorExtractionFailed = "core::domain::Statement extraction failed";
 inline constexpr std::string_view kMetricsArtifactName = "metrics.json";
 inline constexpr std::string_view kTableTesseractPrefix = "tesseract_extract_table_page";
 

@@ -4,6 +4,9 @@
 #include "core/models/AppState.h"
 #include "core/models/Transaction.h"
 
+using core::domain::AppState;
+using core::domain::Transaction;
+
 TEST(FilterTests, MatchesQuotedDateAndAmountClauses)
 {
     auto tx = std::make_shared<Transaction>();

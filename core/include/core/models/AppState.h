@@ -45,5 +45,3 @@ struct AppState {
 };
 
 }
-
-using AppState = core::domain::AppState;

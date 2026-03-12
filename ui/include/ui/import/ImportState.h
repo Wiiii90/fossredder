@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/import/ImportState.h
+ * @brief Declares the mutable UI-side state for the statement import workflow.
+ */
+
 #pragma once
 
 #include <map>
@@ -58,7 +63,11 @@ public:
     void updateProgress(double progress, const QString& phase, const QRegularExpression& pagePattern);
 
 private:
+    void clearDraftObject();
     void clearTransientImportState();
+    void resetCancellationState();
+    void storeArtifacts(const std::map<std::string, std::vector<uint8_t>>& artifacts);
+    void finalizeRun(const QString& now, const QString& phase, const QString& status, const QString& message = {});
     void appendRun(const QString& now, const QString& status, const QString& message);
 
     ImportRunList& runs_;

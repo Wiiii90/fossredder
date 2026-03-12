@@ -5,9 +5,9 @@
 
 namespace ui {
 
-class AnalysisList : public models::IndexedListModel<Analysis> {
+class AnalysisList : public models::IndexedListModel<core::domain::Analysis> {
     Q_OBJECT
-    using Base = models::IndexedListModel<Analysis>;
+    using Base = models::IndexedListModel<core::domain::Analysis>;
 public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
@@ -23,8 +23,8 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void setAnalyses(std::vector<std::shared_ptr<Analysis>> analyses);
-    const std::vector<std::shared_ptr<Analysis>>& analyses() const { return items(); }
+    void setAnalyses(std::vector<std::shared_ptr<core::domain::Analysis>> analyses);
+    const std::vector<std::shared_ptr<core::domain::Analysis>>& analyses() const { return items(); }
     int findRowById(const QString& id) const { return findIndexedRow(id); }
 
     Q_INVOKABLE int addAnalysis(const QString& name, const QString& type);
@@ -33,9 +33,9 @@ public:
     Q_INVOKABLE void setAdjustmentsById(const QString& id, const QString& json);
 
 private:
-    static QString adjustmentsJsonFor(const Analysis& analysis);
+    static QString adjustmentsJsonFor(const core::domain::Analysis& analysis);
     void rebuildAdjustmentsCache();
-    void updateAdjustmentsCache(const Analysis& analysis);
+    void updateAdjustmentsCache(const core::domain::Analysis& analysis);
 
     QHash<QString, QString> adjustmentsJsonById_;
 };

@@ -1,5 +1,14 @@
+/**
+ * @file debug/src/SpdlogDebugger.cpp
+ * @brief Implements a debugger backend that mirrors events to spdlog sinks.
+ */
+
 #include "debug/pch.h"
+#include "debug/DebugDefaults.h"
 #include "debug/SpdlogDebugger.h"
+
+#include <filesystem>
+
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/rotating_file_sink.h>
@@ -11,7 +20,12 @@ SpdlogDebugger::SpdlogDebugger(const std::string& loggerName, std::shared_ptr<ID
 {
     try {
         auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/fossredder.log", 1024 * 1024 * 5, 3);
+        const std::filesystem::path logPath(debug::defaults::kSpdlogFilePath);
+        if (logPath.has_parent_path()) std::filesystem::create_directories(logPath.parent_path());
+        auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+            logPath.string(),
+            debug::defaults::kSpdlogFileSizeBytes,
+            debug::defaults::kSpdlogFileCount);
         spdlog::sinks_init_list sinks{console_sink, file_sink};
         m_logger_ = std::make_shared<spdlog::logger>(loggerName, sinks.begin(), sinks.end());
         spdlog::register_logger(m_logger_);
@@ -38,7 +52,7 @@ void SpdlogDebugger::writeText(const std::string& relPath, const std::string& te
     if (!m_enabled_) return;
 
     try {
-        if (relPath.rfind("poppler/meta/", 0) == 0) {
+        if (relPath.rfind(std::string(debug::defaults::kPopplerMetadataPrefix), 0) == 0) {
             if (m_backend_) {
                 try { m_backend_->writeText(relPath, text); } catch (...) { if (m_logger_) m_logger_->warn("backend writeText failed for {}", relPath); }
             }

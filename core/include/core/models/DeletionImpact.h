@@ -20,4 +20,3 @@ struct DeletionImpact {
 
 }
 
-using DeletionImpact = core::domain::DeletionImpact;

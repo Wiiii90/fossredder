@@ -25,5 +25,3 @@ public:
 };
 
 }
-
-using Actor = core::domain::Actor;

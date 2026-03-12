@@ -1,6 +1,9 @@
-#include "persistence/AppStateStore.h"
+/**
+ * @file persistence/src/AppStateStore.cpp
+ * @brief Implements SQLite-backed persistence for the aggregate application state.
+ */
 
-#include <sqlite3.h>
+#include "persistence/AppStateStore.h"
 
 #include "core/application/AppStateManager.h"
 #include "core/models/Actor.h"
@@ -21,131 +24,124 @@
 #include "persistence/SqliteTransaction.h"
 #include "persistence/Factory.h"
 
-#include <cstdio>
 #include <unordered_set>
 
-// Deleted legacy numeric-id delete/remap helpers
+namespace {
 
-static long long db_count(sqlite3* db, const char* sql) {
-    sqlite3_stmt* stmt = nullptr;
-    long long out = -1;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) return -1;
-    if (sqlite3_step(stmt) == SQLITE_ROW) out = sqlite3_column_int64(stmt, 0);
-    sqlite3_finalize(stmt);
-    return out;
+/** @brief Collects stable ids from a repository result collection. */
+template <typename Collection>
+std::unordered_set<std::string> collectIds(const Collection& items)
+{
+    std::unordered_set<std::string> ids;
+    ids.reserve(items.size());
+    for (const auto& item : items) {
+        if (item && !item->id.empty()) ids.insert(item->id);
+    }
+    return ids;
 }
 
-AppStateStore::AppStateStore(std::shared_ptr<SqliteDb> db) : db_(std::move(db)) {}
+/** @brief Loads a repository collection and extracts its stable ids. */
+template <typename RepoPtr, typename LoadFn>
+std::unordered_set<std::string> collectRepositoryIds(const RepoPtr& repo, LoadFn&& load)
+{
+    if (!repo) return {};
+    return collectIds(load(*repo));
+}
 
-AppState AppStateStore::load() {
+/** @brief Deletes rows that no longer exist in the new application state snapshot. */
+template <typename RepoPtr, typename DeleteFn>
+void deleteStaleIds(const RepoPtr& repo,
+                    const std::unordered_set<std::string>& existingIds,
+                    const std::unordered_set<std::string>& currentIds,
+                    DeleteFn&& remove,
+                    std::vector<std::string>* deletedIds = nullptr)
+{
+    if (!repo) return;
+    for (const auto& id : existingIds) {
+        if (currentIds.contains(id)) continue;
+        remove(*repo, id);
+        if (deletedIds) deletedIds->push_back(id);
+    }
+}
+
+}
+
+AppStateStore::AppStateStore(std::shared_ptr<SqliteDb> db)
+    : db_(std::move(db)) {}
+
+AppState AppStateStore::load()
+{
     auto repos = createSqliteRepositoryBundle(db_);
     core::application::AppStateManager mgr(std::move(repos));
-    AppState state = mgr.load();
-
-    
-
-    return state;
+    return mgr.load();
 }
 
-AppStateStoreResult AppStateStore::save(const AppState& state) {
+AppStateStoreResult AppStateStore::save(const AppState& state)
+{
     AppStateStoreResult result;
 
     auto repos = createSqliteRepositoryBundle(db_);
-    auto txRepo = repos.transactions;
-
     SqliteTransaction tx(db_->handle());
 
-    
+    const auto existingTransactionIds = collectRepositoryIds(
+        repos.transactions, [](const auto& repo) { return repo.getTransactions(); });
+    const auto existingStatementIds = collectRepositoryIds(
+        repos.statements, [](const auto& repo) { return repo.getStatements(); });
+    const auto existingContractIds = collectRepositoryIds(
+        repos.contracts, [](const auto& repo) { return repo.getContracts(); });
+    const auto existingActorIds = collectRepositoryIds(
+        repos.actors, [](const auto& repo) { return repo.getActors(); });
+    const auto existingPropertyIds = collectRepositoryIds(
+        repos.properties, [](const auto& repo) { return repo.getProperties(); });
+    const auto existingAnalysisIds = collectRepositoryIds(
+        repos.analyses, [](const auto& repo) { return repo.getAnalyses(); });
+    const auto existingAnnualIds = collectRepositoryIds(
+        repos.annuals, [](const auto& repo) { return repo.getAnnuals(); });
 
-    // DB counts before save
-    long long beforeTx = db_count(db_->handle(), "SELECT COUNT(*) FROM transactions;");
-    long long beforeRel = db_count(db_->handle(), "SELECT COUNT(*) FROM transaction_properties;");
-    
+    const auto newTransactionIds = collectIds(state.transactions);
+    const auto newStatementIds = collectIds(state.statements);
+    const auto newContractIds = collectIds(state.contracts);
+    const auto newActorIds = collectIds(state.actors);
+    const auto newPropertyIds = collectIds(state.properties);
+    const auto newAnalysisIds = collectIds(state.analyses);
+    const auto newAnnualIds = collectIds(state.annuals);
 
-    // Persist current state (upserts).
+    deleteStaleIds(repos.transactions,
+                   existingTransactionIds,
+                   newTransactionIds,
+                   [](auto& repo, const std::string& id) { repo.removeTransaction(id); },
+                   &result.impact.deletedTransactionIds);
+    deleteStaleIds(repos.statements,
+                   existingStatementIds,
+                   newStatementIds,
+                   [](auto& repo, const std::string& id) { repo.removeStatement(id); },
+                   &result.impact.deletedStatementIds);
+    deleteStaleIds(repos.contracts,
+                   existingContractIds,
+                   newContractIds,
+                   [](auto& repo, const std::string& id) { repo.removeContract(id); },
+                   &result.impact.deletedContractIds);
+    deleteStaleIds(repos.actors,
+                   existingActorIds,
+                   newActorIds,
+                   [](auto& repo, const std::string& id) { repo.removeActor(id); },
+                   &result.impact.deletedActorIds);
+    deleteStaleIds(repos.properties,
+                   existingPropertyIds,
+                   newPropertyIds,
+                   [](auto& repo, const std::string& id) { repo.removeProperty(id); },
+                   &result.impact.deletedPropertyIds);
+    deleteStaleIds(repos.analyses,
+                   existingAnalysisIds,
+                   newAnalysisIds,
+                   [](auto& repo, const std::string& id) { repo.removeAnalysis(id); });
+    deleteStaleIds(repos.annuals,
+                   existingAnnualIds,
+                   newAnnualIds,
+                   [](auto& repo, const std::string& id) { repo.removeAnnual(id); });
+
     core::application::AppStateManager mgr(std::move(repos));
     mgr.save(state);
-
-    auto collectActorIds = [&](const auto& vec) {
-        std::unordered_set<std::string> ids;
-        ids.reserve(vec.size());
-        for (const auto& item : vec) {
-            if (!item || item->id.empty()) continue;
-            ids.insert(item->id);
-        }
-        return ids;
-    };
-
-    const auto actorIds = collectActorIds(state.actors);
-    const auto propertyIds = collectActorIds(state.properties);
-    const auto contractIds = collectActorIds(state.contracts);
-    const auto statementIds = collectActorIds(state.statements);
-    const auto transactionIds = collectActorIds(state.transactions);
-    const auto analysisIds = collectActorIds(state.analyses);
-    const auto annualIds = collectActorIds(state.annuals);
-
-    if (txRepo) {
-        for (const auto& t : txRepo->getTransactions()) {
-            if (!t || t->id.empty()) continue;
-            if (transactionIds.find(t->id) != transactionIds.end()) continue;
-            txRepo->removeTransaction(t->id);
-            result.impact.deletedTransactionIds.push_back(t->id);
-        }
-    }
-
-    if (repos.statements) {
-        for (const auto& s : repos.statements->getStatements()) {
-            if (!s || s->id.empty()) continue;
-            if (statementIds.find(s->id) != statementIds.end()) continue;
-            repos.statements->removeStatement(s->id);
-            result.impact.deletedStatementIds.push_back(s->id);
-        }
-    }
-
-    if (repos.contracts) {
-        for (const auto& c : repos.contracts->getContracts()) {
-            if (!c || c->id.empty()) continue;
-            if (contractIds.find(c->id) != contractIds.end()) continue;
-            repos.contracts->removeContract(c->id);
-            result.impact.deletedContractIds.push_back(c->id);
-        }
-    }
-
-    if (repos.actors) {
-        for (const auto& a : repos.actors->getActors()) {
-            if (!a || a->id.empty()) continue;
-            if (actorIds.find(a->id) != actorIds.end()) continue;
-            repos.actors->removeActor(a->id);
-            result.impact.deletedActorIds.push_back(a->id);
-        }
-    }
-
-    if (repos.properties) {
-        for (const auto& p : repos.properties->getProperties()) {
-            if (!p || p->id.empty()) continue;
-            if (propertyIds.find(p->id) != propertyIds.end()) continue;
-            repos.properties->removeProperty(p->id);
-            result.impact.deletedPropertyIds.push_back(p->id);
-        }
-    }
-
-    if (repos.analyses) {
-        for (const auto& a : repos.analyses->getAnalyses()) {
-            if (!a || a->id.empty()) continue;
-            if (analysisIds.find(a->id) != analysisIds.end()) continue;
-            repos.analyses->removeAnalysis(a->id);
-        }
-    }
-
-    if (repos.annuals) {
-        for (const auto& an : repos.annuals->getAnnuals()) {
-            if (!an || an->id.empty()) continue;
-            if (annualIds.find(an->id) != annualIds.end()) continue;
-            repos.annuals->removeAnnual(an->id);
-        }
-    }
-
-    
 
     tx.commit();
     return result;

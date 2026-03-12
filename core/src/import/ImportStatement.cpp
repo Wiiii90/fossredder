@@ -8,7 +8,7 @@
 
 #include "core/pch.h"
 #include "core/import/IImportStatement.h"
-#include "core/import/IImportStatementStrategy.h"
+#include "ImportStatementStrategy.h"
 
 #include <memory>
 

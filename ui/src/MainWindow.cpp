@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/MainWindow.cpp
+ * @brief Implements the desktop main window hosting the QML UI surface.
+ */
+
 #include "MainWindow.h"
 
 #include <QCloseEvent>
@@ -28,6 +33,7 @@ namespace {
 
 using ui::observability::context::kError;
 
+/** @brief Keeps the QML root object's size properties aligned with the widget size. */
 void syncRootObjectSize(QQuickWidget *quickWidget) {
   if (!quickWidget || !quickWidget->rootObject())
     return;
@@ -188,7 +194,7 @@ void MainWindow::handleStorageOperationFailed(const QString &operation,
     return;
 
   const QString message =
-      error.isEmpty() ? tr(ui::text::controllerErrors::kStorageSaveFailed)
+      error.isEmpty() ? ui::text::controllerErrors::storageSaveFailed()
                       : error;
   if (status_)
     status_->setText(message);
@@ -201,6 +207,6 @@ void MainWindow::handleStorageOperationFailed(const QString &operation,
 }
 
 void MainWindow::onAbout() {
-  QMessageBox::about(this, tr(ui::text::mainWindow::kAboutTitle),
-                     tr(ui::text::mainWindow::kAboutBody));
+  QMessageBox::about(this, ui::text::mainWindow::aboutTitle(),
+                     ui::text::mainWindow::aboutBody());
 }

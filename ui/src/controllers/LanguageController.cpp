@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/controllers/LanguageController.cpp
+ * @brief Implements runtime language switching and translation loading for the UI.
+ */
+
 #include "ui/controllers/LanguageController.h"
 
 #include <QApplication>
@@ -15,13 +20,23 @@ namespace ui {
 
 namespace {
 
-QVariantMap makeLanguageOption(const char* code, const char* label, bool available)
+/** @brief Creates the payload for a single language option entry. */
+QVariantMap makeLanguageOption(const char* code, const QString& label, bool available)
 {
     QVariantMap option;
     option.insert(payload::keys::language::kCode, QString::fromLatin1(code));
-    option.insert(payload::keys::language::kLabel, QString::fromLatin1(label));
+    option.insert(payload::keys::language::kLabel, label);
     option.insert(payload::keys::language::kAvailable, available);
     return option;
+}
+
+/** @brief Opens the stable per-user settings store used by the language controller. */
+QSettings openLanguageSettings()
+{
+    return QSettings(QSettings::NativeFormat,
+                     QSettings::UserScope,
+                     ui::config::kSettingsOrganizationName,
+                     ui::config::kSettingsApplicationName);
 }
 
 }
@@ -31,9 +46,9 @@ LanguageController::LanguageController(QApplication* application, QQmlEngine* en
     , application_(application)
     , engine_(engine)
 {
-    availableLanguages_.append(makeLanguageOption(ui::config::kLanguageEnglishCode, ui::text::language::kEnglishLabel, true));
+    availableLanguages_.append(makeLanguageOption(ui::config::kLanguageEnglishCode, ui::text::language::englishLabel(), true));
     availableLanguages_.append(makeLanguageOption(ui::config::kLanguageGermanCode,
-                                                  ui::text::language::kGermanLabel,
+                                                  ui::text::language::germanLabel(),
                                                   translationFileExists(ui::config::kLanguageGermanCode)));
 
     const QString preferredLanguage = normalizeLanguageCode(persistedLanguage());
@@ -119,15 +134,17 @@ void LanguageController::retranslateUi()
 
 void LanguageController::persistLanguage(const QString& languageCode)
 {
-    QSettings settings;
+    auto settings = openLanguageSettings();
     settings.setValue(ui::config::kLanguageSettingsKey, languageCode);
+    settings.sync();
 }
 
 QString LanguageController::persistedLanguage() const
 {
-    QSettings settings;
     const QString fallbackLanguage = normalizeLanguageCode(QLocale::system().name());
-    return settings.value(ui::config::kLanguageSettingsKey, fallbackLanguage).toString();
+    auto settings = openLanguageSettings();
+    return normalizeLanguageCode(
+        settings.value(ui::config::kLanguageSettingsKey, fallbackLanguage).toString());
 }
 
 }

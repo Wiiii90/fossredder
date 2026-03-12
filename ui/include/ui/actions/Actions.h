@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/actions/Actions.h
+ * @brief Declares QAction wrappers exposed to the UI layer and QML.
+ */
+
 #pragma once
 
 #include <QObject>
@@ -7,6 +12,9 @@ class QAction;
 
 namespace ui {
 
+/**
+ * @brief Owns the main window actions and exposes them to QML.
+ */
 class Actions : public QObject {
     Q_OBJECT
     Q_PROPERTY(QAction* newFileAction READ newFileAction CONSTANT)

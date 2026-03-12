@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/controllers/AnalysisController.cpp
+ * @brief Implements the UI controller for analysis creation and execution.
+ */
+
 #include "ui/controllers/AnalysisController.h"
 
 #include "core/application/AnalysisService.h"
@@ -16,18 +21,20 @@ namespace ui {
 
 namespace {
 
+/** @brief Reports that no analysis service was configured for the controller. */
 void reportMissingAnalysisService() {
   core::errors::report(core::errors::ErrorSeverity::Warning,
                        core::errors::codes::GenericError,
                        observability::origins::controller::analysis::kCompute,
-                       ui::text::controllerErrors::kAnalysisEngineUnavailable);
+                       ui::text::controllerErrors::analysisEngineUnavailable().toStdString());
 }
 
+/** @brief Reports that no application state snapshot is currently available. */
 void reportMissingAnalysisState() {
   core::errors::report(core::errors::ErrorSeverity::Warning,
                        core::errors::codes::GenericError,
                        observability::origins::controller::analysis::kCompute,
-                       ui::text::controllerErrors::kAnalysisStateUnavailable);
+                       ui::text::controllerErrors::analysisStateUnavailable().toStdString());
 }
 
 } // namespace
@@ -86,16 +93,15 @@ AnalysisController::computeAnalysis(const QString &analysisId,
 }
 
 QStringList AnalysisController::getContractTypes() const {
-  const auto snapshot = stateSnapshot();
-  if (!snapshot)
-    return {};
-
-  QStringList values;
-  for (const auto &type : analysisService_ ? analysisService_->contractTypes(*snapshot)
-                                           : std::vector<std::string>{}) {
-    values.push_back(QString::fromStdString(type));
-  }
-  return values;
+  return controllers::guard::invokeValue<QStringList>(
+      core_, observability::origins::controller::analysis::kCompute, {},
+      [&]() {
+        QStringList values;
+        for (const auto &type : core_->contractTypes()) {
+          values.push_back(QString::fromStdString(type));
+        }
+        return values;
+      });
 }
 
 std::shared_ptr<const AppState> AnalysisController::stateSnapshot() const {

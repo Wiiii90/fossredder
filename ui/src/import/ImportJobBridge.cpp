@@ -1,7 +1,10 @@
+/**
+ * @file ui/src/import/ImportJobBridge.cpp
+ * @brief Implements the bridge between the UI import workflow and the core job system.
+ */
+
 #include "ui/import/ImportJobBridge.h"
 
-#include "core/errors/ErrorCodes.h"
-#include "core/errors/ErrorReporterRegistry.h"
 #include "core/jobs/JobSystem.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
@@ -12,14 +15,8 @@ namespace {
 
 void reportBridgeException(const ExceptionReporter &exceptionReporter,
                            const char *origin) {
-  if (exceptionReporter) {
+  if (exceptionReporter)
     exceptionReporter(origin, std::current_exception());
-    return;
-  }
-
-  core::errors::reportException(core::errors::ErrorSeverity::Error,
-                                core::errors::codes::ExceptionError, origin,
-                                std::current_exception());
 }
 
 } // namespace
@@ -28,22 +25,25 @@ ImportJobBridge::ImportJobBridge(
     std::shared_ptr<core::jobs::JobSystem> jobSystem)
     : jobSystem_(std::move(jobSystem)) {}
 
-ImportJobBridge::~ImportJobBridge() { clearSubscription(ExceptionReporter{}); }
+ImportJobBridge::~ImportJobBridge() { clearSubscription(); }
+
+void ImportJobBridge::setExceptionReporter(ExceptionReporter reporter) {
+  exceptionReporter_ = std::move(reporter);
+}
 
 bool ImportJobBridge::startStatementImport(
     const core::jobs::ImportStatementJobSpec &spec,
-    core::jobs::JobEventCallback callback,
-    const ExceptionReporter &exceptionReporter) {
+    core::jobs::JobEventCallback callback) {
   if (!jobSystem_)
     return false;
 
   try {
-    clearSubscription(exceptionReporter);
+    clearSubscription();
 
     const auto jobId = jobSystem_->startImportStatement(spec);
     currentJobId_ = QString::fromStdString(jobId);
 
-    currentSubId_ = jobSystem_->manager().subscribe(
+    currentSubId_ = jobSystem_->subscribe(
         jobId, [this, callback = std::move(callback)](
                    const core::jobs::JobEvent &event) {
           if (currentJobId_.isEmpty())
@@ -58,16 +58,14 @@ bool ImportJobBridge::startStatementImport(
   } catch (const std::exception &) {
     currentSubId_ = 0;
     currentJobId_.clear();
-    reportBridgeException(
-        exceptionReporter,
-        observability::origins::service::importJobBridge::kStartImport);
+    reportBridgeException(exceptionReporter_,
+                          observability::origins::service::importJobBridge::kStartImport);
     return false;
   } catch (...) {
     currentSubId_ = 0;
     currentJobId_.clear();
-    reportBridgeException(
-        exceptionReporter,
-        observability::origins::service::importJobBridge::kStartImport);
+    reportBridgeException(exceptionReporter_,
+                          observability::origins::service::importJobBridge::kStartImport);
     return false;
   }
 }
@@ -75,11 +73,10 @@ bool ImportJobBridge::startStatementImport(
 void ImportJobBridge::cancelCurrent() {
   if (!jobSystem_ || currentJobId_.isEmpty())
     return;
-  jobSystem_->manager().cancel(strings::toStdString(currentJobId_));
+  jobSystem_->cancel(strings::toStdString(currentJobId_));
 }
 
-void ImportJobBridge::clearSubscription(
-    const ExceptionReporter &exceptionReporter) {
+void ImportJobBridge::clearSubscription() {
   if (!jobSystem_ || currentSubId_ == 0 || currentJobId_.isEmpty()) {
     currentSubId_ = 0;
     currentJobId_.clear();
@@ -87,16 +84,13 @@ void ImportJobBridge::clearSubscription(
   }
 
   try {
-    jobSystem_->manager().unsubscribe(strings::toStdString(currentJobId_),
-                                      currentSubId_);
+    jobSystem_->unsubscribe(strings::toStdString(currentJobId_), currentSubId_);
   } catch (const std::exception &) {
-    reportBridgeException(
-        exceptionReporter,
-        observability::origins::service::importJobBridge::kClearSubscription);
+    reportBridgeException(exceptionReporter_,
+                          observability::origins::service::importJobBridge::kClearSubscription);
   } catch (...) {
-    reportBridgeException(
-        exceptionReporter,
-        observability::origins::service::importJobBridge::kClearSubscription);
+    reportBridgeException(exceptionReporter_,
+                          observability::origins::service::importJobBridge::kClearSubscription);
   }
 
   currentSubId_ = 0;
@@ -106,22 +100,19 @@ void ImportJobBridge::clearSubscription(
 std::shared_ptr<core::domain::Statement> ImportJobBridge::statementResult() const {
   if (!jobSystem_ || currentJobId_.isEmpty())
     return nullptr;
-  return jobSystem_->manager().statementResult(
-      strings::toStdString(currentJobId_));
+  return jobSystem_->statementResult(strings::toStdString(currentJobId_));
 }
 
 std::vector<ImportedTransaction> ImportJobBridge::statementTransactions() const {
   if (!jobSystem_ || currentJobId_.isEmpty())
     return {};
-  return jobSystem_->manager().statementTransactions(
-      strings::toStdString(currentJobId_));
+  return jobSystem_->statementTransactions(strings::toStdString(currentJobId_));
 }
 
 std::map<std::string, std::vector<uint8_t>> ImportJobBridge::takeArtifacts() {
   if (!jobSystem_ || currentJobId_.isEmpty())
     return {};
-  return jobSystem_->manager().takeStatementArtifacts(
-      strings::toStdString(currentJobId_));
+  return jobSystem_->takeStatementArtifacts(strings::toStdString(currentJobId_));
 }
 
 } // namespace ui::importing

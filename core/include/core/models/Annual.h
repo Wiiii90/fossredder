@@ -43,4 +43,3 @@ public:
 
 }
 
-using Annual = core::domain::Annual;

@@ -19,7 +19,7 @@ public:
                                        double amount,
                                        const QString& description,
                                        const QString& statementId,
-                                       int status = static_cast<int>(Transaction::Status::Neutral),
+                                       int status = static_cast<int>(core::domain::Transaction::Status::Neutral),
                                        const QString& actorId = QString(),
                                        bool allocatable = false,
                                        const QStringList& propertyIds = {});

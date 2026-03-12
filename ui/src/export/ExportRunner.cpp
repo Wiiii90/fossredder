@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/export/ExportRunner.cpp
+ * @brief Implements guarded export execution against state snapshots.
+ */
+
 #include "ui/export/ExportRunner.h"
 
 #include <string>
@@ -16,27 +21,29 @@ ExportRunner::ExportRunner(ExecuteExportFn execute)
 ExportResult ExportRunner::run(std::shared_ptr<const AppState> state,
                                const ExportRequest &request) const {
   if (!execute_) {
+    const QString message = ui::text::exportRunner::runnerUnavailable();
     ui::observability::reportFlow(
         core::errors::ErrorSeverity::Warning,
         ui::observability::codes::FlowExportFailed,
         ui::observability::origins::service::exportRunner::kRun,
-        ui::text::exportRunner::kRunnerUnavailable);
+        message.toStdString());
     return {
         false,
         QString::fromLatin1(ui::config::errorCodes::kExportRunnerUnavailable),
-        QString::fromLatin1(ui::text::exportRunner::kRunnerUnavailable)};
+        message};
   }
 
   if (!state) {
+    const QString message = ui::text::exportRunner::stateSnapshotUnavailable();
     ui::observability::reportFlow(
         core::errors::ErrorSeverity::Warning,
         ui::observability::codes::FlowExportFailed,
         ui::observability::origins::service::exportRunner::kRun,
-        ui::text::exportRunner::kStateSnapshotUnavailable);
+        message.toStdString());
     return {
         false,
         QString::fromLatin1(ui::config::errorCodes::kExportRunnerUnavailable),
-        QString::fromLatin1(ui::text::exportRunner::kStateSnapshotUnavailable)};
+        message};
   }
 
   return execute_(std::move(state), request);

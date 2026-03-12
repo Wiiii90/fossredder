@@ -50,6 +50,7 @@ set(UI_SOURCES
     src/state/MetricsState.cpp
     src/state/NavigationState.cpp
     src/state/PropertyNameCatalog.cpp
+    src/state/SessionSelection.cpp
     src/state/SelectionState.cpp
     src/state/SessionModels.cpp
     src/state/SessionMutationState.cpp
@@ -116,6 +117,7 @@ set(UI_HEADERS
     include/ui/state/NavigationState.h
     include/ui/state/AppStateClone.h
     include/ui/state/PropertyNameCatalog.h
+    include/ui/state/SessionSelection.h
     include/ui/state/SelectionState.h
     include/ui/state/SessionModels.h
     include/ui/state/SessionMutationState.h
@@ -185,8 +187,8 @@ target_link_libraries(ui_lib PUBLIC core_lib debug_lib)
 
 # Precompiled header
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.h")
-        target_precompile_headers(ui_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.h")
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/ui/pch.h")
+        target_precompile_headers(ui_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/ui/pch.h")
     endif()
 endif()
 

@@ -1,4 +1,9 @@
-#include "core/analysis/OutputTypeResolver.h"
+/**
+ * @file core/src/analysis/OutputTypeResolver.cpp
+ * @brief Implements private output-type resolution helpers for the analysis engine.
+ */
+
+#include "OutputTypeResolver.h"
 
 #include "core/constants/CoreDefaults.h"
 #include "core/errors/ErrorCodes.h"

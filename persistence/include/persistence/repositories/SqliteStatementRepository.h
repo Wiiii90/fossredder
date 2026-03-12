@@ -1,5 +1,11 @@
+/**
+ * @file persistence/include/persistence/repositories/SqliteStatementRepository.h
+ * @brief Declares the SQLite-backed statement repository.
+ */
+
 #pragma once
 
+#include "core/errors/IErrorReporter.h"
 #include "core/repositories/IStatementRepository.h"
 #include <memory>
 #include <string>
@@ -9,7 +15,9 @@ class SqliteDb;
 class SqliteStatementRepository : public IStatementRepository {
 public:
     explicit SqliteStatementRepository(const std::string& dbPath);
+    SqliteStatementRepository(const std::string& dbPath, std::shared_ptr<core::errors::IErrorReporter> errorReporter);
     explicit SqliteStatementRepository(std::shared_ptr<SqliteDb> db);
+    SqliteStatementRepository(std::shared_ptr<SqliteDb> db, std::shared_ptr<core::errors::IErrorReporter> errorReporter);
     ~SqliteStatementRepository() override;
 
     void addStatement(const std::shared_ptr<core::domain::Statement>& statement) override;

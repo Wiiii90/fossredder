@@ -1,4 +1,12 @@
+/**
+ * @file core/src/application/CatalogService.cpp
+ * @brief Implements application services for mutating catalog entities in the app state.
+ */
+
 #include "core/application/CatalogService.h"
+
+#include "CatalogDraftAppliers.h"
+#include "CatalogMutationHelpers.h"
 
 #include "core/models/Actor.h"
 #include "core/models/Analysis.h"
@@ -8,148 +16,37 @@
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
 #include "core/utils/StableId.h"
+#include "core/utils/Util.h"
 
-#include <algorithm>
-#include <cctype>
 #include <unordered_set>
 
 namespace {
-
-template <typename Collection, typename Configure>
-std::string appendEntity(Collection& collection, Configure&& configure)
-{
-    using Entity = typename Collection::value_type::element_type;
-    auto entity = std::make_shared<Entity>();
-    entity->id = core::utils::makeStableId();
-    configure(*entity);
-    const auto id = entity->id;
-    collection.push_back(std::move(entity));
-    return id;
-}
-
-template <typename Collection, typename Update>
-bool updateEntity(Collection& collection, const std::string& id, Update&& update)
-{
-    if (id.empty()) return false;
-    for (auto& entity : collection) {
-        if (!entity || entity->id != id) continue;
-        update(*entity);
-        return true;
-    }
-    return false;
-}
-
-template <typename Collection>
-bool eraseEntity(Collection& collection, const std::string& id)
-{
-    if (id.empty()) return false;
-    const auto originalSize = collection.size();
-    collection.erase(std::remove_if(collection.begin(), collection.end(), [&](const auto& entity) {
-        return entity && entity->id == id;
-    }), collection.end());
-    return collection.size() != originalSize;
-}
-
-void resetTransientTransactionFields(Transaction& tx)
-{
-    tx.valuta.clear();
-}
-
-void applyActorDraft(Actor& actor,
-                     const std::string& name,
-                     const std::string& type,
-                     const std::string& description)
-{
-    actor.name = name;
-    actor.type = type;
-    actor.description = description;
-}
-
-void applyPropertyDraft(Property& property,
-                        const std::string& name,
-                        const std::string& address,
-                        const std::string& description)
-{
-    property.name = name;
-    property.address = address;
-    property.description = description;
-}
-
-void applyContractDraft(Contract& contract,
-                        const std::string& name,
-                        const std::string& type,
-                        const std::string& description,
-                        const std::vector<std::string>& actorIds,
-                        const std::vector<std::string>& propertyIds)
-{
-    contract.name = name;
-    contract.type = type;
-    contract.description = description;
-    contract.actorIds = actorIds;
-    contract.propertyIds = propertyIds;
-}
-
-void applyStatementName(Statement& statement, const std::string& name)
-{
-    statement.name = name;
-}
-
-void applyAnalysisDraft(Analysis& analysis,
-                        const std::string& name,
-                        const std::string& type,
-                        const std::string& configJson,
-                        const std::string& filterSpec)
-{
-    analysis.name = name;
-    analysis.type = type;
-    analysis.configJson = configJson;
-    analysis.filterSpec = filterSpec;
-}
-
-void applyAnnualDraft(Annual& annual, int year)
-{
-    annual.year = year;
-}
-
-void applyTransactionDraft(Transaction& tx,
-                          const std::string& name,
-                          const std::string& bookingDate,
-                          double amount,
-                          const std::string& description,
-                          const std::string& statementId,
-                          Transaction::Status status,
-                          const std::string& actorId,
-                          bool allocatable,
-                          const std::vector<std::string>& propertyIds)
-{
-    tx.name = name;
-    tx.bookingDate = bookingDate;
-    tx.amount = amount;
-    tx.description = description;
-    tx.statementId = statementId;
-    tx.status = status;
-    tx.actorId = actorId;
-    tx.allocatable = allocatable;
-    tx.propertyIds = propertyIds;
-}
-
-bool isBlank(const std::string& value)
-{
-    return std::all_of(value.begin(), value.end(), [](unsigned char c) { return std::isspace(c) != 0; });
-}
 
 }
 
 namespace core::application {
 
-std::string CatalogService::addActor(AppState& state, const std::string& name, const std::string& type, const std::string& description) const
+using detail::appendEntity;
+using detail::updateEntity;
+using detail::eraseEntity;
+using detail::resetTransientTransactionFields;
+using detail::applyActorDraft;
+using detail::applyPropertyDraft;
+using detail::applyContractDraft;
+using detail::applyStatementName;
+using detail::applyAnalysisDraft;
+using detail::applyAnnualDraft;
+using detail::applyTransactionDraft;
+using detail::isBlank;
+
+std::string CatalogService::addActor(AppState& state, const ActorInput& input) const
 {
-    return appendEntity(state.actors, [&](Actor& actor) { applyActorDraft(actor, name, type, description); });
+    return appendEntity(state.actors, [&](Actor& actor) { applyActorDraft(actor, input); });
 }
 
-bool CatalogService::updateActor(AppState& state, const std::string& id, const std::string& name, const std::string& type, const std::string& description) const
+bool CatalogService::updateActor(AppState& state, const std::string& id, const ActorInput& input) const
 {
-    return updateEntity(state.actors, id, [&](Actor& actor) { applyActorDraft(actor, name, type, description); });
+    return updateEntity(state.actors, id, [&](Actor& actor) { applyActorDraft(actor, input); });
 }
 
 bool CatalogService::deleteActor(AppState& state, const std::string& id) const
@@ -157,14 +54,14 @@ bool CatalogService::deleteActor(AppState& state, const std::string& id) const
     return eraseEntity(state.actors, id);
 }
 
-std::string CatalogService::addProperty(AppState& state, const std::string& name, const std::string& address, const std::string& description) const
+std::string CatalogService::addProperty(AppState& state, const PropertyInput& input) const
 {
-    return appendEntity(state.properties, [&](Property& property) { applyPropertyDraft(property, name, address, description); });
+    return appendEntity(state.properties, [&](Property& property) { applyPropertyDraft(property, input); });
 }
 
-bool CatalogService::updateProperty(AppState& state, const std::string& id, const std::string& name, const std::string& address, const std::string& description) const
+bool CatalogService::updateProperty(AppState& state, const std::string& id, const PropertyInput& input) const
 {
-    return updateEntity(state.properties, id, [&](Property& property) { applyPropertyDraft(property, name, address, description); });
+    return updateEntity(state.properties, id, [&](Property& property) { applyPropertyDraft(property, input); });
 }
 
 bool CatalogService::deleteProperty(AppState& state, const std::string& id) const
@@ -172,16 +69,14 @@ bool CatalogService::deleteProperty(AppState& state, const std::string& id) cons
     return eraseEntity(state.properties, id);
 }
 
-std::string CatalogService::addContract(AppState& state, const std::string& name, const std::string& type, const std::string& description,
-                                        const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds) const
+std::string CatalogService::addContract(AppState& state, const ContractInput& input) const
 {
-    return appendEntity(state.contracts, [&](Contract& contract) { applyContractDraft(contract, name, type, description, actorIds, propertyIds); });
+    return appendEntity(state.contracts, [&](Contract& contract) { applyContractDraft(contract, input); });
 }
 
-bool CatalogService::updateContract(AppState& state, const std::string& id, const std::string& name, const std::string& type, const std::string& description,
-                                    const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds) const
+bool CatalogService::updateContract(AppState& state, const std::string& id, const ContractInput& input) const
 {
-    return updateEntity(state.contracts, id, [&](Contract& contract) { applyContractDraft(contract, name, type, description, actorIds, propertyIds); });
+    return updateEntity(state.contracts, id, [&](Contract& contract) { applyContractDraft(contract, input); });
 }
 
 bool CatalogService::deleteContract(AppState& state, const std::string& id) const
@@ -212,24 +107,20 @@ bool CatalogService::deleteStatement(AppState& state, const std::string& id) con
     return removedStatement || state.transactions.size() != originalTransactionCount;
 }
 
-std::string CatalogService::addTransaction(AppState& state, const std::string& name, const std::string& bookingDate, double amount,
-                                           const std::string& description, const std::string& statementId, Transaction::Status status,
-                                           const std::string& actorId, bool allocatable, const std::vector<std::string>& propertyIds) const
+std::string CatalogService::addTransaction(AppState& state, const TransactionInput& input) const
 {
-    if (isBlank(statementId)) return {};
+    if (isBlank(input.statementId)) return {};
 
     return appendEntity(state.transactions, [&](Transaction& tx) {
-        applyTransactionDraft(tx, name, bookingDate, amount, description, statementId, status, actorId, allocatable, propertyIds);
+        applyTransactionDraft(tx, input);
         resetTransientTransactionFields(tx);
     });
 }
 
-bool CatalogService::updateTransaction(AppState& state, const std::string& id, const std::string& name, const std::string& bookingDate, double amount,
-                                       const std::string& description, const std::string& statementId, Transaction::Status status,
-                                       const std::string& actorId, bool allocatable, const std::vector<std::string>& propertyIds) const
+bool CatalogService::updateTransaction(AppState& state, const std::string& id, const TransactionInput& input) const
 {
     return updateEntity(state.transactions, id, [&](Transaction& tx) {
-        applyTransactionDraft(tx, name, bookingDate, amount, description, statementId, status, actorId, allocatable, propertyIds);
+        applyTransactionDraft(tx, input);
     });
 }
 
@@ -238,14 +129,14 @@ bool CatalogService::deleteTransaction(AppState& state, const std::string& id) c
     return eraseEntity(state.transactions, id);
 }
 
-std::string CatalogService::addAnalysis(AppState& state, const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec) const
+std::string CatalogService::addAnalysis(AppState& state, const AnalysisInput& input) const
 {
-    return appendEntity(state.analyses, [&](Analysis& analysis) { applyAnalysisDraft(analysis, name, type, configJson, filterSpec); });
+    return appendEntity(state.analyses, [&](Analysis& analysis) { applyAnalysisDraft(analysis, input); });
 }
 
-bool CatalogService::updateAnalysis(AppState& state, const std::string& id, const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec) const
+bool CatalogService::updateAnalysis(AppState& state, const std::string& id, const AnalysisInput& input) const
 {
-    return updateEntity(state.analyses, id, [&](Analysis& analysis) { applyAnalysisDraft(analysis, name, type, configJson, filterSpec); });
+    return updateEntity(state.analyses, id, [&](Analysis& analysis) { applyAnalysisDraft(analysis, input); });
 }
 
 bool CatalogService::deleteAnalysis(AppState& state, const std::string& id) const
@@ -275,9 +166,11 @@ std::vector<std::string> CatalogService::contractTypes(const AppState& state) co
     values.reserve(state.contracts.size());
 
     for (const auto& contract : state.contracts) {
-        if (!contract || contract->type.empty()) continue;
-        if (!seen.insert(contract->type).second) continue;
-        values.push_back(contract->type);
+        if (!contract) continue;
+        const std::string type = ::utils::trim(contract->type);
+        if (type.empty()) continue;
+        if (!seen.insert(type).second) continue;
+        values.push_back(type);
     }
 
     std::sort(values.begin(), values.end());

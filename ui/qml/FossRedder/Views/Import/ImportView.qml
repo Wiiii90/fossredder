@@ -32,7 +32,7 @@ Item {
         for (var i = 0; i < paths.length; ++i) {
             var p = String(paths[i])
             if (!p || p.length === 0) continue
-            if (p.toLowerCase().endsWith(FileFormats.dotExtension(FileFormats.importSources.pdf.extension))) pdfs.push(p)
+            if (FileFormats.isSupportedImportPath(p)) pdfs.push(p)
         }
         if (pdfs.length === 0) return
 
@@ -84,7 +84,7 @@ Item {
                                     Label { text: qsTr("Source"); Layout.preferredWidth: Theme.formLabelWidth }
                                     Controls.ComboBox {
                                         id: sourceKind
-                                        model: [FileFormats.importSources.pdf.label]
+                                        model: FileFormats.supportedImportSourceLabels()
                                         currentIndex: 0
                                     }
                                 }
@@ -94,7 +94,7 @@ Item {
                                     Label { text: qsTr("Strategy"); Layout.preferredWidth: Theme.formLabelWidth }
                                     Controls.ComboBox {
                                         id: strategy
-                                        model: [qsTr("Commerzbank26")]
+                                        model: FileFormats.supportedStatementStrategyLabels()
                                         currentIndex: 0
                                     }
                                 }
