@@ -9,8 +9,8 @@ namespace ui {
 
 StateFacade::StateFacade(QObject* parent)
     : QObject(parent)
-    , session_(this)
-    , selection_(session_.models(), this)
+    , session_()
+    , selection_(session_.models())
 {
     QObject::connect(&session_, &SessionStore::transactionSumsUpdated, this, &StateFacade::transactionSumsUpdated);
     QObject::connect(&selection_, &SessionSelection::selectedActorIdChanged, this, &StateFacade::selectedActorIdChanged);

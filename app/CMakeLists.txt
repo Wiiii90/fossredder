@@ -40,6 +40,14 @@ target_compile_features(fossredder PUBLIC cxx_std_20)
 if(MSVC)
     # Ensure __cplusplus reflects the chosen language standard in MSVC
     target_compile_options(fossredder PRIVATE /Zc:__cplusplus)
+
+    if (WIN32)
+        target_link_options(fossredder PRIVATE
+            "$<$<CONFIG:Debug>:/SUBSYSTEM:CONSOLE>"
+            "$<$<NOT:$<CONFIG:Debug>>:/SUBSYSTEM:WINDOWS>"
+            "$<$<NOT:$<CONFIG:Debug>>:/ENTRY:mainCRTStartup>"
+        )
+    endif()
 endif()
 
 # Place runtime output into a predictable folder under the build tree
@@ -136,12 +144,12 @@ if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
     set(_qt_bin_debug "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin")
 
     if(MSVC)
-        set(_dbg_env "$<$<CONFIG:Debug>:PATH=${_qt_bin_debug}$<SEMICOLON>QT_DEBUG_PLUGINS=1$<SEMICOLON>VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR}$<SEMICOLON>QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:fossredder>/platforms$<SEMICOLON>QML2_IMPORT_PATH=$<TARGET_FILE_DIR:fossredder>/qml>")
-        set(_rel_env "$<$<CONFIG:Release>:PATH=${_qt_bin_release}$<SEMICOLON>VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR}$<SEMICOLON>QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:fossredder>/platforms$<SEMICOLON>QML2_IMPORT_PATH=$<TARGET_FILE_DIR:fossredder>/qml>")
+        set(_target_dir_macro "$(TargetDir)")
+        set(_dbg_env "$<$<CONFIG:Debug>:PATH=${_qt_bin_debug}$<SEMICOLON>QT_DEBUG_PLUGINS=1$<SEMICOLON>VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR}$<SEMICOLON>QT_QPA_PLATFORM_PLUGIN_PATH=${_target_dir_macro}platforms$<SEMICOLON>QT_PLUGIN_PATH=${_target_dir_macro}$<SEMICOLON>QML2_IMPORT_PATH=${_target_dir_macro}qml$<SEMICOLON>QML_IMPORT_PATH=${_target_dir_macro}qml>")
+        set(_rel_env "$<$<CONFIG:Release>:PATH=${_qt_bin_release}$<SEMICOLON>VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR}$<SEMICOLON>QT_QPA_PLATFORM_PLUGIN_PATH=${_target_dir_macro}platforms$<SEMICOLON>QT_PLUGIN_PATH=${_target_dir_macro}$<SEMICOLON>QML2_IMPORT_PATH=${_target_dir_macro}qml$<SEMICOLON>QML_IMPORT_PATH=${_target_dir_macro}qml>")
 
         set_target_properties(fossredder PROPERTIES
             VS_DEBUGGER_ENVIRONMENT "${_dbg_env}${_rel_env}"
-            VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
         )
     endif()
 

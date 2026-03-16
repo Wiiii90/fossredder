@@ -1,6 +1,6 @@
 param(
-    [string]$BuildDir = ".\\.build\\x64-vcpkg",
-    [string]$StagingDir = ".\\.build\\x64-vcpkg\\staging",
+    [string]$BuildDir = ".\\.build\\app",
+    [string]$StagingDir = ".\\.build\\app\\staging",
     [string]$VcpkgInstalled = "third_party/vcpkg/installed",
     [string]$Config = "Release"
 )

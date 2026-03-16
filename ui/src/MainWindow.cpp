@@ -53,9 +53,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
   setupQuickWidget();
   setupUiContext();
-  setupActionRouting();
-
   setCentralWidget(m_quickWidget);
+
+  setupActionRouting();
 
   setupQmlRuntime();
 }

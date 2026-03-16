@@ -42,11 +42,11 @@ void reportMissingAnalysisState() {
 AnalysisController::AnalysisController(
     core::controllers::AppStateController *core,
     StateSnapshotProvider stateSnapshotProvider,
-    const core::application::AnalysisService *analysisService,
+    std::shared_ptr<core::application::AnalysisService> analysisService,
     QObject *parent)
     : QObject(parent), core_(core),
       stateSnapshotProvider_(std::move(stateSnapshotProvider)),
-      analysisService_(analysisService) {}
+      analysisService_(std::move(analysisService)) {}
 
 QString AnalysisController::addAnalysis(const QString &name,
                                         const QString &type,

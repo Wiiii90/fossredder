@@ -5,6 +5,7 @@
 - User allows API-breaking changes when they materially improve a proper production-grade refactor and avoid interim designs. User does not want backward compatibility or transition paths for this refactor; prefers the clean end state even if it is breaking and removes legacy behavior.
 - User allows breaking up and restructuring when it is needed for a proper refactor.
 - User validates the app in the Release build because only the Release Qt setup is runnable right now; Debug exe is currently not usable, so runtime fixes should be checked against Release.
+- User wants a clean workflow where the Debug build runs properly for interactive debugging, and Release is then treated as the clean tested and packaged production build.
 - User expects build validation to be reported only after the reported compiler errors are actually fixed, while the broader audit should continue in the same pass.
 - User prefers bundled completion of multiple remaining refactor blocks in one pass instead of stopping after a single cleanup step.
 - User prefers removing dead or redundant mechanisms completely where prior refactors made them obsolete, and wants Release builds run until green for validation.
@@ -19,6 +20,10 @@
 - User uses pch.h in core and wants all unused includes to be removed and used added to the pch.h.
 - User wants not to read in third_party folder files and to ignore them in the analysis.
 - User wants vcpkg folder to be ignored on file audits.
+
+## CI/CD and Build Requirements
+- User wants CI/CD and preset recommendations grounded in the existing repo scripts and setup, not generic advice.
+- User wants a working Debug build with QML and console, and a production-grade Release build without console/dev tooling.
 
 ## Import Workflow
 - User wants the parser subsystem treated as part of the import workflow: parsing may remain a configurable sub-step, but the long-term clean target is to fold the public/private parser folder structure into the import pipeline rather than keep parser as a separate top-level area.

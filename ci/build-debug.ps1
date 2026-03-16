@@ -1,6 +1,7 @@
 param(
-    [string]$ConfigurePreset = "x64-vcpkg-tests",
-    [string]$BuildPreset = "x64-debug-vcpkg-tests"
+    [string]$ConfigurePreset = "tests",
+    [string]$BuildPreset = "debug-tests",
+    [switch]$RunTests
 )
 
 Write-Host "Configuring preset: $ConfigurePreset"
@@ -11,4 +12,9 @@ Write-Host "Building preset: $BuildPreset"
 cmake --build --preset $BuildPreset
 if ($LASTEXITCODE -ne 0) { throw "Build failed." }
 
-Write-Host "Done. To run tests: .\\ci\\run-tests.ps1 -BuildDir .build\\$ConfigurePreset"
+if ($RunTests) {
+    & "$PSScriptRoot\run-tests.ps1" -BuildDir ".build\$ConfigurePreset" -Config Debug
+    if ($LASTEXITCODE -ne 0) { throw "Debug test run failed." }
+} else {
+    Write-Host "Done. To run tests: .\\ci\\run-tests.ps1 -BuildDir .build\\$ConfigurePreset -Config Debug"
+}

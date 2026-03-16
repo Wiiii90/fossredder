@@ -37,7 +37,6 @@ void ensureParentDirectoryExists(const std::filesystem::path& path, const char* 
     } catch (...) {
         core::errors::reportException(core::errors::ErrorSeverity::Warning, origin, std::current_exception());
     }
-}
 
 }
 
@@ -73,6 +72,8 @@ static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, 
     }
 }
 
+}
+
 #ifdef USE_QML
 /**
  * @brief Start the QML application UI.
@@ -84,7 +85,7 @@ extern int startQmlApp(QApplication& app, core::controllers::AppStateController&
 
 int main(int argc, char* argv[]) {
     // Install global Qt message handler early so startup logs are captured
-    qInstallMessageHandler(qtMessageHandler);
+    const auto previousQtMessageHandler = qInstallMessageHandler(qtMessageHandler);
 
     // Load runtime environment from .env if present
     env::load_dotenv(".env", false);
@@ -168,18 +169,29 @@ int main(int argc, char* argv[]) {
 #ifdef USE_QML
     // Delegate to QML-specific startup
     try {
-        return startQmlApp(app, appStateCtrl);
+        const int exitCode = startQmlApp(app, appStateCtrl);
+        qInstallMessageHandler(previousQtMessageHandler);
+        appStateCtrl.setErrorReporter({});
+        core::errors::setGlobalErrorReporter({});
+        return exitCode;
     } catch (const std::exception& ex) {
+        qInstallMessageHandler(previousQtMessageHandler);
         core::errors::reportException(core::errors::ErrorSeverity::Critical, "app::main::startQmlApp", std::current_exception());
         QMessageBox::critical(nullptr, QObject::tr("Fatal error"), QObject::tr("Startup failed: %1").arg(QString::fromUtf8(ex.what())));
+        appStateCtrl.setErrorReporter({});
+        core::errors::setGlobalErrorReporter({});
         return -1;
     } catch (...) {
+        qInstallMessageHandler(previousQtMessageHandler);
         core::errors::reportException(core::errors::ErrorSeverity::Critical, "app::main::startQmlAppUnknown", std::current_exception());
         QMessageBox::critical(nullptr, QObject::tr("Fatal error"), QObject::tr("Startup failed: unknown exception"));
+        appStateCtrl.setErrorReporter({});
+        core::errors::setGlobalErrorReporter({});
         return -2;
     }
 #else
     // No UI available in this build configuration
+    qInstallMessageHandler(previousQtMessageHandler);
     return 0;
 #endif
 }

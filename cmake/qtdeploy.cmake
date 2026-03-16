@@ -22,6 +22,9 @@ endif()
 if(DEFINED TARGET_DIR)
     string(REPLACE "\"" "" TARGET_DIR "${TARGET_DIR}")
 endif()
+if(DEFINED BUILD_CONFIG)
+    string(REPLACE "\"" "" BUILD_CONFIG "${BUILD_CONFIG}")
+endif()
 
 if(NOT DEFINED TARGET_DIR OR TARGET_DIR STREQUAL "")
     message(FATAL_ERROR "qtdeploy: TARGET_DIR not provided")
@@ -38,12 +41,26 @@ set(_cfg "${BUILD_CONFIG}")
 if(_cfg STREQUAL "" AND DEFINED CMAKE_BUILD_TYPE)
     set(_cfg "${CMAKE_BUILD_TYPE}")
 endif()
+if(_cfg MATCHES "\\$<CONFIG>" OR _cfg STREQUAL "")
+    string(TOUPPER "${TARGET_DIR}" _target_dir_upper)
+    if(_target_dir_upper MATCHES "[/\\]DEBUG$")
+        set(_cfg "DEBUG")
+    elseif(_target_dir_upper MATCHES "[/\\]RELEASE$")
+        set(_cfg "RELEASE")
+    endif()
+endif()
 string(TOUPPER "${_cfg}" _cfg)
 
 set(_vroot "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
 if(_cfg STREQUAL "DEBUG")
     set(_src_bin "${_vroot}/debug/bin")
-    set(_src_qml "${_vroot}/debug/Qt6/qml")
+    set(_qt_dll_suffix "d")
+    set(_qt_plugin_suffix "d")
+
+    set(_src_qml "${_vroot}/debug/qml")
+    if(NOT EXISTS "${_src_qml}")
+        set(_src_qml "${_vroot}/debug/Qt6/qml")
+    endif()
 
     # vcpkg layouts differ depending on port/version; check both
     set(_src_platforms "${_vroot}/debug/plugins/platforms")
@@ -57,7 +74,13 @@ if(_cfg STREQUAL "DEBUG")
     endif()
 else()
     set(_src_bin "${_vroot}/bin")
-    set(_src_qml "${_vroot}/Qt6/qml")
+    set(_qt_dll_suffix "")
+    set(_qt_plugin_suffix "")
+
+    set(_src_qml "${_vroot}/qml")
+    if(NOT EXISTS "${_src_qml}")
+        set(_src_qml "${_vroot}/Qt6/qml")
+    endif()
 
     set(_src_platforms "${_vroot}/plugins/platforms")
     if(NOT EXISTS "${_src_platforms}")
@@ -81,6 +104,7 @@ file(MAKE_DIRECTORY "${TARGET_DIR}")
 # Always reset plugin directories to avoid mixing Debug/Release artifacts between builds.
 file(REMOVE_RECURSE "${TARGET_DIR}/platforms")
 file(REMOVE_RECURSE "${TARGET_DIR}/imageformats")
+file(REMOVE_RECURSE "${TARGET_DIR}/qml")
 
 file(MAKE_DIRECTORY "${TARGET_DIR}/platforms")
 file(MAKE_DIRECTORY "${TARGET_DIR}/qml")
@@ -91,23 +115,23 @@ file(WRITE "${TARGET_DIR}/qt.conf" "[Paths]\nPlugins=./\nQml2Imports=./qml\n")
 
 # Runtime DLLs (minimal set required by current QML usage)
 set(_dlls
-    Qt6Core.dll
-    Qt6Gui.dll
-    Qt6OpenGL.dll
-    Qt6Qml.dll
-    Qt6QmlMeta.dll
-    Qt6QmlModels.dll
-    Qt6Quick.dll
-    Qt6QuickEffects.dll
-    Qt6QuickControls2.dll
-    Qt6QuickControls2Basic.dll
-    Qt6QuickControls2Fusion.dll
-    Qt6QuickControls2FusionStyleImpl.dll
-    Qt6QuickControls2Impl.dll
-    Qt6QuickLayouts.dll
-    Qt6QuickTemplates2.dll
-    Qt6Svg.dll
-    Qt6Widgets.dll
+    Qt6Core${_qt_dll_suffix}.dll
+    Qt6Gui${_qt_dll_suffix}.dll
+    Qt6OpenGL${_qt_dll_suffix}.dll
+    Qt6Qml${_qt_dll_suffix}.dll
+    Qt6QmlMeta${_qt_dll_suffix}.dll
+    Qt6QmlModels${_qt_dll_suffix}.dll
+    Qt6Quick${_qt_dll_suffix}.dll
+    Qt6QuickEffects${_qt_dll_suffix}.dll
+    Qt6QuickControls2${_qt_dll_suffix}.dll
+    Qt6QuickControls2Basic${_qt_dll_suffix}.dll
+    Qt6QuickControls2Fusion${_qt_dll_suffix}.dll
+    Qt6QuickControls2FusionStyleImpl${_qt_dll_suffix}.dll
+    Qt6QuickControls2Impl${_qt_dll_suffix}.dll
+    Qt6QuickLayouts${_qt_dll_suffix}.dll
+    Qt6QuickTemplates2${_qt_dll_suffix}.dll
+    Qt6Svg${_qt_dll_suffix}.dll
+    Qt6Widgets${_qt_dll_suffix}.dll
     MSVCP140.dll
 )
 foreach(_dll IN LISTS _dlls)
@@ -117,19 +141,19 @@ foreach(_dll IN LISTS _dlls)
 endforeach()
 
 # Platform plugin
-if(EXISTS "${_src_platforms}/qwindows.dll")
-    file(COPY "${_src_platforms}/qwindows.dll" DESTINATION "${TARGET_DIR}/platforms")
+if(EXISTS "${_src_platforms}/qwindows${_qt_plugin_suffix}.dll")
+    file(COPY "${_src_platforms}/qwindows${_qt_plugin_suffix}.dll" DESTINATION "${TARGET_DIR}/platforms")
 else()
-    message(WARNING "qtdeploy: qwindows.dll not found under ${_src_platforms}")
+    message(WARNING "qtdeploy: qwindows${_qt_plugin_suffix}.dll not found under ${_src_platforms}")
 endif()
 
 # Image format plugins
-if(EXISTS "${_src_imageformats}/qsvg.dll")
-    file(COPY "${_src_imageformats}/qsvg.dll" DESTINATION "${TARGET_DIR}/imageformats")
+if(EXISTS "${_src_imageformats}/qsvg${_qt_plugin_suffix}.dll")
+    file(COPY "${_src_imageformats}/qsvg${_qt_plugin_suffix}.dll" DESTINATION "${TARGET_DIR}/imageformats")
 endif()
 
-if(EXISTS "${_src_imageformats}/qjpeg.dll")
-    file(COPY "${_src_imageformats}/qjpeg.dll" DESTINATION "${TARGET_DIR}/imageformats")
+if(EXISTS "${_src_imageformats}/qjpeg${_qt_plugin_suffix}.dll")
+    file(COPY "${_src_imageformats}/qjpeg${_qt_plugin_suffix}.dll" DESTINATION "${TARGET_DIR}/imageformats")
 endif()
 
 # QML imports (+ plugin DLLs)
@@ -155,9 +179,9 @@ file(MAKE_DIRECTORY "${_target_folderlist_dir}")
 
 set(_found_folderlist 0)
 set(_folderlist_candidates
-    "${_src_qml}/Qt/labs/folderlistmodel/qmlfolderlistmodelplugin.dll"
-    "${_src_bin}/qmlfolderlistmodelplugin.dll"
-    "${_vroot}/plugins/labs/qmlfolderlistmodelplugin.dll"
+    "${_src_qml}/Qt/labs/folderlistmodel/qmlfolderlistmodelplugin${_qt_plugin_suffix}.dll"
+    "${_src_bin}/qmlfolderlistmodelplugin${_qt_plugin_suffix}.dll"
+    "${_vroot}/plugins/labs/qmlfolderlistmodelplugin${_qt_plugin_suffix}.dll"
 )
 foreach(_ld IN LISTS _folderlist_candidates)
     if(EXISTS "${_ld}")
@@ -168,9 +192,9 @@ foreach(_ld IN LISTS _folderlist_candidates)
 endforeach()
 
 if(NOT _found_folderlist)
-    message(WARNING "qtdeploy: qmlfolderlistmodelplugin.dll not found; Qt.labs.folderlistmodel may fail to load at runtime")
+    message(WARNING "qtdeploy: qmlfolderlistmodelplugin${_qt_plugin_suffix}.dll not found; Qt.labs.folderlistmodel may fail to load at runtime")
 else()
-    message(STATUS "qtdeploy: copied qmlfolderlistmodelplugin.dll to ${_target_folderlist_dir}")
+    message(STATUS "qtdeploy: copied qmlfolderlistmodelplugin${_qt_plugin_suffix}.dll to ${_target_folderlist_dir}")
 endif()
 
 # Ensure QtQuick Effects plugin DLL is deployed (consistent with other plugin copies)
@@ -178,9 +202,9 @@ set(_target_effects_dir "${TARGET_DIR}/qml/QtQuick/Effects")
 file(MAKE_DIRECTORY "${_target_effects_dir}")
 
 set(_effects_candidates
-    "${_src_qml}/QtQuick/Effects/effectsplugin.dll"
-    "${_vroot}/plugins/QtQuick/Effects/effectsplugin.dll"
-    "${_src_bin}/qml/QtQuick/Effects/effectsplugin.dll"
+    "${_src_qml}/QtQuick/Effects/effectsplugin${_qt_plugin_suffix}.dll"
+    "${_vroot}/plugins/QtQuick/Effects/effectsplugin${_qt_plugin_suffix}.dll"
+    "${_src_bin}/qml/QtQuick/Effects/effectsplugin${_qt_plugin_suffix}.dll"
 )
 
 set(_found_effects 0)
@@ -193,9 +217,9 @@ foreach(_ed IN LISTS _effects_candidates)
 endforeach()
 
 if(NOT _found_effects)
-    message(WARNING "qtdeploy: effectsplugin.dll not found; QtQuick.Effects may fail to load at runtime")
+    message(WARNING "qtdeploy: effectsplugin${_qt_plugin_suffix}.dll not found; QtQuick.Effects may fail to load at runtime")
 else()
-    message(STATUS "qtdeploy: copied effectsplugin.dll to ${_target_effects_dir}")
+    message(STATUS "qtdeploy: copied effectsplugin${_qt_plugin_suffix}.dll to ${_target_effects_dir}")
 endif()
 
 message(STATUS "qtdeploy: completed to ${TARGET_DIR}")

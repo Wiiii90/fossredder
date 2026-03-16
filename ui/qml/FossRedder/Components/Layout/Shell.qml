@@ -62,5 +62,6 @@ GridLayout {
         Layout.preferredHeight: Theme.statusBarHeight
         Layout.fillWidth: true
     }
+
 }
 

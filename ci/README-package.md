@@ -22,11 +22,11 @@ Steps (Command line)
 
 ```powershell
 # Configure + build with presets
-cmake --preset x64-vcpkg
-cmake --build --preset x64-release-vcpkg
+cmake --preset app
+cmake --build --preset release-app
 
 # Create staging and package
-.\ci\package-inno.ps1 -BuildDir .build\x64-vcpkg -Config Release -StagingDir .build\x64-vcpkg\staging -OutputDir .build\x64-vcpkg\dist -Version 0.1.0 -RunWindeployQt
+.\ci\package-inno.ps1 -BuildDir .build\app -Config Release -StagingDir .build\app\staging -OutputDir .build\app\dist -Version 0.1.0 -RunWindeployQt
 ```
 
 Troubleshooting

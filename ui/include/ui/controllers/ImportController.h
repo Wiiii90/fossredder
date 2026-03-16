@@ -9,6 +9,7 @@
 #include <QString>
 #include <QStringList>
 #include <exception>
+#include <functional>
 #include <memory>
 
 #include "core/errors/IErrorReporter.h"
@@ -36,7 +37,9 @@ class ImportController : public QObject {
     Q_PROPERTY(StatementDraft* draft READ draft NOTIFY stateChanged)
 
 public:
-    explicit ImportController(std::shared_ptr<core::jobs::JobSystem> jobSystem,
+    using JobSystemFactory = std::function<std::shared_ptr<core::jobs::JobSystem>()>;
+
+    explicit ImportController(JobSystemFactory jobSystemFactory,
                               std::shared_ptr<core::errors::IErrorReporter> errorReporter,
                               QObject* parent = nullptr);
 
@@ -73,6 +76,7 @@ private slots:
     void onJobTerminal(core::jobs::JobState state, const QString& message);
 
 private:
+    bool ensureJobBridge();
     void rejectImportStart(const QString& errorMessage, const char* traceMessage);
     void requestImportCancellation(bool clearQueue, const char* origin, const char* traceMessage);
     void handleJobEvent(const core::jobs::JobEvent& event);
@@ -81,7 +85,8 @@ private:
     bool populateDraftFromResult(const QString& now);
     ImportRunList runs_;
     importing::ImportState state_;
-    importing::ImportJobBridge jobBridge_;
+    JobSystemFactory jobSystemFactory_;
+    std::unique_ptr<importing::ImportJobBridge> jobBridge_;
     std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
 
     void startNextQueuedImport();

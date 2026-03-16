@@ -15,7 +15,7 @@ namespace ui {
 
 class SessionModels {
 public:
-    explicit SessionModels(QObject* parent = nullptr);
+    SessionModels();
 
     ActorList& actors() noexcept { return actors_; }
     PropertyList& properties() noexcept { return properties_; }

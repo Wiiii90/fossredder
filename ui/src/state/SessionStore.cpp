@@ -80,7 +80,7 @@ void bindAnalysisMetricSignals(AnalysisList& analyses,
 
 SessionStore::SessionStore(QObject* parent)
     : QObject(parent)
-    , models_(this)
+    , models_()
 {
     bindModelSignals();
 }

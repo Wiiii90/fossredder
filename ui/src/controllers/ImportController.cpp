@@ -63,18 +63,32 @@ core::jobs::ImportStatementJobSpec buildImportSpec(const QString &path,
 } // namespace
 
 ImportController::ImportController(
-    std::shared_ptr<core::jobs::JobSystem> jobSystem,
+    JobSystemFactory jobSystemFactory,
     std::shared_ptr<core::errors::IErrorReporter> errorReporter,
     QObject *parent)
-    : QObject(parent), runs_(this), state_(runs_),
-      jobBridge_(std::move(jobSystem)), errorReporter_(std::move(errorReporter)) {
+    : QObject(parent), runs_(), state_(runs_),
+      jobSystemFactory_(std::move(jobSystemFactory)),
+      errorReporter_(std::move(errorReporter)) {
   if (!errorReporter_)
     throw std::invalid_argument("ImportController requires an error reporter");
+}
 
-  jobBridge_.setExceptionReporter(
+bool ImportController::ensureJobBridge() {
+  if (jobBridge_)
+    return true;
+  if (!jobSystemFactory_)
+    return false;
+
+  auto jobSystem = jobSystemFactory_();
+  if (!jobSystem)
+    return false;
+
+  jobBridge_ = std::make_unique<importing::ImportJobBridge>(std::move(jobSystem));
+  jobBridge_->setExceptionReporter(
       [this](const char *origin, std::exception_ptr exception) {
         reportException(origin, exception);
       });
+  return true;
 }
 
 void ImportController::addFiles(const QStringList &paths) {
@@ -117,7 +131,8 @@ void ImportController::requestImportCancellation(bool clearQueue,
     return;
 
   state_.beginCancel(clearQueue);
-  jobBridge_.cancelCurrent();
+  if (jobBridge_)
+    jobBridge_->cancelCurrent();
   observability::reportFlow(core::errors::ErrorSeverity::Info,
                             observability::codes::FlowImportCanceled, origin,
                             traceMessage,
@@ -174,15 +189,21 @@ void ImportController::handleImportFailed(const QString &now,
 }
 
 bool ImportController::populateDraftFromResult(const QString &now) {
-  auto imported = jobBridge_.statementResult();
+  if (!jobBridge_) {
+    handleImportFailed(now, ui::text::controllerErrors::importFailed(),
+                       "Import failed: job bridge unavailable");
+    return false;
+  }
+
+  auto imported = jobBridge_->statementResult();
   if (!imported) {
     handleImportFailed(now, ui::text::controllerErrors::importFailed(),
                        "Import failed: missing statement result");
     return false;
   }
 
-  const auto importedTransactions = jobBridge_.statementTransactions();
-  const auto artifacts = jobBridge_.takeArtifacts();
+  const auto importedTransactions = jobBridge_->statementTransactions();
+  const auto artifacts = jobBridge_->takeArtifacts();
   if (!state_.populateDraft(now, imported, importedTransactions, artifacts, this)) {
     handleImportFailed(now, ui::text::controllerErrors::importFailed(),
                        "Import failed: unable to create statement draft");
@@ -240,7 +261,7 @@ void ImportController::startStatementImport() {
 void ImportController::startImportForFile(const QString &path) {
   if (state_.isRunning())
     return;
-  if (!jobBridge_.isAvailable()) {
+  if (!ensureJobBridge() || !jobBridge_ || !jobBridge_->isAvailable()) {
     rejectImportStart(
         ui::text::controllerErrors::importControllerUnavailable(),
         "Import start rejected: controller unavailable");
@@ -267,7 +288,7 @@ void ImportController::startImportForFile(const QString &path) {
        {observability::context::kQueuedCount,
         std::to_string(state_.queuedFiles().size())}});
 
-  const bool started = jobBridge_.startStatementImport(
+  const bool started = jobBridge_->startStatementImport(
       spec,
       [this](const core::jobs::JobEvent &event) { handleJobEvent(event); });
 
@@ -287,7 +308,8 @@ void ImportController::updateProgress(double p, const QString &phase) {
 void ImportController::onJobTerminal(core::jobs::JobState state,
                                      const QString &message) {
   const auto now = currentTimestamp();
-  jobBridge_.clearSubscription();
+  if (jobBridge_)
+    jobBridge_->clearSubscription();
 
   if (state == core::jobs::JobState::Canceled || state_.cancelRequested()) {
     handleImportCanceled(now);

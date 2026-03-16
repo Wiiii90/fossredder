@@ -238,8 +238,7 @@ public:
                    StatementList& statements,
                    TransactionList& transactions,
                    AnalysisList& analyses,
-                   AnnualList& annuals,
-                   QObject* parent);
+                   AnnualList& annuals);
 
     const QString& selectedActorId() const;
     const QString& selectedPropertyId() const;

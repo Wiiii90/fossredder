@@ -1,5 +1,5 @@
 param(
-    [string]$BuildDir = ".build/x64-vcpkg-tests",
+    [string]$BuildDir = ".build/tests",
     [ValidateSet('Debug','Release')][string]$Config = "Debug",
     [string]$OutDir = "coverage",
     [string]$OpenCppCoverageExe = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"

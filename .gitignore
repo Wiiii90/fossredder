@@ -13,6 +13,7 @@ build/
 out/
 cmake-build-*/
 vcpkg_installed/
+CMakeUserPresets.json
 
 # Compiled artifacts
 *.a
@@ -44,3 +45,4 @@ LOCAL_APPDATA_FONTCONFIG_CACHE/
 docs/todo.txt
 
 debug_output/
+.github/

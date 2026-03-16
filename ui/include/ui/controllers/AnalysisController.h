@@ -22,7 +22,7 @@ public:
 
     explicit AnalysisController(core::controllers::AppStateController* core,
                                 StateSnapshotProvider stateSnapshotProvider,
-                                const core::application::AnalysisService* analysisService,
+                                std::shared_ptr<core::application::AnalysisService> analysisService,
                                 QObject* parent = nullptr);
 
     Q_INVOKABLE QString addAnalysis(const QString& name, const QString& type, const QString& configJson, const QString& filterSpec);
@@ -34,7 +34,7 @@ private:
 
     core::controllers::AppStateController* core_ = nullptr;
     StateSnapshotProvider stateSnapshotProvider_;
-    const core::application::AnalysisService* analysisService_ = nullptr;
+    std::shared_ptr<core::application::AnalysisService> analysisService_;
 };
 
 }

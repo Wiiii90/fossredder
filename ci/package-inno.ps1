@@ -1,10 +1,10 @@
 param(
-    [string]$BuildDir = ".build\\x64-vcpkg",
+    [string]$BuildDir = ".build\\app",
     [string]$Config = "Release",
-    [string]$StagingDir = ".build\\x64-vcpkg\\staging",
+    [string]$StagingDir = ".build\\app\\staging",
     [string]$InstallerScript = "installer\\fossredder.iss",
     [string]$ISCCPath = "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe",
-    [string]$OutputDir = ".build\\x64-vcpkg\\dist",
+    [string]$OutputDir = ".build\\app\\dist",
     [string]$Version = $env:PACKAGE_VERSION,
     [switch]$RunWindeployQt,
     [switch]$RunQtDeployFallback = $true,

@@ -211,8 +211,7 @@ SelectionState::SelectionState(ActorList& actors,
                                StatementList& statements,
                                TransactionList& transactions,
                                AnalysisList& analyses,
-                               AnnualList& annuals,
-                               QObject* parent)
+                               AnnualList& annuals)
     : actors_(actors)
     , properties_(properties)
     , contracts_(contracts)
@@ -220,13 +219,13 @@ SelectionState::SelectionState(ActorList& actors,
     , transactions_(transactions)
     , analyses_(analyses)
     , annuals_(annuals)
-    , selectedActor_(parent)
-    , selectedProperty_(parent)
-    , selectedContract_(parent)
-    , selectedStatement_(parent)
-    , selectedTransaction_(parent)
-    , selectedAnalysis_(parent)
-    , selectedAnnual_(parent)
+    , selectedActor_()
+    , selectedProperty_()
+    , selectedContract_()
+    , selectedStatement_()
+    , selectedTransaction_()
+    , selectedAnalysis_()
+    , selectedAnnual_()
 {
 }
 

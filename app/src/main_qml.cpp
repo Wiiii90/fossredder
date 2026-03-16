@@ -136,7 +136,7 @@ struct UiControllers {
   ui::ExportController *exportCtrl = nullptr;
   ui::ImportController *import = nullptr;
   ui::LanguageController *language = nullptr;
-  std::unique_ptr<core::application::AnalysisService> analysisService;
+  std::shared_ptr<core::application::AnalysisService> analysisService;
 };
 
 UiControllers setupUiControllers(
@@ -153,7 +153,7 @@ UiControllers setupUiControllers(
     return ui::exporting::createSnapshot(appStateCtrl.state());
   };
 
-  ui.analysisService = std::make_unique<core::application::AnalysisService>();
+  ui.analysisService = std::make_shared<core::application::AnalysisService>();
   ui.annual = new ui::AnnualController(&appStateCtrl, &w);
   ui.actor = new ui::ActorController(&appStateCtrl, &w);
   ui.property = new ui::PropertyController(&appStateCtrl, &w);
@@ -162,7 +162,7 @@ UiControllers setupUiControllers(
   ui.transaction = new ui::TransactionController(&appStateCtrl, &w);
   ui.draft = new ui::DraftController(&appStateCtrl, &w);
   ui.analysisController = new ui::AnalysisController(
-      &appStateCtrl, stateSnapshotProvider, ui.analysisService.get(), &w);
+      &appStateCtrl, stateSnapshotProvider, ui.analysisService, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kAnnualController,
                           ui.annual);
   w.setQmlContextProperty(ui::qml::contracts::context::kActorController,
@@ -191,20 +191,21 @@ UiControllers setupUiControllers(
   w.setQmlContextProperty(ui::qml::contracts::context::kLanguageController,
                           ui.language);
 
-  auto dbg = std::make_shared<FileDebugger>(
-      "", std::string(debug::defaults::kImportProcessName));
-  auto popplerAdapter = createPopplerAdapter(dbg);
-  auto opencvAdapter = createOpenCvAdapter(dbg);
-  auto tesseractAdapter = createTesseractAdapter(dbg);
+  auto importJobSystemFactory = [dbg = std::make_shared<FileDebugger>(
+                                   "", std::string(debug::defaults::kImportProcessName))]() {
+    auto popplerAdapter = createPopplerAdapter(dbg);
+    auto opencvAdapter = createOpenCvAdapter(dbg);
+    auto tesseractAdapter = createTesseractAdapter(dbg);
 
-  auto poppler = api::poppler::createPopplerService(popplerAdapter);
-  auto opencv = api::opencv::createOpenCvService(opencvAdapter);
-  auto tesseract = api::tesseract::createTesseractService(tesseractAdapter);
+    auto poppler = api::poppler::createPopplerService(popplerAdapter);
+    auto opencv = api::opencv::createOpenCvService(opencvAdapter);
+    auto tesseract = api::tesseract::createTesseractService(tesseractAdapter);
 
-  auto importSvc = createImportStatement(poppler, opencv, tesseract, dbg);
-  auto jobSystem = std::make_shared<core::jobs::JobSystem>(importSvc);
+    auto importSvc = createImportStatement(poppler, opencv, tesseract, dbg);
+    return std::make_shared<core::jobs::JobSystem>(importSvc);
+  };
 
-  ui.import = new ui::ImportController(jobSystem, errorReporter, &w);
+  ui.import = new ui::ImportController(importJobSystemFactory, errorReporter, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kImportController,
                           ui.import);
 
@@ -242,14 +243,17 @@ void wireAppStateToSession(
 }
 
 void wireFileSignals(MainWindow &w, ui::StorageController *storage) {
-  QObject::connect(&w, &MainWindow::newFileRequested,
-                   [&](const QString &path) { storage->newFile(path); });
-  QObject::connect(&w, &MainWindow::openFileRequested,
-                   [&](const QString &path) { storage->openFile(path); });
-  QObject::connect(&w, &MainWindow::saveFileRequested,
-                   [&]() { storage->saveFile(); });
-  QObject::connect(&w, &MainWindow::saveFileAsRequested,
-                   [&](const QString &path) { storage->saveFileAs(path); });
+  if (!storage)
+    return;
+
+  QObject::connect(&w, &MainWindow::newFileRequested, storage,
+                   [storage](const QString &path) { storage->newFile(path); });
+  QObject::connect(&w, &MainWindow::openFileRequested, storage,
+                   [storage](const QString &path) { storage->openFile(path); });
+  QObject::connect(&w, &MainWindow::saveFileRequested, storage,
+                   [storage]() { storage->saveFile(); });
+  QObject::connect(&w, &MainWindow::saveFileAsRequested, storage,
+                   [storage](const QString &path) { storage->saveFileAs(path); });
   QObject::connect(storage, &ui::StorageController::operationSucceeded, &w,
                    &MainWindow::handleStorageOperationSucceeded);
   QObject::connect(storage, &ui::StorageController::operationFailed, &w,
@@ -312,7 +316,13 @@ int startQmlApp(QApplication &app, core::controllers::AppStateController &appSta
   w.loadQml();
 
   w.show();
-  return app.exec();
+  const int exitCode = app.exec();
+
+  appStateCtrl.setStateChangedCallback({});
+  appStateCtrl.setDeletionImpactCallback({});
+  appStateCtrl.setErrorReporter({});
+
+  return exitCode;
 }
 
 #endif

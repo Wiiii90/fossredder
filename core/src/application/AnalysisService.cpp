@@ -26,9 +26,9 @@ AnalysisService::AnalysisService(AnalysisService&&) noexcept = default;
 
 AnalysisService& AnalysisService::operator=(AnalysisService&&) noexcept = default;
 
-AnalysisResult AnalysisService::computeAnalysisById(const AppState& state,
-                                                    const std::string& analysisId,
-                                                    const std::string& filterSpec) const
+core::domain::AnalysisResult AnalysisService::computeAnalysisById(const core::domain::AppState& state,
+                                                                  const std::string& analysisId,
+                                                                  const std::string& filterSpec) const
 {
     return impl_->engine.computeAnalysisById(analysisId, state, filterSpec);
 }

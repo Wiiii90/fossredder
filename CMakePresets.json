@@ -7,8 +7,8 @@
   },
   "configurePresets": [
     {
-      "name": "x64-vcpkg",
-      "displayName": "x64 (vcpkg)",
+      "name": "app",
+      "displayName": "App",
       "generator": "Visual Studio 18 2026",
       "binaryDir": "${sourceDir}/.build/${presetName}",
       "architecture": {
@@ -25,8 +25,8 @@
       }
     },
     {
-      "name": "x64-vcpkg-tests",
-      "displayName": "x64 (vcpkg, with tests)",
+      "name": "tests",
+      "displayName": "Tests",
       "generator": "Visual Studio 18 2026",
       "binaryDir": "${sourceDir}/.build/${presetName}",
       "architecture": {
@@ -60,29 +60,28 @@
   ],
   "buildPresets": [
     {
-      "name": "x64-debug-vcpkg",
-      "configurePreset": "x64-vcpkg",
+      "name": "debug-app",
+      "configurePreset": "app",
       "configuration": "Debug"
     },
     {
-      "name": "x64-release-vcpkg",
-      "configurePreset": "x64-vcpkg",
+      "name": "release-app",
+      "configurePreset": "app",
       "configuration": "Release"
     },
     {
-      "name": "x64-debug-vcpkg-tests",
-      "configurePreset": "x64-vcpkg-tests",
+      "name": "debug-tests",
+      "configurePreset": "tests",
       "configuration": "Debug"
     },
     {
-      "name": "x64-release-vcpkg-tests",
-      "configurePreset": "x64-vcpkg-tests",
+      "name": "release-tests",
+      "configurePreset": "tests",
       "configuration": "Release"
     },
     {
-      "name": "x64-package-release-vcpkg",
-      "displayName": "x64 Package (Release, vcpkg)",
-      "configurePreset": "x64-vcpkg",
+      "name": "release-package",
+      "configurePreset": "app",
       "configuration": "Release",
       "targets": [
         "package"

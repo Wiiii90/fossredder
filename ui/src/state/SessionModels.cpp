@@ -22,14 +22,14 @@ QHash<QString, QString> buildContractTypeIndex(const ContractList& contracts)
 
 }
 
-SessionModels::SessionModels(QObject* parent)
-    : actors_(parent)
-    , analyses_(parent)
-    , properties_(parent)
-    , contracts_(parent)
-    , statements_(parent)
-    , transactions_(parent)
-    , annuals_(parent)
+SessionModels::SessionModels()
+    : actors_()
+    , analyses_()
+    , properties_()
+    , contracts_()
+    , statements_()
+    , transactions_()
+    , annuals_()
 {
 }
 

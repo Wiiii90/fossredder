@@ -3,7 +3,7 @@
 namespace ui {
 
 StatementDraft::StatementDraft(QObject* parent)
-    : QObject(parent), transactions_(this)
+    : QObject(parent), transactions_()
 {
 }
 
