@@ -43,37 +43,86 @@ fossredder/
 
 ## Build-Anleitung
 
-1. **vcpkg klonen und initialisieren**  
-   *(Nur nötig, wenn vcpkg noch nicht vorhanden ist. Überspringen, falls bereits vorhanden oder das Projekt inkl. vcpkg geklont wurde.)*
-   ```bash
-   git clone https://github.com/microsoft/vcpkg.git
-   cd vcpkg
-   ./bootstrap-vcpkg.bat
-   ```
-2. **Projekt klonen**
-   ```bash
-   git clone https://github.com/dein-benutzername/fossredder.git
-   cd fossredder
-   ```
-3. **Abhängigkeiten installieren**  
-   *(Alle benötigten Bibliotheken werden automatisch anhand der `vcpkg.json` installiert.)*
-   ```bash
-   ../vcpkg/vcpkg install
-   ```
-   **Hinweis:** Stelle sicher, dass die Umgebungsvariable oder der CMake-Parameter `CMAKE_TOOLCHAIN_FILE` auf `../vcpkg/scripts/buildsystems/vcpkg.cmake` zeigt.  
-   In Visual Studio 2022 wird dies bei Verwendung von CMake-Projekten und einer vorhandenen `CMakeSettings.json` in der Regel automatisch erkannt.
+Die Abhängigkeiten werden in diesem Projekt über `vcpkg.json` im Manifest-Modus verwaltet. Das Repository enthält **keine** lokale `vcpkg`-Kopie und erwartet stattdessen eine **einmalig pro Entwicklerrechner** installierte `vcpkg`-Umgebung, die über `VCPKG_ROOT` angebunden wird.
 
-4. **Projekt mit CMake konfigurieren und bauen**  
-   - **Kommandozeile:**
-     ```bash
-      cmake -B out/build -S . -DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
-      cmake --build out/build --config Release
-     ```
-   - **Visual Studio 2022:**  
-     Öffne das Projektordner direkt in Visual Studio. Die CMake-Integration erkennt die `CMakeSettings.json` und verwendet automatisch die vcpkg-Toolchain.
+### 1. `vcpkg` einmalig lokal installieren
 
-**Tipp:**  
-Für weitere Details zur Einrichtung siehe die [offizielle vcpkg-Dokumentation](https://learn.microsoft.com/en-us/vcpkg/).
+Wähle für `vcpkg` einen **kurzen lokalen Pfad**, damit Windows-Pfadlängen kein Problem werden. Ein kurzer Pfad wie `P:\vcpkg` ist empfehlenswert, aber nicht vorgeschrieben.
+
+```powershell
+git clone https://github.com/microsoft/vcpkg.git P:\vcpkg
+P:\vcpkg\bootstrap-vcpkg.bat
+```
+
+Falls `vcpkg` bereits lokal vorhanden ist, reicht es, die bestehende Installation weiterzuverwenden.
+
+### 2. `VCPKG_ROOT` dauerhaft setzen
+
+Setze anschließend die Benutzer-Umgebungsvariable `VCPKG_ROOT` **einmalig dauerhaft** auf dein lokales `vcpkg`-Verzeichnis:
+
+```powershell
+[Environment]::SetEnvironmentVariable('VCPKG_ROOT', 'P:\vcpkg', 'User')
+```
+
+Danach gilt:
+
+1. Das Projekt kennt deinen lokalen `vcpkg`-Pfad über `VCPKG_ROOT`.
+2. Die Variable bleibt über Neustarts hinweg erhalten.
+
+### 3. Repository klonen oder öffnen
+
+```powershell
+git clone https://github.com/Wiiii90/fossredder.git
+cd fossredder
+```
+
+Falls das Repository bereits lokal vorhanden ist, genügt es, in den Projektordner zu wechseln.
+
+### 4. Projekt konfigurieren
+
+Die CMake-Presets dieses Repositories verwenden automatisch `VCPKG_ROOT`. Die installierten Pakete landen dabei unter `.build/vcpkg_installed`, damit die Build-Artefakte kurzpfadig und projektbezogen bleiben, ohne `vcpkg` selbst ins Repository zu legen.
+
+**App konfigurieren:**
+
+```powershell
+cmake --preset app
+```
+
+**Tests konfigurieren:**
+
+```powershell
+cmake --preset tests
+```
+
+Beim ersten Konfigurieren installiert `vcpkg` die in `vcpkg.json` beschriebenen Abhängigkeiten automatisch.
+
+### 5. Projekt bauen
+
+**Release-App bauen:**
+
+```powershell
+cmake --build --preset release-app
+```
+
+**Debug-Tests bauen:**
+
+```powershell
+cmake --build --preset debug-tests
+```
+
+Alternativ kann für den Debug-Testlauf auch das vorhandene Skript verwendet werden:
+
+```powershell
+.\ci\build-debug.ps1 -RunTests
+```
+
+Das Skript prüft vor dem Konfigurieren, ob `VCPKG_ROOT` korrekt gesetzt ist.
+
+### 6. Visual Studio verwenden
+
+Dieses Repository ist auf den Generator **Visual Studio 18 2026** ausgelegt. Öffne den Projektordner direkt in Visual Studio. Die CMake-Presets greifen dann auf dieselbe `VCPKG_ROOT`-Konfiguration zu wie die Kommandozeile.
+
+Wenn Visual Studio `vcpkg` nicht findet, ist fast immer die Ursache, dass `VCPKG_ROOT` erst **nach** dem Start der IDE gesetzt wurde. In diesem Fall Visual Studio vollständig schließen und erneut öffnen.
 
 ## Dokumentation
 

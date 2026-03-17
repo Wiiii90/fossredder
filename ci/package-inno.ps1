@@ -28,6 +28,22 @@ function Get-AbsPath([string]$PathValue, [string]$BaseDir) {
     return [System.IO.Path]::GetFullPath((Join-Path -Path $BaseDir -ChildPath $PathValue))
 }
 
+function Get-CMakeCacheValue([string]$CachePath, [string]$Key) {
+    if (!(Test-Path $CachePath)) { return $null }
+
+    $prefix = "$Key:"
+    foreach ($line in Get-Content -Path $CachePath) {
+        if ($line.StartsWith($prefix)) {
+            $parts = $line.Split('=', 2)
+            if ($parts.Length -eq 2) {
+                return $parts[1]
+            }
+        }
+    }
+
+    return $null
+}
+
 $BuildDirAbs = Get-AbsPath $BuildDir $RepoRoot
 $StagingDirAbs = Get-AbsPath $StagingDir $RepoRoot
 $OutputDirAbs = Get-AbsPath $OutputDir $RepoRoot
@@ -82,12 +98,21 @@ if (Test-Path $buildBinCandidate) {
 # --- end sync ---
 
 # vcpkg installed root
-$vcpkgInstalled = Join-Path $RepoRoot "third_party\vcpkg\installed"
+$cmakeCachePath = Join-Path $BuildDirAbs "CMakeCache.txt"
+$vcpkgInstalled = Get-CMakeCacheValue $cmakeCachePath "VCPKG_INSTALLED_DIR"
+if ([string]::IsNullOrWhiteSpace($vcpkgInstalled)) {
+    $vcpkgInstalled = Join-Path $RepoRoot ".build\vcpkg_installed"
+}
+$vcpkgInstalled = Get-AbsPath $vcpkgInstalled $RepoRoot
+if (!(Test-Path $vcpkgInstalled)) { throw "vcpkg installed dir not found: $vcpkgInstalled" }
 
 # Automatically copy vcpkg runtime dependencies (transitive) into staging/bin.
 # This avoids chasing missing DLLs one-by-one (opencv, poppler, tesseract, etc.).
 # It uses `dumpbin /DEPENDENTS` to compute the closure from the staged exe and any DLLs already in staging/bin.
-$vcpkgTriplet = "x64-windows"
+$vcpkgTriplet = Get-CMakeCacheValue $cmakeCachePath "VCPKG_TARGET_TRIPLET"
+if ([string]::IsNullOrWhiteSpace($vcpkgTriplet)) {
+    $vcpkgTriplet = "x64-windows"
+}
 $vcpkgBin = Join-Path $vcpkgInstalled "$vcpkgTriplet\bin"
 
 function Get-DumpbinPath {

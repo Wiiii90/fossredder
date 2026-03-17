@@ -9,6 +9,12 @@ set(CMAKE_CXX_STANDARD 20)
 # This project does not use C++20 modules.
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+if(DEFINED CMAKE_TOOLCHAIN_FILE AND NOT EXISTS "${CMAKE_TOOLCHAIN_FILE}")
+    message(FATAL_ERROR
+        "CMAKE_TOOLCHAIN_FILE points to '${CMAKE_TOOLCHAIN_FILE}', but the file does not exist. Install vcpkg, set VCPKG_ROOT once on this machine and reconfigure using the documented preset workflow."
+    )
+endif()
+
 # Allow optional build of services as SHARED; default OFF to preserve previous behavior
 option(BUILD_SERVICES_SHARED "Build services/* as SHARED libraries instead of STATIC" OFF)
 
@@ -16,7 +22,7 @@ if(NOT DEFINED VCPKG_TARGET_TRIPLET)
     set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "vcpkg target triplet")
 endif()
 if(NOT DEFINED VCPKG_INSTALLED_DIR)
-    set(VCPKG_INSTALLED_DIR "${CMAKE_SOURCE_DIR}/third_party/vcpkg/installed" CACHE PATH "vcpkg installed dir")
+    set(VCPKG_INSTALLED_DIR "${CMAKE_SOURCE_DIR}/.build/vcpkg_installed" CACHE PATH "vcpkg installed dir")
 endif()
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")

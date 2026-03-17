@@ -21,6 +21,7 @@
 - User uses pch.h in core and wants all unused includes to be removed and used added to the pch.h.
 - User wants not to read in third_party folder files and to ignore them in the analysis.
 - User wants vcpkg folder to be ignored on file audits.
+- User prefers the repo to avoid any hardcoded local paths for vcpkg, including drive-specific paths like P:\, and prefers a one-time, persistent local vcpkg setup via environment or user-local configuration rather than project-local installation.
 - User wants investigation and fixes to stay on the installed Visual Studio 2026 generator path; do not pivot to a VS2022-based workaround unless explicitly requested.
 - For debug-assert investigations, user may manually click 'Abort' on the startup assert dialog to allow the process to continue, and short timed test runs that kill the app after a few seconds are acceptable.
 
