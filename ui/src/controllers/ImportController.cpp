@@ -28,6 +28,13 @@ namespace ui {
 
 namespace {
 
+void reportImportGetter(const char* getter) {
+  core::errors::report(core::errors::ErrorSeverity::Info,
+                       ui::observability::codes::QtInfo,
+                       getter,
+                       getter);
+}
+
 /** @brief Returns an ISO timestamp for import run bookkeeping. */
 QString currentTimestamp() {
   return QDateTime::currentDateTime().toString(Qt::ISODate);
@@ -66,11 +73,31 @@ ImportController::ImportController(
     JobSystemFactory jobSystemFactory,
     std::shared_ptr<core::errors::IErrorReporter> errorReporter,
     QObject *parent)
-    : QObject(parent), runs_(), state_(runs_),
+    : QObject(parent), runs_(std::make_unique<ImportRunList>(this)), state_(*runs_),
       jobSystemFactory_(std::move(jobSystemFactory)),
       errorReporter_(std::move(errorReporter)) {
   if (!errorReporter_)
     throw std::invalid_argument("ImportController requires an error reporter");
+}
+
+QString ImportController::selectedFile() const {
+  reportImportGetter("ui::ImportController::selectedFile");
+  return state_.selectedFile();
+}
+
+QStringList ImportController::queuedFiles() const {
+  reportImportGetter("ui::ImportController::queuedFiles");
+  return state_.queuedFiles();
+}
+
+StatementDraft *ImportController::draft() const noexcept {
+  reportImportGetter("ui::ImportController::draft");
+  return state_.draft();
+}
+
+ImportRunList *ImportController::runs() noexcept {
+  reportImportGetter("ui::ImportController::runs");
+  return runs_.get();
 }
 
 bool ImportController::ensureJobBridge() {

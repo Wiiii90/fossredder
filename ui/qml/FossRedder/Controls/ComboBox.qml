@@ -9,6 +9,7 @@ ComboBox {
     Layout.preferredHeight: 40
     font.family: Theme.fontFamily
     font.pointSize: Theme.fontSize
+    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
 
     background: Rectangle {
         id: bg

@@ -7,7 +7,7 @@ option(USE_QML "Build with QML UI" OFF)
 
 # Detect Qt early so we can auto-enable QML support and conditionally
 # include the QML-only translation unit (main_qml.cpp).
-find_package(Qt6 COMPONENTS Quick Qml Widgets QuickWidgets LinguistTools QUIET)
+find_package(Qt6 COMPONENTS Quick Qml Widgets LinguistTools QUIET)
 if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
     if(NOT USE_QML)
         set(USE_QML ON CACHE BOOL "Build with QML UI" FORCE)
@@ -127,10 +127,6 @@ endif()
 if(TARGET Qt6::Widgets)
     target_link_libraries(fossredder PRIVATE Qt6::Widgets)
 endif()
-if(TARGET Qt6::QuickWidgets)
-    target_link_libraries(fossredder PRIVATE Qt6::QuickWidgets)
-endif()
-
 # Precompiled header (kept when available) to speed up incremental builds
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "4.0.1")
     if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.h")

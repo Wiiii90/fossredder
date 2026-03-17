@@ -8,6 +8,7 @@
 
 using core::domain::AppState;
 #include <QApplication>
+#include <QByteArray>
 #include <QMessageBox>
 #include <QObject>
 #include <QQuickStyle>
@@ -84,6 +85,15 @@ extern int startQmlApp(QApplication& app, core::controllers::AppStateController&
 #endif
 
 int main(int argc, char* argv[]) {
+    auto errorReporter = debug::createDefaultErrorReporter();
+    core::errors::setGlobalErrorReporter(errorReporter);
+
+#if defined(_DEBUG)
+    if (qEnvironmentVariableIsEmpty("QT_ACCESSIBILITY")) {
+        qputenv("QT_ACCESSIBILITY", QByteArrayLiteral("0"));
+    }
+#endif
+
     // Install global Qt message handler early so startup logs are captured
     const auto previousQtMessageHandler = qInstallMessageHandler(qtMessageHandler);
 
@@ -101,14 +111,17 @@ int main(int argc, char* argv[]) {
     app.setApplicationName(ui::config::kSettingsApplicationName);
 
     // Setup storage manager and controller (manages application state files)
-    const std::filesystem::path appDataRoot = std::filesystem::path(QDir::homePath().toStdString())
+    const QString homePath = QDir::homePath();
+
+    const std::string homePathStd = homePath.toStdString();
+    const std::filesystem::path appDataRoot = std::filesystem::path(homePathStd)
         / std::string(core::constants::runtime::kAppDataDirectoryName);
+
     core::storage::StorageManager sm(appDataRoot.string());
+
     auto smPtr = std::make_unique<core::storage::StorageManager>(std::move(sm));
     core::controllers::AppStateController appStateCtrl(std::move(smPtr));
 
-    auto errorReporter = debug::createDefaultErrorReporter();
-    core::errors::setGlobalErrorReporter(errorReporter);
     appStateCtrl.setErrorReporter(errorReporter);
 
     // Initialize configuration repository (uses persistence factory)
@@ -130,7 +143,6 @@ int main(int argc, char* argv[]) {
         );
         cfgRepo = nullptr;
     }
-
     appStateCtrl.setRepoFactory([&](const std::string& dbPath) {
         ensureParentDirectoryExists(std::filesystem::path(dbPath), "app::main::setRepoFactory::create_directories");
         auto db = createSqliteDb(dbPath);

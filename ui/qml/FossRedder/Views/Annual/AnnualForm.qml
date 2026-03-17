@@ -5,6 +5,7 @@ import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 
 Item {
+    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
     anchors.fill: parent
 
     function createAnnual() {

@@ -16,8 +16,6 @@
 
 namespace ui {
 
-namespace {
-
 /** @brief Binds transaction model mutations to metric recomputation hooks. */
 template <typename RecomputeAllFn, typename RecomputeRangeFn>
 void bindTransactionMetricSignals(TransactionList& transactions,
@@ -76,11 +74,9 @@ void bindAnalysisMetricSignals(AnalysisList& analyses,
     });
 }
 
-}
-
 SessionStore::SessionStore(QObject* parent)
     : QObject(parent)
-    , models_()
+    , models_(this)
 {
     bindModelSignals();
 }

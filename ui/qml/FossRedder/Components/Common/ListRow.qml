@@ -5,8 +5,8 @@ import FossRedder 1.0
 
 Item {
     id: root
-    property alias text: title.text
-    property alias subtitle: subtitle.text
+    property string text: ""
+    property string subtitle: ""
     property url iconSource: ""
     property bool selectable: true
     property bool selected: false
@@ -19,7 +19,7 @@ Item {
 
     signal activated()
 
-    implicitHeight: Math.max(40, row.implicitHeight + padding)
+    implicitHeight: Math.max(40, contentRow.height + padding * 2)
 
     Rectangle {
         id: bg
@@ -31,8 +31,8 @@ Item {
 
     }
 
-        RowLayout {
-        id: row
+    Row {
+        id: contentRow
         anchors.fill: parent
         anchors.margins: padding
         spacing: 8
@@ -46,36 +46,32 @@ Item {
             fillMode: Image.PreserveAspectFit
         }
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
+        Column {
+            width: Math.max(0, root.width - (icon.visible ? icon.width + spacing : 0) - padding * 2)
+            spacing: 2
 
-            Label {
+            Text {
                 id: title
-                text: qsTr("")
+                text: root.text
                 font.family: Theme.fontFamily
                 font.pointSize: Math.max(12, Theme.fontSize - 2)
                 font.bold: false
                 color: Theme.textPrimary
-                elide: Label.ElideRight
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignLeft
+                elide: Text.ElideRight
+                width: parent.width
             }
 
-            Label {
+            Text {
                 id: subtitle
-                text: qsTr("")
+                text: root.subtitle
                 font.family: Theme.fontFamily
                 font.pointSize: Math.max(10, Theme.fontSize - 4)
                 color: Theme.textMuted
-                elide: Label.ElideLeft
+                elide: Text.ElideRight
                 visible: root.subtitle && root.subtitle.length > 0
-                Layout.preferredWidth: 120
-                horizontalAlignment: Text.AlignRight
+                width: parent.width
             }
         }
-
-        Item { Layout.fillWidth: true }
     }
 
     MouseArea {

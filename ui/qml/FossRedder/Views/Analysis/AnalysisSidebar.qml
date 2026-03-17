@@ -2,7 +2,6 @@
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
-import FossRedder.Components 1.0 as Components
 
 Item {
     id: root
@@ -12,21 +11,59 @@ Item {
         anchors.fill: parent
         spacing: 8
 
-
-        ListView {
-            id: list
+        Flickable {
             anchors.left: parent.left
             anchors.right: parent.right
             height: parent.height - 40
-            model: uiData ? uiData.analyses : null
-            spacing: Theme.spacingSmall
+            clip: true
+            contentWidth: width
+            contentHeight: analysisColumn.implicitHeight
 
-            delegate: Components.ListRow {
-                width: list.width
-                text: model.name ? model.name : ""
-                subtitle: model.type ? model.type : ""
-                selected: uiData ? (model.id === uiData.selectedAnalysisId) : false
-                onActivated: { if (uiData) uiData.selectedAnalysisId = model.id }
+            Column {
+                id: analysisColumn
+                width: parent.width
+                spacing: Theme.spacingSmall
+
+                Repeater {
+                    model: uiData ? uiData.analysisRows() : []
+
+                    delegate: Rectangle {
+                        width: analysisColumn.width
+                        height: 44
+                        radius: 6
+                        color: uiData && modelData.id === uiData.selectedAnalysisId ? Theme.selectionHighlight : "transparent"
+                        border.color: Theme.borderSoft
+                        border.width: Theme.borderWidthThin
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                if (uiData) uiData.selectedAnalysisId = modelData.id
+                            }
+                        }
+
+                        Column {
+                            anchors.fill: parent
+                            anchors.margins: Theme.spacingSmall
+                            spacing: 2
+
+                            Text {
+                                width: parent.width
+                                text: modelData.name ? modelData.name : ""
+                                color: Theme.textPrimary
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                width: parent.width
+                                text: modelData.type ? modelData.type : ""
+                                color: Theme.textMuted
+                                elide: Text.ElideRight
+                                visible: text.length > 0
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -136,10 +136,11 @@ void TransactionList::setTransactions(std::vector<std::shared_ptr<Transaction>> 
     rebuildIdIndex();
 }
 
-void TransactionList::setContractTypes(QHash<QString, QString> contractTypes)
+void TransactionList::setContractTypes(QHash<QString, QString> contractTypes, bool notify)
 {
+    if (contractTypeById_ == contractTypes) return;
     contractTypeById_ = std::move(contractTypes);
-    emitAllRowsChanged({TypeRole});
+    if (notify) emitAllRowsChanged({TypeRole});
 }
 
 int TransactionList::findRowById(const QString& id) const

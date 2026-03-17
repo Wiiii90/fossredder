@@ -6,8 +6,6 @@
 
 namespace ui {
 
-namespace {
-
 QHash<QString, QString> buildContractTypeIndex(const ContractList& contracts)
 {
     QHash<QString, QString> contractTypes;
@@ -20,35 +18,34 @@ QHash<QString, QString> buildContractTypeIndex(const ContractList& contracts)
     return contractTypes;
 }
 
-}
-
-SessionModels::SessionModels()
-    : actors_()
-    , analyses_()
-    , properties_()
-    , contracts_()
-    , statements_()
-    , transactions_()
-    , annuals_()
+SessionModels::SessionModels(QObject* objectParent)
+    : actors_(std::make_unique<ActorList>(objectParent))
+    , analyses_(std::make_unique<AnalysisList>(objectParent))
+    , properties_(std::make_unique<PropertyList>(objectParent))
+    , contracts_(std::make_unique<ContractList>(objectParent))
+    , statements_(std::make_unique<StatementList>(objectParent))
+    , transactions_(std::make_unique<TransactionList>(objectParent))
+    , annuals_(std::make_unique<AnnualList>(objectParent))
 {
 }
 
 void SessionModels::loadFromState(const AppState& state)
 {
     AppState clone = cloneAppState(state);
-    actors_.setActors(std::move(clone.actors));
-    properties_.setProperties(std::move(clone.properties));
-    contracts_.setContracts(std::move(clone.contracts));
-    statements_.setStatements(std::move(clone.statements));
-    transactions_.setTransactions(std::move(clone.transactions));
-    analyses_.setAnalyses(std::move(clone.analyses));
-    annuals_.setAnnuals(std::move(clone.annuals));
-    refreshContractTypes();
+
+    actors().setActors(std::move(clone.actors));
+    properties().setProperties(std::move(clone.properties));
+    contracts().setContracts(std::move(clone.contracts));
+    transactions().setContractTypes(buildContractTypeIndex(contracts()), false);
+    statements().setStatements(std::move(clone.statements));
+    transactions().setTransactions(std::move(clone.transactions));
+    analyses().setAnalyses(std::move(clone.analyses));
+    annuals().setAnnuals(std::move(clone.annuals));
 }
 
 void SessionModels::refreshContractTypes()
 {
-    transactions_.setContractTypes(buildContractTypeIndex(contracts_));
+    transactions().setContractTypes(buildContractTypeIndex(contracts()));
 }
 
 }

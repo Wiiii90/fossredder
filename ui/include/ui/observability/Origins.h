@@ -9,6 +9,7 @@ inline constexpr auto kToCoreExportFormat = "app::toCoreExportFormat";
 
 namespace mainWindow {
 inline constexpr auto kActionRouting = "ui::MainWindow::setupActionRouting";
+inline constexpr auto kLoadQml = "ui::MainWindow::loadQml";
 inline constexpr auto kDragDrop = "ui::MainWindow::eventFilter";
 inline constexpr auto kClose = "ui::MainWindow::closeEvent";
 inline constexpr auto kCloseSucceeded = "ui::MainWindow::handleStorageOperationSucceeded";

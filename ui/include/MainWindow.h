@@ -11,9 +11,10 @@
 #include "ui/window/DropController.h"
 #include "ui/workflows/FileWorkflow.h"
 
-QT_FORWARD_DECLARE_CLASS(QQuickWidget)
 QT_FORWARD_DECLARE_CLASS(QQmlImageProviderBase)
 QT_FORWARD_DECLARE_CLASS(QQmlEngine)
+QT_FORWARD_DECLARE_CLASS(QQuickView)
+QT_FORWARD_DECLARE_CLASS(QWidget)
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -45,16 +46,20 @@ protected:
     void closeEvent(QCloseEvent* event) override;
 
 private:
-    void setupQuickWidget();
+    void setupQuickHost();
     void setupUiContext();
     void setupActionRouting();
     void setupQmlRuntime();
+    /** @brief Unloads the hosted QML surface before widget teardown begins. */
+    void prepareForQmlShutdown();
 
-    QQuickWidget* m_quickWidget = nullptr;
+    QQuickView* m_quickView = nullptr;
+    QWidget* m_quickContainer = nullptr;
     ui::StateFacade* dataSession_ = nullptr;
     ui::Actions* actions_ = nullptr;
     ui::workflows::FileWorkflow* fileWorkflow_ = nullptr;
     ui::StatusState* status_ = nullptr;
+    bool qmlShutdownPrepared_ = false;
     ui::window::CloseWorkflow closeWorkflow_;
     ui::window::DropController dropController_;
 };

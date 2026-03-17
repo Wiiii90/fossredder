@@ -9,8 +9,6 @@ Item {
 
     property Component contentComponent: null
 
-    signal contentStatusChanged(int status, var source, var item)
-
     Rectangle {
         anchors.fill: parent
         color: Theme.surfaceAlt
@@ -48,20 +46,6 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             sourceComponent: sidebar.contentComponent
-
-            onStatusChanged: {
-                sidebar.contentStatusChanged(status, source, item);
-            }
         }
-    }
-
-    function setContentSource(s) {
-        if (!content) return
-        content.sourceComponent = null
-        content.source = s
-    }
-
-    function setContentComponent(c) {
-        sidebar.contentComponent = c
     }
 }

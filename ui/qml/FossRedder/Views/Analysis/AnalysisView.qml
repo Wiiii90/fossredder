@@ -8,6 +8,7 @@ import "../../Constants/Analysis.js" as Analysis
 
 Item {
     id: root
+    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
     readonly property var plotTypeOptions: [
         { value: Analysis.chartTypes.pie, label: qsTr("Pie chart") },
         { value: Analysis.chartTypes.histogram, label: qsTr("Histogram") }
@@ -71,9 +72,10 @@ Item {
 
                             selectedProps = []
                             try {
-                                if (uiData && uiData.properties) {
-                                    for (var j = 0; j < uiData.properties.length; ++j) {
-                                        var p = uiData.properties[j]
+                                if (uiData) {
+                                    var properties = uiData.propertyRows()
+                                    for (var j = 0; j < properties.length; ++j) {
+                                        var p = properties[j]
                                         if (p && p.id) selectedProps.push(p.id)
                                     }
                                 }
@@ -87,13 +89,13 @@ Item {
                             running: false
                             triggeredOnStart: false
                             onTriggered: {
-                                if (uiData && uiData.contracts && uiData.properties) { createBox.rebuildChoices(); stop(); }
+                                if (uiData) { createBox.rebuildChoices(); stop(); }
                             }
                         }
 
                         Component.onCompleted: {
                             createBox.rebuildChoices()
-                            if (!(uiData && uiData.contracts && uiData.properties))
+                            if (!uiData)
                                 initTimer.start()
                         }
 
@@ -123,12 +125,12 @@ Item {
 
                             RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing
                                 Label { text: qsTr("Strategy"); Layout.preferredWidth: Theme.formLabelWidth }
-                                ComboBox { id: strategyCombo; Layout.fillWidth: true; model: [ qsTr("Tab"), qsTr("Plot"), qsTr("Calc") ]; currentIndex: 1 }
+                                Controls.ComboBox { id: strategyCombo; Layout.fillWidth: true; model: [ qsTr("Tab"), qsTr("Plot"), qsTr("Calc") ]; currentIndex: 1 }
                             }
 
                             RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing; visible: strategyCombo.currentIndex === 1
                                 Label { text: qsTr("Plot type"); Layout.preferredWidth: Theme.formLabelWidth }
-                                ComboBox { id: plotTypeCombo; Layout.fillWidth: true; model: root.plotTypeOptions; textRole: "label"; currentIndex: 0 }
+                                Controls.ComboBox { id: plotTypeCombo; Layout.fillWidth: true; model: root.plotTypeOptions; textRole: "label"; currentIndex: 0 }
                             }
 
                             RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing
@@ -147,7 +149,7 @@ Item {
                                     Column { width: parent.width
                                         Repeater { model: contractTypeList
                                             delegate: RowLayout { width: parent.width; spacing: Theme.settings.spacing
-                                                CheckBox {
+                                                Controls.CheckBox {
                                                     id: ctcb
                                                     checked: true
                                                     Component.onCompleted: {
@@ -174,25 +176,25 @@ Item {
                                 Label { text: qsTr("Properties (select)") }
                                 Flickable { Layout.fillWidth: true; contentHeight: propList.implicitHeight; clip: true; height: Theme.chartLegendHeight
                                     Column { id: propList; width: parent.width
-                                        Repeater { model: uiData ? uiData.properties : []
+                                        Repeater { model: uiData ? uiData.propertyRows() : []
                                             delegate: RowLayout { width: parent.width; spacing: Theme.settings.spacing
-                                                CheckBox {
+                                                Controls.CheckBox {
                                                     id: cb
                                                     checked: true
                                                     Component.onCompleted: {
-                                                        if (createBox.selectedProps.indexOf(model.id) === -1) createBox.selectedProps.push(model.id)
+                                                        if (createBox.selectedProps.indexOf(modelData.id) === -1) createBox.selectedProps.push(modelData.id)
                                                     }
                                                     onCheckedChanged: {
                                                         if (checked) {
-                                                            if (createBox.selectedProps.indexOf(model.id) === -1)
-                                                                createBox.selectedProps.push(model.id)
+                                                            if (createBox.selectedProps.indexOf(modelData.id) === -1)
+                                                                createBox.selectedProps.push(modelData.id)
                                                         } else {
-                                                            var idx = createBox.selectedProps.indexOf(model.id)
+                                                            var idx = createBox.selectedProps.indexOf(modelData.id)
                                                             if (idx !== -1) createBox.selectedProps.splice(idx,1)
                                                         }
                                                     }
                                                 }
-                                                Label { text: model.name; Layout.fillWidth: true }
+                                                Label { text: modelData.name; Layout.fillWidth: true }
                                             }
                                         }
                                     }
@@ -201,7 +203,7 @@ Item {
 
                             RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing
                                 Label { text: qsTr("Plot Measure"); Layout.preferredWidth: Theme.formLabelWidth }
-                                ComboBox { id: plotMeasureCombo; Layout.fillWidth: true; model: root.plotMeasureOptions; textRole: "label"; currentIndex: 0 }
+                                Controls.ComboBox { id: plotMeasureCombo; Layout.fillWidth: true; model: root.plotMeasureOptions; textRole: "label"; currentIndex: 0 }
                             }
 
                             RowLayout { Layout.fillWidth: true; spacing: Theme.settings.spacing
@@ -224,14 +226,12 @@ Item {
                                             filterSpec += "date<=" + dateTo.text
                                         }
 
-                                        createBox.rebuildChoices()
-
                                         var cfg = { plotType: selectedPlotType, plotMeasure: selectedPlotMeasure, properties: createBox.selectedProps, contractTypes: createBox.selectedContractTypes }
                                         var id = analysisController.addAnalysis(nameField.text, strategy, JSON.stringify(cfg), filterSpec)
                                         if (id && id.length > 0) {
                                             uiData.selectedAnalysisId = id
                                             try { var res = analysisController.computeAnalysis(id, filterSpec); uiData.lastAnalysisResult = res } catch(e) {}
-                                            stackView.push(analysisDetailComp)
+                                             Qt.callLater(function() { stackView.push(analysisDetailComp) })
                                         }
                                     }
                                 }

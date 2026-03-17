@@ -5,10 +5,55 @@ import FossRedder.Controls 1.0 as Controls
 
 Item {
     id: root
+    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
 
-    property bool isNew: uiData && uiData.selectedTransactionId === "__new__"
-    property var current: (!isNew && uiData) ? uiData.selectedTransaction : null
-    property bool isEdit: !isNew && current && current.id && String(current.id).length > 0
+    property bool isNew: false
+    property var current: null
+    property bool isEdit: false
+    property var propertyRowsSnapshot: []
+    property bool propertyRowsReady: false
+    property bool propertiesExpanded: false
+
+    function refreshCurrentSelection() {
+        root.isNew = uiData && uiData.selectedTransactionId === "__new__"
+        root.current = (!root.isNew && uiData) ? uiData.selectedTransaction : null
+        root.isEdit = !root.isNew && root.current && root.current.id && String(root.current.id).length > 0
+    }
+
+    function loadPropertyRows() {
+        propertyRowsSnapshot = uiData ? uiData.propertyRows() : []
+        propertyRowsReady = true
+    }
+
+    function togglePropertiesExpanded() {
+        propertiesExpanded = !propertiesExpanded
+        if (propertiesExpanded && !propertyRowsReady)
+            Qt.callLater(loadPropertyRows)
+    }
+
+    function hasSelectedProperty(propertyId) {
+        return propertyId && selectedPropertyIds.indexOf(propertyId) !== -1
+    }
+
+    function toggleSelectedProperty(propertyId, checked) {
+        if (!propertyId) return
+
+        var nextPropertyIds = selectedPropertyIds.slice()
+        var localIdx = nextPropertyIds.indexOf(propertyId)
+
+        if (checked) {
+            if (localIdx === -1) nextPropertyIds.push(propertyId)
+        } else if (localIdx > -1) {
+            nextPropertyIds.splice(localIdx, 1)
+        }
+
+        selectedPropertyIds = nextPropertyIds
+
+        if (isEdit && current && current.id) {
+            persistCurrentTransaction()
+            if (uiData) uiData.setTransactionPropertyIdsImmediate(current.id, selectedPropertyIds)
+        }
+    }
 
     function clearFields() {
         nameField.text = ""
@@ -69,8 +114,89 @@ Item {
     property var selectedPropertyIds: []
 
     Connections { target: current; function onChanged() { syncFields() } }
-    onIsNewChanged: syncFields()
-    onIsEditChanged: syncFields()
+
+    Connections {
+        target: uiData
+        function onSelectedTransactionIdChanged() {
+            Qt.callLater(function() {
+                refreshCurrentSelection()
+                syncFields()
+            })
+        }
+    }
+
+    Component {
+        id: propertySelectionComp
+
+        ColumnLayout {
+            anchors.left: parent ? parent.left : undefined
+            anchors.right: parent ? parent.right : undefined
+            spacing: 2
+
+            Flickable {
+                id: propertyListView
+                Layout.fillWidth: true
+                Layout.fillHeight: false
+                Layout.preferredHeight: propertyRowsReady ? propertyColumn.implicitHeight : 0
+                interactive: true
+                clip: true
+                contentWidth: width
+                contentHeight: propertyRowsReady ? propertyColumn.implicitHeight : 0
+
+                Column {
+                    id: propertyColumn
+                    width: propertyListView.width
+                    spacing: 2
+
+                    Repeater {
+                        model: propertyRowsReady ? propertyRowsSnapshot : []
+
+                        delegate: Rectangle {
+                            width: propertyColumn.width
+                            height: 32
+                            radius: 6
+                            color: hasSelectedProperty(modelData.id) ? Theme.selectionHighlight : "transparent"
+                            border.color: Theme.borderSoft
+                            border.width: Theme.borderWidthThin
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: toggleSelectedProperty(modelData.id, !hasSelectedProperty(modelData.id))
+                            }
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: Theme.spacingSmall
+                                spacing: Theme.spacingSmall
+
+                                Rectangle {
+                                    Layout.preferredWidth: 16
+                                    Layout.preferredHeight: 16
+                                    radius: 3
+                                    color: hasSelectedProperty(modelData.id) ? Theme.textPrimary : "transparent"
+                                    border.color: Theme.borderSoft
+                                    border.width: Theme.borderWidthThin
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData.name ? modelData.name : ""
+                                    color: Theme.textPrimary
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Label {
+                Layout.fillWidth: true
+                visible: propertyRowsReady && propertyRowsSnapshot.length === 0
+                text: qsTr("No properties available")
+            }
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -121,60 +247,29 @@ Item {
             }
         }
 
-        GroupBox {
-            title: qsTr("Properties")
+        ColumnLayout {
             Layout.fillWidth: true
+            spacing: Theme.spacingSmall
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 2
-                spacing: 2
-
-                ListView {
-                    id: propertyListView
-                    Layout.fillWidth: true
-                    Layout.fillHeight: false
-                    Layout.preferredHeight: contentHeight
-                    interactive: true
-                    model: uiData ? uiData.properties : null
-
-                    delegate: RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        Layout.alignment: Qt.AlignVCenter
-
-                        Controls.CheckBox {
-                            id: propCheck
-                            Layout.preferredWidth: 28
-                            Layout.margins: 2
-                            checked: selectedPropertyIds.indexOf(model.id) !== -1
-                            onClicked: {
-                                if (!model.id) return
-                                var localIdx = selectedPropertyIds.indexOf(model.id)
-                                if (propCheck.checked) { if (localIdx === -1) selectedPropertyIds.push(model.id) }
-                                else { if (localIdx > -1) selectedPropertyIds.splice(localIdx, 1) }
-
-                                if (isEdit && current && current.id) {
-                                    persistCurrentTransaction()
-                                    if (uiData) uiData.setTransactionPropertyIdsImmediate(current.id, selectedPropertyIds)
-                                } else {
-                                }
-                            }
-                        }
-
-                        ColumnLayout { Layout.fillWidth: true
-                            Label { text: model.name }
-                            Item { Layout.fillWidth: true }
-                        }
-                    }
-                }
+            RowLayout {
+                Layout.fillWidth: true
 
                 Label {
-                    id: propEmptyLabel
                     Layout.fillWidth: true
-                    visible: propertyListView.count === 0
-                    text: qsTr("No properties available")
+                    text: qsTr("Properties")
+                    font.pointSize: Theme.fontSizeTitle
                 }
+
+                Controls.Button {
+                    text: propertiesExpanded ? qsTr("Hide") : qsTr("Show")
+                    onClicked: togglePropertiesExpanded()
+                }
+            }
+
+            Loader {
+                Layout.fillWidth: true
+                active: propertiesExpanded
+                sourceComponent: propertySelectionComp
             }
         }
 
@@ -248,5 +343,10 @@ Item {
         }
     }
 
-    Component.onCompleted: syncFields()
+    Component.onCompleted: {
+        Qt.callLater(function() {
+            refreshCurrentSelection()
+            syncFields()
+        })
+    }
 }

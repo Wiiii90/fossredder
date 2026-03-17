@@ -151,5 +151,7 @@ Item {
         }
     }
 
-    Component.onCompleted: syncFields()
+    Component.onCompleted: {
+        syncFields()
+    }
 }

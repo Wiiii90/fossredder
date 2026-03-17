@@ -4,7 +4,7 @@
 
 class MainWindow;
 class QObject;
-class QQuickWidget;
+class QQmlContext;
 class QWidget;
 
 namespace ui {
@@ -26,7 +26,7 @@ struct MainWindowServices {
     ui::StatusState* status = nullptr;
 };
 
-MainWindowServices installMainWindowContext(QQuickWidget& quickWidget, QWidget* parentWindow, QObject* parent);
+MainWindowServices installMainWindowContext(QQmlContext& qmlContext, QWidget* parentWindow, QObject* parent);
 void wireMainWindowActions(MainWindow& window,
                            const MainWindowServices& services,
                            const std::function<void()>& showAbout);

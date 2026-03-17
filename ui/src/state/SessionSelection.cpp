@@ -88,7 +88,8 @@ SessionSelection::SessionSelection(SessionModels& models, QObject* parent)
              models_.statements(),
              models_.transactions(),
              models_.analyses(),
-             models_.annuals())
+             models_.annuals(),
+             this)
 {
     bindModelSignals();
 }

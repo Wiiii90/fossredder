@@ -13,8 +13,9 @@
 #include <QQmlEngine>
 #include <QQmlImageProviderBase>
 #include <QQuickItem>
-#include <QQuickWidget>
+#include <QQuickView>
 #include <QSizePolicy>
+#include <QWidget>
 #include <string>
 
 #include "ui/actions/Actions.h"
@@ -33,15 +34,42 @@ namespace {
 
 using ui::observability::context::kError;
 
-/** @brief Keeps the QML root object's size properties aligned with the widget size. */
-void syncRootObjectSize(QQuickWidget *quickWidget) {
-  if (!quickWidget || !quickWidget->rootObject())
+/** @brief Keeps the QML root object's size properties aligned with the host size. */
+void syncRootObjectSize(QQuickView *quickView, QWidget *hostWidget) {
+  if (!quickView || !hostWidget || !quickView->rootObject())
     return;
-  QObject *root = quickWidget->rootObject();
+
+  QObject *root = quickView->rootObject();
   root->setProperty(ui::qml::contracts::properties::kWidth,
-                    quickWidget->width());
+                    hostWidget->width());
   root->setProperty(ui::qml::contracts::properties::kHeight,
-                    quickWidget->height());
+                    hostWidget->height());
+}
+
+/** @brief Reports synchronous QML load failures from the quick view. */
+void reportQmlLoadErrors(QQuickView *quickView, const QUrl &source) {
+  if (!quickView || quickView->status() != QQuickView::Error)
+    return;
+
+  const auto errors = quickView->errors();
+  if (errors.isEmpty()) {
+    core::errors::report(core::errors::ErrorSeverity::Error,
+                         ui::observability::codes::QmlLoadFailed,
+                         ui::observability::origins::mainWindow::kLoadQml,
+                         "QQuickView failed to load the main QML source",
+                         {{"url", source.toString().toStdString()}});
+    return;
+  }
+
+  for (const auto &error : errors) {
+    core::errors::report(core::errors::ErrorSeverity::Error,
+                         ui::observability::codes::QmlLoadFailed,
+                         ui::observability::origins::mainWindow::kLoadQml,
+                         error.toString().toStdString(),
+                         {{"url", error.url().toString().toStdString()},
+                          {"line", std::to_string(error.line())},
+                          {"column", std::to_string(error.column())}});
+  }
 }
 
 } // namespace
@@ -51,37 +79,38 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   resize(ui::config::kMainWindowDefaultWidth,
          ui::config::kMainWindowDefaultHeight);
 
-  setupQuickWidget();
+  setupQuickHost();
   setupUiContext();
-  setCentralWidget(m_quickWidget);
+  setCentralWidget(m_quickContainer);
 
   setupActionRouting();
 
   setupQmlRuntime();
 }
 
-void MainWindow::setupQuickWidget() {
-  if (m_quickWidget)
+void MainWindow::setupQuickHost() {
+  if (m_quickView || m_quickContainer)
     return;
 
-  m_quickWidget = new QQuickWidget(this);
-  m_quickWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-  m_quickWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-  m_quickWidget->setMinimumSize(0, 0);
-
-  m_quickWidget->setAcceptDrops(true);
-
-  m_quickWidget->installEventFilter(this);
-
   ui::bootstrap::registerTypes();
+
+  m_quickView = new QQuickView();
+  m_quickView->setResizeMode(QQuickView::SizeRootObjectToView);
+
+  m_quickContainer = QWidget::createWindowContainer(m_quickView, this);
+  m_quickContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  m_quickContainer->setMinimumSize(0, 0);
+  m_quickContainer->setAcceptDrops(true);
+  m_quickContainer->installEventFilter(this);
 }
 
 void MainWindow::setupUiContext() {
-  if (!m_quickWidget)
+  if (!m_quickView || !m_quickView->rootContext())
     return;
 
   const auto services =
-      ui::window::installMainWindowContext(*m_quickWidget, this, this);
+      ui::window::installMainWindowContext(*m_quickView->rootContext(), this,
+                                           this);
   actions_ = services.actions;
   dataSession_ = services.dataSession;
   fileWorkflow_ = services.fileWorkflow;
@@ -96,48 +125,75 @@ void MainWindow::setupActionRouting() {
 
 void MainWindow::setupQmlRuntime() {
   Q_INIT_RESOURCE(qml);
-  ui::bootstrap::configureRuntime(m_quickWidget ? m_quickWidget->engine()
-                                                : nullptr);
+  ui::bootstrap::configureRuntime(m_quickView ? m_quickView->engine()
+                                              : nullptr);
 }
 
-MainWindow::~MainWindow() = default;
+void MainWindow::prepareForQmlShutdown() {
+  if (qmlShutdownPrepared_ || (!m_quickView && !m_quickContainer))
+    return;
+
+  qmlShutdownPrepared_ = true;
+  auto *quickView = m_quickView;
+  auto *quickContainer = m_quickContainer;
+  m_quickView = nullptr;
+  m_quickContainer = nullptr;
+
+  if (quickContainer)
+    quickContainer->removeEventFilter(this);
+  if (quickView && !quickView->source().isEmpty())
+    quickView->setSource(QUrl());
+  if (quickContainer && centralWidget() == quickContainer)
+    takeCentralWidget();
+  if (quickContainer) {
+    quickContainer->hide();
+    quickContainer->setParent(nullptr);
+    delete quickContainer;
+  } else if (quickView) {
+    delete quickView;
+  }
+}
+
+MainWindow::~MainWindow() { prepareForQmlShutdown(); }
 
 void MainWindow::setQmlContextProperty(const QString &name, QObject *value) {
-  if (!m_quickWidget)
+  if (!m_quickView)
     return;
-  if (!m_quickWidget->rootContext())
+  if (!m_quickView->rootContext())
     return;
-  m_quickWidget->rootContext()->setContextProperty(name, value);
+  m_quickView->rootContext()->setContextProperty(name, value);
 }
 
 void MainWindow::addImageProvider(const QString &id,
                                   QQmlImageProviderBase *provider) {
-  if (!m_quickWidget)
+  if (!m_quickView)
     return;
-  if (!m_quickWidget->engine())
+  if (!m_quickView->engine())
     return;
-  m_quickWidget->engine()->addImageProvider(id, provider);
+  m_quickView->engine()->addImageProvider(id, provider);
 }
 
 void MainWindow::loadQml(const QUrl &source) {
-  if (!m_quickWidget)
+  if (!m_quickView)
     return;
-  if (m_quickWidget->source() == source)
+  if (m_quickView->source() == source)
     return;
-  m_quickWidget->setSource(source);
-  syncRootObjectSize(m_quickWidget);
+
+  m_quickView->setSource(source);
+  reportQmlLoadErrors(m_quickView, source);
+  syncRootObjectSize(m_quickView, m_quickContainer);
 }
 
 QQmlEngine *MainWindow::qmlEngine() const noexcept {
-  return m_quickWidget ? m_quickWidget->engine() : nullptr;
+  return m_quickView ? m_quickView->engine() : nullptr;
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *ev) {
-  if (obj == m_quickWidget && ev->type() == QEvent::Resize) {
-    syncRootObjectSize(m_quickWidget);
+  if (obj == m_quickContainer && ev->type() == QEvent::Resize) {
+    syncRootObjectSize(m_quickView, m_quickContainer);
   }
 
-  if (obj == m_quickWidget) {
+  if (obj == m_quickContainer) {
     const auto outcome = dropController_.handle(ev);
     if (outcome.handled) {
       if (ev->type() == QEvent::Drop && outcome.accepted && actions_) {
@@ -157,6 +213,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *ev) {
 
 void MainWindow::closeEvent(QCloseEvent *event) {
   if (closeWorkflow_.allowImmediateClose(event)) {
+    prepareForQmlShutdown();
     QMainWindow::closeEvent(event);
     return;
   }

@@ -8,11 +8,17 @@ Item {
     id: contentRouter
     Layout.fillWidth: true
     Layout.fillHeight: true
-
-    Content {
-        id: content
-        anchors.fill: parent
-    }
+    property int activeSection: uiNav ? uiNav.section : UiNavigation.Import
+    property bool actorLoaded: false
+    property bool propertyLoaded: false
+    property bool contractLoaded: false
+    property bool bookingLoaded: false
+    property bool importLoaded: false
+    property bool exportLoaded: false
+    property bool settingsLoaded: false
+    property bool analysisLoaded: false
+    property bool annualLoaded: false
+    property bool placeholderLoaded: false
 
     Component { id: actorViewComp; Views.ActorView { } }
     Component { id: propertyViewComp; Views.PropertyView { } }
@@ -25,30 +31,122 @@ Item {
     Component { id: annualViewComp; Views.AnnualView { } }
     Component { id: placeholderViewComp; Views.PlaceholderView { } }
 
+    function rememberSection(section) {
+        switch (section) {
+        case UiNavigation.Actors:
+            actorLoaded = true
+            break
+        case UiNavigation.Properties:
+            propertyLoaded = true
+            break
+        case UiNavigation.Contracts:
+            contractLoaded = true
+            break
+        case UiNavigation.Booking:
+            bookingLoaded = true
+            break
+        case UiNavigation.Import:
+            importLoaded = true
+            break
+        case UiNavigation.Export:
+            exportLoaded = true
+            break
+        case UiNavigation.Settings:
+            settingsLoaded = true
+            break
+        case UiNavigation.Analysis:
+            analysisLoaded = true
+            break
+        case UiNavigation.Annual:
+            annualLoaded = true
+            break
+        default:
+            placeholderLoaded = true
+            break
+        }
+    }
+
     function updateContent() {
-        if (!content) return
+        if (uiNav && uiNav.section !== UiNavigation.Booking && uiData) {
+            if (uiData.selectedTransactionId && uiData.selectedTransactionId.length > 0)
+                uiData.selectedTransactionId = ""
+            if (uiData.selectedStatementId && uiData.selectedStatementId.length > 0)
+                uiData.selectedStatementId = ""
+        }
 
-        var comp = (uiNav && uiNav.section === UiNavigation.Actors)
-                    ? actorViewComp
-                    : (uiNav && uiNav.section === UiNavigation.Properties)
-                        ? propertyViewComp
-                        : (uiNav && uiNav.section === UiNavigation.Contracts)
-                            ? contractViewComp
-                            : (uiNav && uiNav.section === UiNavigation.Booking)
-                                ? bookingViewComp
-                                : (uiNav && uiNav.section === UiNavigation.Import)
-                                    ? importViewComp
-                                    : (uiNav && uiNav.section === UiNavigation.Export)
-                                        ? exportViewComp
-                                        : (uiNav && uiNav.section === UiNavigation.Settings)
-                                            ? settingsViewComp
-                                            : (uiNav && uiNav.section === UiNavigation.Analysis)
-                                                ? analysisViewComp
-                                                : (uiNav && uiNav.section === UiNavigation.Annual)
-                                                    ? annualViewComp
-                                                    : placeholderViewComp;
+        if (uiNav && uiNav.section !== UiNavigation.Booking && uiNav.bookingView !== UiNavigation.Statements)
+            uiNav.bookingView = UiNavigation.Statements
 
-        content.setContentComponent(comp)
+        activeSection = uiNav ? uiNav.section : UiNavigation.Import
+        rememberSection(activeSection)
+    }
+
+    Content {
+        anchors.fill: parent
+        visible: activeSection === UiNavigation.Actors
+        contentComponent: actorLoaded ? actorViewComp : null
+    }
+
+    Content {
+        anchors.fill: parent
+        visible: activeSection === UiNavigation.Properties
+        contentComponent: propertyLoaded ? propertyViewComp : null
+    }
+
+    Content {
+        anchors.fill: parent
+        visible: activeSection === UiNavigation.Contracts
+        contentComponent: contractLoaded ? contractViewComp : null
+    }
+
+    Content {
+        anchors.fill: parent
+        visible: activeSection === UiNavigation.Booking
+        contentComponent: bookingLoaded ? bookingViewComp : null
+    }
+
+    Content {
+        anchors.fill: parent
+        visible: activeSection === UiNavigation.Import
+        contentComponent: importLoaded ? importViewComp : null
+    }
+
+    Content {
+        anchors.fill: parent
+        visible: activeSection === UiNavigation.Export
+        contentComponent: exportLoaded ? exportViewComp : null
+    }
+
+    Content {
+        anchors.fill: parent
+        visible: activeSection === UiNavigation.Settings
+        contentComponent: settingsLoaded ? settingsViewComp : null
+    }
+
+    Content {
+        anchors.fill: parent
+        visible: activeSection === UiNavigation.Analysis
+        contentComponent: analysisLoaded ? analysisViewComp : null
+    }
+
+    Content {
+        anchors.fill: parent
+        visible: activeSection === UiNavigation.Annual
+        contentComponent: annualLoaded ? annualViewComp : null
+    }
+
+    Content {
+        anchors.fill: parent
+        visible: activeSection !== UiNavigation.Actors
+                 && activeSection !== UiNavigation.Properties
+                 && activeSection !== UiNavigation.Contracts
+                 && activeSection !== UiNavigation.Booking
+                 && activeSection !== UiNavigation.Import
+                 && activeSection !== UiNavigation.Export
+                 && activeSection !== UiNavigation.Settings
+                 && activeSection !== UiNavigation.Analysis
+                 && activeSection !== UiNavigation.Annual
+        contentComponent: placeholderLoaded ? placeholderViewComp : null
     }
 
     Component.onCompleted: updateContent()

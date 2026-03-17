@@ -11,8 +11,6 @@ Item {
 
     property Component contentComponent: null
 
-    signal contentStatusChanged(int status, var source, var item)
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.pageMargin
@@ -33,13 +31,6 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             sourceComponent: contentWrapper.contentComponent
-            onStatusChanged: {
-                contentWrapper.contentStatusChanged(status, source, item);
-            }
         }
-    }
-
-    function setContentComponent(c) {
-        contentWrapper.contentComponent = c
     }
 }

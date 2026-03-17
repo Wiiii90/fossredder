@@ -37,7 +37,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     void setTransactions(std::vector<std::shared_ptr<core::domain::Transaction>> transactions);
-    void setContractTypes(QHash<QString, QString> contractTypes);
+    void setContractTypes(QHash<QString, QString> contractTypes, bool notify = true);
     const std::vector<std::shared_ptr<core::domain::Transaction>>& transactions() const { return rows(); }
     int findRowById(const QString& id) const;
     void setTransactionAt(int row, std::shared_ptr<core::domain::Transaction> tx);

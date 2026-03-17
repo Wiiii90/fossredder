@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QVariant>
 
+#include <memory>
+
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
 #include "ui/models/TransactionFilter.h"
@@ -95,6 +97,12 @@ public:
 
     /** @brief Returns transaction ids that belong to the given statement. */
     Q_INVOKABLE QVariantList statementTransactionIds(const QString& statementId) const;
+    Q_INVOKABLE QVariantList actorRows() const;
+    Q_INVOKABLE QVariantList propertyRows() const;
+    Q_INVOKABLE QVariantList contractRows() const;
+    Q_INVOKABLE QVariantList analysisRows() const;
+    Q_INVOKABLE QVariantList statementRows() const;
+    Q_INVOKABLE QVariantList statementTransactionRows(const QString& statementId) const;
     /** @brief Returns a live filter over transactions that belong to the given statement. */
     Q_INVOKABLE TransactionFilter* statementTransactions(const QString& statementId);
     /** @brief Returns a live filter over transactions assigned to the given property. */
@@ -111,8 +119,8 @@ public:
     /** @brief Updates property assignments for a transaction without a full reload. */
     Q_INVOKABLE void setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds);
 
-    QVariant lastAnalysisResult() const { return selection_.lastAnalysisResult(); }
-    void setLastAnalysisResult(const QVariant& value) { selection_.setLastAnalysisResult(value); }
+    QVariant lastAnalysisResult() const { return selection_->lastAnalysisResult(); }
+    void setLastAnalysisResult(const QVariant& value) { selection_->setLastAnalysisResult(value); }
 
 signals:
     void selectedActorIdChanged();
@@ -126,8 +134,8 @@ signals:
     void lastAnalysisResultChanged();
 
 private:
-    SessionStore session_;
-    SessionSelection selection_;
+    std::unique_ptr<SessionStore> session_;
+    std::unique_ptr<SessionSelection> selection_;
 };
 
 }

@@ -7,7 +7,6 @@
 
 #include <QAction>
 #include <QQmlContext>
-#include <QQuickWidget>
 #include <QWidget>
 
 #include "MainWindow.h"
@@ -25,7 +24,7 @@
 
 namespace ui::window {
 
-MainWindowServices installMainWindowContext(QQuickWidget &quickWidget,
+MainWindowServices installMainWindowContext(QQmlContext &qmlContext,
                                             QWidget *parentWindow,
                                             QObject *parent) {
   MainWindowServices services;
@@ -37,26 +36,24 @@ MainWindowServices installMainWindowContext(QQuickWidget &quickWidget,
   services.status = new ui::StatusState(parent);
   services.status->setText(ui::text::status::ready());
 
-  if (auto *context = quickWidget.rootContext()) {
-    context->setContextProperty(ui::qml::contracts::context::kActions,
+  qmlContext.setContextProperty(ui::qml::contracts::context::kActions,
                                 services.actions);
-    context->setContextProperty(ui::qml::contracts::context::kNavigation,
+  qmlContext.setContextProperty(ui::qml::contracts::context::kNavigation,
                                 navigation);
-    context->setContextProperty(ui::qml::contracts::context::kData,
+  qmlContext.setContextProperty(ui::qml::contracts::context::kData,
                                 services.dataSession);
-    context->setContextProperty(
-        ui::qml::contracts::context::kFileSystemController, fileSystem);
-    context->setContextProperty(ui::qml::contracts::context::kStatus,
+  qmlContext.setContextProperty(
+      ui::qml::contracts::context::kFileSystemController, fileSystem);
+  qmlContext.setContextProperty(ui::qml::contracts::context::kStatus,
                                 services.status);
 
 #ifdef QT_DEBUG
-    context->setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
+  qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
                                 true);
 #else
-    context->setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
+  qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
                                 false);
 #endif
-  }
 
   return services;
 }

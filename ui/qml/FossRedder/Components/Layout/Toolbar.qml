@@ -16,8 +16,14 @@ Item {
         uiData.selectedContractId = ""
     }
 
+    function clearBookingStateForSection(section) {
+        if (!uiNav || section === UiNavigation.Booking) return
+        uiNav.bookingView = UiNavigation.Statements
+    }
+
     function navigateTo(section, clearSelection, bookingView) {
         if (!uiNav) return
+        clearBookingStateForSection(section)
         if (clearSelection) clearDomainSelection()
         if (bookingView !== undefined) uiNav.bookingView = bookingView
         uiNav.section = section
@@ -58,7 +64,7 @@ Item {
                         svgSource: "qrc:/qml/FossRedder/Assets/import.svg"
                         label: qsTr("Import")
                         active: uiNav && uiNav.section === UiNavigation.Import
-                        onClicked: if (uiNav) uiNav.section = UiNavigation.Import
+                        onClicked: navigateTo(UiNavigation.Import, false)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
@@ -66,7 +72,7 @@ Item {
                         svgSource: "qrc:/qml/FossRedder/Assets/export.svg"
                         label: qsTr("Export")
                         active: uiNav && uiNav.section === UiNavigation.Export
-                        onClicked: if (uiNav) uiNav.section = UiNavigation.Export
+                        onClicked: navigateTo(UiNavigation.Export, false)
                     }
                 }
 
@@ -215,7 +221,7 @@ Item {
                         svgSource: "qrc:/qml/FossRedder/Assets/settings.svg"
                         label: qsTr("Settings")
                         active: uiNav && uiNav.section === UiNavigation.Settings
-                        onClicked: if (uiNav) uiNav.section = UiNavigation.Settings
+                        onClicked: navigateTo(UiNavigation.Settings, false)
     }
                 }
 

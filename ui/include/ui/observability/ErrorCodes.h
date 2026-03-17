@@ -9,6 +9,7 @@ inline constexpr const char* QtCritical = "QT_CRITICAL";
 inline constexpr const char* QtFatal = "QT_FATAL";
 
 inline constexpr const char* QmlWarning = "QML_WARNING";
+inline constexpr const char* QmlLoadFailed = "QML_LOAD_FAILED";
 
 inline constexpr const char* FlowImportStarted = "UI_FLOW_IMPORT_STARTED";
 inline constexpr const char* FlowImportFinished = "UI_FLOW_IMPORT_FINISHED";

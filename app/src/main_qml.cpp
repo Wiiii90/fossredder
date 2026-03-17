@@ -308,8 +308,11 @@ int startQmlApp(QApplication &app, core::controllers::AppStateController &appSta
 
   const UiControllers ui =
       setupUiControllers(app, w, appStateCtrl, errorReporter);
+
   wireAppStateToSession(w, appStateCtrl, errorReporter);
+
   wireFileSignals(w, ui.storage);
+
   wireQmlWarnings(w, errorReporter);
 
   // Load QML after all context properties/providers are installed.

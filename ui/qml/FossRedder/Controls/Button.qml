@@ -6,6 +6,7 @@ import FossRedder 1.0
 Button {
     id: control
     hoverEnabled: true
+    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
 
     property color fillColor: Theme.primary
     property color textColor: Theme.surface

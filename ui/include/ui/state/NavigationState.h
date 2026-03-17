@@ -63,6 +63,9 @@ private:
     Section section_ = Section::Import;
     BookingView bookingView_ = BookingView::Statements;
     SettingsCategory settingsCategory_ = SettingsCategory::General;
+    bool sectionChangeQueued_ = false;
+    bool bookingViewChangeQueued_ = false;
+    bool settingsCategoryChangeQueued_ = false;
 };
 
 }

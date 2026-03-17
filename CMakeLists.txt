@@ -19,7 +19,7 @@ if(NOT DEFINED VCPKG_INSTALLED_DIR)
     set(VCPKG_INSTALLED_DIR "${CMAKE_SOURCE_DIR}/third_party/vcpkg/installed" CACHE PATH "vcpkg installed dir")
 endif()
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 set(QT_QML_GENERATE_QMLLS_INI ON)
 

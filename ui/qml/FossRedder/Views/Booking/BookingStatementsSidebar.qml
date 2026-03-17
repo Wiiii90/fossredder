@@ -3,88 +3,109 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
-import FossRedder.Components 1.0 as Components
 
 Item {
     id: root
 
-    ListView {
-        id: statementList
+    Flickable {
         anchors.fill: parent
         clip: true
-        spacing: Theme.spacingSmall
-        model: uiData ? uiData.statements : null
+        contentWidth: width
+        contentHeight: statementColumn.implicitHeight
 
-        delegate: Column {
-            width: statementList.width
-            property bool collapsed: false
+        Column {
+            id: statementColumn
+            width: parent.width
+            spacing: Theme.spacingSmall
 
-            property int headerHeight: 34
-            height: headerHeight + (collapsed ? 0 : (txList ? txList.contentHeight : 0))
+            Repeater {
+                model: uiData ? uiData.statementRows() : []
 
-            property string statementId: (id !== undefined && id !== null) ? id : ""
-            property string statementName: (name !== undefined && name !== null) ? name : ""
+                delegate: Column {
+                    width: statementColumn.width
+                    property bool collapsed: false
+                    property string statementId: (modelData.id !== undefined && modelData.id !== null) ? modelData.id : ""
+                    property string statementName: (modelData.name !== undefined && modelData.name !== null) ? modelData.name : ""
 
-            Rectangle {
-                id: headerRect
-                width: parent.width
-                height: headerHeight
-                color: (uiData && statementId === uiData.selectedStatementId && (!uiData.selectedTransactionId || uiData.selectedTransactionId === ""))
-                           ? Theme.selectionHighlight : "transparent"
+                    Rectangle {
+                        width: parent.width
+                        height: 34
+                        color: (uiData && statementId === uiData.selectedStatementId && (!uiData.selectedTransactionId || uiData.selectedTransactionId === ""))
+                                   ? Theme.selectionHighlight : "transparent"
 
-                MouseArea {
-                    id: headerMouse
-                    anchors.fill: parent
-                    onClicked: {
-                        if (!uiData) return
-                        uiData.selectedStatementId = statementId
-                        uiData.selectedTransactionId = ""
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                if (!uiData) return
+                                uiData.selectedStatementId = statementId
+                                uiData.selectedTransactionId = ""
+                            }
+                        }
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: Theme.spacingSmall
+                            Label { text: statementName; Layout.fillWidth: true; elide: Label.ElideRight }
+                            Item { Layout.fillWidth: true }
+                            Controls.Button {
+                                implicitWidth: Theme.spacingLarge + Theme.margins * 4
+                                implicitHeight: Theme.spacingLarge + Theme.margins * 4
+                                fillColor: "transparent"
+                                textColor: Theme.textMuted
+                                text: collapsed ? "\u25B6" : "\u25BC"
+                                onClicked: collapsed = !collapsed
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+                        }
                     }
-                }
 
-                    RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: Theme.spacingSmall
-                    Label { text: statementName; Layout.fillWidth: true; elide: Label.ElideRight }
-                    Item { Layout.fillWidth: true }
-                    Controls.Button {
-                        id: toggleBtn
-                        implicitWidth: Theme.spacingLarge + Theme.margins * 4
-                        implicitHeight: Theme.spacingLarge + Theme.margins * 4
-                        fillColor: "transparent"
-                        textColor: Theme.textMuted
-                        text: collapsed ? "\u25B6" : "\u25BC"
-                        onClicked: collapsed = !collapsed
-                        Layout.alignment: Qt.AlignVCenter
+                    Column {
+                        width: statementColumn.width - (Theme.spacing + Theme.margins)
+                        leftPadding: Theme.spacing + Theme.margins
+                        spacing: Theme.margins
+                        visible: !collapsed
+
+                        Repeater {
+                            model: (uiData && statementId.length > 0) ? uiData.statementTransactionRows(statementId) : []
+
+                            delegate: Rectangle {
+                                width: statementColumn.width - (Theme.spacing + Theme.margins)
+                                height: 40
+                                radius: 6
+                                color: uiData && modelData.id === uiData.selectedTransactionId ? Theme.selectionHighlight : "transparent"
+                                border.color: Theme.borderSoft
+                                border.width: Theme.borderWidthThin
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        if (!uiData) return
+                                        uiData.selectedStatementId = statementId
+                                        uiData.selectedTransactionId = modelData.id
+                                    }
+                                }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: Theme.spacingSmall
+                                    spacing: Theme.spacingSmall
+
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: modelData.name ? modelData.name : ""
+                                        color: Theme.textPrimary
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Text {
+                                        text: modelData.bookingDate ? modelData.bookingDate : ""
+                                        color: Theme.textMuted
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-
-            }
-
-            ListView {
-                id: txList
-                width: statementList.width
-                height: collapsed ? 0 : contentHeight
-                visible: !collapsed
-                interactive: false
-                clip: true
-                spacing: Theme.margins
-                leftMargin: Theme.spacing + Theme.margins
-                model: (uiData && statementId.length > 0) ? uiData.statementTransactions(statementId) : null
-
-                delegate: Components.ListRow {
-                    width: statementList.width - (Theme.spacing + Theme.margins)
-                    text: name ? name : ""
-                    subtitle: bookingDate ? bookingDate : ""
-                    selected: uiData ? (id === uiData.selectedTransactionId) : false
-                    Component.onCompleted: {
-                    }
-                    onActivated: {
-                        if (!uiData) return
-                        uiData.selectedStatementId = statementId
-                        uiData.selectedTransactionId = id
-                    }
-                    height: 40
                 }
             }
         }

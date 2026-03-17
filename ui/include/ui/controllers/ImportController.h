@@ -49,11 +49,11 @@ public:
     QString error() const { return state_.error(); }
     int currentPage() const noexcept { return state_.currentPage(); }
     int pageCount() const noexcept { return state_.pageCount(); }
-    QString selectedFile() const { return state_.selectedFile(); }
+    QString selectedFile() const;
     void setSelectedFile(const QString& path);
     int queuedCount() const noexcept { return state_.queuedFiles().size(); }
-    QStringList queuedFiles() const { return state_.queuedFiles(); }
-    StatementDraft* draft() const noexcept { return state_.draft(); }
+    QStringList queuedFiles() const;
+    StatementDraft* draft() const noexcept;
 
     Q_INVOKABLE void startStatementImport();
     Q_INVOKABLE void addFiles(const QStringList& paths);
@@ -62,7 +62,7 @@ public:
     Q_INVOKABLE void cancelImport();
     Q_INVOKABLE void cancelAllImports();
 
-    ImportRunList* runs() noexcept { return &runs_; }
+    ImportRunList* runs() noexcept;
     QByteArray artifactBytes(const QString& key) const { return state_.artifactBytes(key); }
 
 signals:
@@ -83,7 +83,7 @@ private:
     void handleImportCanceled(const QString& now);
     void handleImportFailed(const QString& now, const QString& errorMessage, const char* traceMessage);
     bool populateDraftFromResult(const QString& now);
-    ImportRunList runs_;
+    std::unique_ptr<ImportRunList> runs_;
     importing::ImportState state_;
     JobSystemFactory jobSystemFactory_;
     std::unique_ptr<importing::ImportJobBridge> jobBridge_;

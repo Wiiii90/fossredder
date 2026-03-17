@@ -4,6 +4,7 @@
 - User prefers concrete, project-specific analysis rather than generic suggestions; wants me to inspect the actual repository files and give actionable findings.
 - User allows API-breaking changes when they materially improve a proper production-grade refactor and avoid interim designs. User does not want backward compatibility or transition paths for this refactor; prefers the clean end state even if it is breaking and removes legacy behavior.
 - User allows breaking up and restructuring when it is needed for a proper refactor.
+- User prefers larger best-practice refactors when needed to solve systemic issues, especially for clean architecture and maintainability, rather than only small local patches.
 - User validates the app in the Release build because only the Release Qt setup is runnable right now; Debug exe is currently not usable, so runtime fixes should be checked against Release.
 - User wants a clean workflow where the Debug build runs properly for interactive debugging, and Release is then treated as the clean tested and packaged production build.
 - User expects build validation to be reported only after the reported compiler errors are actually fixed, while the broader audit should continue in the same pass.
@@ -20,6 +21,8 @@
 - User uses pch.h in core and wants all unused includes to be removed and used added to the pch.h.
 - User wants not to read in third_party folder files and to ignore them in the analysis.
 - User wants vcpkg folder to be ignored on file audits.
+- User wants investigation and fixes to stay on the installed Visual Studio 2026 generator path; do not pivot to a VS2022-based workaround unless explicitly requested.
+- For debug-assert investigations, user may manually click 'Abort' on the startup assert dialog to allow the process to continue, and short timed test runs that kill the app after a few seconds are acceptable.
 
 ## CI/CD and Build Requirements
 - User wants CI/CD and preset recommendations grounded in the existing repo scripts and setup, not generic advice.

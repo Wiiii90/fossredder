@@ -4,6 +4,8 @@
 #include <QString>
 #include <QStringList>
 
+#include <memory>
+
 #include "ui/models/ActorList.h"
 #include "ui/models/PropertyList.h"
 #include "ui/models/ContractList.h"
@@ -238,7 +240,8 @@ public:
                    StatementList& statements,
                    TransactionList& transactions,
                    AnalysisList& analyses,
-                   AnnualList& annuals);
+                   AnnualList& annuals,
+                   QObject* objectParent = nullptr);
 
     const QString& selectedActorId() const;
     const QString& selectedPropertyId() const;
@@ -290,13 +293,13 @@ private:
     QString selectedAnalysisId_;
     QString selectedAnnualId_;
 
-    ActorSelection selectedActor_;
-    PropertySelection selectedProperty_;
-    ContractSelection selectedContract_;
-    StatementSelection selectedStatement_;
-    TransactionSelection selectedTransaction_;
-    AnalysisSelection selectedAnalysis_;
-    AnnualSelection selectedAnnual_;
+    std::unique_ptr<ActorSelection> selectedActor_;
+    std::unique_ptr<PropertySelection> selectedProperty_;
+    std::unique_ptr<ContractSelection> selectedContract_;
+    std::unique_ptr<StatementSelection> selectedStatement_;
+    std::unique_ptr<TransactionSelection> selectedTransaction_;
+    std::unique_ptr<AnalysisSelection> selectedAnalysis_;
+    std::unique_ptr<AnnualSelection> selectedAnnual_;
 
     void refreshSelectedActor();
     void refreshSelectedProperty();

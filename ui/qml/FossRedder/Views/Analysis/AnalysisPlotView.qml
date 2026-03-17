@@ -7,6 +7,7 @@ import "../../Constants/Analysis.js" as Analysis
 
 Item {
     id: root
+    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
     property var histLegendModel: []
     property real histLegendTotal: 0
     property var propListModel: []

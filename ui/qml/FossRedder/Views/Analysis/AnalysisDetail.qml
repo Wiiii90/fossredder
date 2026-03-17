@@ -7,7 +7,9 @@ import FossRedder.Views 1.0 as Views
 
 Item {
     id: page
+    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
     property var stackView
+    property bool previewReady: false
     width: stackView ? stackView.width : (parent ? parent.width : Theme.analysis.layout.defaultWidth)
     height: stackView ? stackView.height : (parent ? parent.height : Theme.analysis.layout.defaultHeight)
 
@@ -30,7 +32,7 @@ Item {
             ColumnLayout { anchors.fill: parent; anchors.margins: Theme.chartPanelMargin; spacing: Theme.chartPanelSpacing
                 Loader {
                     id: mainLoader
-                    active: true
+                    active: previewReady
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     sourceComponent: (uiData && uiData.selectedAnalysisId)
@@ -68,6 +70,13 @@ Item {
                 } else {
                     mainLoader.sourceComponent = plotComp
                 }
+                if (!previewReady) {
+                    previewReady = true
+                    Qt.callLater(function() {
+                        if (mainLoader.item && mainLoader.item.rebuild) mainLoader.item.rebuild()
+                    })
+                    return
+                }
                 if (mainLoader.item && mainLoader.item.rebuild) mainLoader.item.rebuild()
             } catch(e) {}
         }
@@ -85,4 +94,11 @@ Item {
             try { if (mainLoader.item.rebuild) mainLoader.item.rebuild() } catch(e) {}
         } catch(e) {}
     } }
+
+    Component.onCompleted: {
+        Qt.callLater(function() {
+            previewReady = true
+            loaderInitTimer.restart()
+        })
+    }
 }

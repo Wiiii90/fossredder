@@ -5,6 +5,17 @@ import FossRedder 1.0
 MenuBar {
     id: root
 
+    function clearBookingStateForSection(section) {
+        if (!uiNav || section === UiNavigation.Booking) return
+        uiNav.bookingView = UiNavigation.Statements
+    }
+
+    function navigateToSection(section) {
+        if (!uiNav) return
+        clearBookingStateForSection(section)
+        uiNav.section = section
+    }
+
     background: Rectangle {
         color: Theme.toolbarBackground
         border.width: Theme.borderWidthThin
@@ -45,7 +56,7 @@ MenuBar {
         Action {
             text: qsTr("Import...")
             onTriggered: {
-                if (uiNav) uiNav.section = UiNavigation.Import
+                navigateToSection(UiNavigation.Import)
                 if (uiActions) uiActions.browseImportPdf()
             }
         }
@@ -53,7 +64,7 @@ MenuBar {
         Action {
             text: qsTr("Export...")
             onTriggered: {
-                if (uiNav) uiNav.section = UiNavigation.Export
+                navigateToSection(UiNavigation.Export)
             }
         }
 
@@ -74,41 +85,41 @@ MenuBar {
 
         Action {
             text: qsTr("Import")
-            onTriggered: if (uiNav) uiNav.section = UiNavigation.Import
+            onTriggered: navigateToSection(UiNavigation.Import)
         }
         Action {
             text: qsTr("Export")
-            onTriggered: if (uiNav) uiNav.section = UiNavigation.Export
+            onTriggered: navigateToSection(UiNavigation.Export)
         }
         Action {
             text: qsTr("Booking")
-            onTriggered: if (uiNav) uiNav.section = UiNavigation.Booking
+            onTriggered: navigateToSection(UiNavigation.Booking)
         }
         Action {
             text: qsTr("Actors")
-            onTriggered: if (uiNav) uiNav.section = UiNavigation.Actors
+            onTriggered: navigateToSection(UiNavigation.Actors)
         }
         Action {
             text: qsTr("Properties")
-            onTriggered: if (uiNav) uiNav.section = UiNavigation.Properties
+            onTriggered: navigateToSection(UiNavigation.Properties)
         }
         Action {
             text: qsTr("Contracts")
-            onTriggered: if (uiNav) uiNav.section = UiNavigation.Contracts
+            onTriggered: navigateToSection(UiNavigation.Contracts)
         }
         MenuSeparator { }
         Action {
             text: qsTr("Analysis")
-            onTriggered: if (uiNav) uiNav.section = UiNavigation.Analysis
+            onTriggered: navigateToSection(UiNavigation.Analysis)
         }
         Action {
             text: qsTr("Annual")
-            onTriggered: if (uiNav) uiNav.section = UiNavigation.Annual
+            onTriggered: navigateToSection(UiNavigation.Annual)
         }
         MenuSeparator { }
         Action {
             text: qsTr("Settings")
-            onTriggered: if (uiNav) uiNav.section = UiNavigation.Settings
+            onTriggered: navigateToSection(UiNavigation.Settings)
         }
     }
 
