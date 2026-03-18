@@ -31,6 +31,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Install CMake 4
+        run: |
+          python -m pip install --disable-pip-version-check cmake==4.2.0
+          $cmakeScripts = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+          $cmakeScripts | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
       - name: Configure MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -53,13 +59,13 @@ jobs:
           & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat"
 
       - name: Configure CI preset
-        run: cmake --preset ci
+        run: cmake --preset github-ci
 
       - name: Build CI preset
-        run: cmake --build --preset release-ci --parallel
+        run: cmake --build --preset release-github-ci --parallel
 
       - name: Run test preset
-        run: ctest --preset release-ci
+        run: ctest --preset release-github-ci
 
   clang-tidy:
     runs-on: windows-latest
@@ -67,6 +73,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Install CMake 4
+        run: |
+          python -m pip install --disable-pip-version-check cmake==4.2.0
+          $cmakeScripts = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+          $cmakeScripts | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 
       - name: Configure MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
@@ -90,10 +102,10 @@ jobs:
           & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat"
 
       - name: Configure tidy preset
-        run: cmake --preset tidy
+        run: cmake --preset github-tidy
 
       - name: Build tidy preset
-        run: cmake --build --preset release-tidy --parallel
+        run: cmake --build --preset release-github-tidy --parallel
 
   coverage:
     runs-on: windows-latest
@@ -104,6 +116,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Install CMake 4
+        run: |
+          python -m pip install --disable-pip-version-check cmake==4.2.0
+          $cmakeScripts = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+          $cmakeScripts | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
 
       - name: Configure MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
@@ -127,13 +145,13 @@ jobs:
           & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat"
 
       - name: Configure coverage preset
-        run: cmake --preset coverage
+        run: cmake --preset github-coverage
 
       - name: Build coverage preset
-        run: cmake --build --preset release-coverage --parallel
+        run: cmake --build --preset release-github-coverage --parallel
 
       - name: Collect LLVM coverage
-        run: .\ci\coverage-windows.ps1 -BuildDir .build\coverage -Config Release -OutDir coverage
+        run: .\ci\coverage-windows.ps1 -BuildDir .build\github-coverage -Config Release -OutDir coverage
 
       - name: Publish coverage summary
         run: Get-Content .\coverage\coverage-summary.txt | Out-String | Add-Content -Path $env:GITHUB_STEP_SUMMARY

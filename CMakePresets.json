@@ -8,11 +8,7 @@
   "configurePresets": [
     {
       "hidden": true,
-      "name": "vcpkg-base",
-      "generator": "Visual Studio 18 2026",
-      "architecture": {
-        "value": "x64"
-      },
+      "name": "common-base",
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-windows",
         "VCPKG_APPLOCAL_DEPS": "ON"
@@ -20,6 +16,21 @@
       "environment": {
         "QT_DEBUG_PLUGINS": "1"
       }
+    },
+    {
+      "hidden": true,
+      "name": "vcpkg-base",
+      "inherits": "common-base",
+      "generator": "Visual Studio 18 2026",
+      "architecture": {
+        "value": "x64"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "github-base",
+      "inherits": "common-base",
+      "generator": "Ninja Multi-Config"
     },
     {
       "name": "app",
@@ -64,6 +75,39 @@
       "cacheVariables": {
         "FOSSREDDER_ENABLE_COVERAGE": "ON"
       }
+    },
+    {
+      "name": "github-ci",
+      "displayName": "GitHub CI",
+      "inherits": "github-base",
+      "binaryDir": "${sourceDir}/.build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "BUILD_CORE_TESTS": "ON",
+        "BUILD_UI_TESTS": "ON",
+        "BUILD_PERSISTENCE_TESTS": "ON",
+        "BUILD_DEBUG_TESTS": "ON"
+      }
+    },
+    {
+      "name": "github-tidy",
+      "displayName": "GitHub Tidy",
+      "inherits": "github-ci",
+      "binaryDir": "${sourceDir}/.build/${presetName}",
+      "cacheVariables": {
+        "FOSSREDDER_ENABLE_CLANG_TIDY": "ON"
+      }
+    },
+    {
+      "name": "github-coverage",
+      "displayName": "GitHub Coverage",
+      "inherits": "github-ci",
+      "binaryDir": "${sourceDir}/.build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang-cl",
+        "CMAKE_CXX_COMPILER": "clang-cl",
+        "FOSSREDDER_ENABLE_COVERAGE": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -103,6 +147,21 @@
       "configuration": "Release"
     },
     {
+      "name": "release-github-ci",
+      "configurePreset": "github-ci",
+      "configuration": "Release"
+    },
+    {
+      "name": "release-github-tidy",
+      "configurePreset": "github-tidy",
+      "configuration": "Release"
+    },
+    {
+      "name": "release-github-coverage",
+      "configurePreset": "github-coverage",
+      "configuration": "Release"
+    },
+    {
       "name": "release-package",
       "configurePreset": "app",
       "configuration": "Release",
@@ -139,6 +198,22 @@
     {
       "name": "release-coverage",
       "configurePreset": "coverage",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release-github-ci",
+      "configurePreset": "github-ci",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release-github-coverage",
+      "configurePreset": "github-coverage",
       "configuration": "Release",
       "output": {
         "outputOnFailure": true
