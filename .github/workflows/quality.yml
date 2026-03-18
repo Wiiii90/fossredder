@@ -26,17 +26,48 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure vcpkg paths
         run: |
-          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "VCPKG_DEFAULT_BINARY_CACHE=$env:RUNNER_TEMP\vcpkg-binary-cache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
+          $vcpkgCache = Join-Path $env:RUNNER_TEMP "vcpkg-binary-cache"
+          New-Item -ItemType Directory -Force -Path $vcpkgRoot, $vcpkgCache | Out-Null
+          "VCPKG_ROOT=$vcpkgRoot" | Set-Content -Path $env:GITHUB_ENV -Encoding utf8
+          "VCPKG_DEFAULT_BINARY_CACHE=$vcpkgCache" | Add-Content -Path $env:GITHUB_ENV -Encoding utf8
 
       - name: Configure MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+        run: |
+          $vsWhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (!(Test-Path $vsWhere)) {
+            throw "vswhere.exe not found at $vsWhere"
+          }
+
+          $vsInstallPath = & $vsWhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          if ([string]::IsNullOrWhiteSpace($vsInstallPath)) {
+            throw "Visual Studio installation not found"
+          }
+
+          $vsDevCmd = Join-Path $vsInstallPath "Common7\Tools\VsDevCmd.bat"
+          if (!(Test-Path $vsDevCmd)) {
+            throw "VsDevCmd.bat not found at $vsDevCmd"
+          }
+
+          $envDump = & cmd /c "`"$vsDevCmd`" -arch=x64 -host_arch=x64 -no_logo && set"
+          foreach ($line in $envDump) {
+            $equalsIndex = $line.IndexOf('=')
+            if ($equalsIndex -le 0) {
+              continue
+            }
+
+            $name = $line.Substring(0, $equalsIndex)
+            $value = $line.Substring($equalsIndex + 1)
+            if ($name -in @('PROMPT', '__VSCMD_PREINIT_PATH')) {
+              continue
+            }
+
+            "$name=$value" | Add-Content -Path $env:GITHUB_ENV -Encoding utf8
+          }
 
       - name: Bootstrap vcpkg
         run: |
@@ -57,17 +88,48 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure vcpkg paths
         run: |
-          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "VCPKG_DEFAULT_BINARY_CACHE=$env:RUNNER_TEMP\vcpkg-binary-cache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
+          $vcpkgCache = Join-Path $env:RUNNER_TEMP "vcpkg-binary-cache"
+          New-Item -ItemType Directory -Force -Path $vcpkgRoot, $vcpkgCache | Out-Null
+          "VCPKG_ROOT=$vcpkgRoot" | Set-Content -Path $env:GITHUB_ENV -Encoding utf8
+          "VCPKG_DEFAULT_BINARY_CACHE=$vcpkgCache" | Add-Content -Path $env:GITHUB_ENV -Encoding utf8
 
       - name: Configure MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+        run: |
+          $vsWhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (!(Test-Path $vsWhere)) {
+            throw "vswhere.exe not found at $vsWhere"
+          }
+
+          $vsInstallPath = & $vsWhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          if ([string]::IsNullOrWhiteSpace($vsInstallPath)) {
+            throw "Visual Studio installation not found"
+          }
+
+          $vsDevCmd = Join-Path $vsInstallPath "Common7\Tools\VsDevCmd.bat"
+          if (!(Test-Path $vsDevCmd)) {
+            throw "VsDevCmd.bat not found at $vsDevCmd"
+          }
+
+          $envDump = & cmd /c "`"$vsDevCmd`" -arch=x64 -host_arch=x64 -no_logo && set"
+          foreach ($line in $envDump) {
+            $equalsIndex = $line.IndexOf('=')
+            if ($equalsIndex -le 0) {
+              continue
+            }
+
+            $name = $line.Substring(0, $equalsIndex)
+            $value = $line.Substring($equalsIndex + 1)
+            if ($name -in @('PROMPT', '__VSCMD_PREINIT_PATH')) {
+              continue
+            }
+
+            "$name=$value" | Add-Content -Path $env:GITHUB_ENV -Encoding utf8
+          }
 
       - name: Bootstrap vcpkg
         run: |
@@ -88,17 +150,48 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure vcpkg paths
         run: |
-          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "VCPKG_DEFAULT_BINARY_CACHE=$env:RUNNER_TEMP\vcpkg-binary-cache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
+          $vcpkgCache = Join-Path $env:RUNNER_TEMP "vcpkg-binary-cache"
+          New-Item -ItemType Directory -Force -Path $vcpkgRoot, $vcpkgCache | Out-Null
+          "VCPKG_ROOT=$vcpkgRoot" | Set-Content -Path $env:GITHUB_ENV -Encoding utf8
+          "VCPKG_DEFAULT_BINARY_CACHE=$vcpkgCache" | Add-Content -Path $env:GITHUB_ENV -Encoding utf8
 
       - name: Configure MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+        run: |
+          $vsWhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (!(Test-Path $vsWhere)) {
+            throw "vswhere.exe not found at $vsWhere"
+          }
+
+          $vsInstallPath = & $vsWhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          if ([string]::IsNullOrWhiteSpace($vsInstallPath)) {
+            throw "Visual Studio installation not found"
+          }
+
+          $vsDevCmd = Join-Path $vsInstallPath "Common7\Tools\VsDevCmd.bat"
+          if (!(Test-Path $vsDevCmd)) {
+            throw "VsDevCmd.bat not found at $vsDevCmd"
+          }
+
+          $envDump = & cmd /c "`"$vsDevCmd`" -arch=x64 -host_arch=x64 -no_logo && set"
+          foreach ($line in $envDump) {
+            $equalsIndex = $line.IndexOf('=')
+            if ($equalsIndex -le 0) {
+              continue
+            }
+
+            $name = $line.Substring(0, $equalsIndex)
+            $value = $line.Substring($equalsIndex + 1)
+            if ($name -in @('PROMPT', '__VSCMD_PREINIT_PATH')) {
+              continue
+            }
+
+            "$name=$value" | Add-Content -Path $env:GITHUB_ENV -Encoding utf8
+          }
 
       - name: Bootstrap vcpkg
         run: |
