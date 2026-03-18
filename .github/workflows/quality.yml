@@ -23,13 +23,15 @@ defaults:
 jobs:
   build-and-test:
     runs-on: windows-latest
-    env:
-      VCPKG_ROOT: ${{ runner.temp }}\vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}\vcpkg-binary-cache
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure vcpkg paths
+        run: |
+          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VCPKG_DEFAULT_BINARY_CACHE=$env:RUNNER_TEMP\vcpkg-binary-cache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Configure MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
@@ -52,13 +54,15 @@ jobs:
 
   clang-tidy:
     runs-on: windows-latest
-    env:
-      VCPKG_ROOT: ${{ runner.temp }}\vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}\vcpkg-binary-cache
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure vcpkg paths
+        run: |
+          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VCPKG_DEFAULT_BINARY_CACHE=$env:RUNNER_TEMP\vcpkg-binary-cache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Configure MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
@@ -81,13 +85,15 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    env:
-      VCPKG_ROOT: ${{ runner.temp }}\vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}\vcpkg-binary-cache
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure vcpkg paths
+        run: |
+          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VCPKG_DEFAULT_BINARY_CACHE=$env:RUNNER_TEMP\vcpkg-binary-cache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Configure MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
