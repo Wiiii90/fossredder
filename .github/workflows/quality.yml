@@ -20,13 +20,12 @@ defaults:
   run:
     shell: pwsh
 
-env:
-  VCPKG_ROOT: ${{ runner.temp }}\vcpkg
-  VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}\vcpkg-binary-cache
-
 jobs:
   build-and-test:
     runs-on: windows-latest
+    env:
+      VCPKG_ROOT: ${{ runner.temp }}\vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}\vcpkg-binary-cache
 
     steps:
       - name: Checkout
@@ -53,6 +52,9 @@ jobs:
 
   clang-tidy:
     runs-on: windows-latest
+    env:
+      VCPKG_ROOT: ${{ runner.temp }}\vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}\vcpkg-binary-cache
 
     steps:
       - name: Checkout
@@ -79,6 +81,9 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      VCPKG_ROOT: ${{ runner.temp }}\vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}\vcpkg-binary-cache
 
     steps:
       - name: Checkout
