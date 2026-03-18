@@ -6,6 +6,7 @@
 #include "ui/controllers/ImportController.h"
 
 #include <QDateTime>
+#include <QDir>
 #include <QMetaObject>
 #include <QRegularExpression>
 
@@ -53,6 +54,7 @@ core::jobs::ImportStatementJobSpec buildImportSpec(const QString &path,
   core::jobs::ImportStatementJobSpec spec;
   spec.sourcePath = strings::toEncodedPath(path);
   spec.runRoot = strings::toEncodedPath(runInfo.runRoot);
+  spec.proofOutputDir = strings::toEncodedPath(QDir(runInfo.runRoot).filePath("proof"));
 
   const QByteArray runIdNative = runInfo.runIdPrefix.toUtf8();
   spec.runIdPrefix = {runIdNative.constData(),

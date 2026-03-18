@@ -135,12 +135,12 @@ std::vector<detail::PageWork> collectPageWork(const ImportRequest& req,
 }
 
 std::filesystem::path createProofDir(const std::filesystem::path& runRoot,
-                                     const std::shared_ptr<IDebugger>& debugger,
+                                     const std::string& proofOutputDir,
                                      core::errors::IErrorReporter* errorReporter)
 {
-    if (!debugger || !debugger->enabled()) return {};
+    if (proofOutputDir.empty()) return {};
 
-    const auto proofDir = runRoot / "proof";
+    const auto proofDir = std::filesystem::path(proofOutputDir);
     ensureDirectoryExists(proofDir, errorReporter, "core::import::DefaultImportStatementStrategy::createProofDir");
     return proofDir;
 }

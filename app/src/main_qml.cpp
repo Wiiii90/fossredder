@@ -193,7 +193,8 @@ UiControllers setupUiControllers(
                           ui.language);
 
   auto importJobSystemFactory = [dbg = std::make_shared<FileDebugger>(
-                                   "", std::string(debug::defaults::kImportProcessName))]() {
+                                   "", std::string(debug::defaults::kImportProcessName)),
+                                 &errorReporter]() {
     auto popplerAdapter = createPopplerAdapter(dbg);
     auto opencvAdapter = createOpenCvAdapter(dbg);
     auto tesseractAdapter = createTesseractAdapter(dbg);
@@ -202,7 +203,7 @@ UiControllers setupUiControllers(
     auto opencv = api::opencv::createOpenCvService(opencvAdapter);
     auto tesseract = api::tesseract::createTesseractService(tesseractAdapter);
 
-    auto importSvc = core::importing::createImportStatement(poppler, opencv, tesseract, dbg);
+    auto importSvc = core::importing::createImportStatement(poppler, opencv, tesseract, errorReporter);
     return std::make_shared<core::jobs::JobSystem>(importSvc);
   };
 

@@ -50,10 +50,6 @@ target_include_directories(fossredder_core PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
-target_include_directories(fossredder_core PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/debug/include>
-)
-
 # Internal dependencies used by core implementation code.
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(xlnt CONFIG QUIET)
