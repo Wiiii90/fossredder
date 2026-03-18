@@ -1,12 +1,18 @@
+/**
+ * @file ui/src/controllers/PropertyController.cpp
+ * @brief Implements the UI controller that forwards property mutations to the application facade.
+ */
+
 #include "ui/controllers/PropertyController.h"
 
+#include "core/application/AppStateFacade.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
 
 namespace ui {
 
-PropertyController::PropertyController(core::controllers::AppStateController *core,
+PropertyController::PropertyController(core::application::AppStateFacade *core,
                                        QObject *parent)
     : QObject(parent), core_(core) {}
 

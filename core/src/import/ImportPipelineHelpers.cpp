@@ -9,7 +9,6 @@
 #include "core/constants/CoreDefaults.h"
 #include "core/errors/ErrorReporting.h"
 #include "parsing/DefaultStatementParser.h"
-#include "core/utils/UniqId.h"
 
 #include <algorithm>
 #include <fstream>

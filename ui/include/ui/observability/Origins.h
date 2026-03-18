@@ -19,8 +19,6 @@ inline constexpr auto kCloseFailed = "ui::MainWindow::handleStorageOperationFail
 namespace controller {
 namespace annual {
 inline constexpr auto kAdd = "ui::AnnualController::addAnnual";
-inline constexpr auto kUpdate = "ui::AnnualController::updateAnnual";
-inline constexpr auto kDelete = "ui::AnnualController::deleteAnnual";
 }
 namespace actor {
 inline constexpr auto kAdd = "ui::ActorController::addActor";
@@ -35,7 +33,6 @@ namespace contract {
 inline constexpr auto kAdd = "ui::ContractController::addContract";
 inline constexpr auto kUpdate = "ui::ContractController::updateContract";
 inline constexpr auto kDelete = "ui::ContractController::deleteContract";
-inline constexpr auto kGetTypes = "ui::ContractController::getContractTypes";
 }
 namespace draft {
 inline constexpr auto kFinalize = "ui::DraftController::finalizeStatementDraft";
@@ -56,7 +53,6 @@ inline constexpr auto kUpdate = "ui::PropertyController::updateProperty";
 inline constexpr auto kDelete = "ui::PropertyController::deleteProperty";
 }
 namespace storage {
-inline constexpr auto kCurrentPath = "ui::StorageController::currentPath";
 inline constexpr auto kNewFile = "ui::StorageController::newFile";
 inline constexpr auto kOpenFile = "ui::StorageController::openFile";
 inline constexpr auto kSaveFile = "ui::StorageController::saveFile";

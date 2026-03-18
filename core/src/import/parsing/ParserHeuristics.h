@@ -1,6 +1,6 @@
 /**
- * @file core/include/core/import/ParserHeuristics.h
- * @brief Declares lightweight text heuristics for statement parsing.
+ * @file core/src/import/parsing/ParserHeuristics.h
+ * @brief Declares private text heuristics shared within the statement parser implementation.
  */
 
 #pragma once

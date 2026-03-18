@@ -9,16 +9,16 @@ set(CORE_SRCS
     src/analysis/strategies/TabAnalysisStrategy.cpp
     src/application/AnalysisService.cpp
     src/application/AppStateManager.cpp
+    src/application/AppStateFacade.cpp
     src/application/CatalogService.cpp
     src/application/DraftFinalizer.cpp
     src/application/StateHydrator.cpp
     src/application/StateProjector.cpp
     src/application/WorkspaceSession.cpp
-    src/controllers/AppStateController.cpp
-    src/controllers/CsvController.cpp
-    src/controllers/ExportController.cpp
-    src/controllers/XlsxController.cpp
     src/errors/ErrorReporterRegistry.cpp
+    src/export/CsvExporter.cpp
+    src/export/ExportService.cpp
+    src/export/XlsxExporter.cpp
     src/import/DefaultImportStatementStrategy.cpp
     src/import/ImportPipelineHelpers.cpp
     src/import/ImportStatement.cpp
@@ -34,7 +34,6 @@ set(CORE_SRCS
     src/jobs/JobSystem.cpp
     src/jobs/Scheduler.cpp
     src/storage/StorageManager.cpp
-    src/utils/Environment.cpp
     src/utils/Util.cpp
 )
 
@@ -81,12 +80,12 @@ if (BUILD_CORE_TESTS)
     set(CORE_UNIT_TEST_SRCS
         tests/unit/TestAnalysisEngine.cpp
         tests/unit/TestApplicationServices.cpp
-        tests/unit/TestAppStateController.cpp
+        tests/unit/TestAppStateFacade.cpp
         tests/unit/TestAppStateManager.cpp
         tests/unit/TestAppStateManagerExtended.cpp
         tests/unit/TestDraftFinalizer.cpp
         tests/unit/TestErrorReporterRegistry.cpp
-        tests/unit/TestExportController.cpp
+        tests/unit/TestExportService.cpp
         tests/unit/TestFilter.cpp
         tests/unit/TestJobSystem.cpp
         tests/unit/TestStateTransforms.cpp
@@ -110,7 +109,7 @@ if (BUILD_CORE_TESTS)
     gtest_discover_tests(core_unit_tests PROPERTIES LABELS "UNIT")
 
     set(CORE_INTERACTION_TEST_SRCS
-        tests/interaction/TestAppStateControllerInteraction.cpp
+        tests/interaction/TestAppStateFacadeInteraction.cpp
         tests/interaction/TestAppStateManagerInteraction.cpp
         tests/interaction/TestStorageManagerInteraction.cpp
     )

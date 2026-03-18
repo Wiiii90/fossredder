@@ -1,5 +1,5 @@
 /**
- * @file core/include/core/controllers/ExportController.h
+ * @file core/include/core/export/ExportService.h
  * @brief Declares the export entry point used by the application shell.
  */
 
@@ -8,11 +8,14 @@
 #include "core/export/ExportRequest.h"
 #include "core/export/ExportResult.h"
 
-namespace core::controllers::exporting {
+namespace core::exporting {
 
-class ExportController {
+/**
+ * @brief Dispatches export requests to the format-specific exporters.
+ */
+class ExportService {
 public:
     ExportResult exportData(const ExportRequest& request) const;
 };
 
-} // namespace core::controllers::exporting
+} // namespace core::exporting

@@ -4,7 +4,7 @@
  * @file core/include/core/storage/IStorageManager.h
  * @brief Interface for storage manager implementations.
  *
- * Defines the abstract storage manager API used by higher-level controllers.
+ * Defines the abstract storage manager API used by higher-level application services.
  */
 
 #include <functional>
@@ -34,8 +34,6 @@ public:
     virtual void setAtomicStoreLoad(AtomicStoreLoad loadFn) = 0;
     virtual void setDeletionImpactCallback(DeletionImpactCallback cb) = 0;
     virtual std::optional<std::string> loadLatestPath() const = 0;
-    virtual void setLatestPath(const std::string& filePath) = 0;
-    virtual core::domain::AppState load() = 0;
     virtual core::domain::AppState loadFrom(const std::string& filePath) = 0;
     virtual void save(const core::domain::AppState& state) = 0;
     virtual void saveAs(const std::string& filePath, const core::domain::AppState& state) = 0;

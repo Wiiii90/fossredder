@@ -1,12 +1,18 @@
+/**
+ * @file ui/src/controllers/ActorController.cpp
+ * @brief Implements the UI controller that forwards actor mutations to the application facade.
+ */
+
 #include "ui/controllers/ActorController.h"
 
+#include "core/application/AppStateFacade.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
 
 namespace ui {
 
-ActorController::ActorController(core::controllers::AppStateController *core, QObject *parent)
+ActorController::ActorController(core::application::AppStateFacade *core, QObject *parent)
     : QObject(parent), core_(core) {}
 
 QString ActorController::addActor(const QString &name, const QString &type,

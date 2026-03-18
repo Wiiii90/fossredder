@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/controllers/LanguageController.h
+ * @brief Declares the UI controller responsible for runtime language switching.
+ */
+
 #pragma once
 
 #include <QObject>
@@ -10,6 +15,9 @@ class QQmlEngine;
 
 namespace ui {
 
+/**
+ * @brief Manages the active UI language and the available translation options.
+ */
 class LanguageController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString currentLanguage READ currentLanguage WRITE setCurrentLanguage NOTIFY currentLanguageChanged)
@@ -22,12 +30,11 @@ public:
     void setCurrentLanguage(const QString& languageCode);
     QVariantList availableLanguages() const { return availableLanguages_; }
 
-    Q_INVOKABLE bool isLanguageAvailable(const QString& languageCode) const;
-
 signals:
     void currentLanguageChanged();
 
 private:
+    bool isLanguageAvailable(const QString& languageCode) const;
     QString normalizeLanguageCode(const QString& languageCode) const;
     QString translationFileName(const QString& languageCode) const;
     bool translationFileExists(const QString& languageCode) const;
@@ -43,4 +50,4 @@ private:
     QString currentLanguage_;
 };
 
-}
+} // namespace ui

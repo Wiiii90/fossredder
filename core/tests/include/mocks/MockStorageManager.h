@@ -16,9 +16,6 @@ public:
     MOCK_METHOD(void, setDeletionImpactCallback, (DeletionImpactCallback), (override));
 
     MOCK_METHOD(std::optional<std::string>, loadLatestPath, (), (const, override));
-    MOCK_METHOD(void, setLatestPath, (const std::string&), (override));
-
-    MOCK_METHOD(AppState, load, (), (override));
     MOCK_METHOD(AppState, loadFrom, (const std::string&), (override));
 
     MOCK_METHOD(void, save, (const AppState&), (override));

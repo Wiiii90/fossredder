@@ -1,11 +1,11 @@
 /**
  * @file core/include/core/export/ExportTypes.h
- * @brief Shared export enums used by request, result, and controller entry points.
+ * @brief Shared export enums used by request, result, and export service entry points.
  */
 
 #pragma once
 
-namespace core::controllers::exporting {
+namespace core::exporting {
 
 enum class ExportFormat {
     Csv,
@@ -21,4 +21,4 @@ enum class ExportStatus {
     InternalError
 };
 
-} // namespace core::controllers::exporting
+} // namespace core::exporting

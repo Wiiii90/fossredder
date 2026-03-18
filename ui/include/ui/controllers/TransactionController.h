@@ -1,18 +1,27 @@
+/**
+ * @file ui/include/ui/controllers/TransactionController.h
+ * @brief Declares the UI controller that forwards transaction mutations to the application facade.
+ */
+
 #pragma once
 
 #include <QObject>
 #include <QString>
 #include <QStringList>
 
-#include "core/controllers/AppStateController.h"
 #include "core/models/Transaction.h"
+
+namespace core::application { class AppStateFacade; }
 
 namespace ui {
 
+/**
+ * @brief Exposes transaction create, update and delete actions to QML.
+ */
 class TransactionController : public QObject {
     Q_OBJECT
 public:
-    explicit TransactionController(core::controllers::AppStateController* core, QObject* parent = nullptr);
+    explicit TransactionController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
     Q_INVOKABLE QString addTransaction(const QString& name,
                                        const QString& bookingDate,
@@ -38,7 +47,7 @@ public:
     Q_INVOKABLE void deleteTransaction(const QString& id);
 
 private:
-    core::controllers::AppStateController* core_ = nullptr;
+    core::application::AppStateFacade* core_ = nullptr;
 };
 
-}
+} // namespace ui

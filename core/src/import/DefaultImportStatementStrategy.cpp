@@ -31,6 +31,9 @@
 using core::importing::detail::FinalizeStats;
 using core::importing::detail::PageWork;
 using core::importing::detail::finalizeParsedPages;
+
+namespace core::importing {
+
 class DefaultImportStatementStrategy : public IImportStatementStrategy {
 public:
     DefaultImportStatementStrategy(std::shared_ptr<api::poppler::IPopplerService> poppler,
@@ -142,3 +145,5 @@ std::unique_ptr<IImportStatementStrategy> createDefaultImportStrategy(std::share
     std::shared_ptr<IDebugger> debugger) {
     return std::make_unique<DefaultImportStatementStrategy>(std::move(poppler), std::move(opencv), std::move(tesseract), std::move(debugger));
 }
+
+} // namespace core::importing

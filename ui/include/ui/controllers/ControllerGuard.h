@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/controllers/AppStateController.h"
+#include "core/application/AppStateFacade.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 
@@ -10,13 +10,13 @@
 
 namespace ui::controllers::guard {
 
-inline bool ensureCore(const core::controllers::AppStateController* core, const char* origin)
+inline bool ensureCore(const core::application::AppStateFacade* core, const char* origin)
 {
     if (core) return true;
     core::errors::report(core::errors::ErrorSeverity::Warning,
                          core::errors::codes::GenericError,
                          origin,
-                         "AppStateController is null");
+                         "AppStateFacade is null");
     return false;
 }
 

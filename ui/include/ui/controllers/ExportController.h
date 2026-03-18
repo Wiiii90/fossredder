@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/controllers/ExportController.h
+ * @brief Declares the asynchronous export workflow controller exposed to QML.
+ */
+
 #pragma once
 
 #include <QObject>
@@ -12,10 +17,11 @@
 
 namespace ui {
 
+/**
+ * @brief Coordinates asynchronous exports from a read-only state snapshot.
+ */
 class ExportController : public QObject {
     Q_OBJECT
-    Q_PROPERTY(bool isRunning READ isRunning NOTIFY stateChanged)
-    Q_PROPERTY(QString lastError READ lastError NOTIFY stateChanged)
 public:
     using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::AppState>()>;
 
@@ -25,11 +31,7 @@ public:
 
     Q_INVOKABLE void exportData(int format, const QString& path, bool includeFormulas = true, const QString& locale = QString());
 
-    bool isRunning() const noexcept { return isRunning_; }
-    QString lastError() const { return lastError_; }
-
 signals:
-    void stateChanged();
     void exportFinished(bool success);
     void exportFailed(const QString& error);
 
@@ -52,4 +54,4 @@ private:
     QString lastError_;
 };
 
-}
+} // namespace ui

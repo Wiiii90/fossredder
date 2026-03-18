@@ -42,7 +42,6 @@ ExportController::buildRequest(ui::controllers::contracts::ExportFormat format,
 
 void ExportController::finishExport(bool success) {
   isRunning_ = false;
-  emit stateChanged();
   if (!success)
     emit exportFailed(lastError_);
   emit exportFinished(success);
@@ -72,7 +71,6 @@ void ExportController::exportData(int format, const QString &path,
     const auto snapshot = stateSnapshot();
     if (!snapshot) {
       lastError_ = ui::text::controllerErrors::exportStateUnavailable();
-      emit stateChanged();
       observability::reportFlow(
           core::errors::ErrorSeverity::Warning,
           observability::codes::FlowExportFailed,
@@ -85,7 +83,6 @@ void ExportController::exportData(int format, const QString &path,
     }
 
     isRunning_ = true;
-    emit stateChanged();
 
     observability::reportFlow(
         core::errors::ErrorSeverity::Info,

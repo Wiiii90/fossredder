@@ -3,7 +3,7 @@
  * @brief Initializes the desktop application and shared runtime infrastructure.
  */
 
-#include "core/utils/Environment.h"
+#include "Environment.h"
 #include "core/models/AppState.h"
 
 using core::domain::AppState;
@@ -16,8 +16,8 @@ using core::domain::AppState;
 #include "persistence/Factory.h"
 #include "persistence/AppStateStore.h"
 #include "core/constants/CoreDefaults.h"
+#include "core/application/AppStateFacade.h"
 #include "core/storage/StorageManager.h"
-#include "core/controllers/AppStateController.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "debug/ErrorReporter.h"
@@ -80,7 +80,7 @@ static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, 
  *
  * Implemented in `main_qml.cpp`. Only available when built with USE_QML.
  */
-extern int startQmlApp(QApplication& app, core::controllers::AppStateController& appStateCtrl);
+extern int startQmlApp(QApplication& app, core::application::AppStateFacade& appStateFacade);
 #endif
 
 int main(int argc, char* argv[]) {
@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
     const auto previousQtMessageHandler = qInstallMessageHandler(qtMessageHandler);
 
     // Load runtime environment from .env if present
-    env::load_dotenv(".env", false);
+    app::runtime::loadDotEnv(".env", false);
 
     // Ensure Qt Quick Controls uses a non-native style that supports customization
     // Call before creating the QApplication/QGuiApplication
@@ -135,21 +135,21 @@ int main(int argc, char* argv[]) {
     core::storage::StorageManager sm(registry);
 
     auto smPtr = std::make_unique<core::storage::StorageManager>(std::move(sm));
-    core::controllers::AppStateController appStateCtrl(std::move(smPtr));
+    core::application::AppStateFacade appStateFacade(std::move(smPtr));
 
-    appStateCtrl.setErrorReporter(errorReporter);
-    appStateCtrl.setRepoFactory([&](const std::string& dbPath) {
+    appStateFacade.setErrorReporter(errorReporter);
+    appStateFacade.setRepoFactory([&](const std::string& dbPath) {
         ensureParentDirectoryExists(std::filesystem::path(dbPath), "app::main::setRepoFactory::create_directories");
         auto db = createSqliteDb(dbPath);
         return createSqliteRepositoryBundle(db, errorReporter);
     });
 
-    appStateCtrl.setAtomicStoreLoad([](const std::string& dbPath) {
+    appStateFacade.setAtomicStoreLoad([](const std::string& dbPath) {
         auto db = createSqliteDb(dbPath);
         AppStateStore store(db);
         return store.load();
     });
-    appStateCtrl.setAtomicStoreSave([](const std::string& dbPath, const AppState& state) {
+    appStateFacade.setAtomicStoreSave([](const std::string& dbPath, const AppState& state) {
         auto db = createSqliteDb(dbPath);
         AppStateStore store(db);
         auto res = store.save(state);
@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
     });
 
     try {
-        appStateCtrl.openLatest();
+        appStateFacade.openLatest();
     } catch (const std::exception& ex) {
         core::errors::reportException(core::errors::ErrorSeverity::Warning, "app::main::openLatest", std::current_exception());
         // continue with empty state
@@ -166,8 +166,8 @@ int main(int argc, char* argv[]) {
     // Only create a new file if no path was found AND the loaded state is empty.
     // This avoids accidentally overwriting a valid loaded state due to
     // registry or ordering issues at startup.
-    if (appStateCtrl.currentPath().empty() && appStateCtrl.state().empty()) {
-        appStateCtrl.newFile(defaultDbPath.string());
+    if (appStateFacade.currentPath().empty() && appStateFacade.state().empty()) {
+        appStateFacade.newFile(defaultDbPath.string());
     }
 
     // Ensure Qt finds deployed plugins and QML modules next to the executable
@@ -176,23 +176,23 @@ int main(int argc, char* argv[]) {
 #ifdef USE_QML
     // Delegate to QML-specific startup
     try {
-        const int exitCode = startQmlApp(app, appStateCtrl);
+        const int exitCode = startQmlApp(app, appStateFacade);
         qInstallMessageHandler(previousQtMessageHandler);
-        appStateCtrl.setErrorReporter({});
+        appStateFacade.setErrorReporter({});
         core::errors::setGlobalErrorReporter({});
         return exitCode;
     } catch (const std::exception& ex) {
         qInstallMessageHandler(previousQtMessageHandler);
         core::errors::reportException(core::errors::ErrorSeverity::Critical, "app::main::startQmlApp", std::current_exception());
         QMessageBox::critical(nullptr, QObject::tr("Fatal error"), QObject::tr("Startup failed: %1").arg(QString::fromUtf8(ex.what())));
-        appStateCtrl.setErrorReporter({});
+        appStateFacade.setErrorReporter({});
         core::errors::setGlobalErrorReporter({});
         return -1;
     } catch (...) {
         qInstallMessageHandler(previousQtMessageHandler);
         core::errors::reportException(core::errors::ErrorSeverity::Critical, "app::main::startQmlAppUnknown", std::current_exception());
         QMessageBox::critical(nullptr, QObject::tr("Fatal error"), QObject::tr("Startup failed: unknown exception"));
-        appStateCtrl.setErrorReporter({});
+        appStateFacade.setErrorReporter({});
         core::errors::setGlobalErrorReporter({});
         return -2;
     }

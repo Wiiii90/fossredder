@@ -9,7 +9,7 @@
 #include "core/errors/ErrorReporterRegistry.h"
 #include "DefaultTransactionParser.h"
 #include "ParserHelpers.h"
-#include "core/utils/UniqId.h"
+#include "../../utils/UniqId.h"
 
 #include <algorithm>
 #include <cmath>

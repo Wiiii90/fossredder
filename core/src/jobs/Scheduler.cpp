@@ -1,19 +1,31 @@
+/**
+ * @file core/src/jobs/Scheduler.cpp
+ * @brief Implements the bounded worker queue and slot limiter used by import jobs.
+ */
+
 #include "core/jobs/Scheduler.h"
 
 #include "core/errors/ErrorReporterRegistry.h"
+
 #include <algorithm>
 
 namespace core::jobs {
 
-SlotLimiter::SlotLimiter(std::size_t slots) : slots_(std::max<std::size_t>(1, slots)), available_(std::max<std::size_t>(1, slots)) {}
+SlotLimiter::SlotLimiter(std::size_t slots)
+    : slots_(std::max<std::size_t>(1, slots))
+    , available_(std::max<std::size_t>(1, slots))
+{
+}
 
-void SlotLimiter::acquire() {
+void SlotLimiter::acquire()
+{
     std::unique_lock<std::mutex> lk(m_);
     cv_.wait(lk, [&]() { return available_ > 0; });
     --available_;
 }
 
-void SlotLimiter::release() {
+void SlotLimiter::release()
+{
     {
         std::lock_guard<std::mutex> g(m_);
         available_ = std::min(slots_, available_ + 1);
@@ -22,7 +34,8 @@ void SlotLimiter::release() {
 }
 
 Scheduler::Scheduler(std::size_t workers, std::size_t queueCapacity)
-    : cap_(std::max<std::size_t>(1, queueCapacity)) {
+    : cap_(std::max<std::size_t>(1, queueCapacity))
+{
     workers = std::max<std::size_t>(1, workers);
     workers_.reserve(workers);
     for (std::size_t i = 0; i < workers; ++i) {
@@ -30,11 +43,13 @@ Scheduler::Scheduler(std::size_t workers, std::size_t queueCapacity)
     }
 }
 
-Scheduler::~Scheduler() {
+Scheduler::~Scheduler()
+{
     stop();
 }
 
-void Scheduler::stop() {
+void Scheduler::stop()
+{
     {
         std::lock_guard<std::mutex> g(m_);
         if (stopping_) return;
@@ -47,12 +62,17 @@ void Scheduler::stop() {
     for (auto& w : workers_) {
         try {
             if (w.joinable()) w.join();
-        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::jobs::Scheduler::stop::join", std::current_exception()); }
+        } catch (...) {
+            core::errors::reportException(core::errors::ErrorSeverity::Warning,
+                                          "core::jobs::Scheduler::stop::join",
+                                          std::current_exception());
+        }
     }
     workers_.clear();
 }
 
-void Scheduler::enqueue(Task t) {
+void Scheduler::enqueue(Task t)
+{
     if (!t) return;
 
     std::unique_lock<std::mutex> lk(m_);
@@ -63,7 +83,8 @@ void Scheduler::enqueue(Task t) {
     cvNotEmpty_.notify_one();
 }
 
-void Scheduler::workerLoop() {
+void Scheduler::workerLoop()
+{
     while (true) {
         Task t;
         {
@@ -77,7 +98,11 @@ void Scheduler::workerLoop() {
 
         try {
             if (t) t();
-        } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Error, "core::jobs::Scheduler::workerLoop::task", std::current_exception()); }
+        } catch (...) {
+            core::errors::reportException(core::errors::ErrorSeverity::Error,
+                                          "core::jobs::Scheduler::workerLoop::task",
+                                          std::current_exception());
+        }
     }
 }
 

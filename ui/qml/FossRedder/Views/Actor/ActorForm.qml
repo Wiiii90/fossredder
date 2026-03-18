@@ -32,27 +32,15 @@ Item {
         aliasesField.text = aliases.join("\n")
     }
 
-    function cleanedAliases() {
-        var lines = aliasesField.text.split(/\r?\n/)
-        var cleaned = []
-        for (var i = 0; i < lines.length; ++i) {
-            var value = lines[i].trim()
-            if (value.length === 0) continue
-            cleaned.push(value)
-        }
-        return cleaned
-    }
-
     function submitActor() {
         if (!actorController) return
 
-        var cleaned = cleanedAliases()
         if (isEdit) {
-            actorController.updateActor(current.id, nameField.text, typeField.text, descField.text, cleaned)
+            actorController.updateActor(current.id, nameField.text, typeField.text, descField.text)
             return
         }
 
-        var id = actorController.addActor(nameField.text, typeField.text, descField.text, cleaned)
+        var id = actorController.addActor(nameField.text, typeField.text, descField.text)
         clearFields()
         if (uiData && id && id.length > 0) uiData.selectedActorId = id
     }

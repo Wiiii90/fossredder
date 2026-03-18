@@ -1,5 +1,11 @@
+/**
+ * @file ui/src/controllers/DraftController.cpp
+ * @brief Implements the UI controller that finalizes imported statement drafts.
+ */
+
 #include "ui/controllers/DraftController.h"
 
+#include "core/application/AppStateFacade.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/models/StatementDraft.h"
@@ -9,7 +15,7 @@
 
 namespace ui {
 
-DraftController::DraftController(core::controllers::AppStateController *core, QObject *parent)
+DraftController::DraftController(core::application::AppStateFacade *core, QObject *parent)
     : QObject(parent), core_(core) {}
 
 QString DraftController::finalizeStatementDraft(StatementDraft *draft) {

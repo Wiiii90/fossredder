@@ -9,7 +9,7 @@
 
 #include <string>
 
-namespace core::controllers::exporting {
+namespace core::exporting {
 
 struct ExportResult {
     ExportStatus status = ExportStatus::InternalError;
@@ -19,4 +19,4 @@ struct ExportResult {
     std::string message;
 };
 
-} // namespace core::controllers::exporting
+} // namespace core::exporting

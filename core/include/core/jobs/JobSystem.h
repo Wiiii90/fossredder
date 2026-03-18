@@ -14,17 +14,19 @@
 #include <optional>
 #include <vector>
 
-class IImportStatement;
-
 namespace core::domain {
 class Statement;
+}
+
+namespace core::importing {
+class IImportStatement;
 }
 
 namespace core::jobs {
 
 class JobSystem {
 public:
-    JobSystem(std::shared_ptr<IImportStatement> importService, std::size_t workers = 0);
+    JobSystem(std::shared_ptr<core::importing::IImportStatement> importService, std::size_t workers = 0);
     ~JobSystem();
 
     JobSystem(const JobSystem&) = delete;

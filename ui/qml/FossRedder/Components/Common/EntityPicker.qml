@@ -61,7 +61,7 @@ Item {
                     if (!name) return
                     var id = null
                     try {
-                        if (typeof actorController !== 'undefined' && actorController && uiData && model === uiData.actors) id = actorController.addActor(name, "", "", [])
+                        if (typeof actorController !== 'undefined' && actorController && uiData && model === uiData.actors) id = actorController.addActor(name, "", "")
                         else if (typeof propertyController !== 'undefined' && propertyController && uiData && model === uiData.properties) id = propertyController.addProperty(name, "", "")
                         else if (typeof contractController !== 'undefined' && contractController && uiData && model === uiData.contracts) id = contractController.addContract(name, "", "", [], [])
                     } catch(e) { id = null }

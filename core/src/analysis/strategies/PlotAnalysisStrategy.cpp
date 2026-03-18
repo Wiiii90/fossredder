@@ -10,7 +10,7 @@
 #include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/Contract.h"
 #include "core/models/Transaction.h"
-#include "core/utils/Util.h"
+#include "../../utils/Util.h"
 
 #include <algorithm>
 #include <cmath>

@@ -1,12 +1,18 @@
+/**
+ * @file ui/src/controllers/ContractController.cpp
+ * @brief Implements the UI controller that forwards contract mutations to the application facade.
+ */
+
 #include "ui/controllers/ContractController.h"
 
+#include "core/application/AppStateFacade.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
 
 namespace ui {
 
-ContractController::ContractController(core::controllers::AppStateController *core,
+ContractController::ContractController(core::application::AppStateFacade *core,
                                        QObject *parent)
     : QObject(parent), core_(core) {}
 
@@ -42,18 +48,6 @@ void ContractController::deleteContract(const QString &id) {
   controllers::guard::invokeVoid(
       core_, observability::origins::controller::contract::kDelete,
       [&]() { core_->deleteContract(strings::toStdString(id)); });
-}
-
-QStringList ContractController::getContractTypes() const {
-  return controllers::guard::invokeValue<QStringList>(
-      core_, observability::origins::controller::contract::kGetTypes, {},
-      [&]() {
-        QStringList out;
-        for (const auto &type : core_->contractTypes()) {
-          out.push_back(QString::fromStdString(type));
-        }
-        return out;
-      });
 }
 
 } // namespace ui

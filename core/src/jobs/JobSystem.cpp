@@ -34,7 +34,7 @@ namespace core::jobs {
 
 class JobSystem::Impl {
 public:
-    Impl(std::shared_ptr<IImportStatement> importService, std::size_t workers)
+    Impl(std::shared_ptr<core::importing::IImportStatement> importService, std::size_t workers)
         : importService(std::move(importService))
         , manager()
         , scheduler(resolveWorkerCount(workers), core::constants::jobs::kQueueCapacity)
@@ -42,13 +42,13 @@ public:
     {
     }
 
-    std::shared_ptr<IImportStatement> importService;
+    std::shared_ptr<core::importing::IImportStatement> importService;
     JobManager manager;
     Scheduler scheduler;
     SlotLimiter ocrLimiter;
 };
 
-JobSystem::JobSystem(std::shared_ptr<IImportStatement> importService, std::size_t workers)
+JobSystem::JobSystem(std::shared_ptr<core::importing::IImportStatement> importService, std::size_t workers)
     : impl_(std::make_unique<Impl>(std::move(importService), workers)) {
 }
 

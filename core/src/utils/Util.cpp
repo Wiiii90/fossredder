@@ -1,4 +1,9 @@
-#include "core/utils/Util.h"
+/**
+ * @file core/src/utils/Util.cpp
+ * @brief Implements private string helpers shared across `core` implementation files.
+ */
+
+#include "Util.h"
 
 #include <algorithm>
 #include <cctype>

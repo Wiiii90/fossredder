@@ -9,8 +9,8 @@
 #include "core/models/Contract.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
-#include "core/utils/StableId.h"
-#include "core/utils/Util.h"
+#include "../utils/StableId.h"
+#include "../utils/Util.h"
 
 #include <charconv>
 

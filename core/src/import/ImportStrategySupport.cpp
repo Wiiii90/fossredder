@@ -8,7 +8,7 @@
 #include "core/constants/CoreDefaults.h"
 #include "core/errors/ErrorReporting.h"
 #include "core/jobs/Scheduler.h"
-#include "core/utils/UniqId.h"
+#include "../utils/UniqId.h"
 
 #include <future>
 #include <nlohmann/json.hpp>

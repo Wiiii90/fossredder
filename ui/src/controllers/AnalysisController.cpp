@@ -6,11 +6,10 @@
 #include "ui/controllers/AnalysisController.h"
 
 #include "core/application/AnalysisService.h"
-#include "core/controllers/AppStateController.h"
+#include "core/application/AppStateFacade.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/AppState.h"
-#include "core/models/Contract.h"
 #include "ui/analysis/AnalysisPayloadMapper.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
@@ -22,7 +21,8 @@ namespace ui {
 namespace {
 
 /** @brief Reports that no analysis service was configured for the controller. */
-void reportMissingAnalysisService() {
+void reportMissingAnalysisService()
+{
   core::errors::report(core::errors::ErrorSeverity::Warning,
                        core::errors::codes::GenericError,
                        observability::origins::controller::analysis::kCompute,
@@ -30,7 +30,8 @@ void reportMissingAnalysisService() {
 }
 
 /** @brief Reports that no application state snapshot is currently available. */
-void reportMissingAnalysisState() {
+void reportMissingAnalysisState()
+{
   core::errors::report(core::errors::ErrorSeverity::Warning,
                        core::errors::codes::GenericError,
                        observability::origins::controller::analysis::kCompute,
@@ -40,7 +41,7 @@ void reportMissingAnalysisState() {
 } // namespace
 
 AnalysisController::AnalysisController(
-    core::controllers::AppStateController *core,
+    core::application::AppStateFacade *core,
     StateSnapshotProvider stateSnapshotProvider,
     std::shared_ptr<core::application::AnalysisService> analysisService,
     QObject *parent)

@@ -11,7 +11,7 @@
 #include <memory>
 #include <string>
 
-namespace core::controllers::exporting {
+namespace core::exporting {
 
 struct ExportRequest {
     ExportFormat format = ExportFormat::Xlsx;
@@ -21,4 +21,4 @@ struct ExportRequest {
     std::shared_ptr<const core::domain::AppState> stateSnapshot;
 };
 
-} // namespace core::controllers::exporting
+} // namespace core::exporting

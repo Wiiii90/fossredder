@@ -26,8 +26,6 @@ public:
     void setDeletionImpactCallback(DeletionImpactCallback cb) override { deletionImpactCallback = std::move(cb); }
 
     std::optional<std::string> loadLatestPath() const override { return latestPath; }
-    void setLatestPath(const std::string& filePath) override { currentPathValue = filePath; }
-    AppState load() override { return loadedState; }
     AppState loadFrom(const std::string& filePath) override { currentPathValue = filePath; return loadedState; }
     void save(const AppState& state) override { ++saveCount; lastSavedState = state; }
     void saveAs(const std::string& filePath, const AppState& state) override { currentPathValue = filePath; ++saveAsCount; lastSavedState = state; }
@@ -85,4 +83,9 @@ TEST(WorkspaceSessionTests, CommitSkipsSaveWhenCurrentPathIsEmptyButStillNotifie
 
     EXPECT_EQ(storagePtr->saveCount, 0);
     EXPECT_TRUE(notified);
+}
+
+TEST(WorkspaceSessionTests, ConstructorRejectsNullStorageManager)
+{
+    EXPECT_THROW(core::application::WorkspaceSession session(nullptr), std::invalid_argument);
 }

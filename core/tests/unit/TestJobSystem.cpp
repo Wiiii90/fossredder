@@ -11,6 +11,7 @@
 #include <thread>
 
 using core::domain::Statement;
+using core::importing::IImportStatement;
 
 namespace {
 

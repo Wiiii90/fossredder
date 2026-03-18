@@ -28,13 +28,6 @@ namespace ui {
 
 namespace {
 
-void reportImportGetter(const char* getter) {
-  core::errors::report(core::errors::ErrorSeverity::Info,
-                       ui::observability::codes::QtInfo,
-                       getter,
-                       getter);
-}
-
 /** @brief Returns an ISO timestamp for import run bookkeeping. */
 QString currentTimestamp() {
   return QDateTime::currentDateTime().toString(Qt::ISODate);
@@ -81,22 +74,18 @@ ImportController::ImportController(
 }
 
 QString ImportController::selectedFile() const {
-  reportImportGetter("ui::ImportController::selectedFile");
   return state_.selectedFile();
 }
 
 QStringList ImportController::queuedFiles() const {
-  reportImportGetter("ui::ImportController::queuedFiles");
   return state_.queuedFiles();
 }
 
 StatementDraft *ImportController::draft() const noexcept {
-  reportImportGetter("ui::ImportController::draft");
   return state_.draft();
 }
 
 ImportRunList *ImportController::runs() noexcept {
-  reportImportGetter("ui::ImportController::runs");
   return runs_.get();
 }
 

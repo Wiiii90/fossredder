@@ -12,11 +12,12 @@
 #include "api/tesseract/ITesseractAdapter.h"
 #include "api/tesseract/ITesseractService.h"
 #include "core/application/AnalysisService.h"
-#include "core/controllers/ExportController.h"
+#include "core/application/AppStateFacade.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "core/export/ExportRequest.h"
 #include "core/export/ExportResult.h"
+#include "core/export/ExportService.h"
 #include "core/export/ExportTypes.h"
 #include "core/import/IImportStatement.h"
 #include "core/jobs/JobSystem.h"
@@ -86,13 +87,13 @@ createTesseractService(std::shared_ptr<ITesseractAdapter> adapter);
 
 namespace {
 
-core::controllers::exporting::ExportFormat
+core::exporting::ExportFormat
 toCoreExportFormat(ui::controllers::contracts::ExportFormat format) {
   switch (format) {
   case ui::controllers::contracts::ExportFormat::Csv:
-    return core::controllers::exporting::ExportFormat::Csv;
+    return core::exporting::ExportFormat::Csv;
   case ui::controllers::contracts::ExportFormat::Xlsx:
-    return core::controllers::exporting::ExportFormat::Xlsx;
+    return core::exporting::ExportFormat::Xlsx;
   default:
     ui::observability::reportFlow(
         core::errors::ErrorSeverity::Warning,
@@ -101,24 +102,24 @@ toCoreExportFormat(ui::controllers::contracts::ExportFormat format) {
         "Unknown export format, fallback to CSV",
         {{ui::observability::context::kFormat,
           std::to_string(static_cast<int>(format))}});
-    return core::controllers::exporting::ExportFormat::Csv;
+    return core::exporting::ExportFormat::Csv;
   }
 }
 
 ui::exporting::ExportResult
 executeExport(std::shared_ptr<const AppState> snapshot,
               const ui::exporting::ExportRequest &request) {
-  core::controllers::exporting::ExportRequest exportRequest;
+  core::exporting::ExportRequest exportRequest;
   exportRequest.outputPath = request.path.toStdString();
   exportRequest.includeFormulas = request.includeFormulas;
   exportRequest.locale = request.locale.toStdString();
   exportRequest.stateSnapshot = std::move(snapshot);
   exportRequest.format = toCoreExportFormat(request.format);
 
-  core::controllers::exporting::ExportController exporter;
+  core::exporting::ExportService exporter;
   const auto result = exporter.exportData(exportRequest);
 
-  return {result.status == core::controllers::exporting::ExportStatus::Ok,
+  return {result.status == core::exporting::ExportStatus::Ok,
           QString::fromStdString(result.errorCode),
           QString::fromStdString(result.message)};
 }
@@ -141,28 +142,28 @@ struct UiControllers {
 
 UiControllers setupUiControllers(
     QApplication &app, MainWindow &w,
-    core::controllers::AppStateController &appStateCtrl,
+    core::application::AppStateFacade &appStateFacade,
     const std::shared_ptr<core::errors::IErrorReporter> &errorReporter) {
   UiControllers ui;
 
-  ui.storage = new ui::StorageController(&appStateCtrl, &w);
+  ui.storage = new ui::StorageController(&appStateFacade, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kStorageController,
                           ui.storage);
 
-  const auto stateSnapshotProvider = [&appStateCtrl]() {
-    return ui::exporting::createSnapshot(appStateCtrl.state());
+  const auto stateSnapshotProvider = [&appStateFacade]() {
+    return ui::exporting::createSnapshot(appStateFacade.state());
   };
 
   ui.analysisService = std::make_shared<core::application::AnalysisService>();
-  ui.annual = new ui::AnnualController(&appStateCtrl, &w);
-  ui.actor = new ui::ActorController(&appStateCtrl, &w);
-  ui.property = new ui::PropertyController(&appStateCtrl, &w);
-  ui.contract = new ui::ContractController(&appStateCtrl, &w);
-  ui.statement = new ui::StatementController(&appStateCtrl, &w);
-  ui.transaction = new ui::TransactionController(&appStateCtrl, &w);
-  ui.draft = new ui::DraftController(&appStateCtrl, &w);
+  ui.annual = new ui::AnnualController(&appStateFacade, &w);
+  ui.actor = new ui::ActorController(&appStateFacade, &w);
+  ui.property = new ui::PropertyController(&appStateFacade, &w);
+  ui.contract = new ui::ContractController(&appStateFacade, &w);
+  ui.statement = new ui::StatementController(&appStateFacade, &w);
+  ui.transaction = new ui::TransactionController(&appStateFacade, &w);
+  ui.draft = new ui::DraftController(&appStateFacade, &w);
   ui.analysisController = new ui::AnalysisController(
-      &appStateCtrl, stateSnapshotProvider, ui.analysisService, &w);
+      &appStateFacade, stateSnapshotProvider, ui.analysisService, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kAnnualController,
                           ui.annual);
   w.setQmlContextProperty(ui::qml::contracts::context::kActorController,
@@ -201,7 +202,7 @@ UiControllers setupUiControllers(
     auto opencv = api::opencv::createOpenCvService(opencvAdapter);
     auto tesseract = api::tesseract::createTesseractService(tesseractAdapter);
 
-    auto importSvc = createImportStatement(poppler, opencv, tesseract, dbg);
+    auto importSvc = core::importing::createImportStatement(poppler, opencv, tesseract, dbg);
     return std::make_shared<core::jobs::JobSystem>(importSvc);
   };
 
@@ -216,19 +217,19 @@ UiControllers setupUiControllers(
 }
 
 void wireAppStateToSession(
-    MainWindow &w, core::controllers::AppStateController &appStateCtrl,
+    MainWindow &w, core::application::AppStateFacade &appStateFacade,
     const std::shared_ptr<core::errors::IErrorReporter> &errorReporter) {
   if (w.dataSession()) {
-    w.dataSession()->loadFromState(appStateCtrl.state());
+    w.dataSession()->loadFromState(appStateFacade.state());
   }
 
-  appStateCtrl.setStateChangedCallback([&](const AppState &st) {
+  appStateFacade.setStateChangedCallback([&](const AppState &st) {
     if (w.dataSession()) {
       w.dataSession()->loadFromState(st);
     }
   });
 
-  appStateCtrl.setDeletionImpactCallback([&](const DeletionImpact &impact) {
+  appStateFacade.setDeletionImpactCallback([&](const DeletionImpact &impact) {
     try {
       if (w.dataSession())
         w.dataSession()->applyDeletionImpact(impact);
@@ -292,11 +293,11 @@ void wireQmlWarnings(
 /**
  * @brief Initialize and run the QML-based UI.
  * @param app Reference to the already-created QApplication instance.
- * @param appStateCtrl Reference to the AppStateController that manages
+ * @param appStateFacade Reference to the application facade that manages
  * application state.
  * @return Return value from `QApplication::exec()`.
  */
-int startQmlApp(QApplication &app, core::controllers::AppStateController &appStateCtrl) {
+int startQmlApp(QApplication &app, core::application::AppStateFacade &appStateFacade) {
   MainWindow w;
 
   auto errorReporter = core::errors::globalErrorReporter();
@@ -304,12 +305,12 @@ int startQmlApp(QApplication &app, core::controllers::AppStateController &appSta
     errorReporter = debug::createDefaultErrorReporter();
     core::errors::setGlobalErrorReporter(errorReporter);
   }
-  appStateCtrl.setErrorReporter(errorReporter);
+  appStateFacade.setErrorReporter(errorReporter);
 
   const UiControllers ui =
-      setupUiControllers(app, w, appStateCtrl, errorReporter);
+      setupUiControllers(app, w, appStateFacade, errorReporter);
 
-  wireAppStateToSession(w, appStateCtrl, errorReporter);
+  wireAppStateToSession(w, appStateFacade, errorReporter);
 
   wireFileSignals(w, ui.storage);
 
@@ -321,9 +322,9 @@ int startQmlApp(QApplication &app, core::controllers::AppStateController &appSta
   w.show();
   const int exitCode = app.exec();
 
-  appStateCtrl.setStateChangedCallback({});
-  appStateCtrl.setDeletionImpactCallback({});
-  appStateCtrl.setErrorReporter({});
+  appStateFacade.setStateChangedCallback({});
+  appStateFacade.setDeletionImpactCallback({});
+  appStateFacade.setErrorReporter({});
 
   return exitCode;
 }

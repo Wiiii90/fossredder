@@ -1,3 +1,8 @@
+/**
+ * @file core/src/utils/StableId.h
+ * @brief Declares private stable identifier helpers for `core` entity creation.
+ */
+
 #pragma once
 
 #include "core/constants/CoreDefaults.h"
@@ -20,4 +25,4 @@ inline std::string makeStableId()
     return out;
 }
 
-}
+} // namespace core::utils

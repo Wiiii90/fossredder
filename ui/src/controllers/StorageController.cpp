@@ -13,13 +13,6 @@
 
 namespace ui {
 
-void StorageController::setLastError(const QString &error) {
-  if (lastError_ == error)
-    return;
-  lastError_ = error;
-  emit errorChanged();
-}
-
 bool StorageController::runCoreOperation(const char *context,
                                          const std::function<void()> &action) {
   return controllers::guard::invokeValue<bool>(core_, context, false, [&]() {
@@ -32,25 +25,16 @@ void StorageController::finishOperation(bool success,
                                         const QString &failureText,
                                         const QString &operation) {
   if (!success) {
-    setLastError(failureText);
-    emit operationFailed(operation, lastError_);
+    emit operationFailed(operation, failureText);
     return;
   }
 
-  setLastError({});
-  emit currentPathChanged();
   emit operationSucceeded(operation);
 }
 
-StorageController::StorageController(core::controllers::AppStateController *core,
+StorageController::StorageController(core::application::AppStateFacade *core,
                                      QObject *parent)
     : QObject(parent), core_(core) {}
-
-QString StorageController::currentPath() const {
-  return controllers::guard::invokeValue<QString>(
-      core_, observability::origins::controller::storage::kCurrentPath, {},
-      [&]() { return QString::fromStdString(core_->currentPath()); });
-}
 
 void StorageController::newFile(const QString &path) {
   const bool success =

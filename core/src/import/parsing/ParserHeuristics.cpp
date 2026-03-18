@@ -3,8 +3,8 @@
  * @brief Implements lightweight text heuristics for statement parsing.
  */
 
-#include "core/import/ParserHeuristics.h"
-#include "core/utils/Util.h"
+#include "ParserHeuristics.h"
+#include "../../utils/Util.h"
 
 #include <array>
 #include <vector>

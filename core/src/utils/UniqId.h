@@ -1,3 +1,8 @@
+/**
+ * @file core/src/utils/UniqId.h
+ * @brief Declares private unique identifier helpers for transient import/job artifacts.
+ */
+
 #pragma once
 
 #include <atomic>

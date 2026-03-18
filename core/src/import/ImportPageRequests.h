@@ -11,7 +11,7 @@
 #include "api/tesseract/TesseractRequest.h"
 #include "core/constants/CoreDefaults.h"
 #include "core/import/ImportRequest.h"
-#include "core/utils/UniqId.h"
+#include "../utils/UniqId.h"
 
 #include <cmath>
 #include <string>

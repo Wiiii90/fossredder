@@ -22,16 +22,16 @@ private:
 
 } // namespace
 
-TEST(StorageManagerTests, SetAndLoadLatestPathRegistry) {
+TEST(StorageManagerTests, LoadFromTracksLatestPathInRegistry) {
     auto registry = std::make_shared<FakeRegistry>();
 
     core::storage::StorageManager sm(registry);
 
-    // initially no latest path
     auto maybe = sm.loadLatestPath();
     EXPECT_FALSE(maybe.has_value());
 
-    sm.setLatestPath("/tmp/mydb.db");
+    EXPECT_THROW(sm.loadFrom("/tmp/mydb.db"), std::runtime_error);
+
     auto maybe2 = sm.loadLatestPath();
     ASSERT_TRUE(maybe2.has_value());
     EXPECT_EQ(*maybe2, std::string("/tmp/mydb.db"));

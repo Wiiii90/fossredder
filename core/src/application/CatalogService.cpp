@@ -15,14 +15,9 @@
 #include "core/models/Property.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
-#include "core/utils/StableId.h"
-#include "core/utils/Util.h"
+#include "../utils/Util.h"
 
 #include <unordered_set>
-
-namespace {
-
-}
 
 namespace core::application {
 

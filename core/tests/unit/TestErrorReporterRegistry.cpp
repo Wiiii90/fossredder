@@ -1,6 +1,6 @@
 /**
  * @file core/tests/unit/TestErrorReporterRegistry.cpp
- * @brief Unit tests for the global error reporter registry.
+ * @brief Unit tests for the process-global error reporter registry.
  */
 
 #include "gtest/gtest.h"

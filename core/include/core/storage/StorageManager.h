@@ -37,8 +37,6 @@ public:
     void setAtomicStoreLoad(AtomicStoreLoad loadFn) override;
     void setDeletionImpactCallback(DeletionImpactCallback cb) override;
     std::optional<std::string> loadLatestPath() const override;
-    void setLatestPath(const std::string& filePath) override;
-    core::domain::AppState load() override;
     core::domain::AppState loadFrom(const std::string& filePath) override;
     void save(const core::domain::AppState& state) override;
     void saveAs(const std::string& filePath, const core::domain::AppState& state) override;
@@ -53,6 +51,7 @@ private:
     AtomicStoreLoad atomicLoad_;
     DeletionImpactCallback onDeletionImpact_;
 
+    void rememberLatestPath(const std::string& filePath);
     Repositories reposForCurrent() const;
 };
 

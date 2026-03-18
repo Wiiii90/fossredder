@@ -9,10 +9,10 @@
 #include "ParserTypes.h"
 #include "AmountParser.h"
 #include "ParserDateUtils.h"
+#include "ParserHeuristics.h"
 
 #include "api/tesseract/TesseractResponse.h"
-#include "core/import/ParserHeuristics.h"
-#include "core/utils/Util.h"
+#include "../../utils/Util.h"
 
 #include <initializer_list>
 #include <optional>

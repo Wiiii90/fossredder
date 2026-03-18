@@ -1,6 +1,6 @@
 /**
  * @file ui/include/ui/controllers/StorageController.h
- * @brief Declares the UI storage controller that forwards file operations to core.
+ * @brief Declares the UI storage controller that forwards file operations to the application facade.
  */
 
 #pragma once
@@ -8,7 +8,7 @@
 #include <functional>
 #include <QObject>
 
-#include "core/controllers/AppStateController.h"
+namespace core::application { class AppStateFacade; }
 
 namespace ui {
 
@@ -17,16 +17,10 @@ namespace ui {
  */
 class StorageController : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString currentPath READ currentPath NOTIFY currentPathChanged)
-    Q_PROPERTY(QString lastError READ lastError NOTIFY errorChanged)
 
 public:
-    /** @brief Creates a controller that delegates storage operations to the core controller. */
-    explicit StorageController(core::controllers::AppStateController* core, QObject* parent = nullptr);
-
-    /** @brief Returns the currently active storage path. */
-    QString currentPath() const;
-    QString lastError() const { return lastError_; }
+    /** @brief Creates a controller that delegates storage operations to the core application facade. */
+    explicit StorageController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
 public slots:
     void newFile(const QString& path);
@@ -35,17 +29,13 @@ public slots:
     void saveFileAs(const QString& path);
 
 signals:
-    void currentPathChanged();
-    void errorChanged();
     void operationFailed(const QString& operation, const QString& error);
     void operationSucceeded(const QString& operation);
 
 private:
-    core::controllers::AppStateController* core_ = nullptr;
-    QString lastError_;
-    void setLastError(const QString& error);
+    core::application::AppStateFacade* core_ = nullptr;
     bool runCoreOperation(const char* context, const std::function<void()>& action);
     void finishOperation(bool success, const QString& failureText, const QString& operation);
 };
 
-}
+} // namespace ui

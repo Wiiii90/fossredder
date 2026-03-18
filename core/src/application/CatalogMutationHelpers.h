@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "core/utils/StableId.h"
+#include "../utils/StableId.h"
 
 #include <algorithm>
 #include <memory>

@@ -1,3 +1,8 @@
+/**
+ * @file core/include/core/application/WorkspaceSession.h
+ * @brief Declares the mutable workspace session that ties in-memory state to storage.
+ */
+
 #pragma once
 
 #include "core/errors/IErrorReporter.h"
@@ -11,10 +16,17 @@
 
 namespace core::application {
 
+/**
+ * @brief Maintains the editable app state for one workspace and persists it through `IStorageManager`.
+ */
 class WorkspaceSession {
 public:
     using StateChanged = std::function<void(const core::domain::AppState&)>;
 
+    /**
+     * @brief Creates a session over an existing storage manager.
+     * @throws std::invalid_argument when `storageManager` is null.
+     */
     explicit WorkspaceSession(std::unique_ptr<core::storage::IStorageManager> storageManager);
 
     const core::domain::AppState& state() const noexcept { return state_; }
@@ -46,7 +58,6 @@ private:
     StateChanged onStateChanged_;
     std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
     core::storage::IStorageManager::DeletionImpactCallback onDeletionImpact_;
-    inline static const std::string emptyPath_;
 };
 
 } // namespace core::application

@@ -6,11 +6,11 @@
 
 #include "DefaultTransactionParser.h"
 #include "core/errors/ErrorReporterRegistry.h"
-#include "core/import/ParserHeuristics.h"
+#include "ParserHeuristics.h"
 #include "ParserHelpers.h"
 #include "StatementParseHelpers.h"
-#include "core/utils/Util.h"
-#include "core/utils/UniqId.h"
+#include "../../utils/UniqId.h"
+#include "../../utils/Util.h"
 
 #include <algorithm>
 #include <cctype>

@@ -1,3 +1,8 @@
+/**
+ * @file core/include/core/jobs/Scheduler.h
+ * @brief Declares a bounded worker queue and a simple slot limiter for import tasks.
+ */
+
 #pragma once
 
 #include <condition_variable>
@@ -11,6 +16,9 @@
 
 namespace core::jobs {
 
+/**
+ * @brief Limits concurrent access to a bounded number of slots.
+ */
 class SlotLimiter {
 public:
     explicit SlotLimiter(std::size_t slots);
@@ -25,6 +33,9 @@ private:
     std::condition_variable cv_;
 };
 
+/**
+ * @brief Runs background tasks on a bounded worker queue.
+ */
 class Scheduler {
 public:
     using Task = std::function<void()>;

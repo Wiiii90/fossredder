@@ -1,12 +1,18 @@
+/**
+ * @file ui/src/controllers/StatementController.cpp
+ * @brief Implements the UI controller that forwards statement mutations to the application facade.
+ */
+
 #include "ui/controllers/StatementController.h"
 
+#include "core/application/AppStateFacade.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
 
 namespace ui {
 
-StatementController::StatementController(core::controllers::AppStateController *core,
+StatementController::StatementController(core::application::AppStateFacade *core,
                                          QObject *parent)
     : QObject(parent), core_(core) {}
 

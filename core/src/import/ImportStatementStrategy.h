@@ -14,6 +14,8 @@ namespace api { namespace opencv { class IOpenCvService; } }
 namespace api { namespace tesseract { class ITesseractService; } }
 class IDebugger;
 
+namespace core::importing {
+
 class IImportStatementStrategy {
 public:
     virtual ~IImportStatementStrategy() = default;
@@ -24,3 +26,5 @@ std::unique_ptr<IImportStatementStrategy> createDefaultImportStrategy(std::share
                                                                       std::shared_ptr<api::opencv::IOpenCvService> opencv,
                                                                       std::shared_ptr<api::tesseract::ITesseractService> tesseract,
                                                                       std::shared_ptr<IDebugger> debugger = nullptr);
+
+} // namespace core::importing

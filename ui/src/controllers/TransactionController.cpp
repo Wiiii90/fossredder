@@ -1,5 +1,11 @@
+/**
+ * @file ui/src/controllers/TransactionController.cpp
+ * @brief Implements the UI controller that forwards transaction mutations to the application facade.
+ */
+
 #include "ui/controllers/TransactionController.h"
 
+#include "core/application/AppStateFacade.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
@@ -23,7 +29,7 @@ Transaction::Status toTransactionStatus(int status)
 
 }
 
-TransactionController::TransactionController(core::controllers::AppStateController *core,
+TransactionController::TransactionController(core::application::AppStateFacade *core,
                                              QObject *parent)
     : QObject(parent), core_(core) {}
 

@@ -42,18 +42,13 @@ std::optional<std::string> StorageManager::loadLatestPath() const {
     return std::nullopt;
 }
 
-void StorageManager::setLatestPath(const std::string& filePath) {
+void StorageManager::rememberLatestPath(const std::string& filePath) {
     if (registry_) registry_->setLatest(filePath);
-}
-
-AppState StorageManager::load() {
-    if (currentPath_.empty()) throw std::runtime_error("No file opened");
-    return loadFrom(currentPath_);
 }
 
 AppState StorageManager::loadFrom(const std::string& filePath) {
     currentPath_ = filePath;
-    setLatestPath(filePath);
+    rememberLatestPath(filePath);
 
     if (atomicLoad_) {
         return atomicLoad_(currentPath_);
@@ -70,7 +65,7 @@ void StorageManager::save(const AppState& state) {
 
 void StorageManager::saveAs(const std::string& filePath, const AppState& state) {
     currentPath_ = filePath;
-    setLatestPath(filePath);
+    rememberLatestPath(filePath);
 
     if (atomicSave_) {
         DeletionImpact impact = atomicSave_(currentPath_, state);
@@ -89,7 +84,7 @@ void StorageManager::createNew(const std::string& filePath) {
         std::filesystem::create_directories(dir);
     }
     currentPath_ = filePath;
-    setLatestPath(filePath);
+    rememberLatestPath(filePath);
 
     if (atomicLoad_) {
         (void)atomicLoad_(currentPath_);

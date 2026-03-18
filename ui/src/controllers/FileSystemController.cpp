@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/controllers/FileSystemController.cpp
+ * @brief Implements the UI filesystem helper exposed to QML.
+ */
+
 #include "ui/controllers/FileSystemController.h"
 
 #include <QCoreApplication>
@@ -27,17 +32,6 @@ QVariantList FileSystemController::listDir(const QString& path) const
         out.append(m);
     }
     return out;
-}
-
-bool FileSystemController::exists(const QString& path) const
-{
-    QFileInfo fi(path);
-    return fi.exists();
-}
-
-QString FileSystemController::homeDir() const
-{
-    return QDir::homePath();
 }
 
 QString FileSystemController::appDir() const

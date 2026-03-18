@@ -2,6 +2,7 @@
 option(USE_QML "Build with QML UI" OFF)
 
 set(APP_COMMON_SRCS
+    src/Environment.cpp
     src/main.cpp
 )
 
