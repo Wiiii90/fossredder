@@ -126,6 +126,7 @@ set(UI_HEADERS
 
 add_library(fossredder_ui STATIC ${UI_SOURCES} ${UI_HEADERS})
 add_library(FossRedder::Ui ALIAS fossredder_ui)
+fossredder_enable_target_quality(fossredder_ui)
 
 set_target_properties(fossredder_ui PROPERTIES EXPORT_NAME Ui)
 
@@ -180,6 +181,78 @@ target_link_libraries(fossredder_ui
 )
 
 fossredder_enable_target_pch(fossredder_ui "${CMAKE_CURRENT_SOURCE_DIR}/include/ui/pch.h")
+
+# Optional module-local UI test blocks.
+# Enable this to build QML-near Quick Test suites against the real UI module.
+option(BUILD_UI_TESTS "Build tests for ui module" OFF)
+if(BUILD_UI_TESTS)
+    find_package(Qt6 COMPONENTS QuickTest Test REQUIRED)
+    find_package(GTest CONFIG REQUIRED)
+    include(GoogleTest)
+
+    file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/qml" UI_QML_IMPORT_DIR)
+    file(TO_CMAKE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml" UI_QML_TEST_SOURCE_DIR)
+
+    set(UI_UNIT_TEST_SRCS
+        tests/unit/TestAnalysisPayloadMapper.cpp
+    )
+
+    add_executable(ui_unit_tests ${UI_UNIT_TEST_SRCS})
+    target_link_libraries(ui_unit_tests
+        PRIVATE
+            GTest::gtest_main
+            FossRedder::Ui
+    )
+    target_compile_features(ui_unit_tests PRIVATE cxx_std_20)
+    fossredder_set_runtime_output_dirs(ui_unit_tests)
+    fossredder_enable_target_quality(ui_unit_tests)
+    gtest_discover_tests(ui_unit_tests PROPERTIES LABELS "UNIT")
+
+    set(UI_INTERACTION_TEST_SRCS
+        tests/interaction/TestImportState.cpp
+    )
+
+    add_executable(ui_interaction_tests ${UI_INTERACTION_TEST_SRCS})
+    target_link_libraries(ui_interaction_tests
+        PRIVATE
+            GTest::gtest_main
+            FossRedder::Ui
+    )
+    target_compile_features(ui_interaction_tests PRIVATE cxx_std_20)
+    fossredder_set_runtime_output_dirs(ui_interaction_tests)
+    fossredder_enable_target_quality(ui_interaction_tests)
+    gtest_discover_tests(ui_interaction_tests PROPERTIES LABELS "INTERACTION")
+
+    add_executable(ui_qml_tests
+        tests/qml/qmltests.cpp
+    )
+
+    set_target_properties(ui_qml_tests PROPERTIES
+        AUTOMOC ON
+    )
+
+    target_compile_features(ui_qml_tests PRIVATE cxx_std_20)
+    target_compile_definitions(ui_qml_tests PRIVATE
+        FOSSREDDER_UI_QML_IMPORT_DIR="${UI_QML_IMPORT_DIR}"
+        QUICK_TEST_SOURCE_DIR="${UI_QML_TEST_SOURCE_DIR}"
+    )
+
+    target_link_libraries(ui_qml_tests
+        PRIVATE
+            Qt6::QuickTest
+            Qt6::Test
+            FossRedder::Ui
+    )
+
+    fossredder_set_runtime_output_dirs(ui_qml_tests)
+    fossredder_enable_target_quality(ui_qml_tests)
+
+    add_test(NAME ui_qml_tests COMMAND ui_qml_tests -platform windows)
+    set_tests_properties(ui_qml_tests PROPERTIES
+        LABELS "UI;QML"
+        ENVIRONMENT "QML_DISABLE_DISK_CACHE=1"
+    )
+endif()
 
 fossredder_install_library_target(fossredder_ui)
 fossredder_install_headers("${CMAKE_CURRENT_SOURCE_DIR}/include")

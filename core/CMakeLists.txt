@@ -39,6 +39,7 @@ set(CORE_SRCS
 
 add_library(fossredder_core STATIC ${CORE_SRCS})
 add_library(FossRedder::Core ALIAS fossredder_core)
+fossredder_enable_target_quality(fossredder_core)
 
 set_target_properties(fossredder_core PROPERTIES EXPORT_NAME Core)
 
@@ -105,6 +106,7 @@ if (BUILD_CORE_TESTS)
     target_compile_features(core_unit_tests PRIVATE cxx_std_20)
 
     fossredder_set_runtime_output_dirs(core_unit_tests)
+    fossredder_enable_target_quality(core_unit_tests)
 
     gtest_discover_tests(core_unit_tests PROPERTIES LABELS "UNIT")
 
@@ -126,6 +128,7 @@ if (BUILD_CORE_TESTS)
     target_compile_features(core_interaction_tests PRIVATE cxx_std_20)
 
     fossredder_set_runtime_output_dirs(core_interaction_tests)
+    fossredder_enable_target_quality(core_interaction_tests)
 
     gtest_discover_tests(core_interaction_tests PROPERTIES LABELS "INTERACTION")
 endif()

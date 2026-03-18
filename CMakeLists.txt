@@ -8,6 +8,9 @@ project(FossRedder VERSION 0.1.0 LANGUAGES CXX)
 include(CMakePackageConfigHelpers)
 include(CTest)
 include(cmake/Targets.cmake)
+include(cmake/QualityTools.cmake)
+
+fossredder_configure_quality_tools()
 
 # Global C++ configuration.
 set(CMAKE_CXX_STANDARD 20)

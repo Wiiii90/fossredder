@@ -14,7 +14,7 @@
 #include <vector>
 
 namespace core::domain {
-class core::domain::Actor;
+class Actor;
 }
 
 class IActorRepository {

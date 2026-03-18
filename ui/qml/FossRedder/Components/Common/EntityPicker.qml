@@ -52,8 +52,9 @@ Item {
             visible: root.showAdd
             Layout.fillWidth: true
             spacing: 6
-            Controls.TextField { id: addField; placeholderText: root.placeholder; Layout.fillWidth: true }
+            Controls.TextField { id: addField; objectName: "entityPickerAddField"; placeholderText: root.placeholder; Layout.fillWidth: true }
             Controls.Button {
+                objectName: "entityPickerAddButton"
                 text: qsTr("Add")
                 enabled: addField.text && addField.text.length > 0
                 onClicked: {

@@ -13,11 +13,22 @@ ParserConfig parserConfig;
 namespace {
     static const std::regex g_amountRegex(R"(^\(?-?\d{1,3}(?:[\.,]\d{3})*[\.,]\d{1,2}-?$)");
     static const std::regex g_amountFallbackRegex(R"(^\(?-?\d+[\.,]\d{2}\)?$)");
+    static constexpr std::string_view g_narrowNoBreakSpaceUtf8 = "\xE2\x80\xAF";
+    static constexpr std::string_view g_thinSpaceUtf8 = "\xE2\x80\x89";
+
     // require word boundaries so we don't match short-date inside larger numeric tokens (e.g. 17.072,66)
     bool tokenLooksLikeAmount(const std::string& token) noexcept {
         try {
             return std::regex_match(token, g_amountRegex) || std::regex_match(token, g_amountFallbackRegex);
         } catch (...) { return false; }
+    }
+
+    void eraseAll(std::string& value, const std::string_view token)
+    {
+        size_t position = 0;
+        while ((position = value.find(token, position)) != std::string::npos) {
+            value.erase(position, token.size());
+        }
     }
 }
 
@@ -203,11 +214,14 @@ std::optional<double> findAndParseAmountInLine(const core::parser::OcrLine& line
                     if (!norm.empty() && norm.front() == '-') { negative = true; norm = norm.substr(1); }
                     if (!norm.empty() && norm.back() == '-') { negative = true; norm.pop_back(); }
 
+                    eraseAll(norm, g_narrowNoBreakSpaceUtf8);
+                    eraseAll(norm, g_thinSpaceUtf8);
+
                     // remove spaces and thousand separators (dots and thin spaces)
                     std::string tmp;
                     tmp.reserve(norm.size());
                     for (unsigned char c : norm) {
-                        if (c == '.' || c == '\u202F' || c == '\u2009' || c == ' ') continue; // drop thousand separators
+                        if (c == '.' || c == ' ') continue; // drop thousand separators
                         tmp.push_back(static_cast<char>(c));
                     }
                     // replace comma with dot for decimal

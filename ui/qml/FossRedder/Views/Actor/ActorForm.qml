@@ -45,11 +45,7 @@ Item {
         if (uiData && id && id.length > 0) uiData.selectedActorId = id
     }
 
-    Connections {
-        target: current
-        function onChanged() { syncFields() }
-    }
-
+    onCurrentChanged: syncFields()
     onIsEditChanged: syncFields()
 
     ColumnLayout {
@@ -64,18 +60,21 @@ Item {
 
         Controls.TextField {
             id: nameField
+            objectName: "actorNameField"
             placeholderText: qsTr("Name")
             Layout.fillWidth: true
         }
 
         Controls.TextField {
             id: typeField
+            objectName: "actorTypeField"
             placeholderText: qsTr("Type")
             Layout.fillWidth: true
         }
 
         Controls.TextArea {
             id: descField
+            objectName: "actorDescriptionField"
             placeholderText: qsTr("Description")
             Layout.fillWidth: true
             Layout.preferredHeight: Theme.chartLegendHeight
@@ -100,6 +99,7 @@ Item {
 
                 Controls.TextArea {
                     id: aliasesField
+                    objectName: "actorAliasesField"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     wrapMode: TextArea.Wrap
@@ -112,6 +112,7 @@ Item {
             Layout.fillWidth: true
 
             Controls.Button {
+                objectName: "actorNewButton"
                 visible: isEdit
                 text: qsTr("New")
                 onClicked: {
@@ -120,12 +121,14 @@ Item {
             }
 
             Controls.Button {
+                objectName: "actorSubmitButton"
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: nameField.text.length > 0
                 onClicked: submitActor()
             }
 
             Controls.Button {
+                objectName: "actorDeleteButton"
                 visible: isEdit
                 text: qsTr("Delete")
                 onClicked: {

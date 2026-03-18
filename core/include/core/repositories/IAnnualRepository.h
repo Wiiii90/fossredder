@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace core::domain {
-class core::domain::Annual;
+class Annual;
 }
 
 class IAnnualRepository {

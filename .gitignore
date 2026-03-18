@@ -33,6 +33,7 @@ logs/
 # Packaging outputs
 dist/
 staging/
+coverage/
 
 # Local resources
 services/llama/res/
@@ -46,4 +47,4 @@ LOCAL_APPDATA_FONTCONFIG_CACHE/
 docs/todo.txt
 
 debug_output/
-.github/
+.github/copilot-instructions.md

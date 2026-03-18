@@ -10,6 +10,7 @@ set(SERVICE_OPENCV_SRCS
 
 add_library(fossredder_opencv_service STATIC ${SERVICE_OPENCV_SRCS})
 add_library(FossRedder::OpenCvService ALIAS fossredder_opencv_service)
+fossredder_enable_target_quality(fossredder_opencv_service)
 
 set_target_properties(fossredder_opencv_service PROPERTIES EXPORT_NAME OpenCvService)
 

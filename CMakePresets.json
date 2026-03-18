@@ -33,9 +33,36 @@
       "inherits": "vcpkg-base",
       "binaryDir": "${sourceDir}/.build/${presetName}",
       "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "BUILD_CORE_TESTS": "ON",
+        "BUILD_UI_TESTS": "ON",
         "BUILD_PERSISTENCE_TESTS": "ON",
         "BUILD_DEBUG_TESTS": "ON"
+      }
+    },
+    {
+      "name": "ci",
+      "displayName": "CI",
+      "inherits": "tests",
+      "binaryDir": "${sourceDir}/.build/${presetName}"
+    },
+    {
+      "name": "tidy",
+      "displayName": "Tidy",
+      "inherits": "ci",
+      "binaryDir": "${sourceDir}/.build/${presetName}",
+      "cacheVariables": {
+        "FOSSREDDER_ENABLE_CLANG_TIDY": "ON"
+      }
+    },
+    {
+      "name": "coverage",
+      "displayName": "Coverage",
+      "inherits": "ci",
+      "binaryDir": "${sourceDir}/.build/${presetName}",
+      "toolset": "ClangCL",
+      "cacheVariables": {
+        "FOSSREDDER_ENABLE_COVERAGE": "ON"
       }
     }
   ],
@@ -61,12 +88,61 @@
       "configuration": "Release"
     },
     {
+      "name": "release-ci",
+      "configurePreset": "ci",
+      "configuration": "Release"
+    },
+    {
+      "name": "release-tidy",
+      "configurePreset": "tidy",
+      "configuration": "Release"
+    },
+    {
+      "name": "release-coverage",
+      "configurePreset": "coverage",
+      "configuration": "Release"
+    },
+    {
       "name": "release-package",
       "configurePreset": "app",
       "configuration": "Release",
       "targets": [
         "package"
       ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug-tests",
+      "configurePreset": "tests",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release-tests",
+      "configurePreset": "tests",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release-ci",
+      "configurePreset": "ci",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release-coverage",
+      "configurePreset": "coverage",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
     }
   ]
 }

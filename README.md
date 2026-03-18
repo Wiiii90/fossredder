@@ -1,5 +1,8 @@
 ﻿# FOSSredder
 
+[![Quality](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml)
+[![codecov](https://codecov.io/gh/Wiiii90/fossredder/branch/master/graph/badge.svg)](https://codecov.io/gh/Wiiii90/fossredder)
+
 **FOSSredder** ist eine spezialisierte Desktop-Anwendung zur lokalen Verwaltung von Ausgaben für private Vermieter mit mehreren Immobilien. Die Anwendung ermöglicht die Kategorisierung, Zuordnung und strukturierte Abrechnung sämtlicher Kosten. Zusätzlich unterstützt sie die Verarbeitung von Kontoauszügen im PDF-Format sowie den Import und Export von Excel- oder CSV-Dateien.
 
 ## Funktionen
@@ -25,21 +28,6 @@
 - **Datenspeicherung:** SQLite 
 - **PDF-Verarbeitung:** Poppler, Tesseract, OpenCV
 - **Plattform:** Windows 10+ (offline)
-
-## Projektstruktur
-
-```
-fossredder/
-├── app/                # Desktop-Entry-Point, i18n und Packaging
-├── core/               # Domänenlogik, Analysen, Import/Export, Controller-Basis
-├── debug/              # Debug- und Error-Reporting-Helfer
-├── docs/               # Produkt- und Design-Dokumentation
-├── persistence/        # SQLite-Backends und Persistenzadapter
-├── services/           # Anbindungen an Poppler, OpenCV und Tesseract
-├── ui/                 # Qt Widgets/QML, Controller und UI-State
-├── CMakeLists.txt      # Root-Buildkonfiguration
-└── vcpkg.json          # Abhängigkeiten
-```
 
 ## Build-Anleitung
 
@@ -152,6 +140,12 @@ cmake --build --preset release-app
 cmake --build --preset debug-tests
 ```
 
+**Release-CI-Build bauen:**
+
+```powershell
+cmake --build --preset release-ci
+```
+
 **Release-App starten:**
 
 ```powershell
@@ -165,6 +159,60 @@ Alternativ kann für den Debug-Testlauf auch das vorhandene Skript verwendet wer
 ```
 
 Das Skript prüft vor dem Konfigurieren, ob `VCPKG_ROOT` korrekt gesetzt ist.
+
+## Qualitäts-Workflow
+
+Die Qualitätsroutine ist jetzt direkt an die CMake-Presets gekoppelt. Lokal und in GitHub Actions werden dieselben Einstiegspunkte verwendet:
+
+- `ci` / `release-ci` für den vollständigen Release-Testbuild
+- `tidy` / `release-tidy` für `clang-tidy` auf den First-Party-Targets
+- `coverage` / `release-coverage` für LLVM-Coverage mit `clang-cl`
+
+Die vorhandenen C++-, GTest-, Qt- und QML-Tests bleiben dabei nicht außen vor: Der Coverage-Lauf baut die bestehenden Test-Executables instrumentiert und führt anschließend den kompletten registrierten `ctest`-Satz aus.
+
+### Lokale Qualitätsläufe
+
+**Alle Release-Tests über das CI-Preset bauen und ausführen:**
+
+```powershell
+cmake --preset ci
+cmake --build --preset release-ci
+ctest --preset release-ci
+```
+
+**`clang-tidy` lokal ausführen:**
+
+```powershell
+cmake --preset tidy
+cmake --build --preset release-tidy
+```
+
+**Coverage lokal erzeugen:**
+
+```powershell
+cmake --preset coverage
+cmake --build --preset release-coverage
+.\ci\coverage-windows.ps1 -BuildDir .build\coverage -Config Release -OutDir coverage
+```
+
+Der Coverage-Lauf erzeugt unter `coverage/`:
+
+- `coverage-summary.txt` mit der LLVM-Zusammenfassung
+- `coverage.lcov` für Codecov
+- `html/` mit einer Startseite und pro Test-Executable separaten HTML-Reports
+
+Die Tool-Konfigurationsdateien liegen absichtlich an den von den Tools erwarteten Standardorten:
+
+- `.clang-tidy` im Repository-Root für automatische `clang-tidy`-Erkennung
+- `codecov.yml` im Repository-Root für die Standard-Erkennung durch Codecov
+- `.github/workflows/quality.yml` unter `.github/workflows/` für GitHub Actions
+
+### GitHub-Präsentation
+
+Der Workflow `.github/workflows/quality.yml` koppelt die Jobs direkt an diese Presets. Dadurch bleiben lokale und CI-Läufe deckungsgleich, und die Badges im README hängen direkt an:
+
+- dem GitHub-Workflow-Status für Build/Test/Tidy/Coverage
+- dem Codecov-Upload auf Basis von `coverage/coverage.lcov`
 
 ### 7. Optional: Binary Cache aktivieren
 

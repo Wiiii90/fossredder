@@ -21,7 +21,7 @@ Item {
         nameField.text = current.name || ""
     }
 
-    Connections { target: current; function onChanged() { syncFields() } }
+    onCurrentChanged: syncFields()
     onIsEditChanged: syncFields()
 
     ColumnLayout {
@@ -34,7 +34,7 @@ Item {
             font.pointSize: 18
         }
 
-        Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
+        Controls.TextField { id: nameField; objectName: "bookingStatementNameField"; placeholderText: qsTr("Name"); Layout.fillWidth: true }
 
         Item { Layout.fillHeight: true }
 
@@ -42,6 +42,7 @@ Item {
             Layout.fillWidth: true
 
             Controls.Button {
+                objectName: "bookingStatementNewButton"
                 visible: isEdit
                 text: qsTr("New")
                 onClicked: {
@@ -53,6 +54,7 @@ Item {
             }
 
             Controls.Button {
+                objectName: "bookingStatementSubmitButton"
                 text: isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: nameField.text.length > 0
                 onClicked: {
@@ -68,6 +70,7 @@ Item {
             }
 
             Controls.Button {
+                objectName: "bookingStatementDeleteButton"
                 visible: isEdit
                 text: qsTr("Delete")
                 onClicked: {
@@ -82,6 +85,7 @@ Item {
             }
 
             Controls.Button {
+                objectName: "bookingStatementNewTransactionButton"
                 visible: isEdit
                 text: qsTr("New Transaction")
                 onClicked: {

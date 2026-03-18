@@ -17,6 +17,7 @@ set(PERSISTENCE_SRCS
 
 add_library(fossredder_persistence STATIC ${PERSISTENCE_SRCS})
 add_library(FossRedder::Persistence ALIAS fossredder_persistence)
+fossredder_enable_target_quality(fossredder_persistence)
 
 set_target_properties(fossredder_persistence PROPERTIES EXPORT_NAME Persistence)
 
@@ -69,6 +70,7 @@ if (BUILD_PERSISTENCE_TESTS)
     target_compile_features(persistence_unit_tests PRIVATE cxx_std_20)
 
     fossredder_set_runtime_output_dirs(persistence_unit_tests)
+    fossredder_enable_target_quality(persistence_unit_tests)
 
     gtest_discover_tests(persistence_unit_tests PROPERTIES LABELS "PERSISTENCE_UNIT")
 endif()

@@ -7,6 +7,7 @@ set(SERVICE_POPPLER_SRCS
 
 add_library(fossredder_poppler_service STATIC ${SERVICE_POPPLER_SRCS})
 add_library(FossRedder::PopplerService ALIAS fossredder_poppler_service)
+fossredder_enable_target_quality(fossredder_poppler_service)
 
 set_target_properties(fossredder_poppler_service PROPERTIES EXPORT_NAME PopplerService)
 

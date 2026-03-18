@@ -19,6 +19,26 @@ static Pix* pixFromBytes(const std::vector<uint8_t>& data) {
     return p;
 }
 
+static std::string readEnvironmentVariable(const char* name) {
+#if defined(_MSC_VER)
+    char* value = nullptr;
+    size_t valueLength = 0;
+    if (_dupenv_s(&value, &valueLength, name) != 0 || value == nullptr) {
+        return {};
+    }
+
+    std::string result(value, valueLength > 0 ? valueLength - 1 : 0);
+    free(value);
+    return result;
+#else
+    if (const char* value = std::getenv(name)) {
+        return std::string(value);
+    }
+
+    return {};
+#endif
+}
+
 static std::string resolveTessdataPath(const std::string& provided) {
     auto existsNoThrow = [](const std::filesystem::path& p) {
         std::error_code ec;
@@ -30,8 +50,9 @@ static std::string resolveTessdataPath(const std::string& provided) {
         if (existsNoThrow(p)) return p.string();
     }
 
-    if (const char* env = std::getenv("TESSDATA_PREFIX")) {
-        if (existsNoThrow(env)) return std::string(env);
+    const std::string envTessdata = readEnvironmentVariable("TESSDATA_PREFIX");
+    if (!envTessdata.empty()) {
+        if (existsNoThrow(envTessdata)) return envTessdata;
     }
 
     std::vector<std::filesystem::path> candidates;

@@ -40,6 +40,7 @@ Flickable {
                     Label { text: qsTr("Language"); Layout.fillWidth: true }
                     Controls.ComboBox {
                         id: language
+                        objectName: "settingsLanguageComboBox"
                         model: languageController ? languageController.availableLanguages : []
                         textRole: "label"
                         currentIndex: root.languageIndexFor(languageController ? languageController.currentLanguage : "")
@@ -71,6 +72,7 @@ Flickable {
                     Layout.fillWidth: true
                     Controls.TextField {
                         id: appDirectoryField
+                        objectName: "settingsAppDirectoryField"
                         Layout.fillWidth: true
                         readOnly: true
                         text: (typeof fileSystemController !== 'undefined' && fileSystemController)

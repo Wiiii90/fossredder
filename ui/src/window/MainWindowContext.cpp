@@ -7,6 +7,7 @@
 
 #include <QAction>
 #include <QQmlContext>
+#include <QVariant>
 #include <QWidget>
 
 #include "MainWindow.h"
@@ -49,10 +50,10 @@ MainWindowServices installMainWindowContext(QQmlContext &qmlContext,
 
 #ifdef QT_DEBUG
   qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
-                                true);
+                                QVariant(true));
 #else
   qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
-                                false);
+                                QVariant(false));
 #endif
 
   return services;

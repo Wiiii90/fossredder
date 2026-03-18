@@ -40,6 +40,7 @@ Item {
             Label { text: qsTr("Format:"); Layout.preferredWidth: Theme.formLabelWidth }
             Controls.ComboBox {
                 id: formatBox
+                objectName: "exportFormatBox"
                 model: root.formatLabels
                 Layout.preferredWidth: Theme.formFieldWidth
                 onCurrentIndexChanged: {
@@ -56,14 +57,14 @@ Item {
             spacing: Theme.spacingMedium
             Layout.fillWidth: true
             Label { text: qsTr("Include formulas (XLSX):"); Layout.preferredWidth: Theme.formFieldWidth }
-            Controls.CheckBox { id: formulas; checked: true }
+            Controls.CheckBox { id: formulas; objectName: "exportIncludeFormulasCheckBox"; checked: true }
         }
 
         RowLayout {
             spacing: Theme.spacingMedium
             Layout.fillWidth: true
             Label { text: qsTr("Locale:"); Layout.preferredWidth: Theme.formLabelWidth }
-            Controls.TextField { id: localeField; text: root.defaultLocale; Layout.preferredWidth: Theme.formFieldWidth }
+            Controls.TextField { id: localeField; objectName: "exportLocaleField"; text: root.defaultLocale; Layout.preferredWidth: Theme.formFieldWidth }
         }
 
         Item { Layout.fillHeight: true }
@@ -73,9 +74,10 @@ Item {
             Layout.fillWidth: true
 
             Label { text: qsTr("Save to:"); Layout.preferredWidth: Theme.formLabelWidth }
-            Controls.TextField { id: pathField; placeholderText: qsTr("e.g. C:/Users/You/Documents/export.xlsx"); Layout.fillWidth: true }
-            Controls.Button { text: qsTr("Browse..."); onClicked: if (uiActions) uiActions.browseExportFile() }
+            Controls.TextField { id: pathField; objectName: "exportPathField"; placeholderText: qsTr("e.g. C:/Users/You/Documents/export.xlsx"); Layout.fillWidth: true }
+            Controls.Button { objectName: "exportBrowseButton"; text: qsTr("Browse..."); onClicked: if (uiActions) uiActions.browseExportFile() }
             Controls.Button {
+                objectName: "exportSubmitButton"
                 text: qsTr("Export")
                 enabled: pathField.text.length > 0
                 onClicked: {

@@ -8,6 +8,7 @@ set(DEBUG_SRCS
 
 add_library(fossredder_debug STATIC ${DEBUG_SRCS})
 add_library(FossRedder::Debug ALIAS fossredder_debug)
+fossredder_enable_target_quality(fossredder_debug)
 
 set_target_properties(fossredder_debug PROPERTIES EXPORT_NAME Debug)
 
@@ -57,6 +58,7 @@ if (BUILD_DEBUG_TESTS)
     target_compile_features(debug_unit_tests PRIVATE cxx_std_20)
 
     fossredder_set_runtime_output_dirs(debug_unit_tests)
+    fossredder_enable_target_quality(debug_unit_tests)
 
     gtest_discover_tests(debug_unit_tests PROPERTIES LABELS "DEBUG_UNIT")
 endif()

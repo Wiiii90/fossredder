@@ -24,12 +24,14 @@ Popup {
             Layout.fillWidth: true
             TextField {
                 id: folderField
+                objectName: "filePickerFolderField"
                 Layout.fillWidth: true
                 text: picker.folder
                 placeholderText: qsTr("Folder")
                 onEditingFinished: picker.folder = text
             }
             Button {
+                objectName: "filePickerUpButton"
                 text: qsTr("Up")
                 onClicked: {
                     var p = folderField.text
@@ -44,6 +46,7 @@ Popup {
         }
 
         ListView {
+            objectName: "filePickerEntryList"
             Layout.fillWidth: true
             Layout.fillHeight: true
             model: (typeof fileSystemController !== 'undefined' && fileSystemController) ? fileSystemController.listDir(picker.folder) : []
@@ -68,8 +71,9 @@ Popup {
 
         RowLayout {
             Layout.fillWidth: true
-            TextField { id: nameField; Layout.fillWidth: true; placeholderText: qsTr("Filename (optional)") }
+            TextField { id: nameField; objectName: "filePickerNameField"; Layout.fillWidth: true; placeholderText: qsTr("Filename (optional)") }
             Button {
+                objectName: "filePickerSelectButton"
                 text: qsTr("Select")
                 onClicked: {
                     var out = nameField.text.trim()
@@ -83,13 +87,13 @@ Popup {
                     picker.close()
                 }
             }
-            Button { text: qsTr("Cancel"); onClicked: { picker.rejected(); picker.close(); } }
+            Button { objectName: "filePickerCancelButton"; text: qsTr("Cancel"); onClicked: { picker.rejected(); picker.close(); } }
         }
     }
 
     function open(dir) {
         if (dir) { picker.folder = dir; folderField.text = dir }
-        picker.open()
+        picker.visible = true
     }
 
     Component.onCompleted: folderField.text = picker.folder

@@ -27,6 +27,7 @@ if(USE_QML)
 endif()
 
 add_executable(fossredder ${APP_SRCS})
+fossredder_enable_target_quality(fossredder)
 
 # Enable Qt code generation on the application target only.
 set_target_properties(fossredder PROPERTIES

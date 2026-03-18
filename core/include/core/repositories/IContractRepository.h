@@ -11,7 +11,7 @@
 #include <vector>
 
 namespace core::domain {
-class core::domain::Contract;
+class Contract;
 }
 
 class IContractRepository {

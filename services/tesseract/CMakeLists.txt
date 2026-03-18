@@ -7,6 +7,7 @@ set(SERVICE_TESSERACT_SRCS
 
 add_library(fossredder_tesseract_service STATIC ${SERVICE_TESSERACT_SRCS})
 add_library(FossRedder::TesseractService ALIAS fossredder_tesseract_service)
+fossredder_enable_target_quality(fossredder_tesseract_service)
 
 set_target_properties(fossredder_tesseract_service PROPERTIES EXPORT_NAME TesseractService)
 
