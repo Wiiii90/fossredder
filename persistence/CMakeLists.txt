@@ -1,52 +1,60 @@
-cmake_minimum_required(VERSION 4.0.1)
-project(persistence)
+# Persistence implementation sources.
+set(PERSISTENCE_SRCS
+    src/AppStateStore.cpp
+    src/Factory.cpp
+    src/SqliteDb.cpp
+    src/SqliteSchema.cpp
+    src/SqliteTransaction.cpp
+    src/repositories/SqliteActorRepository.cpp
+    src/repositories/SqliteAnalysisRepository.cpp
+    src/repositories/SqliteAnnualRepository.cpp
+    src/repositories/SqliteConfigRepository.cpp
+    src/repositories/SqliteContractRepository.cpp
+    src/repositories/SqlitePropertyRepository.cpp
+    src/repositories/SqliteStatementRepository.cpp
+    src/repositories/SqliteTransactionRepository.cpp
+)
 
-file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-add_library(persistence_lib STATIC ${SRCS})
+add_library(fossredder_persistence STATIC ${PERSISTENCE_SRCS})
+add_library(FossRedder::Persistence ALIAS fossredder_persistence)
 
-target_include_directories(persistence_lib PUBLIC
+set_target_properties(fossredder_persistence PROPERTIES EXPORT_NAME Persistence)
+
+target_compile_features(fossredder_persistence PUBLIC cxx_std_20)
+
+target_include_directories(fossredder_persistence PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/core/include>
 )
 
-target_link_libraries(persistence_lib PUBLIC core_lib)
+# Persistence implementation depends on SQLite and JSON serialization.
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(SQLite3 REQUIRED)
 
-target_compile_features(persistence_lib PUBLIC cxx_std_20)
-
-find_package(SQLite3 QUIET)
-if (SQLite3_FOUND)
-    target_link_libraries(persistence_lib PRIVATE SQLite::SQLite3)
-else()
-    find_library(SQLITE3_LIBRARY sqlite3)
-    if(SQLITE3_LIBRARY)
-        target_link_libraries(persistence_lib PRIVATE ${SQLITE3_LIBRARY})
-    endif()
-endif()
-
-find_package(nlohmann_json CONFIG QUIET)
-if (TARGET nlohmann_json::nlohmann_json)
-    target_link_libraries(persistence_lib PRIVATE nlohmann_json::nlohmann_json)
-endif()
-
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/persistence/pch.h")
-        target_precompile_headers(persistence_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/persistence/pch.h")
-    endif()
-endif()
-
-install(TARGETS persistence_lib
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
+target_link_libraries(fossredder_persistence
+    PUBLIC
+        FossRedder::Core
+    PRIVATE
+        nlohmann_json::nlohmann_json
+        SQLite::SQLite3
 )
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
 
+fossredder_set_library_output_dirs(fossredder_persistence)
+fossredder_enable_target_pch(fossredder_persistence "${CMAKE_CURRENT_SOURCE_DIR}/include/persistence/pch.h")
+
+fossredder_install_library_target(fossredder_persistence)
+fossredder_install_headers("${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+# Optional module-local tests.
 option(BUILD_PERSISTENCE_TESTS "Build tests for persistence module" OFF)
 if (BUILD_PERSISTENCE_TESTS)
     find_package(GTest CONFIG REQUIRED)
+    include(GoogleTest)
 
-    file(GLOB PERSISTENCE_TEST_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.cpp)
+    set(PERSISTENCE_TEST_SRCS
+        tests/unit/TestAppStateStore.cpp
+        tests/unit/TestSqliteRepositories.cpp
+    )
     add_executable(persistence_unit_tests ${PERSISTENCE_TEST_SRCS})
     target_include_directories(persistence_unit_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/include
@@ -55,17 +63,11 @@ if (BUILD_PERSISTENCE_TESTS)
     )
     target_link_libraries(persistence_unit_tests PRIVATE
         GTest::gtest_main
-        persistence_lib
-        core_lib
+        FossRedder::Persistence
     )
     target_compile_features(persistence_unit_tests PRIVATE cxx_std_20)
 
-    set_target_properties(persistence_unit_tests PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/Debug"
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release"
-    )
+    fossredder_set_runtime_output_dirs(persistence_unit_tests)
 
-    include(GoogleTest)
     gtest_discover_tests(persistence_unit_tests PROPERTIES LABELS "PERSISTENCE_UNIT")
 endif()

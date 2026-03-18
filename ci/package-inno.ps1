@@ -31,7 +31,7 @@ function Get-AbsPath([string]$PathValue, [string]$BaseDir) {
 function Get-CMakeCacheValue([string]$CachePath, [string]$Key) {
     if (!(Test-Path $CachePath)) { return $null }
 
-    $prefix = "$Key:"
+    $prefix = "${Key}:"
     foreach ($line in Get-Content -Path $CachePath) {
         if ($line.StartsWith($prefix)) {
             $parts = $line.Split('=', 2)
@@ -152,7 +152,7 @@ function Get-PeDependents([string]$Dumpbin, [string]$FilePath) {
 }
 
 # Qt deployment
-# - Preferred: deterministic cmake/qtdeploy.cmake (same as ci/check-deploy.ps1)
+# - Preferred: deterministic cmake/QtDeploy.cmake (same as ci/check-deploy.ps1)
 # - Optional: windeployqt (useful when adding new Qt modules/plugins)
 
 $logsDir = Join-Path $PSScriptRoot "logs"
@@ -161,15 +161,15 @@ if (!(Test-Path $logsDir)) {
 }
 
 if ($RunQtDeployFallback) {
-    $qtdeploy = Join-Path $RepoRoot "cmake\qtdeploy.cmake"
-    if (!(Test-Path $qtdeploy)) { throw "qtdeploy.cmake not found at $qtdeploy" }
+    $qtdeploy = Join-Path $RepoRoot "cmake\QtDeploy.cmake"
+    if (!(Test-Path $qtdeploy)) { throw "QtDeploy.cmake not found at $qtdeploy" }
 
     $vcpkgInstalledAbsForCmake = $vcpkgInstalled
     if (Test-Path $vcpkgInstalled) { $vcpkgInstalledAbsForCmake = (Resolve-Path $vcpkgInstalled).ProviderPath }
 
-    Write-Host "Running deterministic qtdeploy.cmake" -ForegroundColor Cyan
+    Write-Host "Running deterministic QtDeploy.cmake" -ForegroundColor Cyan
     cmake -D TARGET_DIR="$DeployDir" -D VCPKG_INSTALLED_DIR="$vcpkgInstalledAbsForCmake" -D VCPKG_TARGET_TRIPLET="$vcpkgTriplet" -D BUILD_CONFIG="$Config" -P "$qtdeploy"
-    if ($LASTEXITCODE -ne 0) { throw "qtdeploy.cmake failed" }
+    if ($LASTEXITCODE -ne 0) { throw "QtDeploy.cmake failed" }
 }
 
 # Automatically copy vcpkg runtime dependencies (transitive) into deploy dir.

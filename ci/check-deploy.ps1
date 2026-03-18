@@ -1,9 +1,18 @@
 param(
     [string]$BuildDir = ".\\.build\\app",
     [string]$StagingDir = ".\\.build\\app\\staging",
-    [string]$VcpkgInstalled = "third_party/vcpkg/installed",
+    [string]$VcpkgInstalled = "",
     [string]$Config = "Release"
 )
+
+if ([string]::IsNullOrWhiteSpace($VcpkgInstalled)) {
+    if ($env:VCPKG_INSTALLED_DIR) {
+        $VcpkgInstalled = $env:VCPKG_INSTALLED_DIR
+    }
+    elseif ($env:VCPKG_ROOT) {
+        $VcpkgInstalled = Join-Path $env:VCPKG_ROOT "installed\fossredder"
+    }
+}
 
 $logsDir = "$PSScriptRoot\logs"
 if (!(Test-Path $logsDir)) { New-Item -ItemType Directory -Path $logsDir | Out-Null }
@@ -44,8 +53,8 @@ if ($candidates.Count -gt 0 -and (Test-Path $exe)) {
     Write-Host "[RESULT] windeployqt exit code: $rc. Log: $outFile"
 } else { Write-Host "[SKIP] Skipping windeployqt run (no candidate or exe missing)" }
 
-# 4) Run cmake qtdeploy fallback
-Write-Host "[ACTION] Running cmake/qtdeploy.cmake fallback"
+# 4) Run cmake Qt deploy fallback
+Write-Host "[ACTION] Running cmake/QtDeploy.cmake fallback"
 $qtdeployLog = Join-Path $logsDir "qtdeploy-log.txt"
 
 $vcpkgInstalledAbs = $VcpkgInstalled
@@ -53,9 +62,9 @@ if (Test-Path $VcpkgInstalled) {
     $vcpkgInstalledAbs = (Resolve-Path $VcpkgInstalled).ProviderPath
 }
 
-cmake -D TARGET_DIR="$stagingAbs" -D VCPKG_INSTALLED_DIR="$vcpkgInstalledAbs" -D VCPKG_TARGET_TRIPLET="x64-windows" -D BUILD_CONFIG="$Config" -P "$PSScriptRoot\..\cmake\qtdeploy.cmake" *> $qtdeployLog 2>&1
+cmake -D TARGET_DIR="$stagingAbs" -D VCPKG_INSTALLED_DIR="$vcpkgInstalledAbs" -D VCPKG_TARGET_TRIPLET="x64-windows" -D BUILD_CONFIG="$Config" -P "$PSScriptRoot\..\cmake\QtDeploy.cmake" *> $qtdeployLog 2>&1
 $rc2 = $LASTEXITCODE
-Write-Host "[RESULT] qtdeploy fallback exit code: $rc2. Log: $qtdeployLog"
+Write-Host "[RESULT] Qt deploy fallback exit code: $rc2. Log: $qtdeployLog"
 
 # 5) List staging qml dir
 $qmlDir = Join-Path $stagingAbs "qml"

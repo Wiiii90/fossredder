@@ -31,6 +31,7 @@ public:
     using DeletionImpactCallback = IStorageManager::DeletionImpactCallback;
 
     explicit StorageManager(std::string appDataDir);
+    StorageManager(std::string appDataDir, std::shared_ptr<IRegistry> registry);
 
     void setRepoFactory(RepoFactory factory) override;
     void setAtomicStoreSave(AtomicStoreSave saveFn) override;

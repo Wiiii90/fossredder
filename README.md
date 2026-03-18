@@ -47,11 +47,13 @@ Die Abhängigkeiten werden in diesem Projekt über `vcpkg.json` im Manifest-Modu
 
 ### 1. `vcpkg` einmalig lokal installieren
 
-Wähle für `vcpkg` einen **kurzen lokalen Pfad**, damit Windows-Pfadlängen kein Problem werden. Ein kurzer Pfad wie `P:\vcpkg` ist empfehlenswert, aber nicht vorgeschrieben.
+Installiere `vcpkg` einmalig an einem **kurzen lokalen Pfad deiner Wahl**. Das konkrete Verzeichnis ist bewusst **deine lokale Entscheidung** und nicht im Repository fest verdrahtet.
+
+Beispielhaft sieht das immer gleich aus:
 
 ```powershell
-git clone https://github.com/microsoft/vcpkg.git P:\vcpkg
-P:\vcpkg\bootstrap-vcpkg.bat
+git clone https://github.com/microsoft/vcpkg.git <dein-vcpkg-pfad>
+<dein-vcpkg-pfad>\bootstrap-vcpkg.bat
 ```
 
 Falls `vcpkg` bereits lokal vorhanden ist, reicht es, die bestehende Installation weiterzuverwenden.
@@ -61,15 +63,39 @@ Falls `vcpkg` bereits lokal vorhanden ist, reicht es, die bestehende Installatio
 Setze anschließend die Benutzer-Umgebungsvariable `VCPKG_ROOT` **einmalig dauerhaft** auf dein lokales `vcpkg`-Verzeichnis:
 
 ```powershell
-[Environment]::SetEnvironmentVariable('VCPKG_ROOT', 'P:\vcpkg', 'User')
+[Environment]::SetEnvironmentVariable('VCPKG_ROOT', '<dein-vcpkg-pfad>', 'User')
 ```
 
 Danach gilt:
 
 1. Das Projekt kennt deinen lokalen `vcpkg`-Pfad über `VCPKG_ROOT`.
 2. Die Variable bleibt über Neustarts hinweg erhalten.
+3. Wenn du **nichts weiter setzt**, legt das Projekt seine Manifest-Artefakte bei einem normalen lokalen `vcpkg` standardmäßig unter `VCPKG_ROOT\installed\fossredder` ab.
+4. Das gilt sowohl für die Presets als auch für einen einfachen `cmake`-Aufruf, weil das Repository `CMAKE_TOOLCHAIN_FILE` und `VCPKG_INSTALLED_DIR` vor `project()` deterministisch aus `VCPKG_ROOT`, `VCPKG_INSTALLED_DIR` oder einem expliziten Toolchain-Pfad ableitet.
 
-### 3. Repository klonen oder öffnen
+Das ist in diesem Repository der bevorzugte Standard, weil dadurch
+
+1. `vcpkg` selbst,
+2. die Paket-Installationen,
+3. die zugehörigen Buildtrees
+
+an einem gemeinsamen Ort bleiben, ohne den Projektordner zu vergrößern oder zusätzliche verstreute Ordner auf dem Rechner zu erzeugen.
+
+### 3. Optional: `VCPKG_INSTALLED_DIR` selbst festlegen
+
+Wenn du den Installations- und Buildtree-Pfad dennoch explizit steuern willst, kannst du zusätzlich **einmalig dauerhaft** `VCPKG_INSTALLED_DIR` setzen:
+
+```powershell
+[Environment]::SetEnvironmentVariable('VCPKG_INSTALLED_DIR', '<dein-vcpkg-pfad>\installed\fossredder', 'User')
+```
+
+Das ist optional. Ohne diese Variable verwendet das Projekt automatisch denselben Pfad als sauberen Standard unterhalb von `VCPKG_ROOT`.
+
+Wenn `VCPKG_ROOT` in einer bestimmten Session nicht sauber durchgereicht wird, aber `VCPKG_INSTALLED_DIR` korrekt auf `<dein-vcpkg-pfad>\installed\fossredder` zeigt, kann das Repository daraus den lokalen `vcpkg`-Root ebenfalls deterministisch ableiten.
+
+Wichtig: Eine explizit gesetzte Benutzer- oder Systemvariable `VCPKG_INSTALLED_DIR` übersteuert diese automatische Auswahl vollständig. Wenn Visual Studio bewusst mit einer anderen `vcpkg`-Toolchain konfiguriert wird, folgt das Projekt dieser Toolchain deterministisch; ein Repository-Fallback nach `.build\vcpkg_installed` existiert nicht mehr.
+
+### 4. Repository klonen oder öffnen
 
 ```powershell
 git clone https://github.com/Wiiii90/fossredder.git
@@ -78,9 +104,19 @@ cd fossredder
 
 Falls das Repository bereits lokal vorhanden ist, genügt es, in den Projektordner zu wechseln.
 
-### 4. Projekt konfigurieren
+### 5. Projekt konfigurieren
 
-Die CMake-Presets dieses Repositories verwenden automatisch `VCPKG_ROOT`. Die installierten Pakete landen dabei unter `.build/vcpkg_installed`, damit die Build-Artefakte kurzpfadig und projektbezogen bleiben, ohne `vcpkg` selbst ins Repository zu legen.
+Diese README beschreibt bewusst den normalen **Kommandozeilen-Workflow** mit eigenem lokalem `vcpkg`. Es wird dabei **keine** Arbeit in der Visual-Studio-IDE vorausgesetzt.
+
+Die CMake-Presets dieses Repositories verwenden den Generator `Visual Studio 18 2026`, werden aber ganz normal per `cmake` auf der Kommandozeile gestartet. Wenn `VCPKG_INSTALLED_DIR` nicht gesetzt ist, landen die installierten Pakete und die zugehörigen `vcpkg`-Buildtrees bei einem normalen lokalen `vcpkg` unter `VCPKG_ROOT\installed\fossredder`.
+
+Das ist bewusst so gewählt:
+
+1. kein `vcpkg_installed` im Repository,
+2. keine Repo-abhängigen Langpfade für Qt-Builds,
+3. kein zusätzlicher frei stehender Projektordner außerhalb von `vcpkg`.
+
+Wichtig: Wenn du `VCPKG_ROOT`, `VCPKG_INSTALLED_DIR` oder `VCPKG_DEFAULT_BINARY_CACHE` neu gesetzt oder geändert hast, öffne **danach ein neues Terminal**, bevor du `cmake` startest.
 
 **App konfigurieren:**
 
@@ -94,9 +130,15 @@ cmake --preset app
 cmake --preset tests
 ```
 
+Die Presets sind nur die bequeme Kurzform. Der App-Configure entspricht inhaltlich ungefähr diesem expliziten CMake-Aufruf:
+
+```powershell
+cmake -S . -B .build/app -G "Visual Studio 18 2026" -A x64 -D VCPKG_TARGET_TRIPLET=x64-windows -D VCPKG_APPLOCAL_DEPS=ON
+```
+
 Beim ersten Konfigurieren installiert `vcpkg` die in `vcpkg.json` beschriebenen Abhängigkeiten automatisch.
 
-### 5. Projekt bauen
+### 6. Projekt bauen
 
 **Release-App bauen:**
 
@@ -110,6 +152,12 @@ cmake --build --preset release-app
 cmake --build --preset debug-tests
 ```
 
+**Release-App starten:**
+
+```powershell
+.\.build\app\bin\Release\fossredder.exe
+```
+
 Alternativ kann für den Debug-Testlauf auch das vorhandene Skript verwendet werden:
 
 ```powershell
@@ -118,11 +166,19 @@ Alternativ kann für den Debug-Testlauf auch das vorhandene Skript verwendet wer
 
 Das Skript prüft vor dem Konfigurieren, ob `VCPKG_ROOT` korrekt gesetzt ist.
 
-### 6. Visual Studio verwenden
+### 7. Optional: Binary Cache aktivieren
 
-Dieses Repository ist auf den Generator **Visual Studio 18 2026** ausgelegt. Öffne den Projektordner direkt in Visual Studio. Die CMake-Presets greifen dann auf dieselbe `VCPKG_ROOT`-Konfiguration zu wie die Kommandozeile.
+Toolset-Wechsel oder Änderungen an der lokalen Buildumgebung können dazu führen, dass Pakete neu gebaut werden müssen. Das bedeutet normalerweise **nicht**, dass `vcpkg` selbst neu installiert werden muss. Damit solche Rebuilds nicht jedes Mal wieder viele Stunden kosten, empfiehlt sich ein lokaler Binary Cache.
 
-Wenn Visual Studio `vcpkg` nicht findet, ist fast immer die Ursache, dass `VCPKG_ROOT` erst **nach** dem Start der IDE gesetzt wurde. In diesem Fall Visual Studio vollständig schließen und erneut öffnen.
+Optional kann dafür einmalig eine weitere Benutzer-Umgebungsvariable gesetzt werden:
+
+```powershell
+[Environment]::SetEnvironmentVariable('VCPKG_DEFAULT_BINARY_CACHE', '<dein-vcpkg-pfad>\binarycache', 'User')
+```
+
+Wichtig: Das in `VCPKG_DEFAULT_BINARY_CACHE` referenzierte Verzeichnis muss tatsächlich existieren. Andernfalls bricht `vcpkg install` bereits beim Konfigurieren ab.
+
+Damit bleiben auch Cache-Artefakte im selben `vcpkg`-Container und verteilen sich nicht an zusätzlichen Stellen auf dem Rechner.
 
 ## Dokumentation
 

@@ -5,7 +5,7 @@ This document describes how to create a Windows `setup.exe` locally using the re
 Prerequisites
 - Visual Studio 2026 (VS18) with "Desktop development with C++" workload.
 - Inno Setup (`ISCC.exe`) installed (we recommend installing via Chocolatey).
-- vcpkg installed under `third_party/vcpkg` and dependencies installed via manifest mode.
+- A developer-local `vcpkg` installation outside the repository, configured via `VCPKG_ROOT` and optionally `VCPKG_INSTALLED_DIR` as documented in the root `README.md`.
 - Qt via vcpkg (this repo uses `windeployqt` during packaging).
 
 Steps (Visual Studio UI - recommended)
@@ -33,4 +33,5 @@ Troubleshooting
 - If ISCC is not found, ensure Inno Setup is installed and `C:\Program Files (x86)\Inno Setup 6\ISCC.exe` exists.
 - If the installer misses DLLs, check `ci\logs\windeployqt-output.txt` and verify Qt was installed by vcpkg.
 - Test `staging\bin\fossredder.exe` before building the installer.
+- If `cmake --preset app` resolves to the wrong `vcpkg`, verify `VCPKG_ROOT` and `VCPKG_INSTALLED_DIR` in a fresh terminal session first.
 

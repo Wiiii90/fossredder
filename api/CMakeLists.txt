@@ -1,21 +1,15 @@
-cmake_minimum_required(VERSION 4.0.1)
-project(api)
+# Public header-only contracts shared by the implementation libraries.
+add_library(fossredder_api INTERFACE)
+add_library(FossRedder::Api ALIAS fossredder_api)
 
-# INTERFACE library containing only headers (DTOs & Interfaces)
-add_library(api INTERFACE)
+set_target_properties(fossredder_api PROPERTIES EXPORT_NAME Api)
 
-target_include_directories(api INTERFACE
+target_compile_features(fossredder_api INTERFACE cxx_std_20)
+
+target_include_directories(fossredder_api INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(api INTERFACE cxx_std_20)
-
-# Make nlohmann_json available for API headers that include it
-find_package(nlohmann_json CONFIG REQUIRED)
-target_link_libraries(api INTERFACE nlohmann_json::nlohmann_json)
-
-# export/install
-install(TARGETS api EXPORT apiTargets)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
-install(EXPORT apiTargets FILE apiTargets.cmake NAMESPACE FossRedder:: DESTINATION lib/cmake/api)
+install(TARGETS fossredder_api EXPORT ${FOSSREDDER_EXPORT_SET} INCLUDES DESTINATION include)
+fossredder_install_headers("${CMAKE_CURRENT_SOURCE_DIR}/include")

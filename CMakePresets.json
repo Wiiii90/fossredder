@@ -14,8 +14,6 @@
         "value": "x64"
       },
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "VCPKG_INSTALLED_DIR": "${sourceDir}/.build/vcpkg_installed",
         "VCPKG_TARGET_TRIPLET": "x64-windows",
         "VCPKG_APPLOCAL_DEPS": "ON"
       },
@@ -26,35 +24,18 @@
     {
       "name": "app",
       "displayName": "App",
-      "inherits": [
-        "vcpkg-base"
-      ],
-      "binaryDir": "${sourceDir}/.build/${presetName}",
-      "cacheVariables": {}
+      "inherits": "vcpkg-base",
+      "binaryDir": "${sourceDir}/.build/${presetName}"
     },
     {
       "name": "tests",
       "displayName": "Tests",
-      "inherits": [
-        "vcpkg-base"
-      ],
+      "inherits": "vcpkg-base",
       "binaryDir": "${sourceDir}/.build/${presetName}",
       "cacheVariables": {
         "BUILD_CORE_TESTS": "ON",
         "BUILD_PERSISTENCE_TESTS": "ON",
         "BUILD_DEBUG_TESTS": "ON"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "Qt",
-      "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "$env{QTDIR}"
-      },
-      "vendor": {
-        "qt-project.org/Qt": {
-          "checksum": "wVa86FgEkvdCTVp1/nxvrkaemJc="
-        }
       }
     }
   ],
@@ -87,10 +68,5 @@
         "package"
       ]
     }
-  ],
-  "vendor": {
-    "qt-project.org/Presets": {
-      "checksum": "Ll8Va7sdj8Niaf4Ck0TEGeyO+2Q="
-    }
-  }
+  ]
 }

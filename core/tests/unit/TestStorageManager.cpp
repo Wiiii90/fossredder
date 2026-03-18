@@ -13,6 +13,19 @@
 #include <filesystem>
 #include <cstdio>
 
+namespace {
+
+class FakeRegistry final : public core::storage::IRegistry {
+public:
+    std::optional<std::string> getLatest() const override { return latest_; }
+    void setLatest(const std::string& path) override { latest_ = path; }
+
+private:
+    std::optional<std::string> latest_;
+};
+
+} // namespace
+
 // We'll test basic registry behavior: setLatestPath and loadLatestPath via a StorageManager
 // Use a temporary directory inside tmp and ensure cleanup.
 

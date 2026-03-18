@@ -1,57 +1,37 @@
-cmake_minimum_required(VERSION 4.0.1)
-project(services_opencv)
+# Service implementation sources.
+set(SERVICE_OPENCV_SRCS
+    src/CropEngine.cpp
+    src/DenoiseEngine.cpp
+    src/DetectEngine.cpp
+    src/MaskEngine.cpp
+    src/OpenCvAdapter.cpp
+    src/OpenCvService.cpp
+)
 
-file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
+add_library(fossredder_opencv_service STATIC ${SERVICE_OPENCV_SRCS})
+add_library(FossRedder::OpenCvService ALIAS fossredder_opencv_service)
 
-if(NOT DEFINED BUILD_SERVICES_SHARED)
-    set(BUILD_SERVICES_SHARED OFF CACHE BOOL "Build services as shared libraries")
-endif()
-if(BUILD_SERVICES_SHARED)
-    set(_svc_type SHARED)
-else()
-    set(_svc_type STATIC)
-endif()
+set_target_properties(fossredder_opencv_service PROPERTIES EXPORT_NAME OpenCvService)
 
-add_library(services_opencv ${_svc_type} ${SRCS})
-
-target_include_directories(services_opencv PUBLIC
+target_include_directories(fossredder_opencv_service PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(services_opencv PUBLIC cxx_std_20)
+target_compile_features(fossredder_opencv_service PUBLIC cxx_std_20)
 
+# OpenCV types are part of the public service headers.
 find_package(OpenCV REQUIRED)
-if(OpenCV_FOUND)
-    target_include_directories(services_opencv PUBLIC ${OpenCV_INCLUDE_DIRS})
-    target_link_libraries(services_opencv PUBLIC ${OpenCV_LIBS})
-endif()
-
-# Link to api so API headers (namespaced types) are available
-target_link_libraries(services_opencv PUBLIC api)
-
-# Link to core/debug if available
-target_link_libraries(services_opencv PUBLIC core_lib debug_lib)
-
-# Precompiled header
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-    if (EXISTS "${CMAKE_SOURCE_DIR}/include/pch.h")
-        target_precompile_headers(services_opencv PRIVATE "${CMAKE_SOURCE_DIR}/include/pch.h")
-    endif()
-endif()
-
-# Ensure consistent, config-specific output directories (bin/Release etc.)
-set_target_properties(services_opencv PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/lib/Debug"
-    ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/lib/Release"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/Debug"
-    LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/Debug"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release"
+target_link_libraries(fossredder_opencv_service
+    PUBLIC
+        FossRedder::Api
+        ${OpenCV_LIBS}
+    PRIVATE
+        FossRedder::Core
+        FossRedder::Debug
 )
 
-install(TARGETS services_opencv ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
+fossredder_set_library_output_dirs(fossredder_opencv_service)
+
+fossredder_install_library_target(fossredder_opencv_service)
+fossredder_install_headers("${CMAKE_CURRENT_SOURCE_DIR}/include")

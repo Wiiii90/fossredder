@@ -1,14 +1,6 @@
-cmake_minimum_required(VERSION 4.0.1)
-project(ui)
+find_package(Qt6 COMPONENTS Quick Qml QuickControls2 Widgets Svg Concurrent QUIET)
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
-
-# Find Qt Quick/Qml and Controls so QML modules are available
-find_package(Qt6 COMPONENTS Quick Qml QuickControls2 Widgets Svg QUIET)
-find_package(Qt6 COMPONENTS Concurrent QUIET)
-
+# UI library sources and public headers.
 set(UI_SOURCES
     src/MainWindow.cpp
     src/actions/Actions.cpp
@@ -132,64 +124,62 @@ set(UI_HEADERS
     include/ui/workflows/FileWorkflow.h
 )
 
-add_library(ui_lib STATIC ${UI_SOURCES} ${UI_HEADERS})
+add_library(fossredder_ui STATIC ${UI_SOURCES} ${UI_HEADERS})
+add_library(FossRedder::Ui ALIAS fossredder_ui)
 
-target_include_directories(ui_lib PUBLIC
+set_target_properties(fossredder_ui PROPERTIES EXPORT_NAME Ui)
+
+set_target_properties(fossredder_ui PROPERTIES
+    AUTOMOC ON
+    AUTOUIC ON
+    AUTORCC ON
+)
+
+target_include_directories(fossredder_ui PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(ui_lib PUBLIC cxx_std_20)
+target_compile_features(fossredder_ui PUBLIC cxx_std_20)
+fossredder_set_library_output_dirs(fossredder_ui)
 
-# Log which Qt components were found for easier debugging and link them
+# Optional Qt UI feature blocks.
 if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
-    message(STATUS "Qt6 Quick and Qml found; enabling USE_QML for ui_lib")
-    target_link_libraries(ui_lib PUBLIC Qt6::Quick Qt6::Qml)
-    target_compile_definitions(ui_lib PUBLIC USE_QML=1)
+    target_link_libraries(fossredder_ui PUBLIC Qt6::Quick Qt6::Qml)
+    target_compile_definitions(fossredder_ui PUBLIC USE_QML=1)
 else()
-    message(STATUS "Qt6 Quick/Qml not found; QML features disabled in ui_lib")
+    message(STATUS "Qt6 Quick/Qml not found; QML features disabled in fossredder_ui")
 endif()
 
-# Link Quick Controls 2 so QML imports QtQuick.Controls and QtQuick.Layouts work
 if(TARGET Qt6::QuickControls2)
-    message(STATUS "Qt6 QuickControls2 found; linking to ui_lib")
-    target_link_libraries(ui_lib PUBLIC Qt6::QuickControls2)
+    target_link_libraries(fossredder_ui PUBLIC Qt6::QuickControls2)
 else()
     message(WARNING "Qt6 QuickControls2 not found; QML Controls may be missing at runtime")
 endif()
 
 if(TARGET Qt6::Widgets)
-    message(STATUS "Qt6 Widgets found; linking Widgets to ui_lib")
-    target_link_libraries(ui_lib PUBLIC Qt6::Widgets)
+    target_link_libraries(fossredder_ui PUBLIC Qt6::Widgets)
 endif()
 
 if(TARGET Qt6::Concurrent)
-    message(STATUS "Qt6 Concurrent found; linking Concurrent to ui_lib")
-    target_link_libraries(ui_lib PUBLIC Qt6::Concurrent)
+    target_link_libraries(fossredder_ui PUBLIC Qt6::Concurrent)
 else()
     message(WARNING "Qt6 Concurrent not found; QtConcurrent features may be unavailable")
 endif()
 
 if(TARGET Qt6::Svg)
-    message(STATUS "Qt6 Svg found; linking Svg to ui_lib")
-    target_link_libraries(ui_lib PUBLIC Qt6::Svg)
+    target_link_libraries(fossredder_ui PUBLIC Qt6::Svg)
 else()
     message(WARNING "Qt6 Svg not found; QML QtQuick.Svg module may be unavailable at runtime")
 endif()
 
-# link project libs
-target_link_libraries(ui_lib PUBLIC core_lib debug_lib)
-
-# Precompiled header
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/ui/pch.h")
-        target_precompile_headers(ui_lib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/ui/pch.h")
-    endif()
-endif()
-
-install(TARGETS ui_lib
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
+target_link_libraries(fossredder_ui
+    PUBLIC
+        FossRedder::Core
+        FossRedder::Debug
 )
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
+
+fossredder_enable_target_pch(fossredder_ui "${CMAKE_CURRENT_SOURCE_DIR}/include/ui/pch.h")
+
+fossredder_install_library_target(fossredder_ui)
+fossredder_install_headers("${CMAKE_CURRENT_SOURCE_DIR}/include")

@@ -19,13 +19,27 @@
 
 namespace core::storage {
 
-StorageManager::StorageManager(std::string appDataDir)
-    : appDataDir_(std::move(appDataDir)) {
+namespace {
+
+std::shared_ptr<IRegistry> createDefaultRegistry(const std::string& appDataDir) {
     try {
-        auto dbPath = (std::filesystem::path(appDataDir_) / "fossredder.db").string();
-        registry_ = std::make_shared<SqliteRegistry>(dbPath);
+        const auto dbPath = (std::filesystem::path(appDataDir) / "fossredder.db").string();
+        return std::make_shared<SqliteRegistry>(dbPath);
     } catch (...) {
-        registry_ = nullptr;
+        return nullptr;
+    }
+}
+
+} // namespace
+
+StorageManager::StorageManager(std::string appDataDir)
+    : StorageManager(std::move(appDataDir), nullptr) {}
+
+StorageManager::StorageManager(std::string appDataDir, std::shared_ptr<IRegistry> registry)
+    : appDataDir_(std::move(appDataDir))
+    , registry_(std::move(registry)) {
+    if (!registry_) {
+        registry_ = createDefaultRegistry(appDataDir_);
     }
 }
 

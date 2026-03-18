@@ -12,18 +12,13 @@
 - User prefers removing dead or redundant mechanisms completely where prior refactors made them obsolete, and wants Release builds run until green for validation.
 - User wants aggressive cleanup of obsolete leftovers, including deleting dead files, empty directories, unused functions, and false duplicates.
 - User wants touched files fully formatted, aggressive cleanup of obsolete leftovers and false duplicates, and Doxygen-style documentation comments added broadly for files and relevant functions when touching code.
-- UI-related types and helper files should not carry 'ui' prefixes in their names; instead, a `UI` namespace should be used where appropriate.
-- Avoid magic strings/numbers by centralizing constants/configuration for maintainability and professional production code.
-- User wants visual/layout values to be theme-driven instead of per-view constant modules.
-- User does not want fallback variables in UI constants or themes.
-- User wants Doxygen-style file comments where sensible and does not want small inline comments unless absolutely necessary. For Doxygen, follow best practice rather than repo drift: prefer meaningful header-first documentation, use tags like `@deprecated`, and avoid redundant source-file documentation.
-- User wants any touched code formatted and cleaned up of unnecessary comments, and new tests added when structurally useful.
 - User uses pch.h in core and wants all unused includes to be removed and used added to the pch.h.
 - User wants not to read in third_party folder files and to ignore them in the analysis.
 - User wants vcpkg folder to be ignored on file audits.
-- User prefers the repo to avoid any hardcoded local paths for vcpkg, including drive-specific paths like P:\, and prefers a one-time, persistent local vcpkg setup via environment or user-local configuration rather than project-local installation.
+- User prefers the repo to avoid any hardcoded local paths for vcpkg, including drive-specific paths like P:\, and prefers a one-time, persistent local vcpkg setup via environment or user-local configuration rather than project-local installation. User does not want extra machine-level project-specific folders for vcpkg installed artifacts, preferring to keep vcpkg-related artifacts contained without scattered filesystem clutter.
 - User wants investigation and fixes to stay on the installed Visual Studio 2026 generator path; do not pivot to a VS2022-based workaround unless explicitly requested.
 - For debug-assert investigations, user may manually click 'Abort' on the startup assert dialog to allow the process to continue, and short timed test runs that kill the app after a few seconds are acceptable.
+- User prefers obsolete fallback logic to be removed in favor of deterministic end-state build configuration, even if that drops special-case Visual Studio workarounds.
 
 ## CI/CD and Build Requirements
 - User wants CI/CD and preset recommendations grounded in the existing repo scripts and setup, not generic advice.

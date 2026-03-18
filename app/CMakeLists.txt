@@ -1,34 +1,33 @@
-cmake_minimum_required(VERSION 4.0.1)
-project(fossredder_app LANGUAGES CXX)
-
-# Build option: enable the QML UI. Default OFF for headless/CI builds;
-# will be auto-enabled below if Qt Quick/Qml is found on the system.
+# UI startup options.
 option(USE_QML "Build with QML UI" OFF)
 
-# Detect Qt early so we can auto-enable QML support and conditionally
-# include the QML-only translation unit (main_qml.cpp).
+set(APP_COMMON_SRCS
+    src/main.cpp
+)
+
+set(APP_QML_SRCS
+    src/main_qml.cpp
+)
+
 find_package(Qt6 COMPONENTS Quick Qml Widgets LinguistTools QUIET)
 if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
     if(NOT USE_QML)
         set(USE_QML ON CACHE BOOL "Build with QML UI" FORCE)
     endif()
-    message(STATUS "Qt6 Quick/Qml found; enabling QML support")
 else()
     if(USE_QML)
         message(WARNING "USE_QML is ON but Qt Quick/Qml not found; build may fail or QML will be unavailable.")
     endif()
 endif()
 
-# Collect all source files under src/. If QML support is disabled, remove the
-# QML-specific main translation unit so the target does not depend on Qt Quick.
-file(GLOB_RECURSE APP_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-if(NOT USE_QML)
-    list(REMOVE_ITEM APP_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/main_qml.cpp)
+set(APP_SRCS ${APP_COMMON_SRCS})
+if(USE_QML)
+    list(APPEND APP_SRCS ${APP_QML_SRCS})
 endif()
 
 add_executable(fossredder ${APP_SRCS})
 
-# Enable Qt meta-object tools and resource handling for this target
+# Enable Qt code generation on the application target only.
 set_target_properties(fossredder PROPERTIES
     AUTOMOC ON
     AUTOUIC ON
@@ -37,8 +36,18 @@ set_target_properties(fossredder PROPERTIES
 
 target_compile_features(fossredder PUBLIC cxx_std_20)
 
+# Application dependencies.
+target_link_libraries(fossredder PRIVATE
+    FossRedder::Core
+    FossRedder::Debug
+    FossRedder::Persistence
+    FossRedder::OpenCvService
+    FossRedder::PopplerService
+    FossRedder::TesseractService
+    FossRedder::Ui
+)
+
 if(MSVC)
-    # Ensure __cplusplus reflects the chosen language standard in MSVC
     target_compile_options(fossredder PRIVATE /Zc:__cplusplus)
 
     if (WIN32)
@@ -50,22 +59,13 @@ if(MSVC)
     endif()
 endif()
 
-# Place runtime output into a predictable folder under the build tree
-set_target_properties(fossredder PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/Debug"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release"
-)
+fossredder_set_runtime_output_dirs(fossredder)
 
-# Only expose the app's own public include dir; other modules should export
-# their include paths via their targets (core_lib, ui_lib, persistence_lib, etc.).
-# Rely on target_link_libraries to provide transitive include dirs.
 target_include_directories(fossredder PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
-target_link_libraries(fossredder PRIVATE core_lib debug_lib services_poppler services_opencv services_tesseract ui_lib persistence_lib)
-
+# Translation sources.
 set(TRANSLATION_TS_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/i18n/fossredder_de.ts
 )
@@ -77,6 +77,7 @@ set(TRANSLATION_SOURCE_DIRS
     ${CMAKE_SOURCE_DIR}/ui/qml
 )
 
+# Translation generation helpers.
 if(TARGET Qt6::lupdate AND TARGET Qt6::lrelease)
     set(TRANSLATION_QM_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/i18n)
     set(TRANSLATION_QM_FILES)
@@ -118,7 +119,7 @@ else()
     message(WARNING "Qt6 LinguistTools not found; translation catalogs will not be generated automatically")
 endif()
 
-# Link Qt Quick/Qml when available and define USE_QML for sources that check it
+# UI toolkit linkage.
 if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
     target_link_libraries(fossredder PRIVATE Qt6::Quick Qt6::Qml)
     target_compile_definitions(fossredder PRIVATE USE_QML=1)
@@ -127,14 +128,10 @@ endif()
 if(TARGET Qt6::Widgets)
     target_link_libraries(fossredder PRIVATE Qt6::Widgets)
 endif()
-# Precompiled header (kept when available) to speed up incremental builds
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "4.0.1")
-    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.h")
-        target_precompile_headers(fossredder PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.h")
-    endif()
-endif()
 
-# Windows: configure debugger env vars when using vcpkg
+fossredder_enable_target_pch(fossredder "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.h")
+
+# Visual Studio debugger environment and Qt deployment.
 if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
     set(_qt_bin_release "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin")
     set(_qt_bin_debug "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin")
@@ -149,42 +146,34 @@ if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
         )
     endif()
 
-    # Dev convenience: deploy Qt runtime + platforms/qwindows.dll + QML into the build output
     add_custom_command(TARGET fossredder POST_BUILD
         COMMAND ${CMAKE_COMMAND}
             -DTARGET_DIR="$<TARGET_FILE_DIR:fossredder>"
             -DVCPKG_INSTALLED_DIR="${VCPKG_INSTALLED_DIR}"
             -DVCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET}"
             -DBUILD_CONFIG="$<CONFIG>"
-            -P "${CMAKE_SOURCE_DIR}/cmake/qtdeploy.cmake"
+            -P "${CMAKE_SOURCE_DIR}/cmake/QtDeploy.cmake"
         VERBATIM
     )
 endif()
 
-# Install rules so 'cmake --install' stages the app for packaging
+# Install application runtime assets.
 install(TARGETS fossredder
     RUNTIME DESTINATION bin
 )
 
-# Install QML folder so windeployqt can reference it (project uses ui/qml)
 if(EXISTS "${CMAKE_SOURCE_DIR}/ui/qml")
     install(DIRECTORY "${CMAKE_SOURCE_DIR}/ui/qml/" DESTINATION "bin/qml")
-elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/qml")
-    # fallback if app-local qml folder exists
-    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/qml/" DESTINATION "bin/qml")
 endif()
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/i18n")
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/i18n/" DESTINATION "bin/i18n")
-elseif(EXISTS "${CMAKE_SOURCE_DIR}/i18n")
-    install(DIRECTORY "${CMAKE_SOURCE_DIR}/i18n/" DESTINATION "bin/i18n")
 endif()
 
 if(TRANSLATION_QM_FILES)
     install(FILES ${TRANSLATION_QM_FILES} DESTINATION "bin/i18n")
 endif()
 
-# Install additional assets if present (optional)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets")
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/" DESTINATION share/fossredder/assets FILES_MATCHING PATTERN "*")
 endif()
