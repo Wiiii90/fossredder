@@ -7,7 +7,6 @@
 #include "persistence/repositories/SqliteActorRepository.h"
 #include "persistence/repositories/SqlitePropertyRepository.h"
 #include "persistence/repositories/SqliteStatementRepository.h"
-#include "persistence/repositories/SqliteConfigRepository.h"
 #include "persistence/repositories/SqliteTransactionRepository.h"
 #include "persistence/repositories/SqliteContractRepository.h"
 #include "persistence/SqliteDb.h"
@@ -44,10 +43,6 @@ std::shared_ptr<IStatementRepository> createSqliteStatementRepository(const std:
 std::shared_ptr<IStatementRepository> createSqliteStatementRepository(const std::shared_ptr<SqliteDb>& db,
                                                                       std::shared_ptr<core::errors::IErrorReporter> errorReporter) {
     return std::make_shared<SqliteStatementRepository>(db, std::move(errorReporter));
-}
-
-std::shared_ptr<IConfigRepository> createSqliteConfigRepository(const std::shared_ptr<SqliteDb>& db) {
-    return std::make_shared<SqliteConfigRepository>(db);
 }
 
 std::shared_ptr<ITransactionRepository> createSqliteTransactionRepository(const std::shared_ptr<SqliteDb>& db) {

@@ -9,10 +9,6 @@
 #include "core/storage/IStorageManager.h"
 #include "core/models/AppState.h"
 
-#include <chrono>
-#include <filesystem>
-#include <cstdio>
-
 namespace {
 
 class FakeRegistry final : public core::storage::IRegistry {
@@ -26,17 +22,10 @@ private:
 
 } // namespace
 
-// We'll test basic registry behavior: setLatestPath and loadLatestPath via a StorageManager
-// Use a temporary directory inside tmp and ensure cleanup.
-
 TEST(StorageManagerTests, SetAndLoadLatestPathRegistry) {
-    // create temp dir
-    auto tmp = std::filesystem::temp_directory_path();
-    auto dir = tmp / std::filesystem::path(
-        "fossredder_test_storage_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
-    std::filesystem::create_directories(dir);
+    auto registry = std::make_shared<FakeRegistry>();
 
-    core::storage::StorageManager sm(dir.string());
+    core::storage::StorageManager sm(registry);
 
     // initially no latest path
     auto maybe = sm.loadLatestPath();
@@ -46,7 +35,4 @@ TEST(StorageManagerTests, SetAndLoadLatestPathRegistry) {
     auto maybe2 = sm.loadLatestPath();
     ASSERT_TRUE(maybe2.has_value());
     EXPECT_EQ(*maybe2, std::string("/tmp/mydb.db"));
-
-    // cleanup
-    try { std::filesystem::remove_all(dir); } catch (...) {}
 }

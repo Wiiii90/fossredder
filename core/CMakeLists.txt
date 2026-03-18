@@ -33,7 +33,6 @@ set(CORE_SRCS
     src/jobs/JobManager.cpp
     src/jobs/JobSystem.cpp
     src/jobs/Scheduler.cpp
-    src/storage/SqliteRegistry.cpp
     src/storage/StorageManager.cpp
     src/utils/Environment.cpp
     src/utils/Util.cpp
@@ -57,11 +56,10 @@ target_include_directories(fossredder_core PRIVATE
 
 # Internal dependencies used by core implementation code.
 find_package(nlohmann_json CONFIG REQUIRED)
-find_package(SQLite3 REQUIRED)
 find_package(xlnt CONFIG QUIET)
 
 target_link_libraries(fossredder_core PUBLIC FossRedder::Api)
-target_link_libraries(fossredder_core PRIVATE nlohmann_json::nlohmann_json SQLite::SQLite3)
+target_link_libraries(fossredder_core PRIVATE nlohmann_json::nlohmann_json)
 
 if(TARGET xlnt::xlnt)
     target_link_libraries(fossredder_core PRIVATE xlnt::xlnt)

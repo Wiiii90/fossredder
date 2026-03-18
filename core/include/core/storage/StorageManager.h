@@ -6,7 +6,7 @@
  *
  * Responsible for locating the latest storage file, delegating load/save
  * operations to either atomic callbacks or AppStateManager-backed repositories,
- * and for maintaining a small registry (latest path).
+ * and for updating an injected registry abstraction (latest path).
  */
 
 #include <functional>
@@ -30,8 +30,7 @@ public:
     using AtomicStoreLoad = IStorageManager::AtomicStoreLoad;
     using DeletionImpactCallback = IStorageManager::DeletionImpactCallback;
 
-    explicit StorageManager(std::string appDataDir);
-    StorageManager(std::string appDataDir, std::shared_ptr<IRegistry> registry);
+    explicit StorageManager(std::shared_ptr<IRegistry> registry = nullptr);
 
     void setRepoFactory(RepoFactory factory) override;
     void setAtomicStoreSave(AtomicStoreSave saveFn) override;
@@ -47,7 +46,6 @@ public:
     const std::string& currentPath() const noexcept override { return currentPath_; }
 
 private:
-    std::string appDataDir_;
     std::shared_ptr<IRegistry> registry_;
     std::string currentPath_;
     RepoFactory repoFactory_;

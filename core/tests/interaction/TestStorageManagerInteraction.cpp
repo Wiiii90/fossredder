@@ -11,7 +11,7 @@ using core::domain::DeletionImpact;
 using core::storage::StorageManager;
 
 TEST(StorageManagerInteraction, SaveAs_calls_atomic_save_when_configured) {
-    StorageManager sm(std::string("/tmp"));
+    StorageManager sm;
 
     bool called = false;
     sm.setAtomicStoreSave([&](const std::string& path, const AppState& state){

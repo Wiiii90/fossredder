@@ -14,9 +14,14 @@ namespace core::errors {
 class IErrorReporter;
 }
 
+namespace core::storage {
+class IRegistry;
+}
+
 class SqliteDb;
 
 std::shared_ptr<SqliteDb> createSqliteDb(const std::string& dbPath);
+std::shared_ptr<core::storage::IRegistry> createSqliteRegistry(const std::string& dbPath);
 
 std::shared_ptr<class IActorRepository> createSqliteActorRepository(const std::shared_ptr<SqliteDb>& db);
 std::shared_ptr<class IPropertyRepository> createSqlitePropertyRepository(const std::shared_ptr<SqliteDb>& db);
@@ -25,7 +30,6 @@ std::shared_ptr<class IPropertyRepository> createSqlitePropertyRepository(const 
 std::shared_ptr<class IStatementRepository> createSqliteStatementRepository(const std::shared_ptr<SqliteDb>& db);
 std::shared_ptr<class IStatementRepository> createSqliteStatementRepository(const std::shared_ptr<SqliteDb>& db,
                                                                             std::shared_ptr<core::errors::IErrorReporter> errorReporter);
-std::shared_ptr<class IConfigRepository> createSqliteConfigRepository(const std::shared_ptr<SqliteDb>& db);
 std::shared_ptr<class ITransactionRepository> createSqliteTransactionRepository(const std::shared_ptr<SqliteDb>& db);
 std::shared_ptr<class ITransactionRepository> createSqliteTransactionRepository(const std::shared_ptr<SqliteDb>& db,
                                                                                 std::shared_ptr<core::errors::IErrorReporter> errorReporter);

@@ -3,12 +3,12 @@ set(PERSISTENCE_SRCS
     src/AppStateStore.cpp
     src/Factory.cpp
     src/SqliteDb.cpp
+    src/SqliteRegistry.cpp
     src/SqliteSchema.cpp
     src/SqliteTransaction.cpp
     src/repositories/SqliteActorRepository.cpp
     src/repositories/SqliteAnalysisRepository.cpp
     src/repositories/SqliteAnnualRepository.cpp
-    src/repositories/SqliteConfigRepository.cpp
     src/repositories/SqliteContractRepository.cpp
     src/repositories/SqlitePropertyRepository.cpp
     src/repositories/SqliteStatementRepository.cpp
@@ -53,6 +53,7 @@ if (BUILD_PERSISTENCE_TESTS)
 
     set(PERSISTENCE_TEST_SRCS
         tests/unit/TestAppStateStore.cpp
+        tests/unit/TestSqliteRegistry.cpp
         tests/unit/TestSqliteRepositories.cpp
     )
     add_executable(persistence_unit_tests ${PERSISTENCE_TEST_SRCS})

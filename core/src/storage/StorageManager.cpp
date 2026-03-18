@@ -10,37 +10,15 @@
 #include "core/storage/StorageManager.h"
 
 #include <filesystem>
-#include <fstream>
 #include <stdexcept>
 #include <utility>
 
 #include "core/application/AppStateManager.h"
-#include "core/storage/SqliteRegistry.h"
 
 namespace core::storage {
 
-namespace {
-
-std::shared_ptr<IRegistry> createDefaultRegistry(const std::string& appDataDir) {
-    try {
-        const auto dbPath = (std::filesystem::path(appDataDir) / "fossredder.db").string();
-        return std::make_shared<SqliteRegistry>(dbPath);
-    } catch (...) {
-        return nullptr;
-    }
-}
-
-} // namespace
-
-StorageManager::StorageManager(std::string appDataDir)
-    : StorageManager(std::move(appDataDir), nullptr) {}
-
-StorageManager::StorageManager(std::string appDataDir, std::shared_ptr<IRegistry> registry)
-    : appDataDir_(std::move(appDataDir))
-    , registry_(std::move(registry)) {
-    if (!registry_) {
-        registry_ = createDefaultRegistry(appDataDir_);
-    }
+StorageManager::StorageManager(std::shared_ptr<IRegistry> registry)
+    : registry_(std::move(registry)) {
 }
 
 void StorageManager::setRepoFactory(RepoFactory factory) {

@@ -16,7 +16,6 @@ using core::domain::AppState;
 #include "persistence/Factory.h"
 #include "persistence/AppStateStore.h"
 #include "core/constants/CoreDefaults.h"
-#include "core/repositories/IConfigRepository.h"
 #include "core/storage/StorageManager.h"
 #include "core/controllers/AppStateController.h"
 #include "core/errors/ErrorCodes.h"
@@ -117,32 +116,28 @@ int main(int argc, char* argv[]) {
     const std::filesystem::path appDataRoot = std::filesystem::path(homePathStd)
         / std::string(core::constants::runtime::kAppDataDirectoryName);
 
-    core::storage::StorageManager sm(appDataRoot.string());
+    const std::filesystem::path defaultDbPath = appDataRoot / std::string(core::constants::runtime::kDatabaseFileName);
+    ensureParentDirectoryExists(defaultDbPath, "app::main::createConfigDirectory");
+
+    std::shared_ptr<core::storage::IRegistry> registry;
+    try {
+        registry = createSqliteRegistry(defaultDbPath.string());
+    } catch (const std::exception& ex) {
+        core::errors::report(
+            core::errors::ErrorSeverity::Warning,
+            core::errors::codes::ConfigDbOpenFailed,
+            "app::main::openRegistryDb",
+            std::string("failed to open registry DB '") + defaultDbPath.string() + "': " + ex.what(),
+            {{"path", defaultDbPath.string()}}
+        );
+    }
+
+    core::storage::StorageManager sm(registry);
 
     auto smPtr = std::make_unique<core::storage::StorageManager>(std::move(sm));
     core::controllers::AppStateController appStateCtrl(std::move(smPtr));
 
     appStateCtrl.setErrorReporter(errorReporter);
-
-    // Initialize configuration repository (uses persistence factory)
-    // Use a per-user path so the installed app does not attempt to write into Program Files.
-    const std::filesystem::path cfgDbPath = appDataRoot / std::string(core::constants::runtime::kDatabaseFileName);
-    ensureParentDirectoryExists(cfgDbPath, "app::main::createConfigDirectory");
-
-    std::shared_ptr<IConfigRepository> cfgRepo;
-    try {
-        auto cfgDb = createSqliteDb(cfgDbPath.string());
-        cfgRepo = createSqliteConfigRepository(cfgDb);
-    } catch (const std::exception& ex) {
-        core::errors::report(
-            core::errors::ErrorSeverity::Warning,
-            core::errors::codes::ConfigDbOpenFailed,
-            "app::main::openConfigDb",
-            std::string("failed to open config DB '") + cfgDbPath.string() + "': " + ex.what(),
-            {{"path", cfgDbPath.string()}}
-        );
-        cfgRepo = nullptr;
-    }
     appStateCtrl.setRepoFactory([&](const std::string& dbPath) {
         ensureParentDirectoryExists(std::filesystem::path(dbPath), "app::main::setRepoFactory::create_directories");
         auto db = createSqliteDb(dbPath);
@@ -172,7 +167,7 @@ int main(int argc, char* argv[]) {
     // This avoids accidentally overwriting a valid loaded state due to
     // registry or ordering issues at startup.
     if (appStateCtrl.currentPath().empty() && appStateCtrl.state().empty()) {
-        appStateCtrl.newFile((appDataRoot / std::string(core::constants::runtime::kDatabaseFileName)).string());
+        appStateCtrl.newFile(defaultDbPath.string());
     }
 
     // Ensure Qt finds deployed plugins and QML modules next to the executable
