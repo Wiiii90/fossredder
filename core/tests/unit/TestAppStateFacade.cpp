@@ -119,7 +119,7 @@ TEST(AppStateFacadeTests, SaveFileDelegatesToStorage) {
 
     core::application::AppStateFacade facade(std::move(fake));
     facade.newFile("save-test.db");
-    facade.addActor("Bob", "", "");
+    facade.addActor("Bob", "", "", std::vector<std::string>{});
     storage->saveCalled = false;
 
     EXPECT_FALSE(storage->saveCalled);
@@ -137,7 +137,7 @@ TEST(AppStateFacadeTests, NotifyStateNotifiesWithoutSaving) {
 
     core::application::AppStateFacade facade(std::move(fake));
     facade.newFile("notify-test.db");
-    facade.addActor("Nina", "", "");
+    facade.addActor("Nina", "", "", std::vector<std::string>{});
     storage->saveCalled = false;
 
     std::atomic<bool> notified{false};

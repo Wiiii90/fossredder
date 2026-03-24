@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 namespace core::application { class AppStateFacade; }
 
@@ -20,8 +21,8 @@ class PropertyController : public QObject {
 public:
     explicit PropertyController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
-    Q_INVOKABLE QString addProperty(const QString& name, const QString& address, const QString& description);
-    Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QString& address, const QString& description);
+    Q_INVOKABLE QString addProperty(const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
+    Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
     Q_INVOKABLE void deleteProperty(const QString& id);
 
 private:

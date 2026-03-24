@@ -18,6 +18,7 @@ struct DraftTransaction {
     std::string description;
     Transaction::Status status = Transaction::Status::Neutral;
     std::string actorId;
+    std::string contractId;
     bool allocatable = false;
     std::vector<std::string> propertyIds;
     std::string type;

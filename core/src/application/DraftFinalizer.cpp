@@ -58,20 +58,26 @@ std::string DraftFinalizer::finalize(AppState& state, const DraftStatement& draf
         transaction->statementId = statement->id;
         transaction->status     = item.status;
         transaction->actorId    = item.actorId;
+        transaction->contractId = item.contractId;
         transaction->allocatable = item.allocatable;
         transaction->propertyIds = item.propertyIds;
         transaction->valuta.clear();
 
-        const std::string normalizedType = ::utils::trim(item.type);
-        if (!normalizedType.empty()) {
-            constexpr auto prefix = core::constants::appState::kGeneratedContractPrefix;
-            auto contract         = std::make_shared<Contract>();
-            contract->id          = core::utils::makeStableId();
-            contract->name        = std::string(prefix) + std::to_string(nextGeneratedContractIndex(state.contracts));
-            contract->type        = normalizedType;
-            contract->propertyIds = item.propertyIds;
-            state.contracts.push_back(contract);
-            transaction->contractId = contract->id;
+        const std::string normalizedContractId = ::utils::trim(item.contractId);
+        if (!normalizedContractId.empty()) {
+            transaction->contractId = normalizedContractId;
+        } else {
+            const std::string normalizedType = ::utils::trim(item.type);
+            if (!normalizedType.empty()) {
+                constexpr auto prefix = core::constants::appState::kGeneratedContractPrefix;
+                auto contract = std::make_shared<Contract>();
+                contract->id = core::utils::makeStableId();
+                contract->name = std::string(prefix) + std::to_string(nextGeneratedContractIndex(state.contracts));
+                contract->type = normalizedType;
+                contract->propertyIds = item.propertyIds;
+                state.contracts.push_back(contract);
+                transaction->contractId = contract->id;
+            }
         }
 
         state.transactions.push_back(transaction);

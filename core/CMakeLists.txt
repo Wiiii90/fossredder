@@ -20,6 +20,7 @@ set(CORE_SRCS
     src/export/ExportService.cpp
     src/export/XlsxExporter.cpp
     src/import/DefaultImportStatementStrategy.cpp
+    src/import/DraftLinking.cpp
     src/import/ImportPipelineHelpers.cpp
     src/import/ImportStatement.cpp
     src/import/ImportStrategySupport.cpp
@@ -80,11 +81,14 @@ if (BUILD_CORE_TESTS)
         tests/unit/TestAppStateFacade.cpp
         tests/unit/TestAppStateManager.cpp
         tests/unit/TestAppStateManagerExtended.cpp
+        tests/unit/TestDefaultStatementParser.cpp
+        tests/unit/TestDraftLinking.cpp
         tests/unit/TestDraftFinalizer.cpp
         tests/unit/TestErrorReporterRegistry.cpp
         tests/unit/TestExportService.cpp
         tests/unit/TestFilter.cpp
         tests/unit/TestJobSystem.cpp
+        tests/unit/TestParserHelpers.cpp
         tests/unit/TestStateTransforms.cpp
         tests/unit/TestStorageManager.cpp
         tests/unit/TestWorkspaceSession.cpp

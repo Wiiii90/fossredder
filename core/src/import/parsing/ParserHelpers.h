@@ -55,17 +55,7 @@ struct ColumnGuess {
 
 ColumnGuess inferColumnModelFromLines(const std::vector<core::parser::OcrLine>& lines, size_t scanN = 16) noexcept;
 std::vector<detail::RawLineLite> groupMergeLinesRaw(const std::vector<detail::RawLineLite>& lines, int maxGapPx);
-std::vector<detail::RawLineLite> selectiveGroupMergeLinesRaw(const std::vector<detail::RawLineLite>& lines, int maxGapPx, const ColumnGuess& seedCols);
 core::parser::OcrLine toOcrLineFromRawWords(const detail::RawLineLite& src, size_t i0, size_t i1) noexcept;
 core::parser::TransactionMainRow splitMainRowFromRaw(const detail::RawLineLite& src, int valutaX, int debitX, int creditX) noexcept;
-std::pair<int, bool> detectHeaderRegion(const std::vector<core::parser::OcrLine>& lines, size_t scanLines, int preferValutaX = -1);
-std::optional<std::string> findFallbackBookingDate(const std::vector<core::parser::OcrLine>& lines, size_t scanLines) noexcept;
-std::optional<std::string> findBookingDateInHeader(const std::string& line) noexcept;
-bool detectEarlyEmptyPage(const std::vector<core::parser::OcrLine>& lines, std::string& outDebug, std::string& foundBookingDate) noexcept;
-void attachOrphansToBlocks(std::vector<core::parser::TransactionBlock>& blocks, const std::vector<core::parser::OcrLine>& orphans, int maxGapPx, int valutaX) noexcept;
 core::parser::TransactionMainRow splitMainRowFromOcrLine(const core::parser::OcrLine& src, int valutaX, int debitX, int creditX) noexcept;
-std::optional<std::pair<core::parser::TransactionMainRow, int>> tryVerticalStart(const std::vector<core::parser::OcrLine>& lines, size_t li, const ColumnGuess& cols, const std::string& currentBookingDate) noexcept;
-std::optional<std::pair<core::parser::TransactionMainRow, int>> tryCombinedStart(const std::vector<core::parser::OcrLine>& lines, size_t li, const ColumnGuess& cols) noexcept;
-void appendDetailLine(core::parser::TransactionBlock& cur, const core::parser::OcrLine& l, const ColumnGuess& cols, std::vector<std::string>* debugOut = nullptr) noexcept;
-core::parser::TransactionMainRow handleMainRow(const core::parser::OcrLine& line, const ColumnGuess& cols, bool isGeom, std::vector<std::string>& debugOut) noexcept;
 } // namespace core::parser::helpers

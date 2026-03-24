@@ -3,202 +3,178 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
-import FossRedder.Utils 1.0 as Utils
 
 Item {
     id: txRoot
 
     property var draft
+    property var viewState: ({})
+    readonly property var statusOptions: [
+        { label: qsTr("Neutral"), value: 0 },
+        { label: qsTr("Unverified"), value: 1 },
+        { label: qsTr("Verified"), value: 2 },
+        { label: qsTr("Completed"), value: 3 }
+    ]
+
     function currentTransaction() {
         return draft && draft.current ? draft.current : null
     }
 
-    function proofSource(p) {
-        var s = p || ""
-        if (s.length === 0) return ""
-        if (s.indexOf("proof/") === 0) return "image://importProof/" + s
-        return Utils.FileUtils.toFileUrl(s)
-    }
-    function formatAmount(a) {
-        if (a === undefined || a === null) return "";
-        try {
-            var v = Number(a);
-            if (!isFinite(v)) return "";
-            var s = v.toFixed(2);
-            s = s.replace('.', ',');
-            return s;
-        } catch (e) { return String(a); }
+    function suggestionBucket(kind) {
+        var tx = currentTransaction()
+        return tx && tx[kind] ? tx[kind] : ({ candidates: [] })
     }
 
-    function updateAmount(text) {
-        if (!draft) return
-        var value = text ? text.trim() : ""
-        if (value.length === 0) {
-            draft.transactions.setAmount(draft.currentIndex, 0.0)
-            return
-        }
-        try {
-            if (value.indexOf(',') !== -1) {
-                value = value.replace(/\./g, '')
-            }
-            value = value.replace(/,/g, '.')
-            value = value.replace(/\s/g, '')
-        } catch(e) {
-        }
-        var amount = parseFloat(value)
-        if (isNaN(amount)) amount = 0.0
-        draft.transactions.setAmount(draft.currentIndex, amount)
+    function topSuggestion(bucket) {
+        return bucket && bucket.candidates && bucket.candidates.length > 0 ? bucket.candidates[0] : ({})
     }
 
-    function setPropertySelected(propertyId, checked) {
-        if (!draft || !currentTransaction() || !propertyId) return
+    function actorTopSuggestion() { return topSuggestion(suggestionBucket("actorSuggestions")) }
+    function propertyTopSuggestion() { return topSuggestion(suggestionBucket("propertySuggestions")) }
+    function contractTopSuggestion() { return topSuggestion(suggestionBucket("contractSuggestions")) }
 
-        var selected = currentTransaction().propertyIds ? currentTransaction().propertyIds.slice(0) : []
-        var index = selected.indexOf(propertyId)
+    function suggestion(kind) {
+        return viewState && viewState[kind] ? viewState[kind] : ({})
+    }
 
-        if (checked) {
-            if (index === -1) selected.push(propertyId)
-        } else if (index !== -1) {
-            selected.splice(index, 1)
+    function suggestionConfidencePercent(s) {
+        var confidence = s && s.confidence !== undefined ? Number(s.confidence) : 0.0
+        return Math.round(confidence * 100.0)
+    }
+
+    function suggestionColor(s) {
+        var confidence = s && s.confidence !== undefined ? Number(s.confidence) : 0.0
+        if (confidence >= 0.9) return Theme.successStrong
+        if (confidence >= 0.4) return Theme.warning
+        return Theme.danger
+    }
+
+    function statusCurrentIndex() {
+        var value = draft && draft.current && draft.current.status !== undefined ? Number(draft.current.status) : 0
+        for (var i = 0; i < statusOptions.length; ++i) {
+            if (Number(statusOptions[i].value) === value) return i
         }
+        return 0
+    }
 
-        draft.transactions.setProperties(draft.currentIndex, selected)
+    function setStatusByIndex(index) {
+        if (!draft || index < 0 || index >= statusOptions.length) return
+        draft.transactions.setStatus(draft.currentIndex, statusOptions[index].value)
         if (draft.refresh) draft.refresh()
     }
 
+    function propertySuggestionSummary() {
+        var bucket = suggestionBucket("propertySuggestions")
+        if (!bucket || !bucket.candidates || bucket.candidates.length === 0) return qsTr("No property suggestion")
+
+        var labels = []
+        var maxCount = Math.min(2, bucket.candidates.length)
+        for (var i = 0; i < maxCount; ++i) {
+            if (bucket.candidates[i] && bucket.candidates[i].label) labels.push(bucket.candidates[i].label)
+        }
+
+        return qsTr("Confidence: %1% (%2)").arg(suggestionConfidencePercent(topSuggestion(bucket))).arg(labels.join(", "))
+    }
+
+    function effectiveAllocatable() {
+        var tx = currentTransaction()
+        if (!tx) return false
+        if (tx.allocatableManualOverride) return !!tx.allocatable
+        return viewState && viewState.effectiveAllocatable !== undefined ? !!viewState.effectiveAllocatable : !!tx.allocatable
+    }
+
+    function proofSource(path) {
+        var sourcePath = path || ""
+        if (sourcePath.length === 0) return ""
+        if (sourcePath.indexOf("proof/") === 0) return "image://importProof/" + sourcePath
+        if (sourcePath.indexOf("file://") === 0) return sourcePath
+
+        var normalized = String(sourcePath).replace(/\\/g, "/")
+        if (/^[A-Za-z]:\//.test(normalized)) return "file:///" + normalized
+        if (normalized.indexOf("//") === 0) return "file:" + normalized
+        return "file:///" + normalized
+    }
+
+    function syncViewState() {
+        if (draftController && draft) draftController.syncCurrentTransactionDraft(draft)
+        viewState = draftController && draft ? draftController.currentTransactionViewState(draft) : ({})
+    }
+
+    function forceSync() { syncViewState() }
+
     implicitHeight: txLayout.implicitHeight
     implicitWidth: txLayout.implicitWidth
+    height: implicitHeight
+
+    onDraftChanged: syncViewState()
+
+    Connections {
+        target: draft
+        function onChanged() { txRoot.syncViewState() }
+    }
+
+    Component.onCompleted: syncViewState()
 
     ColumnLayout {
         id: txLayout
         width: txRoot.width
         spacing: Theme.spacingSmall
 
-        RowLayout {
+        TransactionDraftFieldRow {
             Layout.fillWidth: true
+            leftLabel: qsTr("Name")
+            rightLabel: qsTr("Status")
+            leftWeight: 3
+            rightWeight: 2
 
-            Label { text: qsTr("Name"); Layout.preferredWidth: Theme.chartValueLabelWidth }
-
-            Controls.TextField {
-                Layout.fillWidth: true
-                text: draft && draft.current ? (draft.current.name || "") : ""
-                onTextChanged: if (draft) draft.transactions.setName(draft.currentIndex, text)
-            }
-        }
-
-        Loader {
-            id: proofLoader
-            Layout.fillWidth: true
-            Layout.preferredHeight: item ? item.implicitHeight : 0
-            active: !!draft && !!draft.current && (draft.current.proofImagePath || "").length > 0
-
-            property string _lastPath: ""
-
-            function resetIfNeeded() {
-                var p = (draft && draft.current) ? (draft.current.proofImagePath || "") : ""
-                if (p === _lastPath) return
-                _lastPath = p
-                active = false
-                Qt.callLater(function() { proofLoader.active = p.length > 0 })
-            }
-
-            sourceComponent: Item {
-                width: proofLoader.width
-                implicitHeight: proofImage.status === Image.Ready ? proofImage.implicitHeight : 0
-
-                Image {
-                    id: proofImage
-                    width: parent.width
-                    fillMode: Image.PreserveAspectFit
-                    source: txRoot.proofSource((draft && draft.current) ? (draft.current.proofImagePath || "") : "")
-                    cache: true
-                    asynchronous: true
+            leftContent: Component {
+                Controls.TextField {
+                    text: draft && draft.current ? (draft.current.name || "") : ""
+                    onTextEdited: if (draft) draft.transactions.setName(draft.currentIndex, text)
                 }
             }
 
-            Component.onCompleted: resetIfNeeded()
-        }
-
-        Label { text: qsTr("Buchungsdatum"); Layout.alignment: Qt.AlignVCenter }
-        Controls.TextField {
-            Layout.fillWidth: true
-            text: draft && draft.current ? (draft.current.bookingDate || "") : ""
-            onTextChanged: if (draft) draft.transactions.setBookingDate(draft.currentIndex, text)
-        }
-
-        Label { text: qsTr("Betrag"); Layout.alignment: Qt.AlignVCenter }
-        Controls.TextField {
-            Layout.fillWidth: true
-            text: currentTransaction() ? formatAmount(currentTransaction().amount) : ""
-            onTextChanged: updateAmount(text)
-        }
-
-        Label { text: qsTr("Transaction type"); Layout.alignment: Qt.AlignVCenter }
-        Controls.TextField {
-            Layout.fillWidth: true
-            text: draft && draft.current ? (draft.current.type || "") : ""
-            placeholderText: qsTr("")
-            onTextChanged: if (draft) draft.transactions.setType(draft.currentIndex, text)
-        }
-
-        GroupBox {
-            title: qsTr("Properties")
-            Layout.fillWidth: true
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: Theme.margins
-                spacing: Theme.margins
-
-                ListView {
-                    id: propertyListView
-                    Layout.fillWidth: true
-                    Layout.fillHeight: false
-                    Layout.preferredHeight: contentHeight
-                    interactive: false
-                    model: uiData ? uiData.properties : null
-
-                    delegate: RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.margins
-                        Layout.alignment: Qt.AlignVCenter
-
-                        Controls.CheckBox {
-                            id: propCheck
-                            Layout.preferredWidth: 28
-                            Layout.margins: Theme.margins
-                            checked: (draft && draft.current && draft.current.propertyIds && model.id) ? draft.current.propertyIds.indexOf(model.id) !== -1 : false
-                            onClicked: setPropertySelected(model.id, propCheck.checked)
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            Label { text: model.name }
-                            Item { Layout.fillWidth: true }
-                        }
-                    }
-                }
-
-                Label {
-                    id: propEmptyLabel
-                    Layout.fillWidth: true
-                    visible: propertyListView.count === 0
-                    text: qsTr("No properties available, please create new properties first!")
+            rightContent: Component {
+                Controls.ComboBox {
+                    textRole: "label"
+                    model: txRoot.statusOptions
+                    currentIndex: txRoot.statusCurrentIndex()
+                    onActivated: txRoot.setStatusByIndex(currentIndex)
                 }
             }
+        }
+
+        TransactionDraftProofPanel { txRoot: txRoot }
+
+        TransactionDraftFieldRow {
+            Layout.fillWidth: true
+            leftLabel: qsTr("Buchungsdatum")
+            rightLabel: qsTr("Valuta")
+            leftWeight: 3
+            rightWeight: 2
+
+            leftContent: Component {
+                Controls.TextField {
+                    text: draft && draft.current ? (draft.current.bookingDate || "") : ""
+                    onTextEdited: if (draft) draft.transactions.setBookingDate(draft.currentIndex, text)
+                }
             }
 
-        RowLayout {
-            Layout.fillWidth: true
-            Controls.CheckBox {
-                id: allocCheck_local
-                Layout.alignment: Qt.AlignVCenter
-                text: qsTr("Allocatable")
-                checked: draft && draft.current ? !!draft.current.allocatable : false
-                onCheckedChanged: if (draft) draft.transactions.setAllocatable(draft.currentIndex, checked)
+            rightContent: Component {
+                Controls.TextField {
+                    text: draft && draft.current ? (draft.current.valuta || "") : ""
+                    onTextEdited: if (draft) draft.transactions.setValuta(draft.currentIndex, text)
+                }
             }
-            Item { Layout.fillWidth: true }
         }
+
+        TransactionDraftMetadataPanel { txRoot: txRoot }
+
+        TransactionDraftActorPanel { txRoot: txRoot }
+        TransactionDraftContractPanel { txRoot: txRoot }
+        TransactionDraftPropertyPanel { txRoot: txRoot }
+
+        TransactionDraftAllocatablePanel { txRoot: txRoot }
     }
-    function forceSync() { }
+
 }

@@ -13,6 +13,7 @@ Item {
 
     property var selectedActorIds: []
     property var selectedPropertyIds: []
+    property var aliases: []
 
     function clearFields() {
         nameField.text = ""
@@ -20,6 +21,20 @@ Item {
         descField.text = ""
         selectedActorIds = []
         selectedPropertyIds = []
+        aliases = []
+        aliasesField.text = ""
+    }
+
+    function parseAliases(text) {
+        var aliasValues = []
+        if (!text || text.length === 0) return aliasValues
+
+        var raw = text.split(/\r?\n/)
+        for (var i = 0; i < raw.length; ++i) {
+            var value = String(raw[i]).trim()
+            if (value.length > 0 && aliasValues.indexOf(value) === -1) aliasValues.push(value)
+        }
+        return aliasValues
     }
 
     function syncFields() {
@@ -29,6 +44,8 @@ Item {
         descField.text = current.description || ""
         selectedActorIds = (current.actorIds || []).slice(0)
         selectedPropertyIds = (current.propertyIds || []).slice(0)
+        aliases = (current.aliases || []).slice(0)
+        aliasesField.text = aliases.join("\n")
         try { if (actorPicker) actorPicker.selectedIds = selectedActorIds.slice(0) } catch(e) {}
         try { if (propPicker) propPicker.selectedIds = selectedPropertyIds.slice(0) } catch(e) {}
     }
@@ -98,6 +115,31 @@ Item {
             }
         }
 
+        GroupBox {
+            title: qsTr("Aliases")
+            Layout.fillWidth: true
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: Theme.spacingMedium
+                spacing: Theme.spacingSmall
+
+                Label {
+                    text: qsTr("One alias per line. Used for auto-matching during import.")
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+
+                Controls.TextArea {
+                    id: aliasesField
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.chartLegendHeight
+                    wrapMode: TextArea.Wrap
+                    placeholderText: qsTr("e.g.\nGasliefervertrag\nEON Vertrag\nHeizstrom")
+                }
+            }
+        }
+
         RowLayout {
             Layout.fillWidth: true
             spacing: Theme.spacing
@@ -109,9 +151,10 @@ Item {
                 enabled: canSubmit()
                 onClicked: {
                     if (!contractController) return
-                    if (isEdit) contractController.updateContract(current.id, nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds)
+                    var aliasValues = parseAliases(aliasesField.text)
+                    if (isEdit) contractController.updateContract(current.id, nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds, aliasValues)
                     else {
-                        var id = contractController.addContract(nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds)
+                        var id = contractController.addContract(nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds, aliasValues)
                         clearFields()
                         if (uiData && id && id.length > 0) uiData.selectedContractId = id
                     }

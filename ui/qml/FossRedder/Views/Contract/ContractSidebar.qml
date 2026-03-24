@@ -52,14 +52,6 @@ Item {
                                 color: Theme.textPrimary
                                 elide: Text.ElideRight
                             }
-
-                            Text {
-                                width: parent.width
-                                text: modelData.type ? modelData.type : ""
-                                color: Theme.textMuted
-                                elide: Text.ElideRight
-                                visible: text.length > 0
-                            }
                         }
                     }
                 }

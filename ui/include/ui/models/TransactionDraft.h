@@ -2,6 +2,8 @@
 
 #include <QString>
 #include <QStringList>
+
+#include "ui/models/ImportSuggestion.h"
 #include "core/models/Transaction.h"
 
 namespace ui {
@@ -14,14 +16,23 @@ struct TransactionDraft {
 
     QString description;
 
+    QString actorText;
+    QString propertyText;
     QString actorId;
+    bool newActorSelected = false;
+    QString contractText;
+    QString contractId;
+    bool newContractSelected = false;
 
     QString metadata;
     QString proofImagePath;
 
     QString type;
 
+    ImportDraftSuggestions suggestions;
+
     bool allocatable = false;
+    bool allocatableManualOverride = false;
 
     // Default to Unverified so new transactions require user verification
     int status = static_cast<int>(core::domain::Transaction::Status::Unverified);

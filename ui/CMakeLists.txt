@@ -25,6 +25,7 @@ set(UI_SOURCES
     src/import/ImportDraftMapper.cpp
     src/import/ImportJobBridge.cpp
     src/import/ImportRunStore.cpp
+    src/import/ImportSuggestionService.cpp
     src/import/ImportState.cpp
     src/models/ActorList.cpp
     src/models/AnalysisList.cpp
@@ -85,12 +86,14 @@ set(UI_HEADERS
     include/ui/import/ImportDraftMapper.h
     include/ui/import/ImportJobBridge.h
     include/ui/import/ImportRunStore.h
+    include/ui/import/ImportSuggestionService.h
     include/ui/import/ImportState.h
     include/ui/models/ActorList.h
     include/ui/models/AnalysisList.h
     include/ui/models/AnnualList.h
     include/ui/models/ContractList.h
     include/ui/models/ImportRunList.h
+    include/ui/models/ImportSuggestion.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/models/IndexedListModel.h
     include/ui/models/PropertyList.h
     include/ui/models/RowListModel.h
@@ -195,6 +198,7 @@ if(BUILD_UI_TESTS)
 
     set(UI_UNIT_TEST_SRCS
         tests/unit/TestAnalysisPayloadMapper.cpp
+        tests/unit/TestImportSuggestionService.cpp
     )
 
     add_executable(ui_unit_tests ${UI_UNIT_TEST_SRCS})

@@ -359,24 +359,51 @@ Item {
     Component {
         id: statementDraftPageComponent
 
-        Flickable {
+        ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            contentHeight: stmtLayout.implicitHeight
+            spacing: Theme.spacingSmall
 
-            ScrollBar.vertical: ScrollBar {
-                policy: ScrollBar.AlwaysOn
+            StatementDraftView {
+                id: stmtView
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                draft: (root.hasImportController ? importController.draft : null)
             }
 
-            ColumnLayout {
-                id: stmtLayout
-                width: parent.width
+            RowLayout {
+                Layout.fillWidth: true
 
-                StatementDraftView {
-                    id: stmtView
-                    Layout.fillWidth: true
-                    draft: (root.hasImportController ? importController.draft : null)
+                Controls.Button {
+                    text: qsTr("Previous")
+                    enabled: stmtView.draft && stmtView.draft.currentIndex > 0
+                    onClicked: {
+                        if (stmtView.draft) stmtView.draft.prev()
+                        stmtView.forceSync && stmtView.forceSync()
+                    }
+                }
+
+                Controls.Button {
+                    text: qsTr("Next")
+                    enabled: stmtView.draft && (stmtView.draft.currentIndex < stmtView.draft.count - 1)
+                    onClicked: {
+                        if (stmtView.draft) stmtView.draft.next()
+                        stmtView.forceSync && stmtView.forceSync()
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Controls.Button {
+                    text: qsTr("Discard")
+                    enabled: !!stmtView.draft
+                    onClicked: stmtView.discardDraft()
+                }
+
+                Controls.Button {
+                    text: qsTr("Finalize")
+                    enabled: !!stmtView.draft
+                    onClicked: stmtView.finalizeDraft()
                 }
             }
         }

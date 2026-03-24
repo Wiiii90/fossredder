@@ -1,4 +1,5 @@
 #include "core/application/StateProjector.h"
+#include "core/models/AliasUsage.h"
 #include "core/models/Actor.h"
 #include "core/models/Analysis.h"
 #include "core/models/Annual.h"
@@ -7,13 +8,36 @@
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
 #include <algorithm>
+#include <utility>
+#include <unordered_set>
+#include <unordered_set>
 
 namespace {
 
 void dedupStrings(std::vector<std::string>& v)
 {
-    std::sort(v.begin(), v.end());
-    v.erase(std::unique(v.begin(), v.end()), v.end());
+    std::unordered_set<std::string> seen;
+    std::vector<std::string> out;
+    out.reserve(v.size());
+    for (const auto& value : v) {
+        if (value.empty()) continue;
+        if (!seen.insert(value).second) continue;
+        out.push_back(value);
+    }
+    v = std::move(out);
+}
+
+void dedupAliasUsage(std::vector<core::domain::AliasUsage>& v)
+{
+    std::unordered_set<std::string> seen;
+    std::vector<core::domain::AliasUsage> out;
+    out.reserve(v.size());
+    for (const auto& value : v) {
+        if (value.alias.empty()) continue;
+        if (!seen.insert(value.alias).second) continue;
+        out.push_back(value);
+    }
+    v = std::move(out);
 }
 
 template<typename T>
@@ -46,8 +70,22 @@ AppState StateProjector::prepareForSave(const AppState& state)
     cloneCollection(out.annuals,      state.annuals);
     for (const auto& c : out.contracts) {
         if (!c) continue;
+        dedupStrings(c->aliases);
+        dedupAliasUsage(c->aliasUsage);
         dedupStrings(c->actorIds);
         dedupStrings(c->propertyIds);
+    }
+    for (const auto& a : out.actors) {
+        if (a) {
+            dedupStrings(a->aliases);
+            dedupAliasUsage(a->aliasUsage);
+        }
+    }
+    for (const auto& p : out.properties) {
+        if (p) {
+            dedupStrings(p->aliases);
+            dedupAliasUsage(p->aliasUsage);
+        }
     }
     return out;
 }

@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QString>
 
+#include "core/models/AppState.h"
 #include "ui/models/TransactionDraftList.h"
 
 namespace ui {
@@ -31,12 +32,15 @@ public:
     TransactionDraftList* transactions() noexcept { return &transactions_; }
 
     QVariantMap current() const;
+    const core::domain::AppState& catalogState() const noexcept { return catalogState_; }
+    bool hasCatalogState() const noexcept { return hasCatalogState_; }
 
     Q_INVOKABLE bool hasCurrent() const;
     Q_INVOKABLE void next();
     Q_INVOKABLE void prev();
     Q_INVOKABLE void refresh();
 
+    void setCatalogState(const core::domain::AppState& state);
     void setDrafts(std::vector<TransactionDraft> drafts);
 
 signals:
@@ -47,6 +51,8 @@ private:
 
     int currentIndex_ = 0;
     TransactionDraftList transactions_;
+    core::domain::AppState catalogState_;
+    bool hasCatalogState_ = false;
 };
 
 }

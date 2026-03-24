@@ -3,9 +3,116 @@
 #include "core/models/Actor.h"
 #include "persistence/SqliteDb.h"
 #include <sqlite3.h>
+#include <algorithm>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <stdexcept>
 
 struct SqliteActorRepository::Impl { std::shared_ptr<SqliteDb> db; };
+
+namespace {
+
+struct AliasStats {
+    int hitCount = 1;
+    std::string lastUsedAt;
+    std::string createdAt;
+    std::string updatedAt;
+};
+
+std::vector<core::domain::AliasUsage> collectAliasUsage(const core::domain::Actor& actor)
+{
+    if (!actor.aliasUsage.empty()) return actor.aliasUsage;
+
+    std::vector<core::domain::AliasUsage> out;
+    out.reserve(actor.aliases.size());
+    for (const auto& alias : actor.aliases) {
+        if (alias.empty()) continue;
+        out.push_back(core::domain::AliasUsage{alias, 1, {}, {}, {}});
+    }
+    return out;
+}
+
+std::unordered_map<std::string, AliasStats> loadActorAliasStats(sqlite3* db, const std::string& actorId)
+{
+    std::unordered_map<std::string, AliasStats> out;
+    persistence::StmtGuard stmt(db, "SELECT alias, hit_count, created_at, updated_at, last_used_at FROM actor_aliases WHERE actor_id = ?;");
+    if (!stmt) return out;
+
+    stmt.bindText(1, actorId);
+    while (stmt.step() == SQLITE_ROW) {
+        AliasStats stats;
+        stats.hitCount = stmt.columnInt(1);
+        stats.createdAt = stmt.columnText(2);
+        stats.updatedAt = stmt.columnText(3);
+        stats.lastUsedAt = stmt.columnText(4);
+        out.emplace(stmt.columnText(0), std::move(stats));
+    }
+
+    return out;
+}
+
+void loadActorAliases(sqlite3* db, core::domain::Actor& actor)
+{
+    persistence::StmtGuard stmt(db, "SELECT alias, hit_count, created_at, updated_at, last_used_at FROM actor_aliases WHERE actor_id = ? ORDER BY hit_count DESC, last_used_at DESC, alias ASC;");
+    if (!stmt) return;
+
+    stmt.bindText(1, actor.id);
+    while (stmt.step() == SQLITE_ROW) {
+        core::domain::AliasUsage usage;
+        usage.alias = stmt.columnText(0);
+        usage.hitCount = stmt.columnInt(1);
+        usage.createdAt = stmt.columnText(2);
+        usage.updatedAt = stmt.columnText(3);
+        usage.lastUsedAt = stmt.columnText(4);
+        actor.aliases.push_back(usage.alias);
+        actor.aliasUsage.push_back(std::move(usage));
+    }
+}
+
+void deleteActorAliases(sqlite3* db, const std::string& actorId)
+{
+    persistence::StmtGuard stmt(db, "DELETE FROM actor_aliases WHERE actor_id = ?;");
+    if (!stmt) return;
+
+    stmt.bindText(1, actorId);
+    stmt.step();
+}
+
+void replaceActorAliases(sqlite3* db,
+                         const core::domain::Actor& actor,
+                         const std::unordered_map<std::string, AliasStats>& existing)
+{
+    if (actor.id.empty()) return;
+
+    deleteActorAliases(db, actor.id);
+
+    persistence::StmtGuard stmt(db,
+        "INSERT INTO actor_aliases (actor_id, alias, hit_count, created_at, updated_at, last_used_at) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP), COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP), COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP));");
+    if (!stmt) return;
+
+    std::unordered_set<std::string> seen;
+    for (const auto& usage : collectAliasUsage(actor)) {
+        if (usage.alias.empty() || !seen.insert(usage.alias).second) continue;
+
+        const auto it = existing.find(usage.alias);
+        const int hitCount = it == existing.end() ? std::max(1, usage.hitCount) : std::max(1, it->second.hitCount);
+        const std::string createdAt = it == existing.end() || it->second.createdAt.empty() ? usage.createdAt : it->second.createdAt;
+        const std::string updatedAt = it == existing.end() || it->second.updatedAt.empty() ? usage.updatedAt : it->second.updatedAt;
+        const std::string lastUsedAt = it == existing.end() || it->second.lastUsedAt.empty() ? usage.lastUsedAt : it->second.lastUsedAt;
+        stmt.reset();
+        stmt.bindText(1, actor.id);
+        stmt.bindText(2, usage.alias);
+        stmt.bindInt(3, hitCount);
+        stmt.bindText(4, createdAt);
+        stmt.bindText(5, updatedAt);
+        stmt.bindText(6, lastUsedAt);
+        stmt.step();
+    }
+}
+
+} // namespace
 
 SqliteActorRepository::SqliteActorRepository(const std::string& dbPath)
     : SqliteActorRepository(std::make_shared<SqliteDb>(dbPath)) {}
@@ -25,7 +132,7 @@ void SqliteActorRepository::addActor(const std::shared_ptr<Actor>& actor) {
     if (!stmt) return;
     stmt.bindText(1, actor->id);  stmt.bindText(2, actor->name);
     stmt.bindText(3, actor->type); stmt.bindText(4, actor->description);
-    stmt.step();
+    if (stmt.step() == SQLITE_DONE) replaceActorAliases(pimpl_->db->handle(), *actor, {});
 }
 
 std::vector<std::shared_ptr<Actor>> SqliteActorRepository::getActors() const {
@@ -37,6 +144,8 @@ std::vector<std::shared_ptr<Actor>> SqliteActorRepository::getActors() const {
         auto a = std::make_shared<Actor>();
         a->id = stmt.columnText(0); a->name = stmt.columnText(1);
         a->type = stmt.columnText(2); a->description = stmt.columnText(3);
+    a->aliasUsage.clear();
+        loadActorAliases(pimpl_->db->handle(), *a);
         out.push_back(std::move(a));
     }
     return out;
@@ -52,6 +161,8 @@ std::optional<std::shared_ptr<Actor>> SqliteActorRepository::getActorById(const 
     auto a = std::make_shared<Actor>();
     a->id = stmt.columnText(0); a->name = stmt.columnText(1);
     a->type = stmt.columnText(2); a->description = stmt.columnText(3);
+    a->aliasUsage.clear();
+    loadActorAliases(pimpl_->db->handle(), *a);
     return a;
 }
 
@@ -64,12 +175,13 @@ void SqliteActorRepository::removeActor(const std::string& id) {
 
 void SqliteActorRepository::updateActor(const std::shared_ptr<Actor>& actor) {
     if (!actor || actor->id.empty()) return;
+    const auto existing = loadActorAliasStats(pimpl_->db->handle(), actor->id);
     persistence::StmtGuard stmt(pimpl_->db->handle(),
         "UPDATE actors SET name = ?, type = ?, description = ? WHERE id = ?;");
     if (!stmt) return;
     stmt.bindText(1, actor->name); stmt.bindText(2, actor->type);
     stmt.bindText(3, actor->description); stmt.bindText(4, actor->id);
-    stmt.step();
+    if (stmt.step() == SQLITE_DONE) replaceActorAliases(pimpl_->db->handle(), *actor, existing);
 }
 
 void SqliteActorRepository::upsertActor(const std::shared_ptr<Actor>& actor) {
@@ -80,7 +192,7 @@ void SqliteActorRepository::upsertActor(const std::shared_ptr<Actor>& actor) {
 
 void SqliteActorRepository::clearActors() {
     char* err = nullptr;
-    sqlite3_exec(pimpl_->db->handle(), "DELETE FROM actors;", nullptr, nullptr, &err);
+    sqlite3_exec(pimpl_->db->handle(), "DELETE FROM actor_aliases; DELETE FROM actors;", nullptr, nullptr, &err);
     if (err) sqlite3_free(err);
 }
 

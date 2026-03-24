@@ -80,3 +80,34 @@ TEST(DraftFinalizerTests, FinalizeCreatesStatementTransactionsAndGeneratedContra
     EXPECT_EQ(generatedContract->propertyIds, expectedPropertyIds);
     EXPECT_EQ(transaction->contractId, generatedContract->id);
 }
+
+TEST(DraftFinalizerTests, FinalizeUsesSelectedContractWhenProvided)
+{
+    AppState state;
+
+    auto selectedContract = std::make_shared<Contract>();
+    selectedContract->id = "contract-42";
+    selectedContract->name = "Existing Contract";
+    selectedContract->type = "Electricity";
+    state.contracts.push_back(selectedContract);
+
+    DraftStatement draft;
+    draft.name = "Imported Statement";
+    draft.transactions.push_back(DraftTransaction{
+        .name = "Invoice",
+        .bookingDate = "2025-02-01",
+        .amount = 20.0,
+        .description = "Selected contract",
+        .status = Transaction::Status::Verified,
+        .contractId = "contract-42",
+        .propertyIds = {"property-7"},
+        .type = "Fallback type"
+    });
+
+    const auto statementId = core::application::DraftFinalizer::finalize(state, draft);
+
+    ASSERT_FALSE(statementId.empty());
+    ASSERT_EQ(state.transactions.size(), 1u);
+    EXPECT_EQ(state.transactions.front()->contractId, "contract-42");
+    EXPECT_EQ(state.contracts.size(), 1u);
+}

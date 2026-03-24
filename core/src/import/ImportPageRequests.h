@@ -19,6 +19,13 @@
 
 namespace core::importing::detail {
 
+inline api::tesseract::RecognitionSettings buildRecognitionSettings(int defaultPsm)
+{
+    api::tesseract::RecognitionSettings settings;
+    settings.psm = defaultPsm;
+    return settings;
+}
+
 inline api::opencv::MaskRequest buildMaskRequest(const std::vector<uint8_t>& pageBytes,
                                                  size_t pageIndex,
                                                  const ImportRequest& req,
@@ -58,7 +65,7 @@ inline api::tesseract::ExtractRequest buildMaskOcrRequest(const std::vector<uint
     api::tesseract::ExtractRequest request;
     request.imageBytes = pageBytes;
     request.tessdataPath = {};
-    request.psm = core::constants::importing::kDefaultTesseractPsm;
+    request.recognition = buildRecognitionSettings(core::constants::importing::kDefaultTesseractPsm);
     request.cancelFlag = req.cancelFlag;
     return request;
 }
@@ -101,7 +108,7 @@ inline api::tesseract::ExtractRequest buildTableOcrRequest(const std::vector<uin
     request.uniqIdPrefix = utils::makeUniqId();
     request.filePrefix = std::string(core::constants::importing::kTableTesseractPrefix) + std::to_string(pageIndex + 1);
     request.tessdataPath = {};
-    request.psm = core::constants::importing::kDefaultTableTesseractPsm;
+    request.recognition = buildRecognitionSettings(core::constants::importing::kDefaultTableTesseractPsm);
     request.cancelFlag = req.cancelFlag;
 
     request.cells.reserve(detectResponse.table.cells.size());

@@ -75,6 +75,10 @@ ImportController::ImportController(
     throw std::invalid_argument("ImportController requires an error reporter");
 }
 
+void ImportController::setStateSnapshotProvider(StateSnapshotProvider provider) {
+  stateSnapshotProvider_ = std::move(provider);
+}
+
 QString ImportController::selectedFile() const {
   return state_.selectedFile();
 }
@@ -222,7 +226,8 @@ bool ImportController::populateDraftFromResult(const QString &now) {
 
   const auto importedTransactions = jobBridge_->statementTransactions();
   const auto artifacts = jobBridge_->takeArtifacts();
-  if (!state_.populateDraft(now, imported, importedTransactions, artifacts, this)) {
+  const auto snapshot = stateSnapshotProvider_ ? stateSnapshotProvider_() : core::domain::AppState{};
+  if (!state_.populateDraft(now, imported, snapshot, importedTransactions, artifacts, this)) {
     handleImportFailed(now, ui::text::controllerErrors::importFailed(),
                        "Import failed: unable to create statement draft");
     return false;
@@ -326,15 +331,17 @@ void ImportController::updateProgress(double p, const QString &phase) {
 void ImportController::onJobTerminal(core::jobs::JobState state,
                                      const QString &message) {
   const auto now = currentTimestamp();
-  if (jobBridge_)
-    jobBridge_->clearSubscription();
 
   if (state == core::jobs::JobState::Canceled || state_.cancelRequested()) {
+    if (jobBridge_)
+      jobBridge_->clearSubscription();
     handleImportCanceled(now);
     return;
   }
 
   if (state == core::jobs::JobState::Failed) {
+    if (jobBridge_)
+      jobBridge_->clearSubscription();
     handleImportFailed(now,
                        message.isEmpty()
                            ? ui::text::controllerErrors::importFailed()
@@ -343,7 +350,11 @@ void ImportController::onJobTerminal(core::jobs::JobState state,
     return;
   }
 
-  populateDraftFromResult(now);
+  const bool populated = populateDraftFromResult(now);
+  if (jobBridge_)
+    jobBridge_->clearSubscription();
+  if (!populated)
+    return;
 }
 
 void ImportController::reportException(const char *origin,
