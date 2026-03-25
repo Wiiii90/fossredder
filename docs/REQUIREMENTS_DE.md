@@ -36,10 +36,7 @@ Die Anwendung „FOSSredder“ dient der lokalen Verwaltung von Ausgaben für pr
   3. Extraktion von Buchungsinformationen mit LLM: Ein leistungsfähiges Sprachmodell (**Mistral**) wird verwendet, um die extrahierten Daten zu analysieren und Buchungsinformationen wie Betrag, Datum, Kategorie und zugehörige Immobilie zu identifizieren.
      - Das Modell schlägt dem Nutzer eine mögliche Buchung vor.
      - Der Nutzer kann die Vorschläge überprüfen, anpassen und final bestätigen, bevor die Daten gespeichert werden.
-- Die Integration des Mistral-Modells erfolgt über die Bibliothek **llama.cpp** (siehe `extern/llama.cpp`), die eine flexible und skalierbare Einbindung verschiedener LLMs ermöglicht.
-  - Die Modellwahl ist konfigurierbar; weitere Modelle können bei Bedarf eingebunden werden.
-  - Die Architektur unterstützt sowohl lokale als auch serverbasierte Inferenz, wodurch eine spätere Skalierung (z. B. für größere Datenmengen oder parallele Verarbeitung) möglich ist.
-  - Die Kommunikation mit dem Modell erfolgt über klar definierte Schnittstellen (`include/llama/ILlamaEngine.h`, `src/llama/LlamaEngine.cpp`), die eine einfache Erweiterung und Anpassung erlauben.
+- LLM-Integration: Das Projekt kann eine adapter-basierte LLM-Unterstützung anbieten. Es gibt keine fest eingebettete Modell-Implementierung im Repository; die konkrete Modellwahl und Integrationsstrategie ist konfigurierbar und wird gesondert dokumentiert. Die Import-Pipeline bleibt funktionsfähig auch ohne LLM-Unterstützung.
 - Benutzerprüfung mit Möglichkeit zur:
   - Bestätigung
   - Korrektur
@@ -85,7 +82,7 @@ Die Anwendung „FOSSredder“ dient der lokalen Verwaltung von Ausgaben für pr
 - Sprache:
   - GUI: Deutsch
   - Codebasis: Englisch
-- Datenspeicherung lokal (JSON)
+- Datenspeicherung lokal (SQLite als primärer Laufzeit-Store; JSON/CSV für Import/Export)
 - Erweiterbarkeit:
   - Grafische Auswertungen (z. B. interaktive Diagramme)
 - Kein automatisches Buchen: Nutzer bestätigt jede Ausgabe
@@ -95,7 +92,7 @@ Die Anwendung „FOSSredder“ dient der lokalen Verwaltung von Ausgaben für pr
 
 - Programmiersprache: C++20
 - GUI-Toolkit: Qt6
-- Buildsystem: CMake (ab Version 3.15, Generator: Ninja)
+-- Buildsystem: CMake (ab Version 3.15, Generator: Ninja)
 - Abhängigkeitsverwaltung: vcpkg
 - Datenhaltung: JSON
 - KI-Integration: 
