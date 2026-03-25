@@ -17,10 +17,18 @@ public:
         ValutaRole,
         AmountRole,
         DescriptionRole,
+        ActorTextRole,
         ActorIdRole,
+        NewActorSelectedRole,
+        ContractIdRole,
+        NewContractSelectedRole,
         MetadataRole,
         ProofImagePathRole,
+        ActorSuggestionsRole,
+        PropertySuggestionsRole,
+        ContractSuggestionsRole,
         AllocatableRole,
+        AllocatableManualOverrideRole,
         StatusRole,
         PropertyIdsRole,
         TypeRole
@@ -37,18 +45,23 @@ public:
     Q_INVOKABLE QVariantMap get(int index) const;
 
     Q_INVOKABLE void setActorId(int index, const QString& actorId);
+    Q_INVOKABLE void setActorText(int index, const QString& actorText);
+    Q_INVOKABLE void setNewActorSelected(int index, bool selected);
 
     Q_INVOKABLE void setName(int index, const QString& name);
     Q_INVOKABLE void setBookingDate(int index, const QString& bookingDate);
     Q_INVOKABLE void setValuta(int index, const QString& valuta);
     Q_INVOKABLE void setAmount(int index, double amount);
     Q_INVOKABLE void setDescription(int index, const QString& description);
+    Q_INVOKABLE void setContractId(int index, const QString& contractId);
+    Q_INVOKABLE void setNewContractSelected(int index, bool selected);
 
     Q_INVOKABLE void setMetadata(int index, const QString& v);
     Q_INVOKABLE void setProofImagePath(int index, const QString& v);
 
     Q_INVOKABLE void setStatus(int index, int status);
     Q_INVOKABLE void setAllocatable(int index, bool v);
+    Q_INVOKABLE void setAllocatableManualOverride(int index, bool v);
 
     Q_INVOKABLE void setProperties(int index, const QStringList& ids);
     Q_INVOKABLE void setType(int index, const QString& v);

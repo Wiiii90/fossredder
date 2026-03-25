@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <sstream>
 
 namespace core::importing::detail {
 
@@ -19,6 +20,8 @@ namespace {
 
 constexpr auto kTsvArtifactPrefix = "tesseract/page_";
 constexpr auto kTsvArtifactSuffix = "_crop_0.tsv";
+constexpr auto kParserLogArtifactPrefix = "parser/page_";
+constexpr auto kParserLogArtifactSuffix = ".log";
 
 void safeReleaseLimiter(core::jobs::SlotLimiter* ocrLimiter,
                         core::errors::IErrorReporter* errorReporter,
@@ -47,6 +50,11 @@ api::tesseract::ExtractResult extractWithLimiter(const std::shared_ptr<api::tess
 std::string makeTsvArtifactKey(size_t pageIndex)
 {
     return std::string(kTsvArtifactPrefix) + std::to_string(pageIndex) + kTsvArtifactSuffix;
+}
+
+std::string makeParserLogArtifactKey(size_t pageIndex)
+{
+    return std::string(kParserLogArtifactPrefix) + std::to_string(pageIndex) + kParserLogArtifactSuffix;
 }
 
 void storeTsvArtifact(ImportResult& out,
@@ -238,6 +246,21 @@ FinalizeStats finalizeParsedPages(const ImportRequest& req,
 
         if (!parsed.transactions.empty()) {
             for (auto& transaction : parsed.transactions) all.push_back(std::move(transaction));
+        }
+
+        if (!parsed.debugLines.empty()) {
+            try {
+                std::ostringstream outLog;
+                for (const auto& line : parsed.debugLines) outLog << line << '\n';
+                const auto serialized = outLog.str();
+                std::lock_guard<std::mutex> guard(artifactsMutex);
+                out.artifacts[makeParserLogArtifactKey(page.pageIndex)] = std::vector<uint8_t>(serialized.begin(), serialized.end());
+            } catch (...) {
+                core::errors::reportException(errorReporter,
+                                              core::errors::ErrorSeverity::Warning,
+                                              "core::import::DefaultImportStatementStrategy::storeParserLogArtifact",
+                                              std::current_exception());
+            }
         }
 
         if (!parsed.artifacts.empty()) {

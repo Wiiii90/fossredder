@@ -54,16 +54,17 @@ ActorSelection::ActorSelection(QObject* parent)
 
 void ActorSelection::clear()
 {
-    set({}, {}, {}, {});
+    set({}, {}, {}, {}, {});
 }
 
-void ActorSelection::set(QString id, QString name, QString type, QString description)
+void ActorSelection::set(QString id, QString name, QString type, QString description, QStringList aliases)
 {
-    if (std::tie(id_, name_, type_, description_) == std::tie(id, name, type, description)) return;
+    if (std::tie(id_, name_, type_, description_, aliases_) == std::tie(id, name, type, description, aliases)) return;
     id_ = std::move(id);
     name_ = std::move(name);
     type_ = std::move(type);
     description_ = std::move(description);
+    aliases_ = std::move(aliases);
     emit changed();
 }
 
@@ -74,16 +75,17 @@ PropertySelection::PropertySelection(QObject* parent)
 
 void PropertySelection::clear()
 {
-    set({}, {}, {}, {});
+    set({}, {}, {}, {}, {});
 }
 
-void PropertySelection::set(QString id, QString name, QString address, QString description)
+void PropertySelection::set(QString id, QString name, QString address, QString description, QStringList aliases)
 {
-    if (std::tie(id_, name_, address_, description_) == std::tie(id, name, address, description)) return;
+    if (std::tie(id_, name_, address_, description_, aliases_) == std::tie(id, name, address, description, aliases)) return;
     id_ = std::move(id);
     name_ = std::move(name);
     address_ = std::move(address);
     description_ = std::move(description);
+    aliases_ = std::move(aliases);
     emit changed();
 }
 
@@ -94,7 +96,7 @@ ContractSelection::ContractSelection(QObject* parent)
 
 void ContractSelection::clear()
 {
-    set({}, {}, {}, {}, {}, {});
+    set({}, {}, {}, {}, {}, {}, {});
 }
 
 void ContractSelection::set(QString id,
@@ -102,15 +104,17 @@ void ContractSelection::set(QString id,
                             QString type,
                             QString description,
                             QStringList actorIds,
-                            QStringList propertyIds)
+                            QStringList propertyIds,
+                            QStringList aliases)
 {
-    if (std::tie(id_, name_, type_, description_, actorIds_, propertyIds_) == std::tie(id, name, type, description, actorIds, propertyIds)) return;
+    if (std::tie(id_, name_, type_, description_, actorIds_, propertyIds_, aliases_) == std::tie(id, name, type, description, actorIds, propertyIds, aliases)) return;
     id_ = std::move(id);
     name_ = std::move(name);
     type_ = std::move(type);
     description_ = std::move(description);
     actorIds_ = std::move(actorIds);
     propertyIds_ = std::move(propertyIds);
+    aliases_ = std::move(aliases);
     emit changed();
 }
 
@@ -268,20 +272,26 @@ void SelectionState::refreshAll()
 void SelectionState::refreshSelectedActor()
 {
     refreshSelection(selectedActorId_, actors_, [](const ActorList& model) -> const auto& { return model.actors(); }, *selectedActor_, [](const Actor& actor, ActorSelection& selection) {
+        QStringList aliases;
+        for (const auto& alias : actor.aliases) aliases.push_back(QString::fromStdString(alias));
         selection.set(QString::fromStdString(actor.id),
                       QString::fromStdString(actor.name),
                       QString::fromStdString(actor.type),
-                      QString::fromStdString(actor.description));
+                      QString::fromStdString(actor.description),
+                      aliases);
     });
 }
 
 void SelectionState::refreshSelectedProperty()
 {
     refreshSelection(selectedPropertyId_, properties_, [](const PropertyList& model) -> const auto& { return model.properties(); }, *selectedProperty_, [](const Property& property, PropertySelection& selection) {
+        QStringList aliases;
+        for (const auto& alias : property.aliases) aliases.push_back(QString::fromStdString(alias));
         selection.set(QString::fromStdString(property.id),
                       QString::fromStdString(property.name),
                       QString::fromStdString(property.address),
-                      QString::fromStdString(property.description));
+                      QString::fromStdString(property.description),
+                      aliases);
     });
 }
 
@@ -292,12 +302,15 @@ void SelectionState::refreshSelectedContract()
         for (const auto& actorId : contract.actorIds) actorIds.push_back(QString::fromStdString(actorId));
         QStringList propertyIds;
         for (const auto& propertyId : contract.propertyIds) propertyIds.push_back(QString::fromStdString(propertyId));
+        QStringList aliases;
+        for (const auto& alias : contract.aliases) aliases.push_back(QString::fromStdString(alias));
         selection.set(QString::fromStdString(contract.id),
                       QString::fromStdString(contract.name),
                       QString::fromStdString(contract.type),
                       QString::fromStdString(contract.description),
                       actorIds,
-                      propertyIds);
+                      propertyIds,
+                      aliases);
     });
 }
 

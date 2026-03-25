@@ -29,8 +29,7 @@ public:
 
         if (req.cancelFlag && req.cancelFlag->load()) return out;
 
-        int psm = req.psm;
-        auto [textDto, words] = TesseractEngine::extractFromBytes(bytes, req.tessdataPath, psm, debugger);
+        auto [textDto, words] = TesseractEngine::extractFromBytes(bytes, req.tessdataPath, req.recognition, debugger);
         out.text = textDto.text;
         std::ostringstream oss;
         for (const auto &w : words) {

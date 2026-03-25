@@ -118,14 +118,21 @@ void AppStateFacade::saveFileAs(const std::string& path)
     session_->saveFileAs(path);
 }
 
-std::string AppStateFacade::addActor(const std::string& name, const std::string& type, const std::string& description)
+std::string AppStateFacade::addActor(const std::string& name,
+                                     const std::string& type,
+                                     const std::string& description,
+                                     const std::vector<std::string>& aliases)
 {
-    return commitCreated(*this, catalog_.addActor(mutableState(), {name, type, description}));
+    return commitCreated(*this, catalog_.addActor(mutableState(), {name, type, description, aliases}));
 }
 
-void AppStateFacade::updateActor(const std::string& id, const std::string& name, const std::string& type, const std::string& description)
+void AppStateFacade::updateActor(const std::string& id,
+                                 const std::string& name,
+                                 const std::string& type,
+                                 const std::string& description,
+                                 const std::vector<std::string>& aliases)
 {
-    commitIfChanged(*this, catalog_.updateActor(mutableState(), id, {name, type, description}));
+    commitIfChanged(*this, catalog_.updateActor(mutableState(), id, {name, type, description, aliases}));
 }
 
 void AppStateFacade::deleteActor(const std::string& id)
@@ -133,14 +140,21 @@ void AppStateFacade::deleteActor(const std::string& id)
     commitIfChanged(*this, catalog_.deleteActor(mutableState(), id));
 }
 
-std::string AppStateFacade::addProperty(const std::string& name, const std::string& address, const std::string& description)
+std::string AppStateFacade::addProperty(const std::string& name,
+                                        const std::string& address,
+                                        const std::string& description,
+                                        const std::vector<std::string>& aliases)
 {
-    return commitCreated(*this, catalog_.addProperty(mutableState(), {name, address, description}));
+    return commitCreated(*this, catalog_.addProperty(mutableState(), {name, address, description, aliases}));
 }
 
-void AppStateFacade::updateProperty(const std::string& id, const std::string& name, const std::string& address, const std::string& description)
+void AppStateFacade::updateProperty(const std::string& id,
+                                    const std::string& name,
+                                    const std::string& address,
+                                    const std::string& description,
+                                    const std::vector<std::string>& aliases)
 {
-    commitIfChanged(*this, catalog_.updateProperty(mutableState(), id, {name, address, description}));
+    commitIfChanged(*this, catalog_.updateProperty(mutableState(), id, {name, address, description, aliases}));
 }
 
 void AppStateFacade::deleteProperty(const std::string& id)
@@ -152,9 +166,10 @@ std::string AppStateFacade::addContract(const std::string& name,
                                         const std::string& type,
                                         const std::string& description,
                                         const std::vector<std::string>& actorIds,
-                                        const std::vector<std::string>& propertyIds)
+                                        const std::vector<std::string>& propertyIds,
+                                        const std::vector<std::string>& aliases)
 {
-    return commitCreated(*this, catalog_.addContract(mutableState(), {name, type, description, actorIds, propertyIds}));
+    return commitCreated(*this, catalog_.addContract(mutableState(), {name, type, description, actorIds, propertyIds, aliases}));
 }
 
 void AppStateFacade::updateContract(const std::string& id,
@@ -162,9 +177,10 @@ void AppStateFacade::updateContract(const std::string& id,
                                     const std::string& type,
                                     const std::string& description,
                                     const std::vector<std::string>& actorIds,
-                                    const std::vector<std::string>& propertyIds)
+                                    const std::vector<std::string>& propertyIds,
+                                    const std::vector<std::string>& aliases)
 {
-    commitIfChanged(*this, catalog_.updateContract(mutableState(), id, {name, type, description, actorIds, propertyIds}));
+    commitIfChanged(*this, catalog_.updateContract(mutableState(), id, {name, type, description, actorIds, propertyIds, aliases}));
 }
 
 void AppStateFacade::deleteContract(const std::string& id)

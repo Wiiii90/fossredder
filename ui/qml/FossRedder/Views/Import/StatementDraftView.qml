@@ -6,8 +6,11 @@ import FossRedder.Controls 1.0 as Controls
 
 Item {
     id: stmtRoot
+    anchors.fill: parent
 
     property var draft
+
+    implicitHeight: stmtLayout.implicitHeight
     implicitWidth: stmtLayout.implicitWidth
 
     function discardDraft() {
@@ -42,7 +45,7 @@ Item {
 
     ColumnLayout {
         id: stmtLayout
-        width: parent.width
+        anchors.fill: parent
         spacing: Theme.spacingSmall
 
         Label {
@@ -56,6 +59,9 @@ Item {
 
         ColumnLayout {
             visible: draft
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: Theme.spacingSmall
 
             RowLayout {
                 Layout.fillWidth: true
@@ -68,7 +74,7 @@ Item {
                 Controls.TextField {
                     Layout.fillWidth: true
                     text: draft ? draft.name : ""
-                    onTextChanged: if (draft) draft.name = text
+                    onTextEdited: if (draft) draft.name = text
                 }
             }
 
@@ -79,47 +85,25 @@ Item {
                         : qsTr("No current transaction")
             }
 
-            TransactionDraftView {
-                id: txView
+            Controls.Panel {
                 Layout.fillWidth: true
-                draft: stmtRoot.draft
-            }
+                Layout.fillHeight: true
+                Layout.bottomMargin: Theme.spacingMedium
+                contentSpacing: 0
 
-            Item { Layout.fillHeight: true }
+                ScrollView {
+                    id: txScroll
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 0
+                    Layout.bottomMargin: Theme.spacingSmall
+                    clip: true
 
-            RowLayout {
-                Layout.fillWidth: true
-
-                Controls.Button {
-                    text: qsTr("Previous")
-                    enabled: draft && draft.currentIndex > 0
-                    onClicked: {
-                        if (draft) draft.prev()
-                        txView.forceSync && txView.forceSync()
+                    TransactionDraftView {
+                        id: txView
+                        width: txScroll.availableWidth > 0 ? txScroll.availableWidth : txScroll.width
+                        draft: stmtRoot.draft
                     }
-                }
-
-                Controls.Button {
-                    text: qsTr("Next")
-                    enabled: draft && (draft.currentIndex < draft.count - 1)
-                    onClicked: {
-                        if (draft) draft.next()
-                        txView.forceSync && txView.forceSync()
-                    }
-                }
-
-                Item { Layout.fillWidth: true }
-
-                Controls.Button {
-                    text: qsTr("Discard")
-                    enabled: !!draft
-                    onClicked: discardDraft()
-                }
-
-                Controls.Button {
-                    text: qsTr("Finalize")
-                    enabled: !!draft
-                    onClicked: finalizeDraft()
                 }
             }
         }        

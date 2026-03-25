@@ -31,6 +31,7 @@ inline void applyActorDraft(Actor& actor, const ActorInput& input)
     actor.name = input.name;
     actor.type = input.type;
     actor.description = input.description;
+    actor.aliases = input.aliases;
 }
 
 inline void applyPropertyDraft(Property& property, const PropertyInput& input)
@@ -38,6 +39,7 @@ inline void applyPropertyDraft(Property& property, const PropertyInput& input)
     property.name = input.name;
     property.address = input.address;
     property.description = input.description;
+    property.aliases = input.aliases;
 }
 
 inline void applyContractDraft(Contract& contract, const ContractInput& input)
@@ -47,6 +49,7 @@ inline void applyContractDraft(Contract& contract, const ContractInput& input)
     contract.description = input.description;
     contract.actorIds = input.actorIds;
     contract.propertyIds = input.propertyIds;
+    contract.aliases = input.aliases;
 }
 
 inline void applyStatementName(Statement& statement, const std::string& name)

@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "core/models/AliasUsage.h"
+
 namespace core::domain {
 
 class Contract {
@@ -25,6 +27,8 @@ public:
     double monthlyAdvance = 0.0;
     std::vector<std::string> actorIds;
     std::vector<std::string> propertyIds;
+    std::vector<std::string> aliases;
+    std::vector<AliasUsage> aliasUsage;
 };
 
 }

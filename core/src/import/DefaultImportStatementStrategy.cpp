@@ -20,8 +20,6 @@
 #include "core/import/IImportStatement.h"
 #include "ImportPipelineHelpers.h"
 #include "ImportStrategySupport.h"
-#include "debug/ErrorReporter.h"
-#include "debug/IDebugger.h"
 #include "core/models/Statement.h"
 #include <filesystem>
 #include <memory>
@@ -39,12 +37,11 @@ public:
     DefaultImportStatementStrategy(std::shared_ptr<api::poppler::IPopplerService> poppler,
         std::shared_ptr<api::opencv::IOpenCvService> opencv,
         std::shared_ptr<api::tesseract::ITesseractService> tesseract,
-        std::shared_ptr<IDebugger> debugger)
+        std::shared_ptr<core::errors::IErrorReporter> errorReporter)
         : poppler_(std::move(poppler))
         , opencv_(std::move(opencv))
         , tesseract_(std::move(tesseract))
-        , debugger_(std::move(debugger))
-        , errorReporter_(debugger_ ? std::make_shared<debug::DebuggerErrorReporter>(debugger_) : nullptr) {
+        , errorReporter_(std::move(errorReporter)) {
     }
 
     ImportResult run(const ImportRequest& req) override {
@@ -104,7 +101,7 @@ public:
                                                       artifactsMutex);
 
         const size_t totalPages = pages.size();
-        const auto proofDir = core::importing::createProofDir(runRoot, debugger_, errorReporter_.get());
+        const auto proofDir = core::importing::createProofDir(runRoot, req.proofOutputDir, errorReporter_.get());
 
         const auto finalizeStart = core::importing::ImportClock::now();
         const auto finalizeStats = finalizeParsedPages(req,
@@ -135,15 +132,14 @@ private:
     std::shared_ptr<api::poppler::IPopplerService> poppler_;
     std::shared_ptr<api::opencv::IOpenCvService> opencv_;
     std::shared_ptr<api::tesseract::ITesseractService> tesseract_;
-    std::shared_ptr<IDebugger> debugger_;
     std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
 };
 
 std::unique_ptr<IImportStatementStrategy> createDefaultImportStrategy(std::shared_ptr<api::poppler::IPopplerService> poppler,
     std::shared_ptr<api::opencv::IOpenCvService> opencv,
     std::shared_ptr<api::tesseract::ITesseractService> tesseract,
-    std::shared_ptr<IDebugger> debugger) {
-    return std::make_unique<DefaultImportStatementStrategy>(std::move(poppler), std::move(opencv), std::move(tesseract), std::move(debugger));
+    std::shared_ptr<core::errors::IErrorReporter> errorReporter) {
+    return std::make_unique<DefaultImportStatementStrategy>(std::move(poppler), std::move(opencv), std::move(tesseract), std::move(errorReporter));
 }
 
 } // namespace core::importing

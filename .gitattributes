@@ -1,12 +1,11 @@
-File: .gitattributes
-````````
-# .gitattributes - enforce consistent EOLs and mark binary files
+.gitattributes - enforce consistent EOLs, mark binary files, and keep copilot instructions excluded from master merges
+## NOTE: header line must be a comment to avoid attribute parsing warnings
+
+# Keep this attributes file normalized
+.gitattributes text eol=lf
 
 # Default: treat files as text where appropriate and keep LF in the repository
 * text=auto eol=lf
-
-# Ensure this attributes file is stored with LF
-.gitattributes text eol=lf
 
 ###############################################################################
 # Source files: enforce LF in the repo
@@ -68,8 +67,11 @@ CMakeLists.txt    text eol=lf
 *.pdb   binary
 *.pdf   binary
 
-# Large or generated resource directories (if present) - treat as binary
+# Large or generated resource directories - treat as binary
 services/llama/res/** binary
 services/tesseract/res/** binary
+
+# Keep branch-specific copilot instructions out of master merges
+.github/copilot-instructions.md merge=ours
 
 # End of file

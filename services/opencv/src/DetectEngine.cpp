@@ -31,14 +31,16 @@ static cv::Mat ensureGrayLocal(const cv::Mat& in) {
     if (in.empty()) return in;
     if (in.type() == CV_8UC1) return in.clone();
     cv::Mat out;
-    if (in.channels() == 3) cv::cvtColor(in, out, cv::COLOR_BGR2GRAY);
+    if (in.channels() == 4) cv::cvtColor(in, out, cv::COLOR_BGRA2GRAY);
+    else if (in.channels() >= 3) cv::cvtColor(in, out, cv::COLOR_BGR2GRAY);
     else in.convertTo(out, CV_8U);
     return out;
 }
 
 std::vector<cv::Rect> findTextBlocksUsingMorphology(const cv::Mat& gray) {
+    cv::Mat normalizedGray = ensureGrayLocal(gray);
     cv::Mat bin;
-    cv::adaptiveThreshold(gray, bin, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 15, 10);
+    cv::adaptiveThreshold(normalizedGray, bin, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, 15, 10);
     cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(30, 3));
     cv::Mat morph;
     cv::morphologyEx(bin, morph, cv::MORPH_CLOSE, kernel);

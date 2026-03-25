@@ -20,6 +20,7 @@ set(CORE_SRCS
     src/export/ExportService.cpp
     src/export/XlsxExporter.cpp
     src/import/DefaultImportStatementStrategy.cpp
+    src/import/DraftLinking.cpp
     src/import/ImportPipelineHelpers.cpp
     src/import/ImportStatement.cpp
     src/import/ImportStrategySupport.cpp
@@ -48,10 +49,6 @@ target_compile_features(fossredder_core PUBLIC cxx_std_20)
 target_include_directories(fossredder_core PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
-)
-
-target_include_directories(fossredder_core PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/debug/include>
 )
 
 # Internal dependencies used by core implementation code.
@@ -84,11 +81,14 @@ if (BUILD_CORE_TESTS)
         tests/unit/TestAppStateFacade.cpp
         tests/unit/TestAppStateManager.cpp
         tests/unit/TestAppStateManagerExtended.cpp
+        tests/unit/TestDefaultStatementParser.cpp
+        tests/unit/TestDraftLinking.cpp
         tests/unit/TestDraftFinalizer.cpp
         tests/unit/TestErrorReporterRegistry.cpp
         tests/unit/TestExportService.cpp
         tests/unit/TestFilter.cpp
         tests/unit/TestJobSystem.cpp
+        tests/unit/TestParserHelpers.cpp
         tests/unit/TestStateTransforms.cpp
         tests/unit/TestStorageManager.cpp
         tests/unit/TestWorkspaceSession.cpp

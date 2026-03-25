@@ -68,12 +68,30 @@ static std::string resolveTessdataPath(const std::string& provided) {
     return std::string();
 }
 
-static void configureForStatements(tesseract::TessBaseAPI& ocr) {
-    ocr.SetVariable("tessedit_ocr_engine_mode", "1");
-    ocr.SetVariable("preserve_interword_spaces", "1");
+static tesseract::OcrEngineMode toTesseractOem(api::tesseract::OcrEngineMode mode) {
+    switch (mode) {
+    case api::tesseract::OcrEngineMode::LegacyOnly:
+        return tesseract::OEM_TESSERACT_ONLY;
+    case api::tesseract::OcrEngineMode::LstmOnly:
+        return tesseract::OEM_LSTM_ONLY;
+    case api::tesseract::OcrEngineMode::LegacyAndLstm:
+        return tesseract::OEM_TESSERACT_LSTM_COMBINED;
+    case api::tesseract::OcrEngineMode::Default:
+    default:
+        return tesseract::OEM_DEFAULT;
+    }
+}
 
-    // Keep this conservative: allow letters/digits and common punctuation found in statements.
-    ocr.SetVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜabcdefghijklmnopqrstuvwxyzäöüß0123456789.,:-/()'“”‘’+&% ");
+static std::string resolveLanguage(const api::tesseract::RecognitionSettings& recognition) {
+    return recognition.language.empty() ? std::string("deu") : recognition.language;
+}
+
+static void configureForStatements(tesseract::TessBaseAPI& ocr, const api::tesseract::RecognitionSettings& recognition) {
+    ocr.SetVariable("preserve_interword_spaces", recognition.preserveInterwordSpaces ? "1" : "0");
+
+    if (!recognition.charWhitelist.empty()) {
+        ocr.SetVariable("tessedit_char_whitelist", recognition.charWhitelist.c_str());
+    }
 }
 
 static void applyPsm(tesseract::TessBaseAPI& ocr, int psm) {
@@ -84,18 +102,22 @@ static void applyPsm(tesseract::TessBaseAPI& ocr, int psm) {
     ocr.SetPageSegMode(static_cast<tesseract::PageSegMode>(psm));
 }
 
-static api::tesseract::Text recognizeTextFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, int psm, std::shared_ptr<IDebugger> dbg) {
+static api::tesseract::Text recognizeTextFromBytes(const std::vector<uint8_t>& data,
+                                                   const std::string& tessdataPath,
+                                                   const api::tesseract::RecognitionSettings& recognition,
+                                                   std::shared_ptr<IDebugger> dbg) {
     api::tesseract::Text out;
     tesseract::TessBaseAPI ocr;
     std::string resolved = resolveTessdataPath(tessdataPath);
+    const std::string language = resolveLanguage(recognition);
     if (!resolved.empty()) ocr.SetVariable("TESSDATA_PREFIX", resolved.c_str());
-    if (resolved.empty() || ocr.Init(resolved.c_str(), "deu") != 0) {
+    if (resolved.empty() || ocr.Init(resolved.c_str(), language.c_str(), toTesseractOem(recognition.engineMode)) != 0) {
         // last resort: try default Init without explicit path
-        if (ocr.Init(nullptr, "deu") != 0) return out;
+        if (ocr.Init(nullptr, language.c_str(), toTesseractOem(recognition.engineMode)) != 0) return out;
     }
 
-    configureForStatements(ocr);
-    applyPsm(ocr, psm);
+    configureForStatements(ocr, recognition);
+    applyPsm(ocr, recognition.psm);
 
     Pix* pix = pixFromBytes(data);
     if (!pix) { ocr.End(); return out; }
@@ -109,19 +131,23 @@ static api::tesseract::Text recognizeTextFromBytes(const std::vector<uint8_t>& d
     return out;
 }
 
-static vector<api::tesseract::Word> getWordsFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, int psm, std::shared_ptr<IDebugger> dbg) {
+static vector<api::tesseract::Word> getWordsFromBytes(const std::vector<uint8_t>& data,
+                                                      const std::string& tessdataPath,
+                                                      const api::tesseract::RecognitionSettings& recognition,
+                                                      std::shared_ptr<IDebugger> dbg) {
     std::vector<api::tesseract::Word> out;
     Pix* pix = pixFromBytes(data);
     if (!pix) return out;
     tesseract::TessBaseAPI ocr;
     std::string resolved = resolveTessdataPath(tessdataPath);
+    const std::string language = resolveLanguage(recognition);
     if (!resolved.empty()) ocr.SetVariable("TESSDATA_PREFIX", resolved.c_str());
-    if (resolved.empty() || ocr.Init(resolved.c_str(), "deu") != 0) {
-        if (ocr.Init(nullptr, "deu") != 0) { pixDestroy(&pix); return out; }
+    if (resolved.empty() || ocr.Init(resolved.c_str(), language.c_str(), toTesseractOem(recognition.engineMode)) != 0) {
+        if (ocr.Init(nullptr, language.c_str(), toTesseractOem(recognition.engineMode)) != 0) { pixDestroy(&pix); return out; }
     }
 
-    configureForStatements(ocr);
-    applyPsm(ocr, psm);
+    configureForStatements(ocr, recognition);
+    applyPsm(ocr, recognition.psm);
 
     ocr.SetImage(pix);
     ocr.Recognize(0);
@@ -173,13 +199,12 @@ static vector<api::tesseract::Word> getWordsFromBytes(const std::vector<uint8_t>
     return out;
 }
 
-std::pair<api::tesseract::Text, std::vector<api::tesseract::Word>> TesseractEngine::extractFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, std::shared_ptr<IDebugger> dbg) {
-    // Backward-compatible default.
-    return extractFromBytes(data, tessdataPath, /*psm*/3, std::move(dbg));
-}
-
-std::pair<api::tesseract::Text, std::vector<api::tesseract::Word>> TesseractEngine::extractFromBytes(const std::vector<uint8_t>& data, const std::string& tessdataPath, int psm, std::shared_ptr<IDebugger> dbg) {
-    api::tesseract::Text t = recognizeTextFromBytes(data, tessdataPath, psm, dbg);
-    std::vector<api::tesseract::Word> w = getWordsFromBytes(data, tessdataPath, psm, dbg);
+std::pair<api::tesseract::Text, std::vector<api::tesseract::Word>> TesseractEngine::extractFromBytes(
+    const std::vector<uint8_t>& data,
+    const std::string& tessdataPath,
+    const api::tesseract::RecognitionSettings& recognition,
+    std::shared_ptr<IDebugger> dbg) {
+    api::tesseract::Text t = recognizeTextFromBytes(data, tessdataPath, recognition, dbg);
+    std::vector<api::tesseract::Word> w = getWordsFromBytes(data, tessdataPath, recognition, dbg);
     return {t, w};
 }

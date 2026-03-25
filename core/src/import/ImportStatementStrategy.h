@@ -12,7 +12,6 @@
 namespace api { namespace poppler { class IPopplerService; } }
 namespace api { namespace opencv { class IOpenCvService; } }
 namespace api { namespace tesseract { class ITesseractService; } }
-class IDebugger;
 
 namespace core::importing {
 
@@ -25,6 +24,6 @@ public:
 std::unique_ptr<IImportStatementStrategy> createDefaultImportStrategy(std::shared_ptr<api::poppler::IPopplerService> poppler,
                                                                       std::shared_ptr<api::opencv::IOpenCvService> opencv,
                                                                       std::shared_ptr<api::tesseract::ITesseractService> tesseract,
-                                                                      std::shared_ptr<IDebugger> debugger = nullptr);
+                                                                      std::shared_ptr<core::errors::IErrorReporter> errorReporter = nullptr);
 
 } // namespace core::importing

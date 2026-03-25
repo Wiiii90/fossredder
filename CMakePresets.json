@@ -48,7 +48,8 @@
         "BUILD_CORE_TESTS": "ON",
         "BUILD_UI_TESTS": "ON",
         "BUILD_PERSISTENCE_TESTS": "ON",
-        "BUILD_DEBUG_TESTS": "ON"
+        "BUILD_DEBUG_TESTS": "ON",
+        "BUILD_OPENCV_TESTS": "ON"
       }
     },
     {
@@ -86,7 +87,8 @@
         "BUILD_CORE_TESTS": "ON",
         "BUILD_UI_TESTS": "ON",
         "BUILD_PERSISTENCE_TESTS": "ON",
-        "BUILD_DEBUG_TESTS": "ON"
+        "BUILD_DEBUG_TESTS": "ON",
+        "BUILD_OPENCV_TESTS": "ON"
       }
     },
     {

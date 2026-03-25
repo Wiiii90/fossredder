@@ -17,12 +17,14 @@ struct ActorInput {
     std::string name;
     std::string type;
     std::string description;
+    std::vector<std::string> aliases;
 };
 
 struct PropertyInput {
     std::string name;
     std::string address;
     std::string description;
+    std::vector<std::string> aliases;
 };
 
 struct ContractInput {
@@ -31,6 +33,7 @@ struct ContractInput {
     std::string description;
     std::vector<std::string> actorIds;
     std::vector<std::string> propertyIds;
+    std::vector<std::string> aliases;
 };
 
 struct TransactionInput {

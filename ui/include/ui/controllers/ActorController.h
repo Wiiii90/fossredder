@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 namespace core::application { class AppStateFacade; }
 
@@ -20,8 +21,8 @@ class ActorController : public QObject {
 public:
     explicit ActorController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
-    Q_INVOKABLE QString addActor(const QString& name, const QString& type, const QString& description);
-    Q_INVOKABLE void updateActor(const QString& id, const QString& name, const QString& type, const QString& description);
+    Q_INVOKABLE QString addActor(const QString& name, const QString& type, const QString& description, const QStringList& aliases = {});
+    Q_INVOKABLE void updateActor(const QString& id, const QString& name, const QString& type, const QString& description, const QStringList& aliases = {});
     Q_INVOKABLE void deleteActor(const QString& id);
 
 private:

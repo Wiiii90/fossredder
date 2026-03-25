@@ -16,6 +16,7 @@
 #include <QStringList>
 
 #include "core/import/ImportedTransaction.h"
+#include "core/models/AppState.h"
 #include "ui/models/ImportRunList.h"
 #include "ui/models/StatementDraft.h"
 
@@ -57,6 +58,7 @@ public:
     void recordFailed(const QString& now, const QString& errorMessage);
     bool populateDraft(const QString& now,
                        const std::shared_ptr<core::domain::Statement>& statement,
+                        const core::domain::AppState& state,
                        const std::vector<ImportedTransaction>& transactions,
                        const std::map<std::string, std::vector<uint8_t>>& artifacts,
                        QObject* parent);

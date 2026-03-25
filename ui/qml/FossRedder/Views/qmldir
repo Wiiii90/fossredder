@@ -38,6 +38,13 @@ ExportView 1.0 Export/ExportView.qml
 # Import
 ImportSidebar 1.0 Import/ImportSidebar.qml
 ImportView 1.0 Import/ImportView.qml
+TransactionDraftFieldRow 1.0 Import/TransactionDraftFieldRow.qml
+TransactionDraftProofPanel 1.0 Import/TransactionDraftProofPanel.qml
+TransactionDraftMetadataPanel 1.0 Import/TransactionDraftMetadataPanel.qml
+TransactionDraftAllocatablePanel 1.0 Import/TransactionDraftAllocatablePanel.qml
+TransactionDraftActorPanel 1.0 Import/TransactionDraftActorPanel.qml
+TransactionDraftPropertyPanel 1.0 Import/TransactionDraftPropertyPanel.qml
+TransactionDraftContractPanel 1.0 Import/TransactionDraftContractPanel.qml
 StatementDraftView 1.0 Import/StatementDraftView.qml
 TransactionDraftView 1.0 Import/TransactionDraftView.qml
 

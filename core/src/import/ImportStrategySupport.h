@@ -13,7 +13,6 @@
 #include "api/tesseract/ITesseractService.h"
 #include "core/errors/IErrorReporter.h"
 #include "core/jobs/Scheduler.h"
-#include "debug/IDebugger.h"
 
 #include <chrono>
 #include <filesystem>
@@ -64,7 +63,7 @@ std::vector<detail::PageWork> collectPageWork(const ImportRequest& req,
                                               std::mutex& artifactsMutex);
 
 std::filesystem::path createProofDir(const std::filesystem::path& runRoot,
-                                     const std::shared_ptr<IDebugger>& debugger,
+                                     const std::string& proofOutputDir,
                                      core::errors::IErrorReporter* errorReporter);
 
 void attachMetricsArtifact(ImportResult& out,

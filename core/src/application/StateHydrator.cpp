@@ -1,23 +1,57 @@
 #include "core/application/StateHydrator.h"
+#include "core/models/AliasUsage.h"
 #include "core/models/Actor.h"
 #include "core/models/Contract.h"
 #include "core/models/Transaction.h"
 #include <algorithm>
 #include <stdexcept>
 #include <unordered_set>
+#include <utility>
 
 namespace {
 void dedupStrings(std::vector<std::string>& v) {
-    std::sort(v.begin(), v.end());
-    v.erase(std::unique(v.begin(), v.end()), v.end());
+    std::unordered_set<std::string> seen;
+    std::vector<std::string> out;
+    out.reserve(v.size());
+    for (const auto& value : v) {
+        if (value.empty()) continue;
+        if (!seen.insert(value).second) continue;
+        out.push_back(value);
+    }
+    v = std::move(out);
+}
+
+void dedupAliasUsage(std::vector<core::domain::AliasUsage>& v)
+{
+    std::unordered_set<std::string> seen;
+    std::vector<core::domain::AliasUsage> out;
+    out.reserve(v.size());
+    for (const auto& value : v) {
+        if (value.alias.empty()) continue;
+        if (!seen.insert(value.alias).second) continue;
+        out.push_back(value);
+    }
+    v = std::move(out);
 }
 }
 
 namespace core::application {
 
 void StateHydrator::rehydrate(AppState& state) {
+    for (auto& a : state.actors) {
+        if (!a) continue;
+        dedupStrings(a->aliases);
+        dedupAliasUsage(a->aliasUsage);
+    }
+    for (auto& p : state.properties) {
+        if (!p) continue;
+        dedupStrings(p->aliases);
+        dedupAliasUsage(p->aliasUsage);
+    }
     for (auto& c : state.contracts) {
         if (!c || c->id.empty()) continue;
+        dedupStrings(c->aliases);
+        dedupAliasUsage(c->aliasUsage);
         dedupStrings(c->actorIds);
         dedupStrings(c->propertyIds);
     }
