@@ -20,13 +20,14 @@ QString ContractController::addContract(const QString &name,
                                         const QString &type,
                                         const QString &description,
                                         const QStringList &actorIds,
-                                        const QStringList &propertyIds) {
+                                        const QStringList &propertyIds,
+                                        const QStringList &aliases) {
   return controllers::guard::invokeValue<QString>(
       core_, observability::origins::controller::contract::kAdd, {}, [&]() {
         return QString::fromStdString(core_->addContract(
             strings::toStdString(name), strings::toStdString(type),
             strings::toStdString(description), strings::toStdList(actorIds),
-            strings::toStdList(propertyIds)));
+            strings::toStdList(propertyIds), strings::toStdList(aliases)));
       });
 }
 
@@ -34,13 +35,14 @@ void ContractController::updateContract(const QString &id, const QString &name,
                                         const QString &type,
                                         const QString &description,
                                         const QStringList &actorIds,
-                                        const QStringList &propertyIds) {
+                                         const QStringList &propertyIds,
+                                         const QStringList &aliases) {
   controllers::guard::invokeVoid(
       core_, observability::origins::controller::contract::kUpdate, [&]() {
         core_->updateContract(
             strings::toStdString(id), strings::toStdString(name),
             strings::toStdString(type), strings::toStdString(description),
-            strings::toStdList(actorIds), strings::toStdList(propertyIds));
+            strings::toStdList(actorIds), strings::toStdList(propertyIds), strings::toStdList(aliases));
       });
 }
 

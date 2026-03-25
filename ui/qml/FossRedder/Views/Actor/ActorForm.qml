@@ -17,6 +17,7 @@ Item {
         typeField.text = ""
         descField.text = ""
         aliases = []
+        aliasesField.text = ""
     }
 
     function syncFields() {
@@ -35,12 +36,21 @@ Item {
     function submitActor() {
         if (!actorController) return
 
+        var aliasValues = []
+        if (aliasesField.text && aliasesField.text.length > 0) {
+            var raw = aliasesField.text.split(/\r?\n/)
+            for (var i = 0; i < raw.length; ++i) {
+                var value = String(raw[i]).trim()
+                if (value.length > 0 && aliasValues.indexOf(value) === -1) aliasValues.push(value)
+            }
+        }
+
         if (isEdit) {
-            actorController.updateActor(current.id, nameField.text, typeField.text, descField.text)
+            actorController.updateActor(current.id, nameField.text, typeField.text, descField.text, aliasValues)
             return
         }
 
-        var id = actorController.addActor(nameField.text, typeField.text, descField.text)
+        var id = actorController.addActor(nameField.text, typeField.text, descField.text, aliasValues)
         clearFields()
         if (uiData && id && id.length > 0) uiData.selectedActorId = id
     }

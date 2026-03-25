@@ -3,6 +3,16 @@
 #include <QVariant>
 
 #include "ui/payload/PayloadKeys.h"
+#include "ui/models/ImportSuggestion.h"
+
+namespace {
+
+QVariantMap bucketToVariantMap(const ui::ImportSuggestionBucket& bucket)
+{
+    return ui::toVariantMap(bucket);
+}
+
+}
 
 namespace ui {
 
@@ -23,10 +33,18 @@ QVariant TransactionDraftList::data(const QModelIndex& index, int role) const
     case ValutaRole: return t->valuta;
     case AmountRole: return t->amount;
     case DescriptionRole: return t->description;
+    case ActorTextRole: return t->actorText;
     case ActorIdRole: return t->actorId;
+    case NewActorSelectedRole: return t->newActorSelected;
+    case ContractIdRole: return t->contractId;
+    case NewContractSelectedRole: return t->newContractSelected;
     case MetadataRole: return t->metadata;
     case ProofImagePathRole: return t->proofImagePath;
+    case ActorSuggestionsRole: return bucketToVariantMap(t->suggestions.actor);
+    case PropertySuggestionsRole: return bucketToVariantMap(t->suggestions.property);
+    case ContractSuggestionsRole: return bucketToVariantMap(t->suggestions.contract);
     case AllocatableRole: return t->allocatable;
+    case AllocatableManualOverrideRole: return t->allocatableManualOverride;
     case StatusRole: return t->status;
     case PropertyIdsRole: return QVariant::fromValue(t->propertyIds);
     case TypeRole: return t->type;
@@ -42,10 +60,18 @@ QHash<int, QByteArray> TransactionDraftList::roleNames() const
     roles[ValutaRole] = payload::keys::transaction::kValuta.toUtf8();
     roles[AmountRole] = payload::keys::common::kAmount.toUtf8();
     roles[DescriptionRole] = payload::keys::common::kDescription.toUtf8();
+    roles[ActorTextRole] = "actorText";
     roles[ActorIdRole] = payload::keys::transaction::kActorId.toUtf8();
+    roles[NewActorSelectedRole] = "newActorSelected";
+    roles[ContractIdRole] = payload::keys::transaction::kContractId.toUtf8();
+    roles[NewContractSelectedRole] = "newContractSelected";
     roles[MetadataRole] = payload::keys::common::kMetadata.toUtf8();
     roles[ProofImagePathRole] = payload::keys::transaction::kProofImagePath.toUtf8();
+    roles[ActorSuggestionsRole] = "actorSuggestions";
+    roles[PropertySuggestionsRole] = "propertySuggestions";
+    roles[ContractSuggestionsRole] = "contractSuggestions";
     roles[AllocatableRole] = payload::keys::transaction::kAllocatable.toUtf8();
+    roles[AllocatableManualOverrideRole] = "allocatableManualOverride";
     roles[StatusRole] = payload::keys::common::kStatus.toUtf8();
     roles[PropertyIdsRole] = payload::keys::transaction::kPropertyIds.toUtf8();
     roles[TypeRole] = payload::keys::common::kType.toUtf8();
@@ -67,10 +93,18 @@ QVariantMap TransactionDraftList::get(int index) const
     m[payload::keys::transaction::kValuta] = t->valuta;
     m[payload::keys::common::kAmount] = t->amount;
     m[payload::keys::common::kDescription] = t->description;
+    m["actorText"] = t->actorText;
     m[payload::keys::transaction::kActorId] = t->actorId;
+    m["newActorSelected"] = t->newActorSelected;
+    m[payload::keys::transaction::kContractId] = t->contractId;
+    m["newContractSelected"] = t->newContractSelected;
     m[payload::keys::common::kMetadata] = t->metadata;
     m[payload::keys::transaction::kProofImagePath] = t->proofImagePath;
+    m["actorSuggestions"] = bucketToVariantMap(t->suggestions.actor);
+    m["propertySuggestions"] = bucketToVariantMap(t->suggestions.property);
+    m["contractSuggestions"] = bucketToVariantMap(t->suggestions.contract);
     m[payload::keys::transaction::kAllocatable] = t->allocatable;
+    m["allocatableManualOverride"] = t->allocatableManualOverride;
     m[payload::keys::common::kStatus] = t->status;
     m[payload::keys::transaction::kPropertyIds] = t->propertyIds;
     m[payload::keys::common::kType] = t->type;
@@ -81,6 +115,20 @@ void TransactionDraftList::setActorId(int index, const QString& actorId)
 {
     updateField(index, actorId, ActorIdRole, [](TransactionDraft& draft) -> QString& {
         return draft.actorId;
+    });
+}
+
+void TransactionDraftList::setActorText(int index, const QString& actorText)
+{
+    updateField(index, actorText, ActorTextRole, [](TransactionDraft& draft) -> QString& {
+        return draft.actorText;
+    });
+}
+
+void TransactionDraftList::setNewActorSelected(int index, bool selected)
+{
+    updateField(index, selected, NewActorSelectedRole, [](TransactionDraft& draft) -> bool& {
+        return draft.newActorSelected;
     });
 }
 
@@ -119,6 +167,20 @@ void TransactionDraftList::setDescription(int index, const QString& description)
     });
 }
 
+void TransactionDraftList::setContractId(int index, const QString& contractId)
+{
+    updateField(index, contractId, ContractIdRole, [](TransactionDraft& draft) -> QString& {
+        return draft.contractId;
+    });
+}
+
+void TransactionDraftList::setNewContractSelected(int index, bool selected)
+{
+    updateField(index, selected, NewContractSelectedRole, [](TransactionDraft& draft) -> bool& {
+        return draft.newContractSelected;
+    });
+}
+
 void TransactionDraftList::setStatus(int index, int status)
 {
     updateField(index, status, StatusRole, [](TransactionDraft& draft) -> int& {
@@ -144,6 +206,13 @@ void TransactionDraftList::setAllocatable(int index, bool v)
 {
     updateField(index, v, AllocatableRole, [](TransactionDraft& draft) -> bool& {
         return draft.allocatable;
+    });
+}
+
+void TransactionDraftList::setAllocatableManualOverride(int index, bool v)
+{
+    updateField(index, v, AllocatableManualOverrideRole, [](TransactionDraft& draft) -> bool& {
+        return draft.allocatableManualOverride;
     });
 }
 

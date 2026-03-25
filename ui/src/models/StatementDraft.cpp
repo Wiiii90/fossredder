@@ -1,10 +1,16 @@
 #include "ui/models/StatementDraft.h"
 
+#include <QAbstractItemModel>
+
 namespace ui {
 
 StatementDraft::StatementDraft(QObject* parent)
     : QObject(parent), transactions_()
 {
+    QObject::connect(&transactions_, &QAbstractItemModel::dataChanged, this, [this]() { emit changed(); });
+    QObject::connect(&transactions_, &QAbstractItemModel::rowsInserted, this, [this]() { emit changed(); });
+    QObject::connect(&transactions_, &QAbstractItemModel::rowsRemoved, this, [this]() { emit changed(); });
+    QObject::connect(&transactions_, &QAbstractItemModel::modelReset, this, [this]() { emit changed(); });
 }
 
 void StatementDraft::setName(const QString& n)
@@ -32,6 +38,12 @@ int StatementDraft::count() const
 QVariantMap StatementDraft::current() const
 {
     return transactions_.get(currentIndex_);
+}
+
+void StatementDraft::setCatalogState(const core::domain::AppState& state)
+{
+    catalogState_ = state;
+    hasCatalogState_ = true;
 }
 
 bool StatementDraft::hasCurrent() const

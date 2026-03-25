@@ -10,6 +10,25 @@
 
 namespace api::tesseract {
 
+inline constexpr const char* kDefaultStatementCharWhitelist =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜabcdefghijklmnopqrstuvwxyzäöüß0123456789.,:-/()'“”‘’+&% ";
+
+enum class OcrEngineMode : int {
+    LegacyOnly = 0,
+    LstmOnly = 1,
+    LegacyAndLstm = 2,
+    Default = 3
+};
+
+/** @brief User-facing OCR tuning that can be forwarded through the import pipeline. */
+struct RecognitionSettings {
+    std::string language = "deu";
+    OcrEngineMode engineMode = OcrEngineMode::LstmOnly;
+    bool preserveInterwordSpaces = true;
+    std::string charWhitelist = kDefaultStatementCharWhitelist;
+    int psm = -1;
+};
+
 struct ExtractRequest {
     enum class Kind { Text, Table } kind = Kind::Text;
 
@@ -21,7 +40,7 @@ struct ExtractRequest {
     std::vector<Cell> cells;
 
     std::string tessdataPath;
-    int psm = 3;
+    RecognitionSettings recognition;
 
     std::shared_ptr<std::atomic<bool>> cancelFlag;
 };

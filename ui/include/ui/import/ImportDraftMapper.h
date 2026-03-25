@@ -6,6 +6,7 @@
 #include <QString>
 
 #include "core/import/ImportedTransaction.h"
+#include "core/models/AppState.h"
 
 class QObject;
 namespace core::domain { class Statement; }
@@ -17,9 +18,11 @@ struct TransactionDraft;
 
 namespace ui::importing {
 
-std::vector<TransactionDraft> mapTransactionsToDrafts(const std::vector<ImportedTransaction>& transactions);
+std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppState& state,
+                                                      const std::vector<ImportedTransaction>& transactions);
 StatementDraft* createStatementDraft(const QString& sourceFile,
                                      const std::shared_ptr<core::domain::Statement>& statement,
+                                     const core::domain::AppState& state,
                                      const std::vector<ImportedTransaction>& transactions,
                                      QObject* parent);
 

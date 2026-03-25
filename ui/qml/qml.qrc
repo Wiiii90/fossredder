@@ -87,6 +87,13 @@
 
         <file>FossRedder/Views/Import/ImportSidebar.qml</file>
         <file>FossRedder/Views/Import/ImportView.qml</file>
+        <file>FossRedder/Views/Import/TransactionDraftFieldRow.qml</file>
+        <file>FossRedder/Views/Import/TransactionDraftProofPanel.qml</file>
+        <file>FossRedder/Views/Import/TransactionDraftMetadataPanel.qml</file>
+        <file>FossRedder/Views/Import/TransactionDraftAllocatablePanel.qml</file>
+        <file>FossRedder/Views/Import/TransactionDraftActorPanel.qml</file>
+        <file>FossRedder/Views/Import/TransactionDraftPropertyPanel.qml</file>
+        <file>FossRedder/Views/Import/TransactionDraftContractPanel.qml</file>
         <file>FossRedder/Views/Import/StatementDraftView.qml</file>
         <file>FossRedder/Views/Import/TransactionDraftView.qml</file>
 

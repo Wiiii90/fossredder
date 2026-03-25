@@ -35,8 +35,8 @@ private:
 std::shared_ptr<IImportStatement> createImportStatement(std::shared_ptr<api::poppler::IPopplerService> poppler,
                                                         std::shared_ptr<api::opencv::IOpenCvService> openCv,
                                                         std::shared_ptr<api::tesseract::ITesseractService> tesseract,
-                                                        std::shared_ptr<IDebugger> debugger) {
-    auto strat = createDefaultImportStrategy(poppler, openCv, tesseract, std::move(debugger));
+                                                        std::shared_ptr<core::errors::IErrorReporter> errorReporter) {
+    auto strat = createDefaultImportStrategy(poppler, openCv, tesseract, std::move(errorReporter));
     return std::make_shared<ImportStatementImpl>(std::move(strat));
 }
 

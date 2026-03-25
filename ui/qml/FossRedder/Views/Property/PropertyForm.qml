@@ -10,8 +10,9 @@ Item {
     property var current: uiData ? uiData.selectedProperty : null
     readonly property int amountColumnWidth: Theme.formLabelWidth
     property bool isEdit: current && current.id && String(current.id).length > 0
+    property var aliases: []
 
-    function clearFields() { nameField.text = ""; sums = ({}) }
+    function clearFields() { nameField.text = ""; aliasesField.text = ""; sums = ({}) }
 
     function refreshSums() {
         if (!current || !uiData) {
@@ -25,11 +26,19 @@ Item {
 
     function submitProperty() {
         if (!propertyController) return
+        var aliasValues = []
+        if (aliasesField.text && aliasesField.text.length > 0) {
+            var raw = aliasesField.text.split(/\r?\n/)
+            for (var i = 0; i < raw.length; ++i) {
+                var value = String(raw[i]).trim()
+                if (value.length > 0 && aliasValues.indexOf(value) === -1) aliasValues.push(value)
+            }
+        }
         if (isEdit) {
-            propertyController.updateProperty(current.id, nameField.text, "", "")
+            propertyController.updateProperty(current.id, nameField.text, "", "", aliasValues)
             return
         }
-        var id = propertyController.addProperty(nameField.text, "", "")
+        var id = propertyController.addProperty(nameField.text, "", "", aliasValues)
         clearFields()
         if (uiData && id && id.length > 0) uiData.selectedPropertyId = id
     }
@@ -37,6 +46,7 @@ Item {
     function syncFields() {
         if (!isEdit) { clearFields(); return }
         nameField.text = current.name || ""
+        aliasesField.text = (current.aliases || []).join("\n")
         refreshSums()
         rebuildTypes()
         computeFilteredSums()
@@ -136,6 +146,31 @@ Item {
         Label { text: isEdit ? qsTr("Building overview") : qsTr("Create new building"); font.pointSize: Theme.fontSizeTitle + Theme.margins }
 
         Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
+
+        GroupBox {
+            title: qsTr("Aliases")
+            Layout.fillWidth: true
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: Theme.spacingMedium
+                spacing: Theme.spacingSmall
+
+                Label {
+                    text: qsTr("One alias per line. Used for auto-matching during import.")
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+
+                Controls.TextArea {
+                    id: aliasesField
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.chartLegendHeight
+                    wrapMode: TextArea.Wrap
+                    placeholderText: qsTr("e.g.\nMain Building\nHQ\nSite A")
+                }
+            }
+        }
 
         Item { Layout.fillHeight: true }
 

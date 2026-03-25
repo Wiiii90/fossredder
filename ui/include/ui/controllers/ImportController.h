@@ -13,6 +13,7 @@
 #include <memory>
 
 #include "core/errors/IErrorReporter.h"
+#include "core/models/AppState.h"
 #include "ui/import/ImportJobBridge.h"
 #include "ui/import/ImportState.h"
 #include "ui/models/ImportRunList.h"
@@ -38,10 +39,13 @@ class ImportController : public QObject {
 
 public:
     using JobSystemFactory = std::function<std::shared_ptr<core::jobs::JobSystem>()>;
+    using StateSnapshotProvider = std::function<core::domain::AppState()>;
 
     explicit ImportController(JobSystemFactory jobSystemFactory,
                               std::shared_ptr<core::errors::IErrorReporter> errorReporter,
                               QObject* parent = nullptr);
+
+    void setStateSnapshotProvider(StateSnapshotProvider provider);
 
     bool isRunning() const noexcept { return state_.isRunning(); }
     double progress() const noexcept { return state_.progress(); }
@@ -86,6 +90,7 @@ private:
     std::unique_ptr<ImportRunList> runs_;
     importing::ImportState state_;
     JobSystemFactory jobSystemFactory_;
+    StateSnapshotProvider stateSnapshotProvider_;
     std::unique_ptr<importing::ImportJobBridge> jobBridge_;
     std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
 

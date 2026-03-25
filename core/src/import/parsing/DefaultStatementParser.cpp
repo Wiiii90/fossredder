@@ -27,12 +27,21 @@ using core::parser::detail::ColumnModel;
 using core::parser::detail::HeaderAnalysis;
 using core::parser::detail::RawLine;
 using core::parser::detail::analyzeHeaderWindow;
+using core::parser::detail::appendDetailLine;
 using core::parser::detail::appendPageSummary;
 using core::parser::detail::appendTransactionsFromBlocks;
+using core::parser::detail::attachOrphansToBlocks;
+using core::parser::detail::detectEarlyEmptyPage;
+using core::parser::detail::findBookingDateInHeader;
+using core::parser::detail::findFallbackBookingDate;
+using core::parser::detail::handleMainRow;
 using core::parser::detail::isLikelyTransactionHeaderLine;
 using core::parser::detail::isLikelyTransactionMainRowGeom;
 using core::parser::detail::rawToOcrLine;
 using core::parser::detail::rescueOrphanBlocks;
+using core::parser::detail::selectiveGroupMergeLinesRaw;
+using core::parser::detail::tryCombinedStart;
+using core::parser::detail::tryVerticalStart;
 using utils::lowerAscii;
 using utils::trim;
 
@@ -90,7 +99,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
     rawLite.reserve(ocrLines.size());
     for (const auto& l : ocrLines) rawLite.push_back({ l.minX, l.maxX, l.minY, l.maxY, l.wordSpans, l.text });
 
-    const auto merged = core::parser::helpers::selectiveGroupMergeLinesRaw(rawLite, 8, { seed.valutaX, seed.debitX, seed.creditX });
+    const auto merged = selectiveGroupMergeLinesRaw(rawLite, 8, { seed.valutaX, seed.debitX, seed.creditX });
     // convert merged back to RawLine
     std::vector<RawLine> lines; lines.reserve(merged.size());
     for (const auto& ml : merged) lines.push_back(RawLine{0, ml.minX, ml.maxX, ml.minY, ml.maxY, ml.wordSpans, ml.text});
@@ -106,7 +115,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
     try {
         for (size_t i = 0; i < lines.size(); ++i) {
             try {
-                if (auto bd = core::parser::helpers::findBookingDateInHeader(lines[i].text)) {
+                if (auto bd = findBookingDateInHeader(lines[i].text)) {
                     pageHeaderDates.emplace_back(i, *bd);
                 }
             } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerOverrideByValutaAnchor", std::current_exception()); }
@@ -121,8 +130,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
     // Early empty-page detection: centralized helper
     {
         std::string dbg;
-        std::string foundDate;
-        if (core::parser::helpers::detectEarlyEmptyPage(ocrLines, dbg, foundDate)) {
+        if (detectEarlyEmptyPage(ocrLines, dbg)) {
             out.debugLines.push_back(dbg);
             out.debugLines.push_back(std::string("page.emptyDetected\tlines=") + std::to_string(12));
             out.lastBookingDate = currentBookingDate;
@@ -149,7 +157,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
 
     // Booking-date fallback: try centralized helper
     if (currentBookingDate.empty()) {
-        if (auto d = core::parser::helpers::findFallbackBookingDate(ocrLines, 30)) {
+        if (auto d = findFallbackBookingDate(ocrLines, 30)) {
             currentBookingDate = *d;
             out.debugLines.push_back(std::string("header.fallbackBookingDate\t") + currentBookingDate);
             cur.bookingDateGroup = currentBookingDate;
@@ -240,11 +248,11 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             // from being swallowed by conservative header bounding.
             bool hasHeaderSignal = false;
             try {
-                if (core::parser::helpers::findBookingDateInHeader(txt).has_value()) hasHeaderSignal = true;
+                if (findBookingDateInHeader(txt).has_value()) hasHeaderSignal = true;
             } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::txt", std::current_exception()); }
             try {
                 // also consider the combined previous+current token for split OCR cases
-                if (core::parser::helpers::findBookingDateInHeader(combined).has_value()) hasHeaderSignal = true;
+                if (findBookingDateInHeader(combined).has_value()) hasHeaderSignal = true;
             } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::combined", std::current_exception()); }
             try {
                 if (isValutaHeaderLine(txt)) hasHeaderSignal = true;
@@ -258,7 +266,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     std::string combNext = txt;
                     if (li + 1 < lines.size()) combNext = txt + std::string(" ") + lines[li+1].text;
                     try {
-                        if (auto cs = core::parser::helpers::tryCombinedStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX })) {
+                        if (auto cs = tryCombinedStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX })) {
                             inTransactions = true;
                             out.debugLines.push_back(std::string("tx.start.combined.aboveHeader\tline=") + std::to_string(li) + "\ttext=" + (cs->second ? combNext : combPrev));
                             combinedStarted = true;
@@ -323,7 +331,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             continue;
         }
 
-        if (auto bd = core::parser::helpers::findBookingDateInHeader(txt)) {
+        if (auto bd = findBookingDateInHeader(txt)) {
             currentBookingDate = *bd;
             out.debugLines.push_back(std::string("header.bookingDate\t") + currentBookingDate + "\tline=" + std::to_string(li));
             flush();
@@ -368,7 +376,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             // conservative vertical merge: check neighbor lines for amount/date relationship
             try {
                 if (canStart && rows.inSection && cols.hasValuta()) {
-                    if (auto vs = core::parser::helpers::tryVerticalStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX }, currentBookingDate)) {
+                    if (auto vs = tryVerticalStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX })) {
                         inTransactions = true; didVerticalStart = true;
                         if (!cur.main.left.empty() || !cur.detailLines.empty()) flush();
                         cur.bookingDateGroup = currentBookingDate;
@@ -396,7 +404,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     std::string combNext = txt;
                     if (li + 1 < lines.size()) combNext = txt + std::string(" ") + lines[li+1].text;
                     try {
-                        if (auto cs = core::parser::helpers::tryCombinedStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX })) {
+                        if (auto cs = tryCombinedStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX })) {
                             inTransactions = true; startedCombined = true;
                             out.debugLines.push_back(std::string("tx.start.combined\tline=") + std::to_string(li) + "\ttext=" + (cs->second ? combNext : combPrev));
                         }
@@ -433,7 +441,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     if (!cur.main.left.empty() || !cur.detailLines.empty()) flush();
                     cur.bookingDateGroup = currentBookingDate;
                     core::parser::helpers::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
-                    cur.main = core::parser::helpers::handleMainRow(rawToOcrLine(l), cg, false, out.debugLines);
+                    cur.main = handleMainRow(rawToOcrLine(l), cg, false, out.debugLines);
                     prevLine = txt;
                     continue;
                     }
@@ -450,14 +458,14 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
             if (!cur.main.left.empty() || !cur.detailLines.empty()) flush();
             cur.bookingDateGroup = currentBookingDate;
             core::parser::helpers::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
-            cur.main = core::parser::helpers::handleMainRow(rawToOcrLine(l), cg, mainByGeom, out.debugLines);
+            cur.main = handleMainRow(rawToOcrLine(l), cg, mainByGeom, out.debugLines);
             prevLine = txt;
             continue;
         }
 
         if (!cur.main.left.empty()) {
             core::parser::helpers::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
-            core::parser::helpers::appendDetailLine(cur, rawToOcrLine(l), cg, &out.debugLines);
+            appendDetailLine(cur, rawToOcrLine(l), cg, &out.debugLines);
         }
 
         prevLine = txt;
@@ -478,7 +486,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                     TransactionBlock nb;
                     nb.bookingDateGroup = currentBookingDate;
                     core::parser::helpers::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
-                    nb.main = core::parser::helpers::handleMainRow(ol, cg, false, out.debugLines);
+                    nb.main = handleMainRow(ol, cg, false, out.debugLines);
                     blocks.push_back(std::move(nb));
                     out.debugLines.push_back(std::string("tx.start.rescued\ttext=") + ol.text);
                 }
@@ -486,7 +494,11 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
         }
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::rescue", std::current_exception()); }
 
-    core::parser::helpers::attachOrphansToBlocks(blocks, orphanLines, core::constants::parser::kAttachOrphanMaxDistance, cols.valutaX);
+    attachOrphansToBlocks(blocks,
+                          orphanLines,
+                          core::constants::parser::kAttachOrphanMaxDistance,
+                          cols.valutaX,
+                          &out.debugLines);
 
     out.debugLines.push_back(std::string("blocks\t") + std::to_string(blocks.size()));
 

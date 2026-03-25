@@ -214,6 +214,7 @@ void ImportState::recordFailed(const QString& now, const QString& errorMessage)
 
 bool ImportState::populateDraft(const QString& now,
                                 const std::shared_ptr<core::domain::Statement>& statement,
+                                const core::domain::AppState& state,
                                 const std::vector<ImportedTransaction>& transactions,
                                 const std::map<std::string, std::vector<uint8_t>>& artifacts,
                                 QObject* parent)
@@ -222,7 +223,7 @@ bool ImportState::populateDraft(const QString& now,
 
     storeArtifacts(artifacts);
 
-    draft_ = createStatementDraft(currentImportFile_, statement, transactions, parent);
+    draft_ = createStatementDraft(currentImportFile_, statement, state, transactions, parent);
     progress_ = ui::config::importProgress::kMaximum;
     finalizeRun(now,
                 ui::text::importPhases::finished(),

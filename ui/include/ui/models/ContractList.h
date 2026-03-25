@@ -33,10 +33,11 @@ public:
 
     void setContracts(std::vector<std::shared_ptr<core::domain::Contract>> contracts) { setItems(std::move(contracts)); }
     const std::vector<std::shared_ptr<core::domain::Contract>>& contracts() const { return items(); }
-    int findRowById(const QString& id) const { return findIndexedRow(id); }
+    Q_INVOKABLE int findRowById(const QString& id) const { return findIndexedRow(id); }
 
     Q_INVOKABLE int addContract(const QString& name, const QString& type, const QString& description);
     Q_INVOKABLE void removeAt(int row) { removeItemAt(row); }
+    Q_INVOKABLE QVariantMap get(int index) const;
 
     static QStringList toQStringList(const std::vector<std::string>& v);
 };

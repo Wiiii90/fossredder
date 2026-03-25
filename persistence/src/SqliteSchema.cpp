@@ -137,5 +137,47 @@ void SqliteSchema::migrate(sqlite3* db) {
         );
         setUserVersion(db, 1);
         v = 1;
-    }    
+    }
+
+    if (v < 2) {
+        exec(db,
+            "BEGIN;"
+            "CREATE TABLE IF NOT EXISTS actor_aliases ("
+            "actor_id TEXT NOT NULL,"
+            "alias TEXT NOT NULL,"
+            "hit_count INTEGER NOT NULL DEFAULT 1,"
+            "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "last_used_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "PRIMARY KEY(actor_id, alias),"
+            "FOREIGN KEY(actor_id) REFERENCES actors(id) ON DELETE CASCADE"
+            ");"
+            "CREATE TABLE IF NOT EXISTS property_aliases ("
+            "property_id TEXT NOT NULL,"
+            "alias TEXT NOT NULL,"
+            "hit_count INTEGER NOT NULL DEFAULT 1,"
+            "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "last_used_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "PRIMARY KEY(property_id, alias),"
+            "FOREIGN KEY(property_id) REFERENCES properties(id) ON DELETE CASCADE"
+            ");"
+            "CREATE TABLE IF NOT EXISTS contract_aliases ("
+            "contract_id TEXT NOT NULL,"
+            "alias TEXT NOT NULL,"
+            "hit_count INTEGER NOT NULL DEFAULT 1,"
+            "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "last_used_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "PRIMARY KEY(contract_id, alias),"
+            "FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE CASCADE"
+            ");"
+            "CREATE INDEX IF NOT EXISTS idx_actor_aliases_alias ON actor_aliases(alias);"
+            "CREATE INDEX IF NOT EXISTS idx_property_aliases_alias ON property_aliases(alias);"
+            "CREATE INDEX IF NOT EXISTS idx_contract_aliases_alias ON contract_aliases(alias);"
+            "COMMIT;"
+        );
+        setUserVersion(db, 2);
+        v = 2;
+    }
 }

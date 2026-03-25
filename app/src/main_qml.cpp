@@ -49,6 +49,7 @@ using core::domain::DeletionImpact;
 #include "ui/observability/Origins.h"
 #include "ui/observability/Trace.h"
 #include "ui/providers/DraftProofProvider.h"
+#include "ui/state/AppStateClone.h"
 #include "ui/state/StateFacade.h"
 #include <QApplication>
 #include <QQmlEngine>
@@ -150,7 +151,7 @@ UiControllers setupUiControllers(
   w.setQmlContextProperty(ui::qml::contracts::context::kStorageController,
                           ui.storage);
 
-  const auto stateSnapshotProvider = [&appStateFacade]() {
+  const auto exportSnapshotProvider = [&appStateFacade]() {
     return ui::exporting::createSnapshot(appStateFacade.state());
   };
 
@@ -163,7 +164,7 @@ UiControllers setupUiControllers(
   ui.transaction = new ui::TransactionController(&appStateFacade, &w);
   ui.draft = new ui::DraftController(&appStateFacade, &w);
   ui.analysisController = new ui::AnalysisController(
-      &appStateFacade, stateSnapshotProvider, ui.analysisService, &w);
+      &appStateFacade, exportSnapshotProvider, ui.analysisService, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kAnnualController,
                           ui.annual);
   w.setQmlContextProperty(ui::qml::contracts::context::kActorController,
@@ -184,7 +185,7 @@ UiControllers setupUiControllers(
   auto exportRunner =
       std::make_shared<ui::exporting::ExportRunner>(executeExport);
   ui.exportCtrl =
-      new ui::ExportController(stateSnapshotProvider, exportRunner, &w);
+      new ui::ExportController(exportSnapshotProvider, exportRunner, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kExportController,
                           ui.exportCtrl);
 
@@ -193,7 +194,8 @@ UiControllers setupUiControllers(
                           ui.language);
 
   auto importJobSystemFactory = [dbg = std::make_shared<FileDebugger>(
-                                   "", std::string(debug::defaults::kImportProcessName))]() {
+                                   "", std::string(debug::defaults::kImportProcessName)),
+                                 &errorReporter]() {
     auto popplerAdapter = createPopplerAdapter(dbg);
     auto opencvAdapter = createOpenCvAdapter(dbg);
     auto tesseractAdapter = createTesseractAdapter(dbg);
@@ -202,11 +204,35 @@ UiControllers setupUiControllers(
     auto opencv = api::opencv::createOpenCvService(opencvAdapter);
     auto tesseract = api::tesseract::createTesseractService(tesseractAdapter);
 
-    auto importSvc = core::importing::createImportStatement(poppler, opencv, tesseract, dbg);
+    auto importSvc = core::importing::createImportStatement(poppler, opencv, tesseract, errorReporter);
     return std::make_shared<core::jobs::JobSystem>(importSvc);
   };
 
+  const auto importSnapshotProvider = [&appStateFacade, &w]() {
+    const auto liveState = appStateFacade.state();
+    if (auto *session = w.dataSession()) {
+      AppState snapshot;
+      snapshot.actors = ui::cloneStateItems(session->actors()->actors());
+      snapshot.properties = ui::cloneStateItems(session->properties()->properties());
+      snapshot.contracts = ui::cloneStateItems(session->contracts()->contracts());
+      snapshot.statements = ui::cloneStateItems(session->statements()->statements());
+      snapshot.transactions = ui::cloneStateItems(session->transactions()->transactions());
+      snapshot.analyses = ui::cloneStateItems(session->analyses()->analyses());
+      snapshot.annuals = ui::cloneStateItems(session->annuals()->annuals());
+      if (snapshot.actors.empty()) snapshot.actors = liveState.actors;
+      if (snapshot.properties.empty()) snapshot.properties = liveState.properties;
+      if (snapshot.contracts.empty()) snapshot.contracts = liveState.contracts;
+      if (snapshot.statements.empty()) snapshot.statements = liveState.statements;
+      if (snapshot.transactions.empty()) snapshot.transactions = liveState.transactions;
+      if (snapshot.analyses.empty()) snapshot.analyses = liveState.analyses;
+      if (snapshot.annuals.empty()) snapshot.annuals = liveState.annuals;
+      return snapshot;
+    }
+    return liveState;
+  };
+
   ui.import = new ui::ImportController(importJobSystemFactory, errorReporter, &w);
+  ui.import->setStateSnapshotProvider(importSnapshotProvider);
   w.setQmlContextProperty(ui::qml::contracts::context::kImportController,
                           ui.import);
 

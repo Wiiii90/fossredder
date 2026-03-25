@@ -18,23 +18,25 @@ PropertyController::PropertyController(core::application::AppStateFacade *core,
 
 QString PropertyController::addProperty(const QString &name,
                                         const QString &address,
-                                        const QString &description) {
+                                         const QString &description,
+                                         const QStringList &aliases) {
   return controllers::guard::invokeValue<QString>(
       core_, observability::origins::controller::property::kAdd, {}, [&]() {
         return QString::fromStdString(core_->addProperty(
             strings::toStdString(name), strings::toStdString(address),
-            strings::toStdString(description)));
+            strings::toStdString(description), strings::toStdList(aliases)));
       });
 }
 
 void PropertyController::updateProperty(const QString &id, const QString &name,
                                         const QString &address,
-                                        const QString &description) {
+                                        const QString &description,
+                                        const QStringList &aliases) {
   controllers::guard::invokeVoid(
       core_, observability::origins::controller::property::kUpdate, [&]() {
         core_->updateProperty(
             strings::toStdString(id), strings::toStdString(name),
-            strings::toStdString(address), strings::toStdString(description));
+            strings::toStdString(address), strings::toStdString(description), strings::toStdList(aliases));
       });
 }
 

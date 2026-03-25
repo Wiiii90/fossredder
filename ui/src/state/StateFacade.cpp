@@ -108,10 +108,21 @@ QVariantList StateFacade::contractRows() const
     for (const auto& contract : session_->models().contracts().contracts()) {
         if (!contract) continue;
 
+        QStringList aliases;
+        for (const auto& alias : contract->aliases) aliases.push_back(QString::fromStdString(alias));
+
         QVariantMap row;
         row.insert("id", QString::fromStdString(contract->id));
         row.insert("name", QString::fromStdString(contract->name));
         row.insert("type", QString::fromStdString(contract->type));
+        row.insert("display", QString::fromStdString(contract->name));
+        row.insert("aliases", aliases);
+        QStringList actorIds;
+        for (const auto& actorId : contract->actorIds) actorIds.push_back(QString::fromStdString(actorId));
+        QStringList propertyIds;
+        for (const auto& propertyId : contract->propertyIds) propertyIds.push_back(QString::fromStdString(propertyId));
+        row.insert("actorIds", actorIds);
+        row.insert("propertyIds", propertyIds);
         out.push_back(row);
     }
     return out;
@@ -123,10 +134,17 @@ QVariantList StateFacade::actorRows() const
     for (const auto& actor : session_->models().actors().actors()) {
         if (!actor) continue;
 
+        QStringList aliases;
+        for (const auto& alias : actor->aliases) aliases.push_back(QString::fromStdString(alias));
+
         QVariantMap row;
         row.insert("id", QString::fromStdString(actor->id));
         row.insert("name", QString::fromStdString(actor->name));
         row.insert("type", QString::fromStdString(actor->type));
+        row.insert("display", actor->type.empty()
+                                 ? QString::fromStdString(actor->name)
+                                 : QString::fromStdString(actor->name) + QStringLiteral(" — ") + QString::fromStdString(actor->type));
+        row.insert("aliases", aliases);
         out.push_back(row);
     }
     return out;
@@ -138,9 +156,16 @@ QVariantList StateFacade::propertyRows() const
     for (const auto& property : session_->models().properties().properties()) {
         if (!property) continue;
 
+        QStringList aliases;
+        for (const auto& alias : property->aliases) aliases.push_back(QString::fromStdString(alias));
+
         QVariantMap row;
         row.insert("id", QString::fromStdString(property->id));
         row.insert("name", QString::fromStdString(property->name));
+        row.insert("display", property->address.empty()
+                                 ? QString::fromStdString(property->name)
+                                 : QString::fromStdString(property->name) + QStringLiteral(" — ") + QString::fromStdString(property->address));
+        row.insert("aliases", aliases);
         out.push_back(row);
     }
     return out;
