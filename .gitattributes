@@ -1,1 +1,76 @@
+.gitattributes - enforce consistent EOLs, mark binary files, and keep copilot instructions excluded from master merges
+
+# Keep this attributes file normalized
+.gitattributes text eol=lf
+
+# Default: treat files as text where appropriate and keep LF in the repository
+* text=auto eol=lf
+
+###############################################################################
+# Source files: enforce LF in the repo
+###############################################################################
+*.c     text eol=lf
+*.h     text eol=lf
+*.cpp   text eol=lf
+*.hpp   text eol=lf
+*.cc    text eol=lf
+*.hh    text eol=lf
+*.inl   text eol=lf
+*.mm    text eol=lf
+*.rs    text eol=lf
+*.go    text eol=lf
+*.java  text eol=lf
+*.cs    text eol=lf
+
+# Project, config and documentation files
+CMakeLists.txt    text eol=lf
+*.cmake           text eol=lf
+*.json            text eol=lf
+*.yml             text eol=lf
+*.yaml            text eol=lf
+*.md              text eol=lf
+*.txt             text eol=lf
+
+# Scripts: prefer LF for POSIX scripts
+*.sh    text eol=lf
+*.py    text eol=lf
+*.pl    text eol=lf
+
+# Windows scripts: keep CRLF in worktree
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+###############################################################################
+# Binary files - do not attempt EOL normalization
+###############################################################################
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.tiff  binary
+*.bmp   binary
+*.zip   binary
+*.tar   binary
+*.gz    binary
+*.7z    binary
+*.exe   binary
+*.dll   binary
+*.so    binary
+*.dylib binary
+*.lib   binary
+*.a     binary
+*.obj   binary
+*.o     binary
+*.pdb   binary
+*.pdf   binary
+
+# Large or generated resource directories - treat as binary
+services/llama/res/** binary
+services/tesseract/res/** binary
+
+# Keep branch-specific copilot instructions out of master merges
 .github/copilot-instructions.md merge=ours
+
+# End of file
