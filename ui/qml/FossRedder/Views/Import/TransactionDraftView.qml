@@ -9,6 +9,8 @@ Item {
 
     property var draft
     property var viewState: ({})
+    property bool syncScheduled: false
+    readonly property var actorChoices: viewState && viewState.actorChoices ? viewState.actorChoices : []
     readonly property var statusOptions: [
         { label: qsTr("Neutral"), value: 0 },
         { label: qsTr("Unverified"), value: 1 },
@@ -32,10 +34,6 @@ Item {
     function actorTopSuggestion() { return topSuggestion(suggestionBucket("actorSuggestions")) }
     function propertyTopSuggestion() { return topSuggestion(suggestionBucket("propertySuggestions")) }
     function contractTopSuggestion() { return topSuggestion(suggestionBucket("contractSuggestions")) }
-
-    function suggestion(kind) {
-        return viewState && viewState[kind] ? viewState[kind] : ({})
-    }
 
     function suggestionConfidencePercent(s) {
         var confidence = s && s.confidence !== undefined ? Number(s.confidence) : 0.0
@@ -96,24 +94,36 @@ Item {
     }
 
     function syncViewState() {
-        if (draftController && draft) draftController.syncCurrentTransactionDraft(draft)
-        viewState = draftController && draft ? draftController.currentTransactionViewState(draft) : ({})
+        syncScheduled = false
+        if (!(draftController && draft)) {
+            viewState = ({})
+            return
+        }
+
+        draftController.syncCurrentTransactionDraft(draft)
+        viewState = draftController.currentTransactionViewState(draft)
     }
 
-    function forceSync() { syncViewState() }
+    function scheduleSyncViewState() {
+        if (syncScheduled) return
+        syncScheduled = true
+        Qt.callLater(function() {
+            txRoot.syncViewState()
+        })
+    }
 
     implicitHeight: txLayout.implicitHeight
     implicitWidth: txLayout.implicitWidth
     height: implicitHeight
 
-    onDraftChanged: syncViewState()
+    onDraftChanged: scheduleSyncViewState()
 
     Connections {
         target: draft
-        function onChanged() { txRoot.syncViewState() }
+        function onChanged() { txRoot.scheduleSyncViewState() }
     }
 
-    Component.onCompleted: syncViewState()
+    Component.onCompleted: scheduleSyncViewState()
 
     ColumnLayout {
         id: txLayout

@@ -20,7 +20,6 @@ struct TransactionDraft {
     QString propertyText;
     QString actorId;
     bool newActorSelected = false;
-    QString contractText;
     QString contractId;
     bool newContractSelected = false;
 

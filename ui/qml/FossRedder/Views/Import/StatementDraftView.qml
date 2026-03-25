@@ -9,6 +9,7 @@ Item {
     anchors.fill: parent
 
     property var draft
+
     implicitHeight: stmtLayout.implicitHeight
     implicitWidth: stmtLayout.implicitWidth
 

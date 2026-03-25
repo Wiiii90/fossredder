@@ -26,34 +26,25 @@ Controls.Panel {
 
         Label { text: qsTr("Actor"); Layout.fillWidth: true }
 
-        Controls.ComboBox {
-            id: actorSelector
+        Controls.TextField {
+            id: actorTextField
             Layout.fillWidth: true
-            editable: true
-            textRole: "display"
-            model: root.txRoot && root.txRoot.viewState ? (root.txRoot.viewState.actorChoices || []) : []
-            currentIndex: root.txRoot && root.txRoot.viewState ? root.txRoot.viewState.actorCurrentIndex : -1
-            editText: root.txRoot && root.txRoot.viewState ? (root.txRoot.viewState.actorDisplayText || (root.txRoot.draft && root.txRoot.draft.current ? (root.txRoot.draft.current.actorText || "") : "")) : ""
+            placeholderText: qsTr("Actor")
+            text: root.txRoot && root.txRoot.draft && root.txRoot.draft.current ? (root.txRoot.draft.current.actorText || "") : ""
 
-            onActivated: {
-                if (!root.txRoot || !root.txRoot.draft || !draftController) return
-                var rows = root.txRoot.viewState && root.txRoot.viewState.actorChoices ? root.txRoot.viewState.actorChoices : []
-                if (currentIndex >= 0 && currentIndex < rows.length) draftController.selectCurrentActorChoice(root.txRoot.draft, rows[currentIndex])
-            }
-
-            onEditTextChanged: if (activeFocus && root.txRoot && root.txRoot.draft) {
-                root.txRoot.draft.transactions.setActorText(root.txRoot.draft.currentIndex, editText)
+            onTextEdited: if (root.txRoot && root.txRoot.draft) {
+                root.txRoot.draft.transactions.setActorText(root.txRoot.draft.currentIndex, text)
                 root.txRoot.draft.transactions.setActorId(root.txRoot.draft.currentIndex, "")
                 root.txRoot.draft.transactions.setNewActorSelected(root.txRoot.draft.currentIndex, true)
             }
 
             onAccepted: {
                 if (!root.txRoot || !root.txRoot.draft || !draftController) return
-                var rows = root.txRoot.viewState && root.txRoot.viewState.actorChoices ? root.txRoot.viewState.actorChoices : []
-                var row = draftController.findChoiceRowByText(rows, editText)
+                var rows = root.txRoot.actorChoices || []
+                var row = draftController.findChoiceRowByText(rows, text)
                 if (row && row.id !== undefined) draftController.selectCurrentActorChoice(root.txRoot.draft, row)
                 else if (root.txRoot.draft) {
-                    root.txRoot.draft.transactions.setActorText(root.txRoot.draft.currentIndex, editText)
+                    root.txRoot.draft.transactions.setActorText(root.txRoot.draft.currentIndex, text)
                     root.txRoot.draft.transactions.setNewActorSelected(root.txRoot.draft.currentIndex, true)
                 }
             }
@@ -68,5 +59,6 @@ Controls.Panel {
             color: root.txRoot ? root.txRoot.suggestionColor(root.txRoot.actorTopSuggestion()) : Theme.textMuted
             Layout.fillWidth: true
         }
+
     }
 }

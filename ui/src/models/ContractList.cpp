@@ -44,6 +44,24 @@ QVariant ContractList::data(const QModelIndex &index, int role) const {
   }
 }
 
+QVariantMap ContractList::get(int index) const {
+  QVariantMap m;
+  const auto &c = itemAtRow(index);
+  if (!c) return m;
+  m[ui::payload::keys::common::kId] = QString::fromStdString(c->id);
+  m[ui::payload::keys::common::kName] = QString::fromStdString(c->name);
+  m[ui::payload::keys::common::kType] = QString::fromStdString(c->type);
+  m[ui::payload::keys::common::kDescription] = QString::fromStdString(c->description);
+  m[ui::payload::keys::contract::kStartDate] = QString::fromStdString(c->startDate);
+  m[ui::payload::keys::contract::kEndDate] = QString::fromStdString(c->endDate);
+  m[ui::payload::keys::contract::kBasePrice] = c->basePrice;
+  m[ui::payload::keys::contract::kConsumptionPrice] = c->consumptionPrice;
+  m[ui::payload::keys::contract::kMonthlyAdvance] = c->monthlyAdvance;
+  m[ui::payload::keys::contract::kActorIds] = toQStringList(c->actorIds);
+  m[ui::payload::keys::transaction::kPropertyIds] = toQStringList(c->propertyIds);
+  return m;
+}
+
 QHash<int, QByteArray> ContractList::roleNames() const {
   QHash<int, QByteArray> roles;
   roles[IdRole] = ui::payload::keys::common::kId.toUtf8();

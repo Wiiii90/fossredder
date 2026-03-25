@@ -56,7 +56,6 @@ struct DraftTextSignals {
     std::string actorText;
     std::string propertyText;
     std::string typeText;
-    std::string contractText;
 };
 
 /**
@@ -71,7 +70,6 @@ struct DraftLinkSelection {
     std::string propertyText;
     std::string actorId;
     bool newActorSelected = false;
-    std::string contractText;
     std::string contractId;
     bool newContractSelected = false;
     std::string type;

@@ -132,6 +132,20 @@ std::string extractTypeText(const core::domain::AppState& state,
     const auto contractTypes = knownContractTypes(state);
     if (contractTypes.empty()) return {};
 
+    for (const auto& line : lines) {
+        const auto value = trim(line);
+        const auto separatorPos = value.find('-');
+        if (value.empty() || separatorPos == std::string::npos) continue;
+
+        const auto left = trim(value.substr(0, separatorPos));
+        if (left.empty()) continue;
+
+        const auto normalizedLeft = normalizeDraftText(left);
+        for (const auto& type : contractTypes) {
+            if (normalizeDraftText(type) == normalizedLeft) return type;
+        }
+    }
+
     const auto fullText = normalizeDraftText(signalText);
     const auto headText = normalizeDraftText(joinNonEmptyLines(lines, " "));
 
@@ -562,7 +576,7 @@ std::string contractSeedText(const DraftLinkSelection& selection,
     const auto type = trim(selection.type);
     if (selection.newContractSelected && type.empty()) return {};
     if (!type.empty()) return type;
-    return top ? top->label : std::string{};
+    return {};
 }
 
 std::string propertySuggestionSummary(const DraftSuggestionBucket& bucket)
@@ -582,7 +596,8 @@ std::string propertySuggestionSummary(const DraftSuggestionBucket& bucket)
 
 std::vector<std::string> propertyAutoSelectIds(const DraftLinkSelection& selection,
                                                const std::vector<DraftChoiceRow>& properties,
-                                               const std::vector<DraftChoiceRow>& contracts)
+                                               const std::vector<DraftChoiceRow>& contracts,
+                                               const std::string& selectedContractId)
 {
     std::vector<std::string> ids;
     const std::string source = !trim(selection.propertyText).empty()
@@ -619,8 +634,9 @@ std::vector<std::string> propertyAutoSelectIds(const DraftLinkSelection& selecti
         }
     }
 
-    if (!selection.contractId.empty()) {
-        const auto contractIndex = rowIndexById(contracts, selection.contractId);
+    const auto contractId = !selectedContractId.empty() ? selectedContractId : selection.contractId;
+    if (!contractId.empty()) {
+        const auto contractIndex = rowIndexById(contracts, contractId);
         if (const auto* contractRow = rowByIndex(contracts, contractIndex)) {
             for (const auto& propertyId : contractRow->propertyIds) appendUnique(ids, propertyId);
         }
@@ -733,7 +749,6 @@ DraftTextSignals buildDraftTextSignals(const core::domain::AppState& state,
     if (signals.actorText.empty()) signals.actorText = firstMeaningfulLine(transaction.metadata);
     if (signals.actorText.empty()) signals.actorText = leadingPhrase(signals.sharedText, 4);
     signals.propertyText = trim(joinNonEmptyLines({signals.sharedText, signals.actorText, signals.typeText}, " "));
-    signals.contractText = trim(joinNonEmptyLines({signals.typeText, signals.actorText, signals.sharedText}, " "));
     return signals;
 }
 
@@ -863,7 +878,7 @@ DraftImportSuggestions buildImportSuggestions(const core::domain::AppState& stat
 
     const auto actorSourceText = trim(joinNonEmptyLines({signals.actorText, signals.sharedText}, " "));
     const auto& propertySourceText = signals.propertyText;
-    const auto& contractSourceText = signals.contractText;
+    const auto contractSourceText = signals.sharedText;
 
     DraftImportSuggestions suggestions;
     suggestions.actor = buildBucket(state.actors,
@@ -990,8 +1005,6 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
                                       ? selection.allocatable
                                       : (contractIsFullyAllocatable(state, selection.contractId) || selection.allocatable);
 
-    derived.autoPropertyIds = propertyAutoSelectIds(selection, properties, contracts);
-
     derived.actorChoices = actors;
     DraftChoiceRow newActor;
     newActor.name = "New Actor";
@@ -1052,6 +1065,15 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
         }
     }
     if (derived.contractCurrentIndex < 0) derived.contractCurrentIndex = derived.contractChoices.empty() ? -1 : 0;
+
+    std::string selectedContractId = selection.contractId;
+    if (selectedContractId.empty() && derived.contractCurrentIndex > 0) {
+        if (const auto* contractRow = rowByIndex(derived.contractChoices, derived.contractCurrentIndex);
+            contractRow && !contractRow->synthetic) {
+            selectedContractId = contractRow->id;
+        }
+    }
+    derived.autoPropertyIds = propertyAutoSelectIds(selection, properties, contracts, selectedContractId);
 
     return derived;
 }

@@ -32,7 +32,7 @@ Controls.Panel {
 
             Repeater {
                 id: propertyRepeater
-                model: root.txRoot && root.txRoot.viewState ? (root.txRoot.viewState.propertyRows || []) : []
+                model: uiData ? uiData.propertyRows() : []
 
                 delegate: Item {
                     implicitHeight: row.implicitHeight
@@ -75,5 +75,6 @@ Controls.Panel {
             color: root.txRoot ? root.txRoot.suggestionColor(root.txRoot.propertyTopSuggestion()) : Theme.textMuted
             Layout.fillWidth: true
         }
+
     }
 }

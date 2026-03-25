@@ -148,3 +148,66 @@ TEST(DraftLinkingTests, UsesCoreDerivedPropertyTextForAutoPropertySelection)
     ASSERT_EQ(derived.autoPropertyIds.size(), 1U);
     EXPECT_EQ(derived.autoPropertyIds.front(), "property-1");
 }
+
+TEST(DraftLinkingTests, UsesAutoSelectedContractPropertiesForAutoPropertySelection)
+{
+    AppState state;
+    state.actors.push_back(makeActor("actor-1", "ACTOR_SAMPLE_0001"));
+    state.properties.push_back(makeProperty("property-1", "Haus A"));
+    state.contracts.push_back(makeContract("contract-1", "Vertrag A", "Service", {"actor-1"}, {"property-1"}));
+
+    DraftLinkSelection selection;
+    selection.actorText = "ACTOR_SAMPLE_0001";
+    selection.type = "Service";
+
+    const auto derived = core::importing::buildDraftDerivedState(state, selection);
+
+    ASSERT_GT(derived.contractCurrentIndex, 0);
+    ASSERT_EQ(derived.autoPropertyIds.size(), 1U);
+    EXPECT_EQ(derived.autoPropertyIds.front(), "property-1");
+}
+
+TEST(DraftLinkingTests, SplitsCombinedContractLineIntoTypeAndContractText)
+{
+    AppState state;
+    state.contracts.push_back(makeContract("contract-1", "CONTRACT_22", "ENERGY"));
+
+    ImportedTransaction tx;
+    tx.metadata = "ENERGY - CONTRACT_22";
+
+    const auto signals = core::importing::buildDraftTextSignals(state, tx);
+
+    EXPECT_EQ(signals.typeText, "ENERGY");
+}
+
+TEST(DraftLinkingTests, SelectsContractRowByTypeAndKeepsContractNameSeparate)
+{
+    AppState state;
+    state.actors.push_back(makeActor("actor-1", "COINFO-RECHNUNG"));
+    state.contracts.push_back(makeContract("contract-1", "Vertrag 22", "coinfo", {"actor-1"}));
+
+    DraftLinkSelection selection;
+    selection.metadata = "COINFO some payload";
+    selection.actorText = "COINFO-RECHNUNG";
+
+    const auto derived = core::importing::buildDraftDerivedState(state, selection);
+
+    ASSERT_GT(derived.contractCurrentIndex, 0);
+    ASSERT_LT(static_cast<std::size_t>(derived.contractCurrentIndex), derived.contractChoices.size());
+    EXPECT_EQ(derived.contractChoices[static_cast<std::size_t>(derived.contractCurrentIndex)].name, "Vertrag 22");
+    EXPECT_EQ(derived.contractChoices[static_cast<std::size_t>(derived.contractCurrentIndex)].type, "coinfo");
+}
+
+TEST(DraftLinkingTests, PrefersLeftSideOfHyphenatedTypeLine)
+{
+    AppState state;
+    state.contracts.push_back(makeContract("contract-1", "Vertrag 22", "coinfo"));
+    state.contracts.push_back(makeContract("contract-2", "Vertrag 33", "rechnung"));
+
+    ImportedTransaction tx;
+    tx.metadata = "COINFO-RECHNUNG";
+
+    const auto signals = core::importing::buildDraftTextSignals(state, tx);
+
+    EXPECT_EQ(signals.typeText, "coinfo");
+}
