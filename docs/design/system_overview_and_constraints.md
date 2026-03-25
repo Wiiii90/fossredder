@@ -29,6 +29,6 @@ Primary Subsystems
 - UI language: English (German planned)
 
 ## Developer Constraints
-- Language: C++20
-- CMake: >= 4.0.1
-- vcpkg: use toolchain file (.../vcpkg/scripts/buildsystems/vcpkg.cmake), manifest mode (vcpkg.json)
+ - Language: C++20
+ - CMake: >= 3.15
+ - vcpkg: use toolchain file (.../vcpkg/scripts/buildsystems/vcpkg.cmake), manifest mode (vcpkg.json)
