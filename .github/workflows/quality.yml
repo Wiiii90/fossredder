@@ -141,9 +141,6 @@ jobs:
 
       - name: Upload Codecov report
         continue-on-error: true
-        uses: codecov/codecov-action@v5
-        with:
-          use_oidc: true
-          files: coverage/coverage.lcov
-          fail_ci_if_error: false
-          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: .\ci\upload-codecov.ps1 -CoverageFile .\coverage\coverage.lcov
