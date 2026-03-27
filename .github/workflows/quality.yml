@@ -1,4 +1,4 @@
-name: quality
+name: CI
 
 on:
   push:

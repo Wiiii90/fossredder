@@ -1,6 +1,6 @@
 ﻿# FOSSredder
 
-[![Quality](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml)
+[![CI](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml)
 [![codecov](https://codecov.io/gh/Wiiii90/fossredder/branch/master/graph/badge.svg)](https://codecov.io/gh/Wiiii90/fossredder)
 
 FOSSredder is a desktop application for local expense management targeted at private landlords with multiple properties. The app supports categorization, allocation and structured reporting of expenses. It also supports importing bank statements (PDF) and importing/exporting CSV/XLSX files.
