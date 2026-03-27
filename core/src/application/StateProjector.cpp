@@ -24,6 +24,7 @@ void dedupStrings(std::vector<std::string>& v)
         if (!seen.insert(value).second) continue;
         out.push_back(value);
     }
+    std::sort(out.begin(), out.end());
     v = std::move(out);
 }
 
