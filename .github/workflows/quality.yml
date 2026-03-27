@@ -140,6 +140,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Codecov report
+        continue-on-error: true
         uses: codecov/codecov-action@v5
         with:
           use_oidc: true
