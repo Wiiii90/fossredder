@@ -51,9 +51,12 @@ $arguments = @(
     '-v'
 )
 
-if ([string]::IsNullOrWhiteSpace($env:GITHUB_REPOSITORY)) {
-    $arguments += @('-r', $RepositorySlug.ToLowerInvariant())
+$effectiveRepositorySlug = if ([string]::IsNullOrWhiteSpace($env:GITHUB_REPOSITORY)) {
+    $RepositorySlug
+} else {
+    $env:GITHUB_REPOSITORY
 }
+$arguments += @('-r', $effectiveRepositorySlug.ToLowerInvariant())
 
 if ([string]::IsNullOrWhiteSpace($env:GITHUB_SHA)) {
     $arguments += @('-C', $CommitSha)
