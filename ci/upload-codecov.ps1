@@ -45,14 +45,23 @@ if ($expectedHash -ne $actualHash) {
 
 $arguments = @(
     '-f', (Resolve-Path $coveragePath).Path,
-    '-r', $RepositorySlug,
-    '-C', $CommitSha,
-    '-B', $Branch,
     '-n', $UploadName,
     '-Q', 'github-action/self-hosted-windows',
     '-Z',
     '-v'
 )
+
+if ([string]::IsNullOrWhiteSpace($env:GITHUB_REPOSITORY)) {
+    $arguments += @('-r', $RepositorySlug.ToLowerInvariant())
+}
+
+if ([string]::IsNullOrWhiteSpace($env:GITHUB_SHA)) {
+    $arguments += @('-C', $CommitSha)
+}
+
+if ([string]::IsNullOrWhiteSpace($env:GITHUB_HEAD_REF) -and [string]::IsNullOrWhiteSpace($env:GITHUB_REF_NAME)) {
+    $arguments += @('-B', $Branch)
+}
 
 $envNames = @('GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_WORKFLOW') |
     Where-Object { ![string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_)) }
