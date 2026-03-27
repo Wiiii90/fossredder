@@ -749,6 +749,7 @@ DraftTextSignals buildDraftTextSignals(const core::domain::AppState& state,
     if (signals.actorText.empty()) signals.actorText = firstMeaningfulLine(transaction.metadata);
     if (signals.actorText.empty()) signals.actorText = leadingPhrase(signals.sharedText, 4);
     signals.propertyText = trim(joinNonEmptyLines({signals.sharedText, signals.actorText, signals.typeText}, " "));
+    signals.contractText = trim(joinNonEmptyLines({signals.typeText, signals.actorText, signals.propertyText}, " "));
     return signals;
 }
 
