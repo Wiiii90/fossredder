@@ -28,6 +28,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Prepare staging dir
+        run: |
+          $staging = Join-Path $PWD ".build\ci\staging\${{ github.run_id }}"
+          if (Test-Path $staging) { Remove-Item -Path $staging -Recurse -Force }
+          New-Item -ItemType Directory -Path $staging | Out-Null
+          icacls $staging /grant "NT AUTHORITY\SYSTEM:(OI)(CI)F" /T | Out-Null
+          echo "TARGET_DIR=$staging" >> $env:GITHUB_ENV
+
+      - name: Prepare staging dir
+        run: |
+          $staging = Join-Path $PWD ".build\ci\staging\${{ github.run_id }}"
+          if (Test-Path $staging) { Remove-Item -Path $staging -Recurse -Force }
+          New-Item -ItemType Directory -Path $staging | Out-Null
+          icacls $staging /grant "NT AUTHORITY\SYSTEM:(OI)(CI)F" /T | Out-Null
+          echo "TARGET_DIR=$staging" >> $env:GITHUB_ENV
+
+      - name: Prepare staging dir
+        run: |
+          $staging = Join-Path $PWD ".build\ci\staging\${{ github.run_id }}"
+          if (Test-Path $staging) { Remove-Item -Path $staging -Recurse -Force }
+          New-Item -ItemType Directory -Path $staging | Out-Null
+          # Ensure runner service account can write
+          icacls $staging /grant "NT AUTHORITY\SYSTEM:(OI)(CI)F" /T | Out-Null
+          echo "TARGET_DIR=$staging" >> $env:GITHUB_ENV
+
+      - name: Clean previous build
+        run: |
+          if (Test-Path .build) { Remove-Item -Path .build -Recurse -Force }
+
       - name: Validate runner prerequisites
         run: .\ci\assert-quality-runner.ps1
 
@@ -45,10 +74,15 @@ jobs:
       - self-hosted
       - Windows
       - X64
+    needs: build-and-test
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Clean previous build
+        run: |
+          if (Test-Path .build) { Remove-Item -Path .build -Recurse -Force }
 
       - name: Validate runner prerequisites
         run: .\ci\assert-quality-runner.ps1 -RequireClangTidy
@@ -64,6 +98,7 @@ jobs:
       - self-hosted
       - Windows
       - X64
+    needs: build-and-test
     permissions:
       contents: read
       id-token: write
@@ -71,6 +106,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Clean previous build
+        run: |
+          if (Test-Path .build) { Remove-Item -Path .build -Recurse -Force }
 
       - name: Validate runner prerequisites
         run: .\ci\assert-quality-runner.ps1 -RequireCoverageTools
