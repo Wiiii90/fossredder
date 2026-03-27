@@ -3,6 +3,28 @@ param(
     [switch]$RequireCoverageTools
 )
 
+function Resolve-VcpkgRoot {
+    if (-not [string]::IsNullOrWhiteSpace($env:VCPKG_ROOT) -and (Test-Path $env:VCPKG_ROOT)) {
+        return $env:VCPKG_ROOT
+    }
+
+    $userRoot = [Environment]::GetEnvironmentVariable('VCPKG_ROOT', 'User')
+    if (-not [string]::IsNullOrWhiteSpace($userRoot) -and (Test-Path $userRoot)) {
+        return $userRoot
+    }
+
+    $machineRoot = [Environment]::GetEnvironmentVariable('VCPKG_ROOT', 'Machine')
+    if (-not [string]::IsNullOrWhiteSpace($machineRoot) -and (Test-Path $machineRoot)) {
+        return $machineRoot
+    }
+
+    if (Test-Path 'P:\vcpkg') {
+        return 'P:\vcpkg'
+    }
+
+    return $null
+}
+
 $minimumCmakeVersion = [Version]'4.0.1'
 $cmakeCommand = Get-Command cmake -ErrorAction SilentlyContinue
 if (-not $cmakeCommand) {
@@ -17,6 +39,10 @@ if ($cmakeVersionLine -notmatch 'cmake version ([0-9]+\.[0-9]+\.[0-9]+)') {
 $cmakeVersion = [Version]$Matches[1]
 if ($cmakeVersion -lt $minimumCmakeVersion) {
     throw "CMake $cmakeVersion is too old. Minimum required is $minimumCmakeVersion."
+}
+
+if ([string]::IsNullOrWhiteSpace($env:VCPKG_ROOT) -or !(Test-Path $env:VCPKG_ROOT)) {
+    $env:VCPKG_ROOT = Resolve-VcpkgRoot
 }
 
 if ([string]::IsNullOrWhiteSpace($env:VCPKG_ROOT)) {
