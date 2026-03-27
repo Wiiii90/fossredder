@@ -41,13 +41,14 @@ if ($cmakeVersion -lt $minimumCmakeVersion) {
     throw "CMake $cmakeVersion is too old. Minimum required is $minimumCmakeVersion."
 }
 
-if ([string]::IsNullOrWhiteSpace($env:VCPKG_ROOT) -or !(Test-Path $env:VCPKG_ROOT)) {
-    $env:VCPKG_ROOT = Resolve-VcpkgRoot
+# Always resolve VCPKG_ROOT with user-preference so Visual Studio's process-level vcpkg does not override the intended user install
+$resolvedVcpkg = Resolve-VcpkgRoot
+if (-not $resolvedVcpkg) {
+    throw "VCPKG_ROOT could not be resolved (check user or machine environment variables or P:\\vcpkg)."
 }
 
-if ([string]::IsNullOrWhiteSpace($env:VCPKG_ROOT)) {
-    throw "VCPKG_ROOT is not set on the self-hosted runner. Install vcpkg once on the runner and set the variable permanently."
-}
+# Export resolved path into the current process so subsequent steps use the correct vcpkg
+$env:VCPKG_ROOT = $resolvedVcpkg
 
 $toolchainFile = Join-Path $env:VCPKG_ROOT 'scripts\buildsystems\vcpkg.cmake'
 if (!(Test-Path $toolchainFile)) {
