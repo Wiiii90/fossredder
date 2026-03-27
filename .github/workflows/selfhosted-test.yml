@@ -1,0 +1,22 @@
+name: selfhosted-test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-selfhosted:
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Preflight
+        run: .\ci\assert-quality-runner.ps1 -RequireClangTidy -RequireCoverageTools
+
+      - name: Echo
+        run: Write-Host "Self-hosted runner test successful"
+        shell: pwsh
