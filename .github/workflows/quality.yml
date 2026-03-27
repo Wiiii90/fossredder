@@ -61,7 +61,7 @@ jobs:
         run: .\ci\assert-quality-runner.ps1
 
       - name: Configure CI preset
-        run: cmake --preset ci
+        run: cmake -DTARGET_DIR="$env:TARGET_DIR" --preset ci
 
       - name: Build CI preset
         run: cmake --build --preset release-ci --parallel
@@ -88,7 +88,7 @@ jobs:
         run: .\ci\assert-quality-runner.ps1 -RequireClangTidy
 
       - name: Configure tidy preset
-        run: cmake --preset tidy
+        run: cmake -DTARGET_DIR="$env:TARGET_DIR" --preset tidy
 
       - name: Build tidy preset
         run: cmake --build --preset release-tidy --parallel
@@ -115,7 +115,7 @@ jobs:
         run: .\ci\assert-quality-runner.ps1 -RequireCoverageTools
 
       - name: Configure coverage preset
-        run: cmake --preset coverage
+        run: cmake -DTARGET_DIR="$env:TARGET_DIR" --preset coverage
 
       - name: Build coverage preset
         run: cmake --build --preset release-coverage --parallel
