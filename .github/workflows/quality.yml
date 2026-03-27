@@ -36,6 +36,12 @@ jobs:
           icacls $staging /grant "NT AUTHORITY\SYSTEM:(OI)(CI)F" /T | Out-Null
           echo "TARGET_DIR=$staging" >> $env:GITHUB_ENV
 
+      - name: Ensure no running binaries
+        run: |
+          # kill any previously running test or app binaries that could lock Qt DLLs
+          $procs = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match 'fossredder|_unit_tests|ui_interaction_tests|ui_unit_tests|opencv_unit_tests|persistence_unit_tests|qml' }
+          if ($procs) { $procs | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } }
+
       - name: Prepare staging dir
         run: |
           $staging = Join-Path $PWD ".build\ci\staging\${{ github.run_id }}"
