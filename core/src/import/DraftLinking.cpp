@@ -749,8 +749,6 @@ DraftTextSignals buildDraftTextSignals(const core::domain::AppState& state,
     if (signals.actorText.empty()) signals.actorText = firstMeaningfulLine(transaction.metadata);
     if (signals.actorText.empty()) signals.actorText = leadingPhrase(signals.sharedText, 4);
     signals.propertyText = trim(joinNonEmptyLines({signals.sharedText, signals.actorText, signals.typeText}, " "));
-    // Contract text should be composed from type, actor and the original shared metadata
-    // to avoid duplicating actor/type which may already be appended to propertyText.
     signals.contractText = trim(joinNonEmptyLines({signals.typeText, signals.actorText, signals.sharedText}, " "));
     return signals;
 }
