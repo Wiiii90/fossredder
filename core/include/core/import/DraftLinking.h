@@ -132,6 +132,8 @@ DraftImportSuggestions buildImportSuggestions(const core::domain::AppState& stat
 std::string resolveActorId(const core::domain::AppState& state, const std::string& text);
 std::string resolveContractId(const core::domain::AppState& state, const std::string& text);
 bool contractIsFullyAllocatable(const core::domain::AppState& state, const std::string& contractId);
+core::domain::AppState withFallbackState(core::domain::AppState primary,
+                                         const core::domain::AppState& fallback);
 DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
                                          const DraftLinkSelection& selection);
 

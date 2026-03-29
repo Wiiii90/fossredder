@@ -969,6 +969,19 @@ bool contractIsFullyAllocatable(const core::domain::AppState& state, const std::
     return hasTransactions;
 }
 
+core::domain::AppState withFallbackState(core::domain::AppState primary,
+                                         const core::domain::AppState& fallback)
+{
+    if (primary.actors.empty()) primary.actors = fallback.actors;
+    if (primary.properties.empty()) primary.properties = fallback.properties;
+    if (primary.contracts.empty()) primary.contracts = fallback.contracts;
+    if (primary.statements.empty()) primary.statements = fallback.statements;
+    if (primary.transactions.empty()) primary.transactions = fallback.transactions;
+    if (primary.analyses.empty()) primary.analyses = fallback.analyses;
+    if (primary.annuals.empty()) primary.annuals = fallback.annuals;
+    return primary;
+}
+
 DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
                                          const DraftLinkSelection& selection)
 {

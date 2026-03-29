@@ -187,17 +187,11 @@ core::domain::AppState matchingStateForDraft(const ui::StatementDraft* draft,
                                              const core::application::AppStateFacade* core)
 {
     const auto liveState = core ? core->state() : core::domain::AppState{};
-    if (!draft || !draft->hasCatalogState()) return liveState;
+    if (!draft) return liveState;
 
-    auto state = draft->catalogState();
-    if (state.actors.empty()) state.actors = liveState.actors;
-    if (state.properties.empty()) state.properties = liveState.properties;
-    if (state.contracts.empty()) state.contracts = liveState.contracts;
-    if (state.statements.empty()) state.statements = liveState.statements;
-    if (state.transactions.empty()) state.transactions = liveState.transactions;
-    if (state.analyses.empty()) state.analyses = liveState.analyses;
-    if (state.annuals.empty()) state.annuals = liveState.annuals;
-    return state;
+    return core::importing::withFallbackState(
+        draft->hasCatalogState() ? draft->catalogState() : core::domain::AppState{},
+        liveState);
 }
 
 } // namespace
