@@ -19,6 +19,7 @@ set(UI_SOURCES
     src/controllers/StatementController.cpp
     src/controllers/StorageController.cpp
     src/controllers/TransactionController.cpp
+    src/controllers/DraftProjection.cpp
     src/dialogs/FileDialogs.cpp
     src/export/AppStateSnapshot.cpp
     src/export/ExportRunner.cpp
@@ -75,6 +76,7 @@ set(UI_HEADERS
     include/ui/controllers/ControllerGuard.h
     include/ui/controllers/ControllerStrings.h
     include/ui/controllers/DraftController.h
+    include/ui/controllers/DraftProjection.h
     include/ui/controllers/ExportController.h
     include/ui/controllers/FileSystemController.h
     include/ui/controllers/ImportController.h
