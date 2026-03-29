@@ -5,6 +5,8 @@
 
 #include "ui/state/StateFacade.h"
 
+#include "ui/state/StateFacadeProjection.h"
+
 namespace ui {
 
 StateFacade::StateFacade(QObject* parent)
@@ -93,129 +95,37 @@ AnnualSelection* StateFacade::selectedAnnual() { return selection_->selectedAnnu
 
 QVariantList StateFacade::statementTransactionIds(const QString& statementId) const
 {
-    QVariantList out;
-    if (statementId.isEmpty()) return out;
-    for (const auto& transaction : session_->models().transactions().transactions()) {
-        if (!transaction) continue;
-        if (QString::fromStdString(transaction->statementId) == statementId) out.push_back(QString::fromStdString(transaction->id));
-    }
-    return out;
+    return buildStatementTransactionIds(*session_, statementId);
 }
 
 QVariantList StateFacade::contractRows() const
 {
-    QVariantList out;
-    for (const auto& contract : session_->models().contracts().contracts()) {
-        if (!contract) continue;
-
-        QStringList aliases;
-        for (const auto& alias : contract->aliases) aliases.push_back(QString::fromStdString(alias));
-
-        QVariantMap row;
-        row.insert("id", QString::fromStdString(contract->id));
-        row.insert("name", QString::fromStdString(contract->name));
-        row.insert("type", QString::fromStdString(contract->type));
-        row.insert("display", QString::fromStdString(contract->name));
-        row.insert("aliases", aliases);
-        QStringList actorIds;
-        for (const auto& actorId : contract->actorIds) actorIds.push_back(QString::fromStdString(actorId));
-        QStringList propertyIds;
-        for (const auto& propertyId : contract->propertyIds) propertyIds.push_back(QString::fromStdString(propertyId));
-        row.insert("actorIds", actorIds);
-        row.insert("propertyIds", propertyIds);
-        out.push_back(row);
-    }
-    return out;
+    return buildContractRows(*session_);
 }
 
 QVariantList StateFacade::actorRows() const
 {
-    QVariantList out;
-    for (const auto& actor : session_->models().actors().actors()) {
-        if (!actor) continue;
-
-        QStringList aliases;
-        for (const auto& alias : actor->aliases) aliases.push_back(QString::fromStdString(alias));
-
-        QVariantMap row;
-        row.insert("id", QString::fromStdString(actor->id));
-        row.insert("name", QString::fromStdString(actor->name));
-        row.insert("type", QString::fromStdString(actor->type));
-        row.insert("display", actor->type.empty()
-                                 ? QString::fromStdString(actor->name)
-                                 : QString::fromStdString(actor->name) + QStringLiteral(" — ") + QString::fromStdString(actor->type));
-        row.insert("aliases", aliases);
-        out.push_back(row);
-    }
-    return out;
+    return buildActorRows(*session_);
 }
 
 QVariantList StateFacade::propertyRows() const
 {
-    QVariantList out;
-    for (const auto& property : session_->models().properties().properties()) {
-        if (!property) continue;
-
-        QStringList aliases;
-        for (const auto& alias : property->aliases) aliases.push_back(QString::fromStdString(alias));
-
-        QVariantMap row;
-        row.insert("id", QString::fromStdString(property->id));
-        row.insert("name", QString::fromStdString(property->name));
-        row.insert("display", property->address.empty()
-                                 ? QString::fromStdString(property->name)
-                                 : QString::fromStdString(property->name) + QStringLiteral(" — ") + QString::fromStdString(property->address));
-        row.insert("aliases", aliases);
-        out.push_back(row);
-    }
-    return out;
+    return buildPropertyRows(*session_);
 }
 
 QVariantList StateFacade::analysisRows() const
 {
-    QVariantList out;
-    for (const auto& analysis : session_->models().analyses().analyses()) {
-        if (!analysis) continue;
-
-        QVariantMap row;
-        row.insert("id", QString::fromStdString(analysis->id));
-        row.insert("name", QString::fromStdString(analysis->name));
-        row.insert("type", QString::fromStdString(analysis->type));
-        out.push_back(row);
-    }
-    return out;
+    return buildAnalysisRows(*session_);
 }
 
 QVariantList StateFacade::statementRows() const
 {
-    QVariantList out;
-    for (const auto& statement : session_->models().statements().statements()) {
-        if (!statement) continue;
-
-        QVariantMap row;
-        row.insert("id", QString::fromStdString(statement->id));
-        row.insert("name", QString::fromStdString(statement->name));
-        out.push_back(row);
-    }
-    return out;
+    return buildStatementRows(*session_);
 }
 
 QVariantList StateFacade::statementTransactionRows(const QString& statementId) const
 {
-    QVariantList out;
-    if (statementId.isEmpty()) return out;
-
-    for (const auto& transaction : session_->models().transactions().transactions()) {
-        if (!transaction) continue;
-        if (QString::fromStdString(transaction->statementId) != statementId) continue;
-
-        QVariantMap row;
-        row.insert("id", QString::fromStdString(transaction->id));
-        row.insert("name", QString::fromStdString(transaction->name));
-        row.insert("bookingDate", QString::fromStdString(transaction->bookingDate));
-        out.push_back(row);
-    }
-    return out;
+    return buildStatementTransactionRows(*session_, statementId);
 }
 
 TransactionFilter* StateFacade::statementTransactions(const QString& statementId)
