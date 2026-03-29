@@ -46,6 +46,7 @@ set(UI_SOURCES
     src/state/SessionSelection.cpp
     src/state/SelectionState.cpp
     src/state/SessionModels.cpp
+    src/state/SessionModelProjection.cpp
     src/state/SessionMutationState.cpp
     src/state/SessionStore.cpp
     src/state/StateFacade.cpp
@@ -115,6 +116,7 @@ set(UI_HEADERS
     include/ui/state/SessionSelection.h
     include/ui/state/SelectionState.h
     include/ui/state/SessionModels.h
+    include/ui/state/SessionModelProjection.h
     include/ui/state/SessionMutationState.h
     include/ui/state/SessionStore.h
     include/ui/state/StateFacade.h
