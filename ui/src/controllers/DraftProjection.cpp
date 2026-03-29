@@ -6,6 +6,7 @@
 #include "ui/controllers/DraftProjection.h"
 
 #include "core/application/AppStateFacade.h"
+#include "core/models/DraftStatement.h"
 #include "ui/models/StatementDraft.h"
 #include "ui/models/TransactionDraft.h"
 #include "ui/controllers/ControllerStrings.h"
@@ -181,6 +182,62 @@ core::domain::AppState matchingStateForDraft(const StatementDraft* draft,
     return core::importing::withFallbackState(
         draft->hasCatalogState() ? draft->catalogState() : core::domain::AppState{},
         liveState);
+}
+
+core::domain::DraftStatement buildFinalizationInput(StatementDraft* draft,
+                                                    core::application::AppStateFacade* core)
+{
+    core::domain::DraftStatement input;
+    if (!draft || !core) return input;
+
+    const auto& drafts = draft->transactions()->drafts();
+    input.name = ui::strings::toStdString(draft->name());
+    input.transactions.reserve(drafts.size());
+
+    const auto appState = matchingStateForDraft(draft, core);
+    for (const auto& d : drafts) {
+        core::domain::DraftTransaction transaction;
+        transaction.name = ui::strings::toStdString(d.name);
+        transaction.bookingDate = ui::strings::toStdString(d.bookingDate);
+        transaction.amount = d.amount;
+        transaction.description = ui::strings::toStdString(d.description);
+        transaction.status = static_cast<core::domain::Transaction::Status>(d.status);
+
+        QString actorId = d.actorId;
+        if (actorId.isEmpty() && (!d.actorText.trimmed().isEmpty() || d.newActorSelected)) {
+            actorId = QString::fromStdString(core::importing::resolveActorId(appState, ui::strings::toStdString(d.actorText)));
+            if (actorId.isEmpty()) {
+                const QString actorName = d.actorText.trimmed();
+                if (!actorName.isEmpty()) {
+                    const std::vector<std::string> aliases{ui::strings::toStdString(actorName)};
+                    actorId = QString::fromStdString(core->addActor(ui::strings::toStdString(actorName), std::string{}, std::string{}, aliases));
+                }
+            }
+        }
+
+        QString contractId = d.contractId;
+        if (contractId.isEmpty() && d.newContractSelected) {
+            const QString contractType = d.type.trimmed();
+            if (!contractType.isEmpty()) {
+                std::vector<std::string> actorIds;
+                if (!actorId.isEmpty()) actorIds.push_back(ui::strings::toStdString(actorId));
+                std::vector<std::string> propertyIds = ui::strings::toStdList(d.propertyIds);
+                std::vector<std::string> aliases = core::importing::referenceAliasesFromMetadata(ui::strings::toStdString(d.metadata));
+                contractId = QString::fromStdString(core->addContract(std::string{}, ui::strings::toStdString(contractType), std::string{}, actorIds, propertyIds, aliases));
+            }
+        }
+
+        transaction.actorId = ui::strings::toStdString(actorId);
+        transaction.contractId = ui::strings::toStdString(contractId);
+        transaction.allocatable = d.allocatableManualOverride
+                                   ? d.allocatable
+                                   : (core::importing::contractIsFullyAllocatable(appState, ui::strings::toStdString(contractId)) || d.allocatable);
+        transaction.propertyIds = ui::strings::toStdList(d.propertyIds);
+        transaction.type = ui::strings::toStdString(d.type);
+        input.transactions.push_back(std::move(transaction));
+    }
+
+    return input;
 }
 
 } // namespace ui

@@ -14,6 +14,7 @@
 
 #include "core/import/DraftLinking.h"
 #include "core/models/AppState.h"
+#include "core/models/DraftStatement.h"
 #include "ui/models/ImportSuggestion.h"
 
 namespace core::application { class AppStateFacade; }
@@ -41,5 +42,7 @@ bool rowMatchesText(const QVariantMap& row, const QString& text);
 const DraftChoiceRow* findChoiceRowById(const std::vector<DraftChoiceRow>& rows, const std::string& id);
 core::domain::AppState matchingStateForDraft(const StatementDraft* draft,
                                              const core::application::AppStateFacade* core);
+core::domain::DraftStatement buildFinalizationInput(StatementDraft* draft,
+                                                    core::application::AppStateFacade* core);
 
 } // namespace ui
