@@ -7,6 +7,7 @@
 
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QVariantMap>
 
 #include "core/application/AnalysisService.h"
 #include "core/application/AppStateFacade.h"
@@ -90,6 +91,27 @@ QString AnalysisController::createAnalysisFromUi(const QString& name,
   return addAnalysis(name, type, configJson, filterSpec);
 }
 
+QVariantMap AnalysisController::createAnalysisFromUiAndCompute(const QString& name,
+                                                               const QString& type,
+                                                               const QString& plotType,
+                                                               const QString& plotMeasure,
+                                                               const QStringList& propertyIds,
+                                                               const QStringList& contractTypes,
+                                                               const QString& dateFrom,
+                                                               const QString& dateTo,
+                                                               double taxPercent)
+{
+  QVariantMap out;
+  const auto id = createAnalysisFromUi(name, type, plotType, plotMeasure, propertyIds, contractTypes, dateFrom, dateTo, taxPercent);
+  if (id.isEmpty()) return out;
+
+  out.insert(QStringLiteral("id"), id);
+  const auto filterSpec = buildFilterSpec(dateFrom, dateTo);
+  const auto result = computeAnalysis(id, filterSpec);
+  if (!result.isEmpty()) out.insert(QStringLiteral("analysisResult"), result);
+  return out;
+}
+
 QString AnalysisController::buildFilterSpec(const QString& dateFrom, const QString& dateTo) const
 {
   return QString::fromStdString(core::application::AnalysisRequestComposer::buildFilterSpec(
@@ -120,16 +142,25 @@ QString AnalysisController::buildTaxAdjustmentsJson(const QVariantList& transact
     if (!value.isEmpty()) selectedIds.push_back(value.toStdString());
   }
 
-  const auto adjustments = core::application::AnalysisRequestComposer::buildTaxAdjustments(
+  return QString::fromStdString(core::application::AnalysisRequestComposer::buildTaxAdjustmentsJson(
       coreTransactions,
       selectedIds,
-      taxPercent);
+      taxPercent));
+}
 
-  QJsonObject obj;
-  for (const auto& [txId, amount] : adjustments) {
-    obj.insert(QString::fromStdString(txId), amount);
-  }
-  return QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+QVariantMap AnalysisController::applyTaxAdjustmentsAndRecompute(const QString& analysisId,
+                                                                const QString& filterSpec,
+                                                                const QVariantList& transactions,
+                                                                const QVariantList& selectedTransactionIds,
+                                                                double taxPercent) const
+{
+  QVariantMap out;
+  const auto adjustmentsJson = buildTaxAdjustmentsJson(transactions, selectedTransactionIds, taxPercent);
+  out.insert(QStringLiteral("adjustmentsJson"), adjustmentsJson);
+
+  const auto result = computeAnalysis(analysisId, filterSpec);
+  if (!result.isEmpty()) out.insert(QStringLiteral("analysisResult"), result);
+  return out;
 }
 
 QVariantMap

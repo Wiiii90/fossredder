@@ -120,6 +120,14 @@ std::unordered_map<std::string, double> AnalysisRequestComposer::buildTaxAdjustm
     return out;
 }
 
+std::string AnalysisRequestComposer::buildTaxAdjustmentsJson(
+    const std::vector<core::domain::AnalysisTransaction>& transactions,
+    const std::vector<std::string>& selectedTransactionIds,
+    double taxPercent)
+{
+    return serializeAdjustments(buildTaxAdjustments(transactions, selectedTransactionIds, taxPercent));
+}
+
 std::string AnalysisRequestComposer::serializeAdjustments(const std::unordered_map<std::string, double>& adjustments)
 {
     nlohmann::json obj = nlohmann::json::object();

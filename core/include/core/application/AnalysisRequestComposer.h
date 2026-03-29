@@ -39,6 +39,11 @@ public:
         const std::vector<std::string>& selectedTransactionIds,
         double taxPercent);
 
+    static std::string buildTaxAdjustmentsJson(
+        const std::vector<core::domain::AnalysisTransaction>& transactions,
+        const std::vector<std::string>& selectedTransactionIds,
+        double taxPercent);
+
     static std::string serializeAdjustments(const std::unordered_map<std::string, double>& adjustments);
     static AdjustmentsJsonResult parseAdjustmentsJson(const std::string& json);
 };

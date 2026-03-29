@@ -218,9 +218,7 @@ Item {
 
                                         var selectedPlotType = root.plotTypeOptions[Math.max(0, plotTypeCombo.currentIndex)].value
                                         var selectedPlotMeasure = root.plotMeasureOptions[Math.max(0, plotMeasureCombo.currentIndex)].value
-                                        var filterSpec = analysisController.buildFilterSpec(dateFrom.text, dateTo.text)
-
-                                        var id = analysisController.createAnalysisFromUi(
+                                        var result = analysisController.createAnalysisFromUiAndCompute(
                                             nameField.text,
                                             strategy,
                                             selectedPlotType,
@@ -230,9 +228,9 @@ Item {
                                             dateFrom.text,
                                             dateTo.text,
                                             0.0)
-                                        if (id && id.length > 0) {
-                                            uiData.selectedAnalysisId = id
-                                            try { var res = analysisController.computeAnalysis(id, filterSpec); uiData.lastAnalysisResult = res } catch(e) {}
+                                        if (result && result.id && result.id.length > 0) {
+                                            uiData.selectedAnalysisId = result.id
+                                            if (result.analysisResult) uiData.lastAnalysisResult = result.analysisResult
                                              Qt.callLater(function() { stackView.push(analysisDetailComp) })
                                         }
                                     }

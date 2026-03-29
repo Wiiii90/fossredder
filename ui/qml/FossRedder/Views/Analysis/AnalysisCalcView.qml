@@ -52,12 +52,13 @@ Item {
             Controls.Button { text: qsTr("Apply Tax to Selected"); onClicked: {
                 if (!analysisCalcView.uiData || !analysisCalcView.uiData.selectedAnalysis) return
                 var aid = analysisCalcView.uiData.selectedAnalysis.id
+                var filterSpec = analysisCalcView.uiData.selectedAnalysis.filterSpec ? analysisCalcView.uiData.selectedAnalysis.filterSpec : ""
                 var percent = parseFloat(taxPercentField.text)
                 if (isNaN(percent)) percent = 0.0
                 var transactions = analysisCalcView.uiData.lastAnalysisResult ? analysisCalcView.uiData.lastAnalysisResult.transactions : []
-                var j = analysisController ? analysisController.buildTaxAdjustmentsJson(transactions, analysisCalcView.calcSelectedTx, percent) : "{}"
-                if (analysisCalcView.uiData.analyses) analysisCalcView.uiData.analyses.setAdjustmentsById(aid, j)
-                recomputeSelectedAnalysis()
+                var result = analysisController ? analysisController.applyTaxAdjustmentsAndRecompute(aid, filterSpec, transactions, analysisCalcView.calcSelectedTx, percent) : {}
+                if (result && result.adjustmentsJson && analysisCalcView.uiData.analyses) analysisCalcView.uiData.analyses.setAdjustmentsById(aid, result.adjustmentsJson)
+                if (result && result.analysisResult) analysisCalcView.uiData.lastAnalysisResult = result.analysisResult
             } }
         }
 
