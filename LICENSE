@@ -2,8 +2,20 @@ MIT License
 
 Copyright (c) 2025 Wilhelm Altemeier
 
-Hiermit wird jedem, der eine Kopie dieses Softwareprojekts und der zugeh�rigen Dokumentationen (die "Software") erh�lt, die Erlaubnis erteilt, die Software uneingeschr�nkt zu verwenden, einschlie�lich und ohne Einschr�nkung des Rechts, sie zu kopieren, zu ver�ndern, zu mergen, zu ver�ffentlichen, zu verteilen, unterzulizenzieren und/oder zu verkaufen, und Personen, denen die Software zur Verf�gung gestellt wird, dies zu gestatten, unter den folgenden Bedingungen:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-Der obige Urheberrechtshinweis und dieser Erlaubnishinweis m�ssen in allen Kopien oder wesentlichen Teilen der Software enthalten sein.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-DIE SOFTWARE WIRD "WIE SIE IST" BEREITGESTELLT, OHNE GARANTIEN ODER BEDINGUNGEN IRGENDEINER ART, EINSCHLIESSLICH, ABER NICHT BESCHR�NKT AUF DIE GARANTIEN DER MARKTG�NGIGKEIT, DER NICHTVERLETZUNG ODER DER EIGNUNG F�R EINEN BESTIMMTEN ZWECK. IN KEINEM FALL HAFTEN DIE AUTOREN ODER RECHTEINHABER F�R ANSPR�CHE, SCH�DEN ODER SONSTIGE HAFTUNGEN, OB IN EINEM VERTRAGSVERH�LTNIS, EINER DELIKTHANDLUNG ODER ANDERWEITIG, AUS DER VERWENDUNG DER SOFTWARE ODER SONSTIGEN HANDLUNGEN MIT DER SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
