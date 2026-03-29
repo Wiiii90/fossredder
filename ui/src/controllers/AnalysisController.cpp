@@ -5,11 +5,16 @@
 
 #include "ui/controllers/AnalysisController.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
+
 #include "core/application/AnalysisService.h"
 #include "core/application/AppStateFacade.h"
+#include "core/application/AnalysisRequestComposer.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/AppState.h"
+#include "core/models/AnalysisResult.h"
 #include "ui/analysis/AnalysisPayloadMapper.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
@@ -60,6 +65,71 @@ QString AnalysisController::addAnalysis(const QString &name,
             strings::toStdString(configJson),
             strings::toStdString(filterSpec)));
       });
+}
+
+QString AnalysisController::createAnalysisFromUi(const QString& name,
+                                                 const QString& type,
+                                                 const QString& plotType,
+                                                 const QString& plotMeasure,
+                                                 const QStringList& propertyIds,
+                                                 const QStringList& contractTypes,
+                                                 const QString& dateFrom,
+                                                 const QString& dateTo,
+                                                 double taxPercent)
+{
+  const auto configJson = QString::fromStdString(core::application::AnalysisRequestComposer::buildConfigJson(
+      strings::toStdString(type),
+      strings::toStdString(plotType),
+      strings::toStdString(plotMeasure),
+      strings::toStdList(propertyIds),
+      strings::toStdList(contractTypes),
+      taxPercent));
+  const auto filterSpec = QString::fromStdString(core::application::AnalysisRequestComposer::buildFilterSpec(
+      strings::toStdString(dateFrom),
+      strings::toStdString(dateTo)));
+  return addAnalysis(name, type, configJson, filterSpec);
+}
+
+QString AnalysisController::buildFilterSpec(const QString& dateFrom, const QString& dateTo) const
+{
+  return QString::fromStdString(core::application::AnalysisRequestComposer::buildFilterSpec(
+      strings::toStdString(dateFrom),
+      strings::toStdString(dateTo)));
+}
+
+QString AnalysisController::buildTaxAdjustmentsJson(const QVariantList& transactions,
+                                                    const QVariantList& selectedTransactionIds,
+                                                    double taxPercent) const
+{
+  std::vector<core::domain::AnalysisTransaction> coreTransactions;
+  coreTransactions.reserve(transactions.size());
+  for (const auto& item : transactions) {
+    const auto row = item.toMap();
+    if (row.isEmpty()) continue;
+
+    core::domain::AnalysisTransaction transaction;
+    transaction.id = row.value(QStringLiteral("id")).toString().toStdString();
+    transaction.amount = row.value(QStringLiteral("amount")).toDouble();
+    coreTransactions.push_back(std::move(transaction));
+  }
+
+  std::vector<std::string> selectedIds;
+  selectedIds.reserve(selectedTransactionIds.size());
+  for (const auto& item : selectedTransactionIds) {
+    const auto value = item.toString().trimmed();
+    if (!value.isEmpty()) selectedIds.push_back(value.toStdString());
+  }
+
+  const auto adjustments = core::application::AnalysisRequestComposer::buildTaxAdjustments(
+      coreTransactions,
+      selectedIds,
+      taxPercent);
+
+  QJsonObject obj;
+  for (const auto& [txId, amount] : adjustments) {
+    obj.insert(QString::fromStdString(txId), amount);
+  }
+  return QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
 }
 
 QVariantMap

@@ -218,16 +218,18 @@ Item {
 
                                         var selectedPlotType = root.plotTypeOptions[Math.max(0, plotTypeCombo.currentIndex)].value
                                         var selectedPlotMeasure = root.plotMeasureOptions[Math.max(0, plotMeasureCombo.currentIndex)].value
+                                        var filterSpec = analysisController.buildFilterSpec(dateFrom.text, dateTo.text)
 
-                                        var filterSpec = ""
-                                        if (dateFrom.text && dateFrom.text.length > 0) filterSpec += "date>=" + dateFrom.text
-                                        if (dateTo.text && dateTo.text.length > 0) {
-                                            if (filterSpec.length > 0) filterSpec += ";"
-                                            filterSpec += "date<=" + dateTo.text
-                                        }
-
-                                        var cfg = { plotType: selectedPlotType, plotMeasure: selectedPlotMeasure, properties: createBox.selectedProps, contractTypes: createBox.selectedContractTypes }
-                                        var id = analysisController.addAnalysis(nameField.text, strategy, JSON.stringify(cfg), filterSpec)
+                                        var id = analysisController.createAnalysisFromUi(
+                                            nameField.text,
+                                            strategy,
+                                            selectedPlotType,
+                                            selectedPlotMeasure,
+                                            createBox.selectedProps,
+                                            createBox.selectedContractTypes,
+                                            dateFrom.text,
+                                            dateTo.text,
+                                            0.0)
                                         if (id && id.length > 0) {
                                             uiData.selectedAnalysisId = id
                                             try { var res = analysisController.computeAnalysis(id, filterSpec); uiData.lastAnalysisResult = res } catch(e) {}

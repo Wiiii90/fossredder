@@ -1,5 +1,6 @@
 #include "ui/models/AnalysisList.h"
 
+#include "core/application/AnalysisRequestComposer.h"
 #include "ui/config/Defaults.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
@@ -8,8 +9,6 @@
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QVariant>
 
 #include <exception>
@@ -17,13 +16,9 @@
 namespace ui {
 
 QString AnalysisList::adjustmentsJsonFor(const Analysis &analysis) {
-  QString adjustmentsJson = ui::config::kJsonEmptyObject;
   try {
-    QJsonObject obj;
-    for (const auto &pair : analysis.adjustments)
-      obj.insert(QString::fromStdString(pair.first), pair.second);
-    adjustmentsJson =
-        QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+    return QString::fromStdString(
+        core::application::AnalysisRequestComposer::serializeAdjustments(analysis.adjustments));
   } catch (...) {
     core::errors::reportException(
         core::errors::ErrorSeverity::Warning,
@@ -31,7 +26,7 @@ QString AnalysisList::adjustmentsJsonFor(const Analysis &analysis) {
         observability::origins::model::analysisList::kAdjustmentsJson,
         std::current_exception());
   }
-  return adjustmentsJson;
+  return ui::config::kJsonEmptyObject;
 }
 
 void AnalysisList::rebuildAdjustmentsCache() {
@@ -145,22 +140,15 @@ void AnalysisList::setAdjustmentsById(const QString &id, const QString &json) {
 
   a->adjustments.clear();
   try {
-    QJsonParseError parseError;
-    const auto doc = QJsonDocument::fromJson(json.toUtf8(), &parseError);
-    if (parseError.error != QJsonParseError::NoError) {
+    const auto parsed = core::application::AnalysisRequestComposer::parseAdjustmentsJson(json.toStdString());
+    if (!parsed.valid) {
       core::errors::report(
           core::errors::ErrorSeverity::Warning,
           core::errors::codes::GenericError,
           observability::origins::model::analysisList::kAdjustmentsParse,
-          strings::toStdString(parseError.errorString()));
-    } else if (doc.isObject()) {
-      const auto obj = doc.object();
-      for (auto it = obj.begin(); it != obj.end(); ++it) {
-        if (!it.value().isDouble())
-          continue;
-        a->adjustments.emplace(strings::toStdString(it.key()),
-                               it.value().toDouble());
-      }
+          parsed.error.empty() ? std::string("Failed to parse analysis adjustments") : parsed.error);
+    } else {
+      a->adjustments = std::move(parsed.adjustments);
     }
   } catch (...) {
     core::errors::reportException(

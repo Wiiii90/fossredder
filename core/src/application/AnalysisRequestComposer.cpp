@@ -1,0 +1,156 @@
+/**
+ * @file core/src/application/AnalysisRequestComposer.cpp
+ * @brief Implements analysis request composition helpers used by the UI controllers.
+ */
+
+#include "core/pch.h"
+
+#include "core/application/AnalysisRequestComposer.h"
+
+#include "core/constants/CoreDefaults.h"
+#include "core/models/AnalysisResult.h"
+
+#include <algorithm>
+#include <cctype>
+#include <exception>
+#include <unordered_set>
+
+#include <nlohmann/json.hpp>
+
+namespace {
+
+std::string trim(std::string value)
+{
+    const auto first = value.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) return {};
+    const auto last = value.find_last_not_of(" \t\r\n");
+    return value.substr(first, last - first + 1);
+}
+
+std::vector<std::string> normalizedCopy(const std::vector<std::string>& values)
+{
+    std::vector<std::string> out;
+    out.reserve(values.size());
+    for (const auto& value : values) {
+        const auto trimmed = trim(value);
+        if (!trimmed.empty()) out.push_back(trimmed);
+    }
+    return out;
+}
+
+bool containsTransactionId(const std::unordered_set<std::string>& selectedIds, const std::string& id)
+{
+    return selectedIds.find(id) != selectedIds.end();
+}
+
+} // namespace
+
+namespace core::application {
+
+std::string AnalysisRequestComposer::buildConfigJson(const std::string& type,
+                                                     const std::string& plotType,
+                                                     const std::string& plotMeasure,
+                                                     const std::vector<std::string>& propertyIds,
+                                                     const std::vector<std::string>& contractTypes,
+                                                     double taxPercent)
+{
+    nlohmann::json config = nlohmann::json::object();
+    const auto normalizedType = trim(type);
+
+    if (normalizedType == core::constants::analysis::kTypeCalc) {
+        config[core::constants::analysis::calc::kStrategyKey] = core::constants::analysis::calc::kStrategyTax;
+        config[core::constants::analysis::calc::kPercentKey] = taxPercent;
+    } else if (normalizedType == core::constants::analysis::kTypePlot) {
+        config[core::constants::analysis::kPlotTypeKey] = trim(plotType).empty()
+            ? std::string(core::constants::analysis::plotTypes::kPie)
+            : trim(plotType);
+        config[core::constants::analysis::kPlotMeasureKey] = trim(plotMeasure).empty()
+            ? std::string(core::constants::analysis::plotMeasures::kTotalAmount)
+            : trim(plotMeasure);
+        config[core::constants::analysis::kPropertiesKey] = normalizedCopy(propertyIds);
+        config[core::constants::analysis::kContractTypesKey] = normalizedCopy(contractTypes);
+    }
+
+    return config.dump();
+}
+
+std::string AnalysisRequestComposer::buildFilterSpec(const std::string& dateFrom,
+                                                    const std::string& dateTo)
+{
+    const auto from = trim(dateFrom);
+    const auto to = trim(dateTo);
+    if (from.empty() && to.empty()) return {};
+
+    std::vector<std::string> clauses;
+    if (!from.empty()) {
+        clauses.push_back(std::string(core::constants::filters::kDate)
+                          + std::string(core::constants::filters::operators::kGreaterEqual)
+                          + from);
+    }
+    if (!to.empty()) {
+        clauses.push_back(std::string(core::constants::filters::kDate)
+                          + std::string(core::constants::filters::operators::kLessEqual)
+                          + to);
+    }
+
+    std::string filterSpec;
+    for (std::size_t i = 0; i < clauses.size(); ++i) {
+        if (i > 0) filterSpec.push_back(core::constants::filters::separators::kClause);
+        filterSpec += clauses[i];
+    }
+    return filterSpec;
+}
+
+std::unordered_map<std::string, double> AnalysisRequestComposer::buildTaxAdjustments(
+    const std::vector<core::domain::AnalysisTransaction>& transactions,
+    const std::vector<std::string>& selectedTransactionIds,
+    double taxPercent)
+{
+    std::unordered_map<std::string, double> out;
+    const auto selectedIds = std::unordered_set<std::string>(selectedTransactionIds.begin(), selectedTransactionIds.end());
+    if (selectedIds.empty()) return out;
+
+    const double factor = 1.0 + (taxPercent / 100.0);
+    for (const auto& transaction : transactions) {
+        if (transaction.id.empty()) continue;
+        if (!containsTransactionId(selectedIds, transaction.id)) continue;
+        out.emplace(transaction.id, transaction.amount * factor);
+    }
+
+    return out;
+}
+
+std::string AnalysisRequestComposer::serializeAdjustments(const std::unordered_map<std::string, double>& adjustments)
+{
+    nlohmann::json obj = nlohmann::json::object();
+    for (const auto& [id, amount] : adjustments) {
+        obj[id] = amount;
+    }
+    return obj.dump();
+}
+
+AnalysisRequestComposer::AdjustmentsJsonResult AnalysisRequestComposer::parseAdjustmentsJson(const std::string& json)
+{
+    AdjustmentsJsonResult result;
+    try {
+        const auto doc = nlohmann::json::parse(json);
+        if (!doc.is_object()) {
+            result.error = "Expected JSON object";
+            return result;
+        }
+
+        for (auto it = doc.begin(); it != doc.end(); ++it) {
+            if (!it.value().is_number()) continue;
+            result.adjustments.emplace(it.key(), it.value().get<double>());
+        }
+
+        result.valid = true;
+        return result;
+    } catch (const std::exception& ex) {
+        result.error = ex.what();
+    }
+
+    return result;
+}
+
+} // namespace core::application

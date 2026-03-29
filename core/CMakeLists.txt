@@ -8,6 +8,7 @@ set(CORE_SRCS
     src/analysis/strategies/PlotAnalysisStrategy.cpp
     src/analysis/strategies/TabAnalysisStrategy.cpp
     src/application/AnalysisService.cpp
+    src/application/AnalysisRequestComposer.cpp
     src/application/AppStateManager.cpp
     src/application/AppStateFacade.cpp
     src/application/CatalogService.cpp

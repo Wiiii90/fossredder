@@ -11,18 +11,6 @@ Item {
     property var calcSelectedTx: []
     width: parent ? parent.width : Theme.analysis.calc.defaultWidth
 
-    function amountForTransaction(transactionId) {
-        try {
-            var transactions = (uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.transactions : []
-            for (var i = 0; i < transactions.length; ++i) {
-                if (transactions[i] && transactions[i].id === transactionId)
-                    return parseFloat(transactions[i].amount)
-            }
-        } catch (e) {
-        }
-        return NaN
-    }
-
     function recomputeSelectedAnalysis() {
         try {
             if (!analysisController || !uiData || !uiData.selectedAnalysis)
@@ -52,8 +40,7 @@ Item {
         RowLayout { spacing: Theme.spacingSmall; Layout.fillWidth: true
             Controls.Button { text: qsTr("New Calc"); onClicked: {
                 if (!analysisController) return
-                var cfg = JSON.stringify({ strategy: "tax", percent: 0 })
-                var id = analysisController.addAnalysis("New Calc", "calc", cfg, "")
+                var id = analysisController.createAnalysisFromUi("New Calc", "calc", "", "", [], [], "", "", 0.0)
                 if (id && uiData) uiData.selectedAnalysisId = id
             } }
             Item { Layout.fillWidth: true }
@@ -65,20 +52,10 @@ Item {
             Controls.Button { text: qsTr("Apply Tax to Selected"); onClicked: {
                 if (!analysisCalcView.uiData || !analysisCalcView.uiData.selectedAnalysis) return
                 var aid = analysisCalcView.uiData.selectedAnalysis.id
-                var obj = {}
                 var percent = parseFloat(taxPercentField.text)
                 if (isNaN(percent)) percent = 0.0
-                if (analysisCalcView.calcSelectedTx && analysisCalcView.calcSelectedTx.length > 0) {
-                    for (var i = 0; i < analysisCalcView.calcSelectedTx.length; ++i) {
-                        var tx = analysisCalcView.calcSelectedTx[i]
-                        if (!tx) continue
-                        var amt = amountForTransaction(tx)
-                        if (isNaN(amt)) continue
-                        var adjusted = amt * (1.0 + percent)
-                        obj[tx] = adjusted
-                    }
-                }
-                var j = JSON.stringify(obj)
+                var transactions = analysisCalcView.uiData.lastAnalysisResult ? analysisCalcView.uiData.lastAnalysisResult.transactions : []
+                var j = analysisController ? analysisController.buildTaxAdjustmentsJson(transactions, analysisCalcView.calcSelectedTx, percent) : "{}"
                 if (analysisCalcView.uiData.analyses) analysisCalcView.uiData.analyses.setAdjustmentsById(aid, j)
                 recomputeSelectedAnalysis()
             } }

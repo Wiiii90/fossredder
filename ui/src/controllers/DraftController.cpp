@@ -7,6 +7,7 @@
 
 #include "core/application/AppStateFacade.h"
 #include "core/import/DraftLinking.h"
+#include "core/import/parsing/AmountParser.h"
 #include "core/models/DraftStatement.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
@@ -429,19 +430,13 @@ void DraftController::updateCurrentAmount(StatementDraft* draft, const QString& 
 {
     if (!draft) return;
 
-    QString value = text.trimmed();
-    if (value.isEmpty()) {
+    const auto parsed = core::parser::parseAmountString(text.trimmed().toStdString());
+    if (!parsed) {
         draft->transactions()->setAmount(draft->currentIndex(), 0.0);
         return;
     }
 
-    if (value.contains(QLatin1Char(','))) value.replace(QRegularExpression(QStringLiteral("\\.")), QString());
-    value.replace(QLatin1Char(','), QLatin1Char('.'));
-    value.remove(QRegularExpression(QStringLiteral("\\s")));
-
-    bool ok = false;
-    const double amount = value.toDouble(&ok);
-    draft->transactions()->setAmount(draft->currentIndex(), ok ? amount : 0.0);
+    draft->transactions()->setAmount(draft->currentIndex(), *parsed);
 }
 
 } // namespace ui
