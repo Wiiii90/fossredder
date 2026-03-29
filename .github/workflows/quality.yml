@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - master
-  workflow_dispatch:
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.ref }}
@@ -164,16 +163,10 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Codecov report
-<<<<<<< HEAD
         uses: codecov/codecov-action@v5
         with:
           use_oidc: true
           files: coverage/coverage.lcov
           fail_ci_if_error: false
           verbose: true
-=======
         continue-on-error: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: .\ci\upload-codecov.ps1 -CoverageFile .\coverage\coverage.lcov
->>>>>>> 19e332b (CI: upload coverage from self-hosted Windows runner using Windows uploader; fix README badges and clean merge leftovers)
