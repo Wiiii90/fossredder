@@ -44,5 +44,7 @@ core::domain::AppState matchingStateForDraft(const StatementDraft* draft,
                                              const core::application::AppStateFacade* core);
 core::domain::DraftStatement buildFinalizationInput(StatementDraft* draft,
                                                     core::application::AppStateFacade* core);
+void syncCurrentTransactionDraft(StatementDraft* draft,
+                                 core::application::AppStateFacade* core);
 
 } // namespace ui
