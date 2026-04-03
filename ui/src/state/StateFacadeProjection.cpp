@@ -5,26 +5,13 @@
 
 #include "ui/state/StateFacadeProjection.h"
 
+#include "ui/payload/ProjectionConverters.h"
 #include "ui/state/SessionStore.h"
 
 #include <QStringList>
 #include <QVariantMap>
 
 namespace ui {
-
-namespace {
-
-QStringList toQStringList(const std::vector<std::string>& values)
-{
-    QStringList out;
-    out.reserve(static_cast<int>(values.size()));
-    for (const auto& value : values) {
-        out.push_back(QString::fromStdString(value));
-    }
-    return out;
-}
-
-} // namespace
 
 QVariantList buildStatementTransactionIds(const SessionStore& session, const QString& statementId)
 {
@@ -53,7 +40,7 @@ QVariantList buildActorRows(const SessionStore& session)
         row.insert("display", actor->type.empty()
                                   ? QString::fromStdString(actor->name)
                                   : QString::fromStdString(actor->name) + QStringLiteral(" — ") + QString::fromStdString(actor->type));
-        row.insert("aliases", toQStringList(actor->aliases));
+        row.insert("aliases", payload::projection::toQStringList(actor->aliases));
         out.push_back(row);
     }
     return out;
@@ -71,7 +58,7 @@ QVariantList buildPropertyRows(const SessionStore& session)
         row.insert("display", property->address.empty()
                                   ? QString::fromStdString(property->name)
                                   : QString::fromStdString(property->name) + QStringLiteral(" — ") + QString::fromStdString(property->address));
-        row.insert("aliases", toQStringList(property->aliases));
+        row.insert("aliases", payload::projection::toQStringList(property->aliases));
         out.push_back(row);
     }
     return out;
@@ -88,9 +75,9 @@ QVariantList buildContractRows(const SessionStore& session)
         row.insert("name", QString::fromStdString(contract->name));
         row.insert("type", QString::fromStdString(contract->type));
         row.insert("display", QString::fromStdString(contract->name));
-        row.insert("aliases", toQStringList(contract->aliases));
-        row.insert("actorIds", toQStringList(contract->actorIds));
-        row.insert("propertyIds", toQStringList(contract->propertyIds));
+        row.insert("aliases", payload::projection::toQStringList(contract->aliases));
+        row.insert("actorIds", payload::projection::toQStringList(contract->actorIds));
+        row.insert("propertyIds", payload::projection::toQStringList(contract->propertyIds));
         out.push_back(row);
     }
     return out;

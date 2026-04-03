@@ -5,8 +5,6 @@
 
 #include "ui/controllers/AnalysisController.h"
 
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QVariantMap>
 
 #include "core/application/AnalysisService.h"
@@ -17,6 +15,7 @@
 #include "core/models/AppState.h"
 #include "core/models/AnalysisResult.h"
 #include "ui/analysis/AnalysisPayloadMapper.h"
+#include "ui/controllers/AnalysisProjection.h"
 #include "ui/controllers/ControllerGuard.h"
 #include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
@@ -112,6 +111,27 @@ QVariantMap AnalysisController::createAnalysisFromUiAndCompute(const QString& na
   return out;
 }
 
+QVariantMap AnalysisController::createAnalysisFromStrategyAndCompute(const QString& name,
+                                                                     int strategyIndex,
+                                                                     const QString& plotType,
+                                                                     const QString& plotMeasure,
+                                                                     const QStringList& propertyIds,
+                                                                     const QStringList& contractTypes,
+                                                                     const QString& dateFrom,
+                                                                     const QString& dateTo,
+                                                                     double taxPercent)
+{
+  return createAnalysisFromUiAndCompute(name,
+                                        QString::fromStdString(ui::analysis::projection::strategyTypeForIndex(strategyIndex)),
+                                        plotType,
+                                        plotMeasure,
+                                        propertyIds,
+                                        contractTypes,
+                                        dateFrom,
+                                        dateTo,
+                                        taxPercent);
+}
+
 QString AnalysisController::buildFilterSpec(const QString& dateFrom, const QString& dateTo) const
 {
   return QString::fromStdString(core::application::AnalysisRequestComposer::buildFilterSpec(
@@ -123,28 +143,9 @@ QString AnalysisController::buildTaxAdjustmentsJson(const QVariantList& transact
                                                     const QVariantList& selectedTransactionIds,
                                                     double taxPercent) const
 {
-  std::vector<core::domain::AnalysisTransaction> coreTransactions;
-  coreTransactions.reserve(transactions.size());
-  for (const auto& item : transactions) {
-    const auto row = item.toMap();
-    if (row.isEmpty()) continue;
-
-    core::domain::AnalysisTransaction transaction;
-    transaction.id = row.value(QStringLiteral("id")).toString().toStdString();
-    transaction.amount = row.value(QStringLiteral("amount")).toDouble();
-    coreTransactions.push_back(std::move(transaction));
-  }
-
-  std::vector<std::string> selectedIds;
-  selectedIds.reserve(selectedTransactionIds.size());
-  for (const auto& item : selectedTransactionIds) {
-    const auto value = item.toString().trimmed();
-    if (!value.isEmpty()) selectedIds.push_back(value.toStdString());
-  }
-
   return QString::fromStdString(core::application::AnalysisRequestComposer::buildTaxAdjustmentsJson(
-      coreTransactions,
-      selectedIds,
+      ui::analysis::projection::toCoreTransactions(transactions),
+      ui::analysis::projection::toSelectedTransactionIds(selectedTransactionIds),
       taxPercent));
 }
 
@@ -161,6 +162,19 @@ QVariantMap AnalysisController::applyTaxAdjustmentsAndRecompute(const QString& a
   const auto result = computeAnalysis(analysisId, filterSpec);
   if (!result.isEmpty()) out.insert(QStringLiteral("analysisResult"), result);
   return out;
+}
+
+QVariantMap AnalysisController::applyTaxAdjustmentsAndRecomputeFromText(const QString& analysisId,
+                                                                        const QString& filterSpec,
+                                                                        const QVariantList& transactions,
+                                                                        const QVariantList& selectedTransactionIds,
+                                                                        const QString& taxPercentText) const
+{
+  return applyTaxAdjustmentsAndRecompute(analysisId,
+                                         filterSpec,
+                                         transactions,
+                                         selectedTransactionIds,
+                                         ui::analysis::projection::parsePercentOrZero(taxPercentText));
 }
 
 QVariantMap

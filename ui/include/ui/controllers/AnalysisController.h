@@ -53,6 +53,16 @@ public:
                                                            const QString& dateFrom,
                                                            const QString& dateTo,
                                                            double taxPercent = 0.0);
+    /** @brief Maps a strategy index and executes create+compute in one call. */
+    Q_INVOKABLE QVariantMap createAnalysisFromStrategyAndCompute(const QString& name,
+                                                                 int strategyIndex,
+                                                                 const QString& plotType,
+                                                                 const QString& plotMeasure,
+                                                                 const QStringList& propertyIds,
+                                                                 const QStringList& contractTypes,
+                                                                 const QString& dateFrom,
+                                                                 const QString& dateTo,
+                                                                 double taxPercent = 0.0);
     /** @brief Composes the analysis filter clause for the supplied date bounds. */
     Q_INVOKABLE QString buildFilterSpec(const QString& dateFrom, const QString& dateTo) const;
     /** @brief Builds the JSON adjustments payload for selected transactions. */
@@ -65,6 +75,12 @@ public:
                                                             const QVariantList& transactions,
                                                             const QVariantList& selectedTransactionIds,
                                                             double taxPercent) const;
+    /** @brief Parses a percent string and applies tax adjustments in one call. */
+    Q_INVOKABLE QVariantMap applyTaxAdjustmentsAndRecomputeFromText(const QString& analysisId,
+                                                                    const QString& filterSpec,
+                                                                    const QVariantList& transactions,
+                                                                    const QVariantList& selectedTransactionIds,
+                                                                    const QString& taxPercentText) const;
     Q_INVOKABLE QVariantMap computeAnalysis(const QString& analysisId, const QString& filterSpec) const;
     Q_INVOKABLE QStringList getContractTypes() const;
 

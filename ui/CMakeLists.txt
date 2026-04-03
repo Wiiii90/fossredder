@@ -8,6 +8,7 @@ set(UI_SOURCES
     src/bootstrap/QmlRuntime.cpp
     src/controllers/ActorController.cpp
     src/controllers/AnalysisController.cpp
+    src/controllers/AnalysisProjection.cpp
     src/controllers/AnnualController.cpp
     src/controllers/ContractController.cpp
     src/controllers/DraftController.cpp
@@ -42,7 +43,9 @@ set(UI_SOURCES
     src/providers/DraftProofProvider.cpp
     src/state/FilterState.cpp
     src/state/MetricsState.cpp
+    src/state/SessionMetricsSync.cpp
     src/state/NavigationState.cpp
+    src/state/PropertyNameProjection.cpp
     src/state/PropertyNameCatalog.cpp
     src/state/SessionSelection.cpp
     src/state/SelectionState.cpp
@@ -70,6 +73,7 @@ set(UI_HEADERS
     include/ui/config/Defaults.h
     include/ui/controllers/ActorController.h
     include/ui/controllers/AnalysisController.h
+    include/ui/controllers/AnalysisProjection.h
     include/ui/controllers/AnnualController.h
     include/ui/controllers/ContractController.h
     include/ui/controllers/ControllerContracts.h
@@ -111,12 +115,15 @@ set(UI_HEADERS
     include/ui/observability/Origins.h
     include/ui/observability/Trace.h
     include/ui/payload/PayloadKeys.h
+    include/ui/payload/ProjectionConverters.h
     include/ui/providers/DraftProofProvider.h
     include/ui/state/FilterState.h
     include/ui/state/MetricsState.h
     include/ui/state/NavigationState.h
     include/ui/state/AppStateClone.h
     include/ui/state/PropertyNameCatalog.h
+    include/ui/state/PropertyNameProjection.h
+    include/ui/state/SessionMetricsSync.h
     include/ui/state/SessionSelection.h
     include/ui/state/SelectionState.h
     include/ui/state/SelectionStateSync.h

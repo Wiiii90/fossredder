@@ -53,10 +53,8 @@ Item {
                 if (!analysisCalcView.uiData || !analysisCalcView.uiData.selectedAnalysis) return
                 var aid = analysisCalcView.uiData.selectedAnalysis.id
                 var filterSpec = analysisCalcView.uiData.selectedAnalysis.filterSpec ? analysisCalcView.uiData.selectedAnalysis.filterSpec : ""
-                var percent = parseFloat(taxPercentField.text)
-                if (isNaN(percent)) percent = 0.0
                 var transactions = analysisCalcView.uiData.lastAnalysisResult ? analysisCalcView.uiData.lastAnalysisResult.transactions : []
-                var result = analysisController ? analysisController.applyTaxAdjustmentsAndRecompute(aid, filterSpec, transactions, analysisCalcView.calcSelectedTx, percent) : {}
+                var result = analysisController ? analysisController.applyTaxAdjustmentsAndRecomputeFromText(aid, filterSpec, transactions, analysisCalcView.calcSelectedTx, taxPercentField.text) : {}
                 if (result && result.adjustmentsJson && analysisCalcView.uiData.analyses) analysisCalcView.uiData.analyses.setAdjustmentsById(aid, result.adjustmentsJson)
                 if (result && result.analysisResult) analysisCalcView.uiData.lastAnalysisResult = result.analysisResult
             } }

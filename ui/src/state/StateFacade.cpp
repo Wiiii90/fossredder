@@ -130,12 +130,12 @@ QVariantList StateFacade::statementTransactionRows(const QString& statementId) c
 
 TransactionFilter* StateFacade::statementTransactions(const QString& statementId)
 {
-    return session_->statementTransactions(statementId, this);
+    return session_->statementTransactions(statementId);
 }
 
 TransactionFilter* StateFacade::propertyTransactions(const QString& propertyId)
 {
-    return session_->propertyTransactions(propertyId, this);
+    return session_->propertyTransactions(propertyId);
 }
 
 QStringList StateFacade::propertyContractTypes(const QString& propertyId) const

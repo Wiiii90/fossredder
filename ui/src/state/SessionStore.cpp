@@ -8,74 +8,15 @@
 #include <algorithm>
 #include <utility>
 
-#include <QAbstractItemModel>
-#include <QSet>
-
 #include "ui/models/TransactionFilter.h"
+#include "ui/state/SessionMetricsSync.h"
 #include "ui/state/SessionMutationState.h"
 
 namespace ui {
 
-/** @brief Binds transaction model mutations to metric recomputation hooks. */
-template <typename RecomputeAllFn, typename RecomputeRangeFn>
-void bindTransactionMetricSignals(TransactionList& transactions,
-                                  QObject* context,
-                                  RecomputeAllFn&& recomputeAll,
-                                  RecomputeRangeFn&& recomputeRange)
-{
-    QObject::connect(&transactions, &QAbstractItemModel::rowsRemoved, context, [recomputeAll](const QModelIndex&, int, int) mutable {
-        recomputeAll();
-    });
-
-    QObject::connect(&transactions, &QAbstractItemModel::rowsInserted, context, [recomputeRange](const QModelIndex&, int first, int last) mutable {
-        recomputeRange(first, last);
-    });
-
-    QObject::connect(&transactions, &QAbstractItemModel::dataChanged, context, [recomputeAll, recomputeRange](const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles) mutable {
-        if (roles.isEmpty()) {
-            recomputeAll();
-            return;
-        }
-
-        bool propertyIdsChanged = false;
-        bool amountOrAllocChanged = false;
-        for (int role : roles) {
-            if (role == TransactionList::PropertyIdsRole) propertyIdsChanged = true;
-            if (role == TransactionList::AmountRole || role == TransactionList::AllocatableRole) amountOrAllocChanged = true;
-        }
-
-        if (propertyIdsChanged) {
-            recomputeAll();
-            return;
-        }
-
-        if (!amountOrAllocChanged) return;
-
-        const int first = topLeft.isValid() ? topLeft.row() : -1;
-        const int last = bottomRight.isValid() ? bottomRight.row() : first;
-        recomputeRange(first, last);
-    });
-
-    QObject::connect(&transactions, &QAbstractItemModel::modelReset, context, [recomputeAll]() mutable {
-        recomputeAll();
-    });
-}
-
-/** @brief Binds analysis model resets to metric cache invalidation. */
-template <typename ClearCacheFn, typename NotifyFn>
-void bindAnalysisMetricSignals(AnalysisList& analyses,
-                               QObject* context,
-                               ClearCacheFn&& clearCache,
-                               NotifyFn&& notifyAll)
-{
-    QObject::connect(&analyses, &QAbstractItemModel::modelReset, context, [clearCache, notifyAll]() mutable {
-        clearCache();
-        notifyAll();
-    });
-}
-
 SessionStore::SessionStore(QObject* parent)
     : QObject(parent)
+    , filters_(this)
     , models_(this)
 {
     bindModelSignals();
@@ -83,72 +24,33 @@ SessionStore::SessionStore(QObject* parent)
 
 void SessionStore::bindModelSignals()
 {
-    bindTransactionMetricSignals(models_.transactions(),
-                                 this,
-                                 [this]() {
-                                     recomputeAllMetrics();
-                                 },
-                                 [this](int first, int last) {
-                                     recomputeMetricsForRows(first, last);
-                                 });
-
-    bindAnalysisMetricSignals(models_.analyses(),
-                              this,
-                              [this]() {
-                                  metrics_.clearCache();
-                              },
-                              [this]() {
-                                  notifyTransactionSumsForAllProperties();
-                              });
+    bindSessionMetricSignals(models_,
+                             this,
+                             [this]() { recomputeAllMetrics(); },
+                             [this](int first, int last) { recomputeMetricsForRows(first, last); },
+                             [this]() { metrics_.clearCache(); },
+                             [this]() { notifyTransactionSumsForAllProperties(); });
 }
 
 void SessionStore::recomputeAllMetrics()
 {
-    metrics_.recomputeAll(models_.properties(),
-                          models_.transactions(),
-                          models_.contracts(),
-                          [this](const QString& propertyId) {
+    recomputeAllSessionMetrics(models_, metrics_, [this](const QString& propertyId) {
         emit transactionSumsUpdated(propertyId);
     });
 }
 
 void SessionStore::recomputeMetricsForRows(int firstRow, int lastRow)
 {
-    if (firstRow < 0 || lastRow < firstRow) {
-        recomputeAllMetrics();
-        return;
-    }
-
-    QSet<QString> affectedPropertyIds;
-    const auto& rows = models_.transactions().transactions();
-    const int safeLast = std::min(lastRow, static_cast<int>(rows.size()) - 1);
-    for (int row = firstRow; row <= safeLast; ++row) {
-        const auto& transaction = rows[static_cast<size_t>(row)];
-        if (!transaction) continue;
-        for (const auto& propertyId : transaction->propertyIds) affectedPropertyIds.insert(QString::fromStdString(propertyId));
-    }
-
-    if (affectedPropertyIds.isEmpty()) {
-        recomputeAllMetrics();
-        return;
-    }
-
-    for (const auto& propertyId : affectedPropertyIds) {
-        metrics_.recomputeProperty(propertyId,
-                                   models_.transactions(),
-                                   models_.contracts(),
-                                   [this](const QString& id) {
-            emit transactionSumsUpdated(id);
-        });
-    }
+    recomputeSessionMetricsForRows(firstRow, lastRow, models_, metrics_, [this](const QString& id) {
+        emit transactionSumsUpdated(id);
+    });
 }
 
 void SessionStore::notifyTransactionSumsForAllProperties()
 {
-    for (const auto& property : models_.properties().properties()) {
-        if (!property) continue;
-        emit transactionSumsUpdated(QString::fromStdString(property->id));
-    }
+    notifySessionMetricsForAllProperties(models_, [this](const QString& propertyId) {
+        emit transactionSumsUpdated(propertyId);
+    });
 }
 
 void SessionStore::loadFromState(const AppState& state)
@@ -159,14 +61,14 @@ void SessionStore::loadFromState(const AppState& state)
     recomputeAllMetrics();
 }
 
-TransactionFilter* SessionStore::statementTransactions(const QString& statementId, QObject* parent)
+TransactionFilter* SessionStore::statementTransactions(const QString& statementId)
 {
-    return filters_.statementTransactions(statementId, models_.transactions(), parent);
+    return filters_.statementTransactions(statementId, models_.transactions());
 }
 
-TransactionFilter* SessionStore::propertyTransactions(const QString& propertyId, QObject* parent)
+TransactionFilter* SessionStore::propertyTransactions(const QString& propertyId)
 {
-    return filters_.propertyTransactions(propertyId, models_.transactions(), parent);
+    return filters_.propertyTransactions(propertyId, models_.transactions());
 }
 
 QStringList SessionStore::propertyContractTypes(const QString& propertyId) const

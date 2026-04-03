@@ -10,6 +10,7 @@
 #include "ui/models/StatementDraft.h"
 #include "ui/models/TransactionDraft.h"
 #include "ui/controllers/ControllerStrings.h"
+#include "ui/payload/ProjectionConverters.h"
 
 #include <QVariantList>
 #include <QVariantMap>
@@ -72,12 +73,7 @@ DraftLinkSelection toCoreSelection(const TransactionDraft& draft)
 
 QStringList toQStringList(const std::vector<std::string>& values)
 {
-    QStringList out;
-    out.reserve(static_cast<int>(values.size()));
-    for (const auto& value : values) {
-        out.push_back(QString::fromStdString(value));
-    }
-    return out;
+    return payload::projection::toQStringList(values);
 }
 
 QVariantMap toVariantMap(const DraftSuggestionCandidate& suggestion)

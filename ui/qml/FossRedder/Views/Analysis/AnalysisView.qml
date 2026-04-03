@@ -212,15 +212,11 @@ Item {
                                     enabled: nameField.text.length > 0
                                     onClicked: {
                                         if (!uiData || !analysisController) return
-                                        var strategy = "tab"
-                                        if (strategyCombo.currentIndex === 1) strategy = "plot"
-                                        else if (strategyCombo.currentIndex === 2) strategy = "calc"
-
                                         var selectedPlotType = root.plotTypeOptions[Math.max(0, plotTypeCombo.currentIndex)].value
                                         var selectedPlotMeasure = root.plotMeasureOptions[Math.max(0, plotMeasureCombo.currentIndex)].value
-                                        var result = analysisController.createAnalysisFromUiAndCompute(
+                                        var result = analysisController.createAnalysisFromStrategyAndCompute(
                                             nameField.text,
-                                            strategy,
+                                            strategyCombo.currentIndex,
                                             selectedPlotType,
                                             selectedPlotMeasure,
                                             createBox.selectedProps,
