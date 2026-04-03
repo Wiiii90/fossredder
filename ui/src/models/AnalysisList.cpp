@@ -15,7 +15,7 @@
 
 namespace ui {
 
-QString AnalysisList::adjustmentsJsonFor(const Analysis &analysis) {
+QString AnalysisList::serializeAdjustmentsJson(const Analysis &analysis) {
   try {
     return QString::fromStdString(
         core::application::AnalysisRequestComposer::serializeAdjustments(analysis.adjustments));
@@ -29,19 +29,19 @@ QString AnalysisList::adjustmentsJsonFor(const Analysis &analysis) {
   return ui::config::kJsonEmptyObject;
 }
 
-void AnalysisList::rebuildAdjustmentsCache() {
+void AnalysisList::refreshAdjustmentsCache() {
   adjustmentsJsonById_.clear();
   adjustmentsJsonById_.reserve(static_cast<int>(analyses().size()));
   for (const auto &analysis : analyses()) {
     if (!analysis)
       continue;
-    updateAdjustmentsCache(*analysis);
+    refreshAdjustmentsCacheEntry(*analysis);
   }
 }
 
-void AnalysisList::updateAdjustmentsCache(const Analysis &analysis) {
+void AnalysisList::refreshAdjustmentsCacheEntry(const Analysis &analysis) {
   adjustmentsJsonById_.insert(QString::fromStdString(analysis.id),
-                              adjustmentsJsonFor(analysis));
+                              serializeAdjustmentsJson(analysis));
 }
 
 AnalysisList::AnalysisList(QObject *parent) : Base(parent) {}
@@ -89,14 +89,14 @@ int AnalysisList::addAnalysis(const QString &name, const QString &type) {
   auto a = std::make_shared<Analysis>();
   a->name = strings::toStdString(name);
   a->type = strings::toStdString(type);
-  updateAdjustmentsCache(*a);
+  refreshAdjustmentsCacheEntry(*a);
   return appendItem(std::move(a));
 }
 
 void AnalysisList::setAnalyses(
     std::vector<std::shared_ptr<Analysis>> analyses) {
   setItems(std::move(analyses));
-  rebuildAdjustmentsCache();
+  refreshAdjustmentsCache();
 }
 
 void AnalysisList::removeAt(int row) {
@@ -122,7 +122,7 @@ bool AnalysisList::updateAnalysisById(const QString &id, const QString &name,
   a->type = strings::toStdString(type);
   a->configJson = strings::toStdString(configJson);
   a->filterSpec = strings::toStdString(filterSpec);
-  updateAdjustmentsCache(*a);
+  refreshAdjustmentsCacheEntry(*a);
   const QModelIndex idx = index(row);
   emit dataChanged(
       idx, idx, {NameRole, TypeRole, ConfigRole, FilterRole, AdjustmentsRole});
@@ -157,7 +157,7 @@ void AnalysisList::setAdjustmentsById(const QString &id, const QString &json) {
         observability::origins::model::analysisList::kSetAdjustments,
         std::current_exception());
   }
-  updateAdjustmentsCache(*a);
+  refreshAdjustmentsCacheEntry(*a);
   const QModelIndex idx = index(row);
   emit dataChanged(idx, idx, {AdjustmentsRole});
 }

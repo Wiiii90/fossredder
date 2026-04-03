@@ -33,9 +33,9 @@ public:
     Q_INVOKABLE void setAdjustmentsById(const QString& id, const QString& json);
 
 private:
-    static QString adjustmentsJsonFor(const core::domain::Analysis& analysis);
-    void rebuildAdjustmentsCache();
-    void updateAdjustmentsCache(const core::domain::Analysis& analysis);
+    static QString serializeAdjustmentsJson(const core::domain::Analysis& analysis);
+    void refreshAdjustmentsCache();
+    void refreshAdjustmentsCacheEntry(const core::domain::Analysis& analysis);
 
     QHash<QString, QString> adjustmentsJsonById_;
 };

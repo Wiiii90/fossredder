@@ -5,15 +5,6 @@
 #include "ui/payload/PayloadKeys.h"
 #include "ui/models/ImportSuggestion.h"
 
-namespace {
-
-QVariantMap bucketToVariantMap(const ui::ImportSuggestionBucket& bucket)
-{
-    return ui::toVariantMap(bucket);
-}
-
-}
-
 namespace ui {
 
 TransactionDraftList::TransactionDraftList(QObject* parent)
@@ -40,9 +31,9 @@ QVariant TransactionDraftList::data(const QModelIndex& index, int role) const
     case NewContractSelectedRole: return t->newContractSelected;
     case MetadataRole: return t->metadata;
     case ProofImagePathRole: return t->proofImagePath;
-    case ActorSuggestionsRole: return bucketToVariantMap(t->suggestions.actor);
-    case PropertySuggestionsRole: return bucketToVariantMap(t->suggestions.property);
-    case ContractSuggestionsRole: return bucketToVariantMap(t->suggestions.contract);
+    case ActorSuggestionsRole: return ui::toVariantMap(t->suggestions.actor);
+    case PropertySuggestionsRole: return ui::toVariantMap(t->suggestions.property);
+    case ContractSuggestionsRole: return ui::toVariantMap(t->suggestions.contract);
     case AllocatableRole: return t->allocatable;
     case AllocatableManualOverrideRole: return t->allocatableManualOverride;
     case StatusRole: return t->status;
@@ -100,9 +91,9 @@ QVariantMap TransactionDraftList::get(int index) const
     m["newContractSelected"] = t->newContractSelected;
     m[payload::keys::common::kMetadata] = t->metadata;
     m[payload::keys::transaction::kProofImagePath] = t->proofImagePath;
-    m["actorSuggestions"] = bucketToVariantMap(t->suggestions.actor);
-    m["propertySuggestions"] = bucketToVariantMap(t->suggestions.property);
-    m["contractSuggestions"] = bucketToVariantMap(t->suggestions.contract);
+    m["actorSuggestions"] = ui::toVariantMap(t->suggestions.actor);
+    m["propertySuggestions"] = ui::toVariantMap(t->suggestions.property);
+    m["contractSuggestions"] = ui::toVariantMap(t->suggestions.contract);
     m[payload::keys::transaction::kAllocatable] = t->allocatable;
     m["allocatableManualOverride"] = t->allocatableManualOverride;
     m[payload::keys::common::kStatus] = t->status;
