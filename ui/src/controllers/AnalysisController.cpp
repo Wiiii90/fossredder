@@ -13,7 +13,6 @@
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/AppState.h"
-#include "core/models/AnalysisResult.h"
 #include "ui/analysis/AnalysisPayloadMapper.h"
 #include "ui/controllers/AnalysisProjection.h"
 #include "ui/controllers/ControllerGuard.h"
@@ -105,7 +104,9 @@ QVariantMap AnalysisController::createAnalysisFromUiAndCompute(const QString& na
   if (id.isEmpty()) return out;
 
   out.insert(QStringLiteral("id"), id);
-  const auto filterSpec = buildFilterSpec(dateFrom, dateTo);
+  const auto filterSpec = QString::fromStdString(core::application::AnalysisRequestComposer::buildFilterSpec(
+      strings::toStdString(dateFrom),
+      strings::toStdString(dateTo)));
   const auto result = computeAnalysis(id, filterSpec);
   if (!result.isEmpty()) out.insert(QStringLiteral("analysisResult"), result);
   return out;
@@ -130,13 +131,6 @@ QVariantMap AnalysisController::createAnalysisFromStrategyAndCompute(const QStri
                                         dateFrom,
                                         dateTo,
                                         taxPercent);
-}
-
-QString AnalysisController::buildFilterSpec(const QString& dateFrom, const QString& dateTo) const
-{
-  return QString::fromStdString(core::application::AnalysisRequestComposer::buildFilterSpec(
-      strings::toStdString(dateFrom),
-      strings::toStdString(dateTo)));
 }
 
 QString AnalysisController::buildTaxAdjustmentsJson(const QVariantList& transactions,

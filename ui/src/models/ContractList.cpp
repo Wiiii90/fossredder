@@ -3,6 +3,7 @@
 #include <QVariant>
 
 #include "ui/controllers/ControllerStrings.h"
+#include "ui/payload/ProjectionConverters.h"
 #include "ui/payload/PayloadKeys.h"
 
 namespace ui {
@@ -36,9 +37,9 @@ QVariant ContractList::data(const QModelIndex &index, int role) const {
   case MonthlyAdvanceRole:
     return c->monthlyAdvance;
   case ActorIdsRole:
-    return toQStringList(c->actorIds);
+    return payload::projection::toQStringList(c->actorIds);
   case PropertyIdsRole:
-    return toQStringList(c->propertyIds);
+    return payload::projection::toQStringList(c->propertyIds);
   default:
     return {};
   }
@@ -57,8 +58,8 @@ QVariantMap ContractList::get(int index) const {
   m[ui::payload::keys::contract::kBasePrice] = c->basePrice;
   m[ui::payload::keys::contract::kConsumptionPrice] = c->consumptionPrice;
   m[ui::payload::keys::contract::kMonthlyAdvance] = c->monthlyAdvance;
-  m[ui::payload::keys::contract::kActorIds] = toQStringList(c->actorIds);
-  m[ui::payload::keys::transaction::kPropertyIds] = toQStringList(c->propertyIds);
+  m[ui::payload::keys::contract::kActorIds] = payload::projection::toQStringList(c->actorIds);
+  m[ui::payload::keys::transaction::kPropertyIds] = payload::projection::toQStringList(c->propertyIds);
   return m;
 }
 
@@ -88,14 +89,6 @@ int ContractList::addContract(const QString &name, const QString &type,
   c->type = strings::toStdString(type);
   c->description = strings::toStdString(description);
   return appendItem(std::move(c));
-}
-
-QStringList ContractList::toQStringList(const std::vector<std::string> &v) {
-  QStringList out;
-  out.reserve(static_cast<int>(v.size()));
-  for (const auto &s : v)
-    out.push_back(QString::fromStdString(s));
-  return out;
 }
 
 } // namespace ui

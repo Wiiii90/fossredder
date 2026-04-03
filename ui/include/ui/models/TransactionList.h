@@ -47,7 +47,6 @@ public:
 private:
     void rebuildIdIndex();
     QString contractTypeForTransaction(const core::domain::Transaction& transaction) const;
-    static QVariantList toPropertyIdList(const std::vector<std::string>& propertyIds);
     void fillTransactionMap(QVariantMap& map, const core::domain::Transaction& transaction) const;
     QVector<int> allRoles() const;
 

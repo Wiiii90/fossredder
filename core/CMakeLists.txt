@@ -13,6 +13,7 @@ set(CORE_SRCS
     src/application/AppStateFacade.cpp
     src/application/CatalogService.cpp
     src/application/DraftFinalizer.cpp
+    src/application/PropertyMetricsService.cpp
     src/application/StateHydrator.cpp
     src/application/StateProjector.cpp
     src/application/WorkspaceSession.cpp

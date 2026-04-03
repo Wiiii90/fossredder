@@ -18,7 +18,7 @@
 #include "ui/models/ImportSuggestion.h"
 
 namespace core::application { class AppStateFacade; }
-namespace ui { class StatementDraft; class TransactionDraft; }
+namespace ui { class StatementDraft; struct TransactionDraft; }
 
 namespace ui {
 
@@ -38,6 +38,7 @@ QVariantMap toVariantMap(const DraftChoiceRow& row);
 QVariantList toVariantList(const std::vector<DraftChoiceRow>& rows);
 QVariantMap toViewState(const DraftDerivedState& derived);
 QString rowDisplayText(const QVariantMap& row);
+QString choiceDisplayText(const DraftChoiceRow& row);
 bool rowMatchesText(const QVariantMap& row, const QString& text);
 const DraftChoiceRow* findChoiceRowById(const std::vector<DraftChoiceRow>& rows, const std::string& id);
 core::domain::AppState matchingStateForDraft(const StatementDraft* draft,

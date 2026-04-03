@@ -144,6 +144,14 @@ QString rowDisplayText(const QVariantMap& row)
     return row.value(QStringLiteral("id")).toString();
 }
 
+QString choiceDisplayText(const DraftChoiceRow& row)
+{
+    if (!row.display.empty()) return QString::fromStdString(row.display);
+    if (!row.name.empty()) return QString::fromStdString(row.name);
+    if (!row.type.empty()) return QString::fromStdString(row.type);
+    return QString::fromStdString(row.id);
+}
+
 bool rowMatchesText(const QVariantMap& row, const QString& text)
 {
     const auto match = [&](const QString& value) {

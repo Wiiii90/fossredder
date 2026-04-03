@@ -1,5 +1,7 @@
 #include "ui/state/MetricsState.h"
 
+#include "core/application/PropertyMetricsService.h"
+
 #include "ui/models/PropertyList.h"
 #include "ui/models/TransactionList.h"
 #include "ui/models/ContractList.h"
@@ -9,39 +11,13 @@ namespace ui {
 
 namespace {
 
-struct PropertySums {
-    double total = 0.0;
-    double allocatable = 0.0;
-    double nonAllocatable = 0.0;
-
-    QVariantMap toVariantMap() const
-    {
-        return {
-            {payload::keys::metrics::kTotal, total},
-            {payload::keys::metrics::kAllocatable, allocatable},
-            {payload::keys::metrics::kNonAllocatable, nonAllocatable}
-        };
-    }
-};
-
-QHash<QString, QString> buildContractTypeById(const ContractList& contracts)
+QVariantMap toVariantMap(const core::application::PropertySums& sums)
 {
-    QHash<QString, QString> out;
-    const auto& rows = contracts.contracts();
-    out.reserve(static_cast<int>(rows.size()));
-    for (const auto& c : rows) {
-        if (!c) continue;
-        out.insert(QString::fromStdString(c->id), QString::fromStdString(c->type));
-    }
-    return out;
-}
-
-bool containsPropertyId(const std::vector<std::string>& propertyIds, const QString& propertyId)
-{
-    for (const auto& pid : propertyIds) {
-        if (QString::fromStdString(pid) == propertyId) return true;
-    }
-    return false;
+    return {
+        {payload::keys::metrics::kTotal, sums.total},
+        {payload::keys::metrics::kAllocatable, sums.allocatable},
+        {payload::keys::metrics::kNonAllocatable, sums.nonAllocatable}
+    };
 }
 
 }
@@ -49,13 +25,10 @@ bool containsPropertyId(const std::vector<std::string>& propertyIds, const QStri
 QStringList MetricsState::propertyContractTypes(const QString& propertyId, const TransactionList& transactions, const ContractList& contracts) const
 {
     QStringList out;
-    if (propertyId.isEmpty()) return out;
-    const auto contractTypeById = buildContractTypeById(contracts);
-    for (const auto& t : transactions.transactions()) {
-        if (!t) continue;
-        if (!containsPropertyId(t->propertyIds, propertyId) || t->contractId.empty()) continue;
-        const QString contractType = contractTypeById.value(QString::fromStdString(t->contractId)).trimmed();
-        if (!contractType.isEmpty() && !out.contains(contractType)) out.push_back(contractType);
+    for (const auto& type : core::application::PropertyMetricsService::propertyContractTypes(
+             propertyId.toStdString(), transactions.transactions(), contracts.contracts())) {
+        const QString value = QString::fromStdString(type).trimmed();
+        if (!value.isEmpty() && !out.contains(value)) out.push_back(value);
     }
     return out;
 }
@@ -112,28 +85,11 @@ QVariantMap MetricsState::computePropertySums(const QString& propertyId,
                                               const TransactionList& transactions,
                                               const ContractList& contracts) const
 {
-    PropertySums sums;
-    if (propertyId.isEmpty()) return sums.toVariantMap();
-
-    const auto contractTypeById = buildContractTypeById(contracts);
-
-    for (const auto& t : transactions.transactions()) {
-        if (!t) continue;
-        if (!containsPropertyId(t->propertyIds, propertyId)) continue;
-
-        if (!contractType.isEmpty()) {
-            const QString currentType = t->contractId.empty()
-                ? QString()
-                : contractTypeById.value(QString::fromStdString(t->contractId));
-            if (currentType != contractType) continue;
-        }
-
-        sums.total += t->amount;
-        if (t->allocatable) sums.allocatable += t->amount;
-        else sums.nonAllocatable += t->amount;
-    }
-
-    return sums.toVariantMap();
+    return toVariantMap(core::application::PropertyMetricsService::propertySums(
+        propertyId.toStdString(),
+        contractType.toStdString(),
+        transactions.transactions(),
+        contracts.contracts()));
 }
 
 }

@@ -63,8 +63,6 @@ public:
                                                                  const QString& dateFrom,
                                                                  const QString& dateTo,
                                                                  double taxPercent = 0.0);
-    /** @brief Composes the analysis filter clause for the supplied date bounds. */
-    Q_INVOKABLE QString buildFilterSpec(const QString& dateFrom, const QString& dateTo) const;
     /** @brief Builds the JSON adjustments payload for selected transactions. */
     Q_INVOKABLE QString buildTaxAdjustmentsJson(const QVariantList& transactions,
                                                 const QVariantList& selectedTransactionIds,

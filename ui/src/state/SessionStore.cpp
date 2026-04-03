@@ -5,9 +5,6 @@
 
 #include "ui/state/SessionStore.h"
 
-#include <algorithm>
-#include <utility>
-
 #include "ui/models/TransactionFilter.h"
 #include "ui/state/SessionMetricsSync.h"
 #include "ui/state/SessionMutationState.h"

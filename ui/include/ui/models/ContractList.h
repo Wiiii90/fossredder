@@ -1,7 +1,5 @@
 #pragma once
 
-#include <QStringList>
-
 #include "core/models/Contract.h"
 #include "ui/models/IndexedListModel.h"
 
@@ -38,8 +36,6 @@ public:
     Q_INVOKABLE int addContract(const QString& name, const QString& type, const QString& description);
     Q_INVOKABLE void removeAt(int row) { removeItemAt(row); }
     Q_INVOKABLE QVariantMap get(int index) const;
-
-    static QStringList toQStringList(const std::vector<std::string>& v);
 };
 
 }
