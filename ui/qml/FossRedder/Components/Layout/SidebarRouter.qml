@@ -61,8 +61,8 @@ Item {
     }
 
     function resolveSection() {
-        if (!uiNav) return sectionImport;
-        var v = uiNav.section;
+        if (!navigation) return sectionImport;
+        var v = navigation.section;
         try {
             if (typeof v === 'string' && v.indexOf('Export') >= 0) return UiNavigation.Export;
         } catch(e) {}
@@ -82,15 +82,15 @@ Item {
     function update() {
         var sec = resolveSection();
 
-        if (sec !== sectionBooking && uiData) {
-            if (uiData.selectedTransactionId && uiData.selectedTransactionId.length > 0)
-                uiData.selectedTransactionId = ""
-            if (uiData.selectedStatementId && uiData.selectedStatementId.length > 0)
-                uiData.selectedStatementId = ""
+        if (sec !== sectionBooking && data) {
+            if (data.selectedTransactionId && data.selectedTransactionId.length > 0)
+                data.selectedTransactionId = ""
+            if (data.selectedStatementId && data.selectedStatementId.length > 0)
+                data.selectedStatementId = ""
         }
 
-        if (sec !== sectionBooking && uiNav && uiNav.bookingView !== UiNavigation.Statements)
-            uiNav.bookingView = UiNavigation.Statements
+        if (sec !== sectionBooking && navigation && navigation.bookingView !== UiNavigation.Statements)
+            navigation.bookingView = UiNavigation.Statements
 
         resolvedSection = sec;
         rememberSection(sec)

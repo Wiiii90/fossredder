@@ -75,7 +75,7 @@ Item {
 
             Label { text: qsTr("Save to:"); Layout.preferredWidth: Theme.formLabelWidth }
             Controls.TextField { id: pathField; objectName: "exportPathField"; placeholderText: qsTr("e.g. C:/Users/You/Documents/export.xlsx"); Layout.fillWidth: true }
-            Controls.Button { objectName: "exportBrowseButton"; text: qsTr("Browse..."); onClicked: if (uiActions) uiActions.browseExportFile() }
+            Controls.Button { objectName: "exportBrowseButton"; text: qsTr("Browse..."); onClicked: if (actions) actions.browseExportFile() }
             Controls.Button {
                 objectName: "exportSubmitButton"
                 text: qsTr("Export")
@@ -89,7 +89,7 @@ Item {
         }
 
         Connections {
-            target: uiActions
+            target: actions
             function onExportFileSelected(path) {
                 if (!path) return
                 pathField.text = path
