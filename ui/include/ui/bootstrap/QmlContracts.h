@@ -17,8 +17,8 @@ namespace module {
 inline constexpr auto kName = "FossRedder";
 constexpr int kMajorVersion = 1;
 constexpr int kMinorVersion = 0;
-inline constexpr auto kNavigationTypeName = "UiNavigation";
-inline constexpr auto kNavigationTypeDescription = "UiNavigation is exposed via context property 'uiNav'";
+inline constexpr auto kNavigationTypeName = "Navigation";
+inline constexpr auto kNavigationTypeDescription = "Navigation is exposed via context property 'navigation'";
 }
 
 /** Names of context properties set on the QQmlContext. */

@@ -17,15 +17,15 @@ Item {
     }
 
     function clearBookingStateForSection(section) {
-        if (!navigation || section === UiNavigation.Booking) return
-        navigation.bookingView = UiNavigation.Statements
+        if (!navigation || section === Navigation.Booking) return
+        navigation.bookingView = Navigation.Statements
     }
 
     function navigateTo(section, clearSelection, bookingView) {
         if (!navigation) return
         clearBookingStateForSection(section)
         if (clearSelection) clearDomainSelection()
-        if (bookingView !== undefined) uiNav.bookingView = bookingView
+        if (bookingView !== undefined) navigation.bookingView = bookingView
         navigation.section = section
     }
 
@@ -63,16 +63,16 @@ Item {
                         Layout.preferredHeight: fileIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/import.svg"
                         label: qsTr("Import")
-                        active: navigation && navigation.section === UiNavigation.Import
-                        onClicked: navigateTo(UiNavigation.Import, false)
+                        active: navigation && navigation.section === Navigation.Import
+                        onClicked: navigateTo(Navigation.Import, false)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: fileIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/export.svg"
                         label: qsTr("Export")
-                        active: navigation && navigation.section === UiNavigation.Export
-                        onClicked: navigateTo(UiNavigation.Export, false)
+                        active: navigation && navigation.section === Navigation.Export
+                        onClicked: navigateTo(Navigation.Export, false)
                     }
                 }
 
@@ -108,13 +108,13 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/booking.svg"
                         label: qsTr("Booking")
-                        active: navigation && navigation.section === UiNavigation.Booking
+                        active: navigation && navigation.section === Navigation.Booking
                         onClicked: {
-                            if (uiData) {
-                                uiData.selectedStatementId = ""
-                                uiData.selectedTransactionId = ""
+                            if (data) {
+                                data.selectedStatementId = ""
+                                data.selectedTransactionId = ""
                             }
-                            navigateTo(UiNavigation.Booking, false, UiNavigation.Statements)
+                            navigateTo(Navigation.Booking, false, Navigation.Statements)
                         }
                     }
                     Controls.IconButton {
@@ -122,24 +122,24 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/actor.svg"
                         label: qsTr("Actor")
-                        active: navigation && navigation.section === UiNavigation.Actors
-                        onClicked: navigateTo(UiNavigation.Actors, true)
+                        active: navigation && navigation.section === Navigation.Actors
+                        onClicked: navigateTo(Navigation.Actors, true)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/property.svg"
                         label: qsTr("Property")
-                        active: navigation && navigation.section === UiNavigation.Properties
-                        onClicked: navigateTo(UiNavigation.Properties, true)
+                        active: navigation && navigation.section === Navigation.Properties
+                        onClicked: navigateTo(Navigation.Properties, true)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/contract.svg"
                         label: qsTr("Contract")
-                        active: navigation && navigation.section === UiNavigation.Contracts
-                        onClicked: navigateTo(UiNavigation.Contracts, true)
+                        active: navigation && navigation.section === Navigation.Contracts
+                        onClicked: navigateTo(Navigation.Contracts, true)
                     }
                 }
 
@@ -175,16 +175,16 @@ Item {
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/analysis.svg"
                         label: qsTr("Analysis")
-                        active: navigation && navigation.section === UiNavigation.Analysis
-                        onClicked: navigateTo(UiNavigation.Analysis, true)
+                        active: navigation && navigation.section === Navigation.Analysis
+                        onClicked: navigateTo(Navigation.Analysis, true)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/annual.svg"
                         label: qsTr("Annual")
-                        active: navigation && navigation.section === UiNavigation.Annual
-                        onClicked: navigateTo(UiNavigation.Annual, true)
+                        active: navigation && navigation.section === Navigation.Annual
+                        onClicked: navigateTo(Navigation.Annual, true)
                     }
                 }
 
