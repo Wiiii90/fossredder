@@ -6,7 +6,6 @@
 #include "ui/import/ImportState.h"
 
 #include "ui/config/Defaults.h"
-#include "ui/controllers/ControllerContracts.h"
 #include "ui/import/ImportDraftMapper.h"
 #include "ui/text/Text.h"
 

@@ -6,8 +6,8 @@
 #include "ui/import/ImportJobBridge.h"
 
 #include "core/jobs/JobSystem.h"
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
+#include "ui/support/StringConversions.h"
 
 namespace ui::importing {
 

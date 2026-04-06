@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/import/ImportDraftMapper.cpp
+ * @brief Implements helpers that create editable UI draft models from imported transactions.
+ */
+
 #include "ui/import/ImportDraftMapper.h"
 
 #include <QFileInfo>
@@ -5,8 +10,8 @@
 #include "core/import/DraftLinking.h"
 #include "core/import/ImportedTransaction.h"
 #include "core/models/Statement.h"
-#include "ui/controllers/DraftProjection.h"
 #include "ui/import/ImportSuggestionService.h"
+#include "ui/import/DraftViewMapper.h"
 #include "ui/models/StatementDraft.h"
 #include "ui/models/TransactionDraft.h"
 
@@ -14,7 +19,7 @@ namespace {
 
 void applyInitialDerivedSelections(const core::domain::AppState& state, ui::TransactionDraft& draft)
 {
-    const auto derived = core::importing::buildDraftDerivedState(state, ui::toCoreSelection(draft));
+    const auto derived = core::importing::buildDraftDerivedState(state, ui::importing::toCoreSelection(draft));
 
     if (draft.actorId.isEmpty()) {
         if (derived.actorCurrentIndex > 0
@@ -22,7 +27,7 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
             const auto& actorRow = derived.actorChoices[static_cast<std::size_t>(derived.actorCurrentIndex)];
             if (!actorRow.synthetic && !actorRow.id.empty()) {
                 draft.actorId = QString::fromStdString(actorRow.id);
-                draft.actorText = ui::choiceDisplayText(actorRow);
+                draft.actorText = ui::importing::choiceDisplayText(actorRow);
                 draft.newActorSelected = false;
             }
         } else if (draft.actorText.isEmpty() && !derived.actorSeedText.empty()) {
@@ -41,13 +46,13 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
                 }
                 if (!contractRow.actorIds.empty()) {
                     draft.actorId = QString::fromStdString(contractRow.actorIds.front());
-                    if (const auto* actorRow = ui::findChoiceRowById(derived.actorChoices, contractRow.actorIds.front())) {
-                        draft.actorText = ui::choiceDisplayText(*actorRow);
+                    if (const auto* actorRow = ui::importing::findChoiceRowById(derived.actorChoices, contractRow.actorIds.front())) {
+                        draft.actorText = ui::importing::choiceDisplayText(*actorRow);
                         draft.newActorSelected = false;
                     }
                 }
                 if (draft.propertyIds.isEmpty() && !contractRow.propertyIds.empty()) {
-                    draft.propertyIds = ui::toQStringList(contractRow.propertyIds);
+                    draft.propertyIds = ui::importing::toQStringList(contractRow.propertyIds);
                 }
                 draft.newContractSelected = false;
             }
@@ -57,7 +62,7 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
     }
 
     if (draft.propertyIds.isEmpty() && !derived.autoPropertyIds.empty()) {
-        draft.propertyIds = ui::toQStringList(derived.autoPropertyIds);
+        draft.propertyIds = ui::importing::toQStringList(derived.autoPropertyIds);
     }
 
     if (draft.contractId.isEmpty() && !draft.newContractSelected) {
@@ -97,7 +102,7 @@ std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppSta
     }
 
     return drafts;
-}
+} // namespace ui::importing
 
 StatementDraft* createStatementDraft(const QString& sourceFile,
                                      const std::shared_ptr<core::domain::Statement>& statement,

@@ -18,10 +18,16 @@ namespace ui {
 class StatementController : public QObject {
     Q_OBJECT
 public:
+    /** @brief Create a statement controller bound to the application facade. */
     explicit StatementController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
+    /** @brief Create a new statement. */
     Q_INVOKABLE QString addStatement(const QString& name);
+
+    /** @brief Update an existing statement. */
     Q_INVOKABLE void updateStatement(const QString& id, const QString& name);
+
+    /** @brief Delete a statement by identifier. */
     Q_INVOKABLE void deleteStatement(const QString& id);
 
 private:

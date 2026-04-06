@@ -27,11 +27,13 @@ class AnalysisController : public QObject {
 public:
     using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::AppState>()>;
 
+    /** @brief Create an analysis controller with access to the facade and analysis service. */
     explicit AnalysisController(core::application::AppStateFacade* core,
                                 StateSnapshotProvider stateSnapshotProvider,
                                 std::shared_ptr<core::application::AnalysisService> analysisService,
                                 QObject* parent = nullptr);
 
+    /** @brief Create and register an analysis definition from raw serialized inputs. */
     Q_INVOKABLE QString addAnalysis(const QString& name, const QString& type, const QString& configJson, const QString& filterSpec);
     /** @brief Builds and creates an analysis definition from raw UI inputs. */
     Q_INVOKABLE QString createAnalysisFromUi(const QString& name,

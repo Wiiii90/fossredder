@@ -21,8 +21,12 @@ namespace ui {
 class TransactionController : public QObject {
     Q_OBJECT
 public:
+    ~TransactionController() override = default;
+
+    /** @brief Create a transaction controller bound to the application facade. */
     explicit TransactionController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
+    /** @brief Create a new transaction from QML-provided values. */
     Q_INVOKABLE QString addTransaction(const QString& name,
                                        const QString& bookingDate,
                                        double amount,
@@ -33,6 +37,7 @@ public:
                                        bool allocatable = false,
                                        const QStringList& propertyIds = {});
 
+    /** @brief Update an existing transaction from QML-provided values. */
     Q_INVOKABLE void updateTransaction(const QString& id,
                                        const QString& name,
                                        const QString& bookingDate,
@@ -44,6 +49,7 @@ public:
                                        bool allocatable,
                                        const QStringList& propertyIds);
 
+    /** @brief Delete a transaction by identifier. */
     Q_INVOKABLE void deleteTransaction(const QString& id);
 
 private:

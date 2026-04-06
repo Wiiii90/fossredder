@@ -2,9 +2,9 @@
 
 #include <QVariant>
 
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/payload/ProjectionConverters.h"
 #include "ui/payload/PayloadKeys.h"
+#include "ui/support/StringConversions.h"
 
 namespace ui {
 

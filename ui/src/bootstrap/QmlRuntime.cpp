@@ -8,8 +8,8 @@
 
 #include "ui/bootstrap/QmlContracts.h"
 #include "ui/config/Defaults.h"
-#include "ui/controllers/ControllerContracts.h"
 #include "ui/state/NavigationState.h"
+#include "ui/support/UiContracts.h"
 
 namespace ui::bootstrap {
 
@@ -24,7 +24,7 @@ void registerTypes()
                                                     ui::qml::contracts::module::kMinorVersion,
                                                     ui::qml::contracts::module::kNavigationTypeName,
                                                     ui::qml::contracts::module::kNavigationTypeDescription);
-    qmlRegisterUncreatableMetaObject(ui::controllers::contracts::staticMetaObject,
+    qmlRegisterUncreatableMetaObject(ui::support::contracts::staticMetaObject,
                                      ui::qml::contracts::module::kName,
                                      ui::qml::contracts::module::kMajorVersion,
                                      ui::qml::contracts::module::kMinorVersion,

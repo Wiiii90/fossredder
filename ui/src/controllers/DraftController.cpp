@@ -7,12 +7,12 @@
 
 #include "core/application/AppStateFacade.h"
 #include "core/import/parsing/AmountParser.h"
-#include "ui/controllers/DraftProjection.h"
-#include "ui/controllers/ControllerGuard.h"
-#include "ui/controllers/ControllerStrings.h"
+#include "ui/import/DraftSessionSupport.h"
+#include "ui/import/DraftViewMapper.h"
 #include "ui/models/StatementDraft.h"
 #include "ui/models/TransactionDraft.h"
 #include "ui/observability/Origins.h"
+#include "ui/support/CoreFacadeGuard.h"
 
 #include <QVariantList>
 
@@ -27,9 +27,9 @@ QString DraftController::finalizeStatementDraft(StatementDraft* draft)
 {
     if (!draft) return {};
 
-    return controllers::guard::invokeValue<QString>(
+    return support::guard::invokeValue<QString>(
         core_, observability::origins::controller::draft::kFinalize, {}, [&]() {
-            const auto input = ui::buildFinalizationInput(draft, core_);
+            const auto input = ui::importing::buildFinalizationInput(draft, core_);
             if (input.transactions.empty()) return QString{};
             return QString::fromStdString(core_->finalizeStatementDraft(input));
         });
@@ -37,11 +37,13 @@ QString DraftController::finalizeStatementDraft(StatementDraft* draft)
 
 QVariantMap DraftController::currentTransactionViewState(StatementDraft* draft) const
 {
-    return controllers::guard::invokeValue<QVariantMap>(
+    return support::guard::invokeValue<QVariantMap>(
         core_, observability::origins::controller::draft::kFinalize, {}, [&]() {
-            const auto* current = ui::currentDraft(draft);
+            const auto* current = ui::importing::currentDraft(draft);
             if (!current) return QVariantMap{};
-            return ui::toViewState(core::importing::buildDraftDerivedState(ui::matchingStateForDraft(draft, core_), ui::toCoreSelection(*current)));
+            return ui::importing::toViewState(core::importing::buildDraftDerivedState(
+                ui::importing::matchingStateForDraft(draft, core_),
+                ui::importing::toCoreSelection(*current)));
         });
 }
 
@@ -49,15 +51,15 @@ QVariantMap DraftController::findChoiceRowByText(const QVariantList& rows, const
 {
     for (const auto& item : rows) {
         const QVariantMap row = item.toMap();
-        if (!row.isEmpty() && rowMatchesText(row, text)) return row;
+        if (!row.isEmpty() && importing::rowMatchesText(row, text)) return row;
     }
     return {};
 }
 
 void DraftController::syncCurrentTransactionDraft(StatementDraft* draft)
 {
-    controllers::guard::invokeVoid(core_, observability::origins::controller::draft::kFinalize, [&]() {
-        ui::syncCurrentTransactionDraft(draft, core_);
+    support::guard::invokeVoid(core_, observability::origins::controller::draft::kFinalize, [&]() {
+        ui::importing::syncCurrentTransactionDraft(draft, core_);
     });
 }
 
@@ -71,7 +73,7 @@ void DraftController::selectCurrentActorChoice(StatementDraft* draft, const QVar
         draft->transactions()->setNewActorSelected(draft->currentIndex(), true);
     } else {
         draft->transactions()->setActorId(draft->currentIndex(), row.value(QStringLiteral("id")).toString());
-        draft->transactions()->setActorText(draft->currentIndex(), rowDisplayText(row));
+        draft->transactions()->setActorText(draft->currentIndex(), importing::rowDisplayText(row));
         draft->transactions()->setNewActorSelected(draft->currentIndex(), false);
     }
 }
@@ -101,7 +103,7 @@ void DraftController::selectCurrentContractChoice(StatementDraft* draft, const Q
 
 void DraftController::setCurrentPropertySelected(StatementDraft* draft, const QString& propertyId, bool selected)
 {
-    const auto* current = currentDraft(draft);
+    const auto* current = importing::currentDraft(draft);
     if (!draft || !current || propertyId.isEmpty()) return;
 
     QStringList propertyIds = current->propertyIds;

@@ -4,11 +4,11 @@ find_package(Qt6 COMPONENTS Quick Qml QuickControls2 Widgets Svg Concurrent QUIE
 set(UI_SOURCES
     src/MainWindow.cpp
     src/actions/Actions.cpp
+    src/analysis/AnalysisInputMapper.cpp
     src/analysis/AnalysisPayloadMapper.cpp
     src/bootstrap/QmlRuntime.cpp
     src/controllers/ActorController.cpp
     src/controllers/AnalysisController.cpp
-    src/controllers/AnalysisProjection.cpp
     src/controllers/AnnualController.cpp
     src/controllers/ContractController.cpp
     src/controllers/DraftController.cpp
@@ -24,6 +24,8 @@ set(UI_SOURCES
     src/dialogs/FileDialogs.cpp
     src/export/AppStateSnapshot.cpp
     src/export/ExportRunner.cpp
+    src/import/DraftSessionSupport.cpp
+    src/import/DraftViewMapper.cpp
     src/import/ImportDraftMapper.cpp
     src/import/ImportJobBridge.cpp
     src/import/ImportRunStore.cpp
@@ -67,20 +69,16 @@ set(UI_HEADERS
     include/MainWindow.h
     include/ui/pch.h
     include/ui/actions/Actions.h
+    include/ui/analysis/AnalysisInputMapper.h
     include/ui/analysis/AnalysisPayloadMapper.h
     include/ui/bootstrap/QmlContracts.h
     include/ui/bootstrap/QmlRuntime.h
     include/ui/config/Defaults.h
     include/ui/controllers/ActorController.h
     include/ui/controllers/AnalysisController.h
-    include/ui/controllers/AnalysisProjection.h
     include/ui/controllers/AnnualController.h
     include/ui/controllers/ContractController.h
-    include/ui/controllers/ControllerContracts.h
-    include/ui/controllers/ControllerGuard.h
-    include/ui/controllers/ControllerStrings.h
     include/ui/controllers/DraftController.h
-    include/ui/controllers/DraftProjection.h
     include/ui/controllers/ExportController.h
     include/ui/controllers/FileSystemController.h
     include/ui/controllers/ImportController.h
@@ -92,6 +90,8 @@ set(UI_HEADERS
     include/ui/dialogs/FileDialogs.h
     include/ui/export/AppStateSnapshot.h
     include/ui/export/ExportRunner.h
+    include/ui/import/DraftSessionSupport.h
+    include/ui/import/DraftViewMapper.h
     include/ui/import/ImportDraftMapper.h
     include/ui/import/ImportJobBridge.h
     include/ui/import/ImportRunStore.h
@@ -117,6 +117,9 @@ set(UI_HEADERS
     include/ui/payload/PayloadKeys.h
     include/ui/payload/ProjectionConverters.h
     include/ui/providers/DraftProofProvider.h
+    include/ui/support/CoreFacadeGuard.h
+    include/ui/support/StringConversions.h
+    include/ui/support/UiContracts.h
     include/ui/state/FilterState.h
     include/ui/state/MetricsState.h
     include/ui/state/NavigationState.h

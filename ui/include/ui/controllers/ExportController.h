@@ -12,8 +12,8 @@
 #include <functional>
 #include <memory>
 
-#include "ui/controllers/ControllerContracts.h"
 #include "ui/export/ExportRunner.h"
+#include "ui/support/UiContracts.h"
 
 namespace ui {
 
@@ -25,10 +25,12 @@ class ExportController : public QObject {
 public:
     using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::AppState>()>;
 
+    /** @brief Create an export controller backed by a snapshot provider and export runner. */
     explicit ExportController(StateSnapshotProvider stateSnapshotProvider,
                               std::shared_ptr<ui::exporting::ExportRunner> runner,
                               QObject* parent = nullptr);
 
+    /** @brief Start an asynchronous export with the selected UI options. */
     Q_INVOKABLE void exportData(int format, const QString& path, bool includeFormulas = true, const QString& locale = QString());
 
 signals:
@@ -36,10 +38,11 @@ signals:
     void exportFailed(const QString& error);
 
 private slots:
+    /** @brief Finalize UI state once the asynchronous export completes. */
     void onExportFinished();
 
 private:
-    ui::exporting::ExportRequest buildRequest(ui::controllers::contracts::ExportFormat format,
+    ui::exporting::ExportRequest buildRequest(ui::support::contracts::ExportFormat format,
                                               const QString& path,
                                               bool includeFormulas,
                                               const QString& locale) const;

@@ -1,13 +1,14 @@
 /**
- * @file ui/src/controllers/AnalysisProjection.cpp
- * @brief Implements analysis UI projection helpers shared by controller methods.
+ * @file ui/src/analysis/AnalysisInputMapper.cpp
+ * @brief Implements helpers that map analysis-related UI input into core-friendly values.
  */
 
-#include "ui/controllers/AnalysisProjection.h"
+#include "ui/analysis/AnalysisInputMapper.h"
 
 #include <cmath>
+#include <utility>
 
-namespace ui::analysis::projection {
+namespace ui::analysis::input {
 
 std::string strategyTypeForIndex(int strategyIndex)
 {
@@ -28,7 +29,9 @@ std::vector<core::domain::AnalysisTransaction> toCoreTransactions(const QVariant
     out.reserve(transactions.size());
     for (const auto& item : transactions) {
         const auto row = item.toMap();
-        if (row.isEmpty()) continue;
+        if (row.isEmpty()) {
+            continue;
+        }
 
         core::domain::AnalysisTransaction transaction;
         transaction.id = row.value(QStringLiteral("id")).toString().toStdString();
@@ -44,7 +47,9 @@ std::vector<std::string> toSelectedTransactionIds(const QVariantList& selectedTr
     out.reserve(selectedTransactionIds.size());
     for (const auto& item : selectedTransactionIds) {
         const auto value = item.toString().trimmed();
-        if (!value.isEmpty()) out.push_back(value.toStdString());
+        if (!value.isEmpty()) {
+            out.push_back(value.toStdString());
+        }
     }
     return out;
 }
@@ -56,4 +61,4 @@ double parsePercentOrZero(const QString& value)
     return ok && std::isfinite(parsed) ? parsed : 0.0;
 }
 
-} // namespace ui::analysis::projection
+} // namespace ui::analysis::input

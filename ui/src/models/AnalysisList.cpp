@@ -1,10 +1,10 @@
 #include "ui/models/AnalysisList.h"
 
 #include "core/application/AnalysisRequestComposer.h"
-#include "ui/config/Defaults.h"
-#include "ui/controllers/ControllerStrings.h"
+#include "core/constants/CoreDefaults.h"
 #include "ui/observability/Origins.h"
 #include "ui/payload/PayloadKeys.h"
+#include "ui/support/StringConversions.h"
 
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
@@ -26,7 +26,7 @@ QString AnalysisList::serializeAdjustmentsJson(const Analysis &analysis) {
         observability::origins::model::analysisList::kAdjustmentsJson,
         std::current_exception());
   }
-  return ui::config::kJsonEmptyObject;
+  return QString::fromLatin1(core::constants::json::kEmptyObject.data());
 }
 
 void AnalysisList::refreshAdjustmentsCache() {
@@ -54,7 +54,8 @@ QVariant AnalysisList::data(const QModelIndex &index, int role) const {
     return {};
 
   const QString adjustmentsJson = adjustmentsJsonById_.value(
-      QString::fromStdString(a->id), ui::config::kJsonEmptyObject);
+      QString::fromStdString(a->id),
+      QString::fromLatin1(core::constants::json::kEmptyObject.data()));
 
   switch (role) {
   case IdRole:

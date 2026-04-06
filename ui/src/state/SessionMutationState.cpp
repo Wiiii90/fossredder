@@ -3,11 +3,11 @@
 #include <QModelIndex>
 #include <QSet>
 
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/state/FilterState.h"
 #include "ui/state/MetricsState.h"
 #include "ui/state/PropertyNameCatalog.h"
 #include "ui/state/SessionModels.h"
+#include "ui/support/StringConversions.h"
 
 namespace ui {
 

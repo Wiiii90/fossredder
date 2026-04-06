@@ -23,9 +23,16 @@ public:
     explicit StorageController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
 public slots:
+    /** @brief Create a new file at the requested path. */
     void newFile(const QString& path);
+
+    /** @brief Open an existing file from the requested path. */
     void openFile(const QString& path);
+
+    /** @brief Save the currently open file. */
     void saveFile();
+
+    /** @brief Save the current file under a new path. */
     void saveFileAs(const QString& path);
 
 signals:

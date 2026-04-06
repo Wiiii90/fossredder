@@ -5,10 +5,10 @@
 
 #include "ui/controllers/ExportController.h"
 
-#include "ui/controllers/ControllerGuard.h"
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
 #include "ui/observability/Trace.h"
+#include "ui/support/CoreFacadeGuard.h"
+#include "ui/support/StringConversions.h"
 #include "ui/text/Text.h"
 
 #include <QtConcurrent/qtconcurrentrun.h>
@@ -19,37 +19,45 @@ namespace ui {
 
 ExportController::ExportController(
     StateSnapshotProvider stateSnapshotProvider,
-    std::shared_ptr<ui::exporting::ExportRunner> runner, QObject *parent)
-    : QObject(parent), stateSnapshotProvider_(std::move(stateSnapshotProvider)),
-      runner_(runner ? std::move(runner)
-                     : std::make_shared<ui::exporting::ExportRunner>()) {
-  connect(&exportWatcher_,
-          &QFutureWatcher<ui::exporting::ExportResult>::finished, this,
-          &ExportController::onExportFinished);
+    std::shared_ptr<ui::exporting::ExportRunner> runner,
+    QObject* parent)
+    : QObject(parent)
+    , stateSnapshotProvider_(std::move(stateSnapshotProvider))
+    , runner_(runner ? std::move(runner)
+                     : std::make_shared<ui::exporting::ExportRunner>())
+{
+    connect(&exportWatcher_,
+            &QFutureWatcher<ui::exporting::ExportResult>::finished,
+            this,
+            &ExportController::onExportFinished);
 }
 
-ui::exporting::ExportRequest
-ExportController::buildRequest(ui::controllers::contracts::ExportFormat format,
-                               const QString &path, bool includeFormulas,
-                               const QString &locale) const {
-  ui::exporting::ExportRequest request;
-  request.format = format;
-  request.path = path;
-  request.includeFormulas = includeFormulas;
-  request.locale = locale;
-  return request;
+ui::exporting::ExportRequest ExportController::buildRequest(ui::support::contracts::ExportFormat format,
+                                                            const QString& path,
+                                                            bool includeFormulas,
+                                                            const QString& locale) const
+{
+    ui::exporting::ExportRequest request;
+    request.format = format;
+    request.path = path;
+    request.includeFormulas = includeFormulas;
+    request.locale = locale;
+    return request;
 }
 
-void ExportController::finishExport(bool success) {
-  isRunning_ = false;
-  if (!success)
-    emit exportFailed(lastError_);
-  emit exportFinished(success);
+void ExportController::finishExport(bool success)
+{
+    isRunning_ = false;
+    if (!success) {
+        emit exportFailed(lastError_);
+    }
+    emit exportFinished(success);
 }
 
-std::shared_ptr<const AppState> ExportController::stateSnapshot() const {
-  return stateSnapshotProvider_ ? stateSnapshotProvider_()
-                                : std::shared_ptr<const AppState>{};
+std::shared_ptr<const AppState> ExportController::stateSnapshot() const
+{
+    return stateSnapshotProvider_ ? stateSnapshotProvider_()
+                                  : std::shared_ptr<const AppState>{};
 }
 
 void ExportController::exportData(int format, const QString &path,
@@ -66,7 +74,7 @@ void ExportController::exportData(int format, const QString &path,
   try {
     lastError_.clear();
     const auto request = buildRequest(
-        static_cast<ui::controllers::contracts::ExportFormat>(format), path,
+        static_cast<ui::support::contracts::ExportFormat>(format), path,
         includeFormulas, locale);
     const auto snapshot = stateSnapshot();
     if (!snapshot) {
@@ -115,7 +123,7 @@ void ExportController::exportData(int format, const QString &path,
          {observability::context::kPath, strings::toStdString(path)}});
     finishExport(false);
   } catch (...) {
-    controllers::guard::reportException(
+    support::guard::reportException(
         observability::origins::controller::exportFlow::kStart);
     lastError_ = ui::text::controllerErrors::exportFailed();
     observability::reportFlow(
@@ -170,7 +178,7 @@ void ExportController::onExportFinished() {
         {{observability::context::kException, ex.what()}});
     success = false;
   } catch (...) {
-    controllers::guard::reportException(
+    support::guard::reportException(
         observability::origins::controller::exportFlow::kFinish);
     lastError_ = ui::text::controllerErrors::exportFailed();
     observability::reportFlow(

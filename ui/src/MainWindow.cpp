@@ -18,13 +18,14 @@
 #include <QWidget>
 #include <string>
 
+#include "core/constants/CoreDefaults.h"
 #include "ui/actions/Actions.h"
 #include "ui/bootstrap/QmlContracts.h"
 #include "ui/bootstrap/QmlRuntime.h"
 #include "ui/config/Defaults.h"
-#include "ui/controllers/ControllerContracts.h"
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
+#include "ui/support/StringConversions.h"
+#include "ui/support/UiContracts.h"
 #include "ui/text/Text.h"
 #include "ui/window/MainWindowContext.h"
 #include "ui/window/MainWindowTrace.h"
@@ -75,7 +76,8 @@ void reportQmlLoadErrors(QQuickView *quickView, const QUrl &source) {
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-  setWindowTitle(ui::config::kMainWindowTitle);
+  setWindowTitle(
+      QString::fromLatin1(core::constants::application::kDisplayName.data()));
   resize(ui::config::kMainWindowDefaultWidth,
          ui::config::kMainWindowDefaultHeight);
 
@@ -231,7 +233,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 
 void MainWindow::handleStorageOperationSucceeded(const QString &operation) {
   if (!closeWorkflow_.handleStorageOperationSucceeded(
-          operation, ui::controllers::contracts::operations::kSaveFile,
+          operation, ui::support::contracts::operations::kSaveFile,
           [this]() {
             QMetaObject::invokeMethod(
                 this, [this]() { close(); }, Qt::QueuedConnection);
@@ -247,7 +249,7 @@ void MainWindow::handleStorageOperationSucceeded(const QString &operation) {
 void MainWindow::handleStorageOperationFailed(const QString &operation,
                                               const QString &error) {
   if (!closeWorkflow_.handleStorageOperationFailed(
-          operation, ui::controllers::contracts::operations::kSaveFile))
+          operation, ui::support::contracts::operations::kSaveFile))
     return;
 
   const QString message =

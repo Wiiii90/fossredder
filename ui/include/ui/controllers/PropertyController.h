@@ -19,10 +19,16 @@ namespace ui {
 class PropertyController : public QObject {
     Q_OBJECT
 public:
+    /** @brief Create a property controller bound to the application facade. */
     explicit PropertyController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
+    /** @brief Create a new property from QML-provided values. */
     Q_INVOKABLE QString addProperty(const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
+
+    /** @brief Update an existing property from QML-provided values. */
     Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
+
+    /** @brief Delete a property by identifier. */
     Q_INVOKABLE void deleteProperty(const QString& id);
 
 private:

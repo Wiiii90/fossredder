@@ -14,15 +14,16 @@
 #include <stdexcept>
 #include <string>
 
+#include "core/constants/CoreDefaults.h"
 #include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobSystem.h"
 #include "core/jobs/JobTypes.h"
 #include "ui/config/Defaults.h"
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/import/ImportDraftMapper.h"
 #include "ui/import/ImportRunStore.h"
 #include "ui/observability/Origins.h"
 #include "ui/observability/Trace.h"
+#include "ui/support/StringConversions.h"
 #include "ui/text/Text.h"
 
 namespace ui {
@@ -30,36 +31,39 @@ namespace ui {
 namespace {
 
 /** @brief Returns an ISO timestamp for import run bookkeeping. */
-QString currentTimestamp() {
-  return QDateTime::currentDateTime().toString(Qt::ISODate);
+QString currentTimestamp()
+{
+    return QDateTime::currentDateTime().toString(Qt::ISODate);
 }
 
 /** @brief Clamps import progress values to the configured UI range. */
-double clampProgress(double progress) {
-  if (progress < ui::config::importProgress::kMinimum)
-    return ui::config::importProgress::kMinimum;
-  if (progress > ui::config::importProgress::kMaximum)
-    return ui::config::importProgress::kMaximum;
-  return progress;
+double clampProgress(double progress)
+{
+    if (progress < ui::config::importProgress::kMinimum)
+        return ui::config::importProgress::kMinimum;
+    if (progress > ui::config::importProgress::kMaximum)
+        return ui::config::importProgress::kMaximum;
+    return progress;
 }
 
 /** @brief Builds the import job specification and prepares a fresh import run folder. */
-core::jobs::ImportStatementJobSpec buildImportSpec(const QString &path,
-                                                   QString &runRoot) {
-  importing::cleanupOldImportRuns(ui::config::kImportRunKeepCount);
+core::jobs::ImportStatementJobSpec buildImportSpec(const QString& path,
+                                                   QString& runRoot)
+{
+    importing::cleanupOldImportRuns(core::constants::importing::runs::kKeepCount);
 
-  const auto runInfo = importing::createImportRunInfo();
-  runRoot = runInfo.runRoot;
+    const auto runInfo = importing::createImportRunInfo();
+    runRoot = runInfo.runRoot;
 
-  core::jobs::ImportStatementJobSpec spec;
-  spec.sourcePath = strings::toEncodedPath(path);
-  spec.runRoot = strings::toEncodedPath(runInfo.runRoot);
-  spec.proofOutputDir = strings::toEncodedPath(QDir(runInfo.runRoot).filePath("proof"));
+    core::jobs::ImportStatementJobSpec spec;
+    spec.sourcePath = strings::toEncodedPath(path);
+    spec.runRoot = strings::toEncodedPath(runInfo.runRoot);
+    spec.proofOutputDir = strings::toEncodedPath(QDir(runInfo.runRoot).filePath("proof"));
 
-  const QByteArray runIdNative = runInfo.runIdPrefix.toUtf8();
-  spec.runIdPrefix = {runIdNative.constData(),
-                      static_cast<size_t>(runIdNative.size())};
-  return spec;
+    const QByteArray runIdNative = runInfo.runIdPrefix.toUtf8();
+    spec.runIdPrefix = {runIdNative.constData(),
+                        static_cast<size_t>(runIdNative.size())};
+    return spec;
 }
 
 } // namespace
@@ -165,7 +169,7 @@ void ImportController::requestImportCancellation(bool clearQueue,
   emit stateChanged();
 }
 
-void ImportController::handleJobEvent(const core::jobs::JobEvent &event) {
+void ImportController::handleJobEvent(const core::jobs::JobEvent& event) {
   const double progress = clampProgress(event.progress);
   const QString phase = QString::fromStdString(event.message);
   const auto eventState = event.state;
@@ -329,7 +333,7 @@ void ImportController::updateProgress(double p, const QString &phase) {
 }
 
 void ImportController::onJobTerminal(core::jobs::JobState state,
-                                     const QString &message) {
+                                     const QString& message) {
   const auto now = currentTimestamp();
 
   if (state == core::jobs::JobState::Canceled || state_.cancelRequested()) {
