@@ -7,7 +7,7 @@
 
 #include <QVariant>
 #include "ui/payload/PayloadKeys.h"
-#include "ui/payload/ProjectionConverters.h"
+#include "ui/payload/PayloadMapper.h"
 
 namespace ui {
 
@@ -75,7 +75,7 @@ void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& tr
     map[payload::keys::transaction::kProofImagePath] = QString();
     map[payload::keys::common::kType] = contractTypeForTransaction(transaction);
     map[payload::keys::transaction::kAllocatable] = transaction.allocatable;
-    map[payload::keys::transaction::kPropertyIds] = payload::projection::toVariantStringList(transaction.propertyIds);
+    map[payload::keys::transaction::kPropertyIds] = payload::mapper::toVariantStringList(transaction.propertyIds);
 }
 
 TransactionList::TransactionList(QObject* parent) : Base(parent) {}
@@ -101,7 +101,7 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case ProofImagePathRole: return QString();
     case TypeRole: return contractTypeForTransaction(t);
     case AllocatableRole: return t.allocatable;
-    case PropertyIdsRole: return payload::projection::toVariantStringList(t.propertyIds);
+    case PropertyIdsRole: return payload::mapper::toVariantStringList(t.propertyIds);
     default: return {};
     }
 }
@@ -172,3 +172,4 @@ QVariantMap TransactionList::get(int index) const
 }
 
 }
+

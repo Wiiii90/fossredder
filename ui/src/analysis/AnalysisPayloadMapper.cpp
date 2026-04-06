@@ -9,6 +9,7 @@
 
 #include "core/models/AnalysisResult.h"
 #include "ui/payload/PayloadKeys.h"
+#include "ui/payload/PayloadMapper.h"
 #include "ui/text/Text.h"
 
 namespace ui::analysis {
@@ -85,3 +86,4 @@ QVariantMap toPayload(const core::domain::AnalysisResult& result)
 }
 
 }
+

@@ -1,6 +1,6 @@
 /**
- * @file ui/include/ui/payload/ProjectionConverters.h
- * @brief Declarations for the UI ProjectionConverters component.
+ * @file ui/include/ui/payload/PayloadMapper.h
+ * @brief Declarations for the UI payload mapper helpers.
  */
 
 #pragma once
@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace ui::payload::projection {
+namespace ui::payload::mapper {
 
 inline QStringList toQStringList(const std::vector<std::string>& values)
 {
@@ -33,4 +33,4 @@ inline QVariantList toVariantStringList(const std::vector<std::string>& values)
     return out;
 }
 
-} // namespace ui::payload::projection
+} // namespace ui::payload::mapper

@@ -6,7 +6,7 @@
 #include "ui/import/DraftViewMapper.h"
 
 #include "ui/models/TransactionDraft.h"
-#include "ui/payload/ProjectionConverters.h"
+#include "ui/payload/PayloadMapper.h"
 #include "ui/util/StringConversions.h"
 
 namespace ui::importing {
@@ -55,7 +55,7 @@ core::importing::DraftLinkSelection toCoreSelection(const TransactionDraft& draf
 
 QStringList toQStringList(const std::vector<std::string>& values)
 {
-    return payload::projection::toQStringList(values);
+    return payload::mapper::toQStringList(values);
 }
 
 QVariantMap toVariantMap(const core::importing::DraftSuggestionCandidate& suggestion)
@@ -189,3 +189,5 @@ const core::importing::DraftChoiceRow* findChoiceRowById(const std::vector<core:
 }
 
 } // namespace ui::importing
+
+

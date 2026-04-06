@@ -110,7 +110,7 @@ set(UI_HEADERS
     include/ui/observability/Origins.h
     include/ui/observability/Trace.h
     include/ui/payload/PayloadKeys.h
-    include/ui/payload/ProjectionConverters.h
+    include/ui/payload/PayloadMapper.h
     include/ui/state/FilterState.h
     include/ui/state/MetricsState.h
     include/ui/state/NavigationState.h

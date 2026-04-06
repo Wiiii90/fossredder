@@ -8,6 +8,7 @@
 #include "core/application/AppStateFacade.h"
 #include "core/import/parsing/AmountParser.h"
 #include "core/import/DraftLinking.h"
+#include "ui/payload/PayloadMapper.h"
 #include "ui/import/DraftViewMapper.h"
 #include "ui/models/StatementDraft.h"
 #include "ui/models/TransactionDraft.h"
@@ -161,7 +162,7 @@ void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
                     draft->transactions()->setNewActorSelected(index, false);
                 }
                 if (!contractRow.propertyIds.empty()) {
-                    const auto propertyIds = ui::importing::toQStringList(contractRow.propertyIds);
+                    const auto propertyIds = ui::payload::mapper::toQStringList(contractRow.propertyIds);
                     changed = changed || current->propertyIds != propertyIds;
                     draft->transactions()->setProperties(index, propertyIds);
                 }
@@ -178,7 +179,7 @@ void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
     }
 
     if (current->propertyIds.isEmpty() && !derived.autoPropertyIds.empty()) {
-        const auto propertyIds = ui::importing::toQStringList(derived.autoPropertyIds);
+        const auto propertyIds = ui::payload::mapper::toQStringList(derived.autoPropertyIds);
         changed = changed || current->propertyIds != propertyIds;
         draft->transactions()->setProperties(index, propertyIds);
     }
@@ -310,3 +311,4 @@ void DraftController::updateCurrentAmount(StatementDraft* draft, const QString& 
 }
 
 } // namespace ui
+

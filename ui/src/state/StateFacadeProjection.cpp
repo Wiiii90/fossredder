@@ -5,7 +5,7 @@
 
 #include "ui/state/StateFacadeProjection.h"
 
-#include "ui/payload/ProjectionConverters.h"
+#include "ui/payload/PayloadMapper.h"
 #include "ui/state/SessionStore.h"
 
 #include <QStringList>
@@ -40,7 +40,7 @@ QVariantList buildActorRows(const SessionStore& session)
         row.insert("display", actor->type.empty()
                                   ? QString::fromStdString(actor->name)
                                   : QString::fromStdString(actor->name) + QStringLiteral(" — ") + QString::fromStdString(actor->type));
-        row.insert("aliases", payload::projection::toQStringList(actor->aliases));
+        row.insert("aliases", payload::mapper::toQStringList(actor->aliases));
         out.push_back(row);
     }
     return out;
@@ -58,7 +58,7 @@ QVariantList buildPropertyRows(const SessionStore& session)
         row.insert("display", property->address.empty()
                                   ? QString::fromStdString(property->name)
                                   : QString::fromStdString(property->name) + QStringLiteral(" — ") + QString::fromStdString(property->address));
-        row.insert("aliases", payload::projection::toQStringList(property->aliases));
+        row.insert("aliases", payload::mapper::toQStringList(property->aliases));
         out.push_back(row);
     }
     return out;
@@ -75,9 +75,9 @@ QVariantList buildContractRows(const SessionStore& session)
         row.insert("name", QString::fromStdString(contract->name));
         row.insert("type", QString::fromStdString(contract->type));
         row.insert("display", QString::fromStdString(contract->name));
-        row.insert("aliases", payload::projection::toQStringList(contract->aliases));
-        row.insert("actorIds", payload::projection::toQStringList(contract->actorIds));
-        row.insert("propertyIds", payload::projection::toQStringList(contract->propertyIds));
+        row.insert("aliases", payload::mapper::toQStringList(contract->aliases));
+        row.insert("actorIds", payload::mapper::toQStringList(contract->actorIds));
+        row.insert("propertyIds", payload::mapper::toQStringList(contract->propertyIds));
         out.push_back(row);
     }
     return out;
@@ -131,3 +131,5 @@ QVariantList buildStatementTransactionRows(const SessionStore& session, const QS
 }
 
 } // namespace ui
+
+

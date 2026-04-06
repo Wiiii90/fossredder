@@ -9,6 +9,7 @@
 
 #include "ui/payload/PayloadKeys.h"
 #include "ui/models/ImportSuggestion.h"
+#include "ui/payload/PayloadMapper.h"
 
 namespace ui {
 
@@ -227,3 +228,4 @@ void TransactionDraftList::setType(int index, const QString& v)
 }
 
 }
+
