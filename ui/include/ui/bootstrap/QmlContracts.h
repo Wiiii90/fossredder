@@ -1,9 +1,18 @@
+/**
+ * @file ui/include/ui/bootstrap/QmlContracts.h
+ * @brief QML registration and context property name constants used by the UI.
+ *
+ * This header centralizes QML module metadata and the context property names
+ * used when wiring C++ controllers / services into the QML environment.
+ */
+
 #pragma once
 
 #include <QString>
 
 namespace ui::qml::contracts {
 
+/** Module/version and type registration metadata for the QML module. */
 namespace module {
 inline constexpr auto kName = "FossRedder";
 constexpr int kMajorVersion = 1;
@@ -12,6 +21,7 @@ inline constexpr auto kNavigationTypeName = "UiNavigation";
 inline constexpr auto kNavigationTypeDescription = "UiNavigation is exposed via context property 'uiNav'";
 }
 
+/** Names of context properties set on the QQmlContext. */
 namespace context {
 inline const auto kActions = QStringLiteral("uiActions");
 inline const auto kNavigation = QStringLiteral("uiNav");
@@ -33,13 +43,15 @@ inline const auto kLanguageController = QStringLiteral("languageController");
 inline const auto kIsDebugBuild = QStringLiteral("isDebugBuild");
 }
 
+/** Names of any QML image providers exposed by the application. */
 namespace providers {
 inline const auto kImportProof = QStringLiteral("importProof");
 }
 
+/** Convenience property keys used by QML components. */
 namespace properties {
 inline constexpr auto kWidth = "width";
 inline constexpr auto kHeight = "height";
 }
 
-}
+} // namespace ui::qml::contracts
