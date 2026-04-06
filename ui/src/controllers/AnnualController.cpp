@@ -7,7 +7,7 @@
 
 #include "core/application/AppStateFacade.h"
 #include "ui/observability/Origins.h"
-#include "ui/support/CoreFacadeGuard.h"
+#include "ui/util/CoreFacadeGuard.h"
 
 namespace ui {
 
@@ -19,7 +19,7 @@ AnnualController::AnnualController(core::application::AppStateFacade* core, QObj
 
 QString AnnualController::addAnnual(int year)
 {
-    return support::guard::invokeValue<QString>(
+    return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::annual::kAdd, {},
         [&]() { return QString::fromStdString(core_->addAnnual(year)); });
 }

@@ -9,7 +9,6 @@
 #include "ui/bootstrap/QmlContracts.h"
 #include "ui/config/Defaults.h"
 #include "ui/state/NavigationState.h"
-#include "ui/support/UiContracts.h"
 
 namespace ui::bootstrap {
 
@@ -24,12 +23,12 @@ void registerTypes()
                                                     ui::qml::contracts::module::kMinorVersion,
                                                     ui::qml::contracts::module::kNavigationTypeName,
                                                     ui::qml::contracts::module::kNavigationTypeDescription);
-    qmlRegisterUncreatableMetaObject(ui::support::contracts::staticMetaObject,
+    qmlRegisterUncreatableMetaObject(ui::qml::contracts::staticMetaObject,
                                      ui::qml::contracts::module::kName,
                                      ui::qml::contracts::module::kMajorVersion,
                                      ui::qml::contracts::module::kMinorVersion,
-                                     ui::config::qmlRegistration::kContractsTypeName,
-                                     ui::config::qmlRegistration::kContractsTypeDescription);
+                                     ui::config::qmlRegistration::kQmlContractsTypeName,
+                                     ui::config::qmlRegistration::kQmlContractsTypeDescription);
     registered = true;
 }
 

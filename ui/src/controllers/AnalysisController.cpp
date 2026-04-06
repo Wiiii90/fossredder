@@ -16,8 +16,8 @@
 #include "ui/analysis/AnalysisInputMapper.h"
 #include "ui/analysis/AnalysisPayloadMapper.h"
 #include "ui/observability/Origins.h"
-#include "ui/support/CoreFacadeGuard.h"
-#include "ui/support/StringConversions.h"
+#include "ui/util/CoreFacadeGuard.h"
+#include "ui/util/StringConversions.h"
 #include "ui/text/Text.h"
 
 namespace ui {
@@ -68,7 +68,7 @@ QString AnalysisController::addAnalysis(const QString& name,
                                         const QString& configJson,
                                         const QString& filterSpec)
 {
-    return support::guard::invokeValue<QString>(
+    return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::analysis::kAdd, {}, [&]() {
             return QString::fromStdString(core_->addAnalysis(
                 strings::toStdString(name),
@@ -210,7 +210,7 @@ QVariantMap AnalysisController::computeAnalysis(const QString& analysisId,
         }
         return ui::analysis::toPayload(result);
     } catch (...) {
-        support::guard::reportException(
+        ui::util::guard::reportException(
             observability::origins::controller::analysis::kCompute);
     }
 
@@ -219,7 +219,7 @@ QVariantMap AnalysisController::computeAnalysis(const QString& analysisId,
 
 QStringList AnalysisController::getContractTypes() const
 {
-    return support::guard::invokeValue<QStringList>(
+    return ui::util::guard::invokeValue<QStringList>(
         core_, observability::origins::controller::analysis::kCompute, {}, [&]() {
             QStringList values;
             for (const auto& type : core_->contractTypes()) {

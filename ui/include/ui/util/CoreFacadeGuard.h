@@ -1,5 +1,5 @@
 /**
- * @file ui/include/ui/support/CoreFacadeGuard.h
+ * @file ui/include/ui/util/CoreFacadeGuard.h
  * @brief Declares guard helpers for UI calls into the core application facade.
  */
 
@@ -13,7 +13,7 @@
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 
-namespace ui::support::guard {
+namespace ui::util::guard {
 
 /** @brief Ensure that a required application facade pointer is available. */
 inline bool ensureCore(const core::application::AppStateFacade* core, const char* origin)
@@ -74,4 +74,4 @@ inline TValue invokeValue(CorePtr core, const char* origin, TValue fallback, Fun
     return fallback;
 }
 
-} // namespace ui::support::guard
+} // namespace ui::util::guard

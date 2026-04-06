@@ -7,8 +7,8 @@
 
 #include "core/application/AppStateFacade.h"
 #include "ui/observability/Origins.h"
-#include "ui/support/CoreFacadeGuard.h"
-#include "ui/support/StringConversions.h"
+#include "ui/util/CoreFacadeGuard.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 
@@ -47,7 +47,7 @@ QString TransactionController::addTransaction(const QString& name,
                                               bool allocatable,
                                               const QStringList& propertyIds)
 {
-    return support::guard::invokeValue<QString>(
+  return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::transaction::kAdd, {}, [&]() {
             return QString::fromStdString(core_->addTransaction(
                 strings::toStdString(name),
@@ -73,7 +73,7 @@ void TransactionController::updateTransaction(const QString& id,
                                               bool allocatable,
                                               const QStringList& propertyIds)
 {
-    support::guard::invokeVoid(
+  ui::util::guard::invokeVoid(
         core_, observability::origins::controller::transaction::kUpdate, [&]() {
             core_->updateTransaction(strings::toStdString(id),
                                      strings::toStdString(name),
@@ -90,7 +90,7 @@ void TransactionController::updateTransaction(const QString& id,
 
 void TransactionController::deleteTransaction(const QString& id)
 {
-    support::guard::invokeVoid(
+  ui::util::guard::invokeVoid(
         core_, observability::origins::controller::transaction::kDelete,
         [&]() { core_->deleteTransaction(strings::toStdString(id)); });
 }

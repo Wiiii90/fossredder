@@ -7,7 +7,7 @@
 #include "ui/state/MetricsState.h"
 #include "ui/state/PropertyNameCatalog.h"
 #include "ui/state/SessionModels.h"
-#include "ui/support/StringConversions.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 

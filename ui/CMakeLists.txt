@@ -20,11 +20,9 @@ set(UI_SOURCES
     src/controllers/StatementController.cpp
     src/controllers/StorageController.cpp
     src/controllers/TransactionController.cpp
-    src/controllers/DraftProjection.cpp
     src/dialogs/FileDialogs.cpp
     src/export/AppStateSnapshot.cpp
     src/export/ExportRunner.cpp
-    src/import/DraftSessionSupport.cpp
     src/import/DraftViewMapper.cpp
     src/import/ImportDraftMapper.cpp
     src/import/ImportJobBridge.cpp
@@ -61,7 +59,6 @@ set(UI_SOURCES
     src/window/CloseWorkflow.cpp
     src/window/DropController.cpp
     src/window/MainWindowContext.cpp
-    src/workflows/FileWorkflow.cpp
     qml/qml.qrc
 )
 
@@ -90,7 +87,6 @@ set(UI_HEADERS
     include/ui/dialogs/FileDialogs.h
     include/ui/export/AppStateSnapshot.h
     include/ui/export/ExportRunner.h
-    include/ui/import/DraftSessionSupport.h
     include/ui/import/DraftViewMapper.h
     include/ui/import/ImportDraftMapper.h
     include/ui/import/ImportJobBridge.h
@@ -117,9 +113,6 @@ set(UI_HEADERS
     include/ui/payload/PayloadKeys.h
     include/ui/payload/ProjectionConverters.h
     include/ui/providers/DraftProofProvider.h
-    include/ui/support/CoreFacadeGuard.h
-    include/ui/support/StringConversions.h
-    include/ui/support/UiContracts.h
     include/ui/state/FilterState.h
     include/ui/state/MetricsState.h
     include/ui/state/NavigationState.h
@@ -142,7 +135,8 @@ set(UI_HEADERS
     include/ui/window/DropController.h
     include/ui/window/MainWindowContext.h
     include/ui/window/MainWindowTrace.h
-    include/ui/workflows/FileWorkflow.h
+    include/ui/util/CoreFacadeGuard.h
+    include/ui/util/StringConversions.h
 )
 
 add_library(fossredder_ui STATIC ${UI_SOURCES} ${UI_HEADERS})

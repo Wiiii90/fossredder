@@ -12,8 +12,8 @@
 #include <functional>
 #include <memory>
 
+#include "ui/bootstrap/QmlContracts.h"
 #include "ui/export/ExportRunner.h"
-#include "ui/support/UiContracts.h"
 
 namespace ui {
 
@@ -42,7 +42,7 @@ private slots:
     void onExportFinished();
 
 private:
-    ui::exporting::ExportRequest buildRequest(ui::support::contracts::ExportFormat format,
+    ui::exporting::ExportRequest buildRequest(ui::qml::contracts::ExportFormat format,
                                               const QString& path,
                                               bool includeFormulas,
                                               const QString& locale) const;

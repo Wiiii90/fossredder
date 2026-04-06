@@ -24,12 +24,10 @@
 #include "ui/bootstrap/QmlRuntime.h"
 #include "ui/config/Defaults.h"
 #include "ui/observability/Origins.h"
-#include "ui/support/StringConversions.h"
-#include "ui/support/UiContracts.h"
+#include "ui/util/StringConversions.h"
 #include "ui/text/Text.h"
 #include "ui/window/MainWindowContext.h"
 #include "ui/window/MainWindowTrace.h"
-#include "ui/workflows/FileWorkflow.h"
 
 namespace {
 
@@ -115,13 +113,12 @@ void MainWindow::setupUiContext() {
                                            this);
   actions_ = services.actions;
   dataSession_ = services.dataSession;
-  fileWorkflow_ = services.fileWorkflow;
   status_ = services.status;
 }
 
 void MainWindow::setupActionRouting() {
   ui::window::wireMainWindowActions(
-      *this, {actions_, dataSession_, fileWorkflow_, status_},
+      *this, {actions_, dataSession_, status_},
       [this]() { onAbout(); });
 }
 
@@ -223,17 +220,12 @@ void MainWindow::closeEvent(QCloseEvent *event) {
   ui::window::reportMainWindowFlow(
       ui::observability::origins::mainWindow::kClose,
       "Main window close requested; triggering save workflow");
-  closeWorkflow_.requestClose(event, [this]() {
-    if (fileWorkflow_)
-      fileWorkflow_->requestSaveFile();
-    else
-      emit saveFileRequested();
-  });
+  closeWorkflow_.requestClose(event, [this]() { emit saveFileRequested(); });
 }
 
 void MainWindow::handleStorageOperationSucceeded(const QString &operation) {
   if (!closeWorkflow_.handleStorageOperationSucceeded(
-          operation, ui::support::contracts::operations::kSaveFile,
+          operation, ui::config::operationKeys::kSaveFile,
           [this]() {
             QMetaObject::invokeMethod(
                 this, [this]() { close(); }, Qt::QueuedConnection);
@@ -249,7 +241,7 @@ void MainWindow::handleStorageOperationSucceeded(const QString &operation) {
 void MainWindow::handleStorageOperationFailed(const QString &operation,
                                               const QString &error) {
   if (!closeWorkflow_.handleStorageOperationFailed(
-          operation, ui::support::contracts::operations::kSaveFile))
+          operation, ui::config::operationKeys::kSaveFile))
     return;
 
   const QString message =

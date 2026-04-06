@@ -11,14 +11,13 @@
 #include <QString>
 
 #include "core/models/AppState.h"
-#include "ui/support/UiContracts.h"
+#include "ui/bootstrap/QmlContracts.h"
 
 namespace ui::exporting {
 
 /** @brief Captures the user-selected export options for a single export run. */
 struct ExportRequest {
-  ui::support::contracts::ExportFormat format =
-      ui::support::contracts::ExportFormat::Csv;
+  ui::qml::contracts::ExportFormat format = ui::qml::contracts::ExportFormat::Csv;
   QString path;
   bool includeFormulas = true;
   QString locale;

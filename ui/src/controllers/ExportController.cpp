@@ -5,10 +5,11 @@
 
 #include "ui/controllers/ExportController.h"
 
+#include "ui/bootstrap/QmlContracts.h"
 #include "ui/observability/Origins.h"
 #include "ui/observability/Trace.h"
-#include "ui/support/CoreFacadeGuard.h"
-#include "ui/support/StringConversions.h"
+#include "ui/util/CoreFacadeGuard.h"
+#include "ui/util/StringConversions.h"
 #include "ui/text/Text.h"
 
 #include <QtConcurrent/qtconcurrentrun.h>
@@ -32,7 +33,7 @@ ExportController::ExportController(
             &ExportController::onExportFinished);
 }
 
-ui::exporting::ExportRequest ExportController::buildRequest(ui::support::contracts::ExportFormat format,
+ui::exporting::ExportRequest ExportController::buildRequest(ui::qml::contracts::ExportFormat format,
                                                             const QString& path,
                                                             bool includeFormulas,
                                                             const QString& locale) const
@@ -74,7 +75,7 @@ void ExportController::exportData(int format, const QString &path,
   try {
     lastError_.clear();
     const auto request = buildRequest(
-        static_cast<ui::support::contracts::ExportFormat>(format), path,
+        static_cast<ui::qml::contracts::ExportFormat>(format), path,
         includeFormulas, locale);
     const auto snapshot = stateSnapshot();
     if (!snapshot) {
@@ -123,7 +124,7 @@ void ExportController::exportData(int format, const QString &path,
          {observability::context::kPath, strings::toStdString(path)}});
     finishExport(false);
   } catch (...) {
-    support::guard::reportException(
+    ui::util::guard::reportException(
         observability::origins::controller::exportFlow::kStart);
     lastError_ = ui::text::controllerErrors::exportFailed();
     observability::reportFlow(
@@ -178,7 +179,7 @@ void ExportController::onExportFinished() {
         {{observability::context::kException, ex.what()}});
     success = false;
   } catch (...) {
-    support::guard::reportException(
+    ui::util::guard::reportException(
         observability::origins::controller::exportFlow::kFinish);
     lastError_ = ui::text::controllerErrors::exportFailed();
     observability::reportFlow(

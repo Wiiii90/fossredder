@@ -32,10 +32,26 @@ inline const auto kQrcQmlImportPath = QStringLiteral("qrc:/qml");
 
 namespace qmlRegistration {
 
-/** @brief Exposed QML type name for uncreatable controller contracts. */
-inline constexpr auto kContractsTypeName = "UIContracts";
-/** @brief QML diagnostic text shown when controller contracts are instantiated directly. */
-inline constexpr auto kContractsTypeDescription = "UI controller contracts are exposed as enums only";
+/** @brief Exposed QML type name for uncreatable QML contracts. */
+inline constexpr auto kQmlContractsTypeName = "QmlContracts";
+/** @brief QML diagnostic text shown when QML contracts are instantiated directly. */
+inline constexpr auto kQmlContractsTypeDescription = "QML contracts are exposed as enums only";
+
+}
+
+namespace operationKeys {
+
+/** @brief Operation key emitted for create-new-file actions. */
+inline const auto kNewFile = QStringLiteral("newFile");
+
+/** @brief Operation key emitted for open-file actions. */
+inline const auto kOpenFile = QStringLiteral("openFile");
+
+/** @brief Operation key emitted for save-file actions. */
+inline const auto kSaveFile = QStringLiteral("saveFile");
+
+/** @brief Operation key emitted for save-as actions. */
+inline const auto kSaveFileAs = QStringLiteral("saveFileAs");
 
 }
 

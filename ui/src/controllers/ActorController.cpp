@@ -7,8 +7,8 @@
 
 #include "core/application/AppStateFacade.h"
 #include "ui/observability/Origins.h"
-#include "ui/support/CoreFacadeGuard.h"
-#include "ui/support/StringConversions.h"
+#include "ui/util/CoreFacadeGuard.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 
@@ -23,7 +23,7 @@ QString ActorController::addActor(const QString& name,
                                   const QString& description,
                                   const QStringList& aliases)
 {
-    return support::guard::invokeValue<QString>(
+    return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::actor::kAdd, {}, [&]() {
             return QString::fromStdString(core_->addActor(
                 strings::toStdString(name),
@@ -39,7 +39,7 @@ void ActorController::updateActor(const QString& id,
                                   const QString& description,
                                   const QStringList& aliases)
 {
-    support::guard::invokeVoid(
+    ui::util::guard::invokeVoid(
         core_, observability::origins::controller::actor::kUpdate, [&]() {
             core_->updateActor(strings::toStdString(id),
                                strings::toStdString(name),
@@ -51,7 +51,7 @@ void ActorController::updateActor(const QString& id,
 
 void ActorController::deleteActor(const QString& id)
 {
-    support::guard::invokeVoid(
+    ui::util::guard::invokeVoid(
         core_, observability::origins::controller::actor::kDelete,
         [&]() { core_->deleteActor(strings::toStdString(id)); });
 }

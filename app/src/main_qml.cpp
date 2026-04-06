@@ -13,10 +13,7 @@
 #include "api/tesseract/ITesseractService.h"
 #include "core/application/AnalysisService.h"
 #include "core/application/AppStateFacade.h"
-#include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
-#include "core/export/ExportRequest.h"
-#include "core/export/ExportResult.h"
 #include "core/export/ExportService.h"
 #include "core/export/ExportTypes.h"
 #include "core/import/IImportStatement.h"
@@ -35,7 +32,6 @@ using core::domain::DeletionImpact;
 #include "ui/controllers/AnalysisController.h"
 #include "ui/controllers/AnnualController.h"
 #include "ui/controllers/ContractController.h"
-#include "ui/controllers/ControllerContracts.h"
 #include "ui/controllers/DraftController.h"
 #include "ui/controllers/ExportController.h"
 #include "ui/controllers/ImportController.h"
@@ -52,11 +48,7 @@ using core::domain::DeletionImpact;
 #include "ui/state/AppStateClone.h"
 #include "ui/state/StateFacade.h"
 #include <QApplication>
-#include <QQmlEngine>
-#include <QQmlError>
-#include <QUrl>
 
-#include <cstdio>
 #include <exception>
 #include <memory>
 
@@ -89,11 +81,11 @@ createTesseractService(std::shared_ptr<ITesseractAdapter> adapter);
 namespace {
 
 core::exporting::ExportFormat
-toCoreExportFormat(ui::controllers::contracts::ExportFormat format) {
+toCoreExportFormat(ui::qml::contracts::ExportFormat format) {
   switch (format) {
-  case ui::controllers::contracts::ExportFormat::Csv:
+  case ui::qml::contracts::ExportFormat::Csv:
     return core::exporting::ExportFormat::Csv;
-  case ui::controllers::contracts::ExportFormat::Xlsx:
+  case ui::qml::contracts::ExportFormat::Xlsx:
     return core::exporting::ExportFormat::Xlsx;
   default:
     ui::observability::reportFlow(

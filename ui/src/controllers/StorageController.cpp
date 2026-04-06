@@ -5,10 +5,10 @@
 
 #include "ui/controllers/StorageController.h"
 
+#include "ui/config/Defaults.h"
 #include "ui/observability/Origins.h"
-#include "ui/support/CoreFacadeGuard.h"
-#include "ui/support/StringConversions.h"
-#include "ui/support/UiContracts.h"
+#include "ui/util/CoreFacadeGuard.h"
+#include "ui/util/StringConversions.h"
 #include "ui/text/Text.h"
 
 namespace ui {
@@ -16,7 +16,7 @@ namespace ui {
 bool StorageController::runCoreOperation(const char* context,
                                          const std::function<void()>& action)
 {
-    return support::guard::invokeValue<bool>(core_, context, false, [&]() {
+    return ui::util::guard::invokeValue<bool>(core_, context, false, [&]() {
         action();
         return true;
     });
@@ -47,7 +47,7 @@ void StorageController::newFile(const QString& path)
         runCoreOperation(observability::origins::controller::storage::kNewFile,
                          [&]() { core_->newFile(strings::toEncodedPath(path)); });
     finishOperation(success, ui::text::controllerErrors::storageCreateFailed(),
-                    support::contracts::operations::kNewFile);
+                  ui::config::operationKeys::kNewFile);
 }
 
 void StorageController::openFile(const QString& path)
@@ -56,7 +56,7 @@ void StorageController::openFile(const QString& path)
         observability::origins::controller::storage::kOpenFile,
         [&]() { core_->openFile(strings::toEncodedPath(path)); });
     finishOperation(success, ui::text::controllerErrors::storageOpenFailed(),
-                    support::contracts::operations::kOpenFile);
+                  ui::config::operationKeys::kOpenFile);
 }
 
 void StorageController::saveFile()
@@ -65,7 +65,7 @@ void StorageController::saveFile()
         runCoreOperation(observability::origins::controller::storage::kSaveFile,
                          [&]() { core_->saveFile(); });
     finishOperation(success, ui::text::controllerErrors::storageSaveFailed(),
-                    support::contracts::operations::kSaveFile);
+                  ui::config::operationKeys::kSaveFile);
 }
 
 void StorageController::saveFileAs(const QString& path)
@@ -74,7 +74,7 @@ void StorageController::saveFileAs(const QString& path)
         observability::origins::controller::storage::kSaveFileAs,
         [&]() { core_->saveFileAs(strings::toEncodedPath(path)); });
     finishOperation(success, ui::text::controllerErrors::storageSaveAsFailed(),
-                    support::contracts::operations::kSaveFileAs);
+                  ui::config::operationKeys::kSaveFileAs);
 }
 
 } // namespace ui

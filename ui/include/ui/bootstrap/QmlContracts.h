@@ -8,9 +8,12 @@
 
 #pragma once
 
+#include <QObject>
 #include <QString>
 
 namespace ui::qml::contracts {
+
+Q_NAMESPACE
 
 /** Module/version and type registration metadata for the QML module. */
 namespace module {
@@ -53,5 +56,13 @@ namespace properties {
 inline constexpr auto kWidth = "width";
 inline constexpr auto kHeight = "height";
 }
+
+/** Supported export formats exposed to QML. */
+enum class ExportFormat : int {
+    Csv = 0,
+    Xlsx = 1
+};
+
+Q_ENUM_NS(ExportFormat)
 
 } // namespace ui::qml::contracts

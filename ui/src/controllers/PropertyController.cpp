@@ -7,8 +7,8 @@
 
 #include "core/application/AppStateFacade.h"
 #include "ui/observability/Origins.h"
-#include "ui/support/CoreFacadeGuard.h"
-#include "ui/support/StringConversions.h"
+#include "ui/util/CoreFacadeGuard.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 
@@ -24,7 +24,7 @@ QString PropertyController::addProperty(const QString& name,
                                         const QString& description,
                                         const QStringList& aliases)
 {
-    return support::guard::invokeValue<QString>(
+  return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::property::kAdd, {}, [&]() {
             return QString::fromStdString(core_->addProperty(
                 strings::toStdString(name),
@@ -40,7 +40,7 @@ void PropertyController::updateProperty(const QString& id,
                                         const QString& description,
                                         const QStringList& aliases)
 {
-    support::guard::invokeVoid(
+  ui::util::guard::invokeVoid(
         core_, observability::origins::controller::property::kUpdate, [&]() {
             core_->updateProperty(strings::toStdString(id),
                                   strings::toStdString(name),
@@ -52,7 +52,7 @@ void PropertyController::updateProperty(const QString& id,
 
 void PropertyController::deleteProperty(const QString& id)
 {
-    support::guard::invokeVoid(
+  ui::util::guard::invokeVoid(
         core_, observability::origins::controller::property::kDelete,
         [&]() { core_->deleteProperty(strings::toStdString(id)); });
 }
