@@ -1,6 +1,6 @@
 /**
  * @file ui/include/ui/config/Defaults.h
- * @brief Defines shared UI runtime constants, resource names and settings keys.
+ * @brief Defines UI-specific runtime constants that are not shared with `core`.
  */
 
 #pragma once
@@ -9,27 +9,32 @@
 
 namespace ui::config {
 
-inline const auto kMainWindowTitle = QStringLiteral("FOSSRedder");
+/** @brief Resource URL of the root QML document loaded into the main window. */
 inline const auto kMainQmlSource = QStringLiteral("qrc:/qml/FossRedder/Main.qml");
 
+/** @brief Default width of the widget-hosted desktop main window. */
 constexpr int kMainWindowDefaultWidth = 1200;
+/** @brief Default height of the widget-hosted desktop main window. */
 constexpr int kMainWindowDefaultHeight = 800;
 
+/** @brief Deployment directory containing filesystem QML modules next to the executable. */
 inline const auto kAppQmlDirName = QStringLiteral("qml");
+/** @brief Deployment directory containing Qt image format plugins next to the executable. */
 inline const auto kImageFormatsDirName = QStringLiteral("imageformats");
+/** @brief Deployment directory containing compiled translation catalogs. */
 inline const auto kTranslationsDirName = QStringLiteral("i18n");
+/** @brief Resource prefix used when loading bundled translation catalogs from the Qt resource system. */
 inline const auto kTranslationResourcePrefix = QStringLiteral(":/i18n/");
+/** @brief Basename prefix for compiled translation catalogs such as `fossredder_de.qm`. */
 inline const auto kTranslationBaseName = QStringLiteral("fossredder");
-inline const auto kSettingsOrganizationName = QStringLiteral("FOSSRedder");
-inline const auto kSettingsApplicationName = QStringLiteral("FOSSRedder");
-inline constexpr auto kLanguageEnglishCode = "en";
-inline constexpr auto kLanguageGermanCode = "de";
-inline constexpr auto kLanguageSettingsKey = "general/language";
+/** @brief Resource import path used by the QQmlEngine for QRC-backed modules. */
 inline const auto kQrcQmlImportPath = QStringLiteral("qrc:/qml");
 
 namespace qmlRegistration {
 
+/** @brief Exposed QML type name for uncreatable controller contracts. */
 inline constexpr auto kContractsTypeName = "UIContracts";
+/** @brief QML diagnostic text shown when controller contracts are instantiated directly. */
 inline constexpr auto kContractsTypeDescription = "UI controller contracts are exposed as enums only";
 
 }
@@ -40,37 +45,40 @@ inline constexpr auto kExportRunnerUnavailable = "UI_EXPORT_RUNNER_UNAVAILABLE";
 
 }
 
-constexpr int kImportRunKeepCount = 20;
-
 namespace importProgress {
 
+/** @brief Minimum visible progress value shown by the import UI. */
 constexpr double kMinimum = 0.0;
+/** @brief Initial progress value shown once an import has started. */
 constexpr double kInitial = 0.01;
+/** @brief Terminal progress value shown after a successful import. */
 constexpr double kMaximum = 1.0;
 
 }
 
 namespace importPaging {
 
+/** @brief Sentinel value used when no page information is currently available. */
 constexpr int kNone = 0;
 
 }
 
+/** @brief Regex pattern extracting current and total page counters from status text. */
 inline const auto kImportProgressPagePattern = QStringLiteral("\\[(\\d+)\\s*/\\s*(\\d+)\\]");
-inline const auto kImportRunTimestampFormat = QStringLiteral("yyyyMMddHHmmsszzz");
-inline const auto kImportRunNamePattern = QStringLiteral("%1_import_%2");
-inline const auto kImportRunGlobPattern = QStringLiteral("*_import_*");
-constexpr int kImportRunFirstSuffix = 1;
-
-inline const auto kJsonEmptyObject = QStringLiteral("{}");
 
 namespace objectNames {
 
+/** @brief Object name assigned to the main window's "new file" QAction. */
 inline constexpr auto kActionNewFile = "actionNewFile";
+/** @brief Object name assigned to the main window's "open file" QAction. */
 inline constexpr auto kActionOpenFile = "actionOpenFile";
+/** @brief Object name assigned to the main window's "save file" QAction. */
 inline constexpr auto kActionSaveFile = "actionSaveFile";
+/** @brief Object name assigned to the main window's "save as" QAction. */
 inline constexpr auto kActionSaveFileAs = "actionSaveFileAs";
+/** @brief Object name assigned to the main window's "quit" QAction. */
 inline constexpr auto kActionQuit = "actionQuit";
+/** @brief Object name assigned to the main window's "about" QAction. */
 inline constexpr auto kActionAbout = "actionAbout";
 
 }
