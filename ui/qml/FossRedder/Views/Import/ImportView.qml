@@ -222,7 +222,7 @@ Item {
                                     enabled: root.hasImportController && !importController.isRunning
                                     fillColor: Theme.surface
                                     textColor: Theme.textPrimary
-                                    onClicked: { if (uiActions) uiActions.browseImportPdf() }
+                                    onClicked: { if (actions) actions.browseImportPdf() }
                                 }
                             }
 

@@ -23,11 +23,11 @@ inline constexpr auto kNavigationTypeDescription = "UiNavigation is exposed via 
 
 /** Names of context properties set on the QQmlContext. */
 namespace context {
-inline const auto kActions = QStringLiteral("uiActions");
-inline const auto kNavigation = QStringLiteral("uiNav");
-inline const auto kData = QStringLiteral("uiData");
+inline const auto kActions = QStringLiteral("actions");
+inline const auto kNavigation = QStringLiteral("navigation");
+inline const auto kData = QStringLiteral("data");
 inline const auto kFileSystemController = QStringLiteral("fileSystemController");
-inline const auto kStatus = QStringLiteral("uiStatus");
+inline const auto kStatus = QStringLiteral("status");
 inline const auto kStorageController = QStringLiteral("storageController");
 inline const auto kAnnualController = QStringLiteral("annualController");
 inline const auto kActorController = QStringLiteral("actorController");

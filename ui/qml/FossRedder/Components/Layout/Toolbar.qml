@@ -10,23 +10,23 @@ Item {
     property int iconRowHeight: Math.round(implicitHeight * 0.55)
 
     function clearDomainSelection() {
-        if (!uiData) return
-        uiData.selectedActorId = ""
-        uiData.selectedPropertyId = ""
-        uiData.selectedContractId = ""
+        if (!data) return
+        data.selectedActorId = ""
+        data.selectedPropertyId = ""
+        data.selectedContractId = ""
     }
 
     function clearBookingStateForSection(section) {
-        if (!uiNav || section === UiNavigation.Booking) return
-        uiNav.bookingView = UiNavigation.Statements
+        if (!navigation || section === UiNavigation.Booking) return
+        navigation.bookingView = UiNavigation.Statements
     }
 
     function navigateTo(section, clearSelection, bookingView) {
-        if (!uiNav) return
+        if (!navigation) return
         clearBookingStateForSection(section)
         if (clearSelection) clearDomainSelection()
         if (bookingView !== undefined) uiNav.bookingView = bookingView
-        uiNav.section = section
+        navigation.section = section
     }
 
     Rectangle {
@@ -63,7 +63,7 @@ Item {
                         Layout.preferredHeight: fileIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/import.svg"
                         label: qsTr("Import")
-                        active: uiNav && uiNav.section === UiNavigation.Import
+                        active: navigation && navigation.section === UiNavigation.Import
                         onClicked: navigateTo(UiNavigation.Import, false)
                     }
                     Controls.IconButton {
@@ -71,7 +71,7 @@ Item {
                         Layout.preferredHeight: fileIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/export.svg"
                         label: qsTr("Export")
-                        active: uiNav && uiNav.section === UiNavigation.Export
+                        active: navigation && navigation.section === UiNavigation.Export
                         onClicked: navigateTo(UiNavigation.Export, false)
                     }
                 }
@@ -108,7 +108,7 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/booking.svg"
                         label: qsTr("Booking")
-                        active: uiNav && uiNav.section === UiNavigation.Booking
+                        active: navigation && navigation.section === UiNavigation.Booking
                         onClicked: {
                             if (uiData) {
                                 uiData.selectedStatementId = ""
@@ -122,7 +122,7 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/actor.svg"
                         label: qsTr("Actor")
-                        active: uiNav && uiNav.section === UiNavigation.Actors
+                        active: navigation && navigation.section === UiNavigation.Actors
                         onClicked: navigateTo(UiNavigation.Actors, true)
                     }
                     Controls.IconButton {
@@ -130,7 +130,7 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/property.svg"
                         label: qsTr("Property")
-                        active: uiNav && uiNav.section === UiNavigation.Properties
+                        active: navigation && navigation.section === UiNavigation.Properties
                         onClicked: navigateTo(UiNavigation.Properties, true)
                     }
                     Controls.IconButton {
@@ -138,7 +138,7 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/contract.svg"
                         label: qsTr("Contract")
-                        active: uiNav && uiNav.section === UiNavigation.Contracts
+                        active: navigation && navigation.section === UiNavigation.Contracts
                         onClicked: navigateTo(UiNavigation.Contracts, true)
                     }
                 }
@@ -175,7 +175,7 @@ Item {
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/analysis.svg"
                         label: qsTr("Analysis")
-                        active: uiNav && uiNav.section === UiNavigation.Analysis
+                        active: navigation && navigation.section === UiNavigation.Analysis
                         onClicked: navigateTo(UiNavigation.Analysis, true)
                     }
                     Controls.IconButton {
@@ -183,7 +183,7 @@ Item {
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/annual.svg"
                         label: qsTr("Annual")
-                        active: uiNav && uiNav.section === UiNavigation.Annual
+                        active: navigation && navigation.section === UiNavigation.Annual
                         onClicked: navigateTo(UiNavigation.Annual, true)
                     }
                 }
