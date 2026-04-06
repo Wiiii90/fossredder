@@ -25,6 +25,10 @@ class Actions : public QObject {
     Q_PROPERTY(QAction* aboutAction READ aboutAction CONSTANT)
 
 public:
+    /**
+     * @brief Construct the actions container.
+     * @param parent QObject parent
+     */
     explicit Actions(QObject* parent = nullptr);
 
     QAction* newFileAction() const;
@@ -43,12 +47,46 @@ public:
     Q_INVOKABLE void browseExportFile();
 
 signals:
+    /**
+     * @brief Emitted when QML requests an import file dialog.
+     * @param filter Native file dialog filter string (e.g. "PDF Files (*.pdf)").
+     */
     void importBrowseRequested(const QString& filter);
+
+    /**
+     * @brief Emitted after a single import file was selected by the user.
+     * @param path Absolute path of the selected file.
+     */
     void importFileSelected(const QString& path);
+
+    /**
+     * @brief Emitted after multiple import files were selected by the user.
+     * @param paths List of absolute file paths.
+     */
     void importFilesSelected(const QStringList& paths);
+
+    /**
+     * @brief Emitted when a file was dropped onto an import target in QML.
+     * @param path Absolute path of the dropped file.
+     */
     void importFileDropped(const QString& path);
+
+    /**
+     * @brief Emitted when multiple files were dropped onto an import target in QML.
+     * @param paths List of absolute file paths.
+     */
     void importFilesDropped(const QStringList& paths);
+
+    /**
+     * @brief Emitted when QML requests an export file dialog.
+     * @param filter Native file dialog filter string (e.g. "All Files (*.*)").
+     */
     void exportBrowseRequested(const QString& filter);
+
+    /**
+     * @brief Emitted after an export path was chosen by the user.
+     * @param path Absolute path of the target file.
+     */
     void exportFileSelected(const QString& path);
 
 private:
