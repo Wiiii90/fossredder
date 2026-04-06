@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/models/PropertyList.cpp
+ * @brief Implementation of the UI PropertyList component.
+ */
+
 #include "ui/models/PropertyList.h"
 
 #include <QVariant>

@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/observability/Origins.h
+ * @brief Declarations for the UI Origins component.
+ */
+
 #pragma once
 
 namespace ui::observability::origins {

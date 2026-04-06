@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/TransactionDraft.h
+ * @brief Declarations for the UI TransactionDraft component.
+ */
+
 #pragma once
 
 #include <QString>

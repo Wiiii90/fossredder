@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/TransactionList.h
+ * @brief Declarations for the UI TransactionList component.
+ */
+
 #pragma once
 
 #include <QHash>

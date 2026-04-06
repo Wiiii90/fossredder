@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/models/StatementDraft.cpp
+ * @brief Implementation of the UI StatementDraft component.
+ */
+
 #include "ui/models/StatementDraft.h"
 
 #include <QAbstractItemModel>

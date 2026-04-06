@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/state/FilterState.cpp
+ * @brief Implementation of the UI FilterState component.
+ */
+
 #include "ui/state/FilterState.h"
 
 #include <QObject>

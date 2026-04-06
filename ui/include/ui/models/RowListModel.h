@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/RowListModel.h
+ * @brief Declarations for the UI RowListModel component.
+ */
+
 #pragma once
 
 #include <QAbstractListModel>

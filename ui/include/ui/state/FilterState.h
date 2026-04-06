@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/FilterState.h
+ * @brief Declarations for the UI FilterState component.
+ */
+
 #pragma once
 
 #include <QHash>

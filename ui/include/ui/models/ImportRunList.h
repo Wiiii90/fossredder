@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/ImportRunList.h
+ * @brief Declarations for the UI ImportRunList component.
+ */
+
 #pragma once
 
 #include <QString>

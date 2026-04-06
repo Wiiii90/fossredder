@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/window/MainWindowContext.h
+ * @brief Declarations for the UI MainWindowContext component.
+ */
+
 #pragma once
 
 #include <functional>

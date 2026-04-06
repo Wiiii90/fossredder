@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/observability/ErrorCodes.h
+ * @brief Declarations for the UI ErrorCodes component.
+ */
+
 #pragma once
 
 namespace ui::observability::codes {

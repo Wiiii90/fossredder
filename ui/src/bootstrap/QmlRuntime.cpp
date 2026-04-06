@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/bootstrap/QmlRuntime.cpp
+ * @brief Implementation of the UI QmlRuntime component.
+ */
+
 #include "ui/bootstrap/QmlRuntime.h"
 
 #include <QCoreApplication>

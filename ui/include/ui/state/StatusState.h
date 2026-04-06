@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/StatusState.h
+ * @brief Declarations for the UI StatusState component.
+ */
+
 #pragma once
 
 #include <QObject>

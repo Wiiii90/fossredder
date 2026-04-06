@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/state/MetricsState.cpp
+ * @brief Implementation of the UI MetricsState component.
+ */
+
 #include "ui/state/MetricsState.h"
 
 #include "core/application/PropertyMetricsService.h"

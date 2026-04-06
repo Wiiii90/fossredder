@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/models/ImportRunList.cpp
+ * @brief Implementation of the UI ImportRunList component.
+ */
+
 #include "ui/models/ImportRunList.h"
 
 #include <QVariant>

@@ -1,9 +1,48 @@
+/**
+ * @file core/include/core/constants/CoreDefaults.h
+ * @brief Defines shared cross-layer runtime constants and configuration keys.
+ */
+
 #pragma once
 
 #include <cstddef>
 #include <string_view>
 
 namespace core::constants {
+
+namespace application {
+
+/** @brief Canonical product display name used across the desktop app and UI. */
+inline constexpr std::string_view kDisplayName = "FOSSRedder";
+
+}
+
+namespace preferences {
+
+/** @brief Stable organization name used for persisted application settings. */
+inline constexpr std::string_view kOrganizationName = "FOSSRedder";
+/** @brief Stable application name used for persisted application settings. */
+inline constexpr std::string_view kApplicationName = "FOSSRedder";
+
+namespace keys {
+/** @brief Settings key storing the preferred UI language code. */
+inline constexpr std::string_view kLanguage = "general/language";
+}
+
+}
+
+namespace localization {
+
+namespace languages {
+/** @brief Default English language code used by the desktop UI. */
+inline constexpr std::string_view kEnglish = "en";
+/** @brief German language code used by the desktop UI. */
+inline constexpr std::string_view kGerman = "de";
+/** @brief French language code reserved for future localization support. */
+inline constexpr std::string_view kFrench = "fr";
+}
+
+}
 
 namespace runtime {
 inline constexpr std::string_view kQtStyle = "Fusion";
@@ -23,10 +62,15 @@ inline constexpr std::string_view kGeneratedContractPrefix = "Vertrag ";
 
 namespace config {
 namespace languages {
-inline constexpr std::string_view kEnglish = "EN";
-inline constexpr std::string_view kGerman = "DE";
-inline constexpr std::string_view kFrench = "FR";
+inline constexpr std::string_view kEnglish = "en";
+inline constexpr std::string_view kGerman = "de";
+inline constexpr std::string_view kFrench = "fr";
 }
+}
+
+namespace json {
+/** @brief Canonical serialized representation for an empty JSON object. */
+inline constexpr std::string_view kEmptyObject = "{}";
 }
 
 namespace analysis {
@@ -172,6 +216,16 @@ inline constexpr std::size_t kUnitsPerPage = 4;
 inline constexpr int kDefaultTesseractPsm = 3;
 inline constexpr int kDefaultTableTesseractPsm = 6;
 inline constexpr std::string_view kRunNameImport = "import";
+
+namespace runs {
+/** @brief Retention count for persisted import run folders stored locally. */
+inline constexpr int kKeepCount = 20;
+/** @brief UTC timestamp format used when naming persisted import runs. */
+inline constexpr std::string_view kTimestampFormat = "yyyyMMddHHmmsszzz";
+/** @brief First numeric suffix used when generating unique import run folders. */
+inline constexpr int kFirstSuffix = 1;
+}
+
 inline constexpr std::string_view kPopplerRenderPrefix = "poppler_render";
 inline constexpr std::string_view kPopplerExtractPrefix = "poppler_extract";
 inline constexpr std::string_view kOpenCvMaskPrefix = "opencv_mask_page";

@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/state/SessionModels.cpp
+ * @brief Implementation of the UI SessionModels component.
+ */
+
 #include "ui/state/SessionModels.h"
 
 #include "ui/state/SessionModelProjection.h"

@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/pch.h
+ * @brief Precompiled header for the UI project.
+ */
+
 #pragma once
 
 #define NOMINMAX

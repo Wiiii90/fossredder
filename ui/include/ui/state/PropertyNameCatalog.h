@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/PropertyNameCatalog.h
+ * @brief Declarations for the UI PropertyNameCatalog component.
+ */
+
 #pragma once
 
 #include <QHash>

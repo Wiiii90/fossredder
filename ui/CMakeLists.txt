@@ -40,7 +40,6 @@ set(UI_SOURCES
     src/models/TransactionDraftList.cpp
     src/models/TransactionFilter.cpp
     src/models/TransactionList.cpp
-    src/providers/DraftProofProvider.cpp
     src/state/FilterState.cpp
     src/state/MetricsState.cpp
     src/state/SessionMetricsSync.cpp
@@ -112,7 +111,6 @@ set(UI_HEADERS
     include/ui/observability/Trace.h
     include/ui/payload/PayloadKeys.h
     include/ui/payload/ProjectionConverters.h
-    include/ui/providers/DraftProofProvider.h
     include/ui/state/FilterState.h
     include/ui/state/MetricsState.h
     include/ui/state/NavigationState.h

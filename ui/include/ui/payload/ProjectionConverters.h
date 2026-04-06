@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/payload/ProjectionConverters.h
+ * @brief Declarations for the UI ProjectionConverters component.
+ */
+
 #pragma once
 
 #include <QStringList>

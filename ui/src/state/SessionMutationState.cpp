@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/state/SessionMutationState.cpp
+ * @brief Implementation of the UI SessionMutationState component.
+ */
+
 #include "ui/state/SessionMutationState.h"
 
 #include <QModelIndex>

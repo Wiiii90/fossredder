@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/state/PropertyNameCatalog.cpp
+ * @brief Implementation of the UI PropertyNameCatalog component.
+ */
+
 #include "ui/state/PropertyNameCatalog.h"
 
 #include "ui/state/PropertyNameProjection.h"

@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/MainWindow.h
+ * @brief Main window declaration for the UI application.
+ */
+
 #pragma once
 
 #include <QMainWindow>

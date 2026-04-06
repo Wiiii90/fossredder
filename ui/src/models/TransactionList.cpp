@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/models/TransactionList.cpp
+ * @brief Implementation of the UI TransactionList component.
+ */
+
 #include "ui/models/TransactionList.h"
 
 #include <QVariant>

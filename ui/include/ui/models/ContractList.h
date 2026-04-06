@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/ContractList.h
+ * @brief Declarations for the UI ContractList component.
+ */
+
 #pragma once
 
 #include "core/models/Contract.h"

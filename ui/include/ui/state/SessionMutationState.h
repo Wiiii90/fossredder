@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/SessionMutationState.h
+ * @brief Declarations for the UI SessionMutationState component.
+ */
+
 #pragma once
 
 #include <functional>

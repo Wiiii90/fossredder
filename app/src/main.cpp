@@ -21,7 +21,6 @@ using core::domain::AppState;
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "debug/ErrorReporter.h"
-#include "ui/config/Defaults.h"
 #include "ui/observability/ErrorCodes.h"
 
 #include <QDir>
@@ -106,8 +105,8 @@ int main(int argc, char* argv[]) {
     // Create the Qt application (manages event loop and GUI resources)
     QApplication app(argc, argv);
     app.setStyle(core::constants::runtime::kQtStyle.data());
-    app.setOrganizationName(ui::config::kSettingsOrganizationName);
-    app.setApplicationName(ui::config::kSettingsApplicationName);
+    app.setOrganizationName(QString::fromLatin1(core::constants::preferences::kOrganizationName.data()));
+    app.setApplicationName(QString::fromLatin1(core::constants::preferences::kApplicationName.data()));
 
     // Setup storage manager and controller (manages application state files)
     const QString homePath = QDir::homePath();

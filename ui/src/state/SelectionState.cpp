@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/state/SelectionState.cpp
+ * @brief Implementation of the UI SelectionState component.
+ */
+
 #include "ui/state/SelectionState.h"
 
 #include <tuple>

@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/payload/PayloadKeys.h
+ * @brief Declarations for the UI PayloadKeys component.
+ */
+
 #pragma once
 
 #include <QString>

@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/models/ContractList.cpp
+ * @brief Implementation of the UI ContractList component.
+ */
+
 #include "ui/models/ContractList.h"
 
 #include <QVariant>

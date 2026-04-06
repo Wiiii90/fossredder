@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/models/ActorList.cpp
+ * @brief Implementation of the UI ActorList component.
+ */
+
 #include "ui/models/ActorList.h"
 
 #include <QVariant>

@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/bootstrap/QmlRuntime.h
+ * @brief QML runtime setup helpers for registering types and configuring the engine.
+ */
+
 #pragma once
 
 class QQmlEngine;

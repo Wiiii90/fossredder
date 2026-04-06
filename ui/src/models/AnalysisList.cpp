@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/models/AnalysisList.cpp
+ * @brief Implementation of the UI AnalysisList component.
+ */
+
 #include "ui/models/AnalysisList.h"
 
 #include "core/application/AnalysisRequestComposer.h"

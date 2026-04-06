@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/AnalysisList.h
+ * @brief Declarations for the UI AnalysisList component.
+ */
+
 #pragma once
 
 #include "core/models/Analysis.h"

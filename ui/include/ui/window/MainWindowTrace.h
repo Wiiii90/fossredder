@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/window/MainWindowTrace.h
+ * @brief Declarations for the UI MainWindowTrace component.
+ */
+
 #pragma once
 
 #include <string>
