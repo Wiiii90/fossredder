@@ -15,6 +15,7 @@ namespace ui::bootstrap {
 
 void registerTypes()
 {
+    // Idempotent registration of QML-exposed types and metaobjects.
     static bool registered = false;
     if (registered) return;
 
@@ -54,4 +55,4 @@ void configureRuntime(QQmlEngine* engine)
     engine->addImportPath(ui::config::kQrcQmlImportPath);
 }
 
-}
+} // namespace ui::bootstrap
