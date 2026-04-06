@@ -108,7 +108,7 @@ TestCase {
         compare(exportController.lastCall.locale, "de-DE")
     }
 
-    function test_browseAndSelectedPathFlowThroughUiActions() {
+    function test_browseAndSelectedPathFlowThroughActions() {
         var view = createView()
         var browseButton = findRequired(view, "exportBrowseButton")
         var pathField = findRequired(view, "exportPathField")

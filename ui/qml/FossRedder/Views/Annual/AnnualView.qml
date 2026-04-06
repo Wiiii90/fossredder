@@ -27,7 +27,7 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
                         Label { text: qsTr("Selected Annual:") }
-                        Label { text: uiData && uiData.selectedAnnual ? uiData.selectedAnnual.name : qsTr("(none)") }
+                        Label { text: session && session.selectedAnnual ? session.selectedAnnual.name : qsTr("(none)") }
                     }
 
                     RowLayout {

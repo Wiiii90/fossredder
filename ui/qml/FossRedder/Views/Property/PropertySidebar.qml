@@ -24,20 +24,20 @@ Item {
                 spacing: Theme.spacingSmall
 
                 Repeater {
-                    model: uiData ? uiData.propertyRows() : []
+                    model: session ? session.propertyRows() : []
 
                     delegate: Rectangle {
                         width: propertyColumn.width
                         height: 44
                         radius: 6
-                        color: uiData && modelData.id === uiData.selectedPropertyId ? Theme.selectionHighlight : "transparent"
+                        color: session && modelData.id === session.selectedPropertyId ? Theme.selectionHighlight : "transparent"
                         border.color: Theme.borderSoft
                         border.width: Theme.borderWidthThin
 
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                if (uiData) uiData.selectedPropertyId = modelData.id
+                                if (session) session.selectedPropertyId = modelData.id
                             }
                         }
 

@@ -41,7 +41,7 @@ MainWindowServices installMainWindowContext(QQmlContext &qmlContext,
                                 services.actions);
   qmlContext.setContextProperty(ui::qml::contracts::context::kNavigation,
                                 navigation);
-  qmlContext.setContextProperty(ui::qml::contracts::context::kData,
+  qmlContext.setContextProperty(ui::qml::contracts::context::kSession,
                                 services.dataSession);
   qmlContext.setContextProperty(
       ui::qml::contracts::context::kFileSystemController, fileSystem);

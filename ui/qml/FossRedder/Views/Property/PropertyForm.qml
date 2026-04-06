@@ -7,7 +7,7 @@ import FossRedder.Controls 1.0 as Controls
 Item {
     id: root
 
-    property var current: uiData ? uiData.selectedProperty : null
+    property var current: session ? session.selectedProperty : null
     readonly property int amountColumnWidth: Theme.formLabelWidth
     property bool isEdit: current && current.id && String(current.id).length > 0
     property var aliases: []
@@ -15,12 +15,12 @@ Item {
     function clearFields() { nameField.text = ""; aliasesField.text = ""; sums = ({}) }
 
     function refreshSums() {
-        if (!current || !uiData) {
+        if (!current || !session) {
             sums = ({})
             return
         }
-        try { sums = uiData.propertyTransactionSums(current.id) } catch(e) {
-            try { sums = uiData.propertyTransactionSums(current.id, "") } catch(e2) { sums = ({}) }
+        try { sums = session.propertyTransactionSums(current.id) } catch(e) {
+            try { sums = session.propertyTransactionSums(current.id, "") } catch(e2) { sums = ({}) }
         }
     }
 
@@ -40,7 +40,7 @@ Item {
         }
         var id = propertyController.addProperty(nameField.text, "", "", aliasValues)
         clearFields()
-        if (uiData && id && id.length > 0) uiData.selectedPropertyId = id
+        if (session && id && id.length > 0) session.selectedPropertyId = id
     }
 
     function syncFields() {
@@ -57,7 +57,7 @@ Item {
 
     property var sums: ({})
     Connections {
-        target: uiData
+        target: session
         function onTransactionSumsUpdated(propertyId) {
             if (!current) return
             if (propertyId === current.id) {
@@ -76,7 +76,7 @@ Item {
     function updateShownSums() { shownSums = (txTypeFilter && txTypeFilter.length > 0) ? sumsFiltered : sums }
 
     onTxTypeFilterChanged: {
-        try { var m = uiData ? uiData.propertyTransactions(current.id) : null; if (m) m.setTxType(txTypeFilter) } catch(e) {}
+        try { var m = session ? session.propertyTransactions(current.id) : null; if (m) m.setTxType(txTypeFilter) } catch(e) {}
         computeFilteredSums()
         updateShownSums()
     }
@@ -85,12 +85,12 @@ Item {
 
     function rebuildTypes() {
         txTypes = []
-        if (!current || !uiData) return
+        if (!current || !session) return
         try {
-            var provided = uiData.propertyContractTypes(current.id)
+            var provided = session.propertyContractTypes(current.id)
             if (provided && provided.length !== undefined) { txTypes = provided; return }
         } catch(e) {}
-        var model = uiData.propertyTransactions(current.id)
+        var model = session.propertyTransactions(current.id)
         if (!model) return
         var set = {}
         try {
@@ -106,11 +106,11 @@ Item {
 
     function computeFilteredSums() {
         sumsFiltered = ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
-        if (!current || !uiData) { updateShownSums(); return }
+        if (!current || !session) { updateShownSums(); return }
         if (!txTypeFilter || txTypeFilter.length === 0) { updateShownSums(); return }
-        if (typeof uiData.propertyTransactionSums === 'function') {
+        if (typeof session.propertyTransactionSums === 'function') {
             try {
-                var res = uiData.propertyTransactionSums(current.id, txTypeFilter)
+                var res = session.propertyTransactionSums(current.id, txTypeFilter)
                 sumsFiltered.total = Number(res.total) || 0
                 sumsFiltered.allocatable = Number(res.allocatable) || 0
                 sumsFiltered.nonAllocatable = Number(res.nonAllocatable) || 0
@@ -118,7 +118,7 @@ Item {
                 return
             } catch(e) {}
         }
-        var model = uiData.propertyTransactions(current.id)
+        var model = session.propertyTransactions(current.id)
         if (!model) { updateShownSums(); return }
         try {
             var cnt = (typeof model.count === 'function') ? model.count() : (model.length !== undefined ? model.length : 0)
@@ -223,7 +223,7 @@ Item {
                 interactive: true
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                model: uiData ? uiData.propertyTransactions(current.id) : null
+                model: session ? session.propertyTransactions(current.id) : null
                 spacing: Theme.spacingSmall
 
                 delegate: Rectangle {
@@ -367,7 +367,7 @@ Item {
 
                 RowLayout {
                     spacing: Theme.spacingMedium
-                    Controls.Button { text: qsTr("Create new building"); onClicked: if (uiData) uiData.selectedPropertyId = "" }
+                    Controls.Button { text: qsTr("Create new building"); onClicked: if (session) session.selectedPropertyId = "" }
                     Controls.Button { text: qsTr("Update building"); enabled: nameField.text.length > 0; onClicked: submitProperty() }
                 }
 
@@ -375,7 +375,7 @@ Item {
 
                 Controls.Button {
                     text: qsTr("Delete")
-                    onClicked: if (propertyController) { propertyController.deleteProperty(current.id); if (uiData) uiData.selectedPropertyId = "" }
+                    onClicked: if (propertyController) { propertyController.deleteProperty(current.id); if (session) session.selectedPropertyId = "" }
                     Layout.alignment: Qt.AlignRight
                     fillColor: Theme.dangerStrong
                 }

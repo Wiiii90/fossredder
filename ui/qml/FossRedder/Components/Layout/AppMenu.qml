@@ -28,13 +28,13 @@ MenuBar {
         Action {
             text: qsTr("New")
             shortcut: StandardKey.New
-            onTriggered: if (uiActions) uiActions.newFile()
+            onTriggered: if (actions) actions.newFile()
         }
 
         Action {
             text: qsTr("Open...")
             shortcut: StandardKey.Open
-            onTriggered: if (uiActions) uiActions.openFile()
+            onTriggered: if (actions) actions.openFile()
         }
 
         MenuSeparator { }
@@ -42,13 +42,13 @@ MenuBar {
         Action {
             text: qsTr("Save")
             shortcut: StandardKey.Save
-            onTriggered: if (uiActions) uiActions.saveFile()
+            onTriggered: if (actions) actions.saveFile()
         }
 
         Action {
             text: qsTr("Save As...")
             shortcut: StandardKey.SaveAs
-            onTriggered: if (uiActions) uiActions.saveFileAs()
+            onTriggered: if (actions) actions.saveFileAs()
         }
 
         MenuSeparator { }

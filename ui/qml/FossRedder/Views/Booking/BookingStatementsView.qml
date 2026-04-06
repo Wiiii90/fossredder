@@ -6,7 +6,7 @@ import FossRedder.Controls 1.0 as Controls
 Item {
     id: root
 
-    property var current: uiData ? uiData.selectedStatement : null
+    property var current: session ? session.selectedStatement : null
     property bool isEdit: current && current.id && String(current.id).length > 0
 
     function clearFields() {
@@ -46,9 +46,9 @@ Item {
                 visible: isEdit
                 text: qsTr("New")
                 onClicked: {
-                    if (uiData) {
-                        uiData.selectedStatementId = ""
-                        uiData.selectedTransactionId = ""
+                    if (session) {
+                        session.selectedStatementId = ""
+                        session.selectedTransactionId = ""
                     }
                 }
             }
@@ -64,7 +64,7 @@ Item {
                     } else {
                         var id = statementController.addStatement(nameField.text)
                         clearFields()
-                        if (uiData && id && id.length > 0) uiData.selectedStatementId = id
+                        if (session && id && id.length > 0) session.selectedStatementId = id
                     }
                 }
             }
@@ -76,9 +76,9 @@ Item {
                 onClicked: {
                     if (!statementController) return
                     statementController.deleteStatement(current.id)
-                    if (uiData) {
-                        uiData.selectedStatementId = ""
-                        uiData.selectedTransactionId = ""
+                    if (session) {
+                        session.selectedStatementId = ""
+                        session.selectedTransactionId = ""
                     }
                     clearFields()
                 }
@@ -89,8 +89,8 @@ Item {
                 visible: isEdit
                 text: qsTr("New Transaction")
                 onClicked: {
-                    if (!uiData) return
-                    uiData.selectedTransactionId = "__new__"
+                    if (!session) return
+                    session.selectedTransactionId = "__new__"
                 }
             }
 

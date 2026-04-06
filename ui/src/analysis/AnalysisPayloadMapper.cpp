@@ -16,7 +16,7 @@ namespace ui::analysis {
 namespace {
 
 /** @brief Converts scalar analysis metrics into a QVariant map. */
-QVariantMap toMetricsMap(const AnalysisResult& result)
+QVariantMap toMetricsMap(const core::domain::AnalysisResult& result)
 {
     QVariantMap metrics;
     for (const auto& [key, value] : result.metrics) {
@@ -26,7 +26,7 @@ QVariantMap toMetricsMap(const AnalysisResult& result)
 }
 
 /** @brief Converts table-style analysis rows into QML-friendly lists. */
-QVariantList toTableList(const AnalysisResult& result)
+QVariantList toTableList(const core::domain::AnalysisResult& result)
 {
     QVariantList table;
     for (const auto& row : result.table) {
@@ -40,7 +40,7 @@ QVariantList toTableList(const AnalysisResult& result)
 }
 
 /** @brief Converts artifact names into a QML-friendly list. */
-QVariantList toArtifactList(const AnalysisResult& result)
+QVariantList toArtifactList(const core::domain::AnalysisResult& result)
 {
     QVariantList artifacts;
     for (const auto& artifact : result.artifacts) {
@@ -50,7 +50,7 @@ QVariantList toArtifactList(const AnalysisResult& result)
 }
 
 /** @brief Converts analysis transactions into a structured QVariant list. */
-QVariantList toTransactionList(const AnalysisResult& result)
+QVariantList toTransactionList(const core::domain::AnalysisResult& result)
 {
     QVariantList transactions;
     for (const auto& transaction : result.transactions) {
@@ -71,7 +71,7 @@ QVariantList toTransactionList(const AnalysisResult& result)
 }
 
 /** @brief Converts a core analysis result into the UI payload contract. */
-QVariantMap toPayload(const AnalysisResult& result)
+QVariantMap toPayload(const core::domain::AnalysisResult& result)
 {
     QVariantMap payload;
     payload[ui::payload::keys::analysis::kMetrics] = toMetricsMap(result);

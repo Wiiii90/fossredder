@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import FossRedder 1.0
 import FossRedder.Views 1.0 as Views
@@ -13,14 +13,14 @@ Item {
     Component { id: placeholderViewComp; Views.PlaceholderView { } }
 
     function resolveViewComponent() {
-        if (!uiNav)
+        if (!navigation)
             return placeholderViewComp
 
-        if (uiNav.bookingView === UiNavigation.Transactions)
+        if (navigation.bookingView === Navigation.Transactions)
             return bookingTransactionsComp
 
-        if (uiNav.bookingView === UiNavigation.Statements)
-            return (uiData && uiData.selectedTransactionId && uiData.selectedTransactionId.length > 0)
+        if (navigation.bookingView === Navigation.Statements)
+            return (session && session.selectedTransactionId && session.selectedTransactionId.length > 0)
                     ? bookingTransactionsComp
                     : bookingStatementsComp
 
@@ -47,14 +47,14 @@ Item {
     }
 
     Connections {
-        target: uiNav
+        target: navigation
         function onBookingViewChanged() {
             root.queueResolvedView()
         }
     }
 
     Connections {
-        target: uiData
+        target: session
         function onSelectedTransactionIdChanged() {
             root.queueResolvedView()
         }

@@ -11,10 +11,10 @@ Controls.Panel {
 
     function selectedContractName() {
         if (!root.txRoot || !root.txRoot.draft || !root.txRoot.draft.current) return ""
-        if (!root.txRoot.draft.current.contractId || !uiData || !uiData.contracts) return ""
-        var index = uiData.contracts.findRowById(root.txRoot.draft.current.contractId)
+        if (!root.txRoot.draft.current.contractId || !session || !session.contracts) return ""
+        var index = session.contracts.findRowById(root.txRoot.draft.current.contractId)
         if (index >= 0) {
-            var row = uiData.contracts.get(index)
+            var row = session.contracts.get(index)
             if (row && row.name) return row.name
         }
         return ""

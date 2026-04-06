@@ -10,10 +10,10 @@ Item {
     property int iconRowHeight: Math.round(implicitHeight * 0.55)
 
     function clearDomainSelection() {
-        if (!data) return
-        data.selectedActorId = ""
-        data.selectedPropertyId = ""
-        data.selectedContractId = ""
+        if (!session) return
+        session.selectedActorId = ""
+        session.selectedPropertyId = ""
+        session.selectedContractId = ""
     }
 
     function clearBookingStateForSection(section) {
@@ -110,9 +110,9 @@ Item {
                         label: qsTr("Booking")
                         active: navigation && navigation.section === Navigation.Booking
                         onClicked: {
-                            if (data) {
-                                data.selectedStatementId = ""
-                                data.selectedTransactionId = ""
+                            if (session) {
+                                session.selectedStatementId = ""
+                                session.selectedTransactionId = ""
                             }
                             navigateTo(Navigation.Booking, false, Navigation.Statements)
                         }
@@ -220,8 +220,8 @@ Item {
                         Layout.preferredHeight: appIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/settings.svg"
                         label: qsTr("Settings")
-                        active: uiNav && uiNav.section === UiNavigation.Settings
-                        onClicked: navigateTo(UiNavigation.Settings, false)
+                        active: navigation && navigation.section === Navigation.Settings
+                        onClicked: navigateTo(Navigation.Settings, false)
     }
                 }
 
@@ -242,18 +242,18 @@ Item {
             Item { Layout.fillWidth: true }
         }
         Connections {
-            target: uiNav
+            target: navigation
             function onSectionChanged() {
-                var s = uiNav ? uiNav.section : null;
-                if (typeof loaderImport !== 'undefined' && loaderImport.item) loaderImport.item.active = (s === UiNavigation.Import);
-                if (typeof loaderExport !== 'undefined' && loaderExport.item) loaderExport.item.active = (s === UiNavigation.Export);
-                if (typeof loaderBooking !== 'undefined' && loaderBooking.item) loaderBooking.item.active = (s === UiNavigation.Booking);
-                if (typeof loaderActor !== 'undefined' && loaderActor.item) loaderActor.item.active = (s === UiNavigation.Actors);
-                if (typeof loaderProperty !== 'undefined' && loaderProperty.item) loaderProperty.item.active = (s === UiNavigation.Properties);
-                if (typeof loaderContract !== 'undefined' && loaderContract.item) loaderContract.item.active = (s === UiNavigation.Contracts);
-                if (typeof loaderAnalysis !== 'undefined' && loaderAnalysis.item) loaderAnalysis.item.active = (s === UiNavigation.Analysis);
-                if (typeof loaderAnnual !== 'undefined' && loaderAnnual.item) loaderAnnual.item.active = (s === UiNavigation.Annual);
-                if (typeof loaderSettings !== 'undefined' && loaderSettings.item) loaderSettings.item.active = (s === UiNavigation.Settings);
+                var s = navigation ? navigation.section : null;
+                if (typeof loaderImport !== 'undefined' && loaderImport.item) loaderImport.item.active = (s === Navigation.Import);
+                if (typeof loaderExport !== 'undefined' && loaderExport.item) loaderExport.item.active = (s === Navigation.Export);
+                if (typeof loaderBooking !== 'undefined' && loaderBooking.item) loaderBooking.item.active = (s === Navigation.Booking);
+                if (typeof loaderActor !== 'undefined' && loaderActor.item) loaderActor.item.active = (s === Navigation.Actors);
+                if (typeof loaderProperty !== 'undefined' && loaderProperty.item) loaderProperty.item.active = (s === Navigation.Properties);
+                if (typeof loaderContract !== 'undefined' && loaderContract.item) loaderContract.item.active = (s === Navigation.Contracts);
+                if (typeof loaderAnalysis !== 'undefined' && loaderAnalysis.item) loaderAnalysis.item.active = (s === Navigation.Analysis);
+                if (typeof loaderAnnual !== 'undefined' && loaderAnnual.item) loaderAnnual.item.active = (s === Navigation.Annual);
+                if (typeof loaderSettings !== 'undefined' && loaderSettings.item) loaderSettings.item.active = (s === Navigation.Settings);
             }
         }
     }

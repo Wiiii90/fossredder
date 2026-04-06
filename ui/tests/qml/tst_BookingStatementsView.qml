@@ -11,7 +11,7 @@ TestCase {
     width: 960
     height: 640
 
-    property var uiData: QtObject {
+    property var session: QtObject {
         property var selectedStatement: null
         property string selectedStatementId: ""
         property string selectedTransactionId: ""
@@ -75,17 +75,17 @@ TestCase {
 
     function createView(statement) {
         var statementObject = createStatementObject(statement)
-        uiData.selectedStatement = statementObject
-        uiData.selectedStatementId = statementObject ? statementObject.id : ""
-        uiData.selectedTransactionId = ""
+        session.selectedStatement = statementObject
+        session.selectedStatementId = statementObject ? statementObject.id : ""
+        session.selectedTransactionId = ""
         return createTemporaryObject(bookingStatementsComponent, testCase)
     }
 
     function init() {
         statementController.reset()
-        uiData.selectedStatement = null
-        uiData.selectedStatementId = ""
-        uiData.selectedTransactionId = ""
+        session.selectedStatement = null
+        session.selectedStatementId = ""
+        session.selectedTransactionId = ""
     }
 
     function test_createModeAddsStatementAndStoresSelection() {
@@ -97,7 +97,7 @@ TestCase {
         submitButton.clicked()
 
         compare(statementController.addCalls, 1)
-        compare(uiData.selectedStatementId, "statement-new")
+        compare(session.selectedStatementId, "statement-new")
         compare(nameField.text, "")
     }
 
@@ -121,12 +121,12 @@ TestCase {
         var deleteButton = findRequired(view, "bookingStatementDeleteButton")
 
         newTransactionButton.clicked()
-        compare(uiData.selectedTransactionId, "__new__")
+        compare(session.selectedTransactionId, "__new__")
 
         deleteButton.clicked()
         compare(statementController.deleteCalls, 1)
         compare(statementController.lastDeleteId, "statement-2")
-        compare(uiData.selectedStatementId, "")
-        compare(uiData.selectedTransactionId, "")
+        compare(session.selectedStatementId, "")
+        compare(session.selectedTransactionId, "")
     }
 }

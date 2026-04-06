@@ -6,18 +6,18 @@ import FossRedder.Controls 1.0 as Controls
 
 Item {
     id: analysisCalcView
-    property var uiData
+    property var session
     property var analysisController
     property var calcSelectedTx: []
     width: parent ? parent.width : Theme.analysis.calc.defaultWidth
 
     function recomputeSelectedAnalysis() {
         try {
-            if (!analysisController || !uiData || !uiData.selectedAnalysis)
+            if (!analysisController || !session || !session.selectedAnalysis)
                 return
-            var aid = uiData.selectedAnalysis.id
-            var filterSpec = uiData.selectedAnalysis.filterSpec ? uiData.selectedAnalysis.filterSpec : ""
-            uiData.lastAnalysisResult = analysisController.computeAnalysis(aid, filterSpec)
+            var aid = session.selectedAnalysis.id
+            var filterSpec = session.selectedAnalysis.filterSpec ? session.selectedAnalysis.filterSpec : ""
+            session.lastAnalysisResult = analysisController.computeAnalysis(aid, filterSpec)
         } catch (e) {
         }
     }
@@ -41,7 +41,7 @@ Item {
             Controls.Button { text: qsTr("New Calc"); onClicked: {
                 if (!analysisController) return
                 var id = analysisController.createAnalysisFromUi("New Calc", "calc", "", "", [], [], "", "", 0.0)
-                if (id && uiData) uiData.selectedAnalysisId = id
+                if (id && session) session.selectedAnalysisId = id
             } }
             Item { Layout.fillWidth: true }
         }
@@ -50,13 +50,13 @@ Item {
             Label { text: qsTr("Tax %") }
             Controls.TextField { id: taxPercentField; width: Theme.analysis.calc.taxFieldWidth }
             Controls.Button { text: qsTr("Apply Tax to Selected"); onClicked: {
-                if (!analysisCalcView.uiData || !analysisCalcView.uiData.selectedAnalysis) return
-                var aid = analysisCalcView.uiData.selectedAnalysis.id
-                var filterSpec = analysisCalcView.uiData.selectedAnalysis.filterSpec ? analysisCalcView.uiData.selectedAnalysis.filterSpec : ""
-                var transactions = analysisCalcView.uiData.lastAnalysisResult ? analysisCalcView.uiData.lastAnalysisResult.transactions : []
+                if (!analysisCalcView.session || !analysisCalcView.session.selectedAnalysis) return
+                var aid = analysisCalcView.session.selectedAnalysis.id
+                var filterSpec = analysisCalcView.session.selectedAnalysis.filterSpec ? analysisCalcView.session.selectedAnalysis.filterSpec : ""
+                var transactions = analysisCalcView.session.lastAnalysisResult ? analysisCalcView.session.lastAnalysisResult.transactions : []
                 var result = analysisController ? analysisController.applyTaxAdjustmentsAndRecomputeFromText(aid, filterSpec, transactions, analysisCalcView.calcSelectedTx, taxPercentField.text) : {}
-                if (result && result.adjustmentsJson && analysisCalcView.uiData.analyses) analysisCalcView.uiData.analyses.setAdjustmentsById(aid, result.adjustmentsJson)
-                if (result && result.analysisResult) analysisCalcView.uiData.lastAnalysisResult = result.analysisResult
+                if (result && result.adjustmentsJson && analysisCalcView.session.analyses) analysisCalcView.session.analyses.setAdjustmentsById(aid, result.adjustmentsJson)
+                if (result && result.analysisResult) analysisCalcView.session.lastAnalysisResult = result.analysisResult
             } }
         }
 
@@ -65,7 +65,7 @@ Item {
             id: calcTxView
             Layout.fillWidth: true
             Layout.preferredHeight: Theme.analysis.calc.transactionListHeight
-            model: (analysisCalcView.uiData && analysisCalcView.uiData.lastAnalysisResult && analysisCalcView.uiData.lastAnalysisResult.transactions) ? analysisCalcView.uiData.lastAnalysisResult.transactions : []
+            model: (analysisCalcView.session && analysisCalcView.session.lastAnalysisResult && analysisCalcView.session.lastAnalysisResult.transactions) ? analysisCalcView.session.lastAnalysisResult.transactions : []
             delegate: RowLayout { spacing: Theme.settings.spacing; width: parent.width
                 property string txid: (modelData && modelData.id) ? modelData.id : ""
                 CheckBox { id: selcb; checked: (analysisCalcView.calcSelectedTx && analysisCalcView.calcSelectedTx.indexOf(txid) !== -1) ? true : false; onCheckedChanged: {

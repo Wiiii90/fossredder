@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -72,8 +72,8 @@ Item {
 
                             selectedProps = []
                             try {
-                                if (uiData) {
-                                    var properties = uiData.propertyRows()
+                                if (session) {
+                                    var properties = session.propertyRows()
                                     for (var j = 0; j < properties.length; ++j) {
                                         var p = properties[j]
                                         if (p && p.id) selectedProps.push(p.id)
@@ -89,13 +89,13 @@ Item {
                             running: false
                             triggeredOnStart: false
                             onTriggered: {
-                                if (uiData) { createBox.rebuildChoices(); stop(); }
+                                if (session) { createBox.rebuildChoices(); stop(); }
                             }
                         }
 
                         Component.onCompleted: {
                             createBox.rebuildChoices()
-                            if (!uiData)
+                            if (!session)
                                 initTimer.start()
                         }
 
@@ -176,7 +176,7 @@ Item {
                                 Label { text: qsTr("Properties (select)") }
                                 Flickable { Layout.fillWidth: true; contentHeight: propList.implicitHeight; clip: true; height: Theme.chartLegendHeight
                                     Column { id: propList; width: parent.width
-                                        Repeater { model: uiData ? uiData.propertyRows() : []
+                                        Repeater { model: session ? session.propertyRows() : []
                                             delegate: RowLayout { width: parent.width; spacing: Theme.settings.spacing
                                                 Controls.CheckBox {
                                                     id: cb
@@ -211,7 +211,7 @@ Item {
                                     text: qsTr("Create")
                                     enabled: nameField.text.length > 0
                                     onClicked: {
-                                        if (!uiData || !analysisController) return
+                                        if (!session || !analysisController) return
                                         var selectedPlotType = root.plotTypeOptions[Math.max(0, plotTypeCombo.currentIndex)].value
                                         var selectedPlotMeasure = root.plotMeasureOptions[Math.max(0, plotMeasureCombo.currentIndex)].value
                                         var result = analysisController.createAnalysisFromStrategyAndCompute(
@@ -225,8 +225,8 @@ Item {
                                             dateTo.text,
                                             0.0)
                                         if (result && result.id && result.id.length > 0) {
-                                            uiData.selectedAnalysisId = result.id
-                                            if (result.analysisResult) uiData.lastAnalysisResult = result.analysisResult
+                                            session.selectedAnalysisId = result.id
+                                            if (result.analysisResult) session.lastAnalysisResult = result.analysisResult
                                              Qt.callLater(function() { stackView.push(analysisDetailComp) })
                                         }
                                     }

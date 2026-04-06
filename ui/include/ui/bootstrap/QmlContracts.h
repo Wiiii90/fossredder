@@ -25,7 +25,7 @@ inline constexpr auto kNavigationTypeDescription = "Navigation is exposed via co
 namespace context {
 inline const auto kActions = QStringLiteral("actions");
 inline const auto kNavigation = QStringLiteral("navigation");
-inline const auto kData = QStringLiteral("data");
+inline const auto kSession = QStringLiteral("session");
 inline const auto kFileSystemController = QStringLiteral("fileSystemController");
 inline const auto kStatus = QStringLiteral("status");
 inline const auto kStorageController = QStringLiteral("storageController");
