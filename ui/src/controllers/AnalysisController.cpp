@@ -42,6 +42,13 @@ void reportMissingAnalysisState()
                        ui::text::controllerErrors::analysisStateUnavailable().toStdString());
 }
 
+QString composeFilterSpec(const QString& dateFrom, const QString& dateTo)
+{
+  return QString::fromStdString(core::application::AnalysisRequestComposer::buildFilterSpec(
+      strings::toStdString(dateFrom),
+      strings::toStdString(dateTo)));
+}
+
 } // namespace
 
 AnalysisController::AnalysisController(
@@ -83,9 +90,7 @@ QString AnalysisController::createAnalysisFromUi(const QString& name,
       strings::toStdList(propertyIds),
       strings::toStdList(contractTypes),
       taxPercent));
-  const auto filterSpec = QString::fromStdString(core::application::AnalysisRequestComposer::buildFilterSpec(
-      strings::toStdString(dateFrom),
-      strings::toStdString(dateTo)));
+  const auto filterSpec = composeFilterSpec(dateFrom, dateTo);
   return addAnalysis(name, type, configJson, filterSpec);
 }
 
@@ -104,9 +109,7 @@ QVariantMap AnalysisController::createAnalysisFromUiAndCompute(const QString& na
   if (id.isEmpty()) return out;
 
   out.insert(QStringLiteral("id"), id);
-  const auto filterSpec = QString::fromStdString(core::application::AnalysisRequestComposer::buildFilterSpec(
-      strings::toStdString(dateFrom),
-      strings::toStdString(dateTo)));
+  const auto filterSpec = composeFilterSpec(dateFrom, dateTo);
   const auto result = computeAnalysis(id, filterSpec);
   if (!result.isEmpty()) out.insert(QStringLiteral("analysisResult"), result);
   return out;

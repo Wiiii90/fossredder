@@ -30,7 +30,7 @@ public:
     Q_INVOKABLE int addAnalysis(const QString& name, const QString& type);
     Q_INVOKABLE void removeAt(int row);
     Q_INVOKABLE bool updateAnalysisById(const QString& id, const QString& name, const QString& type, const QString& configJson, const QString& filterSpec);
-    Q_INVOKABLE void setAdjustmentsById(const QString& id, const QString& json);
+    Q_INVOKABLE void setAdjustmentsById(const QString& id, const QString& adjustmentsJson);
 
 private:
     static QString serializeAdjustmentsJson(const core::domain::Analysis& analysis);

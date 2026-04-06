@@ -76,6 +76,16 @@ inline const auto kFile = QStringLiteral("file");
 inline const auto kMessage = QStringLiteral("message");
 }
 
+namespace draft {
+inline const auto kActorText = QStringLiteral("actorText");
+inline const auto kNewActorSelected = QStringLiteral("newActorSelected");
+inline const auto kNewContractSelected = QStringLiteral("newContractSelected");
+inline const auto kActorSuggestions = QStringLiteral("actorSuggestions");
+inline const auto kPropertySuggestions = QStringLiteral("propertySuggestions");
+inline const auto kContractSuggestions = QStringLiteral("contractSuggestions");
+inline const auto kAllocatableManualOverride = QStringLiteral("allocatableManualOverride");
+}
+
 namespace language {
 inline const auto kCode = QStringLiteral("code");
 inline const auto kLabel = QStringLiteral("label");

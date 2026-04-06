@@ -129,7 +129,7 @@ bool AnalysisList::updateAnalysisById(const QString &id, const QString &name,
   return true;
 }
 
-void AnalysisList::setAdjustmentsById(const QString &id, const QString &json) {
+void AnalysisList::setAdjustmentsById(const QString &id, const QString &adjustmentsJson) {
   const int row = findRowById(id);
   if (row < 0)
     return;
@@ -140,7 +140,7 @@ void AnalysisList::setAdjustmentsById(const QString &id, const QString &json) {
 
   a->adjustments.clear();
   try {
-    const auto parsed = core::application::AnalysisRequestComposer::parseAdjustmentsJson(json.toStdString());
+    const auto parsed = core::application::AnalysisRequestComposer::parseAdjustmentsJson(adjustmentsJson.toStdString());
     if (!parsed.valid) {
       core::errors::report(
           core::errors::ErrorSeverity::Warning,
