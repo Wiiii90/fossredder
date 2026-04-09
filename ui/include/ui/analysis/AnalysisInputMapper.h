@@ -15,10 +15,16 @@
 
 namespace ui::analysis::input {
 
-/** @brief Convert a QML transaction list into core analysis transactions. */
+/** @brief Convert a QML transaction list into core analysis transactions.
+ *  @param transactions List of serialized transactions
+ *  @return Vector of core AnalysisTransaction
+ */
 std::vector<core::domain::AnalysisTransaction> toCoreTransactions(const QVariantList& transactions);
 
-/** @brief Convert selected QML transaction identifiers into trimmed core identifiers. */
+/** @brief Convert selected QML transaction identifiers into trimmed core identifiers.
+ *  @param selectedTransactionIds List of selected transaction identifiers
+ *  @return Vector of trimmed std::string identifiers
+ */
 std::vector<std::string> toSelectedTransactionIds(const QVariantList& selectedTransactionIds);
 
 } // namespace ui::analysis::input

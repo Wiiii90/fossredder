@@ -31,11 +31,29 @@ public:
      */
     explicit Actions(QObject* parent = nullptr);
 
+    /** @brief Return the QAction for creating a new file.
+     *  @return Pointer to the QAction
+     */
     QAction* newFileAction() const;
+    /** @brief Return the QAction for opening a file.
+     *  @return Pointer to the QAction
+     */
     QAction* openFileAction() const;
+    /** @brief Return the QAction for saving the current file.
+     *  @return Pointer to the QAction
+     */
     QAction* saveFileAction() const;
+    /** @brief Return the QAction for saving the current file under a new name.
+     *  @return Pointer to the QAction
+     */
     QAction* saveFileAsAction() const;
+    /** @brief Return the QAction for quitting the application.
+     *  @return Pointer to the QAction
+     */
     QAction* quitAction() const;
+    /** @brief Return the QAction for showing the about dialog.
+     *  @return Pointer to the QAction
+     */
     QAction* aboutAction() const;
 
     Q_INVOKABLE void newFile();

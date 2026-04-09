@@ -12,7 +12,6 @@
 #include "core/application/AnalysisService.h"
 #include "core/application/AppStateFacade.h"
 #include "core/errors/ErrorCodes.h"
-#include "core/errors/ErrorReporterRegistry.h"
 #include "core/models/AppState.h"
 #include "ui/analysis/AnalysisInputMapper.h"
 #include "ui/analysis/AnalysisPayloadMapper.h"

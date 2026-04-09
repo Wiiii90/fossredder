@@ -21,7 +21,10 @@ namespace ui {
 class ActorController : public QObject {
     Q_OBJECT
 public:
-    /** @brief Create an actor controller bound to the application facade. */
+    /** @brief Create an actor controller bound to the application facade.
+     *  @param core Core application facade pointer
+     *  @param parent QObject parent
+     */
     explicit ActorController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
     /** @brief Return a single actor by identifier. */
