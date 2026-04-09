@@ -28,13 +28,29 @@ public:
     /** @brief Create a transaction controller bound to the application facade. */
     explicit TransactionController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
-    /** @brief Return a single transaction by identifier. */
+    /** @brief Return a single transaction by identifier.
+     *  @param id Transaction identifier
+     *  @return Serialized transaction payload as QVariantMap
+     */
     Q_INVOKABLE QVariantMap transaction(const QString& id) const;
 
-    /** @brief Return all transactions. */
+    /** @brief Return all transactions.
+     *  @return List of serialized transactions as QVariantList
+     */
     Q_INVOKABLE QVariantList transactions() const;
 
-    /** @brief Create a new transaction from QML-provided values. */
+    /** @brief Create a new transaction from QML-provided values.
+     *  @param name Transaction name
+     *  @param bookingDate Booking date string
+     *  @param amount Transaction amount
+     *  @param description Transaction description
+     *  @param statementId Associated statement identifier
+     *  @param status Raw status integer
+     *  @param actorId Optional actor identifier
+     *  @param allocatable Allocatable flag
+     *  @param propertyIds Associated property identifiers
+     *  @return Identifier of the created transaction
+     */
     Q_INVOKABLE QString addTransaction(const QString& name,
                                        const QString& bookingDate,
                                        double amount,
@@ -45,7 +61,18 @@ public:
                                        bool allocatable = false,
                                        const QStringList& propertyIds = {});
 
-    /** @brief Update an existing transaction from QML-provided values. */
+    /** @brief Update an existing transaction from QML-provided values.
+     *  @param id Transaction identifier
+     *  @param name Transaction name
+     *  @param bookingDate Booking date string
+     *  @param amount Transaction amount
+     *  @param description Transaction description
+     *  @param statementId Associated statement identifier
+     *  @param status Raw status integer
+     *  @param actorId Optional actor identifier
+     *  @param allocatable Allocatable flag
+     *  @param propertyIds Associated property identifiers
+     */
     Q_INVOKABLE void updateTransaction(const QString& id,
                                        const QString& name,
                                        const QString& bookingDate,
@@ -57,7 +84,9 @@ public:
                                        bool allocatable,
                                        const QStringList& propertyIds);
 
-    /** @brief Delete a transaction by identifier. */
+    /** @brief Delete a transaction by identifier.
+     *  @param id Transaction identifier
+     */
     Q_INVOKABLE void deleteTransaction(const QString& id);
 
 private:

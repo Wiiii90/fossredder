@@ -50,7 +50,9 @@ public:
                               std::shared_ptr<core::errors::IErrorReporter> errorReporter,
                               QObject* parent = nullptr);
 
-    /** @brief Provide a snapshot callback used when creating UI drafts from import results. */
+    /** @brief Provide a snapshot callback used when creating UI drafts from import results.
+     *  @param provider Snapshot provider callback
+     */
     void setStateSnapshotProvider(StateSnapshotProvider provider);
 
     bool isRunning() const noexcept { return state_.isRunning(); }
@@ -68,7 +70,9 @@ public:
     /** @brief Start importing the selected file or the next queued file. */
     Q_INVOKABLE void startStatementImport();
 
-    /** @brief Append files to the import selection and queue. */
+    /** @brief Append files to the import selection and queue.
+     *  @param paths File paths to add
+     */
     Q_INVOKABLE void addFiles(const QStringList& paths);
 
     /** @brief Clear transient import status once no import is running. */

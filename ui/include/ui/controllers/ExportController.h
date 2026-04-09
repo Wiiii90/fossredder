@@ -30,7 +30,12 @@ public:
                               std::shared_ptr<ui::exporting::ExportRunner> runner,
                               QObject* parent = nullptr);
 
-    /** @brief Start an asynchronous export with the selected UI options. */
+    /** @brief Start an asynchronous export with the selected UI options.
+     *  @param format Export format enum value
+     *  @param path Output path
+     *  @param includeFormulas Whether to include formulas
+     *  @param locale Locale identifier
+     */
     Q_INVOKABLE void exportData(int format, const QString& path, bool includeFormulas = true, const QString& locale = QString());
 
 signals:
