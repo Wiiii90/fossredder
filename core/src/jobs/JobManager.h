@@ -6,9 +6,9 @@
 #pragma once
 
 #include "core/constants/CoreDefaults.h"
-#include "core/import/ImportedTransaction.h"
 #include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobTypes.h"
+#include "core/models/TransactionDraft.h"
 
 #include <atomic>
 #include <deque>
@@ -45,8 +45,8 @@ public:
     void setStatementResult(const JobId& id, std::shared_ptr<core::domain::Statement> stmt);
     std::shared_ptr<core::domain::Statement> statementResult(const JobId& id) const;
 
-    void setStatementTransactions(const JobId& id, std::vector<ImportedTransaction> transactions);
-    std::vector<ImportedTransaction> statementTransactions(const JobId& id) const;
+    void setStatementTransactions(const JobId& id, std::vector<core::domain::TransactionDraft> transactions);
+    std::vector<core::domain::TransactionDraft> statementTransactions(const JobId& id) const;
 
     void setStatementArtifacts(const JobId& id, std::map<std::string, std::vector<uint8_t>> artifacts);
     std::map<std::string, std::vector<uint8_t>> statementArtifacts(const JobId& id) const;
@@ -64,7 +64,7 @@ private:
         JobSnapshot snap;
         std::shared_ptr<std::atomic<bool>> cancel;
         std::shared_ptr<core::domain::Statement> statement;
-        std::vector<ImportedTransaction> transactions;
+        std::vector<core::domain::TransactionDraft> transactions;
         std::map<std::string, std::vector<uint8_t>> artifacts;
         std::unordered_map<SubscriptionId, JobEventCallback> subs;
         SubscriptionId nextSub = 1;

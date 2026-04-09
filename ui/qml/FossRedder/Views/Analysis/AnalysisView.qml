@@ -55,7 +55,7 @@ Item {
                             contractTypeList.clear()
                             if (analysisController) {
                                 var ctypes = []
-                                try { ctypes = analysisController.getContractTypes() } catch(e) { ctypes = [] }
+                                try { ctypes = analysisController.contractTypes() } catch(e) { ctypes = [] }
                                 if (ctypes && ctypes.length > 0) {
                                     for (var ci = 0; ci < ctypes.length; ++ci)
                                         contractTypeList.append({ text: ctypes[ci] })
@@ -212,22 +212,17 @@ Item {
                                     enabled: nameField.text.length > 0
                                     onClicked: {
                                         if (!session || !analysisController) return
+                                        var strategyType = strategyCombo.currentIndex === 0 ? "tab" : (strategyCombo.currentIndex === 1 ? "plot" : "calc")
                                         var selectedPlotType = root.plotTypeOptions[Math.max(0, plotTypeCombo.currentIndex)].value
                                         var selectedPlotMeasure = root.plotMeasureOptions[Math.max(0, plotMeasureCombo.currentIndex)].value
-                                        var result = analysisController.createAnalysisFromStrategyAndCompute(
-                                            nameField.text,
-                                            strategyCombo.currentIndex,
-                                            selectedPlotType,
-                                            selectedPlotMeasure,
-                                            createBox.selectedProps,
-                                            createBox.selectedContractTypes,
-                                            dateFrom.text,
-                                            dateTo.text,
-                                            0.0)
-                                        if (result && result.id && result.id.length > 0) {
-                                            session.selectedAnalysisId = result.id
-                                            if (result.analysisResult) session.lastAnalysisResult = result.analysisResult
-                                             Qt.callLater(function() { stackView.push(analysisDetailComp) })
+                                        var configJson = analysisController.analysisConfigJson(strategyType, selectedPlotType, selectedPlotMeasure, createBox.selectedProps, createBox.selectedContractTypes, 0.0)
+                                        var filterSpec = analysisController.analysisFilterSpec(dateFrom.text, dateTo.text)
+                                        var analysisId = analysisController.createAnalysis(nameField.text, strategyType, configJson, filterSpec)
+                                        if (analysisId && analysisId.length > 0) {
+                                            session.selectedAnalysisId = analysisId
+                                            var result = analysisController.computeAnalysis(analysisId, filterSpec)
+                                            if (result && Object.keys(result).length > 0) session.lastAnalysisResult = result
+                                            Qt.callLater(function() { stackView.push(analysisDetailComp) })
                                         }
                                     }
                                 }

@@ -5,8 +5,11 @@
 
 #include "ui/controllers/ActorController.h"
 
+#include <algorithm>
+
 #include "core/application/AppStateFacade.h"
 #include "ui/observability/Origins.h"
+#include "ui/payload/EntityPayloadMapper.h"
 #include "ui/util/CoreFacadeGuard.h"
 #include "ui/util/StringConversions.h"
 
@@ -16,6 +19,24 @@ ActorController::ActorController(core::application::AppStateFacade* core, QObjec
     : QObject(parent)
     , core_(core)
 {
+}
+
+QVariantMap ActorController::actor(const QString& id) const
+{
+    if (!core_) {
+        return {};
+    }
+
+    const auto& items = core_->state().actors;
+    const auto it = std::find_if(items.begin(), items.end(), [&](const auto& item) {
+        return item && QString::fromStdString(item->id) == id;
+    });
+    return it != items.end() && *it ? ui::payload::entity::toPayload(**it) : QVariantMap{};
+}
+
+QVariantList ActorController::actors() const
+{
+    return core_ ? ui::payload::entity::toPayloadList(core_->state().actors) : QVariantList{};
 }
 
 QString ActorController::addActor(const QString& name,

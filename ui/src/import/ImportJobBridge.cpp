@@ -112,7 +112,7 @@ std::shared_ptr<core::domain::Statement> ImportJobBridge::statementResult() cons
   return jobSystem_->statementResult(strings::toStdString(currentJobId_));
 }
 
-std::vector<ImportedTransaction> ImportJobBridge::statementTransactions() const {
+std::vector<core::domain::TransactionDraft> ImportJobBridge::statementTransactions() const {
   if (!jobSystem_ || currentJobId_.isEmpty())
     return {};
   return jobSystem_->statementTransactions(strings::toStdString(currentJobId_));

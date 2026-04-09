@@ -344,15 +344,6 @@ std::string metadataSignalText(const std::string& metadata)
     return trim(out.str());
 }
 
-std::string firstMeaningfulToken(const std::string& text)
-{
-    const auto parts = tokens(text);
-    for (const auto& part : parts) {
-        if (!part.empty()) return part;
-    }
-    return {};
-}
-
 std::string joinStrings(const std::vector<std::string>& values, const std::string& separator)
 {
     std::ostringstream out;
@@ -737,7 +728,7 @@ std::vector<std::string> referenceAliasesFromMetadata(const std::string& metadat
 }
 
 DraftTextSignals buildDraftTextSignals(const core::domain::AppState& state,
-                                       const ImportedTransaction& transaction)
+                                       const core::domain::TransactionDraft& transaction)
 {
     DraftTextSignals signals;
     const auto metadataText = metadataSignalText(transaction.metadata);
@@ -753,7 +744,7 @@ DraftTextSignals buildDraftTextSignals(const core::domain::AppState& state,
 }
 
 DraftImportSuggestions buildImportSuggestions(const core::domain::AppState& state,
-                                              const ImportedTransaction& transaction)
+                                              const core::domain::TransactionDraft& transaction)
 {
     const auto signals = buildDraftTextSignals(state, transaction);
 
@@ -979,6 +970,8 @@ core::domain::AppState withFallbackState(core::domain::AppState primary,
     if (primary.transactions.empty()) primary.transactions = fallback.transactions;
     if (primary.analyses.empty()) primary.analyses = fallback.analyses;
     if (primary.annuals.empty()) primary.annuals = fallback.annuals;
+    if (primary.statementDrafts.empty()) primary.statementDrafts = fallback.statementDrafts;
+    if (primary.transactionDrafts.empty()) primary.transactionDrafts = fallback.transactionDrafts;
     return primary;
 }
 

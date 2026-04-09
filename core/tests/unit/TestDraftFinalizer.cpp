@@ -9,8 +9,9 @@
 #include "core/constants/CoreDefaults.h"
 #include "core/models/AppState.h"
 #include "core/models/Contract.h"
-#include "core/models/DraftStatement.h"
 #include "core/models/Statement.h"
+#include "core/models/StatementDraft.h"
+#include "core/models/TransactionDraft.h"
 
 #include <memory>
 #include <string>
@@ -18,14 +19,14 @@
 
 using core::domain::AppState;
 using core::domain::Contract;
-using core::domain::DraftStatement;
-using core::domain::DraftTransaction;
+using core::domain::StatementDraft;
+using core::domain::TransactionDraft;
 using core::domain::Transaction;
 
 TEST(DraftFinalizerTests, FinalizeReturnsEmptyWhenDraftHasNoTransactions)
 {
     AppState state;
-    DraftStatement draft;
+    StatementDraft draft;
     draft.name = "Ignored";
 
     const auto statementId = core::application::DraftFinalizer::finalize(state, draft);
@@ -43,19 +44,19 @@ TEST(DraftFinalizerTests, FinalizeCreatesStatementTransactionsAndGeneratedContra
     existingContract->name = std::string(core::constants::appState::kGeneratedContractPrefix) + "2";
     state.contracts.push_back(existingContract);
 
-    DraftStatement draft;
+    StatementDraft draft;
     draft.name = "  Imported Statement  ";
-    draft.transactions.push_back(DraftTransaction{
-        .name = "Rent",
-        .bookingDate = "2025-01-10",
-        .amount = 100.0,
-        .description = "January",
-        .status = Transaction::Status::Verified,
-        .actorId = "actor-1",
-        .allocatable = true,
-        .propertyIds = {"property-1"},
-        .type = " Utility "
-    });
+    TransactionDraft tx1;
+    tx1.name = "Rent";
+    tx1.bookingDate = "2025-01-10";
+    tx1.amount = 100.0;
+    tx1.description = "January";
+    tx1.actorId = "actor-1";
+    tx1.status = Transaction::Status::Verified;
+    tx1.type = " Utility ";
+    tx1.allocatable = true;
+    tx1.propertyIds = {"property-1"};
+    draft.transactions.push_back(tx1);
 
     const auto statementId = core::application::DraftFinalizer::finalize(state, draft);
 
@@ -91,18 +92,18 @@ TEST(DraftFinalizerTests, FinalizeUsesSelectedContractWhenProvided)
     selectedContract->type = "Electricity";
     state.contracts.push_back(selectedContract);
 
-    DraftStatement draft;
+    StatementDraft draft;
     draft.name = "Imported Statement";
-    draft.transactions.push_back(DraftTransaction{
-        .name = "Invoice",
-        .bookingDate = "2025-02-01",
-        .amount = 20.0,
-        .description = "Selected contract",
-        .status = Transaction::Status::Verified,
-        .contractId = "contract-42",
-        .propertyIds = {"property-7"},
-        .type = "Fallback type"
-    });
+    TransactionDraft tx2;
+    tx2.name = "Invoice";
+    tx2.bookingDate = "2025-02-01";
+    tx2.amount = 20.0;
+    tx2.description = "Selected contract";
+    tx2.status = Transaction::Status::Verified;
+    tx2.contractId = "contract-42";
+    tx2.type = "Fallback type";
+    tx2.propertyIds = {"property-7"};
+    draft.transactions.push_back(tx2);
 
     const auto statementId = core::application::DraftFinalizer::finalize(state, draft);
 

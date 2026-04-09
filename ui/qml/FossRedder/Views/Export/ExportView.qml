@@ -8,15 +8,17 @@ import "../../Constants/FileFormats.js" as FileFormats
 Item {
     id: root
     property var exportCtrl: (typeof exportController !== 'undefined' ? exportController : null)
+    readonly property int csvContractValue: (typeof UIContracts !== 'undefined' && UIContracts && UIContracts.Csv !== undefined ? UIContracts.Csv : 0)
+    readonly property int xlsxContractValue: (typeof UIContracts !== 'undefined' && UIContracts && UIContracts.Xlsx !== undefined ? UIContracts.Xlsx : 1)
     readonly property string defaultLocale: Qt.locale().name.replace("_", "-")
     readonly property var formatOptions: [
         {
-            contract: UIContracts.Csv,
+            contract: csvContractValue,
             extension: FileFormats.exportFormats.csv.extension,
             label: FileFormats.exportFormats.csv.label
         },
         {
-            contract: UIContracts.Xlsx,
+            contract: xlsxContractValue,
             extension: FileFormats.exportFormats.xlsx.extension,
             label: FileFormats.exportFormats.xlsx.label
         }
@@ -46,7 +48,9 @@ Item {
                 onCurrentIndexChanged: {
                     if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(FileFormats.exportDefaults.baseName + ".") !== -1)) {
                         var base = (typeof fileSystemController !== 'undefined' && fileSystemController) ? fileSystemController.appDir() : ""
-                        var ext = root.formatOptions[currentIndex].extension
+                        var selectedOption = root.formatOptions[currentIndex]
+                        if (!selectedOption) return
+                        var ext = selectedOption.extension
                         if (base && base.length > 0) pathField.text = base + "/" + FileFormats.exportDefaults.baseName + "." + ext
                     }
                 }
@@ -83,7 +87,9 @@ Item {
                 onClicked: {
                     var path = pathField.text
                     if (!path) return
-                    if (exportCtrl) exportCtrl.exportData(root.formatOptions[formatBox.currentIndex].contract, path, formulas.checked, localeField.text)
+                    var selectedOption = root.formatOptions[formatBox.currentIndex]
+                    if (!selectedOption) return
+                    if (exportCtrl) exportCtrl.exportData(selectedOption.contract, path, formulas.checked, localeField.text)
                 }
             }
         }

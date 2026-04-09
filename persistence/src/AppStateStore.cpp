@@ -25,6 +25,7 @@
 #include "persistence/Factory.h"
 
 #include <unordered_set>
+#include <unordered_map>
 
 namespace {
 
@@ -85,6 +86,13 @@ AppStateStoreResult AppStateStore::save(const AppState& state)
 
     const auto existingTransactionIds = collectRepositoryIds(
         repos.transactions, [](const auto& repo) { return repo.getTransactions(); });
+    std::unordered_map<std::string, std::string> transactionStatementById;
+    if (repos.transactions) {
+        for (const auto& tx : repos.transactions->getTransactions()) {
+            if (!tx || tx->id.empty()) continue;
+            transactionStatementById.emplace(tx->id, tx->statementId);
+        }
+    }
     const auto existingStatementIds = collectRepositoryIds(
         repos.statements, [](const auto& repo) { return repo.getStatements(); });
     const auto existingContractIds = collectRepositoryIds(
@@ -106,16 +114,25 @@ AppStateStoreResult AppStateStore::save(const AppState& state)
     const auto newAnalysisIds = collectIds(state.analyses);
     const auto newAnnualIds = collectIds(state.annuals);
 
-    deleteStaleIds(repos.transactions,
-                   existingTransactionIds,
-                   newTransactionIds,
-                   [](auto& repo, const std::string& id) { repo.removeTransaction(id); },
-                   &result.impact.deletedTransactionIds);
     deleteStaleIds(repos.statements,
                    existingStatementIds,
                    newStatementIds,
                    [](auto& repo, const std::string& id) { repo.removeStatement(id); },
                    &result.impact.deletedStatementIds);
+
+    std::unordered_set<std::string> deletedStatementIds(result.impact.deletedStatementIds.begin(),
+                                                        result.impact.deletedStatementIds.end());
+    if (repos.transactions) {
+        for (const auto& id : existingTransactionIds) {
+            if (newTransactionIds.contains(id)) continue;
+            const auto txIt = transactionStatementById.find(id);
+            if (txIt != transactionStatementById.end() && deletedStatementIds.contains(txIt->second)) {
+                continue;
+            }
+            repos.transactions->removeTransaction(id);
+            result.impact.deletedTransactionIds.push_back(id);
+        }
+    }
     deleteStaleIds(repos.contracts,
                    existingContractIds,
                    newContractIds,

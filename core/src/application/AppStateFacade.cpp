@@ -290,7 +290,7 @@ void AppStateFacade::deleteAnnual(const std::string& id)
     commitIfChanged(*this, catalog_.deleteAnnual(mutableState(), id));
 }
 
-std::string AppStateFacade::finalizeStatementDraft(const DraftStatement& draft)
+std::string AppStateFacade::finalizeStatementDraft(const core::domain::StatementDraft& draft)
 {
     return commitCreated(*this, DraftFinalizer::finalize(mutableState(), draft));
 }

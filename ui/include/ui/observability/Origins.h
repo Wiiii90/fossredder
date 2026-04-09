@@ -32,6 +32,8 @@ inline constexpr auto kDelete = "ui::ActorController::deleteActor";
 }
 namespace analysis {
 inline constexpr auto kAdd = "ui::AnalysisController::addAnalysis";
+inline constexpr auto kUpdate = "ui::AnalysisController::updateAnalysis";
+inline constexpr auto kDelete = "ui::AnalysisController::deleteAnalysis";
 inline constexpr auto kCompute = "ui::AnalysisController::computeAnalysis";
 }
 namespace contract {

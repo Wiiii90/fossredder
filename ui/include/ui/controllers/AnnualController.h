@@ -7,6 +7,8 @@
 
 #include <QObject>
 #include <QString>
+#include <QVariantList>
+#include <QVariantMap>
 
 namespace core::application { class AppStateFacade; }
 
@@ -20,6 +22,12 @@ class AnnualController : public QObject {
 public:
     /** @brief Create an annual controller bound to the application facade. */
     explicit AnnualController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+
+    /** @brief Return a single annual aggregate by identifier. */
+    Q_INVOKABLE QVariantMap annual(const QString& id) const;
+
+    /** @brief Return all annual aggregates. */
+    Q_INVOKABLE QVariantList annuals() const;
 
     /** @brief Create an annual aggregate for the specified year. */
     Q_INVOKABLE QString addAnnual(int year);

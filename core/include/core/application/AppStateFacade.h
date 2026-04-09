@@ -12,7 +12,7 @@
 
 #include "core/application/CatalogService.h"
 #include "core/errors/IErrorReporter.h"
-#include "core/models/DraftStatement.h"
+#include "core/models/StatementDraft.h"
 #include "core/models/Transaction.h"
 #include "core/storage/IStorageManager.h"
 
@@ -108,7 +108,7 @@ public:
     void updateAnnual(const std::string& id, int year);
     void deleteAnnual(const std::string& id);
 
-    std::string finalizeStatementDraft(const core::domain::DraftStatement& draft);
+    std::string finalizeStatementDraft(const core::domain::StatementDraft& draft);
     void commit();
     void notifyState();
 

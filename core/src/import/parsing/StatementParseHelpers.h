@@ -12,7 +12,7 @@
 #include "ParserHelpers.h"
 #include "api/opencv/IOpenCvService.h"
 #include "api/tesseract/TesseractResponse.h"
-#include "core/import/ImportedTransaction.h"
+#include "core/models/TransactionDraft.h"
 
 #include <filesystem>
 #include <memory>

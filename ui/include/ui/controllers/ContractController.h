@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QVariantList>
+#include <QVariantMap>
 
 namespace core::application { class AppStateFacade; }
 
@@ -21,6 +23,12 @@ class ContractController : public QObject {
 public:
     /** @brief Create a contract controller bound to the application facade. */
     explicit ContractController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+
+    /** @brief Return a single contract by identifier. */
+    Q_INVOKABLE QVariantMap contract(const QString& id) const;
+
+    /** @brief Return all contracts. */
+    Q_INVOKABLE QVariantList contracts() const;
 
     /** @brief Create a new contract from QML-provided values. */
     Q_INVOKABLE QString addContract(const QString& name, const QString& type, const QString& description,

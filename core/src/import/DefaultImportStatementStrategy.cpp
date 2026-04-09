@@ -59,7 +59,7 @@ public:
         report(core::constants::importing::kProgressPreparing, std::string(core::constants::importing::kProgressPreparingMessage));
 
         Statement stmt;
-        std::vector<ImportedTransaction> all;
+        std::vector<core::domain::TransactionDraft> all;
 
         const auto renderRequest = core::importing::makeRenderRequest(req);
 

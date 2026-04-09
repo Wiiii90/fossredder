@@ -7,6 +7,8 @@
 
 #include <QObject>
 #include <QString>
+#include <QVariantList>
+#include <QVariantMap>
 
 namespace core::application { class AppStateFacade; }
 
@@ -20,6 +22,12 @@ class StatementController : public QObject {
 public:
     /** @brief Create a statement controller bound to the application facade. */
     explicit StatementController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+
+    /** @brief Return a single statement by identifier. */
+    Q_INVOKABLE QVariantMap statement(const QString& id) const;
+
+    /** @brief Return all statements. */
+    Q_INVOKABLE QVariantList statements() const;
 
     /** @brief Create a new statement. */
     Q_INVOKABLE QString addStatement(const QString& name);

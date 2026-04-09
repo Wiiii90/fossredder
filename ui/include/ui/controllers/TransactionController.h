@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QVariantList>
+#include <QVariantMap>
 
 #include "core/models/Transaction.h"
 
@@ -25,6 +27,12 @@ public:
 
     /** @brief Create a transaction controller bound to the application facade. */
     explicit TransactionController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+
+    /** @brief Return a single transaction by identifier. */
+    Q_INVOKABLE QVariantMap transaction(const QString& id) const;
+
+    /** @brief Return all transactions. */
+    Q_INVOKABLE QVariantList transactions() const;
 
     /** @brief Create a new transaction from QML-provided values. */
     Q_INVOKABLE QString addTransaction(const QString& name,

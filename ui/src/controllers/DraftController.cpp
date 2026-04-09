@@ -47,10 +47,10 @@ core::domain::AppState matchingStateForDraft(const ui::StatementDraft* draft,
         liveState);
 }
 
-core::domain::DraftStatement buildFinalizationInput(ui::StatementDraft* draft,
+core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
                                                     core::application::AppStateFacade* core)
 {
-    core::domain::DraftStatement input;
+    core::domain::StatementDraft input;
     if (!draft || !core) {
         return input;
     }
@@ -61,7 +61,7 @@ core::domain::DraftStatement buildFinalizationInput(ui::StatementDraft* draft,
 
     const auto appState = matchingStateForDraft(draft, core);
     for (const auto& draftTransaction : drafts) {
-        core::domain::DraftTransaction transaction;
+        core::domain::TransactionDraft transaction;
         transaction.name = ui::strings::toStdString(draftTransaction.name);
         transaction.bookingDate = ui::strings::toStdString(draftTransaction.bookingDate);
         transaction.amount = draftTransaction.amount;

@@ -10,8 +10,8 @@
 #include "core/models/Actor.h"
 #include "core/models/AppState.h"
 #include "core/models/Contract.h"
-#include "core/models/DraftStatement.h"
 #include "core/models/Statement.h"
+#include "core/models/StatementDraft.h"
 #include "core/models/Transaction.h"
 #include "core/storage/IStorageManager.h"
 
@@ -160,19 +160,19 @@ TEST(AppStateFacadeTests, FinalizeStatementDraftMaterializesEntitiesAndCommits) 
     core::application::AppStateFacade facade(std::move(fake));
     facade.newFile("draft.db");
 
-    core::domain::DraftStatement draft;
+    core::domain::StatementDraft draft;
     draft.name = "   ";
-    draft.transactions.push_back(core::domain::DraftTransaction{
-        .name = "Rent",
-        .bookingDate = "2025-01-01",
-        .amount = 42.5,
-        .description = "January",
-        .status = Transaction::Status::Verified,
-        .actorId = "actor-1",
-        .allocatable = true,
-        .propertyIds = {"property-1"},
-        .type = " Utility "
-    });
+    core::domain::TransactionDraft draftTx;
+    draftTx.name = "Rent";
+    draftTx.bookingDate = "2025-01-01";
+    draftTx.amount = 42.5;
+    draftTx.description = "January";
+    draftTx.actorId = "actor-1";
+    draftTx.status = Transaction::Status::Verified;
+    draftTx.type = " Utility ";
+    draftTx.allocatable = true;
+    draftTx.propertyIds = {"property-1"};
+    draft.transactions.push_back(draftTx);
 
     const std::string statementId = facade.finalizeStatementDraft(draft);
 

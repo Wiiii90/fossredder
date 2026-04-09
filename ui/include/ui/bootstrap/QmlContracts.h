@@ -1,9 +1,6 @@
 /**
  * @file ui/include/ui/bootstrap/QmlContracts.h
  * @brief QML registration and context property name constants used by the UI.
- *
- * This header centralizes QML module metadata and the context property names
- * used when wiring C++ controllers / services into the QML environment.
  */
 
 #pragma once

@@ -5,23 +5,9 @@
 
 #include "ui/analysis/AnalysisInputMapper.h"
 
-#include <cmath>
 #include <utility>
 
 namespace ui::analysis::input {
-
-std::string strategyTypeForIndex(int strategyIndex)
-{
-    switch (strategyIndex) {
-    case 0:
-        return "tab";
-    case 2:
-        return "calc";
-    case 1:
-    default:
-        return "plot";
-    }
-}
 
 std::vector<core::domain::AnalysisTransaction> toCoreTransactions(const QVariantList& transactions)
 {
@@ -52,13 +38,6 @@ std::vector<std::string> toSelectedTransactionIds(const QVariantList& selectedTr
         }
     }
     return out;
-}
-
-double parsePercentOrZero(const QString& value)
-{
-    bool ok = false;
-    const double parsed = value.toDouble(&ok);
-    return ok && std::isfinite(parsed) ? parsed : 0.0;
 }
 
 } // namespace ui::analysis::input

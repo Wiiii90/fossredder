@@ -8,7 +8,6 @@
 #include <QFileInfo>
 
 #include "core/import/DraftLinking.h"
-#include "core/import/ImportedTransaction.h"
 #include "core/models/Statement.h"
 #include "ui/import/ImportSuggestionService.h"
 #include "ui/import/DraftViewMapper.h"
@@ -79,7 +78,7 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
 namespace ui::importing {
 
 std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppState& state,
-                                                      const std::vector<ImportedTransaction>& transactions)
+                                                      const std::vector<core::domain::TransactionDraft>& transactions)
 {
     std::vector<TransactionDraft> drafts;
 
@@ -102,13 +101,13 @@ std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppSta
     }
 
     return drafts;
-} // namespace ui::importing
+}
 
 StatementDraft* createStatementDraft(const QString& sourceFile,
-                                     const std::shared_ptr<core::domain::Statement>& statement,
-                                     const core::domain::AppState& state,
-                                     const std::vector<ImportedTransaction>& transactions,
-                                     QObject* parent)
+                                      const std::shared_ptr<core::domain::Statement>& statement,
+                                      const core::domain::AppState& state,
+                                      const std::vector<core::domain::TransactionDraft>& transactions,
+                                      QObject* parent)
 {
     auto* draft = new StatementDraft(parent);
     draft->setName((statement && !statement->name.empty())
@@ -126,4 +125,4 @@ StatementDraft* createStatementDraft(const QString& sourceFile,
     return draft;
 }
 
-}
+} // namespace ui::importing

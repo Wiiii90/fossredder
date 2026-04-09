@@ -14,9 +14,9 @@
 
 #include <QString>
 
-#include "core/import/ImportedTransaction.h"
 #include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobTypes.h"
+#include "core/models/TransactionDraft.h"
 
 #ifdef USE_QML
 class QQmlImageProviderBase;
@@ -49,7 +49,7 @@ public:
     void clearSubscription();
 
     std::shared_ptr<core::domain::Statement> statementResult() const;
-    std::vector<ImportedTransaction> statementTransactions() const;
+    std::vector<core::domain::TransactionDraft> statementTransactions() const;
     std::map<std::string, std::vector<uint8_t>> takeArtifacts();
 
 private:

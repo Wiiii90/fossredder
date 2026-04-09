@@ -27,6 +27,7 @@ namespace property {
 inline const auto kAddress = QStringLiteral("address");
 inline const auto kConsumption = QStringLiteral("consumption");
 inline const auto kConsumptionUnit = QStringLiteral("consumptionUnit");
+inline const auto kAliases = QStringLiteral("aliases");
 }
 
 namespace contract {
@@ -36,6 +37,8 @@ inline const auto kBasePrice = QStringLiteral("basePrice");
 inline const auto kConsumptionPrice = QStringLiteral("consumptionPrice");
 inline const auto kMonthlyAdvance = QStringLiteral("monthlyAdvance");
 inline const auto kActorIds = QStringLiteral("actorIds");
+inline const auto kPropertyIds = QStringLiteral("propertyIds");
+inline const auto kAliases = QStringLiteral("aliases");
 }
 
 namespace statement {
@@ -68,6 +71,8 @@ inline const auto kGeneratedAt = QStringLiteral("generatedAt");
 namespace annual {
 inline const auto kYear = QStringLiteral("year");
 inline const auto kVerificationState = QStringLiteral("verificationState");
+inline const auto kTransactionIds = QStringLiteral("transactionIds");
+inline const auto kAssignedAnalysisIds = QStringLiteral("assignedAnalysisIds");
 }
 
 namespace fileSystem {

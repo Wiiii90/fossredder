@@ -5,8 +5,9 @@
 
 #include "ui/controllers/AnalysisController.h"
 
+#include <algorithm>
+
 #include "core/application/AnalysisRequestComposer.h"
-#include <QVariantMap>
 
 #include "core/application/AnalysisService.h"
 #include "core/application/AppStateFacade.h"
@@ -16,6 +17,7 @@
 #include "ui/analysis/AnalysisInputMapper.h"
 #include "ui/analysis/AnalysisPayloadMapper.h"
 #include "ui/observability/Origins.h"
+#include "ui/payload/EntityPayloadMapper.h"
 #include "ui/util/CoreFacadeGuard.h"
 #include "ui/util/StringConversions.h"
 #include "ui/text/Text.h"
@@ -49,6 +51,15 @@ QString composeFilterSpec(const QString& dateFrom, const QString& dateTo)
         strings::toStdString(dateTo)));
 }
 
+QVariantMap findAnalysisPayload(const std::vector<std::shared_ptr<core::domain::Analysis>>& items,
+                               const QString& id)
+{
+    const auto it = std::find_if(items.begin(), items.end(), [&](const auto& item) {
+        return item && QString::fromStdString(item->id) == id;
+    });
+    return it != items.end() && *it ? ui::payload::entity::toPayload(**it) : QVariantMap{};
+}
+
 } // namespace
 
 AnalysisController::AnalysisController(
@@ -63,10 +74,24 @@ AnalysisController::AnalysisController(
 {
 }
 
-QString AnalysisController::addAnalysis(const QString& name,
-                                        const QString& type,
-                                        const QString& configJson,
-                                        const QString& filterSpec)
+QVariantMap AnalysisController::analysis(const QString& id) const
+{
+    if (!core_) {
+        return {};
+    }
+
+    return findAnalysisPayload(core_->state().analyses, id);
+}
+
+QVariantList AnalysisController::analyses() const
+{
+    return core_ ? ui::payload::entity::toPayloadList(core_->state().analyses) : QVariantList{};
+}
+
+QString AnalysisController::createAnalysis(const QString& name,
+                                           const QString& type,
+                                           const QString& configJson,
+                                           const QString& filterSpec)
 {
     return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::analysis::kAdd, {}, [&]() {
@@ -78,74 +103,52 @@ QString AnalysisController::addAnalysis(const QString& name,
         });
 }
 
-QString AnalysisController::createAnalysisFromUi(const QString& name,
-                                                 const QString& type,
-                                                 const QString& plotType,
-                                                 const QString& plotMeasure,
-                                                 const QStringList& propertyIds,
-                                                 const QStringList& contractTypes,
-                                                 const QString& dateFrom,
-                                                 const QString& dateTo,
-                                                 double taxPercent)
+void AnalysisController::updateAnalysis(const QString& id,
+                                        const QString& name,
+                                        const QString& type,
+                                        const QString& configJson,
+                                        const QString& filterSpec)
 {
-    const auto configJson = QString::fromStdString(core::application::AnalysisRequestComposer::buildConfigJson(
+    ui::util::guard::invokeVoid(
+        core_, observability::origins::controller::analysis::kUpdate, [&]() {
+            core_->updateAnalysis(strings::toStdString(id),
+                                  strings::toStdString(name),
+                                  strings::toStdString(type),
+                                  strings::toStdString(configJson),
+                                  strings::toStdString(filterSpec));
+        });
+}
+
+void AnalysisController::deleteAnalysis(const QString& id)
+{
+    ui::util::guard::invokeVoid(
+        core_, observability::origins::controller::analysis::kDelete, [&]() {
+            core_->deleteAnalysis(strings::toStdString(id));
+        });
+}
+
+QString AnalysisController::analysisConfigJson(const QString& type,
+                                              const QString& plotType,
+                                              const QString& plotMeasure,
+                                              const QStringList& propertyIds,
+                                              const QStringList& contractTypes,
+                                              double taxPercent) const
+{
+    return QString::fromStdString(core::application::AnalysisRequestComposer::buildConfigJson(
         strings::toStdString(type),
         strings::toStdString(plotType),
         strings::toStdString(plotMeasure),
         strings::toStdList(propertyIds),
         strings::toStdList(contractTypes),
         taxPercent));
-    const auto filterSpec = composeFilterSpec(dateFrom, dateTo);
-    return addAnalysis(name, type, configJson, filterSpec);
 }
 
-QVariantMap AnalysisController::createAnalysisFromUiAndCompute(const QString& name,
-                                                               const QString& type,
-                                                               const QString& plotType,
-                                                               const QString& plotMeasure,
-                                                               const QStringList& propertyIds,
-                                                               const QStringList& contractTypes,
-                                                               const QString& dateFrom,
-                                                               const QString& dateTo,
-                                                               double taxPercent)
+QString AnalysisController::analysisFilterSpec(const QString& dateFrom, const QString& dateTo) const
 {
-    QVariantMap out;
-    const auto id = createAnalysisFromUi(name, type, plotType, plotMeasure, propertyIds, contractTypes, dateFrom, dateTo, taxPercent);
-    if (id.isEmpty()) {
-        return out;
-    }
-
-    out.insert(QStringLiteral("id"), id);
-    const auto filterSpec = composeFilterSpec(dateFrom, dateTo);
-    const auto result = computeAnalysis(id, filterSpec);
-    if (!result.isEmpty()) {
-        out.insert(QStringLiteral("analysisResult"), result);
-    }
-    return out;
+    return composeFilterSpec(dateFrom, dateTo);
 }
 
-QVariantMap AnalysisController::createAnalysisFromStrategyAndCompute(const QString& name,
-                                                                     int strategyIndex,
-                                                                     const QString& plotType,
-                                                                     const QString& plotMeasure,
-                                                                     const QStringList& propertyIds,
-                                                                     const QStringList& contractTypes,
-                                                                     const QString& dateFrom,
-                                                                     const QString& dateTo,
-                                                                     double taxPercent)
-{
-    return createAnalysisFromUiAndCompute(name,
-                                          QString::fromStdString(ui::analysis::input::strategyTypeForIndex(strategyIndex)),
-                                          plotType,
-                                          plotMeasure,
-                                          propertyIds,
-                                          contractTypes,
-                                          dateFrom,
-                                          dateTo,
-                                          taxPercent);
-}
-
-QString AnalysisController::buildTaxAdjustmentsJson(const QVariantList& transactions,
+QString AnalysisController::analysisAdjustmentsJson(const QVariantList& transactions,
                                                     const QVariantList& selectedTransactionIds,
                                                     double taxPercent) const
 {
@@ -153,36 +156,6 @@ QString AnalysisController::buildTaxAdjustmentsJson(const QVariantList& transact
         ui::analysis::input::toCoreTransactions(transactions),
         ui::analysis::input::toSelectedTransactionIds(selectedTransactionIds),
         taxPercent));
-}
-
-QVariantMap AnalysisController::applyTaxAdjustmentsAndRecompute(const QString& analysisId,
-                                                                const QString& filterSpec,
-                                                                const QVariantList& transactions,
-                                                                const QVariantList& selectedTransactionIds,
-                                                                double taxPercent) const
-{
-    QVariantMap out;
-    const auto adjustmentsJson = buildTaxAdjustmentsJson(transactions, selectedTransactionIds, taxPercent);
-    out.insert(QStringLiteral("adjustmentsJson"), adjustmentsJson);
-
-    const auto result = computeAnalysis(analysisId, filterSpec);
-    if (!result.isEmpty()) {
-        out.insert(QStringLiteral("analysisResult"), result);
-    }
-    return out;
-}
-
-QVariantMap AnalysisController::applyTaxAdjustmentsAndRecomputeFromText(const QString& analysisId,
-                                                                        const QString& filterSpec,
-                                                                        const QVariantList& transactions,
-                                                                        const QVariantList& selectedTransactionIds,
-                                                                        const QString& taxPercentText) const
-{
-    return applyTaxAdjustmentsAndRecompute(analysisId,
-                                           filterSpec,
-                                           transactions,
-                                           selectedTransactionIds,
-                                           ui::analysis::input::parsePercentOrZero(taxPercentText));
 }
 
 QVariantMap AnalysisController::computeAnalysis(const QString& analysisId,
@@ -217,7 +190,7 @@ QVariantMap AnalysisController::computeAnalysis(const QString& analysisId,
     return out;
 }
 
-QStringList AnalysisController::getContractTypes() const
+QStringList AnalysisController::contractTypes() const
 {
     return ui::util::guard::invokeValue<QStringList>(
         core_, observability::origins::controller::analysis::kCompute, {}, [&]() {

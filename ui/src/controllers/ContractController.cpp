@@ -5,8 +5,11 @@
 
 #include "ui/controllers/ContractController.h"
 
+#include <algorithm>
+
 #include "core/application/AppStateFacade.h"
 #include "ui/observability/Origins.h"
+#include "ui/payload/EntityPayloadMapper.h"
 #include "ui/util/CoreFacadeGuard.h"
 #include "ui/util/StringConversions.h"
 
@@ -17,6 +20,24 @@ ContractController::ContractController(core::application::AppStateFacade* core,
     : QObject(parent)
     , core_(core)
 {
+}
+
+QVariantMap ContractController::contract(const QString& id) const
+{
+    if (!core_) {
+        return {};
+    }
+
+    const auto& items = core_->state().contracts;
+    const auto it = std::find_if(items.begin(), items.end(), [&](const auto& item) {
+        return item && QString::fromStdString(item->id) == id;
+    });
+    return it != items.end() && *it ? ui::payload::entity::toPayload(**it) : QVariantMap{};
+}
+
+QVariantList ContractController::contracts() const
+{
+    return core_ ? ui::payload::entity::toPayloadList(core_->state().contracts) : QVariantList{};
 }
 
 QString ContractController::addContract(const QString& name,

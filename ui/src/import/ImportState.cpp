@@ -214,7 +214,7 @@ void ImportState::recordFailed(const QString& now, const QString& errorMessage)
 bool ImportState::populateDraft(const QString& now,
                                 const std::shared_ptr<core::domain::Statement>& statement,
                                 const core::domain::AppState& state,
-                                const std::vector<ImportedTransaction>& transactions,
+                                const std::vector<core::domain::TransactionDraft>& transactions,
                                 const std::map<std::string, std::vector<uint8_t>>& artifacts,
                                 QObject* parent)
 {

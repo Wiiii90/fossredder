@@ -7,11 +7,11 @@
 
 #include <memory>
 
-#include "core/import/ImportedTransaction.h"
 #include "core/models/Actor.h"
 #include "core/models/AppState.h"
 #include "core/models/Contract.h"
 #include "core/models/Property.h"
+#include "core/models/TransactionDraft.h"
 #include "ui/import/ImportSuggestionService.h"
 
 using core::domain::Actor;
@@ -57,7 +57,7 @@ TEST(ImportSuggestionServiceTests, SuggestsActorPropertyAndContractFromTransacti
     state.properties.push_back(makeProperty("property-main", "Musterstraße 1", "Musterstr. 1"));
     state.contracts.push_back(makeContract("contract-gas", "Gasvertrag", "gas"));
 
-    ::ImportedTransaction tx;
+    core::domain::TransactionDraft tx;
     tx.name = "EON Abschlag";
     tx.metadata = "E.ON Energie GmbH Musterstraße 1";
     tx.description = "Gas";

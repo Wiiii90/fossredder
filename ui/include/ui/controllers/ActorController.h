@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QVariantList>
+#include <QVariantMap>
 
 namespace core::application { class AppStateFacade; }
 
@@ -21,6 +23,12 @@ class ActorController : public QObject {
 public:
     /** @brief Create an actor controller bound to the application facade. */
     explicit ActorController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+
+    /** @brief Return a single actor by identifier. */
+    Q_INVOKABLE QVariantMap actor(const QString& id) const;
+
+    /** @brief Return all actors. */
+    Q_INVOKABLE QVariantList actors() const;
 
     /** @brief Create a new actor from QML-provided values. */
     Q_INVOKABLE QString addActor(const QString& name, const QString& type, const QString& description, const QStringList& aliases = {});

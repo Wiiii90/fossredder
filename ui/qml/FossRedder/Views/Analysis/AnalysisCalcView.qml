@@ -40,7 +40,9 @@ Item {
         RowLayout { spacing: Theme.spacingSmall; Layout.fillWidth: true
             Controls.Button { text: qsTr("New Calc"); onClicked: {
                 if (!analysisController) return
-                var id = analysisController.createAnalysisFromUi("New Calc", "calc", "", "", [], [], "", "", 0.0)
+                var configJson = analysisController.analysisConfigJson("calc", "", "", [], [], 0.0)
+                var filterSpec = analysisController.analysisFilterSpec("", "")
+                var id = analysisController.createAnalysis("New Calc", "calc", configJson, filterSpec)
                 if (id && session) session.selectedAnalysisId = id
             } }
             Item { Layout.fillWidth: true }
@@ -54,9 +56,12 @@ Item {
                 var aid = analysisCalcView.session.selectedAnalysis.id
                 var filterSpec = analysisCalcView.session.selectedAnalysis.filterSpec ? analysisCalcView.session.selectedAnalysis.filterSpec : ""
                 var transactions = analysisCalcView.session.lastAnalysisResult ? analysisCalcView.session.lastAnalysisResult.transactions : []
-                var result = analysisController ? analysisController.applyTaxAdjustmentsAndRecomputeFromText(aid, filterSpec, transactions, analysisCalcView.calcSelectedTx, taxPercentField.text) : {}
-                if (result && result.adjustmentsJson && analysisCalcView.session.analyses) analysisCalcView.session.analyses.setAdjustmentsById(aid, result.adjustmentsJson)
-                if (result && result.analysisResult) analysisCalcView.session.lastAnalysisResult = result.analysisResult
+                var taxPercent = parseFloat(taxPercentField.text)
+                if (isNaN(taxPercent)) taxPercent = 0.0
+                var adjustmentsJson = analysisController ? analysisController.analysisAdjustmentsJson(transactions, analysisCalcView.calcSelectedTx, taxPercent) : ""
+                if (adjustmentsJson && analysisCalcView.session.analyses) analysisCalcView.session.analyses.setAdjustmentsById(aid, adjustmentsJson)
+                var result = analysisController ? analysisController.computeAnalysis(aid, filterSpec) : {}
+                if (result && Object.keys(result).length > 0) analysisCalcView.session.lastAnalysisResult = result
             } }
         }
 

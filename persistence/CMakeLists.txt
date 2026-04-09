@@ -10,9 +10,11 @@ set(PERSISTENCE_SRCS
     src/repositories/SqliteAnalysisRepository.cpp
     src/repositories/SqliteAnnualRepository.cpp
     src/repositories/SqliteContractRepository.cpp
+    src/repositories/SqliteStatementDraftRepository.cpp
     src/repositories/SqlitePropertyRepository.cpp
     src/repositories/SqliteStatementRepository.cpp
     src/repositories/SqliteTransactionRepository.cpp
+    src/repositories/SqliteTransactionDraftRepository.cpp
 )
 
 add_library(fossredder_persistence STATIC ${PERSISTENCE_SRCS})
@@ -54,8 +56,8 @@ if (BUILD_PERSISTENCE_TESTS)
 
     set(PERSISTENCE_TEST_SRCS
         tests/unit/TestAppStateStore.cpp
+        tests/unit/TestSqliteRepository.cpp
         tests/unit/TestSqliteRegistry.cpp
-        tests/unit/TestSqliteRepositories.cpp
     )
     add_executable(persistence_unit_tests ${PERSISTENCE_TEST_SRCS})
     target_include_directories(persistence_unit_tests PRIVATE

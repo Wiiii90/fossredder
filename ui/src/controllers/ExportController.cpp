@@ -5,7 +5,6 @@
 
 #include "ui/controllers/ExportController.h"
 
-#include "ui/bootstrap/QmlContracts.h"
 #include "ui/observability/Origins.h"
 #include "ui/observability/Trace.h"
 #include "ui/util/CoreFacadeGuard.h"

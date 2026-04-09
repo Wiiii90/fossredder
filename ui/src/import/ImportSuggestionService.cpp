@@ -43,7 +43,7 @@ ImportSuggestionBucket toUiBucket(const core::importing::DraftSuggestionBucket& 
 } // namespace
 
 ImportDraftSuggestions buildImportSuggestions(const core::domain::AppState& state,
-                                              const ImportedTransaction& transaction)
+                                              const core::domain::TransactionDraft& transaction)
 {
     const auto coreSuggestions = core::importing::buildImportSuggestions(state, transaction);
     ImportDraftSuggestions suggestions;

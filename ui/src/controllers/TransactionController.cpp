@@ -5,8 +5,11 @@
 
 #include "ui/controllers/TransactionController.h"
 
+#include <algorithm>
+
 #include "core/application/AppStateFacade.h"
 #include "ui/observability/Origins.h"
+#include "ui/payload/EntityPayloadMapper.h"
 #include "ui/util/CoreFacadeGuard.h"
 #include "ui/util/StringConversions.h"
 
@@ -35,6 +38,24 @@ TransactionController::TransactionController(core::application::AppStateFacade* 
     : QObject(parent)
     , core_(core)
 {
+}
+
+QVariantMap TransactionController::transaction(const QString& id) const
+{
+    if (!core_) {
+        return {};
+    }
+
+    const auto& items = core_->state().transactions;
+    const auto it = std::find_if(items.begin(), items.end(), [&](const auto& item) {
+        return item && QString::fromStdString(item->id) == id;
+    });
+    return it != items.end() && *it ? ui::payload::entity::toPayload(**it) : QVariantMap{};
+}
+
+QVariantList TransactionController::transactions() const
+{
+    return core_ ? ui::payload::entity::toPayloadList(core_->state().transactions) : QVariantList{};
 }
 
 QString TransactionController::addTransaction(const QString& name,

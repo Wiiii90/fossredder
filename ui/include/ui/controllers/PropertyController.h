@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QVariantList>
+#include <QVariantMap>
 
 namespace core::application { class AppStateFacade; }
 
@@ -21,6 +23,12 @@ class PropertyController : public QObject {
 public:
     /** @brief Create a property controller bound to the application facade. */
     explicit PropertyController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+
+    /** @brief Return a single property by identifier. */
+    Q_INVOKABLE QVariantMap property(const QString& id) const;
+
+    /** @brief Return all properties. */
+    Q_INVOKABLE QVariantList properties() const;
 
     /** @brief Create a new property from QML-provided values. */
     Q_INVOKABLE QString addProperty(const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
