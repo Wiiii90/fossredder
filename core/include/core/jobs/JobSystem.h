@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "core/import/ImportedTransaction.h"
 #include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobTypes.h"
+#include "core/models/TransactionDraft.h"
 
 #include <map>
 #include <memory>
@@ -40,7 +40,7 @@ public:
     void cancel(const JobId& id);
     std::optional<JobSnapshot> snapshot(const JobId& id) const;
     std::shared_ptr<core::domain::Statement> statementResult(const JobId& id) const;
-    std::vector<ImportedTransaction> statementTransactions(const JobId& id) const;
+    std::vector<core::domain::TransactionDraft> statementTransactions(const JobId& id) const;
     std::map<std::string, std::vector<uint8_t>> takeStatementArtifacts(const JobId& id);
 
     void shutdown();

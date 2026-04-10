@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/TransactionFilter.h
+ * @brief Declarations for the UI TransactionFilter component.
+ */
+
 #pragma once
 
 #include <QSortFilterProxyModel>

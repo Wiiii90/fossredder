@@ -7,7 +7,7 @@ import FossRedder.Controls 1.0 as Controls
 Item {
     id: root
 
-    property var current: uiData ? uiData.selectedActor : null
+    property var current: session ? session.selectedActor : null
     property bool isEdit: current && current.id && String(current.id).length > 0
 
     property var aliases: []
@@ -52,7 +52,7 @@ Item {
 
         var id = actorController.addActor(nameField.text, typeField.text, descField.text, aliasValues)
         clearFields()
-        if (uiData && id && id.length > 0) uiData.selectedActorId = id
+        if (session && id && id.length > 0) session.selectedActorId = id
     }
 
     onCurrentChanged: syncFields()
@@ -126,7 +126,7 @@ Item {
                 visible: isEdit
                 text: qsTr("New")
                 onClicked: {
-                    if (uiData) uiData.selectedActorId = ""
+                    if (session) session.selectedActorId = ""
                 }
             }
 
@@ -144,7 +144,7 @@ Item {
                 onClicked: {
                     if (!actorController) return
                     actorController.deleteActor(current.id)
-                    if (uiData) uiData.selectedActorId = ""
+                    if (session) session.selectedActorId = ""
                 }
             }
 

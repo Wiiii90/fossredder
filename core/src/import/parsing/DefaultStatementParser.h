@@ -8,7 +8,7 @@
 #include "api/opencv/IOpenCvService.h"
 #include "api/opencv/Types.h"
 #include "api/tesseract/TesseractResponse.h"
-#include "core/import/ImportedTransaction.h"
+#include "core/models/TransactionDraft.h"
 
 #include <filesystem>
 #include <memory>
@@ -19,7 +19,7 @@
 class DefaultStatementParser {
 public:
     struct ParseResult {
-        std::vector<ImportedTransaction> transactions;
+        std::vector<core::domain::TransactionDraft> transactions;
         std::vector<std::string> debugLines;
         std::unordered_map<std::string, std::vector<uint8_t>> artifacts;
         std::string lastBookingDate;

@@ -180,4 +180,111 @@ void SqliteSchema::migrate(sqlite3* db) {
         setUserVersion(db, 2);
         v = 2;
     }
+
+    if (v < 3) {
+        exec(db,
+            "BEGIN;"
+            "CREATE TABLE IF NOT EXISTS statement_drafts ("
+            "scope TEXT PRIMARY KEY,"
+            "name TEXT"
+            ");"
+            "CREATE TABLE IF NOT EXISTS transaction_drafts ("
+            "scope TEXT NOT NULL,"
+            "position INTEGER NOT NULL,"
+            "name TEXT,"
+            "booking_date TEXT,"
+            "valuta TEXT,"
+            "amount REAL,"
+            "description TEXT,"
+            "actor_text TEXT,"
+            "property_text TEXT,"
+            "actor_id TEXT,"
+            "new_actor_selected INTEGER NOT NULL DEFAULT 0,"
+            "contract_id TEXT,"
+            "new_contract_selected INTEGER NOT NULL DEFAULT 0,"
+            "metadata TEXT,"
+            "proof_image_path TEXT,"
+            "type TEXT,"
+            "allocatable INTEGER NOT NULL DEFAULT 0,"
+            "allocatable_manual_override INTEGER NOT NULL DEFAULT 0,"
+            "status INTEGER NOT NULL DEFAULT 1,"
+            "PRIMARY KEY(scope, position),"
+            "FOREIGN KEY(scope) REFERENCES statement_drafts(scope) ON DELETE CASCADE"
+            ");"
+            "CREATE TABLE IF NOT EXISTS transaction_draft_properties ("
+            "scope TEXT NOT NULL,"
+            "position INTEGER NOT NULL,"
+            "property_position INTEGER NOT NULL,"
+            "property_id TEXT NOT NULL,"
+            "PRIMARY KEY(scope, position, property_position),"
+            "FOREIGN KEY(scope, position) REFERENCES transaction_drafts(scope, position) ON DELETE CASCADE"
+            ");"
+            "COMMIT;"
+        );
+        setUserVersion(db, 3);
+        v = 3;
+    }
+
+    if (v < 4) {
+        exec(db,
+            "BEGIN;"
+            "CREATE TABLE IF NOT EXISTS statement_drafts_v2 ("
+            "id TEXT PRIMARY KEY,"
+            "name TEXT"
+            ");"
+            "CREATE TABLE IF NOT EXISTS transaction_drafts_v2 ("
+            "id TEXT PRIMARY KEY,"
+            "statement_draft_id TEXT,"
+            "position INTEGER NOT NULL DEFAULT 0,"
+            "name TEXT,"
+            "booking_date TEXT,"
+            "valuta TEXT,"
+            "amount REAL,"
+            "description TEXT,"
+            "actor_text TEXT,"
+            "property_text TEXT,"
+            "actor_id TEXT,"
+            "new_actor_selected INTEGER NOT NULL DEFAULT 0,"
+            "contract_id TEXT,"
+            "new_contract_selected INTEGER NOT NULL DEFAULT 0,"
+            "metadata TEXT,"
+            "proof_image_path TEXT,"
+            "type TEXT,"
+            "allocatable INTEGER NOT NULL DEFAULT 0,"
+            "allocatable_manual_override INTEGER NOT NULL DEFAULT 0,"
+            "status INTEGER NOT NULL DEFAULT 1,"
+            "FOREIGN KEY(statement_draft_id) REFERENCES statement_drafts_v2(id) ON DELETE CASCADE"
+            ");"
+            "CREATE TABLE IF NOT EXISTS transaction_draft_properties_v2 ("
+            "transaction_draft_id TEXT NOT NULL,"
+            "property_position INTEGER NOT NULL,"
+            "property_id TEXT NOT NULL,"
+            "PRIMARY KEY(transaction_draft_id, property_position),"
+            "FOREIGN KEY(transaction_draft_id) REFERENCES transaction_drafts_v2(id) ON DELETE CASCADE"
+            ");"
+
+            "INSERT OR IGNORE INTO statement_drafts_v2 (id, name) "
+            "SELECT scope, name FROM statement_drafts;"
+
+            "INSERT OR REPLACE INTO transaction_drafts_v2 ("
+            "id, statement_draft_id, position, name, booking_date, valuta, amount, description, actor_text, property_text, actor_id, new_actor_selected, contract_id, new_contract_selected, metadata, proof_image_path, type, allocatable, allocatable_manual_override, status"
+            ") "
+            "SELECT scope || ':' || printf('%010d', position), scope, position, name, booking_date, valuta, amount, description, actor_text, property_text, actor_id, new_actor_selected, contract_id, new_contract_selected, metadata, proof_image_path, type, allocatable, allocatable_manual_override, status "
+            "FROM transaction_drafts;"
+
+            "INSERT OR REPLACE INTO transaction_draft_properties_v2 (transaction_draft_id, property_position, property_id) "
+            "SELECT scope || ':' || printf('%010d', position), property_position, property_id FROM transaction_draft_properties;"
+
+            "DROP TABLE IF EXISTS transaction_draft_properties;"
+            "DROP TABLE IF EXISTS transaction_drafts;"
+            "DROP TABLE IF EXISTS statement_drafts;"
+
+            "ALTER TABLE statement_drafts_v2 RENAME TO statement_drafts;"
+            "ALTER TABLE transaction_drafts_v2 RENAME TO transaction_drafts;"
+            "ALTER TABLE transaction_draft_properties_v2 RENAME TO transaction_draft_properties;"
+            "COMMIT;"
+        );
+        setUserVersion(db, 4);
+        v = 4;
+    }
 }

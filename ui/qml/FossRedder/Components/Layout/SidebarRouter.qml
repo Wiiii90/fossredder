@@ -42,16 +42,16 @@ Item {
         case sectionImport:
             importLoaded = true
             break
-        case UiNavigation.Export:
+        case Navigation.Export:
             exportLoaded = true
             break
-        case UiNavigation.Analysis:
+        case Navigation.Analysis:
             analysisLoaded = true
             break
-        case UiNavigation.Annual:
+        case Navigation.Annual:
             annualLoaded = true
             break
-        case UiNavigation.Settings:
+        case Navigation.Settings:
             settingsLoaded = true
             break
         default:
@@ -61,10 +61,10 @@ Item {
     }
 
     function resolveSection() {
-        if (!uiNav) return sectionImport;
-        var v = uiNav.section;
+        if (!navigation) return sectionImport;
+        var v = navigation.section;
         try {
-            if (typeof v === 'string' && v.indexOf('Export') >= 0) return UiNavigation.Export;
+            if (typeof v === 'string' && v.indexOf('Export') >= 0) return Navigation.Export;
         } catch(e) {}
         if (typeof v === 'number') return v;
         try {
@@ -74,7 +74,7 @@ Item {
             if (s.indexOf('Contracts') >= 0) return sectionContracts;
             if (s.indexOf('Booking') >= 0) return sectionBooking;
             if (s.indexOf('Import') >= 0) return sectionImport;
-            if (s.indexOf('Export') >= 0) return UiNavigation.Export;
+            if (s.indexOf('Export') >= 0) return Navigation.Export;
         } catch (e) {}
         return sectionImport;
     }
@@ -82,15 +82,15 @@ Item {
     function update() {
         var sec = resolveSection();
 
-        if (sec !== sectionBooking && uiData) {
-            if (uiData.selectedTransactionId && uiData.selectedTransactionId.length > 0)
-                uiData.selectedTransactionId = ""
-            if (uiData.selectedStatementId && uiData.selectedStatementId.length > 0)
-                uiData.selectedStatementId = ""
+        if (sec !== sectionBooking && session) {
+            if (session.selectedTransactionId && session.selectedTransactionId.length > 0)
+                session.selectedTransactionId = ""
+            if (session.selectedStatementId && session.selectedStatementId.length > 0)
+                session.selectedStatementId = ""
         }
 
-        if (sec !== sectionBooking && uiNav && uiNav.bookingView !== UiNavigation.Statements)
-            uiNav.bookingView = UiNavigation.Statements
+        if (sec !== sectionBooking && navigation && navigation.bookingView !== Navigation.Statements)
+            navigation.bookingView = Navigation.Statements
 
         resolvedSection = sec;
         rememberSection(sec)
@@ -139,25 +139,25 @@ Item {
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === UiNavigation.Export
+        visible: resolvedSection === Navigation.Export
         contentComponent: exportLoaded ? exportSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === UiNavigation.Analysis
+        visible: resolvedSection === Navigation.Analysis
         contentComponent: analysisLoaded ? analysisSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === UiNavigation.Annual
+        visible: resolvedSection === Navigation.Annual
         contentComponent: annualLoaded ? annualSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === UiNavigation.Settings
+        visible: resolvedSection === Navigation.Settings
         contentComponent: settingsLoaded ? settingsSidebarComp : null
     }
 
@@ -168,14 +168,14 @@ Item {
                  && resolvedSection !== sectionContracts
                  && resolvedSection !== sectionBooking
                  && resolvedSection !== sectionImport
-                 && resolvedSection !== UiNavigation.Export
-                 && resolvedSection !== UiNavigation.Analysis
-                 && resolvedSection !== UiNavigation.Annual
-                 && resolvedSection !== UiNavigation.Settings
+                 && resolvedSection !== Navigation.Export
+                 && resolvedSection !== Navigation.Analysis
+                 && resolvedSection !== Navigation.Annual
+                 && resolvedSection !== Navigation.Settings
         contentComponent: placeholderLoaded ? placeholderSidebarComp : null
     }
 
-    Connections { target: uiNav; function onSectionChanged() { update(); } }
+    Connections { target: navigation; function onSectionChanged() { update(); } }
 
     Component.onCompleted: {
         update()

@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/MetricsState.h
+ * @brief Declarations for the UI MetricsState component.
+ */
+
 #pragma once
 
 #include <QHash>

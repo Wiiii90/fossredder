@@ -37,7 +37,7 @@ TestCase {
         }
     }
 
-    property var uiActions: QtObject {
+    property var actions: QtObject {
         signal exportFileSelected(string path)
         property int browseCalls: 0
 
@@ -71,7 +71,7 @@ TestCase {
 
     function init() {
         exportController.reset()
-        uiActions.reset()
+        actions.reset()
     }
 
     function test_formatSelectionBuildsDefaultPath() {
@@ -108,15 +108,15 @@ TestCase {
         compare(exportController.lastCall.locale, "de-DE")
     }
 
-    function test_browseAndSelectedPathFlowThroughUiActions() {
+    function test_browseAndSelectedPathFlowThroughActions() {
         var view = createView()
         var browseButton = findRequired(view, "exportBrowseButton")
         var pathField = findRequired(view, "exportPathField")
 
         browseButton.clicked()
-        compare(uiActions.browseCalls, 1)
+        compare(actions.browseCalls, 1)
 
-        uiActions.exportFileSelected("/picked/from/dialog.csv")
+        actions.exportFileSelected("/picked/from/dialog.csv")
         compare(pathField.text, "/picked/from/dialog.csv")
     }
 }

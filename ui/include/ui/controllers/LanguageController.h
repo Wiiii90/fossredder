@@ -24,10 +24,20 @@ class LanguageController : public QObject {
     Q_PROPERTY(QVariantList availableLanguages READ availableLanguages CONSTANT)
 
 public:
+    /** @brief Create a language controller bound to the application and QML engine. */
     explicit LanguageController(QApplication* application, QQmlEngine* engine, QObject* parent = nullptr);
 
+    /** @brief Return the active UI language code.
+     *  @return Current language code
+     */
     QString currentLanguage() const { return currentLanguage_; }
+
+    /** @brief Switch the active UI language if the requested translation is available.
+     *  @param languageCode Language code to set
+     */
     void setCurrentLanguage(const QString& languageCode);
+
+    /** @brief Return the available language options for the UI. */
     QVariantList availableLanguages() const { return availableLanguages_; }
 
 signals:

@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
@@ -15,13 +15,13 @@ Item {
     property bool propertiesExpanded: false
 
     function refreshCurrentSelection() {
-        root.isNew = uiData && uiData.selectedTransactionId === "__new__"
-        root.current = (!root.isNew && uiData) ? uiData.selectedTransaction : null
+        root.isNew = session && session.selectedTransactionId === "__new__"
+        root.current = (!root.isNew && session) ? session.selectedTransaction : null
         root.isEdit = !root.isNew && root.current && root.current.id && String(root.current.id).length > 0
     }
 
     function loadPropertyRows() {
-        propertyRowsSnapshot = uiData ? uiData.propertyRows() : []
+        propertyRowsSnapshot = session ? session.propertyRows() : []
         propertyRowsReady = true
     }
 
@@ -51,7 +51,7 @@ Item {
 
         if (isEdit && current && current.id) {
             persistCurrentTransaction()
-            if (uiData) uiData.setTransactionPropertyIdsImmediate(current.id, selectedPropertyIds)
+            if (session) session.setTransactionPropertyIdsImmediate(current.id, selectedPropertyIds)
         }
     }
 
@@ -89,7 +89,7 @@ Item {
     function effectiveStatementId() {
         return (current && current.statementId && current.statementId.length > 0)
                 ? current.statementId
-                : ((uiData && uiData.selectedStatementId) ? uiData.selectedStatementId : "")
+                : ((session && session.selectedStatementId) ? session.selectedStatementId : "")
     }
 
     function persistCurrentTransaction() {
@@ -116,7 +116,7 @@ Item {
     Connections { target: current; function onChanged() { syncFields() } }
 
     Connections {
-        target: uiData
+        target: session
         function onSelectedTransactionIdChanged() {
             Qt.callLater(function() {
                 refreshCurrentSelection()
@@ -299,13 +299,13 @@ Item {
 
             Controls.Button {
                 text: qsTr("Back")
-                onClicked: { if (uiData) uiData.selectedTransactionId = "" }
+                onClicked: { if (session) session.selectedTransactionId = "" }
             }
 
             Controls.Button {
                 visible: !isEdit
                 text: qsTr("Create")
-                enabled: nameField.text.length > 0 && ((isEdit && current && current.statementId && current.statementId.length > 0) || (uiData && uiData.selectedStatementId && uiData.selectedStatementId.length > 0))
+                enabled: nameField.text.length > 0 && ((isEdit && current && current.statementId && current.statementId.length > 0) || (session && session.selectedStatementId && session.selectedStatementId.length > 0))
                 onClicked: {
                     if (!transactionController) return
                     var amt = parseFloat(amountField.text)
@@ -323,7 +323,7 @@ Item {
                                                                   selectedPropertyIds)
                     if (id && id.length > 0) {
                         clearFields()
-                        if (uiData) uiData.selectedTransactionId = id
+                        if (session) session.selectedTransactionId = id
                     }
                 }
             }
@@ -334,7 +334,7 @@ Item {
                 onClicked: {
                     if (!transactionController) return
                     transactionController.deleteTransaction(current.id)
-                    if (uiData) uiData.selectedTransactionId = ""
+                    if (session) session.selectedTransactionId = ""
                     clearFields()
                 }
             }

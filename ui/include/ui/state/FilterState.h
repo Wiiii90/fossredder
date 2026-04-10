@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/FilterState.h
+ * @brief Declarations for the UI FilterState component.
+ */
+
 #pragma once
 
 #include <QHash>
@@ -12,14 +17,17 @@ class TransactionFilter;
 
 class FilterState {
 public:
-    TransactionFilter* statementTransactions(const QString& statementId, TransactionList& sourceModel, QObject* parent);
-    TransactionFilter* propertyTransactions(const QString& propertyId, TransactionList& sourceModel, QObject* parent);
+    explicit FilterState(QObject* owner = nullptr);
+
+    TransactionFilter* statementTransactions(const QString& statementId, TransactionList& sourceModel);
+    TransactionFilter* propertyTransactions(const QString& propertyId, TransactionList& sourceModel);
 
     void clear();
     void removeStatement(const QString& statementId);
     void removeProperty(const QString& propertyId);
 
 private:
+    QObject* owner_ = nullptr;
     QHash<QString, TransactionFilter*> statementFilters_;
     QHash<QString, TransactionFilter*> propertyFilters_;
 };

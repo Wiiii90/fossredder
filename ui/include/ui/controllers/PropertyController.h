@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QVariantList>
+#include <QVariantMap>
 
 namespace core::application { class AppStateFacade; }
 
@@ -19,10 +21,41 @@ namespace ui {
 class PropertyController : public QObject {
     Q_OBJECT
 public:
+    /** @brief Create a property controller bound to the application facade. */
     explicit PropertyController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
+    /** @brief Return a single property by identifier.
+     *  @param id Property identifier
+     *  @return Serialized property payload as QVariantMap
+     */
+    Q_INVOKABLE QVariantMap property(const QString& id) const;
+
+    /** @brief Return all properties.
+     *  @return List of serialized properties as QVariantList
+     */
+    Q_INVOKABLE QVariantList properties() const;
+
+    /** @brief Create a new property from QML-provided values.
+     *  @param name Property name
+     *  @param address Property address
+     *  @param description Property description
+     *  @param aliases Optional aliases
+     *  @return Identifier of the created property
+     */
     Q_INVOKABLE QString addProperty(const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
+
+    /** @brief Update an existing property from QML-provided values.
+     *  @param id Property identifier
+     *  @param name Property name
+     *  @param address Property address
+     *  @param description Property description
+     *  @param aliases Optional aliases
+     */
     Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
+
+    /** @brief Delete a property by identifier.
+     *  @param id Property identifier
+     */
     Q_INVOKABLE void deleteProperty(const QString& id);
 
 private:

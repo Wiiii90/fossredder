@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/PropertyList.h
+ * @brief Declarations for the UI PropertyList component.
+ */
+
 #pragma once
 
 #include "core/models/Property.h"

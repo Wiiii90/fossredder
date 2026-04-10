@@ -11,7 +11,7 @@ TestCase {
     width: 720
     height: 480
 
-    property var uiData: QtObject {
+    property var session: QtObject {
         property var actors: [
             { id: "actor-1", name: "Alice" }
         ]
@@ -71,7 +71,7 @@ TestCase {
         EntityPicker {
             width: 720
             height: 480
-            model: uiData.actors
+            model: session.actors
         }
     }
 
@@ -81,7 +81,7 @@ TestCase {
         EntityPicker {
             width: 720
             height: 480
-            model: uiData.contracts
+            model: session.contracts
         }
     }
 

@@ -1,9 +1,14 @@
+/**
+ * @file ui/src/models/PropertyList.cpp
+ * @brief Implementation of the UI PropertyList component.
+ */
+
 #include "ui/models/PropertyList.h"
 
 #include <QVariant>
 
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/payload/PayloadKeys.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 

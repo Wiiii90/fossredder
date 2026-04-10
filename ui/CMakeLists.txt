@@ -4,6 +4,7 @@ find_package(Qt6 COMPONENTS Quick Qml QuickControls2 Widgets Svg Concurrent QUIE
 set(UI_SOURCES
     src/MainWindow.cpp
     src/actions/Actions.cpp
+    src/analysis/AnalysisInputMapper.cpp
     src/analysis/AnalysisPayloadMapper.cpp
     src/bootstrap/QmlRuntime.cpp
     src/controllers/ActorController.cpp
@@ -22,6 +23,7 @@ set(UI_SOURCES
     src/dialogs/FileDialogs.cpp
     src/export/AppStateSnapshot.cpp
     src/export/ExportRunner.cpp
+    src/import/DraftViewMapper.cpp
     src/import/ImportDraftMapper.cpp
     src/import/ImportJobBridge.cpp
     src/import/ImportRunStore.cpp
@@ -38,21 +40,24 @@ set(UI_SOURCES
     src/models/TransactionDraftList.cpp
     src/models/TransactionFilter.cpp
     src/models/TransactionList.cpp
-    src/providers/DraftProofProvider.cpp
     src/state/FilterState.cpp
     src/state/MetricsState.cpp
+    src/state/SessionMetricsSync.cpp
     src/state/NavigationState.cpp
+    src/state/PropertyNameProjection.cpp
     src/state/PropertyNameCatalog.cpp
     src/state/SessionSelection.cpp
     src/state/SelectionState.cpp
+    src/state/SelectionStateSync.cpp
+    src/state/StateFacadeProjection.cpp
     src/state/SessionModels.cpp
+    src/state/SessionModelProjection.cpp
     src/state/SessionMutationState.cpp
     src/state/SessionStore.cpp
     src/state/StateFacade.cpp
     src/window/CloseWorkflow.cpp
     src/window/DropController.cpp
     src/window/MainWindowContext.cpp
-    src/workflows/FileWorkflow.cpp
     qml/qml.qrc
 )
 
@@ -60,6 +65,7 @@ set(UI_HEADERS
     include/MainWindow.h
     include/ui/pch.h
     include/ui/actions/Actions.h
+    include/ui/analysis/AnalysisInputMapper.h
     include/ui/analysis/AnalysisPayloadMapper.h
     include/ui/bootstrap/QmlContracts.h
     include/ui/bootstrap/QmlRuntime.h
@@ -68,9 +74,6 @@ set(UI_HEADERS
     include/ui/controllers/AnalysisController.h
     include/ui/controllers/AnnualController.h
     include/ui/controllers/ContractController.h
-    include/ui/controllers/ControllerContracts.h
-    include/ui/controllers/ControllerGuard.h
-    include/ui/controllers/ControllerStrings.h
     include/ui/controllers/DraftController.h
     include/ui/controllers/ExportController.h
     include/ui/controllers/FileSystemController.h
@@ -83,6 +86,7 @@ set(UI_HEADERS
     include/ui/dialogs/FileDialogs.h
     include/ui/export/AppStateSnapshot.h
     include/ui/export/ExportRunner.h
+    include/ui/import/DraftViewMapper.h
     include/ui/import/ImportDraftMapper.h
     include/ui/import/ImportJobBridge.h
     include/ui/import/ImportRunStore.h
@@ -106,15 +110,20 @@ set(UI_HEADERS
     include/ui/observability/Origins.h
     include/ui/observability/Trace.h
     include/ui/payload/PayloadKeys.h
-    include/ui/providers/DraftProofProvider.h
+    include/ui/payload/PayloadMapper.h
     include/ui/state/FilterState.h
     include/ui/state/MetricsState.h
     include/ui/state/NavigationState.h
     include/ui/state/AppStateClone.h
     include/ui/state/PropertyNameCatalog.h
+    include/ui/state/PropertyNameProjection.h
+    include/ui/state/SessionMetricsSync.h
     include/ui/state/SessionSelection.h
     include/ui/state/SelectionState.h
+    include/ui/state/SelectionStateSync.h
+    include/ui/state/StateFacadeProjection.h
     include/ui/state/SessionModels.h
+    include/ui/state/SessionModelProjection.h
     include/ui/state/SessionMutationState.h
     include/ui/state/SessionStore.h
     include/ui/state/StateFacade.h
@@ -124,7 +133,8 @@ set(UI_HEADERS
     include/ui/window/DropController.h
     include/ui/window/MainWindowContext.h
     include/ui/window/MainWindowTrace.h
-    include/ui/workflows/FileWorkflow.h
+    include/ui/util/CoreFacadeGuard.h
+    include/ui/util/StringConversions.h
 )
 
 add_library(fossredder_ui STATIC ${UI_SOURCES} ${UI_HEADERS})

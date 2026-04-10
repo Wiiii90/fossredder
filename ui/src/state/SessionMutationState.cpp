@@ -1,13 +1,18 @@
+/**
+ * @file ui/src/state/SessionMutationState.cpp
+ * @brief Implementation of the UI SessionMutationState component.
+ */
+
 #include "ui/state/SessionMutationState.h"
 
 #include <QModelIndex>
 #include <QSet>
 
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/state/FilterState.h"
 #include "ui/state/MetricsState.h"
 #include "ui/state/PropertyNameCatalog.h"
 #include "ui/state/SessionModels.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 

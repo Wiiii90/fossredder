@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
@@ -62,9 +62,9 @@ Item {
                     if (!name) return
                     var id = null
                     try {
-                        if (typeof actorController !== 'undefined' && actorController && uiData && model === uiData.actors) id = actorController.addActor(name, "", "")
-                        else if (typeof propertyController !== 'undefined' && propertyController && uiData && model === uiData.properties) id = propertyController.addProperty(name, "", "")
-                        else if (typeof contractController !== 'undefined' && contractController && uiData && model === uiData.contracts) id = contractController.addContract(name, "", "", [], [])
+                        if (typeof actorController !== 'undefined' && actorController && session && model === session.actors) id = actorController.addActor(name, "", "")
+                        else if (typeof propertyController !== 'undefined' && propertyController && session && model === session.properties) id = propertyController.addProperty(name, "", "")
+                        else if (typeof contractController !== 'undefined' && contractController && session && model === session.contracts) id = contractController.addContract(name, "", "", [], [])
                     } catch(e) { id = null }
                     if (id && id.length > 0) {
                         var next = root.selectedIds ? root.selectedIds.slice(0) : []

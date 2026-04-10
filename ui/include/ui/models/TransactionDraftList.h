@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/TransactionDraftList.h
+ * @brief Declarations for the UI TransactionDraftList component.
+ */
+
 #pragma once
 
 #include <QObject>

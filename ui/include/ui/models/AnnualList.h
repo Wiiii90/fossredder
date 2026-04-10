@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/AnnualList.h
+ * @brief Declarations for the UI AnnualList component.
+ */
+
 #pragma once
 
 #include "core/models/Annual.h"

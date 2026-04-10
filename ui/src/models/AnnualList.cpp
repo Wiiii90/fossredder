@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/models/AnnualList.cpp
+ * @brief Implementation of the UI AnnualList component.
+ */
+
 #include "ui/models/AnnualList.h"
 
 #include <QVariant>

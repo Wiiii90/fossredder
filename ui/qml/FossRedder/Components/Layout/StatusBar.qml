@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -19,8 +19,8 @@ Item {
 
             Label {
                 id: lblStatus
-                text: (typeof uiStatus !== 'undefined' && uiStatus && uiStatus.text && uiStatus.text.length > 0)
-                      ? uiStatus.text
+                text: (typeof status !== 'undefined' && status && status.text && status.text.length > 0)
+                      ? status.text
                       : bar.readyStatusText
                 color: Theme.textPrimary
                 elide: Label.ElideRight

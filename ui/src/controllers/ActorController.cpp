@@ -5,42 +5,76 @@
 
 #include "ui/controllers/ActorController.h"
 
+#include <algorithm>
+
 #include "core/application/AppStateFacade.h"
-#include "ui/controllers/ControllerGuard.h"
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
+#include "ui/payload/EntityPayloadMapper.h"
+#include "ui/util/CoreFacadeGuard.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 
-ActorController::ActorController(core::application::AppStateFacade *core, QObject *parent)
-    : QObject(parent), core_(core) {}
-
-QString ActorController::addActor(const QString &name, const QString &type,
-                                  const QString &description, const QStringList &aliases) {
-  return controllers::guard::invokeValue<QString>(
-      core_, observability::origins::controller::actor::kAdd, {}, [&]() {
-        return QString::fromStdString(core_->addActor(
-            strings::toStdString(name), strings::toStdString(type),
-            strings::toStdString(description), strings::toStdList(aliases)));
-      });
+ActorController::ActorController(core::application::AppStateFacade* core, QObject* parent)
+    : QObject(parent)
+    , core_(core)
+{
 }
 
-void ActorController::updateActor(const QString &id, const QString &name,
-                                  const QString &type,
-                                  const QString &description,
-                                  const QStringList &aliases) {
-  controllers::guard::invokeVoid(
-      core_, observability::origins::controller::actor::kUpdate, [&]() {
-        core_->updateActor(strings::toStdString(id), strings::toStdString(name),
-                           strings::toStdString(type),
-                           strings::toStdString(description), strings::toStdList(aliases));
-      });
+QVariantMap ActorController::actor(const QString& id) const
+{
+    if (!core_) {
+        return {};
+    }
+
+    const auto& items = core_->state().actors;
+    const auto it = std::find_if(items.begin(), items.end(), [&](const auto& item) {
+        return item && QString::fromStdString(item->id) == id;
+    });
+    return it != items.end() && *it ? ui::payload::entity::toPayload(**it) : QVariantMap{};
 }
 
-void ActorController::deleteActor(const QString &id) {
-  controllers::guard::invokeVoid(
-      core_, observability::origins::controller::actor::kDelete,
-      [&]() { core_->deleteActor(strings::toStdString(id)); });
+QVariantList ActorController::actors() const
+{
+    return core_ ? ui::payload::entity::toPayloadList(core_->state().actors) : QVariantList{};
+}
+
+QString ActorController::addActor(const QString& name,
+                                  const QString& type,
+                                  const QString& description,
+                                  const QStringList& aliases)
+{
+    return ui::util::guard::invokeValue<QString>(
+        core_, observability::origins::controller::actor::kAdd, {}, [&]() {
+            return QString::fromStdString(core_->addActor(
+                strings::toStdString(name),
+                strings::toStdString(type),
+                strings::toStdString(description),
+                strings::toStdList(aliases)));
+        });
+}
+
+void ActorController::updateActor(const QString& id,
+                                  const QString& name,
+                                  const QString& type,
+                                  const QString& description,
+                                  const QStringList& aliases)
+{
+    ui::util::guard::invokeVoid(
+        core_, observability::origins::controller::actor::kUpdate, [&]() {
+            core_->updateActor(strings::toStdString(id),
+                               strings::toStdString(name),
+                               strings::toStdString(type),
+                               strings::toStdString(description),
+                               strings::toStdList(aliases));
+        });
+}
+
+void ActorController::deleteActor(const QString& id)
+{
+    ui::util::guard::invokeVoid(
+        core_, observability::origins::controller::actor::kDelete,
+        [&]() { core_->deleteActor(strings::toStdString(id)); });
 }
 
 } // namespace ui

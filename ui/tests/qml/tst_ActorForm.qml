@@ -11,7 +11,7 @@ TestCase {
     width: 960
     height: 640
 
-    property var uiData: QtObject {
+    property var session: QtObject {
         property var selectedActor: null
         property string selectedActorId: ""
     }
@@ -88,15 +88,15 @@ TestCase {
 
     function createForm(selectedActor) {
         var actorObject = createActorObject(selectedActor)
-        uiData.selectedActor = actorObject
-        uiData.selectedActorId = actorObject ? actorObject.id : ""
+        session.selectedActor = actorObject
+        session.selectedActorId = actorObject ? actorObject.id : ""
         return createTemporaryObject(actorFormComponent, testCase)
     }
 
     function init() {
         actorController.reset()
-        uiData.selectedActor = null
-        uiData.selectedActorId = ""
+        session.selectedActor = null
+        session.selectedActorId = ""
     }
 
     function test_createModeAddsActorAndStoresSelection() {
@@ -115,7 +115,7 @@ TestCase {
         compare(actorController.lastAdd.name, "Alice")
         compare(actorController.lastAdd.type, "Vendor")
         compare(actorController.lastAdd.description, "Preferred contractor")
-        compare(uiData.selectedActorId, "actor-new")
+        compare(session.selectedActorId, "actor-new")
     }
 
     function test_editModeSyncsFieldsAndUpdatesActor() {
@@ -158,6 +158,6 @@ TestCase {
 
         compare(actorController.deleteCalls, 1)
         compare(actorController.lastDeleteId, "actor-7")
-        compare(uiData.selectedActorId, "")
+        compare(session.selectedActorId, "")
     }
 }

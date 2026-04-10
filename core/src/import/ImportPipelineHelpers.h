@@ -14,6 +14,7 @@
 #include "core/import/ImportRequest.h"
 #include "core/import/ImportResult.h"
 #include "core/jobs/Scheduler.h"
+#include "core/models/TransactionDraft.h"
 
 #include <atomic>
 #include <filesystem>
@@ -69,7 +70,7 @@ FinalizeStats finalizeParsedPages(const ImportRequest& req,
                                   const std::shared_ptr<api::opencv::IOpenCvService>& opencv,
                                   const std::filesystem::path& proofDir,
                                   ImportResult& out,
-                                  std::vector<ImportedTransaction>& all,
+                                  std::vector<core::domain::TransactionDraft>& all,
                                   std::string& carriedBookingDate,
                                   int& nextTxIndex,
                                   core::errors::IErrorReporter* errorReporter,

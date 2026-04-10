@@ -21,7 +21,6 @@
 #include "ui/state/StatusState.h"
 #include "ui/text/Text.h"
 #include "ui/window/MainWindowTrace.h"
-#include "ui/workflows/FileWorkflow.h"
 
 namespace ui::window {
 
@@ -33,7 +32,6 @@ MainWindowServices installMainWindowContext(QQmlContext &qmlContext,
   auto *navigation = new ui::NavigationState(parent);
   services.dataSession = new ui::StateFacade(parent);
   auto *fileSystem = new ui::FileSystemController(parent);
-  services.fileWorkflow = new ui::workflows::FileWorkflow(parentWindow, parent);
   services.status = new ui::StatusState(parent);
   services.status->setText(ui::text::status::ready());
 
@@ -41,7 +39,7 @@ MainWindowServices installMainWindowContext(QQmlContext &qmlContext,
                                 services.actions);
   qmlContext.setContextProperty(ui::qml::contracts::context::kNavigation,
                                 navigation);
-  qmlContext.setContextProperty(ui::qml::contracts::context::kData,
+  qmlContext.setContextProperty(ui::qml::contracts::context::kSession,
                                 services.dataSession);
   qmlContext.setContextProperty(
       ui::qml::contracts::context::kFileSystemController, fileSystem);
@@ -66,57 +64,43 @@ void wireMainWindowActions(MainWindow &window,
     return;
 
   auto *actions = services.actions;
-  if (services.fileWorkflow) {
-    QObject::connect(actions->newFileAction(), &QAction::triggered,
-                     services.fileWorkflow,
-                     &ui::workflows::FileWorkflow::requestNewFile);
-    QObject::connect(actions->openFileAction(), &QAction::triggered,
-                     services.fileWorkflow,
-                     &ui::workflows::FileWorkflow::requestOpenFile);
-    QObject::connect(actions->saveFileAction(), &QAction::triggered,
-                     services.fileWorkflow,
-                     &ui::workflows::FileWorkflow::requestSaveFile);
-    QObject::connect(actions->saveFileAsAction(), &QAction::triggered,
-                     services.fileWorkflow,
-                     &ui::workflows::FileWorkflow::requestSaveFileAs);
-
-    QObject::connect(
-        services.fileWorkflow, &ui::workflows::FileWorkflow::newFileRequested,
-        &window, [&window](const QString &file) {
-          ui::window::reportMainWindowFlow(
-              ui::observability::origins::mainWindow::kActionRouting,
-              "UI requested new file", core::errors::ErrorSeverity::Info,
-              ui::window::makePathContext(file));
-          emit window.newFileRequested(file);
-        });
-    QObject::connect(
-        services.fileWorkflow, &ui::workflows::FileWorkflow::openFileRequested,
-        &window, [&window](const QString &file) {
-          ui::window::reportMainWindowFlow(
-              ui::observability::origins::mainWindow::kActionRouting,
-              "UI requested open file", core::errors::ErrorSeverity::Info,
-              ui::window::makePathContext(file));
-          emit window.openFileRequested(file);
-        });
-    QObject::connect(
-        services.fileWorkflow, &ui::workflows::FileWorkflow::saveFileRequested,
-        &window, [&window]() {
-          ui::window::reportMainWindowFlow(
-              ui::observability::origins::mainWindow::kActionRouting,
-              "UI requested save file");
-          emit window.saveFileRequested();
-        });
-    QObject::connect(
-        services.fileWorkflow,
-        &ui::workflows::FileWorkflow::saveFileAsRequested, &window,
-        [&window](const QString &file) {
-          ui::window::reportMainWindowFlow(
-              ui::observability::origins::mainWindow::kActionRouting,
-              "UI requested save file as", core::errors::ErrorSeverity::Info,
-              ui::window::makePathContext(file));
-          emit window.saveFileAsRequested(file);
-        });
-  }
+  QObject::connect(actions->newFileAction(), &QAction::triggered, &window,
+                   [&window](bool) {
+                     const QString file = ui::dialogs::pickNewStorageFile(&window);
+                     if (file.isEmpty()) return;
+                     ui::window::reportMainWindowFlow(
+                         ui::observability::origins::mainWindow::kActionRouting,
+                         "UI requested new file", core::errors::ErrorSeverity::Info,
+                         ui::window::makePathContext(file));
+                     emit window.newFileRequested(file);
+                   });
+  QObject::connect(actions->openFileAction(), &QAction::triggered, &window,
+                   [&window](bool) {
+                     const QString file = ui::dialogs::pickOpenStorageFile(&window);
+                     if (file.isEmpty()) return;
+                     ui::window::reportMainWindowFlow(
+                         ui::observability::origins::mainWindow::kActionRouting,
+                         "UI requested open file", core::errors::ErrorSeverity::Info,
+                         ui::window::makePathContext(file));
+                     emit window.openFileRequested(file);
+                   });
+  QObject::connect(actions->saveFileAction(), &QAction::triggered, &window,
+                   [&window](bool) {
+                     ui::window::reportMainWindowFlow(
+                         ui::observability::origins::mainWindow::kActionRouting,
+                         "UI requested save file");
+                     emit window.saveFileRequested();
+                   });
+  QObject::connect(actions->saveFileAsAction(), &QAction::triggered, &window,
+                   [&window](bool) {
+                     const QString file = ui::dialogs::pickSaveStorageFileAs(&window);
+                     if (file.isEmpty()) return;
+                     ui::window::reportMainWindowFlow(
+                         ui::observability::origins::mainWindow::kActionRouting,
+                         "UI requested save file as", core::errors::ErrorSeverity::Info,
+                         ui::window::makePathContext(file));
+                     emit window.saveFileAsRequested(file);
+                   });
 
   QObject::connect(actions->quitAction(), &QAction::triggered, &window,
                    &QWidget::close);

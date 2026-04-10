@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -7,7 +7,7 @@ Item {
     id: root
     implicitWidth: Theme.analysis.layout.defaultWidth
     implicitHeight: Theme.chartPlotPreferredHeight
-    property var uiData: null
+    property var session: null
     property var analysisController: null
     property var table: []
     property var simpleRows: []
@@ -17,7 +17,7 @@ Item {
     Timer { id: initDelay; interval: 60; repeat: false; running: false; triggeredOnStart: false; onTriggered: { try { syncTableFromState(); rebuild() } catch(e) {} } }
 
     function syncTableFromState() {
-        table = (typeof uiData !== 'undefined' && uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []
+        table = (typeof session !== 'undefined' && session && session.lastAnalysisResult) ? session.lastAnalysisResult.table : []
     }
 
     function resetDerivedData() {
@@ -56,8 +56,8 @@ Item {
     function rebuild() {
         resetDerivedData()
         try {
-            if (typeof uiData === 'undefined' || !uiData || !uiData.lastAnalysisResult || !uiData.lastAnalysisResult.table) return
-            var tbl = uiData.lastAnalysisResult.table
+            if (typeof session === 'undefined' || !session || !session.lastAnalysisResult || !session.lastAnalysisResult.table) return
+            var tbl = session.lastAnalysisResult.table
             if (isSimpleTable(tbl)) {
                 simpleRows = JSON.parse(JSON.stringify(tbl))
                 table = simpleRows
@@ -206,14 +206,14 @@ Item {
         }
     }
 
-    onUiDataChanged: {
+    onSessionChanged: {
         try {
             syncTableFromState()
-            if (uiData && uiData.lastAnalysisResult) rebuild(); else resetDerivedData()
+            if (session && session.lastAnalysisResult) rebuild(); else resetDerivedData()
         } catch(e) {}
     }
 
-    Connections { target: (typeof uiData !== 'undefined') ? uiData : null
+    Connections { target: (typeof session !== 'undefined') ? session : null
         function onLastAnalysisResultChanged() { try { syncTableFromState(); rebuild() } catch(e) {} }
     }
 }

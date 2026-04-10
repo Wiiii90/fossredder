@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/models/StatementList.cpp
+ * @brief Implementation of the UI StatementList component.
+ */
+
 #include "ui/models/StatementList.h"
 
 #include <QVariant>

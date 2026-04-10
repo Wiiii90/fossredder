@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/window/DropController.h
+ * @brief Declarations for the UI DropController component.
+ */
+
 #pragma once
 
 #include <QStringList>

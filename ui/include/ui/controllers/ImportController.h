@@ -13,15 +13,20 @@
 #include <memory>
 
 #include "core/errors/IErrorReporter.h"
+#include "core/jobs/ImportJobSpec.h"
+#include "core/jobs/JobTypes.h"
 #include "core/models/AppState.h"
 #include "ui/import/ImportJobBridge.h"
 #include "ui/import/ImportState.h"
 #include "ui/models/ImportRunList.h"
 
-namespace core { namespace jobs { class JobSystem; } }
+namespace core::jobs { class JobSystem; }
 
 namespace ui {
 
+/**
+ * @brief Coordinates asynchronous statement imports, progress reporting, and draft creation for QML.
+ */
 class ImportController : public QObject {
     Q_OBJECT
 
@@ -45,6 +50,9 @@ public:
                               std::shared_ptr<core::errors::IErrorReporter> errorReporter,
                               QObject* parent = nullptr);
 
+    /** @brief Provide a snapshot callback used when creating UI drafts from import results.
+     *  @param provider Snapshot provider callback
+     */
     void setStateSnapshotProvider(StateSnapshotProvider provider);
 
     bool isRunning() const noexcept { return state_.isRunning(); }
@@ -59,14 +67,30 @@ public:
     QStringList queuedFiles() const;
     StatementDraft* draft() const noexcept;
 
+    /** @brief Start importing the selected file or the next queued file. */
     Q_INVOKABLE void startStatementImport();
+
+    /** @brief Append files to the import selection and queue.
+     *  @param paths File paths to add
+     */
     Q_INVOKABLE void addFiles(const QStringList& paths);
+
+    /** @brief Clear transient import status once no import is running. */
     Q_INVOKABLE void resetStatus();
+
+    /** @brief Clear the current statement draft and continue with queued imports if needed. */
     Q_INVOKABLE void clearDraft();
+
+    /** @brief Request cancellation of the active import. */
     Q_INVOKABLE void cancelImport();
+
+    /** @brief Request cancellation of the active import and clear the remaining queue. */
     Q_INVOKABLE void cancelAllImports();
 
+    /** @brief Return the model that tracks persisted import-run entries. */
     ImportRunList* runs() noexcept;
+
+    /** @brief Return artifact bytes associated with the active draft run. */
     QByteArray artifactBytes(const QString& key) const { return state_.artifactBytes(key); }
 
 signals:
@@ -99,4 +123,4 @@ private:
     void reportException(const char* origin, std::exception_ptr exception) const;
 };
 
-}
+} // namespace ui

@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/SessionModels.h
+ * @brief Declarations for the UI SessionModels component.
+ */
+
 #pragma once
 
 #include <memory>

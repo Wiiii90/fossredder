@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/window/DropController.cpp
+ * @brief Implementation of the UI DropController component.
+ */
+
 #include "ui/window/DropController.h"
 
 #include <QDragEnterEvent>

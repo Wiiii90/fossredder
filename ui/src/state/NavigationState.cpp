@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/state/NavigationState.cpp
+ * @brief Implementation of the UI NavigationState component.
+ */
+
 #include "ui/state/NavigationState.h"
 
 #include <QMetaObject>

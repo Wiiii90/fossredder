@@ -1,9 +1,14 @@
+/**
+ * @file ui/src/models/ActorList.cpp
+ * @brief Implementation of the UI ActorList component.
+ */
+
 #include "ui/models/ActorList.h"
 
 #include <QVariant>
 
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/payload/PayloadKeys.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 

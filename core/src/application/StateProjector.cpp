@@ -6,7 +6,9 @@
 #include "core/models/Contract.h"
 #include "core/models/Property.h"
 #include "core/models/Statement.h"
+#include "core/models/StatementDraft.h"
 #include "core/models/Transaction.h"
+#include "core/models/TransactionDraft.h"
 #include <algorithm>
 #include <utility>
 #include <unordered_set>
@@ -69,6 +71,8 @@ AppState StateProjector::prepareForSave(const AppState& state)
     cloneCollection(out.transactions, state.transactions);
     cloneCollection(out.analyses,     state.analyses);
     cloneCollection(out.annuals,      state.annuals);
+    cloneCollection(out.statementDrafts, state.statementDrafts);
+    cloneCollection(out.transactionDrafts, state.transactionDrafts);
     for (const auto& c : out.contracts) {
         if (!c) continue;
         dedupStrings(c->aliases);

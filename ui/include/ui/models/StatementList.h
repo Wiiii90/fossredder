@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/StatementList.h
+ * @brief Declarations for the UI StatementList component.
+ */
+
 #pragma once
 
 #include "core/models/Statement.h"

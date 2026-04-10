@@ -222,7 +222,7 @@ Item {
                                     enabled: root.hasImportController && !importController.isRunning
                                     fillColor: Theme.surface
                                     textColor: Theme.textPrimary
-                                    onClicked: { if (uiActions) uiActions.browseImportPdf() }
+                                    onClicked: { if (actions) actions.browseImportPdf() }
                                 }
                             }
 
@@ -235,11 +235,11 @@ Item {
                                 clickToBrowse: true
                                 queuedCount: root.hasImportController ? importController.queuedCount : 0
                                 files: root.hasImportController ? (importController.selectedFile && importController.selectedFile.length > 0 ? [importController.selectedFile].concat(importController.queuedFiles) : importController.queuedFiles) : []
-                                onBrowseRequested: { if (uiActions) uiActions.browseImportPdf() }
+                                onBrowseRequested: { if (actions) actions.browseImportPdf() }
                             }
 
                             Connections {
-                                target: uiActions
+                                target: actions
                                 function onImportFileSelected(path) {
                                     if (!path) return
                                     manualPath.text = path
@@ -263,14 +263,14 @@ Item {
                             Connections {
                                 target: root.hasImportController ? importController : null
                                 function onImportCanceled() {
-                                    if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = root.importCanceledStatusText
+                                    if (typeof status !== 'undefined' && status) status.text = root.importCanceledStatusText
                                 }
                                 function onImportFinished() {
-                                    if (typeof uiStatus !== 'undefined' && uiStatus) uiStatus.text = root.importFinishedStatusText
+                                    if (typeof status !== 'undefined' && status) status.text = root.importFinishedStatusText
                                 }
                                 function onImportFailed(error) {
-                                    if (typeof uiStatus !== 'undefined' && uiStatus)
-                                        uiStatus.text = (error && error.length > 0) ? error : root.importFailedStatusText
+                                    if (typeof status !== 'undefined' && status)
+                                        status.text = (error && error.length > 0) ? error : root.importFailedStatusText
                                 }
                             }
                         }

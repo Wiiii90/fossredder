@@ -23,12 +23,16 @@
 #include "core/repositories/IContractRepository.h"
 #include "core/repositories/IPropertyRepository.h"
 #include "core/repositories/IStatementRepository.h"
+#include "core/repositories/IStatementDraftRepository.h"
 #include "core/repositories/ITransactionRepository.h"
+#include "core/repositories/ITransactionDraftRepository.h"
 #include "core/storage/RepositoryBundle.h"
 
 #include "core/models/Property.h"
 #include "core/models/Statement.h"
+#include "core/models/StatementDraft.h"
 #include "core/models/Transaction.h"
+#include "core/models/TransactionDraft.h"
 
 namespace core::application {
 
@@ -89,6 +93,12 @@ AppState AppStateManager::load() {
     state.analyses = loadCollection(impl_->repos.analyses, [](const auto& repo) { return repo.getAnalyses(); });
     state.annuals = loadCollection(impl_->repos.annuals, [](const auto& repo) { return repo.getAnnuals(); });
 
+    state.statementDrafts = loadCollection(impl_->repos.statementDrafts, [](const auto& repo) { return repo.getStatementDrafts(); });
+
+    if (impl_->repos.transactionDrafts) {
+        state.transactionDrafts = impl_->repos.transactionDrafts->getTransactionDrafts();
+    }
+
     StateHydrator::rehydrate(state);
     StateHydrator::validate(state, impl_->strictValidation);
 
@@ -106,6 +116,28 @@ void AppStateManager::save(const AppState& state) {
     upsertCollection(impl_->repos.transactions, projected.transactions, [](auto& repo, const auto& transaction) { repo.upsertTransaction(transaction); });
     upsertCollection(impl_->repos.analyses, projected.analyses, [](auto& repo, const auto& analysis) { repo.upsertAnalysis(analysis); });
     upsertCollection(impl_->repos.annuals, projected.annuals, [](auto& repo, const auto& annual) { repo.upsertAnnual(annual); });
+
+    if (impl_->repos.statementDrafts) {
+        impl_->repos.statementDrafts->clearStatementDrafts();
+        for (const auto& item : projected.statementDrafts) {
+            if (!item) continue;
+            impl_->repos.statementDrafts->upsertStatementDraft(item);
+        }
+    }
+
+    if (impl_->repos.transactionDrafts) {
+        std::vector<std::shared_ptr<core::domain::TransactionDraft>> transactionDrafts;
+        transactionDrafts.reserve(projected.transactionDrafts.size());
+        for (const auto& item : projected.transactionDrafts) {
+            if (!item) continue;
+            transactionDrafts.push_back(item);
+        }
+
+        impl_->repos.transactionDrafts->clearTransactionDrafts();
+        for (const auto& draft : transactionDrafts) {
+            impl_->repos.transactionDrafts->upsertTransactionDraft(draft);
+        }
+    }
 }
 
 void AppStateManager::setStrictValidation(bool enabled) noexcept

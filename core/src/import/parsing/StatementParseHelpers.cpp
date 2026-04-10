@@ -687,7 +687,7 @@ static void appendBlockDebug(const TransactionBlock& block,
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::blockDebug", std::current_exception()); }
 }
 
-static void applyCellAmountOverride(ImportedTransaction& tx,
+static void applyCellAmountOverride(core::domain::TransactionDraft& tx,
                                     const TransactionBlock& block,
                                     const ColumnModel& cols,
                                     const api::tesseract::ExtractResult& ocr,
@@ -731,7 +731,7 @@ static void applyCellAmountOverride(ImportedTransaction& tx,
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::cellOverride", std::current_exception()); }
 }
 
-static void attachProofCrop(ImportedTransaction& tx,
+static void attachProofCrop(core::domain::TransactionDraft& tx,
                             const TransactionBlock& block,
                             int txIndex,
                             const std::shared_ptr<api::opencv::IOpenCvService>& opencv,
@@ -811,7 +811,7 @@ void appendTransactionsFromBlocks(const std::vector<TransactionBlock>& blocks,
         const auto parsed = DefaultTransactionParser::parseTransaction(block, &txDebug);
         for (const auto& line : txDebug) out.debugLines.push_back(std::string("txdbg\t") + line);
 
-        ImportedTransaction tx;
+        core::domain::TransactionDraft tx;
         tx.name = parsed.name;
         tx.bookingDate = parsed.bookingDate;
         tx.valuta = parsed.valuta;

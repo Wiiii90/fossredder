@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -8,7 +8,7 @@ Item {
     id: contentRouter
     Layout.fillWidth: true
     Layout.fillHeight: true
-    property int activeSection: uiNav ? uiNav.section : UiNavigation.Import
+    property int activeSection: navigation ? navigation.section : Navigation.Import
     property bool actorLoaded: false
     property bool propertyLoaded: false
     property bool contractLoaded: false
@@ -33,31 +33,31 @@ Item {
 
     function rememberSection(section) {
         switch (section) {
-        case UiNavigation.Actors:
+        case Navigation.Actors:
             actorLoaded = true
             break
-        case UiNavigation.Properties:
+        case Navigation.Properties:
             propertyLoaded = true
             break
-        case UiNavigation.Contracts:
+        case Navigation.Contracts:
             contractLoaded = true
             break
-        case UiNavigation.Booking:
+        case Navigation.Booking:
             bookingLoaded = true
             break
-        case UiNavigation.Import:
+        case Navigation.Import:
             importLoaded = true
             break
-        case UiNavigation.Export:
+        case Navigation.Export:
             exportLoaded = true
             break
-        case UiNavigation.Settings:
+        case Navigation.Settings:
             settingsLoaded = true
             break
-        case UiNavigation.Analysis:
+        case Navigation.Analysis:
             analysisLoaded = true
             break
-        case UiNavigation.Annual:
+        case Navigation.Annual:
             annualLoaded = true
             break
         default:
@@ -67,89 +67,89 @@ Item {
     }
 
     function updateContent() {
-        if (uiNav && uiNav.section !== UiNavigation.Booking && uiData) {
-            if (uiData.selectedTransactionId && uiData.selectedTransactionId.length > 0)
-                uiData.selectedTransactionId = ""
-            if (uiData.selectedStatementId && uiData.selectedStatementId.length > 0)
-                uiData.selectedStatementId = ""
+        if (navigation && navigation.section !== Navigation.Booking && session) {
+            if (session.selectedTransactionId && session.selectedTransactionId.length > 0)
+                session.selectedTransactionId = ""
+            if (session.selectedStatementId && session.selectedStatementId.length > 0)
+                session.selectedStatementId = ""
         }
 
-        if (uiNav && uiNav.section !== UiNavigation.Booking && uiNav.bookingView !== UiNavigation.Statements)
-            uiNav.bookingView = UiNavigation.Statements
+        if (navigation && navigation.section !== Navigation.Booking && navigation.bookingView !== Navigation.Statements)
+            navigation.bookingView = Navigation.Statements
 
-        activeSection = uiNav ? uiNav.section : UiNavigation.Import
+        activeSection = navigation ? navigation.section : Navigation.Import
         rememberSection(activeSection)
     }
 
     Content {
         anchors.fill: parent
-        visible: activeSection === UiNavigation.Actors
+        visible: activeSection === Navigation.Actors
         contentComponent: actorLoaded ? actorViewComp : null
     }
 
     Content {
         anchors.fill: parent
-        visible: activeSection === UiNavigation.Properties
+        visible: activeSection === Navigation.Properties
         contentComponent: propertyLoaded ? propertyViewComp : null
     }
 
     Content {
         anchors.fill: parent
-        visible: activeSection === UiNavigation.Contracts
+        visible: activeSection === Navigation.Contracts
         contentComponent: contractLoaded ? contractViewComp : null
     }
 
     Content {
         anchors.fill: parent
-        visible: activeSection === UiNavigation.Booking
+        visible: activeSection === Navigation.Booking
         contentComponent: bookingLoaded ? bookingViewComp : null
     }
 
     Content {
         anchors.fill: parent
-        visible: activeSection === UiNavigation.Import
+        visible: activeSection === Navigation.Import
         contentComponent: importLoaded ? importViewComp : null
     }
 
     Content {
         anchors.fill: parent
-        visible: activeSection === UiNavigation.Export
+        visible: activeSection === Navigation.Export
         contentComponent: exportLoaded ? exportViewComp : null
     }
 
     Content {
         anchors.fill: parent
-        visible: activeSection === UiNavigation.Settings
+        visible: activeSection === Navigation.Settings
         contentComponent: settingsLoaded ? settingsViewComp : null
     }
 
     Content {
         anchors.fill: parent
-        visible: activeSection === UiNavigation.Analysis
+        visible: activeSection === Navigation.Analysis
         contentComponent: analysisLoaded ? analysisViewComp : null
     }
 
     Content {
         anchors.fill: parent
-        visible: activeSection === UiNavigation.Annual
+        visible: activeSection === Navigation.Annual
         contentComponent: annualLoaded ? annualViewComp : null
     }
 
     Content {
         anchors.fill: parent
-        visible: activeSection !== UiNavigation.Actors
-                 && activeSection !== UiNavigation.Properties
-                 && activeSection !== UiNavigation.Contracts
-                 && activeSection !== UiNavigation.Booking
-                 && activeSection !== UiNavigation.Import
-                 && activeSection !== UiNavigation.Export
-                 && activeSection !== UiNavigation.Settings
-                 && activeSection !== UiNavigation.Analysis
-                 && activeSection !== UiNavigation.Annual
+        visible: activeSection !== Navigation.Actors
+                 && activeSection !== Navigation.Properties
+                 && activeSection !== Navigation.Contracts
+                 && activeSection !== Navigation.Booking
+                 && activeSection !== Navigation.Import
+                 && activeSection !== Navigation.Export
+                 && activeSection !== Navigation.Settings
+                 && activeSection !== Navigation.Analysis
+                 && activeSection !== Navigation.Annual
         contentComponent: placeholderLoaded ? placeholderViewComp : null
     }
 
     Component.onCompleted: updateContent()
-    Connections { target: uiNav; function onSectionChanged() { updateContent() } }
+    Connections { target: navigation; function onSectionChanged() { updateContent() } }
 }
 

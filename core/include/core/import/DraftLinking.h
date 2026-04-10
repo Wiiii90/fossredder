@@ -8,8 +8,8 @@
 #include <string>
 #include <vector>
 
-#include "core/import/ImportedTransaction.h"
 #include "core/models/AppState.h"
+#include "core/models/TransactionDraft.h"
 
 namespace core::importing {
 
@@ -127,12 +127,14 @@ std::string normalizeDraftText(const std::string& text);
 bool matchesDraftText(const std::string& left, const std::string& right);
 std::vector<std::string> referenceAliasesFromMetadata(const std::string& metadata);
 DraftTextSignals buildDraftTextSignals(const core::domain::AppState& state,
-                                       const ImportedTransaction& transaction);
+                                       const core::domain::TransactionDraft& transaction);
 DraftImportSuggestions buildImportSuggestions(const core::domain::AppState& state,
-                                              const ImportedTransaction& transaction);
+                                              const core::domain::TransactionDraft& transaction);
 std::string resolveActorId(const core::domain::AppState& state, const std::string& text);
 std::string resolveContractId(const core::domain::AppState& state, const std::string& text);
 bool contractIsFullyAllocatable(const core::domain::AppState& state, const std::string& contractId);
+core::domain::AppState withFallbackState(core::domain::AppState primary,
+                                         const core::domain::AppState& fallback);
 DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
                                          const DraftLinkSelection& selection);
 
