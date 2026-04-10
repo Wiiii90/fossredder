@@ -9,8 +9,8 @@
 
 - Language: C++20
 - GUI: Qt6 (QML / Qt Quick)
-- Build system: CMake
-- Dependency management: vcpkg (manifest mode)
+- Build System: CMake
+- Dependency Management: vcpkg (manifest mode)
 - Persistence: SQLite (runtime storage)
 - PDF / Image / OCR: Poppler, OpenCV, Tesseract
 - Testing: GoogleTest (`gtest`)
@@ -137,7 +137,7 @@ Run CI tests:
 ctest --preset release-ci --output-on-failure
 ```
 
-#### Tidy
+#### Clang-Tidy
 
 Configure tidy:
 
@@ -173,7 +173,7 @@ ctest --preset release-coverage --output-on-failure
 
 Coverage output: `./coverage/` and `./coverage/coverage.lcov`.
 
-## Design
+## Architecture and Design
 
 [TODO: Brief architecture summary and link to design documents as well as design decision ADR files]
 
