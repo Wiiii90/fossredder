@@ -19,13 +19,29 @@ class StorageController : public QObject {
     Q_OBJECT
 
 public:
-    /** @brief Creates a controller that delegates storage operations to the core application facade. */
+    /** @brief Creates a controller that delegates storage operations to the core application facade.
+     *  @param core Core application facade pointer
+     *  @param parent QObject parent
+     */
     explicit StorageController(core::application::AppStateFacade* core, QObject* parent = nullptr);
 
 public slots:
+    /** @brief Create a new file at the requested path.
+     *  @param path File path to create
+     */
     void newFile(const QString& path);
+
+    /** @brief Open an existing file from the requested path.
+     *  @param path File path to open
+     */
     void openFile(const QString& path);
+
+    /** @brief Save the currently open file. */
     void saveFile();
+
+    /** @brief Save the current file under a new path.
+     *  @param path New file path
+     */
     void saveFileAs(const QString& path);
 
 signals:

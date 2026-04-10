@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/observability/Trace.h
+ * @brief Declarations for the UI Trace component.
+ */
+
 #pragma once
 
 #include <string>

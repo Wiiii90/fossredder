@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/TransactionList.h
+ * @brief Declarations for the UI TransactionList component.
+ */
+
 #pragma once
 
 #include <QHash>
@@ -47,7 +52,6 @@ public:
 private:
     void rebuildIdIndex();
     QString contractTypeForTransaction(const core::domain::Transaction& transaction) const;
-    static QVariantList toPropertyIdList(const std::vector<std::string>& propertyIds);
     void fillTransactionMap(QVariantMap& map, const core::domain::Transaction& transaction) const;
     QVector<int> allRoles() const;
 

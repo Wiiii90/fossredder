@@ -12,6 +12,7 @@
 #include <QQmlEngine>
 #include <QSettings>
 
+#include "core/constants/CoreDefaults.h"
 #include "ui/config/Defaults.h"
 #include "ui/payload/PayloadKeys.h"
 #include "ui/text/Text.h"
@@ -19,6 +20,12 @@
 namespace ui {
 
 namespace {
+
+/** @brief Converts an ASCII shared constant into a QString for Qt APIs. */
+QString fromCoreString(std::string_view value)
+{
+    return QString::fromLatin1(value.data());
+}
 
 /** @brief Creates the payload for a single language option entry. */
 QVariantMap makeLanguageOption(const char* code, const QString& label, bool available)
@@ -35,8 +42,8 @@ QSettings openLanguageSettings()
 {
     return QSettings(QSettings::NativeFormat,
                      QSettings::UserScope,
-                     ui::config::kSettingsOrganizationName,
-                     ui::config::kSettingsApplicationName);
+                     fromCoreString(core::constants::preferences::kOrganizationName),
+                     fromCoreString(core::constants::preferences::kApplicationName));
 }
 
 }
@@ -46,10 +53,12 @@ LanguageController::LanguageController(QApplication* application, QQmlEngine* en
     , application_(application)
     , engine_(engine)
 {
-    availableLanguages_.append(makeLanguageOption(ui::config::kLanguageEnglishCode, ui::text::language::englishLabel(), true));
-    availableLanguages_.append(makeLanguageOption(ui::config::kLanguageGermanCode,
+    availableLanguages_.append(makeLanguageOption(core::constants::localization::languages::kEnglish.data(),
+                                                  ui::text::language::englishLabel(),
+                                                  true));
+    availableLanguages_.append(makeLanguageOption(core::constants::localization::languages::kGerman.data(),
                                                   ui::text::language::germanLabel(),
-                                                  translationFileExists(ui::config::kLanguageGermanCode)));
+                                                  translationFileExists(fromCoreString(core::constants::localization::languages::kGerman))));
 
     const QString preferredLanguage = normalizeLanguageCode(persistedLanguage());
     setCurrentLanguage(preferredLanguage);
@@ -59,14 +68,16 @@ void LanguageController::setCurrentLanguage(const QString& languageCode)
 {
     const QString normalizedLanguage = normalizeLanguageCode(languageCode);
     QString targetLanguage = normalizedLanguage;
-    if (!isLanguageAvailable(targetLanguage)) targetLanguage = QString::fromLatin1(ui::config::kLanguageEnglishCode);
+    if (!isLanguageAvailable(targetLanguage)) {
+        targetLanguage = fromCoreString(core::constants::localization::languages::kEnglish);
+    }
     if (currentLanguage_ == targetLanguage) return;
 
     if (application_) application_->removeTranslator(&translator_);
 
-    if (targetLanguage != QLatin1String(ui::config::kLanguageEnglishCode)) {
+    if (targetLanguage != fromCoreString(core::constants::localization::languages::kEnglish)) {
         if (!loadTranslation(targetLanguage)) {
-            targetLanguage = QString::fromLatin1(ui::config::kLanguageEnglishCode);
+            targetLanguage = fromCoreString(core::constants::localization::languages::kEnglish);
         }
     }
 
@@ -79,17 +90,17 @@ void LanguageController::setCurrentLanguage(const QString& languageCode)
 bool LanguageController::isLanguageAvailable(const QString& languageCode) const
 {
     const QString normalizedLanguage = normalizeLanguageCode(languageCode);
-    if (normalizedLanguage == QLatin1String(ui::config::kLanguageEnglishCode)) return true;
+    if (normalizedLanguage == fromCoreString(core::constants::localization::languages::kEnglish)) return true;
     return translationFileExists(normalizedLanguage);
 }
 
 QString LanguageController::normalizeLanguageCode(const QString& languageCode) const
 {
     const QString trimmed = languageCode.trimmed().toLower();
-    if (trimmed.startsWith(QLatin1String(ui::config::kLanguageGermanCode))) {
-        return QString::fromLatin1(ui::config::kLanguageGermanCode);
+    if (trimmed.startsWith(fromCoreString(core::constants::localization::languages::kGerman))) {
+        return fromCoreString(core::constants::localization::languages::kGerman);
     }
-    return QString::fromLatin1(ui::config::kLanguageEnglishCode);
+    return fromCoreString(core::constants::localization::languages::kEnglish);
 }
 
 QString LanguageController::translationFileName(const QString& languageCode) const
@@ -99,7 +110,7 @@ QString LanguageController::translationFileName(const QString& languageCode) con
 
 bool LanguageController::translationFileExists(const QString& languageCode) const
 {
-    if (languageCode == QLatin1String(ui::config::kLanguageEnglishCode)) return true;
+    if (languageCode == fromCoreString(core::constants::localization::languages::kEnglish)) return true;
 
     const QString fileName = translationFileName(languageCode);
     const QString appTranslationPath = QCoreApplication::applicationDirPath() + QLatin1Char('/') + ui::config::kTranslationsDirName + QLatin1Char('/') + fileName;
@@ -135,7 +146,7 @@ void LanguageController::retranslateUi()
 void LanguageController::persistLanguage(const QString& languageCode)
 {
     auto settings = openLanguageSettings();
-    settings.setValue(ui::config::kLanguageSettingsKey, languageCode);
+    settings.setValue(fromCoreString(core::constants::preferences::keys::kLanguage), languageCode);
     settings.sync();
 }
 
@@ -144,7 +155,7 @@ QString LanguageController::persistedLanguage() const
     const QString fallbackLanguage = normalizeLanguageCode(QLocale::system().name());
     auto settings = openLanguageSettings();
     return normalizeLanguageCode(
-        settings.value(ui::config::kLanguageSettingsKey, fallbackLanguage).toString());
+        settings.value(fromCoreString(core::constants::preferences::keys::kLanguage), fallbackLanguage).toString());
 }
 
 }

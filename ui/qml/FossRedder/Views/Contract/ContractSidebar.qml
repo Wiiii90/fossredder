@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -24,20 +24,20 @@ Item {
                 spacing: Theme.spacingSmall
 
                 Repeater {
-                    model: uiData ? uiData.contractRows() : []
+                    model: session ? session.contractRows() : []
 
                     delegate: Rectangle {
                         width: contractColumn.width
                         height: 44
                         radius: 6
-                        color: uiData && modelData.id === uiData.selectedContractId ? Theme.selectionHighlight : "transparent"
+                        color: session && modelData.id === session.selectedContractId ? Theme.selectionHighlight : "transparent"
                         border.color: Theme.borderSoft
                         border.width: Theme.borderWidthThin
 
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                if (uiData) uiData.selectedContractId = modelData.id
+                                if (session) session.selectedContractId = modelData.id
                             }
                         }
 

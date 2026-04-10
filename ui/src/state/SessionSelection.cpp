@@ -5,79 +5,9 @@
 
 #include "ui/state/SessionSelection.h"
 
-#include <QAbstractItemModel>
-
-#include <utility>
+#include "ui/state/SelectionStateSync.h"
 
 namespace ui {
-
-namespace {
-
-struct SelectionIdsSnapshot {
-    QString actorId;
-    QString propertyId;
-    QString contractId;
-    QString statementId;
-    QString transactionId;
-    QString analysisId;
-    QString annualId;
-};
-
-/** @brief Captures the currently selected ids before a refresh cycle. */
-SelectionIdsSnapshot captureSelectionIds(const SelectionState& selection)
-{
-    return {
-        selection.selectedActorId(),
-        selection.selectedPropertyId(),
-        selection.selectedContractId(),
-        selection.selectedStatementId(),
-        selection.selectedTransactionId(),
-        selection.selectedAnalysisId(),
-        selection.selectedAnnualId()
-    };
-}
-
-/** @brief Emits only the selection changed signals that actually changed. */
-void emitSelectionChanges(SessionSelection& selection, const SelectionIdsSnapshot& before)
-{
-    if (selection.selectedActorId() != before.actorId) emit selection.selectedActorIdChanged();
-    if (selection.selectedPropertyId() != before.propertyId) emit selection.selectedPropertyIdChanged();
-    if (selection.selectedContractId() != before.contractId) emit selection.selectedContractIdChanged();
-    if (selection.selectedStatementId() != before.statementId) emit selection.selectedStatementIdChanged();
-    if (selection.selectedTransactionId() != before.transactionId) emit selection.selectedTransactionIdChanged();
-    if (selection.selectedAnalysisId() != before.analysisId) emit selection.selectedAnalysisIdChanged();
-    if (selection.selectedAnnualId() != before.annualId) emit selection.selectedAnnualIdChanged();
-}
-
-/** @brief Binds selection refresh logic to relevant model change signals. */
-template <typename RefreshFn>
-void bindSelectionRefresh(QAbstractItemModel& model, QObject* context, RefreshFn&& refresh)
-{
-    auto trigger = [refresh = std::forward<RefreshFn>(refresh)]() mutable {
-        refresh();
-    };
-
-    QObject::connect(&model, &QAbstractItemModel::dataChanged, context, [trigger](const QModelIndex&, const QModelIndex&, const QVector<int>&) mutable {
-        trigger();
-    });
-    QObject::connect(&model, &QAbstractItemModel::rowsInserted, context, [trigger](const QModelIndex&, int, int) mutable {
-        trigger();
-    });
-    QObject::connect(&model, &QAbstractItemModel::rowsRemoved, context, [trigger](const QModelIndex&, int, int) mutable {
-        trigger();
-    });
-    QObject::connect(&model, &QAbstractItemModel::modelReset, context, [trigger]() mutable {
-        trigger();
-    });
-}
-
-template <typename RefreshFn, typename... Models>
-void bindSelectionRefreshes(QObject* context, RefreshFn&& refresh, Models&... models)
-{
-    (bindSelectionRefresh(models, context, refresh), ...);
-}
-
-}
 
 SessionSelection::SessionSelection(SessionModels& models, QObject* parent)
     : QObject(parent)

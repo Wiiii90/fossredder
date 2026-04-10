@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -8,7 +8,7 @@ import FossRedder.Components 1.0 as Components
 Item {
     id: root
 
-    property var current: uiData ? uiData.selectedContract : null
+    property var current: session ? session.selectedContract : null
     property bool isEdit: current && current.id && String(current.id).length > 0
 
     property var selectedActorIds: []
@@ -85,7 +85,7 @@ Item {
                 Components.EntityPicker {
                     id: actorPicker
                     Layout.fillWidth: true
-                    model: uiData ? uiData.actors : null
+                    model: session ? session.actors : null
                     placeholder: qsTr("New actor name")
                     showAdd: false
                     onAdded: { if (selectedActorIds.indexOf(id) === -1) selectedActorIds.push(id) }
@@ -106,7 +106,7 @@ Item {
                 Components.EntityPicker {
                     id: propPicker
                     Layout.fillWidth: true
-                    model: uiData ? uiData.properties : null
+                    model: session ? session.properties : null
                     placeholder: qsTr("New property name")
                     showAdd: false
                     onAdded: { if (selectedPropertyIds.indexOf(id) === -1) selectedPropertyIds.push(id) }
@@ -144,7 +144,7 @@ Item {
             Layout.fillWidth: true
             spacing: Theme.spacing
 
-            Controls.Button { visible: isEdit; text: qsTr("New"); onClicked: if (uiData) uiData.selectedContractId = "" }
+            Controls.Button { visible: isEdit; text: qsTr("New"); onClicked: if (session) session.selectedContractId = "" }
 
             Controls.Button {
                 text: isEdit ? qsTr("Update") : qsTr("Add")
@@ -156,12 +156,12 @@ Item {
                     else {
                         var id = contractController.addContract(nameField.text, typeField.text, descField.text, selectedActorIds, selectedPropertyIds, aliasValues)
                         clearFields()
-                        if (uiData && id && id.length > 0) uiData.selectedContractId = id
+                        if (session && id && id.length > 0) session.selectedContractId = id
                     }
                 }
             }
 
-            Controls.Button { visible: isEdit; text: qsTr("Delete"); onClicked: { if (!contractController) return; contractController.deleteContract(current.id); if (uiData) uiData.selectedContractId = ""; clearFields() } }
+            Controls.Button { visible: isEdit; text: qsTr("Delete"); onClicked: { if (!contractController) return; contractController.deleteContract(current.id); if (session) session.selectedContractId = ""; clearFields() } }
 
             Item { Layout.fillWidth: true }
         }

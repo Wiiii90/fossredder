@@ -15,11 +15,11 @@ Item {
 
     function discardDraft() {
         if (typeof importController !== 'undefined' && importController) importController.clearDraft()
-        if (typeof uiData !== 'undefined' && uiData) {
-            uiData.selectedStatementId = ""
-            uiData.selectedTransactionId = ""
+        if (typeof session !== 'undefined' && session) {
+            session.selectedStatementId = ""
+            session.selectedTransactionId = ""
         }
-        if (typeof uiNav !== 'undefined' && uiNav) uiNav.section = UiNavigation.Import
+        if (typeof navigation !== 'undefined' && navigation) navigation.section = Navigation.Import
     }
 
     function finalizeDraft() {
@@ -28,18 +28,18 @@ Item {
         var sid = draftController.finalizeStatementDraft(draft)
         if (typeof importController !== 'undefined' && importController) importController.clearDraft()
 
-        if (!(sid && sid.length > 0 && uiNav && uiData)) return
+        if (!(sid && sid.length > 0 && navigation && session)) return
 
-        uiData.selectedStatementId = sid
+        session.selectedStatementId = sid
         try {
-            var transactions = uiData.statementTransactionIds(sid)
-            if (transactions && transactions.length > 0) uiData.selectedTransactionId = transactions[0]
+            var transactions = session.statementTransactionIds(sid)
+            if (transactions && transactions.length > 0) session.selectedTransactionId = transactions[0]
         } catch(e) {
         }
 
         Qt.callLater(function() {
-            uiNav.section = UiNavigation.Booking
-            try { uiNav.bookingView = UiNavigation.Statements } catch(e) {}
+            navigation.section = Navigation.Booking
+            try { navigation.bookingView = Navigation.Statements } catch(e) {}
         })
     }
 

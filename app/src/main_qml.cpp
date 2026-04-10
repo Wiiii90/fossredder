@@ -13,10 +13,7 @@
 #include "api/tesseract/ITesseractService.h"
 #include "core/application/AnalysisService.h"
 #include "core/application/AppStateFacade.h"
-#include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
-#include "core/export/ExportRequest.h"
-#include "core/export/ExportResult.h"
 #include "core/export/ExportService.h"
 #include "core/export/ExportTypes.h"
 #include "core/import/IImportStatement.h"
@@ -35,7 +32,6 @@ using core::domain::DeletionImpact;
 #include "ui/controllers/AnalysisController.h"
 #include "ui/controllers/AnnualController.h"
 #include "ui/controllers/ContractController.h"
-#include "ui/controllers/ControllerContracts.h"
 #include "ui/controllers/DraftController.h"
 #include "ui/controllers/ExportController.h"
 #include "ui/controllers/ImportController.h"
@@ -46,19 +42,19 @@ using core::domain::DeletionImpact;
 #include "ui/controllers/TransactionController.h"
 #include "ui/export/AppStateSnapshot.h"
 #include "ui/export/ExportRunner.h"
+#include "ui/import/ImportJobBridge.h"
 #include "ui/observability/Origins.h"
 #include "ui/observability/Trace.h"
-#include "ui/providers/DraftProofProvider.h"
 #include "ui/state/AppStateClone.h"
 #include "ui/state/StateFacade.h"
 #include <QApplication>
+#include <QList>
 #include <QQmlEngine>
 #include <QQmlError>
-#include <QUrl>
 
-#include <cstdio>
 #include <exception>
 #include <memory>
+#include <utility>
 
 std::shared_ptr<api::poppler::IPopplerAdapter>
 createPopplerAdapter(std::shared_ptr<IDebugger> dbg);
@@ -89,11 +85,11 @@ createTesseractService(std::shared_ptr<ITesseractAdapter> adapter);
 namespace {
 
 core::exporting::ExportFormat
-toCoreExportFormat(ui::controllers::contracts::ExportFormat format) {
+toCoreExportFormat(ui::qml::contracts::ExportFormat format) {
   switch (format) {
-  case ui::controllers::contracts::ExportFormat::Csv:
+  case ui::qml::contracts::ExportFormat::Csv:
     return core::exporting::ExportFormat::Csv;
-  case ui::controllers::contracts::ExportFormat::Xlsx:
+  case ui::qml::contracts::ExportFormat::Xlsx:
     return core::exporting::ExportFormat::Xlsx;
   default:
     ui::observability::reportFlow(
@@ -237,7 +233,7 @@ UiControllers setupUiControllers(
                           ui.import);
 
   w.addImageProvider(ui::qml::contracts::providers::kImportProof,
-                     new ui::DraftProofProvider(ui.import));
+                     ui::importing::createDraftProofProvider(ui.import));
 
   return ui;
 }
@@ -303,12 +299,12 @@ void wireQmlWarnings(
           event.code = ui::observability::codes::QmlWarning;
           event.origin = ui::observability::origins::app::kQmlWarnings;
           event.message = warning.description().toStdString();
-          event.context = {{ui::observability::context::kUrl,
-                            warning.url().toString().toStdString()},
-                           {ui::observability::context::kLine,
-                            std::to_string(warning.line())},
-                           {ui::observability::context::kColumn,
-                            std::to_string(warning.column())}};
+          event.context.emplace_back(ui::observability::context::kUrl,
+                                     warning.url().toString().toStdString());
+          event.context.emplace_back(ui::observability::context::kLine,
+                                     std::to_string(warning.line()));
+          event.context.emplace_back(ui::observability::context::kColumn,
+                                     std::to_string(warning.column()));
           errorReporter->report(event);
         }
       });

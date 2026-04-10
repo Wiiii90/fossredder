@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/NavigationState.h
+ * @brief Declarations for the UI NavigationState component.
+ */
+
 #pragma once
 
 #include <QObject>

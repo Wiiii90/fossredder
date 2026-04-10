@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import FossRedder 1.0
 import "../../Constants/Analysis.js" as Analysis
@@ -7,7 +7,7 @@ pragma NativeMethodBehavior: AcceptThisObject
 Item {
     id: root
     property var table: []
-    property var uiData
+    property var session
     property var legendFilter: []
     property var propertyNameForId
     property real splitProgress: 0.0

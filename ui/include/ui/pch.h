@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/pch.h
+ * @brief Precompiled header for the UI project.
+ */
+
 #pragma once
 
 #define NOMINMAX
@@ -28,7 +33,8 @@
 #include "core/models/AppState.h"
 #include "core/models/Contract.h"
 #include "core/models/DeletionImpact.h"
-#include "core/models/DraftStatement.h"
+#include "core/models/StatementDraft.h"
+#include "core/models/TransactionDraft.h"
 #include "core/models/Property.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
@@ -41,8 +47,8 @@ using core::domain::Annual;
 using core::domain::AppState;
 using core::domain::Contract;
 using core::domain::DeletionImpact;
-using core::domain::DraftStatement;
-using core::domain::DraftTransaction;
+using core::domain::StatementDraft;
+using core::domain::TransactionDraft;
 using core::domain::Property;
 using core::domain::Statement;
 using core::domain::Transaction;

@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -55,7 +55,7 @@ Item {
                             contractTypeList.clear()
                             if (analysisController) {
                                 var ctypes = []
-                                try { ctypes = analysisController.getContractTypes() } catch(e) { ctypes = [] }
+                                try { ctypes = analysisController.contractTypes() } catch(e) { ctypes = [] }
                                 if (ctypes && ctypes.length > 0) {
                                     for (var ci = 0; ci < ctypes.length; ++ci)
                                         contractTypeList.append({ text: ctypes[ci] })
@@ -72,8 +72,8 @@ Item {
 
                             selectedProps = []
                             try {
-                                if (uiData) {
-                                    var properties = uiData.propertyRows()
+                                if (session) {
+                                    var properties = session.propertyRows()
                                     for (var j = 0; j < properties.length; ++j) {
                                         var p = properties[j]
                                         if (p && p.id) selectedProps.push(p.id)
@@ -89,13 +89,13 @@ Item {
                             running: false
                             triggeredOnStart: false
                             onTriggered: {
-                                if (uiData) { createBox.rebuildChoices(); stop(); }
+                                if (session) { createBox.rebuildChoices(); stop(); }
                             }
                         }
 
                         Component.onCompleted: {
                             createBox.rebuildChoices()
-                            if (!uiData)
+                            if (!session)
                                 initTimer.start()
                         }
 
@@ -176,7 +176,7 @@ Item {
                                 Label { text: qsTr("Properties (select)") }
                                 Flickable { Layout.fillWidth: true; contentHeight: propList.implicitHeight; clip: true; height: Theme.chartLegendHeight
                                     Column { id: propList; width: parent.width
-                                        Repeater { model: uiData ? uiData.propertyRows() : []
+                                        Repeater { model: session ? session.propertyRows() : []
                                             delegate: RowLayout { width: parent.width; spacing: Theme.settings.spacing
                                                 Controls.CheckBox {
                                                     id: cb
@@ -211,27 +211,18 @@ Item {
                                     text: qsTr("Create")
                                     enabled: nameField.text.length > 0
                                     onClicked: {
-                                        if (!uiData || !analysisController) return
-                                        var strategy = "tab"
-                                        if (strategyCombo.currentIndex === 1) strategy = "plot"
-                                        else if (strategyCombo.currentIndex === 2) strategy = "calc"
-
+                                        if (!session || !analysisController) return
+                                        var strategyType = strategyCombo.currentIndex === 0 ? "tab" : (strategyCombo.currentIndex === 1 ? "plot" : "calc")
                                         var selectedPlotType = root.plotTypeOptions[Math.max(0, plotTypeCombo.currentIndex)].value
                                         var selectedPlotMeasure = root.plotMeasureOptions[Math.max(0, plotMeasureCombo.currentIndex)].value
-
-                                        var filterSpec = ""
-                                        if (dateFrom.text && dateFrom.text.length > 0) filterSpec += "date>=" + dateFrom.text
-                                        if (dateTo.text && dateTo.text.length > 0) {
-                                            if (filterSpec.length > 0) filterSpec += ";"
-                                            filterSpec += "date<=" + dateTo.text
-                                        }
-
-                                        var cfg = { plotType: selectedPlotType, plotMeasure: selectedPlotMeasure, properties: createBox.selectedProps, contractTypes: createBox.selectedContractTypes }
-                                        var id = analysisController.addAnalysis(nameField.text, strategy, JSON.stringify(cfg), filterSpec)
-                                        if (id && id.length > 0) {
-                                            uiData.selectedAnalysisId = id
-                                            try { var res = analysisController.computeAnalysis(id, filterSpec); uiData.lastAnalysisResult = res } catch(e) {}
-                                             Qt.callLater(function() { stackView.push(analysisDetailComp) })
+                                        var configJson = analysisController.analysisConfigJson(strategyType, selectedPlotType, selectedPlotMeasure, createBox.selectedProps, createBox.selectedContractTypes, 0.0)
+                                        var filterSpec = analysisController.analysisFilterSpec(dateFrom.text, dateTo.text)
+                                        var analysisId = analysisController.createAnalysis(nameField.text, strategyType, configJson, filterSpec)
+                                        if (analysisId && analysisId.length > 0) {
+                                            session.selectedAnalysisId = analysisId
+                                            var result = analysisController.computeAnalysis(analysisId, filterSpec)
+                                            if (result && Object.keys(result).length > 0) session.lastAnalysisResult = result
+                                            Qt.callLater(function() { stackView.push(analysisDetailComp) })
                                         }
                                     }
                                 }

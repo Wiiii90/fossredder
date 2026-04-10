@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -19,7 +19,7 @@ Item {
             spacing: Theme.spacingSmall
 
             Repeater {
-                model: uiData ? uiData.statementRows() : []
+                model: session ? session.statementRows() : []
 
                 delegate: Column {
                     width: statementColumn.width
@@ -30,15 +30,15 @@ Item {
                     Rectangle {
                         width: parent.width
                         height: 34
-                        color: (uiData && statementId === uiData.selectedStatementId && (!uiData.selectedTransactionId || uiData.selectedTransactionId === ""))
+                        color: (session && statementId === session.selectedStatementId && (!session.selectedTransactionId || session.selectedTransactionId === ""))
                                    ? Theme.selectionHighlight : "transparent"
 
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                if (!uiData) return
-                                uiData.selectedStatementId = statementId
-                                uiData.selectedTransactionId = ""
+                                if (!session) return
+                                session.selectedStatementId = statementId
+                                session.selectedTransactionId = ""
                             }
                         }
 
@@ -66,22 +66,22 @@ Item {
                         visible: !collapsed
 
                         Repeater {
-                            model: (uiData && statementId.length > 0) ? uiData.statementTransactionRows(statementId) : []
+                            model: (session && statementId.length > 0) ? session.statementTransactionRows(statementId) : []
 
                             delegate: Rectangle {
                                 width: statementColumn.width - (Theme.spacing + Theme.margins)
                                 height: 40
                                 radius: 6
-                                color: uiData && modelData.id === uiData.selectedTransactionId ? Theme.selectionHighlight : "transparent"
+                                color: session && modelData.id === session.selectedTransactionId ? Theme.selectionHighlight : "transparent"
                                 border.color: Theme.borderSoft
                                 border.width: Theme.borderWidthThin
 
                                 MouseArea {
                                     anchors.fill: parent
                                     onClicked: {
-                                        if (!uiData) return
-                                        uiData.selectedStatementId = statementId
-                                        uiData.selectedTransactionId = modelData.id
+                                        if (!session) return
+                                        session.selectedStatementId = statementId
+                                        session.selectedTransactionId = modelData.id
                                     }
                                 }
 

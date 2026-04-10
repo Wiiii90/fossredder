@@ -344,15 +344,6 @@ std::string metadataSignalText(const std::string& metadata)
     return trim(out.str());
 }
 
-std::string firstMeaningfulToken(const std::string& text)
-{
-    const auto parts = tokens(text);
-    for (const auto& part : parts) {
-        if (!part.empty()) return part;
-    }
-    return {};
-}
-
 std::string joinStrings(const std::vector<std::string>& values, const std::string& separator)
 {
     std::ostringstream out;
@@ -737,7 +728,7 @@ std::vector<std::string> referenceAliasesFromMetadata(const std::string& metadat
 }
 
 DraftTextSignals buildDraftTextSignals(const core::domain::AppState& state,
-                                       const ImportedTransaction& transaction)
+                                       const core::domain::TransactionDraft& transaction)
 {
     DraftTextSignals signals;
     const auto metadataText = metadataSignalText(transaction.metadata);
@@ -749,11 +740,12 @@ DraftTextSignals buildDraftTextSignals(const core::domain::AppState& state,
     if (signals.actorText.empty()) signals.actorText = firstMeaningfulLine(transaction.metadata);
     if (signals.actorText.empty()) signals.actorText = leadingPhrase(signals.sharedText, 4);
     signals.propertyText = trim(joinNonEmptyLines({signals.sharedText, signals.actorText, signals.typeText}, " "));
+    signals.contractText = trim(joinNonEmptyLines({signals.typeText, signals.actorText, signals.sharedText}, " "));
     return signals;
 }
 
 DraftImportSuggestions buildImportSuggestions(const core::domain::AppState& state,
-                                              const ImportedTransaction& transaction)
+                                              const core::domain::TransactionDraft& transaction)
 {
     const auto signals = buildDraftTextSignals(state, transaction);
 
@@ -969,20 +961,41 @@ bool contractIsFullyAllocatable(const core::domain::AppState& state, const std::
     return hasTransactions;
 }
 
+core::domain::AppState withFallbackState(core::domain::AppState primary,
+                                         const core::domain::AppState& fallback)
+{
+    if (primary.actors.empty()) primary.actors = fallback.actors;
+    if (primary.properties.empty()) primary.properties = fallback.properties;
+    if (primary.contracts.empty()) primary.contracts = fallback.contracts;
+    if (primary.statements.empty()) primary.statements = fallback.statements;
+    if (primary.transactions.empty()) primary.transactions = fallback.transactions;
+    if (primary.analyses.empty()) primary.analyses = fallback.analyses;
+    if (primary.annuals.empty()) primary.annuals = fallback.annuals;
+    if (primary.statementDrafts.empty()) primary.statementDrafts = fallback.statementDrafts;
+    if (primary.transactionDrafts.empty()) primary.transactionDrafts = fallback.transactionDrafts;
+    return primary;
+}
+
 DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
                                          const DraftLinkSelection& selection)
 {
+    auto effectiveSelection = selection;
+    if (trim(effectiveSelection.type).empty() && !trim(effectiveSelection.metadata).empty()) {
+        const auto metadataLines = splitLines(effectiveSelection.metadata);
+        effectiveSelection.type = extractTypeText(state, effectiveSelection.metadata, metadataLines);
+    }
+
     DraftDerivedState derived;
     const auto actors = actorRows(state);
     const auto properties = propertyRows(state);
     const auto contracts = contractRows(state);
 
     derived.propertyRows = properties;
-    derived.proofSource = proofSourceFor(selection.proofImagePath);
+    derived.proofSource = proofSourceFor(effectiveSelection.proofImagePath);
 
-    const auto* actorTop = topSuggestion(selection.actorSuggestions);
-    const auto* propertyTop = topSuggestion(selection.propertySuggestions);
-    const auto* contractTop = topSuggestion(selection.contractSuggestions);
+    const auto* actorTop = topSuggestion(effectiveSelection.actorSuggestions);
+    const auto* propertyTop = topSuggestion(effectiveSelection.propertySuggestions);
+    const auto* contractTop = topSuggestion(effectiveSelection.contractSuggestions);
     if (actorTop) {
         derived.actorTopSuggestion = *actorTop;
         derived.hasActorTopSuggestion = true;
@@ -996,14 +1009,14 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
         derived.hasContractTopSuggestion = true;
     }
 
-    derived.actorDisplayText = actorDisplayText(selection, actors, actorTop);
-    derived.contractDisplayText = contractDisplayText(selection, contracts, contractTop);
-    derived.actorSeedText = actorSeedText(selection, derived.actorDisplayText, actorTop);
-    derived.contractSeedText = contractSeedText(selection, derived.contractDisplayText, contractTop);
-    derived.propertySuggestionSummary = propertySuggestionSummary(selection.propertySuggestions);
-    derived.effectiveAllocatable = selection.allocatableManualOverride
-                                      ? selection.allocatable
-                                      : (contractIsFullyAllocatable(state, selection.contractId) || selection.allocatable);
+    derived.actorDisplayText = actorDisplayText(effectiveSelection, actors, actorTop);
+    derived.contractDisplayText = contractDisplayText(effectiveSelection, contracts, contractTop);
+    derived.actorSeedText = actorSeedText(effectiveSelection, derived.actorDisplayText, actorTop);
+    derived.contractSeedText = contractSeedText(effectiveSelection, derived.contractDisplayText, contractTop);
+    derived.propertySuggestionSummary = propertySuggestionSummary(effectiveSelection.propertySuggestions);
+    derived.effectiveAllocatable = effectiveSelection.allocatableManualOverride
+                                      ? effectiveSelection.allocatable
+                                      : (contractIsFullyAllocatable(state, effectiveSelection.contractId) || effectiveSelection.allocatable);
 
     derived.actorChoices = actors;
     DraftChoiceRow newActor;
@@ -1017,7 +1030,7 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
     std::vector<std::pair<double, DraftChoiceRow>> scoredContracts;
     scoredContracts.reserve(contracts.size());
     for (const auto& row : contracts) {
-        scoredContracts.push_back({contractScore(selection, row, actors, contractTop, derived.actorDisplayText), row});
+        scoredContracts.push_back({contractScore(effectiveSelection, row, actors, contractTop, derived.actorDisplayText), row});
     }
     std::sort(scoredContracts.begin(), scoredContracts.end(), [](const auto& lhs, const auto& rhs) {
         if (lhs.first == rhs.first) return lhs.second.display < rhs.second.display;
@@ -1037,9 +1050,9 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
         derived.contractChoices.push_back(row);
     }
 
-    if (!selection.actorId.empty()) {
-        derived.actorCurrentIndex = rowIndexById(derived.actorChoices, selection.actorId);
-    } else if (selection.newActorSelected) {
+    if (!effectiveSelection.actorId.empty()) {
+        derived.actorCurrentIndex = rowIndexById(derived.actorChoices, effectiveSelection.actorId);
+    } else if (effectiveSelection.newActorSelected) {
         derived.actorCurrentIndex = 0;
     } else if (actorTop && !actorTop->entityId.empty() && actorTop->confidence >= 0.2) {
         derived.actorCurrentIndex = rowIndexById(derived.actorChoices, actorTop->entityId);
@@ -1050,30 +1063,30 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
     }
     if (derived.actorCurrentIndex < 0) derived.actorCurrentIndex = derived.actorChoices.empty() ? -1 : 0;
 
-    if (!selection.contractId.empty()) {
-        derived.contractCurrentIndex = rowIndexById(derived.contractChoices, selection.contractId);
-    } else if (selection.newContractSelected) {
+    if (!effectiveSelection.contractId.empty()) {
+        derived.contractCurrentIndex = rowIndexById(derived.contractChoices, effectiveSelection.contractId);
+    } else if (effectiveSelection.newContractSelected) {
         derived.contractCurrentIndex = 0;
     } else if (!scoredContracts.empty() && scoredContracts.front().first >= 900.0) {
         derived.contractCurrentIndex = rowIndexById(derived.contractChoices, scoredContracts.front().second.id);
     } else if (!derived.contractSeedText.empty()
-               && (!trim(selection.actorText).empty()
-                   || !selection.actorId.empty()
-                   || !selection.propertyIds.empty())) {
+               && (!trim(effectiveSelection.actorText).empty()
+                   || !effectiveSelection.actorId.empty()
+                   || !effectiveSelection.propertyIds.empty())) {
         if (const auto* match = findRowByText(contracts, derived.contractSeedText)) {
             derived.contractCurrentIndex = rowIndexById(derived.contractChoices, match->id);
         }
     }
     if (derived.contractCurrentIndex < 0) derived.contractCurrentIndex = derived.contractChoices.empty() ? -1 : 0;
 
-    std::string selectedContractId = selection.contractId;
+    std::string selectedContractId = effectiveSelection.contractId;
     if (selectedContractId.empty() && derived.contractCurrentIndex > 0) {
         if (const auto* contractRow = rowByIndex(derived.contractChoices, derived.contractCurrentIndex);
             contractRow && !contractRow->synthetic) {
             selectedContractId = contractRow->id;
         }
     }
-    derived.autoPropertyIds = propertyAutoSelectIds(selection, properties, contracts, selectedContractId);
+    derived.autoPropertyIds = propertyAutoSelectIds(effectiveSelection, properties, contracts, selectedContractId);
 
     return derived;
 }

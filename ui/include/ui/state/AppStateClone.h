@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/AppStateClone.h
+ * @brief Declarations for the UI AppStateClone component.
+ */
+
 #pragma once
 
 #include <memory>

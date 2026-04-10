@@ -34,9 +34,9 @@ public:
     /** @brief Replaces all UI model data from a domain application state snapshot. */
     void loadFromState(const core::domain::AppState& state);
     /** @brief Returns a live filter over transactions for a statement. */
-    TransactionFilter* statementTransactions(const QString& statementId, QObject* parent);
+    TransactionFilter* statementTransactions(const QString& statementId);
     /** @brief Returns a live filter over transactions for a property. */
-    TransactionFilter* propertyTransactions(const QString& propertyId, QObject* parent);
+    TransactionFilter* propertyTransactions(const QString& propertyId);
     /** @brief Returns the currently observed contract types for a property. */
     QStringList propertyContractTypes(const QString& propertyId) const;
     /** @brief Returns cached transaction sums for a property and optional contract type. */
@@ -57,8 +57,8 @@ private:
     void recomputeMetricsForRows(int firstRow, int lastRow);
     void notifyTransactionSumsForAllProperties();
 
-    SessionModels models_;
     FilterState filters_;
+    SessionModels models_;
     mutable MetricsState metrics_;
     PropertyNameCatalog propertyNames_;
 };

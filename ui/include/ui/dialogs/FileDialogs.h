@@ -12,16 +12,36 @@ class QWidget;
 
 namespace ui::dialogs {
 
-/** @brief Opens a multi-select file dialog for statement import files. */
+/** @brief Opens a multi-select file dialog for statement import files.
+ *  @param parent Parent widget for the dialog
+ *  @param filter Native file dialog filter string
+ *  @return List of selected file paths
+ */
 QStringList pickImportFiles(QWidget* parent, const QString& filter);
-/** @brief Opens a save dialog for export targets. */
+
+/** @brief Opens a save dialog for export targets.
+ *  @param parent Parent widget for the dialog
+ *  @param filter Native file dialog filter string
+ *  @return Chosen export file path or empty when cancelled
+ */
 QString pickExportFile(QWidget* parent, const QString& filter);
 
-/** @brief Opens a save dialog for creating a new storage database. */
+/** @brief Opens a save dialog for creating a new storage database.
+ *  @param parent Parent widget for the dialog
+ *  @return Chosen storage file path or empty when cancelled
+ */
 QString pickNewStorageFile(QWidget* parent);
-/** @brief Opens a file dialog for selecting an existing storage database. */
+
+/** @brief Opens a file dialog for selecting an existing storage database.
+ *  @param parent Parent widget for the dialog
+ *  @return Selected storage file path or empty when cancelled
+ */
 QString pickOpenStorageFile(QWidget* parent);
-/** @brief Opens a save dialog for choosing a database target path. */
+
+/** @brief Opens a save dialog for choosing a database target path.
+ *  @param parent Parent widget for the dialog
+ *  @return Chosen storage file path or empty when cancelled
+ */
 QString pickSaveStorageFileAs(QWidget* parent);
 
 }

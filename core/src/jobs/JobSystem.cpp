@@ -152,7 +152,7 @@ std::shared_ptr<core::domain::Statement> JobSystem::statementResult(const JobId&
     return impl_->manager.statementResult(id);
 }
 
-std::vector<ImportedTransaction> JobSystem::statementTransactions(const JobId& id) const
+std::vector<core::domain::TransactionDraft> JobSystem::statementTransactions(const JobId& id) const
 {
     return impl_->manager.statementTransactions(id);
 }

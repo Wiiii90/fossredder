@@ -1,7 +1,13 @@
+/**
+ * @file ui/src/models/TransactionList.cpp
+ * @brief Implementation of the UI TransactionList component.
+ */
+
 #include "ui/models/TransactionList.h"
 
 #include <QVariant>
 #include "ui/payload/PayloadKeys.h"
+#include "ui/payload/PayloadMapper.h"
 
 namespace ui {
 
@@ -55,16 +61,6 @@ QString TransactionList::contractTypeForTransaction(const Transaction& transacti
     return it == contractTypeById_.end() ? QString() : it.value();
 }
 
-QVariantList TransactionList::toPropertyIdList(const std::vector<std::string>& propertyIds)
-{
-    QVariantList out;
-    out.reserve(static_cast<int>(propertyIds.size()));
-    for (const auto& propertyId : propertyIds) {
-        out.push_back(QString::fromStdString(propertyId));
-    }
-    return out;
-}
-
 void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& transaction) const
 {
     map[payload::keys::common::kId] = QString::fromStdString(transaction.id);
@@ -79,7 +75,7 @@ void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& tr
     map[payload::keys::transaction::kProofImagePath] = QString();
     map[payload::keys::common::kType] = contractTypeForTransaction(transaction);
     map[payload::keys::transaction::kAllocatable] = transaction.allocatable;
-    map[payload::keys::transaction::kPropertyIds] = toPropertyIdList(transaction.propertyIds);
+    map[payload::keys::transaction::kPropertyIds] = payload::mapper::toVariantStringList(transaction.propertyIds);
 }
 
 TransactionList::TransactionList(QObject* parent) : Base(parent) {}
@@ -105,7 +101,7 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case ProofImagePathRole: return QString();
     case TypeRole: return contractTypeForTransaction(t);
     case AllocatableRole: return t.allocatable;
-    case PropertyIdsRole: return toPropertyIdList(t.propertyIds);
+    case PropertyIdsRole: return payload::mapper::toVariantStringList(t.propertyIds);
     default: return {};
     }
 }
@@ -176,3 +172,4 @@ QVariantMap TransactionList::get(int index) const
 }
 
 }
+

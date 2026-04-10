@@ -25,13 +25,35 @@ class Actions : public QObject {
     Q_PROPERTY(QAction* aboutAction READ aboutAction CONSTANT)
 
 public:
+    /**
+     * @brief Construct the actions container.
+     * @param parent QObject parent
+     */
     explicit Actions(QObject* parent = nullptr);
 
+    /** @brief Return the QAction for creating a new file.
+     *  @return Pointer to the QAction
+     */
     QAction* newFileAction() const;
+    /** @brief Return the QAction for opening a file.
+     *  @return Pointer to the QAction
+     */
     QAction* openFileAction() const;
+    /** @brief Return the QAction for saving the current file.
+     *  @return Pointer to the QAction
+     */
     QAction* saveFileAction() const;
+    /** @brief Return the QAction for saving the current file under a new name.
+     *  @return Pointer to the QAction
+     */
     QAction* saveFileAsAction() const;
+    /** @brief Return the QAction for quitting the application.
+     *  @return Pointer to the QAction
+     */
     QAction* quitAction() const;
+    /** @brief Return the QAction for showing the about dialog.
+     *  @return Pointer to the QAction
+     */
     QAction* aboutAction() const;
 
     Q_INVOKABLE void newFile();
@@ -43,12 +65,46 @@ public:
     Q_INVOKABLE void browseExportFile();
 
 signals:
+    /**
+     * @brief Emitted when QML requests an import file dialog.
+     * @param filter Native file dialog filter string (e.g. "PDF Files (*.pdf)").
+     */
     void importBrowseRequested(const QString& filter);
+
+    /**
+     * @brief Emitted after a single import file was selected by the user.
+     * @param path Absolute path of the selected file.
+     */
     void importFileSelected(const QString& path);
+
+    /**
+     * @brief Emitted after multiple import files were selected by the user.
+     * @param paths List of absolute file paths.
+     */
     void importFilesSelected(const QStringList& paths);
+
+    /**
+     * @brief Emitted when a file was dropped onto an import target in QML.
+     * @param path Absolute path of the dropped file.
+     */
     void importFileDropped(const QString& path);
+
+    /**
+     * @brief Emitted when multiple files were dropped onto an import target in QML.
+     * @param paths List of absolute file paths.
+     */
     void importFilesDropped(const QStringList& paths);
+
+    /**
+     * @brief Emitted when QML requests an export file dialog.
+     * @param filter Native file dialog filter string (e.g. "All Files (*.*)").
+     */
     void exportBrowseRequested(const QString& filter);
+
+    /**
+     * @brief Emitted after an export path was chosen by the user.
+     * @param path Absolute path of the target file.
+     */
     void exportFileSelected(const QString& path);
 
 private:

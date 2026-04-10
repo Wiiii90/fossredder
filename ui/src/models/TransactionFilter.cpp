@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/models/TransactionFilter.cpp
+ * @brief Implementation of the UI TransactionFilter component.
+ */
+
 #include "ui/models/TransactionFilter.h"
 
 #include "ui/models/TransactionList.h"

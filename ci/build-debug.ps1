@@ -5,12 +5,12 @@ param(
 )
 
 if ([string]::IsNullOrWhiteSpace($env:VCPKG_ROOT)) {
-    throw "VCPKG_ROOT ist nicht gesetzt. Installiere vcpkg einmalig an einem lokalen Pfad und setze danach die Benutzer-Umgebungsvariable VCPKG_ROOT dauerhaft auf dieses Verzeichnis."
+    throw "VCPKG_ROOT is not set. Install vcpkg once to a local path and then set the user environment variable VCPKG_ROOT to that location."
 }
 
 $toolchainFile = Join-Path $env:VCPKG_ROOT "scripts\buildsystems\vcpkg.cmake"
 if (!(Test-Path $toolchainFile)) {
-    throw "Die vcpkg-Toolchain wurde unter '$toolchainFile' nicht gefunden. Prüfe VCPKG_ROOT und führe gegebenenfalls bootstrap-vcpkg erneut aus."
+    throw "The vcpkg toolchain was not found at '$toolchainFile'. Check VCPKG_ROOT and run bootstrap-vcpkg if necessary."
 }
 
 Write-Host "Using VCPKG_ROOT: $env:VCPKG_ROOT"

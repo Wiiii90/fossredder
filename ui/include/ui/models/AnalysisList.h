@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/AnalysisList.h
+ * @brief Declarations for the UI AnalysisList component.
+ */
+
 #pragma once
 
 #include "core/models/Analysis.h"
@@ -30,12 +35,12 @@ public:
     Q_INVOKABLE int addAnalysis(const QString& name, const QString& type);
     Q_INVOKABLE void removeAt(int row);
     Q_INVOKABLE bool updateAnalysisById(const QString& id, const QString& name, const QString& type, const QString& configJson, const QString& filterSpec);
-    Q_INVOKABLE void setAdjustmentsById(const QString& id, const QString& json);
+    Q_INVOKABLE void setAdjustmentsById(const QString& id, const QString& adjustmentsJson);
 
 private:
-    static QString adjustmentsJsonFor(const core::domain::Analysis& analysis);
-    void rebuildAdjustmentsCache();
-    void updateAdjustmentsCache(const core::domain::Analysis& analysis);
+    static QString serializeAdjustmentsJson(const core::domain::Analysis& analysis);
+    void refreshAdjustmentsCache();
+    void refreshAdjustmentsCacheEntry(const core::domain::Analysis& analysis);
 
     QHash<QString, QString> adjustmentsJsonById_;
 };

@@ -18,17 +18,16 @@
 #include <QWidget>
 #include <string>
 
+#include "core/constants/CoreDefaults.h"
 #include "ui/actions/Actions.h"
 #include "ui/bootstrap/QmlContracts.h"
 #include "ui/bootstrap/QmlRuntime.h"
 #include "ui/config/Defaults.h"
-#include "ui/controllers/ControllerContracts.h"
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
+#include "ui/util/StringConversions.h"
 #include "ui/text/Text.h"
 #include "ui/window/MainWindowContext.h"
 #include "ui/window/MainWindowTrace.h"
-#include "ui/workflows/FileWorkflow.h"
 
 namespace {
 
@@ -75,7 +74,8 @@ void reportQmlLoadErrors(QQuickView *quickView, const QUrl &source) {
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-  setWindowTitle(ui::config::kMainWindowTitle);
+  setWindowTitle(
+      QString::fromLatin1(core::constants::application::kDisplayName.data()));
   resize(ui::config::kMainWindowDefaultWidth,
          ui::config::kMainWindowDefaultHeight);
 
@@ -113,13 +113,12 @@ void MainWindow::setupUiContext() {
                                            this);
   actions_ = services.actions;
   dataSession_ = services.dataSession;
-  fileWorkflow_ = services.fileWorkflow;
   status_ = services.status;
 }
 
 void MainWindow::setupActionRouting() {
   ui::window::wireMainWindowActions(
-      *this, {actions_, dataSession_, fileWorkflow_, status_},
+      *this, {actions_, dataSession_, status_},
       [this]() { onAbout(); });
 }
 
@@ -221,17 +220,12 @@ void MainWindow::closeEvent(QCloseEvent *event) {
   ui::window::reportMainWindowFlow(
       ui::observability::origins::mainWindow::kClose,
       "Main window close requested; triggering save workflow");
-  closeWorkflow_.requestClose(event, [this]() {
-    if (fileWorkflow_)
-      fileWorkflow_->requestSaveFile();
-    else
-      emit saveFileRequested();
-  });
+  closeWorkflow_.requestClose(event, [this]() { emit saveFileRequested(); });
 }
 
 void MainWindow::handleStorageOperationSucceeded(const QString &operation) {
   if (!closeWorkflow_.handleStorageOperationSucceeded(
-          operation, ui::controllers::contracts::operations::kSaveFile,
+          operation, ui::config::operationKeys::kSaveFile,
           [this]() {
             QMetaObject::invokeMethod(
                 this, [this]() { close(); }, Qt::QueuedConnection);
@@ -247,7 +241,7 @@ void MainWindow::handleStorageOperationSucceeded(const QString &operation) {
 void MainWindow::handleStorageOperationFailed(const QString &operation,
                                               const QString &error) {
   if (!closeWorkflow_.handleStorageOperationFailed(
-          operation, ui::controllers::contracts::operations::kSaveFile))
+          operation, ui::config::operationKeys::kSaveFile))
     return;
 
   const QString message =

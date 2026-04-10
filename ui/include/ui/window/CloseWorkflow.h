@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/window/CloseWorkflow.h
+ * @brief Declarations for the UI CloseWorkflow component.
+ */
+
 #pragma once
 
 #include <functional>

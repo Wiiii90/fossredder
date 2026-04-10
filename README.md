@@ -1,7 +1,7 @@
 ﻿# FOSSredder
 
-[![Quality](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml)
-[![codecov](https://codecov.io/gh/Wiiii90/fossredder/branch/master/graph/badge.svg)](https://codecov.io/gh/Wiiii90/fossredder)
+[![CI](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml)
+[![codecov](https://codecov.io/gh/Wiiii90/fossredder/graph/badge.svg?token=LGALNE53Z6)](https://codecov.io/gh/Wiiii90/fossredder)
 
 [TODO: Add BRIEF project description]
 

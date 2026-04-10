@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -16,7 +16,7 @@ Item {
 
     function currentPlotType() {
         try {
-            return Analysis.plotType(uiData ? uiData.lastAnalysisResult : null)
+            return Analysis.plotType(session ? session.lastAnalysisResult : null)
         } catch (e) {
             return ""
         }
@@ -31,7 +31,7 @@ Item {
         var newProps = []
         var newHistTotal = 0
         try {
-            if (typeof uiData === 'undefined' || !uiData || !uiData.lastAnalysisResult || !uiData.lastAnalysisResult.table) {
+            if (typeof session === 'undefined' || !session || !session.lastAnalysisResult || !session.lastAnalysisResult.table) {
                 histLegendModel = newHist
                 histLegendTotal = newHistTotal
                 propListModel = newProps
@@ -42,8 +42,8 @@ Item {
             var propertyMap = {}
             var pieValues = []
 
-            for (var i = 0; i < uiData.lastAnalysisResult.table.length; ++i) {
-                var row = uiData.lastAnalysisResult.table[i]
+            for (var i = 0; i < session.lastAnalysisResult.table.length; ++i) {
+                var row = session.lastAnalysisResult.table[i]
                 if (!row || row.length < 2) continue
                 var parsed = false
                 try {
@@ -88,11 +88,11 @@ Item {
             propListModel = JSON.parse(JSON.stringify(newProps))
 
             try {
-                try { if (pie) pie.legendFilter = uiData ? (uiData._legendFilter ? uiData._legendFilter : []) : [] } catch(e) {}
-                try { if (hist) hist.legendFilter = uiData ? (uiData._legendFilter ? uiData._legendFilter : []) : [] } catch(e) {}
-                try { if (uiData && uiData.propertyName) { if (pie) pie.propertyNameForId = function(id) { try { return uiData.propertyName(id) } catch(e) { return id } }; if (hist) hist.propertyNameForId = function(id) { try { return uiData.propertyName(id) } catch(e) { return id } } } else { if (pie) pie.propertyNameForId = null; if (hist) hist.propertyNameForId = null } } catch(e) {}
+                try { if (pie) pie.legendFilter = session ? (session._legendFilter ? session._legendFilter : []) : [] } catch(e) {}
+                try { if (hist) hist.legendFilter = session ? (session._legendFilter ? session._legendFilter : []) : [] } catch(e) {}
+                try { if (session && session.propertyName) { if (pie) pie.propertyNameForId = function(id) { try { return session.propertyName(id) } catch(e) { return id } }; if (hist) hist.propertyNameForId = function(id) { try { return session.propertyName(id) } catch(e) { return id } } } else { if (pie) pie.propertyNameForId = null; if (hist) hist.propertyNameForId = null } } catch(e) {}
 
-                var tbl = (uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []
+                var tbl = (session && session.lastAnalysisResult) ? session.lastAnalysisResult.table : []
                 if (pie) pie.table = tbl
                 if (hist) hist.table = tbl
                 try { if (pie && pie.requestPaint) pie.requestPaint(); if (hist && hist.requestPaint) hist.requestPaint(); } catch(e) {}
@@ -123,7 +123,7 @@ Item {
                 RowLayout { anchors.fill: parent; spacing: Theme.spacing
                     Column { id: pieLegendCol; Layout.preferredWidth: Theme.analysis.layout.splitControlsWidth; Layout.fillHeight: true; spacing: Theme.spacingSmall
                         Label { text: qsTr('Legend'); font.bold: false; color: Theme.chartText }
-                        Repeater { model: (uiData && uiData.lastAnalysisResult) ? uiData.lastAnalysisResult.table : []
+                        Repeater { model: (session && session.lastAnalysisResult) ? session.lastAnalysisResult.table : []
                             delegate: RowLayout { spacing: Theme.spacingSmall; height: 20
                                 Rectangle { width: Theme.chartLegendMarkerSize; height: Theme.chartLegendMarkerSize; color: colorForKey(modelData && modelData.length>0 ? modelData[0] : index) }
                                 Label { text: (modelData && modelData.length>0) ? modelData[0] : ''; horizontalAlignment: Text.AlignLeft; Layout.preferredWidth: 120 }
@@ -198,7 +198,7 @@ Item {
 
     }
 
-    Connections { target: (typeof uiData !== 'undefined') ? uiData : null
+    Connections { target: (typeof session !== 'undefined') ? session : null
         function onLastAnalysisResultChanged() { try { rebuild() } catch(e) {} }
     }
 }

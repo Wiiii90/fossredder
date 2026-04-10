@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/IndexedListModel.h
+ * @brief Declarations for the UI IndexedListModel component.
+ */
+
 #pragma once
 
 #include <QAbstractListModel>

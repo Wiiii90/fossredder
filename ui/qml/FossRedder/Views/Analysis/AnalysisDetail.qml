@@ -1,4 +1,4 @@
-﻿import QtQuick 2.15
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
@@ -35,14 +35,14 @@ Item {
                     active: previewReady
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    sourceComponent: (uiData && uiData.selectedAnalysisId)
-                                     ? ((uiData.selectedAnalysis && uiData.selectedAnalysis.type === "calc") ? calcComp
-                                        : ((uiData.selectedAnalysis && uiData.selectedAnalysis.type === "tab") ? tabComp
+                    sourceComponent: (session && session.selectedAnalysisId)
+                                     ? ((session.selectedAnalysis && session.selectedAnalysis.type === "calc") ? calcComp
+                                        : ((session.selectedAnalysis && session.selectedAnalysis.type === "tab") ? tabComp
                                            : plotComp))
                                      : plotComp
                     onLoaded: {
                         if (mainLoader.item) {
-                            try { mainLoader.item.uiData = uiData } catch(e) {}
+                            try { mainLoader.item.session = session } catch(e) {}
                             try { mainLoader.item.analysisController = analysisController } catch(e) {}
                             try { if (mainLoader.item.rebuild) mainLoader.item.rebuild() } catch(e) {}
                             try { mainLoader.item.anchors.fill = mainLoader } catch(e) {}
@@ -58,12 +58,12 @@ Item {
         }
     }
     Connections {
-        target: typeof uiData !== 'undefined' ? uiData : null
+        target: typeof session !== 'undefined' ? session : null
         function onSelectedAnalysisIdChanged() {
             try {
                 if (!mainLoader) return
-                if (typeof uiData !== 'undefined' && uiData && uiData.selectedAnalysis) {
-                    var t = uiData.selectedAnalysis.type ? uiData.selectedAnalysis.type : "plot"
+                if (typeof session !== 'undefined' && session && session.selectedAnalysis) {
+                    var t = session.selectedAnalysis.type ? session.selectedAnalysis.type : "plot"
                     if (t === "calc") mainLoader.sourceComponent = calcComp
                     else if (t === "tab") mainLoader.sourceComponent = tabComp
                     else mainLoader.sourceComponent = plotComp
@@ -89,7 +89,7 @@ Item {
     Timer { id: loaderInitTimer; interval: 60; repeat: false; running: false; triggeredOnStart: false; onTriggered: {
         try {
             if (!mainLoader || !mainLoader.item) return
-            try { mainLoader.item.uiData = uiData } catch(e) {}
+            try { mainLoader.item.session = session } catch(e) {}
             try { mainLoader.item.analysisController = analysisController } catch(e) {}
             try { if (mainLoader.item.rebuild) mainLoader.item.rebuild() } catch(e) {}
         } catch(e) {}

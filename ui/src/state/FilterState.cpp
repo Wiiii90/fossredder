@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/state/FilterState.cpp
+ * @brief Implementation of the UI FilterState component.
+ */
+
 #include "ui/state/FilterState.h"
 
 #include <QObject>
@@ -12,13 +17,13 @@ namespace {
 TransactionFilter* ensureFilter(QHash<QString, TransactionFilter*>& filters,
                                 const QString& key,
                                 TransactionList& sourceModel,
-                                QObject* parent,
+                                QObject* owner,
                                 const std::function<void(TransactionFilter&)>& configure)
 {
-    if (key.isEmpty() || !parent) return nullptr;
+    if (key.isEmpty() || !owner) return nullptr;
     if (filters.contains(key)) return filters.value(key);
 
-    auto* proxy = new TransactionFilter(parent);
+    auto* proxy = new TransactionFilter(owner);
     proxy->setSourceModel(&sourceModel);
     configure(*proxy);
     filters.insert(key, proxy);
@@ -27,16 +32,21 @@ TransactionFilter* ensureFilter(QHash<QString, TransactionFilter*>& filters,
 
 }
 
-TransactionFilter* FilterState::statementTransactions(const QString& statementId, TransactionList& sourceModel, QObject* parent)
+FilterState::FilterState(QObject* owner)
+    : owner_(owner)
 {
-    return ensureFilter(statementFilters_, statementId, sourceModel, parent, [&statementId](TransactionFilter& filter) {
+}
+
+TransactionFilter* FilterState::statementTransactions(const QString& statementId, TransactionList& sourceModel)
+{
+    return ensureFilter(statementFilters_, statementId, sourceModel, owner_, [&statementId](TransactionFilter& filter) {
         filter.setStatementId(statementId);
     });
 }
 
-TransactionFilter* FilterState::propertyTransactions(const QString& propertyId, TransactionList& sourceModel, QObject* parent)
+TransactionFilter* FilterState::propertyTransactions(const QString& propertyId, TransactionList& sourceModel)
 {
-    return ensureFilter(propertyFilters_, propertyId, sourceModel, parent, [&propertyId](TransactionFilter& filter) {
+    return ensureFilter(propertyFilters_, propertyId, sourceModel, owner_, [&propertyId](TransactionFilter& filter) {
         filter.setPropertyId(propertyId);
     });
 }

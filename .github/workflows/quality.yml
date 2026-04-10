@@ -1,12 +1,10 @@
-name: quality
+name: CI
 
 on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
+  workflow_dispatch:
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.ref }}
@@ -15,99 +13,88 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 defaults:
   run:
     shell: pwsh
 
 jobs:
   build-and-test:
-    runs-on: windows-latest
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install CMake 4
+      - name: Prepare staging dir
         run: |
-          python -m pip install --disable-pip-version-check cmake==4.2.3 ninja
-          $cmakeScripts = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
-          $cmakeScripts | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          $staging = Join-Path $env:RUNNER_TEMP "fossredder-staging-${{ github.job }}-${{ github.run_id }}"
+          if (Test-Path $staging) { Remove-Item -Path $staging -Recurse -Force }
+          New-Item -ItemType Directory -Path $staging | Out-Null
+          icacls $staging /grant "NT AUTHORITY\SYSTEM:(OI)(CI)F" /T | Out-Null
+          echo "TARGET_DIR=$staging" >> $env:GITHUB_ENV
 
-      - name: Configure MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Configure vcpkg paths
+      - name: Ensure no running binaries
         run: |
-          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
-          $vcpkgCache = Join-Path $env:RUNNER_TEMP "vcpkg-binary-cache"
-          if (Test-Path $vcpkgRoot) {
-            Remove-Item -Path $vcpkgRoot -Recurse -Force
-          }
-          New-Item -ItemType Directory -Force -Path $vcpkgCache | Out-Null
-          "VCPKG_ROOT=$vcpkgRoot" | Set-Content -Path $env:GITHUB_ENV -Encoding utf8
-          "VCPKG_DEFAULT_BINARY_CACHE=$vcpkgCache" | Add-Content -Path $env:GITHUB_ENV -Encoding utf8
+          $procs = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match 'fossredder|_unit_tests|ui_interaction_tests|ui_unit_tests|opencv_unit_tests|persistence_unit_tests|qml' }
+          if ($procs) { $procs | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } }
 
-      - name: Bootstrap vcpkg
+      - name: Clean previous build
         run: |
-          git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
-          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat"
+          if (Test-Path .build) { Remove-Item -Path .build -Recurse -Force }
+
+      - name: Validate runner prerequisites
+        run: .\ci\assert-quality-runner.ps1
 
       - name: Configure CI preset
-        run: cmake --preset github-ci
+        run: cmake -DTARGET_DIR="$env:TARGET_DIR" --preset ci
 
       - name: Build CI preset
-        run: cmake --build --preset release-github-ci --parallel
+        run: cmake --build --preset release-ci --parallel
 
       - name: Run test preset
-        run: ctest --preset release-github-ci
+        run: ctest --preset release-ci
 
   clang-tidy:
-    runs-on: windows-latest
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+    needs: build-and-test
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install CMake 4
+      - name: Prepare staging dir
         run: |
-          python -m pip install --disable-pip-version-check cmake==4.2.3 ninja
-          $cmakeScripts = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
-          $cmakeScripts | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          $staging = Join-Path $env:RUNNER_TEMP "fossredder-staging-${{ github.job }}-${{ github.run_id }}"
+          if (Test-Path $staging) { Remove-Item -Path $staging -Recurse -Force }
+          New-Item -ItemType Directory -Path $staging | Out-Null
+          icacls $staging /grant "NT AUTHORITY\SYSTEM:(OI)(CI)F" /T | Out-Null
+          echo "TARGET_DIR=$staging" >> $env:GITHUB_ENV
 
-      - name: Configure MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Configure vcpkg paths
+      - name: Clean previous build
         run: |
-          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
-          $vcpkgCache = Join-Path $env:RUNNER_TEMP "vcpkg-binary-cache"
-          if (Test-Path $vcpkgRoot) {
-            Remove-Item -Path $vcpkgRoot -Recurse -Force
-          }
-          New-Item -ItemType Directory -Force -Path $vcpkgCache | Out-Null
-          "VCPKG_ROOT=$vcpkgRoot" | Set-Content -Path $env:GITHUB_ENV -Encoding utf8
-          "VCPKG_DEFAULT_BINARY_CACHE=$vcpkgCache" | Add-Content -Path $env:GITHUB_ENV -Encoding utf8
+          if (Test-Path .build) { Remove-Item -Path .build -Recurse -Force }
 
-      - name: Bootstrap vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
-          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat"
+      - name: Validate runner prerequisites
+        run: .\ci\assert-quality-runner.ps1 -RequireClangTidy
 
       - name: Configure tidy preset
-        run: cmake --preset github-tidy
+        run: cmake -DTARGET_DIR="$env:TARGET_DIR" --preset tidy
 
       - name: Build tidy preset
-        run: cmake --build --preset release-github-tidy --parallel
+        run: cmake --build --preset release-tidy --parallel
 
   coverage:
-    runs-on: windows-latest
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+    needs: build-and-test
     permissions:
       contents: read
       id-token: write
@@ -116,41 +103,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install CMake 4
+      - name: Prepare staging dir
         run: |
-          python -m pip install --disable-pip-version-check cmake==4.2.3 ninja
-          $cmakeScripts = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
-          $cmakeScripts | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          $staging = Join-Path $env:RUNNER_TEMP "fossredder-staging-${{ github.job }}-${{ github.run_id }}"
+          if (Test-Path $staging) { Remove-Item -Path $staging -Recurse -Force }
+          New-Item -ItemType Directory -Path $staging | Out-Null
+          icacls $staging /grant "NT AUTHORITY\SYSTEM:(OI)(CI)F" /T | Out-Null
+          echo "TARGET_DIR=$staging" >> $env:GITHUB_ENV
 
-      - name: Configure MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      - name: Configure vcpkg paths
+      - name: Clean previous build
         run: |
-          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
-          $vcpkgCache = Join-Path $env:RUNNER_TEMP "vcpkg-binary-cache"
-          if (Test-Path $vcpkgRoot) {
-            Remove-Item -Path $vcpkgRoot -Recurse -Force
-          }
-          New-Item -ItemType Directory -Force -Path $vcpkgCache | Out-Null
-          "VCPKG_ROOT=$vcpkgRoot" | Set-Content -Path $env:GITHUB_ENV -Encoding utf8
-          "VCPKG_DEFAULT_BINARY_CACHE=$vcpkgCache" | Add-Content -Path $env:GITHUB_ENV -Encoding utf8
+          if (Test-Path .build) { Remove-Item -Path .build -Recurse -Force }
 
-      - name: Bootstrap vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg $env:VCPKG_ROOT
-          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat"
+      - name: Validate runner prerequisites
+        run: .\ci\assert-quality-runner.ps1 -RequireCoverageTools
 
       - name: Configure coverage preset
-        run: cmake --preset github-coverage
+        run: cmake -DTARGET_DIR="$env:TARGET_DIR" --preset coverage
 
       - name: Build coverage preset
-        run: cmake --build --preset release-github-coverage --parallel
+        run: cmake --build --preset release-coverage --parallel
 
       - name: Collect LLVM coverage
-        run: .\ci\coverage-windows.ps1 -BuildDir .build\github-coverage -Config Release -OutDir coverage
+        run: .\ci\coverage-windows.ps1 -BuildDir .build\coverage -Config Release -OutDir coverage
 
       - name: Publish coverage summary
         run: Get-Content .\coverage\coverage-summary.txt | Out-String | Add-Content -Path $env:GITHUB_STEP_SUMMARY
@@ -163,10 +138,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Codecov report
-        uses: codecov/codecov-action@v5
-        with:
-          use_oidc: true
-          files: coverage/coverage.lcov
-          fail_ci_if_error: false
-          verbose: true
         continue-on-error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: .\ci\upload-codecov.ps1 -CoverageFile .\coverage\coverage.lcov

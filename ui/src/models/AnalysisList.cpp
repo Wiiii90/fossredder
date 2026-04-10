@@ -1,29 +1,29 @@
+/**
+ * @file ui/src/models/AnalysisList.cpp
+ * @brief Implementation of the UI AnalysisList component.
+ */
+
 #include "ui/models/AnalysisList.h"
 
-#include "ui/config/Defaults.h"
-#include "ui/controllers/ControllerStrings.h"
+#include "core/application/AnalysisRequestComposer.h"
+#include "core/constants/CoreDefaults.h"
 #include "ui/observability/Origins.h"
 #include "ui/payload/PayloadKeys.h"
+#include "ui/util/StringConversions.h"
 
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QVariant>
 
 #include <exception>
 
 namespace ui {
 
-QString AnalysisList::adjustmentsJsonFor(const Analysis &analysis) {
-  QString adjustmentsJson = ui::config::kJsonEmptyObject;
+QString AnalysisList::serializeAdjustmentsJson(const Analysis &analysis) {
   try {
-    QJsonObject obj;
-    for (const auto &pair : analysis.adjustments)
-      obj.insert(QString::fromStdString(pair.first), pair.second);
-    adjustmentsJson =
-        QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+    return QString::fromStdString(
+        core::application::AnalysisRequestComposer::serializeAdjustments(analysis.adjustments));
   } catch (...) {
     core::errors::reportException(
         core::errors::ErrorSeverity::Warning,
@@ -31,22 +31,22 @@ QString AnalysisList::adjustmentsJsonFor(const Analysis &analysis) {
         observability::origins::model::analysisList::kAdjustmentsJson,
         std::current_exception());
   }
-  return adjustmentsJson;
+  return QString::fromLatin1(core::constants::json::kEmptyObject.data());
 }
 
-void AnalysisList::rebuildAdjustmentsCache() {
+void AnalysisList::refreshAdjustmentsCache() {
   adjustmentsJsonById_.clear();
   adjustmentsJsonById_.reserve(static_cast<int>(analyses().size()));
   for (const auto &analysis : analyses()) {
     if (!analysis)
       continue;
-    updateAdjustmentsCache(*analysis);
+    refreshAdjustmentsCacheEntry(*analysis);
   }
 }
 
-void AnalysisList::updateAdjustmentsCache(const Analysis &analysis) {
+void AnalysisList::refreshAdjustmentsCacheEntry(const Analysis &analysis) {
   adjustmentsJsonById_.insert(QString::fromStdString(analysis.id),
-                              adjustmentsJsonFor(analysis));
+                              serializeAdjustmentsJson(analysis));
 }
 
 AnalysisList::AnalysisList(QObject *parent) : Base(parent) {}
@@ -59,7 +59,8 @@ QVariant AnalysisList::data(const QModelIndex &index, int role) const {
     return {};
 
   const QString adjustmentsJson = adjustmentsJsonById_.value(
-      QString::fromStdString(a->id), ui::config::kJsonEmptyObject);
+      QString::fromStdString(a->id),
+      QString::fromLatin1(core::constants::json::kEmptyObject.data()));
 
   switch (role) {
   case IdRole:
@@ -94,14 +95,14 @@ int AnalysisList::addAnalysis(const QString &name, const QString &type) {
   auto a = std::make_shared<Analysis>();
   a->name = strings::toStdString(name);
   a->type = strings::toStdString(type);
-  updateAdjustmentsCache(*a);
+  refreshAdjustmentsCacheEntry(*a);
   return appendItem(std::move(a));
 }
 
 void AnalysisList::setAnalyses(
     std::vector<std::shared_ptr<Analysis>> analyses) {
   setItems(std::move(analyses));
-  rebuildAdjustmentsCache();
+  refreshAdjustmentsCache();
 }
 
 void AnalysisList::removeAt(int row) {
@@ -127,14 +128,14 @@ bool AnalysisList::updateAnalysisById(const QString &id, const QString &name,
   a->type = strings::toStdString(type);
   a->configJson = strings::toStdString(configJson);
   a->filterSpec = strings::toStdString(filterSpec);
-  updateAdjustmentsCache(*a);
+  refreshAdjustmentsCacheEntry(*a);
   const QModelIndex idx = index(row);
   emit dataChanged(
       idx, idx, {NameRole, TypeRole, ConfigRole, FilterRole, AdjustmentsRole});
   return true;
 }
 
-void AnalysisList::setAdjustmentsById(const QString &id, const QString &json) {
+void AnalysisList::setAdjustmentsById(const QString &id, const QString &adjustmentsJson) {
   const int row = findRowById(id);
   if (row < 0)
     return;
@@ -145,22 +146,15 @@ void AnalysisList::setAdjustmentsById(const QString &id, const QString &json) {
 
   a->adjustments.clear();
   try {
-    QJsonParseError parseError;
-    const auto doc = QJsonDocument::fromJson(json.toUtf8(), &parseError);
-    if (parseError.error != QJsonParseError::NoError) {
+    const auto parsed = core::application::AnalysisRequestComposer::parseAdjustmentsJson(adjustmentsJson.toStdString());
+    if (!parsed.valid) {
       core::errors::report(
           core::errors::ErrorSeverity::Warning,
           core::errors::codes::GenericError,
           observability::origins::model::analysisList::kAdjustmentsParse,
-          strings::toStdString(parseError.errorString()));
-    } else if (doc.isObject()) {
-      const auto obj = doc.object();
-      for (auto it = obj.begin(); it != obj.end(); ++it) {
-        if (!it.value().isDouble())
-          continue;
-        a->adjustments.emplace(strings::toStdString(it.key()),
-                               it.value().toDouble());
-      }
+          parsed.error.empty() ? std::string("Failed to parse analysis adjustments") : parsed.error);
+    } else {
+      a->adjustments = std::move(parsed.adjustments);
     }
   } catch (...) {
     core::errors::reportException(
@@ -169,7 +163,7 @@ void AnalysisList::setAdjustmentsById(const QString &id, const QString &json) {
         observability::origins::model::analysisList::kSetAdjustments,
         std::current_exception());
   }
-  updateAdjustmentsCache(*a);
+  refreshAdjustmentsCacheEntry(*a);
   const QModelIndex idx = index(row);
   emit dataChanged(idx, idx, {AdjustmentsRole});
 }

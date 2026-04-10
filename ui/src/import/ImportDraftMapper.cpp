@@ -1,91 +1,24 @@
+/**
+ * @file ui/src/import/ImportDraftMapper.cpp
+ * @brief Implements helpers that create editable UI draft models from imported transactions.
+ */
+
 #include "ui/import/ImportDraftMapper.h"
 
 #include <QFileInfo>
 
 #include "core/import/DraftLinking.h"
-#include "core/import/ImportedTransaction.h"
 #include "core/models/Statement.h"
 #include "ui/import/ImportSuggestionService.h"
+#include "ui/import/DraftViewMapper.h"
 #include "ui/models/StatementDraft.h"
 #include "ui/models/TransactionDraft.h"
 
 namespace {
 
-core::importing::DraftSuggestionCandidate toCoreCandidate(const ui::ImportSuggestion& suggestion)
-{
-    core::importing::DraftSuggestionCandidate out;
-    out.entityId = suggestion.entityId.toStdString();
-    out.label = suggestion.label.toStdString();
-    out.confidence = suggestion.confidence;
-    return out;
-}
-
-core::importing::DraftSuggestionBucket toCoreBucket(const ui::ImportSuggestionBucket& bucket)
-{
-    core::importing::DraftSuggestionBucket out;
-    out.candidates.reserve(bucket.candidates.size());
-    for (const auto& suggestion : bucket.candidates) {
-        out.candidates.push_back(toCoreCandidate(suggestion));
-    }
-    return out;
-}
-
-core::importing::DraftLinkSelection toCoreSelection(const ui::TransactionDraft& draft)
-{
-    core::importing::DraftLinkSelection out;
-    out.name = draft.name.toStdString();
-    out.description = draft.description.toStdString();
-    out.metadata = draft.metadata.toStdString();
-    out.proofImagePath = draft.proofImagePath.toStdString();
-    out.actorText = draft.actorText.toStdString();
-    out.propertyText = draft.propertyText.toStdString();
-    out.actorId = draft.actorId.toStdString();
-    out.newActorSelected = draft.newActorSelected;
-    out.contractId = draft.contractId.toStdString();
-    out.newContractSelected = draft.newContractSelected;
-    out.type = draft.type.toStdString();
-    out.allocatable = draft.allocatable;
-    out.allocatableManualOverride = draft.allocatableManualOverride;
-    for (const auto& propertyId : draft.propertyIds) {
-        out.propertyIds.push_back(propertyId.toStdString());
-    }
-    out.actorSuggestions = toCoreBucket(draft.suggestions.actor);
-    out.propertySuggestions = toCoreBucket(draft.suggestions.property);
-    out.contractSuggestions = toCoreBucket(draft.suggestions.contract);
-    return out;
-}
-
-QStringList toQStringList(const std::vector<std::string>& values)
-{
-    QStringList out;
-    out.reserve(static_cast<int>(values.size()));
-    for (const auto& value : values) {
-        out.push_back(QString::fromStdString(value));
-    }
-    return out;
-}
-
-const core::importing::DraftChoiceRow* findChoiceRowById(
-    const std::vector<core::importing::DraftChoiceRow>& rows, const std::string& id)
-{
-    if (id.empty()) return nullptr;
-    for (const auto& row : rows) {
-        if (row.id == id) return &row;
-    }
-    return nullptr;
-}
-
-QString choiceDisplayText(const core::importing::DraftChoiceRow& row)
-{
-    if (!row.display.empty()) return QString::fromStdString(row.display);
-    if (!row.name.empty()) return QString::fromStdString(row.name);
-    if (!row.type.empty()) return QString::fromStdString(row.type);
-    return QString::fromStdString(row.id);
-}
-
 void applyInitialDerivedSelections(const core::domain::AppState& state, ui::TransactionDraft& draft)
 {
-    const auto derived = core::importing::buildDraftDerivedState(state, toCoreSelection(draft));
+    const auto derived = core::importing::buildDraftDerivedState(state, ui::importing::toCoreSelection(draft));
 
     if (draft.actorId.isEmpty()) {
         if (derived.actorCurrentIndex > 0
@@ -93,7 +26,7 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
             const auto& actorRow = derived.actorChoices[static_cast<std::size_t>(derived.actorCurrentIndex)];
             if (!actorRow.synthetic && !actorRow.id.empty()) {
                 draft.actorId = QString::fromStdString(actorRow.id);
-                draft.actorText = choiceDisplayText(actorRow);
+                draft.actorText = ui::importing::choiceDisplayText(actorRow);
                 draft.newActorSelected = false;
             }
         } else if (draft.actorText.isEmpty() && !derived.actorSeedText.empty()) {
@@ -112,13 +45,13 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
                 }
                 if (!contractRow.actorIds.empty()) {
                     draft.actorId = QString::fromStdString(contractRow.actorIds.front());
-                    if (const auto* actorRow = findChoiceRowById(derived.actorChoices, contractRow.actorIds.front())) {
-                        draft.actorText = choiceDisplayText(*actorRow);
+                    if (const auto* actorRow = ui::importing::findChoiceRowById(derived.actorChoices, contractRow.actorIds.front())) {
+                        draft.actorText = ui::importing::choiceDisplayText(*actorRow);
                         draft.newActorSelected = false;
                     }
                 }
                 if (draft.propertyIds.isEmpty() && !contractRow.propertyIds.empty()) {
-                    draft.propertyIds = toQStringList(contractRow.propertyIds);
+                    draft.propertyIds = ui::importing::toQStringList(contractRow.propertyIds);
                 }
                 draft.newContractSelected = false;
             }
@@ -128,7 +61,7 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
     }
 
     if (draft.propertyIds.isEmpty() && !derived.autoPropertyIds.empty()) {
-        draft.propertyIds = toQStringList(derived.autoPropertyIds);
+        draft.propertyIds = ui::importing::toQStringList(derived.autoPropertyIds);
     }
 
     if (draft.contractId.isEmpty() && !draft.newContractSelected) {
@@ -145,7 +78,7 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
 namespace ui::importing {
 
 std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppState& state,
-                                                      const std::vector<ImportedTransaction>& transactions)
+                                                      const std::vector<core::domain::TransactionDraft>& transactions)
 {
     std::vector<TransactionDraft> drafts;
 
@@ -171,10 +104,10 @@ std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppSta
 }
 
 StatementDraft* createStatementDraft(const QString& sourceFile,
-                                     const std::shared_ptr<core::domain::Statement>& statement,
-                                     const core::domain::AppState& state,
-                                     const std::vector<ImportedTransaction>& transactions,
-                                     QObject* parent)
+                                      const std::shared_ptr<core::domain::Statement>& statement,
+                                      const core::domain::AppState& state,
+                                      const std::vector<core::domain::TransactionDraft>& transactions,
+                                      QObject* parent)
 {
     auto* draft = new StatementDraft(parent);
     draft->setName((statement && !statement->name.empty())
@@ -192,4 +125,4 @@ StatementDraft* createStatementDraft(const QString& sourceFile,
     return draft;
 }
 
-}
+} // namespace ui::importing

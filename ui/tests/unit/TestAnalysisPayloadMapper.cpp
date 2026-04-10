@@ -8,6 +8,7 @@
 #include "core/models/AnalysisResult.h"
 #include "ui/analysis/AnalysisPayloadMapper.h"
 #include "ui/payload/PayloadKeys.h"
+#include "ui/payload/PayloadMapper.h"
 #include "ui/text/Text.h"
 
 namespace {
@@ -63,3 +64,5 @@ TEST(AnalysisPayloadMapperTests, ToPayloadMapsNestedAnalysisResultFields)
 }
 
 } // namespace
+
+

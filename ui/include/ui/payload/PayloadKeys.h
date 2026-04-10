@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/payload/PayloadKeys.h
+ * @brief Declarations for the UI PayloadKeys component.
+ */
+
 #pragma once
 
 #include <QString>
@@ -22,6 +27,7 @@ namespace property {
 inline const auto kAddress = QStringLiteral("address");
 inline const auto kConsumption = QStringLiteral("consumption");
 inline const auto kConsumptionUnit = QStringLiteral("consumptionUnit");
+inline const auto kAliases = QStringLiteral("aliases");
 }
 
 namespace contract {
@@ -31,6 +37,8 @@ inline const auto kBasePrice = QStringLiteral("basePrice");
 inline const auto kConsumptionPrice = QStringLiteral("consumptionPrice");
 inline const auto kMonthlyAdvance = QStringLiteral("monthlyAdvance");
 inline const auto kActorIds = QStringLiteral("actorIds");
+inline const auto kPropertyIds = QStringLiteral("propertyIds");
+inline const auto kAliases = QStringLiteral("aliases");
 }
 
 namespace statement {
@@ -63,6 +71,8 @@ inline const auto kGeneratedAt = QStringLiteral("generatedAt");
 namespace annual {
 inline const auto kYear = QStringLiteral("year");
 inline const auto kVerificationState = QStringLiteral("verificationState");
+inline const auto kTransactionIds = QStringLiteral("transactionIds");
+inline const auto kAssignedAnalysisIds = QStringLiteral("assignedAnalysisIds");
 }
 
 namespace fileSystem {
@@ -74,6 +84,16 @@ namespace importRun {
 inline const auto kTime = QStringLiteral("time");
 inline const auto kFile = QStringLiteral("file");
 inline const auto kMessage = QStringLiteral("message");
+}
+
+namespace draft {
+inline const auto kActorText = QStringLiteral("actorText");
+inline const auto kNewActorSelected = QStringLiteral("newActorSelected");
+inline const auto kNewContractSelected = QStringLiteral("newContractSelected");
+inline const auto kActorSuggestions = QStringLiteral("actorSuggestions");
+inline const auto kPropertySuggestions = QStringLiteral("propertySuggestions");
+inline const auto kContractSuggestions = QStringLiteral("contractSuggestions");
+inline const auto kAllocatableManualOverride = QStringLiteral("allocatableManualOverride");
 }
 
 namespace language {

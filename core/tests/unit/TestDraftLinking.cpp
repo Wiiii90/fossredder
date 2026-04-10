@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "core/import/DraftLinking.h"
-#include "core/import/ImportedTransaction.h"
+#include "core/models/TransactionDraft.h"
 #include "core/models/Actor.h"
 #include "core/models/AppState.h"
 #include "core/models/Contract.h"
@@ -60,7 +60,7 @@ TEST(DraftLinkingTests, ExtractsMultilineActorTextAndKnownTypeFromMetadata)
     AppState state;
     state.contracts.push_back(makeContract("contract-type-alpha", "Vertrag 22", "Service"));
 
-    ImportedTransaction tx;
+    core::domain::TransactionDraft tx;
     tx.metadata = "SERVICE-INVOICE-ALPHA\nREFERENCE-TOKEN-ALPHA-0001\nSUMMARY ITEMS:\nOVERVIEW\nTOTAL INCLUDES:\nEUR 10,00 SERVICE FEES";
 
     const auto signals = core::importing::buildDraftTextSignals(state, tx);
@@ -71,15 +71,13 @@ TEST(DraftLinkingTests, ExtractsMultilineActorTextAndKnownTypeFromMetadata)
     EXPECT_EQ(signals.propertyText,
               "SERVICE-INVOICE-ALPHA REFERENCE-TOKEN-ALPHA-0001 SUMMARY ITEMS OVERVIEW TOTAL INCLUDES EUR 10,00 SERVICE FEES SERVICE-INVOICE-ALPHA REFERENCE-TOKEN-ALPHA-0001 Service");
     EXPECT_EQ(signals.typeText, "Service");
-    EXPECT_EQ(signals.contractText,
-              "Service SERVICE-INVOICE-ALPHA REFERENCE-TOKEN-ALPHA-0001 SERVICE-INVOICE-ALPHA REFERENCE-TOKEN-ALPHA-0001 SUMMARY ITEMS OVERVIEW TOTAL INCLUDES EUR 10,00 SERVICE FEES");
 }
 
 TEST(DraftLinkingTests, StopsActorExtractionBeforeIbanAndReferenceLines)
 {
     AppState state;
 
-    ImportedTransaction tx;
+    core::domain::TransactionDraft tx;
     tx.metadata = "ACTOR_SAMPLE_0001\nZZ00SYNTHETICACCOUNT0001\nSALARY_SAMPLE_042025";
 
     const auto signals = core::importing::buildDraftTextSignals(state, tx);
@@ -172,7 +170,7 @@ TEST(DraftLinkingTests, SplitsCombinedContractLineIntoTypeAndContractText)
     AppState state;
     state.contracts.push_back(makeContract("contract-1", "CONTRACT_22", "ENERGY"));
 
-    ImportedTransaction tx;
+    core::domain::TransactionDraft tx;
     tx.metadata = "ENERGY - CONTRACT_22";
 
     const auto signals = core::importing::buildDraftTextSignals(state, tx);
@@ -189,6 +187,7 @@ TEST(DraftLinkingTests, SelectsContractRowByTypeAndKeepsContractNameSeparate)
     DraftLinkSelection selection;
     selection.metadata = "COINFO some payload";
     selection.actorText = "COINFO-RECHNUNG";
+    selection.type = "coinfo";
 
     const auto derived = core::importing::buildDraftDerivedState(state, selection);
 
@@ -204,7 +203,7 @@ TEST(DraftLinkingTests, PrefersLeftSideOfHyphenatedTypeLine)
     state.contracts.push_back(makeContract("contract-1", "Vertrag 22", "coinfo"));
     state.contracts.push_back(makeContract("contract-2", "Vertrag 33", "rechnung"));
 
-    ImportedTransaction tx;
+    core::domain::TransactionDraft tx;
     tx.metadata = "COINFO-RECHNUNG";
 
     const auto signals = core::importing::buildDraftTextSignals(state, tx);

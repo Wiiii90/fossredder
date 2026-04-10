@@ -167,8 +167,62 @@ set(_folderlist_candidates
 )
 foreach(_ld IN LISTS _folderlist_candidates)
     if(EXISTS "${_ld}")
-        file(COPY "${_ld}" DESTINATION "${_target_folderlist_dir}")
-        set(_found_folderlist 1)
+        # Atomic copy: copy to temporary filename then rename into place with retries.
+        get_filename_component(_ldname "${_ld}" NAME)
+        set(_temp_dest "${_target_folderlist_dir}/${_ldname}.tmp")
+        set(_final_dest "${_target_folderlist_dir}/${_ldname}")
+
+        set(_copy_rc 1)
+        set(_attempt 0)
+        while(_attempt LESS 3 AND _copy_rc)
+            execute_process(COMMAND ${CMAKE_COMMAND} -E copy "${_ld}" "${_temp_dest}"
+                RESULT_VARIABLE _copy_rc
+                OUTPUT_VARIABLE _copy_out
+                ERROR_VARIABLE _copy_err
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_STRIP_TRAILING_WHITESPACE)
+            if(_copy_rc EQUAL 0)
+                # If final exists try remove it first to avoid rename conflict
+                if(EXISTS "${_final_dest}")
+                    file(REMOVE "${_final_dest}")
+                endif()
+                execute_process(COMMAND ${CMAKE_COMMAND} -E rename "${_temp_dest}" "${_final_dest}"
+                    RESULT_VARIABLE _rename_rc
+                    OUTPUT_VARIABLE _rename_out
+                    ERROR_VARIABLE _rename_err
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_STRIP_TRAILING_WHITESPACE)
+                if(_rename_rc EQUAL 0)
+                    set(_found_folderlist 1)
+                    break()
+                else()
+                    # remove temp if rename failed, then retry
+                    if(EXISTS "${_temp_dest}")
+                        file(REMOVE "${_temp_dest}")
+                    endif()
+                endif()
+            endif()
+            execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 1)
+            math(EXPR _attempt "${_attempt} + 1")
+        endwhile()
+
+        if(_found_folderlist)
+            message(STATUS "qt_deploy: copied ${_ldname} to ${_target_folderlist_dir}")
+            # list contents for diagnostics
+            file(GLOB _contents RELATIVE "${_target_folderlist_dir}" "${_target_folderlist_dir}/*")
+            foreach(_c IN LISTS _contents)
+                message(STATUS "qt_deploy: content: ${_c}")
+            endforeach()
+        else()
+            message(WARNING "qt_deploy: failed to copy ${_ldname} to ${_target_folderlist_dir} after ${_attempt} attempts. error: ${_copy_err} ${_rename_err}")
+            # list contents for diagnostics
+            if(EXISTS "${_target_folderlist_dir}")
+                file(GLOB _contents RELATIVE "${_target_folderlist_dir}" "${_target_folderlist_dir}/*")
+                foreach(_c IN LISTS _contents)
+                    message(STATUS "qt_deploy: content: ${_c}")
+                endforeach()
+            endif()
+        endif()
         break()
     endif()
 endforeach()

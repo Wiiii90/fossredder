@@ -1,3 +1,8 @@
+/**
+ * @file ui/src/window/CloseWorkflow.cpp
+ * @brief Implementation of the UI CloseWorkflow component.
+ */
+
 #include "ui/window/CloseWorkflow.h"
 
 #include <QCloseEvent>

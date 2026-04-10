@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/StatementDraft.h
+ * @brief Declarations for the UI StatementDraft component.
+ */
+
 #pragma once
 
 #include <QObject>

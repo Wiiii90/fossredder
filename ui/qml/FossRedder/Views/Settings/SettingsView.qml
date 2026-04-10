@@ -29,10 +29,10 @@ Item {
         Component { id: advancedComp; Views.SettingsAdvanced { } }
 
         Connections {
-            target: uiNav
+            target: navigation
             function onSettingsCategoryChanged() {
-                if (!settingsLoader || !uiNav) return
-                var c = uiNav.settingsCategory
+                if (!settingsLoader || !navigation) return
+                var c = navigation.settingsCategory
                 switch (c) {
                 case 0: settingsLoader.sourceComponent = generalComp; break
                 case 1: settingsLoader.sourceComponent = appearanceComp; break
@@ -45,8 +45,8 @@ Item {
         }
 
         Component.onCompleted: {
-            if (uiNav) {
-                uiNav.settingsCategory = uiNav.settingsCategory
+            if (navigation) {
+                navigation.settingsCategory = navigation.settingsCategory
             }
         }
     }

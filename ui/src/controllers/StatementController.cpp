@@ -5,38 +5,65 @@
 
 #include "ui/controllers/StatementController.h"
 
+#include <algorithm>
+
 #include "core/application/AppStateFacade.h"
-#include "ui/controllers/ControllerGuard.h"
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
+#include "ui/payload/EntityPayloadMapper.h"
+#include "ui/util/CoreFacadeGuard.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 
-StatementController::StatementController(core::application::AppStateFacade *core,
-                                         QObject *parent)
-    : QObject(parent), core_(core) {}
-
-QString StatementController::addStatement(const QString &name) {
-  return controllers::guard::invokeValue<QString>(
-      core_, observability::origins::controller::statement::kAdd, {}, [&]() {
-        return QString::fromStdString(
-            core_->addStatement(strings::toStdString(name)));
-      });
+StatementController::StatementController(core::application::AppStateFacade* core,
+                                         QObject* parent)
+    : QObject(parent)
+    , core_(core)
+{
 }
 
-void StatementController::updateStatement(const QString &id,
-                                          const QString &name) {
-  controllers::guard::invokeVoid(
-      core_, observability::origins::controller::statement::kUpdate, [&]() {
-        core_->updateStatement(strings::toStdString(id),
-                               strings::toStdString(name));
-      });
+QVariantMap StatementController::statement(const QString& id) const
+{
+    if (!core_) {
+        return {};
+    }
+
+    const auto& items = core_->state().statements;
+    const auto it = std::find_if(items.begin(), items.end(), [&](const auto& item) {
+        return item && QString::fromStdString(item->id) == id;
+    });
+    return it != items.end() && *it ? ui::payload::entity::toPayload(**it) : QVariantMap{};
 }
 
-void StatementController::deleteStatement(const QString &id) {
-  controllers::guard::invokeVoid(
-      core_, observability::origins::controller::statement::kDelete,
-      [&]() { core_->deleteStatement(strings::toStdString(id)); });
+QVariantList StatementController::statements() const
+{
+    return core_ ? ui::payload::entity::toPayloadList(core_->state().statements) : QVariantList{};
+}
+
+QString StatementController::addStatement(const QString& name)
+{
+  return ui::util::guard::invokeValue<QString>(
+        core_, observability::origins::controller::statement::kAdd, {}, [&]() {
+            return QString::fromStdString(
+                core_->addStatement(strings::toStdString(name)));
+        });
+}
+
+void StatementController::updateStatement(const QString& id,
+                                          const QString& name)
+{
+  ui::util::guard::invokeVoid(
+        core_, observability::origins::controller::statement::kUpdate, [&]() {
+            core_->updateStatement(strings::toStdString(id),
+                                   strings::toStdString(name));
+        });
+}
+
+void StatementController::deleteStatement(const QString& id)
+{
+  ui::util::guard::invokeVoid(
+        core_, observability::origins::controller::statement::kDelete,
+        [&]() { core_->deleteStatement(strings::toStdString(id)); });
 }
 
 } // namespace ui

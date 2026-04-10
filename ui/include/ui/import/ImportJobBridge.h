@@ -14,11 +14,16 @@
 
 #include <QString>
 
-#include "core/import/ImportedTransaction.h"
 #include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobTypes.h"
+#include "core/models/TransactionDraft.h"
+
+#ifdef USE_QML
+class QQmlImageProviderBase;
+#endif
 
 namespace core::domain { class Statement; }
+namespace ui { class ImportController; }
 
 namespace core::jobs {
 class JobSystem;
@@ -44,7 +49,7 @@ public:
     void clearSubscription();
 
     std::shared_ptr<core::domain::Statement> statementResult() const;
-    std::vector<ImportedTransaction> statementTransactions() const;
+    std::vector<core::domain::TransactionDraft> statementTransactions() const;
     std::map<std::string, std::vector<uint8_t>> takeArtifacts();
 
 private:
@@ -53,5 +58,10 @@ private:
     QString currentJobId_;
     std::uint64_t currentSubId_ = 0;
 };
+
+#ifdef USE_QML
+/** @brief Create the image provider that exposes import draft proof artifacts to QML. */
+QQmlImageProviderBase* createDraftProofProvider(ImportController* controller);
+#endif
 
 }

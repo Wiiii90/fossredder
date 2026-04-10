@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/MainWindow.h
+ * @brief Main window declaration for the UI application.
+ */
+
 #pragma once
 
 #include <QMainWindow>
@@ -9,7 +14,6 @@
 #include "ui/state/StatusState.h"
 #include "ui/window/CloseWorkflow.h"
 #include "ui/window/DropController.h"
-#include "ui/workflows/FileWorkflow.h"
 
 QT_FORWARD_DECLARE_CLASS(QQmlImageProviderBase)
 QT_FORWARD_DECLARE_CLASS(QQmlEngine)
@@ -57,7 +61,6 @@ private:
     QWidget* m_quickContainer = nullptr;
     ui::StateFacade* dataSession_ = nullptr;
     ui::Actions* actions_ = nullptr;
-    ui::workflows::FileWorkflow* fileWorkflow_ = nullptr;
     ui::StatusState* status_ = nullptr;
     bool qmlShutdownPrepared_ = false;
     ui::window::CloseWorkflow closeWorkflow_;

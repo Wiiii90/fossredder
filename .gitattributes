@@ -1,5 +1,5 @@
-.gitattributes - enforce consistent EOLs, mark binary files, and keep copilot instructions excluded from master merges
-## NOTE: header line must be a comment to avoid attribute parsing warnings
+## Enforce consistent EOLs, mark binary files, and keep copilot instructions excluded from master merges
+# NOTE: header line must be a comment to avoid attribute parsing warnings
 
 # Keep this attributes file normalized
 .gitattributes text eol=lf

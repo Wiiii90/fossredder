@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "core/import/ImportedTransaction.h"
+#include "core/models/TransactionDraft.h"
 
 #include <map>
 #include <memory>
@@ -15,6 +15,6 @@ namespace core::domain { class Statement; }
 
 struct ImportResult {
     std::shared_ptr<core::domain::Statement> data;
-    std::vector<ImportedTransaction> transactions;
+    std::vector<core::domain::TransactionDraft> transactions;
     std::map<std::string, std::vector<uint8_t>> artifacts;
 };

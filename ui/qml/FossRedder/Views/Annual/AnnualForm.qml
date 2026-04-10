@@ -15,7 +15,7 @@ Item {
             if (isNaN(year)) return
             if (typeof annualController.addAnnual === 'function') {
                 var id = annualController.addAnnual(year)
-                if (id && id.length > 0) uiData.selectedAnnualId = id
+                if (id && id.length > 0) session.selectedAnnualId = id
             }
         } catch(e) {
         }

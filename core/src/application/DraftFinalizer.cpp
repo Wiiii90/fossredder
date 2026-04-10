@@ -37,7 +37,7 @@ int nextGeneratedContractIndex(const std::vector<std::shared_ptr<Contract>>& con
 
 namespace core::application {
 
-std::string DraftFinalizer::finalize(AppState& state, const DraftStatement& draft)
+std::string DraftFinalizer::finalize(core::domain::AppState& state, const core::domain::StatementDraft& draft)
 {
     if (draft.transactions.empty()) return {};
 

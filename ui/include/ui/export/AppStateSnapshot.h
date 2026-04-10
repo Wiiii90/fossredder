@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/export/AppStateSnapshot.h
+ * @brief Declarations for the UI AppStateSnapshot component.
+ */
+
 #pragma once
 
 #include <memory>

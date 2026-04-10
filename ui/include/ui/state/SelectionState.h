@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/state/SelectionState.h
+ * @brief Declarations for the UI SelectionState component.
+ */
+
 #pragma once
 
 #include <QObject>

@@ -5,6 +5,8 @@
 
 #include "persistence/Factory.h"
 #include "persistence/repositories/SqliteActorRepository.h"
+#include "persistence/repositories/SqliteStatementDraftRepository.h"
+#include "persistence/repositories/SqliteTransactionDraftRepository.h"
 #include "persistence/repositories/SqlitePropertyRepository.h"
 #include "persistence/repositories/SqliteStatementRepository.h"
 #include "persistence/repositories/SqliteTransactionRepository.h"
@@ -54,6 +56,14 @@ std::shared_ptr<ITransactionRepository> createSqliteTransactionRepository(const 
     return std::make_shared<SqliteTransactionRepository>(db, std::move(errorReporter));
 }
 
+std::shared_ptr<IStatementDraftRepository> createSqliteStatementDraftRepository(const std::shared_ptr<SqliteDb>& db) {
+    return std::make_shared<SqliteStatementDraftRepository>(db);
+}
+
+std::shared_ptr<ITransactionDraftRepository> createSqliteTransactionDraftRepository(const std::shared_ptr<SqliteDb>& db) {
+    return std::make_shared<SqliteTransactionDraftRepository>(db);
+}
+
 std::shared_ptr<IContractRepository> createSqliteContractRepository(const std::shared_ptr<SqliteDb>& db) {
     return std::make_shared<SqliteContractRepository>(db);
 }
@@ -78,7 +88,10 @@ core::storage::RepositoryBundle createSqliteRepositoryBundle(const std::shared_p
     bundle.contracts = createSqliteContractRepository(db);
     bundle.statements = createSqliteStatementRepository(db, errorReporter);
     bundle.transactions = createSqliteTransactionRepository(db, std::move(errorReporter));
+    bundle.statementDrafts = createSqliteStatementDraftRepository(db);
+    bundle.transactionDrafts = createSqliteTransactionDraftRepository(db);
     bundle.analyses = createSqliteAnalysisRepository(db);
     bundle.annuals = createSqliteAnnualRepository(db);
     return bundle;
 }
+

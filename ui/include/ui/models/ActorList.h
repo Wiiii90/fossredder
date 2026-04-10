@@ -1,3 +1,8 @@
+/**
+ * @file ui/include/ui/models/ActorList.h
+ * @brief Declarations for the UI ActorList component.
+ */
+
 #pragma once
 
 #include "core/models/Actor.h"

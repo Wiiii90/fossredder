@@ -10,23 +10,23 @@ Item {
     property int iconRowHeight: Math.round(implicitHeight * 0.55)
 
     function clearDomainSelection() {
-        if (!uiData) return
-        uiData.selectedActorId = ""
-        uiData.selectedPropertyId = ""
-        uiData.selectedContractId = ""
+        if (!session) return
+        session.selectedActorId = ""
+        session.selectedPropertyId = ""
+        session.selectedContractId = ""
     }
 
     function clearBookingStateForSection(section) {
-        if (!uiNav || section === UiNavigation.Booking) return
-        uiNav.bookingView = UiNavigation.Statements
+        if (!navigation || section === Navigation.Booking) return
+        navigation.bookingView = Navigation.Statements
     }
 
     function navigateTo(section, clearSelection, bookingView) {
-        if (!uiNav) return
+        if (!navigation) return
         clearBookingStateForSection(section)
         if (clearSelection) clearDomainSelection()
-        if (bookingView !== undefined) uiNav.bookingView = bookingView
-        uiNav.section = section
+        if (bookingView !== undefined) navigation.bookingView = bookingView
+        navigation.section = section
     }
 
     Rectangle {
@@ -63,16 +63,16 @@ Item {
                         Layout.preferredHeight: fileIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/import.svg"
                         label: qsTr("Import")
-                        active: uiNav && uiNav.section === UiNavigation.Import
-                        onClicked: navigateTo(UiNavigation.Import, false)
+                        active: navigation && navigation.section === Navigation.Import
+                        onClicked: navigateTo(Navigation.Import, false)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: fileIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/export.svg"
                         label: qsTr("Export")
-                        active: uiNav && uiNav.section === UiNavigation.Export
-                        onClicked: navigateTo(UiNavigation.Export, false)
+                        active: navigation && navigation.section === Navigation.Export
+                        onClicked: navigateTo(Navigation.Export, false)
                     }
                 }
 
@@ -108,13 +108,13 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/booking.svg"
                         label: qsTr("Booking")
-                        active: uiNav && uiNav.section === UiNavigation.Booking
+                        active: navigation && navigation.section === Navigation.Booking
                         onClicked: {
-                            if (uiData) {
-                                uiData.selectedStatementId = ""
-                                uiData.selectedTransactionId = ""
+                            if (session) {
+                                session.selectedStatementId = ""
+                                session.selectedTransactionId = ""
                             }
-                            navigateTo(UiNavigation.Booking, false, UiNavigation.Statements)
+                            navigateTo(Navigation.Booking, false, Navigation.Statements)
                         }
                     }
                     Controls.IconButton {
@@ -122,24 +122,24 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/actor.svg"
                         label: qsTr("Actor")
-                        active: uiNav && uiNav.section === UiNavigation.Actors
-                        onClicked: navigateTo(UiNavigation.Actors, true)
+                        active: navigation && navigation.section === Navigation.Actors
+                        onClicked: navigateTo(Navigation.Actors, true)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/property.svg"
                         label: qsTr("Property")
-                        active: uiNav && uiNav.section === UiNavigation.Properties
-                        onClicked: navigateTo(UiNavigation.Properties, true)
+                        active: navigation && navigation.section === Navigation.Properties
+                        onClicked: navigateTo(Navigation.Properties, true)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/contract.svg"
                         label: qsTr("Contract")
-                        active: uiNav && uiNav.section === UiNavigation.Contracts
-                        onClicked: navigateTo(UiNavigation.Contracts, true)
+                        active: navigation && navigation.section === Navigation.Contracts
+                        onClicked: navigateTo(Navigation.Contracts, true)
                     }
                 }
 
@@ -175,16 +175,16 @@ Item {
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/analysis.svg"
                         label: qsTr("Analysis")
-                        active: uiNav && uiNav.section === UiNavigation.Analysis
-                        onClicked: navigateTo(UiNavigation.Analysis, true)
+                        active: navigation && navigation.section === Navigation.Analysis
+                        onClicked: navigateTo(Navigation.Analysis, true)
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: Theme.toolbarIconButtonWidth
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/annual.svg"
                         label: qsTr("Annual")
-                        active: uiNav && uiNav.section === UiNavigation.Annual
-                        onClicked: navigateTo(UiNavigation.Annual, true)
+                        active: navigation && navigation.section === Navigation.Annual
+                        onClicked: navigateTo(Navigation.Annual, true)
                     }
                 }
 
@@ -220,8 +220,8 @@ Item {
                         Layout.preferredHeight: appIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/settings.svg"
                         label: qsTr("Settings")
-                        active: uiNav && uiNav.section === UiNavigation.Settings
-                        onClicked: navigateTo(UiNavigation.Settings, false)
+                        active: navigation && navigation.section === Navigation.Settings
+                        onClicked: navigateTo(Navigation.Settings, false)
     }
                 }
 
@@ -242,18 +242,18 @@ Item {
             Item { Layout.fillWidth: true }
         }
         Connections {
-            target: uiNav
+            target: navigation
             function onSectionChanged() {
-                var s = uiNav ? uiNav.section : null;
-                if (typeof loaderImport !== 'undefined' && loaderImport.item) loaderImport.item.active = (s === UiNavigation.Import);
-                if (typeof loaderExport !== 'undefined' && loaderExport.item) loaderExport.item.active = (s === UiNavigation.Export);
-                if (typeof loaderBooking !== 'undefined' && loaderBooking.item) loaderBooking.item.active = (s === UiNavigation.Booking);
-                if (typeof loaderActor !== 'undefined' && loaderActor.item) loaderActor.item.active = (s === UiNavigation.Actors);
-                if (typeof loaderProperty !== 'undefined' && loaderProperty.item) loaderProperty.item.active = (s === UiNavigation.Properties);
-                if (typeof loaderContract !== 'undefined' && loaderContract.item) loaderContract.item.active = (s === UiNavigation.Contracts);
-                if (typeof loaderAnalysis !== 'undefined' && loaderAnalysis.item) loaderAnalysis.item.active = (s === UiNavigation.Analysis);
-                if (typeof loaderAnnual !== 'undefined' && loaderAnnual.item) loaderAnnual.item.active = (s === UiNavigation.Annual);
-                if (typeof loaderSettings !== 'undefined' && loaderSettings.item) loaderSettings.item.active = (s === UiNavigation.Settings);
+                var s = navigation ? navigation.section : null;
+                if (typeof loaderImport !== 'undefined' && loaderImport.item) loaderImport.item.active = (s === Navigation.Import);
+                if (typeof loaderExport !== 'undefined' && loaderExport.item) loaderExport.item.active = (s === Navigation.Export);
+                if (typeof loaderBooking !== 'undefined' && loaderBooking.item) loaderBooking.item.active = (s === Navigation.Booking);
+                if (typeof loaderActor !== 'undefined' && loaderActor.item) loaderActor.item.active = (s === Navigation.Actors);
+                if (typeof loaderProperty !== 'undefined' && loaderProperty.item) loaderProperty.item.active = (s === Navigation.Properties);
+                if (typeof loaderContract !== 'undefined' && loaderContract.item) loaderContract.item.active = (s === Navigation.Contracts);
+                if (typeof loaderAnalysis !== 'undefined' && loaderAnalysis.item) loaderAnalysis.item.active = (s === Navigation.Analysis);
+                if (typeof loaderAnnual !== 'undefined' && loaderAnnual.item) loaderAnnual.item.active = (s === Navigation.Annual);
+                if (typeof loaderSettings !== 'undefined' && loaderSettings.item) loaderSettings.item.active = (s === Navigation.Settings);
             }
         }
     }

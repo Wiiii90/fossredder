@@ -33,18 +33,18 @@ Item {
                 width: list.width
                 text: modelData.text
                 subtitle: ""
-                selected: uiNav ? (uiNav.settingsCategory === modelData.cat) : (list.currentIndex === index)
+                selected: navigation ? (navigation.settingsCategory === modelData.cat) : (list.currentIndex === index)
                 onActivated: {
                     list.currentIndex = index
-                    if (uiNav) uiNav.settingsCategory = modelData.cat
+                    if (navigation) navigation.settingsCategory = modelData.cat
                 }
             }
         }
 
     Component.onCompleted: {
-        if (uiNav) {
+        if (navigation) {
             for (var i = 0; i < list.count; ++i) {
-                if (list.model[i] && list.model[i].cat === uiNav.settingsCategory) { list.currentIndex = i; return }
+                if (list.model[i] && list.model[i].cat === navigation.settingsCategory) { list.currentIndex = i; return }
             }
             list.currentIndex = 0
         } else list.currentIndex = 0

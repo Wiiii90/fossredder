@@ -9,6 +9,7 @@
 
 # Build directories
 .build/
+.runner/
 build/
 out/
 cmake-build-*/
@@ -47,3 +48,4 @@ LOCAL_APPDATA_FONTCONFIG_CACHE/
 docs/todo.txt
 
 debug_output/
+docs/html/

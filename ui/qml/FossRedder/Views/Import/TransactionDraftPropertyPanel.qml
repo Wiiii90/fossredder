@@ -32,7 +32,7 @@ Controls.Panel {
 
             Repeater {
                 id: propertyRepeater
-                model: uiData ? uiData.propertyRows() : []
+                model: session ? session.propertyRows() : []
 
                 delegate: Item {
                     implicitHeight: row.implicitHeight

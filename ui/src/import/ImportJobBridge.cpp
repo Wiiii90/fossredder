@@ -6,8 +6,17 @@
 #include "ui/import/ImportJobBridge.h"
 
 #include "core/jobs/JobSystem.h"
-#include "ui/controllers/ControllerStrings.h"
 #include "ui/observability/Origins.h"
+#include "ui/util/StringConversions.h"
+
+#ifdef USE_QML
+#include <QImage>
+#include <QPointer>
+#include <QQuickImageProvider>
+#include <QUrl>
+
+#include "ui/controllers/ImportController.h"
+#endif
 
 namespace ui::importing {
 
@@ -103,7 +112,7 @@ std::shared_ptr<core::domain::Statement> ImportJobBridge::statementResult() cons
   return jobSystem_->statementResult(strings::toStdString(currentJobId_));
 }
 
-std::vector<ImportedTransaction> ImportJobBridge::statementTransactions() const {
+std::vector<core::domain::TransactionDraft> ImportJobBridge::statementTransactions() const {
   if (!jobSystem_ || currentJobId_.isEmpty())
     return {};
   return jobSystem_->statementTransactions(strings::toStdString(currentJobId_));
@@ -114,5 +123,53 @@ std::map<std::string, std::vector<uint8_t>> ImportJobBridge::takeArtifacts() {
     return {};
   return jobSystem_->takeStatementArtifacts(strings::toStdString(currentJobId_));
 }
+
+#ifdef USE_QML
+
+namespace {
+
+class DraftProofProvider final : public QQuickImageProvider {
+public:
+    explicit DraftProofProvider(ImportController* controller)
+        : QQuickImageProvider(QQuickImageProvider::Image), controller_(controller)
+    {
+    }
+
+    QImage requestImage(const QString& id, QSize* size, const QSize& requestedSize) override
+    {
+        const QString key = QUrl::fromPercentEncoding(id.toUtf8());
+
+        QByteArray bytes;
+        if (controller_) {
+            bytes = controller_->artifactBytes(key);
+        }
+
+        QImage image;
+        if (!bytes.isEmpty()) {
+            image.loadFromData(bytes);
+        }
+
+        if (requestedSize.isValid() && !image.isNull()) {
+            image = image.scaled(requestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        }
+
+        if (size) {
+            *size = image.size();
+        }
+        return image;
+    }
+
+private:
+    QPointer<ImportController> controller_;
+};
+
+} // namespace
+
+QQmlImageProviderBase* createDraftProofProvider(ImportController* controller)
+{
+    return new DraftProofProvider(controller);
+}
+
+#endif
 
 } // namespace ui::importing
