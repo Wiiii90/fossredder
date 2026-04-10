@@ -740,6 +740,7 @@ DraftTextSignals buildDraftTextSignals(const core::domain::AppState& state,
     if (signals.actorText.empty()) signals.actorText = firstMeaningfulLine(transaction.metadata);
     if (signals.actorText.empty()) signals.actorText = leadingPhrase(signals.sharedText, 4);
     signals.propertyText = trim(joinNonEmptyLines({signals.sharedText, signals.actorText, signals.typeText}, " "));
+    signals.contractText = trim(joinNonEmptyLines({signals.typeText, signals.actorText, signals.sharedText}, " "));
     return signals;
 }
 
@@ -978,17 +979,23 @@ core::domain::AppState withFallbackState(core::domain::AppState primary,
 DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
                                          const DraftLinkSelection& selection)
 {
+    auto effectiveSelection = selection;
+    if (trim(effectiveSelection.type).empty() && !trim(effectiveSelection.metadata).empty()) {
+        const auto metadataLines = splitLines(effectiveSelection.metadata);
+        effectiveSelection.type = extractTypeText(state, effectiveSelection.metadata, metadataLines);
+    }
+
     DraftDerivedState derived;
     const auto actors = actorRows(state);
     const auto properties = propertyRows(state);
     const auto contracts = contractRows(state);
 
     derived.propertyRows = properties;
-    derived.proofSource = proofSourceFor(selection.proofImagePath);
+    derived.proofSource = proofSourceFor(effectiveSelection.proofImagePath);
 
-    const auto* actorTop = topSuggestion(selection.actorSuggestions);
-    const auto* propertyTop = topSuggestion(selection.propertySuggestions);
-    const auto* contractTop = topSuggestion(selection.contractSuggestions);
+    const auto* actorTop = topSuggestion(effectiveSelection.actorSuggestions);
+    const auto* propertyTop = topSuggestion(effectiveSelection.propertySuggestions);
+    const auto* contractTop = topSuggestion(effectiveSelection.contractSuggestions);
     if (actorTop) {
         derived.actorTopSuggestion = *actorTop;
         derived.hasActorTopSuggestion = true;
@@ -1002,14 +1009,14 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
         derived.hasContractTopSuggestion = true;
     }
 
-    derived.actorDisplayText = actorDisplayText(selection, actors, actorTop);
-    derived.contractDisplayText = contractDisplayText(selection, contracts, contractTop);
-    derived.actorSeedText = actorSeedText(selection, derived.actorDisplayText, actorTop);
-    derived.contractSeedText = contractSeedText(selection, derived.contractDisplayText, contractTop);
-    derived.propertySuggestionSummary = propertySuggestionSummary(selection.propertySuggestions);
-    derived.effectiveAllocatable = selection.allocatableManualOverride
-                                      ? selection.allocatable
-                                      : (contractIsFullyAllocatable(state, selection.contractId) || selection.allocatable);
+    derived.actorDisplayText = actorDisplayText(effectiveSelection, actors, actorTop);
+    derived.contractDisplayText = contractDisplayText(effectiveSelection, contracts, contractTop);
+    derived.actorSeedText = actorSeedText(effectiveSelection, derived.actorDisplayText, actorTop);
+    derived.contractSeedText = contractSeedText(effectiveSelection, derived.contractDisplayText, contractTop);
+    derived.propertySuggestionSummary = propertySuggestionSummary(effectiveSelection.propertySuggestions);
+    derived.effectiveAllocatable = effectiveSelection.allocatableManualOverride
+                                      ? effectiveSelection.allocatable
+                                      : (contractIsFullyAllocatable(state, effectiveSelection.contractId) || effectiveSelection.allocatable);
 
     derived.actorChoices = actors;
     DraftChoiceRow newActor;
@@ -1023,7 +1030,7 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
     std::vector<std::pair<double, DraftChoiceRow>> scoredContracts;
     scoredContracts.reserve(contracts.size());
     for (const auto& row : contracts) {
-        scoredContracts.push_back({contractScore(selection, row, actors, contractTop, derived.actorDisplayText), row});
+        scoredContracts.push_back({contractScore(effectiveSelection, row, actors, contractTop, derived.actorDisplayText), row});
     }
     std::sort(scoredContracts.begin(), scoredContracts.end(), [](const auto& lhs, const auto& rhs) {
         if (lhs.first == rhs.first) return lhs.second.display < rhs.second.display;
@@ -1043,9 +1050,9 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
         derived.contractChoices.push_back(row);
     }
 
-    if (!selection.actorId.empty()) {
-        derived.actorCurrentIndex = rowIndexById(derived.actorChoices, selection.actorId);
-    } else if (selection.newActorSelected) {
+    if (!effectiveSelection.actorId.empty()) {
+        derived.actorCurrentIndex = rowIndexById(derived.actorChoices, effectiveSelection.actorId);
+    } else if (effectiveSelection.newActorSelected) {
         derived.actorCurrentIndex = 0;
     } else if (actorTop && !actorTop->entityId.empty() && actorTop->confidence >= 0.2) {
         derived.actorCurrentIndex = rowIndexById(derived.actorChoices, actorTop->entityId);
@@ -1056,30 +1063,30 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
     }
     if (derived.actorCurrentIndex < 0) derived.actorCurrentIndex = derived.actorChoices.empty() ? -1 : 0;
 
-    if (!selection.contractId.empty()) {
-        derived.contractCurrentIndex = rowIndexById(derived.contractChoices, selection.contractId);
-    } else if (selection.newContractSelected) {
+    if (!effectiveSelection.contractId.empty()) {
+        derived.contractCurrentIndex = rowIndexById(derived.contractChoices, effectiveSelection.contractId);
+    } else if (effectiveSelection.newContractSelected) {
         derived.contractCurrentIndex = 0;
     } else if (!scoredContracts.empty() && scoredContracts.front().first >= 900.0) {
         derived.contractCurrentIndex = rowIndexById(derived.contractChoices, scoredContracts.front().second.id);
     } else if (!derived.contractSeedText.empty()
-               && (!trim(selection.actorText).empty()
-                   || !selection.actorId.empty()
-                   || !selection.propertyIds.empty())) {
+               && (!trim(effectiveSelection.actorText).empty()
+                   || !effectiveSelection.actorId.empty()
+                   || !effectiveSelection.propertyIds.empty())) {
         if (const auto* match = findRowByText(contracts, derived.contractSeedText)) {
             derived.contractCurrentIndex = rowIndexById(derived.contractChoices, match->id);
         }
     }
     if (derived.contractCurrentIndex < 0) derived.contractCurrentIndex = derived.contractChoices.empty() ? -1 : 0;
 
-    std::string selectedContractId = selection.contractId;
+    std::string selectedContractId = effectiveSelection.contractId;
     if (selectedContractId.empty() && derived.contractCurrentIndex > 0) {
         if (const auto* contractRow = rowByIndex(derived.contractChoices, derived.contractCurrentIndex);
             contractRow && !contractRow->synthetic) {
             selectedContractId = contractRow->id;
         }
     }
-    derived.autoPropertyIds = propertyAutoSelectIds(selection, properties, contracts, selectedContractId);
+    derived.autoPropertyIds = propertyAutoSelectIds(effectiveSelection, properties, contracts, selectedContractId);
 
     return derived;
 }

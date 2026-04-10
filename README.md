@@ -1,7 +1,7 @@
 ﻿# FOSSredder
 
-[![Quality](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml/badge.svg)](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml)
-[![codecov](https://codecov.io/gh/Wiiii90/fossredder/graph/badge.svg)](https://codecov.io/gh/Wiiii90/fossredder)
+[![CI](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml)
+[![codecov](https://codecov.io/gh/Wiiii90/fossredder/graph/badge.svg?token=LGALNE53Z6)](https://codecov.io/gh/Wiiii90/fossredder)
 
 FOSSredder is a desktop application for local expense management targeted at private landlords with multiple properties. The app supports categorization, allocation and structured reporting of expenses. It also supports importing bank statements (PDF) and importing/exporting CSV/XLSX files.
 
@@ -74,7 +74,30 @@ cmake --build --preset debug-tests
 
 ## Quality workflow
 
-The repository ties the quality tooling to CMake presets (`ci`, `tidy`, `coverage`). See `CMakePresets.json` for available presets.
+The repository ties the quality tooling to the CMake presets `ci`, `tidy`, and `coverage`.
+
+The GitHub workflow in `.github/workflows/quality.yml` runs on the self-hosted Windows runner and is limited to pushes on `master` plus manual `workflow_dispatch` runs.
+
+Local examples:
+
+```powershell
+cmake --preset ci
+cmake --build --preset release-ci
+ctest --preset release-ci
+```
+
+```powershell
+cmake --preset tidy
+cmake --build --preset release-tidy
+```
+
+```powershell
+cmake --preset coverage
+cmake --build --preset release-coverage
+.\ci\coverage-windows.ps1 -BuildDir .build\coverage -Config Release -OutDir coverage
+```
+
+The coverage run writes reports to `coverage/`, uploads them as the `coverage-report` artifact, and publishes `coverage/coverage.lcov` to Codecov.
 
 ## Documentation
 

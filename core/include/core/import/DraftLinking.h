@@ -55,6 +55,7 @@ struct DraftTextSignals {
     std::string sharedText;
     std::string actorText;
     std::string propertyText;
+    std::string contractText;
     std::string typeText;
 };
 

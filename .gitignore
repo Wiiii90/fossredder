@@ -9,6 +9,7 @@
 
 # Build directories
 .build/
+.runner/
 build/
 out/
 cmake-build-*/
