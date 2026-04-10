@@ -3,104 +3,191 @@
 [![CI](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/Wiiii90/fossredder/actions/workflows/quality.yml)
 [![codecov](https://codecov.io/gh/Wiiii90/fossredder/graph/badge.svg?token=LGALNE53Z6)](https://codecov.io/gh/Wiiii90/fossredder)
 
-FOSSredder is a desktop application for local expense management targeted at private landlords with multiple properties. The app supports categorization, allocation and structured reporting of expenses. It also supports importing bank statements (PDF) and importing/exporting CSV/XLSX files.
-
-## Features
-
-- Manage multiple properties with custom attributes
-- Generate expense reports for a single property or all properties
-- Categorize expenses and mark them as allocatable or non-allocatable
-- Import and preprocess PDF bank statements for automated candidate extraction
-- Optional LLM-assisted suggestion pipeline (adapter-based and configurable)
-- User review workflow for verifying, correcting or ignoring import suggestions
-- Import/export of CSV and Excel (XLSX)
-- Backup and restore functionality
-- Analysis tools with graphical charts
-- Dark/Light mode
-- Local data storage only (no cloud sync)
+[TODO: Add BRIEF project description]
 
 ## Technology stack
 
 - Language: C++20
-- GUI: Qt6 (QML)
-- Build system: CMake
-- Dependency management: vcpkg (manifest mode)
+- GUI: Qt6 (QML / Qt Quick)
+- Build System: CMake
+- Dependency Management: vcpkg (manifest mode)
 - Persistence: SQLite (runtime storage)
-- PDF/OCR: Poppler, Tesseract, OpenCV
+- PDF / Image / OCR: Poppler, OpenCV, Tesseract
+- Testing: GoogleTest (`gtest`)
+- Logging: `spdlog`
+- JSON: `nlohmann-json`
+- Packaging: Inno Setup (`installer/fossredder.iss`, `ci/package-inno.ps1`)
 - Platform: Windows 10+
 
-## Getting started (overview)
+## Getting started
 
-Dependencies are managed via the project `vcpkg.json` manifest. The repository does not include a local copy of `vcpkg`; each developer is expected to have a local `vcpkg` installation and point the build to it via `VCPKG_ROOT` or `CMAKE_TOOLCHAIN_FILE`.
+### Prerequisites
 
-1) Install `vcpkg` once locally:
+The project uses CMake (minimum 4.0.1) with the `Visual Studio 18 2026` generator (x64) and `vcpkg` in manifest mode for dependency management.
+
+Install vcpkg (install to a short path, e.g. `C:\vcpkg`):
 
 ```powershell
 git clone https://github.com/microsoft/vcpkg.git <path-to-vcpkg>
+```
+
+Bootstrap vcpkg (prepare vcpkg for use with this repository).
+
+```powershell
 <path-to-vcpkg>\bootstrap-vcpkg.bat
 ```
 
-2) Set `VCPKG_ROOT` (user environment variable):
+Set vcpkg root (set `VCPKG_ROOT` to the vcpkg path so CMake can find the toolchain).
 
 ```powershell
 [Environment]::SetEnvironmentVariable('VCPKG_ROOT', '<path-to-vcpkg>', 'User')
 ```
 
-If you prefer to control the installed dir explicitly, set `VCPKG_INSTALLED_DIR` similarly.
+The project uses `CMakePresets.json` for presets. List available presets:
 
-Configuration notes
+```powershell
+cmake --list-presets
+```
 
-- The repository provides `CMakePresets.json` and uses the generator `Visual Studio 18 2026` for the primary presets. The project expects CMake >= 4.0.1. The presets are the source of truth for common workflows.
-- On first configure, `vcpkg` will install the manifest dependencies referenced in `vcpkg.json`.
+Choose a configure preset and run `cmake --preset <name>` to configure. Examples are given in the upcoming chapters.
 
-Configure app (example):
+### Building
+
+The default workflow configures app and provides debug-app and release-app build variants.
+
+Configure (app preset):
 
 ```powershell
 cmake --preset app
 ```
 
-Configure tests (example):
+Build debug app (includes debug symbols and has assertions enabled)
+
+```powershell
+cmake --build --preset debug-app
+```
+
+Executable: `./.build/debug-app/bin/Debug/fossredder.exe`
+
+Build release app (optimized for distribution and packaging):
+
+```powershell
+cmake --build --preset release-app
+```
+
+Executable: `./.build/release-app/bin/Release/fossredder.exe`
+
+### Testing
+
+The test suite uses GoogleTest and includes unit, interaction, UI/QML, persistence and debug-module tests.
+
+Configure (tests preset):
 
 ```powershell
 cmake --preset tests
 ```
 
-Build examples:
+Build release tests:
 
 ```powershell
-cmake --build --preset release-app
-cmake --build --preset debug-tests
+cmake --build --preset release-tests
 ```
 
-## Quality workflow
+Run tests (in console only):
 
-The repository ties the quality tooling to the CMake presets `ci`, `tidy`, and `coverage`.
+```powershell
+ctest --preset release-tests --output-on-failure
+```
 
-The GitHub workflow in `.github/workflows/quality.yml` runs on the self-hosted Windows runner and is limited to pushes on `master` plus manual `workflow_dispatch` runs.
+### Packaging
 
-Local examples:
+The project uses Inno Setup for Windows installer packaging through the `release-package` preset.
+
+Build release package (creates the Windows installer via Inno Setup):
+
+```powershell
+cmake --build --preset release-package
+```
+
+Installer: `./.build/app/dist/fossredder-<version>.exe`
+
+### Quality Workflow
+
+The project uses clang-tidy for static analysis, LLVM coverage for coverage reports, and Codecov for publishing coverage results from the GitHub Actions workflow in `.github/workflows/quality.yml`. The same tools can also be run locally.
+
+Notes: Coverage requires Clang/`clang-cl` and `clang-tidy` runs only if installed and the `tidy` preset is used.
+
+#### CI Workflow
+
+Configure CI (ci preset):
 
 ```powershell
 cmake --preset ci
-cmake --build --preset release-ci
-ctest --preset release-ci
 ```
+
+Build release ci:
+
+```powershell
+cmake --build --preset release-ci
+```
+
+Run CI tests:
+
+```powershell
+ctest --preset release-ci --output-on-failure
+```
+
+#### Clang-Tidy
+
+Configure tidy:
 
 ```powershell
 cmake --preset tidy
+```
+
+Build release tidy (runs static analysis during build):
+
+```powershell
 cmake --build --preset release-tidy
 ```
 
+#### Coverage
+
+Configure coverage:
+
 ```powershell
 cmake --preset coverage
-cmake --build --preset release-coverage
-.\ci\coverage-windows.ps1 -BuildDir .build\coverage -Config Release -OutDir coverage
 ```
 
-The coverage run writes reports to `coverage/`, uploads them as the `coverage-report` artifact, and publishes `coverage/coverage.lcov` to Codecov.
+Build release coverage (builds the instrumented test binaries):
 
-## Documentation
+```powershell
+cmake --build --preset release-coverage
+```
 
+Run coverage tests (collects coverage data):
+
+```powershell
+ctest --preset release-coverage --output-on-failure
+```
+
+Coverage output: `./coverage/` and `./coverage/coverage.lcov`.
+
+## Architecture and Design
+
+[TODO: Brief architecture summary and link to design documents as well as design decision ADR files]
+
+## Demo
+
+[TODO: Potential Setup.exe demo AND showcases / screenshots / videos / key features]
+
+## Background
+
+[TODO: Story behind DEV and project motivation]
+
+## Docs
+
+- [TODO: Doxyfiles]
 - `docs/` contains design artifacts and requirements. The implementation (code) should be considered the authoritative source when documentation and code disagree.
 
 ## License
