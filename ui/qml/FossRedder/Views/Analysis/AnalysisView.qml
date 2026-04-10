@@ -8,7 +8,9 @@ import "../../Constants/Analysis.js" as Analysis
 
 Item {
     id: root
-    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
+    readonly property StateFacade session: AppContext.session
+    readonly property AnalysisController analysisController: AppContext.analysisController
+    Accessible.ignored: AppContext.isDebugBuild
     readonly property var plotTypeOptions: [
         { value: Analysis.chartTypes.pie, label: qsTr("Pie chart") },
         { value: Analysis.chartTypes.histogram, label: qsTr("Histogram") }

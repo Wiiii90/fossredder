@@ -8,7 +8,7 @@ Item {
     id: contentRouter
     Layout.fillWidth: true
     Layout.fillHeight: true
-    property int activeSection: navigation ? navigation.section : Navigation.Import
+    property int activeSection: AppContext.navigation ? AppContext.navigation.section : Navigation.Import
     property bool actorLoaded: false
     property bool propertyLoaded: false
     property bool contractLoaded: false
@@ -67,17 +67,17 @@ Item {
     }
 
     function updateContent() {
-        if (navigation && navigation.section !== Navigation.Booking && session) {
-            if (session.selectedTransactionId && session.selectedTransactionId.length > 0)
-                session.selectedTransactionId = ""
-            if (session.selectedStatementId && session.selectedStatementId.length > 0)
-                session.selectedStatementId = ""
+        if (AppContext.navigation && AppContext.navigation.section !== Navigation.Booking && AppContext.session) {
+            if (AppContext.session.selectedTransactionId && AppContext.session.selectedTransactionId.length > 0)
+                AppContext.session.selectedTransactionId = ""
+            if (AppContext.session.selectedStatementId && AppContext.session.selectedStatementId.length > 0)
+                AppContext.session.selectedStatementId = ""
         }
 
-        if (navigation && navigation.section !== Navigation.Booking && navigation.bookingView !== Navigation.Statements)
-            navigation.bookingView = Navigation.Statements
+        if (AppContext.navigation && AppContext.navigation.section !== Navigation.Booking && AppContext.navigation.bookingView !== Navigation.Statements)
+            AppContext.navigation.bookingView = Navigation.Statements
 
-        activeSection = navigation ? navigation.section : Navigation.Import
+        activeSection = AppContext.navigation ? AppContext.navigation.section : Navigation.Import
         rememberSection(activeSection)
     }
 
@@ -150,6 +150,6 @@ Item {
     }
 
     Component.onCompleted: updateContent()
-    Connections { target: navigation; function onSectionChanged() { updateContent() } }
+    Connections { target: AppContext.navigation; function onSectionChanged() { updateContent() } }
 }
 

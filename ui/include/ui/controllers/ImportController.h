@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <qqmlintegration.h>
 #include <exception>
 #include <functional>
 #include <memory>
@@ -19,6 +20,7 @@
 #include "ui/import/ImportJobBridge.h"
 #include "ui/import/ImportState.h"
 #include "ui/models/ImportRunList.h"
+#include "ui/models/StatementDraft.h"
 
 namespace core::jobs { class JobSystem; }
 
@@ -29,6 +31,8 @@ namespace ui {
  */
 class ImportController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(ImportController)
+    QML_UNCREATABLE("ImportController is provided by the application context")
 
     Q_PROPERTY(bool isRunning READ isRunning NOTIFY stateChanged)
     Q_PROPERTY(double progress READ progress NOTIFY stateChanged)

@@ -7,6 +7,9 @@ import "../../Constants/FileFormats.js" as FileFormats
 
 Item {
     id: root
+    readonly property ImportController importController: AppContext.importController
+    readonly property Actions actions: AppContext.actions
+    readonly property StatusState status: AppContext.status
     Component.onCompleted: {
         Qt.callLater(function() {
             root.importPageActivated = true
@@ -22,7 +25,7 @@ Item {
     anchors.fill: parent
     anchors.margins: Theme.spacingMedium
 
-    property bool hasImportController: typeof importController !== 'undefined'
+    property bool hasImportController: importController !== null
 
     property bool showAdvanced: false
     property bool showPoppler: false
@@ -263,13 +266,13 @@ Item {
                             Connections {
                                 target: root.hasImportController ? importController : null
                                 function onImportCanceled() {
-                                    if (typeof status !== 'undefined' && status) status.text = root.importCanceledStatusText
+                    if (status) status.text = root.importCanceledStatusText
                                 }
                                 function onImportFinished() {
-                                    if (typeof status !== 'undefined' && status) status.text = root.importFinishedStatusText
+                    if (status) status.text = root.importFinishedStatusText
                                 }
                                 function onImportFailed(error) {
-                                    if (typeof status !== 'undefined' && status)
+                                    if (status)
                                         status.text = (error && error.length > 0) ? error : root.importFailedStatusText
                                 }
                             }

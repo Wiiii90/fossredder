@@ -6,6 +6,9 @@ import FossRedder.Controls 1.0 as Controls
 Item {
     id: root
 
+    readonly property StateFacade session: AppContext.session
+    readonly property StatementController statementController: AppContext.statementController
+
     property var current: session ? session.selectedStatement : null
     property bool isEdit: current && current.id && String(current.id).length > 0
 

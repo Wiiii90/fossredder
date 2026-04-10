@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QVariantMap>
+#include <qqmlintegration.h>
 
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
@@ -23,6 +24,8 @@ namespace ui {
  */
 class SessionStore : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(SessionStore)
+    QML_UNCREATABLE("SessionStore is exposed by the application context")
 
 public:
     /** @brief Creates the session store and connects derived-state recomputation. */

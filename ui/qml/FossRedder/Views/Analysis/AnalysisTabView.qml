@@ -5,8 +5,8 @@ import FossRedder.Views 1.0 as Views
 
 Item {
     id: root
-    property var session
-    property var analysisController
+    property StateFacade session: AppContext.session
+    property AnalysisController analysisController: AppContext.analysisController
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
@@ -24,7 +24,7 @@ Item {
             analysisController: root.analysisController
         }
 
-        Connections { target: (typeof session !== 'undefined') ? session : null
+        Connections { target: session
             function onLastAnalysisResultChanged() {
                 try {
                     if (tabComp) { tabComp.session = session; if (tabComp.rebuild) tabComp.rebuild() }

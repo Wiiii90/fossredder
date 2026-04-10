@@ -8,3 +8,6 @@
 
 ## File and Folder Management
 - Prefer using existing files and folder structures first; avoid creating new ad-hoc folders or files when an existing file can be reused or reorganized.
+
+## Code Integration
+- Prefer using centralized constants like `QmlContracts.h` to avoid magic strings and keep QML/C++ integration clean.

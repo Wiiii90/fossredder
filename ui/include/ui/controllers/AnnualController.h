@@ -9,6 +9,7 @@
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
+#include <qqmlintegration.h>
 
 namespace core::application { class AppStateFacade; }
 
@@ -19,6 +20,8 @@ namespace ui {
  */
 class AnnualController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(AnnualController)
+    QML_UNCREATABLE("AnnualController is provided by the application context")
 public:
     /** @brief Create an annual controller bound to the application facade.
      *  @param core Core application facade pointer

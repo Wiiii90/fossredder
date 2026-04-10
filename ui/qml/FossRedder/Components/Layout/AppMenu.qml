@@ -6,14 +6,14 @@ MenuBar {
     id: root
 
     function clearBookingStateForSection(section) {
-        if (!navigation || section === Navigation.Booking) return
-        navigation.bookingView = Navigation.Statements
+        if (!AppContext.navigation || section === Navigation.Booking) return
+        AppContext.navigation.bookingView = Navigation.Statements
     }
 
     function navigateToSection(section) {
-        if (!navigation) return
+        if (!AppContext.navigation) return
         clearBookingStateForSection(section)
-        navigation.section = section
+        AppContext.navigation.section = section
     }
 
     background: Rectangle {
@@ -28,13 +28,13 @@ MenuBar {
         Action {
             text: qsTr("New")
             shortcut: StandardKey.New
-            onTriggered: if (actions) actions.newFile()
+            onTriggered: if (AppContext.actions) AppContext.actions.newFile()
         }
 
         Action {
             text: qsTr("Open...")
             shortcut: StandardKey.Open
-            onTriggered: if (actions) actions.openFile()
+            onTriggered: if (AppContext.actions) AppContext.actions.openFile()
         }
 
         MenuSeparator { }
@@ -42,13 +42,13 @@ MenuBar {
         Action {
             text: qsTr("Save")
             shortcut: StandardKey.Save
-            onTriggered: if (actions) actions.saveFile()
+            onTriggered: if (AppContext.actions) AppContext.actions.saveFile()
         }
 
         Action {
             text: qsTr("Save As...")
             shortcut: StandardKey.SaveAs
-            onTriggered: if (actions) actions.saveFileAs()
+            onTriggered: if (AppContext.actions) AppContext.actions.saveFileAs()
         }
 
         MenuSeparator { }
@@ -57,7 +57,7 @@ MenuBar {
                 text: qsTr("Import...")
                 onTriggered: {
                     navigateToSection(Navigation.Import)
-                    if (actions) actions.browseImportPdf()
+                    if (AppContext.actions) AppContext.actions.browseImportPdf()
                 }
             }
 
@@ -74,7 +74,7 @@ MenuBar {
                 text: qsTr("Quit")
                 shortcut: StandardKey.Quit
                 onTriggered: {
-                    if (actions && actions.quitAction) actions.quitAction.trigger()
+                    if (AppContext.actions && AppContext.actions.quitAction) AppContext.actions.quitAction.trigger()
                     else Qt.quit()
                 }
             }
@@ -128,16 +128,16 @@ MenuBar {
         title: qsTr("Language")
 
         Instantiator {
-            model: languageController ? languageController.availableLanguages : []
+            model: AppContext.languageController ? AppContext.languageController.availableLanguages : []
 
             delegate: Action {
                 required property var modelData
                 text: modelData.label
                 checkable: true
-                checked: languageController && languageController.currentLanguage === modelData.code
+                checked: AppContext.languageController && AppContext.languageController.currentLanguage === modelData.code
                 enabled: modelData.available !== false
                 onTriggered: {
-                    if (languageController && enabled) languageController.currentLanguage = modelData.code
+                    if (AppContext.languageController && enabled) AppContext.languageController.currentLanguage = modelData.code
                 }
             }
 
@@ -152,7 +152,7 @@ MenuBar {
         Action {
             text: qsTr("About")
             onTriggered: {
-                if (actions && actions.aboutAction) actions.aboutAction.trigger()
+                if (AppContext.actions && AppContext.actions.aboutAction) AppContext.actions.aboutAction.trigger()
             }
         }
     }

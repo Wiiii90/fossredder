@@ -10,23 +10,23 @@ Item {
     property int iconRowHeight: Math.round(implicitHeight * 0.55)
 
     function clearDomainSelection() {
-        if (!session) return
-        session.selectedActorId = ""
-        session.selectedPropertyId = ""
-        session.selectedContractId = ""
+        if (!AppContext.session) return
+        AppContext.session.selectedActorId = ""
+        AppContext.session.selectedPropertyId = ""
+        AppContext.session.selectedContractId = ""
     }
 
     function clearBookingStateForSection(section) {
-        if (!navigation || section === Navigation.Booking) return
-        navigation.bookingView = Navigation.Statements
+        if (!AppContext.navigation || section === Navigation.Booking) return
+        AppContext.navigation.bookingView = Navigation.Statements
     }
 
     function navigateTo(section, clearSelection, bookingView) {
-        if (!navigation) return
+        if (!AppContext.navigation) return
         clearBookingStateForSection(section)
         if (clearSelection) clearDomainSelection()
-        if (bookingView !== undefined) navigation.bookingView = bookingView
-        navigation.section = section
+        if (bookingView !== undefined) AppContext.navigation.bookingView = bookingView
+        AppContext.navigation.section = section
     }
 
     Rectangle {
@@ -63,7 +63,7 @@ Item {
                         Layout.preferredHeight: fileIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/import.svg"
                         label: qsTr("Import")
-                        active: navigation && navigation.section === Navigation.Import
+                        active: AppContext.navigation && AppContext.navigation.section === Navigation.Import
                         onClicked: navigateTo(Navigation.Import, false)
                     }
                     Controls.IconButton {
@@ -71,7 +71,7 @@ Item {
                         Layout.preferredHeight: fileIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/export.svg"
                         label: qsTr("Export")
-                        active: navigation && navigation.section === Navigation.Export
+                        active: AppContext.navigation && AppContext.navigation.section === Navigation.Export
                         onClicked: navigateTo(Navigation.Export, false)
                     }
                 }
@@ -108,11 +108,11 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/booking.svg"
                         label: qsTr("Booking")
-                        active: navigation && navigation.section === Navigation.Booking
+                        active: AppContext.navigation && AppContext.navigation.section === Navigation.Booking
                         onClicked: {
-                            if (session) {
-                                session.selectedStatementId = ""
-                                session.selectedTransactionId = ""
+                            if (AppContext.session) {
+                                AppContext.session.selectedStatementId = ""
+                                AppContext.session.selectedTransactionId = ""
                             }
                             navigateTo(Navigation.Booking, false, Navigation.Statements)
                         }
@@ -122,7 +122,7 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/actor.svg"
                         label: qsTr("Actor")
-                        active: navigation && navigation.section === Navigation.Actors
+                        active: AppContext.navigation && AppContext.navigation.section === Navigation.Actors
                         onClicked: navigateTo(Navigation.Actors, true)
                     }
                     Controls.IconButton {
@@ -130,7 +130,7 @@ Item {
                         Layout.preferredHeight: domainIcons.height
                         svgSource: "qrc:/qml/FossRedder/Assets/property.svg"
                         label: qsTr("Property")
-                        active: navigation && navigation.section === Navigation.Properties
+                        active: AppContext.navigation && AppContext.navigation.section === Navigation.Properties
                         onClicked: navigateTo(Navigation.Properties, true)
                     }
                     Controls.IconButton {
@@ -245,15 +245,15 @@ Item {
             target: navigation
             function onSectionChanged() {
                 var s = navigation ? navigation.section : null;
-                if (typeof loaderImport !== 'undefined' && loaderImport.item) loaderImport.item.active = (s === Navigation.Import);
-                if (typeof loaderExport !== 'undefined' && loaderExport.item) loaderExport.item.active = (s === Navigation.Export);
-                if (typeof loaderBooking !== 'undefined' && loaderBooking.item) loaderBooking.item.active = (s === Navigation.Booking);
-                if (typeof loaderActor !== 'undefined' && loaderActor.item) loaderActor.item.active = (s === Navigation.Actors);
-                if (typeof loaderProperty !== 'undefined' && loaderProperty.item) loaderProperty.item.active = (s === Navigation.Properties);
-                if (typeof loaderContract !== 'undefined' && loaderContract.item) loaderContract.item.active = (s === Navigation.Contracts);
-                if (typeof loaderAnalysis !== 'undefined' && loaderAnalysis.item) loaderAnalysis.item.active = (s === Navigation.Analysis);
-                if (typeof loaderAnnual !== 'undefined' && loaderAnnual.item) loaderAnnual.item.active = (s === Navigation.Annual);
-                if (typeof loaderSettings !== 'undefined' && loaderSettings.item) loaderSettings.item.active = (s === Navigation.Settings);
+                if (loaderImport.item) loaderImport.item.active = (s === Navigation.Import);
+                if (loaderExport.item) loaderExport.item.active = (s === Navigation.Export);
+                if (loaderBooking.item) loaderBooking.item.active = (s === Navigation.Booking);
+                if (loaderActor.item) loaderActor.item.active = (s === Navigation.Actors);
+                if (loaderProperty.item) loaderProperty.item.active = (s === Navigation.Properties);
+                if (loaderContract.item) loaderContract.item.active = (s === Navigation.Contracts);
+                if (loaderAnalysis.item) loaderAnalysis.item.active = (s === Navigation.Analysis);
+                if (loaderAnnual.item) loaderAnnual.item.active = (s === Navigation.Annual);
+                if (loaderSettings.item) loaderSettings.item.active = (s === Navigation.Settings);
             }
         }
     }

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <QObject>
+#include <qqmlintegration.h>
 
 #include "ui/models/RowListModel.h"
 #include "ui/models/TransactionDraft.h"
@@ -14,6 +15,8 @@ namespace ui {
 
 class TransactionDraftList : public models::RowListModel<TransactionDraft> {
     Q_OBJECT
+    QML_NAMED_ELEMENT(TransactionDraftList)
+    QML_UNCREATABLE("TransactionDraftList is exposed by the application context")
     using Base = models::RowListModel<TransactionDraft>;
 public:
     enum Roles {

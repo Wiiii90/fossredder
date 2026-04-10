@@ -19,8 +19,8 @@ Item {
 
             Label {
                 id: lblStatus
-                text: (typeof status !== 'undefined' && status && status.text && status.text.length > 0)
-                      ? status.text
+                text: (AppContext.status && AppContext.status.text && AppContext.status.text.length > 0)
+                      ? AppContext.status.text
                       : bar.readyStatusText
                 color: Theme.textPrimary
                 elide: Label.ElideRight

@@ -8,6 +8,8 @@ import FossRedder.Components 1.0 as Components
 Item {
     id: root
 
+    readonly property ExportController exportController: AppContext.exportController
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 8
@@ -55,7 +57,7 @@ Item {
 
     Component.onCompleted: {
         try {
-            if (typeof exportController !== 'undefined' && exportController) {
+            if (exportController) {
                 exportController.stateChanged.connect(function() {
                     try {
                         if (exportController.isRunning) {

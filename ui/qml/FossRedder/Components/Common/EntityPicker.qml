@@ -5,6 +5,10 @@ import FossRedder.Controls 1.0 as Controls
 
 Item {
     id: root
+    readonly property StateFacade session: AppContext.session
+    readonly property ActorController actorController: AppContext.actorController
+    readonly property PropertyController propertyController: AppContext.propertyController
+    readonly property ContractController contractController: AppContext.contractController
     property var model: null
     property var selectedIds: []
     property bool showAdd: true
@@ -62,9 +66,9 @@ Item {
                     if (!name) return
                     var id = null
                     try {
-                        if (typeof actorController !== 'undefined' && actorController && session && model === session.actors) id = actorController.addActor(name, "", "")
-                        else if (typeof propertyController !== 'undefined' && propertyController && session && model === session.properties) id = propertyController.addProperty(name, "", "")
-                        else if (typeof contractController !== 'undefined' && contractController && session && model === session.contracts) id = contractController.addContract(name, "", "", [], [])
+                        if (actorController && session && model === session.actors) id = actorController.addActor(name, "", "")
+                        else if (propertyController && session && model === session.properties) id = propertyController.addProperty(name, "", "")
+                        else if (contractController && session && model === session.contracts) id = contractController.addContract(name, "", "", [], [])
                     } catch(e) { id = null }
                     if (id && id.length > 0) {
                         var next = root.selectedIds ? root.selectedIds.slice(0) : []

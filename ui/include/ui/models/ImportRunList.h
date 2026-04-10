@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <qqmlintegration.h>
+
 #include <QString>
 
 #include "ui/models/RowListModel.h"
@@ -21,6 +23,8 @@ struct ImportRunRow {
 
 class ImportRunList : public models::RowListModel<ImportRunRow> {
     Q_OBJECT
+    QML_NAMED_ELEMENT(ImportRunList)
+    QML_UNCREATABLE("ImportRunList is exposed by the application context")
 public:
     enum Roles {
         TimeRole = Qt::UserRole + 1,

@@ -6,6 +6,7 @@ import FossRedder.Components 1.0 as Components
 
 Item {
     id: root
+    readonly property NavigationState navigation: AppContext.navigation
     
 
     ColumnLayout {

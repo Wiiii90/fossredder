@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <qqmlintegration.h>
+
 #include "core/models/Annual.h"
 #include "ui/models/IndexedListModel.h"
 
@@ -12,6 +14,8 @@ namespace ui {
 
 class AnnualList : public models::IndexedListModel<core::domain::Annual> {
     Q_OBJECT
+    QML_NAMED_ELEMENT(AnnualList)
+    QML_UNCREATABLE("AnnualList is exposed by the application context")
     using Base = models::IndexedListModel<core::domain::Annual>;
 public:
     enum Roles {

@@ -7,7 +7,8 @@ import "../../Constants/Analysis.js" as Analysis
 
 Item {
     id: root
-    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
+    readonly property StateFacade session: AppContext.session
+    Accessible.ignored: AppContext.isDebugBuild
     property var histLegendModel: []
     property real histLegendTotal: 0
     property var propListModel: []
@@ -31,7 +32,7 @@ Item {
         var newProps = []
         var newHistTotal = 0
         try {
-            if (typeof session === 'undefined' || !session || !session.lastAnalysisResult || !session.lastAnalysisResult.table) {
+            if (!session || !session.lastAnalysisResult || !session.lastAnalysisResult.table) {
                 histLegendModel = newHist
                 histLegendTotal = newHistTotal
                 propListModel = newProps
@@ -198,7 +199,7 @@ Item {
 
     }
 
-    Connections { target: (typeof session !== 'undefined') ? session : null
+    Connections { target: session
         function onLastAnalysisResultChanged() { try { rebuild() } catch(e) {} }
     }
 }

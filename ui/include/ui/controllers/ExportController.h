@@ -9,6 +9,7 @@
 #include <QString>
 #include <QFuture>
 #include <QFutureWatcher>
+#include <qqmlintegration.h>
 #include <functional>
 #include <memory>
 
@@ -22,6 +23,8 @@ namespace ui {
  */
 class ExportController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(ExportController)
+    QML_UNCREATABLE("ExportController is provided by the application context")
 public:
     using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::AppState>()>;
 

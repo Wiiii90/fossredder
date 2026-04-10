@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include <qqmlintegration.h>
 
 #include "core/models/AppState.h"
 #include "ui/models/TransactionDraftList.h"
@@ -15,6 +16,8 @@ namespace ui {
 
 class StatementDraft : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(StatementDraft)
+    QML_UNCREATABLE("StatementDraft is exposed by the application context")
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
 
     Q_PROPERTY(int currentIndex READ currentIndex WRITE setCurrentIndex NOTIFY changed)

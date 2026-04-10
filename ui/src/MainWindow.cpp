@@ -12,14 +12,17 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQmlImageProviderBase>
+#include <QVariant>
 #include <QQuickItem>
 #include <QQuickView>
 #include <QSizePolicy>
 #include <QWidget>
+#include <qqml.h>
 #include <string>
 
 #include "core/constants/CoreDefaults.h"
 #include "ui/actions/Actions.h"
+#include "ui/bootstrap/AppContext.h"
 #include "ui/bootstrap/QmlContracts.h"
 #include "ui/bootstrap/QmlRuntime.h"
 #include "ui/config/Defaults.h"
@@ -96,6 +99,7 @@ void MainWindow::setupQuickHost() {
 
   m_quickView = new QQuickView();
   m_quickView->setResizeMode(QQuickView::SizeRootObjectToView);
+  appContext_ = new ui::bootstrap::AppContext(this);
 
   m_quickContainer = QWidget::createWindowContainer(m_quickView, this);
   m_quickContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -123,9 +127,18 @@ void MainWindow::setupActionRouting() {
 }
 
 void MainWindow::setupQmlRuntime() {
-  Q_INIT_RESOURCE(qml);
-  ui::bootstrap::configureRuntime(m_quickView ? m_quickView->engine()
-                                              : nullptr);
+  auto *engine = m_quickView ? m_quickView->engine() : nullptr;
+  ui::bootstrap::configureRuntime(engine);
+
+  static bool appContextRegistered = false;
+  if (engine && appContext_ && !appContextRegistered) {
+    qmlRegisterSingletonInstance(ui::qml::contracts::module::kName,
+                                 ui::qml::contracts::module::kMajorVersion,
+                                 ui::qml::contracts::module::kMinorVersion,
+                                 ui::qml::contracts::module::kAppContextTypeName,
+                                 appContext_);
+    appContextRegistered = true;
+  }
 }
 
 void MainWindow::prepareForQmlShutdown() {
@@ -161,6 +174,18 @@ void MainWindow::setQmlContextProperty(const QString &name, QObject *value) {
   if (!m_quickView->rootContext())
     return;
   m_quickView->rootContext()->setContextProperty(name, value);
+  if (appContext_)
+    appContext_->setProperty(name.toUtf8().constData(), QVariant::fromValue(value));
+}
+
+void MainWindow::setQmlContextValue(const QString &name, const QVariant &value) {
+  if (!m_quickView)
+    return;
+  if (!m_quickView->rootContext())
+    return;
+  m_quickView->rootContext()->setContextProperty(name, value);
+  if (appContext_)
+    appContext_->setProperty(name.toUtf8().constData(), value);
 }
 
 void MainWindow::addImageProvider(const QString &id,

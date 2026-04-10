@@ -5,7 +5,9 @@ import FossRedder.Controls 1.0 as Controls
 
 Item {
     id: root
-    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
+    readonly property StateFacade session: AppContext.session
+    readonly property TransactionController transactionController: AppContext.transactionController
+    Accessible.ignored: AppContext.isDebugBuild
 
     property bool isNew: false
     property var current: null
@@ -60,7 +62,7 @@ Item {
         bookingDateField.text = ""
         amountField.text = ""
         typeField.text = ""
-        if (typeof selectedPropertyIds !== 'undefined') selectedPropertyIds = []
+        selectedPropertyIds = []
         allocCheck.checked = false
         statusCombo.currentIndex = 0
     }
@@ -81,7 +83,7 @@ Item {
         bookingDateField.text = current.bookingDate || ""
         amountField.text = String(current.amount)
         typeField.text = current.type || ""
-        if (typeof selectedPropertyIds !== 'undefined') selectedPropertyIds = current.propertyIds ? current.propertyIds.slice() : []
+        selectedPropertyIds = current.propertyIds ? current.propertyIds.slice() : []
         allocCheck.checked = current.allocatable ? true : false
         statusCombo.currentIndex = Math.max(0, current.status)
     }

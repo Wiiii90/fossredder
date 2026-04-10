@@ -7,11 +7,14 @@
 
 #include <QSortFilterProxyModel>
 #include <QString>
+#include <qqmlintegration.h>
 
 namespace ui {
 
 class TransactionFilter : public QSortFilterProxyModel {
     Q_OBJECT
+    QML_NAMED_ELEMENT(TransactionFilter)
+    QML_UNCREATABLE("TransactionFilter is exposed by the application context")
     Q_PROPERTY(QString statementId READ statementId WRITE setStatementId NOTIFY statementIdChanged)
     Q_PROPERTY(QString propertyId READ propertyId WRITE setPropertyId NOTIFY propertyIdChanged)
     Q_PROPERTY(QString txType READ txType WRITE setTxType NOTIFY txTypeChanged)

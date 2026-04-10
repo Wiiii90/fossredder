@@ -13,6 +13,7 @@
 #include <QVariantMap>
 #include <QString>
 #include <QStringList>
+#include <qqmlintegration.h>
 
 namespace core::application { class AppStateFacade; class AnalysisService; }
 namespace core::domain { struct AppState; }
@@ -24,6 +25,8 @@ namespace ui {
  */
 class AnalysisController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(AnalysisController)
+    QML_UNCREATABLE("AnalysisController is provided by the application context")
 public:
     using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::AppState>()>;
 

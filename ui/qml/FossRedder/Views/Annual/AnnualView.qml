@@ -6,7 +6,8 @@ import FossRedder.Controls 1.0 as Controls
 import FossRedder.Views 1.0 as Views
 
 Item {
-    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
+    readonly property StateFacade session: AppContext.session
+    Accessible.ignored: AppContext.isDebugBuild
     anchors.fill: parent
     StackView {
         id: stackView

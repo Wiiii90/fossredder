@@ -12,9 +12,9 @@ Flickable {
     clip: true
 
     function languageIndexFor(code) {
-        if (!languageController || !languageController.availableLanguages) return -1
-        for (var i = 0; i < languageController.availableLanguages.length; ++i) {
-            var option = languageController.availableLanguages[i]
+        if (!AppContext.languageController || !AppContext.languageController.availableLanguages) return -1
+        for (var i = 0; i < AppContext.languageController.availableLanguages.length; ++i) {
+            var option = AppContext.languageController.availableLanguages[i]
             if (option && option.code === code) return i
         }
         return -1
@@ -41,23 +41,23 @@ Flickable {
                     Controls.ComboBox {
                         id: language
                         objectName: "settingsLanguageComboBox"
-                        model: languageController ? languageController.availableLanguages : []
+                        model: AppContext.languageController ? AppContext.languageController.availableLanguages : []
                         textRole: "label"
-                        currentIndex: root.languageIndexFor(languageController ? languageController.currentLanguage : "")
+                        currentIndex: root.languageIndexFor(AppContext.languageController ? AppContext.languageController.currentLanguage : "")
                         onActivated: function(index) {
-                            if (!languageController || index < 0 || index >= model.length) return
+                            if (!AppContext.languageController || index < 0 || index >= model.length) return
                             var option = model[index]
                             if (!option || option.available === false) {
-                                currentIndex = root.languageIndexFor(languageController.currentLanguage)
+                                currentIndex = root.languageIndexFor(AppContext.languageController.currentLanguage)
                                 return
                             }
-                            languageController.currentLanguage = option.code
+                            AppContext.languageController.currentLanguage = option.code
                         }
 
                         Connections {
-                            target: languageController
+                            target: AppContext.languageController
                             function onCurrentLanguageChanged() {
-                                language.currentIndex = root.languageIndexFor(languageController.currentLanguage)
+                                language.currentIndex = root.languageIndexFor(AppContext.languageController.currentLanguage)
                             }
                         }
                     }
@@ -75,8 +75,8 @@ Flickable {
                         objectName: "settingsAppDirectoryField"
                         Layout.fillWidth: true
                         readOnly: true
-                        text: (typeof fileSystemController !== 'undefined' && fileSystemController)
-                              ? fileSystemController.appDir()
+                        text: AppContext.fileSystemController
+                              ? AppContext.fileSystemController.appDir()
                               : ""
                         placeholderText: qsTr("Application directory is not available")
                     }

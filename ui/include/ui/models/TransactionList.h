@@ -8,6 +8,7 @@
 #include <QHash>
 #include <QString>
 #include <QVariant>
+#include <qqmlintegration.h>
 
 #include "core/models/Transaction.h"
 #include "ui/models/RowListModel.h"
@@ -16,6 +17,8 @@ namespace ui {
 
 class TransactionList : public models::RowListModel<std::shared_ptr<core::domain::Transaction>> {
     Q_OBJECT
+    QML_NAMED_ELEMENT(TransactionList)
+    QML_UNCREATABLE("TransactionList is exposed by the application context")
     using Base = models::RowListModel<std::shared_ptr<core::domain::Transaction>>;
 public:
     enum Roles {

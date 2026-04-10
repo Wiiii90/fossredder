@@ -30,15 +30,6 @@ inline const auto kTranslationBaseName = QStringLiteral("fossredder");
 /** @brief Resource import path used by the QQmlEngine for QRC-backed modules. */
 inline const auto kQrcQmlImportPath = QStringLiteral("qrc:/qml");
 
-namespace qmlRegistration {
-
-/** @brief Exposed QML type name for uncreatable QML contracts. */
-inline constexpr auto kQmlContractsTypeName = "QmlContracts";
-/** @brief QML diagnostic text shown when QML contracts are instantiated directly. */
-inline constexpr auto kQmlContractsTypeDescription = "QML contracts are exposed as enums only";
-
-}
-
 namespace operationKeys {
 
 /** @brief Operation key emitted for create-new-file actions. */

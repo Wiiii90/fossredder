@@ -61,8 +61,8 @@ Item {
     }
 
     function resolveSection() {
-        if (!navigation) return sectionImport;
-        var v = navigation.section;
+        if (!AppContext.navigation) return sectionImport;
+        var v = AppContext.navigation.section;
         try {
             if (typeof v === 'string' && v.indexOf('Export') >= 0) return Navigation.Export;
         } catch(e) {}
@@ -82,15 +82,15 @@ Item {
     function update() {
         var sec = resolveSection();
 
-        if (sec !== sectionBooking && session) {
-            if (session.selectedTransactionId && session.selectedTransactionId.length > 0)
-                session.selectedTransactionId = ""
-            if (session.selectedStatementId && session.selectedStatementId.length > 0)
-                session.selectedStatementId = ""
+        if (sec !== sectionBooking && AppContext.session) {
+            if (AppContext.session.selectedTransactionId && AppContext.session.selectedTransactionId.length > 0)
+                AppContext.session.selectedTransactionId = ""
+            if (AppContext.session.selectedStatementId && AppContext.session.selectedStatementId.length > 0)
+                AppContext.session.selectedStatementId = ""
         }
 
-        if (sec !== sectionBooking && navigation && navigation.bookingView !== Navigation.Statements)
-            navigation.bookingView = Navigation.Statements
+        if (sec !== sectionBooking && AppContext.navigation && AppContext.navigation.bookingView !== Navigation.Statements)
+            AppContext.navigation.bookingView = Navigation.Statements
 
         resolvedSection = sec;
         rememberSection(sec)
@@ -175,7 +175,7 @@ Item {
         contentComponent: placeholderLoaded ? placeholderSidebarComp : null
     }
 
-    Connections { target: navigation; function onSectionChanged() { update(); } }
+    Connections { target: AppContext.navigation; function onSectionChanged() { update(); } }
 
     Component.onCompleted: {
         update()

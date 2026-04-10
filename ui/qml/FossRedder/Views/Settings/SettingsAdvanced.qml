@@ -39,7 +39,7 @@ Flickable {
                     Label { text: qsTr("Build mode hint"); Layout.fillWidth: true }
                     Label {
                         Layout.fillWidth: true
-                        text: (typeof isDebugBuild !== 'undefined' && isDebugBuild)
+                        text: AppContext.isDebugBuild
                               ? qsTr("Debug-specific UI diagnostics are available in debug builds.")
                               : qsTr("This build runs with the production-oriented UI configuration.")
                         color: Theme.textMuted

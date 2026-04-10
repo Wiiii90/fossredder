@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include <qqmlintegration.h>
 
 namespace core::application { class AppStateFacade; }
 
@@ -20,6 +21,8 @@ namespace ui {
  */
 class PropertyController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(PropertyController)
+    QML_UNCREATABLE("PropertyController is provided by the application context")
 public:
     /** @brief Create a property controller bound to the application facade. */
     explicit PropertyController(core::application::AppStateFacade* core, QObject* parent = nullptr);

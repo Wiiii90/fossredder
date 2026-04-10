@@ -7,6 +7,9 @@ import FossRedder.Controls 1.0 as Controls
 Item {
     id: root
 
+    readonly property StateFacade session: AppContext.session
+    readonly property PropertyController propertyController: AppContext.propertyController
+
     property var current: session ? session.selectedProperty : null
     readonly property int amountColumnWidth: Theme.formLabelWidth
     property bool isEdit: current && current.id && String(current.id).length > 0

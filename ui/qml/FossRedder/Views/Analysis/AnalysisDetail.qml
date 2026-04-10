@@ -7,7 +7,9 @@ import FossRedder.Views 1.0 as Views
 
 Item {
     id: page
-    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
+    readonly property StateFacade session: AppContext.session
+    readonly property AnalysisController analysisController: AppContext.analysisController
+    Accessible.ignored: AppContext.isDebugBuild
     property var stackView
     property bool previewReady: false
     width: stackView ? stackView.width : (parent ? parent.width : Theme.analysis.layout.defaultWidth)
@@ -58,11 +60,11 @@ Item {
         }
     }
     Connections {
-        target: typeof session !== 'undefined' ? session : null
+        target: session
         function onSelectedAnalysisIdChanged() {
             try {
                 if (!mainLoader) return
-                if (typeof session !== 'undefined' && session && session.selectedAnalysis) {
+                if (session && session.selectedAnalysis) {
                     var t = session.selectedAnalysis.type ? session.selectedAnalysis.type : "plot"
                     if (t === "calc") mainLoader.sourceComponent = calcComp
                     else if (t === "tab") mainLoader.sourceComponent = tabComp

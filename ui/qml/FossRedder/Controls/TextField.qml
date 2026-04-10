@@ -8,7 +8,7 @@ TextField {
     Layout.fillWidth: true
     font.family: Theme.fontFamily
     font.pointSize: Theme.fontSize
-    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
+    Accessible.ignored: AppContext.isDebugBuild
 
     background: Rectangle {
         color: Theme.surface

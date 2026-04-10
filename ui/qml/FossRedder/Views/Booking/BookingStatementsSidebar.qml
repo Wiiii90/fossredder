@@ -7,6 +7,8 @@ import FossRedder.Controls 1.0 as Controls
 Item {
     id: root
 
+    readonly property StateFacade session: AppContext.session
+
     Flickable {
         anchors.fill: parent
         clip: true

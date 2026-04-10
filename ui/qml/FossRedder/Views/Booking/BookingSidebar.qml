@@ -6,6 +6,7 @@ import FossRedder.Views 1.0 as Views
 
 Item {
     id: root
+    readonly property NavigationState navigation: AppContext.navigation
 
     Component { id: bookingStatementsSidebarComp; Views.BookingStatementsSidebar { } }
     Component { id: placeholderSidebarComp; Views.PlaceholderSidebar { } }

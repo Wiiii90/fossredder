@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <qqmlintegration.h>
+
 #include "core/models/Actor.h"
 #include "ui/models/IndexedListModel.h"
 
@@ -12,6 +14,8 @@ namespace ui {
 
 class ActorList : public models::IndexedListModel<core::domain::Actor> {
     Q_OBJECT
+    QML_NAMED_ELEMENT(ActorList)
+    QML_UNCREATABLE("ActorList is exposed by the application context")
     using Base = models::IndexedListModel<core::domain::Actor>;
 
 public:

@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <QObject>
+#include <qqmlintegration.h>
 
 namespace core::application { class AppStateFacade; }
 
@@ -17,6 +18,8 @@ namespace ui {
  */
 class StorageController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(StorageController)
+    QML_UNCREATABLE("StorageController is provided by the application context")
 
 public:
     /** @brief Creates a controller that delegates storage operations to the core application facade.

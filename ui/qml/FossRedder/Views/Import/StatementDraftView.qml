@@ -8,25 +8,30 @@ Item {
     id: stmtRoot
     anchors.fill: parent
 
+    readonly property ImportController importController: AppContext.importController
+    readonly property DraftController draftController: AppContext.draftController
+    readonly property StateFacade session: AppContext.session
+    readonly property NavigationState navigation: AppContext.navigation
+
     property var draft
 
     implicitHeight: stmtLayout.implicitHeight
     implicitWidth: stmtLayout.implicitWidth
 
     function discardDraft() {
-        if (typeof importController !== 'undefined' && importController) importController.clearDraft()
-        if (typeof session !== 'undefined' && session) {
+        if (importController) importController.clearDraft()
+        if (session) {
             session.selectedStatementId = ""
             session.selectedTransactionId = ""
         }
-        if (typeof navigation !== 'undefined' && navigation) navigation.section = Navigation.Import
+        if (navigation) navigation.section = Navigation.Import
     }
 
     function finalizeDraft() {
-        if (!draft || typeof draftController === 'undefined' || !draftController) return
+        if (!draft || !draftController) return
 
         var sid = draftController.finalizeStatementDraft(draft)
-        if (typeof importController !== 'undefined' && importController) importController.clearDraft()
+        if (importController) importController.clearDraft()
 
         if (!(sid && sid.length > 0 && navigation && session)) return
 

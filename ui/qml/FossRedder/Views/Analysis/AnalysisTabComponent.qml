@@ -7,8 +7,8 @@ Item {
     id: root
     implicitWidth: Theme.analysis.layout.defaultWidth
     implicitHeight: Theme.chartPlotPreferredHeight
-    property var session: null
-    property var analysisController: null
+    property StateFacade session: AppContext.session
+    property AnalysisController analysisController: AppContext.analysisController
     property var table: []
     property var simpleRows: []
     property var contractTypes: []
@@ -17,7 +17,7 @@ Item {
     Timer { id: initDelay; interval: 60; repeat: false; running: false; triggeredOnStart: false; onTriggered: { try { syncTableFromState(); rebuild() } catch(e) {} } }
 
     function syncTableFromState() {
-        table = (typeof session !== 'undefined' && session && session.lastAnalysisResult) ? session.lastAnalysisResult.table : []
+        table = (session && session.lastAnalysisResult) ? session.lastAnalysisResult.table : []
     }
 
     function resetDerivedData() {
@@ -56,7 +56,7 @@ Item {
     function rebuild() {
         resetDerivedData()
         try {
-            if (typeof session === 'undefined' || !session || !session.lastAnalysisResult || !session.lastAnalysisResult.table) return
+            if (!session || !session.lastAnalysisResult || !session.lastAnalysisResult.table) return
             var tbl = session.lastAnalysisResult.table
             if (isSimpleTable(tbl)) {
                 simpleRows = JSON.parse(JSON.stringify(tbl))
@@ -213,7 +213,7 @@ Item {
         } catch(e) {}
     }
 
-    Connections { target: (typeof session !== 'undefined') ? session : null
+    Connections { target: session
         function onLastAnalysisResultChanged() { try { syncTableFromState(); rebuild() } catch(e) {} }
     }
 }

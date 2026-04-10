@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QVariant>
+#include <qqmlintegration.h>
 
 #include "ui/state/SelectionState.h"
 #include "ui/state/SessionModels.h"
@@ -18,6 +19,8 @@ namespace ui {
  */
 class SessionSelection : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(SessionSelection)
+    QML_UNCREATABLE("SessionSelection is exposed by the application context")
     Q_PROPERTY(QString selectedActorId READ selectedActorId WRITE setSelectedActorId NOTIFY selectedActorIdChanged)
     Q_PROPERTY(QString selectedPropertyId READ selectedPropertyId WRITE setSelectedPropertyId NOTIFY selectedPropertyIdChanged)
     Q_PROPERTY(QString selectedContractId READ selectedContractId WRITE setSelectedContractId NOTIFY selectedContractIdChanged)

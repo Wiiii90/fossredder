@@ -8,6 +8,7 @@ Controls.Panel {
     id: root
 
     property var txRoot
+    readonly property StateFacade session: AppContext.session
 
     function selectedContractName() {
         if (!root.txRoot || !root.txRoot.draft || !root.txRoot.draft.current) return ""

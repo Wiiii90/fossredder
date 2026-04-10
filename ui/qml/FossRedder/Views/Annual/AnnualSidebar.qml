@@ -5,6 +5,8 @@ import FossRedder 1.0
 import FossRedder.Components 1.0 as Components
 
 Item {
+    readonly property StateFacade session: AppContext.session
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.spacingMedium

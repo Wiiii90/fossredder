@@ -7,9 +7,11 @@ import "../../Constants/FileFormats.js" as FileFormats
 
 Item {
     id: root
-    property var exportCtrl: (typeof exportController !== 'undefined' ? exportController : null)
-    readonly property int csvContractValue: (typeof UIContracts !== 'undefined' && UIContracts && UIContracts.Csv !== undefined ? UIContracts.Csv : 0)
-    readonly property int xlsxContractValue: (typeof UIContracts !== 'undefined' && UIContracts && UIContracts.Xlsx !== undefined ? UIContracts.Xlsx : 1)
+    readonly property ExportController exportCtrl: AppContext.exportController
+    readonly property Actions actions: AppContext.actions
+    readonly property FileSystemController fileSystemController: AppContext.fileSystemController
+    readonly property int csvContractValue: QmlContracts.Csv
+    readonly property int xlsxContractValue: QmlContracts.Xlsx
     readonly property string defaultLocale: Qt.locale().name.replace("_", "-")
     readonly property var formatOptions: [
         {
@@ -47,7 +49,7 @@ Item {
                 Layout.preferredWidth: Theme.formFieldWidth
                 onCurrentIndexChanged: {
                     if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(FileFormats.exportDefaults.baseName + ".") !== -1)) {
-                        var base = (typeof fileSystemController !== 'undefined' && fileSystemController) ? fileSystemController.appDir() : ""
+                        var base = fileSystemController ? fileSystemController.appDir() : ""
                         var selectedOption = root.formatOptions[currentIndex]
                         if (!selectedOption) return
                         var ext = selectedOption.extension

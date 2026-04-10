@@ -12,7 +12,7 @@ Popup {
     signal accepted(string path)
     signal rejected()
 
-    property string folder: (typeof fileSystemController !== 'undefined' && fileSystemController) ? fileSystemController.appDir() : (Qt.application ? Qt.resolvedUrl(".") : ".")
+    property string folder: AppContext.fileSystemController ? AppContext.fileSystemController.appDir() : (Qt.application ? Qt.resolvedUrl(".") : ".")
     property string selectedFile: ""
 
     ColumnLayout {
@@ -49,7 +49,7 @@ Popup {
             objectName: "filePickerEntryList"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: (typeof fileSystemController !== 'undefined' && fileSystemController) ? fileSystemController.listDir(picker.folder) : []
+            model: AppContext.fileSystemController ? AppContext.fileSystemController.listDir(picker.folder) : []
             delegate: Item {
                 width: parent.width
                 height: 32

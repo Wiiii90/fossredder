@@ -7,6 +7,8 @@ import FossRedder.Controls 1.0 as Controls
 Item {
     id: txRoot
 
+    readonly property DraftController draftController: AppContext.draftController
+
     property var draft
     property var viewState: ({})
     property bool syncScheduled: false

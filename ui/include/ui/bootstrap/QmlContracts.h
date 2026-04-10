@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include <qqmlintegration.h>
 
 namespace ui::qml::contracts {
 
@@ -17,6 +18,9 @@ namespace module {
 inline constexpr auto kName = "FossRedder";
 constexpr int kMajorVersion = 1;
 constexpr int kMinorVersion = 0;
+inline constexpr auto kAppContextTypeName = "AppContext";
+inline constexpr auto kQmlContractsTypeName = "QmlContracts";
+inline constexpr auto kQmlContractsTypeDescription = "QML contracts are exposed as enums only";
 inline constexpr auto kNavigationTypeName = "Navigation";
 inline constexpr auto kNavigationTypeDescription = "Navigation is exposed via context property 'navigation'";
 }
@@ -63,3 +67,13 @@ enum class ExportFormat : int {
 Q_ENUM_NS(ExportFormat)
 
 } // namespace ui::qml::contracts
+
+namespace ui::qml {
+
+struct QmlContractsRegistration {
+    Q_GADGET
+    QML_FOREIGN_NAMESPACE(ui::qml::contracts)
+    QML_NAMED_ELEMENT(QmlContracts)
+};
+
+} // namespace ui::qml

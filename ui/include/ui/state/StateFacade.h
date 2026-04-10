@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QStringList>
 #include <QVariant>
+#include <qqmlintegration.h>
 
 #include <memory>
 
@@ -24,6 +25,8 @@ namespace ui {
  */
 class StateFacade : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(StateFacade)
+    QML_UNCREATABLE("StateFacade is provided by the application context")
     Q_PROPERTY(SessionStore* session READ session CONSTANT)
     Q_PROPERTY(SessionSelection* selection READ selection CONSTANT)
     Q_PROPERTY(ActorList* actors READ actors CONSTANT)

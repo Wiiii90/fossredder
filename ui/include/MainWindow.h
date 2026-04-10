@@ -7,6 +7,7 @@
 
 #include <QMainWindow>
 #include <QUrl>
+#include <QVariant>
 
 #include "ui/config/Defaults.h"
 #include "ui/actions/Actions.h"
@@ -20,6 +21,10 @@ QT_FORWARD_DECLARE_CLASS(QQmlEngine)
 QT_FORWARD_DECLARE_CLASS(QQuickView)
 QT_FORWARD_DECLARE_CLASS(QWidget)
 
+namespace ui::bootstrap {
+class AppContext;
+}
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
@@ -27,6 +32,7 @@ public:
     ~MainWindow();
 
     void setQmlContextProperty(const QString& name, QObject* value);
+    void setQmlContextValue(const QString& name, const QVariant& value);
     void addImageProvider(const QString& id, QQmlImageProviderBase* provider);
     void loadQml(const QUrl& source = QUrl(ui::config::kMainQmlSource));
     QQmlEngine* qmlEngine() const noexcept;
@@ -62,6 +68,7 @@ private:
     ui::StateFacade* dataSession_ = nullptr;
     ui::Actions* actions_ = nullptr;
     ui::StatusState* status_ = nullptr;
+    ui::bootstrap::AppContext* appContext_ = nullptr;
     bool qmlShutdownPrepared_ = false;
     ui::window::CloseWorkflow closeWorkflow_;
     ui::window::DropController dropController_;

@@ -9,6 +9,7 @@
 #include <QString>
 #include <QVariantList>
 #include <QTranslator>
+#include <qqmlintegration.h>
 
 class QApplication;
 class QQmlEngine;
@@ -20,6 +21,8 @@ namespace ui {
  */
 class LanguageController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(LanguageController)
+    QML_UNCREATABLE("LanguageController is provided by the application context")
     Q_PROPERTY(QString currentLanguage READ currentLanguage WRITE setCurrentLanguage NOTIFY currentLanguageChanged)
     Q_PROPERTY(QVariantList availableLanguages READ availableLanguages CONSTANT)
 

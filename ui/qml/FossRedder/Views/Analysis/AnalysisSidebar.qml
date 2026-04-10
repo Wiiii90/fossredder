@@ -6,6 +6,7 @@ import FossRedder 1.0
 Item {
     id: root
     width: 240
+    readonly property StateFacade session: AppContext.session
 
     Column {
         anchors.fill: parent

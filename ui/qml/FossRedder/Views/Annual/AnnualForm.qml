@@ -5,11 +5,13 @@ import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 
 Item {
-    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
+    readonly property AnnualController annualController: AppContext.annualController
+    readonly property StateFacade session: AppContext.session
+    Accessible.ignored: AppContext.isDebugBuild
     anchors.fill: parent
 
     function createAnnual() {
-        if (typeof annualController === 'undefined' || !annualController) return
+        if (!annualController) return
         try {
             var year = parseInt(yearField.text)
             if (isNaN(year)) return

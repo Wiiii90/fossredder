@@ -9,6 +9,7 @@
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
+#include <qqmlintegration.h>
 
 namespace core::application { class AppStateFacade; }
 
@@ -19,6 +20,8 @@ namespace ui {
  */
 class StatementController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(StatementController)
+    QML_UNCREATABLE("StatementController is provided by the application context")
 public:
     /** @brief Create a statement controller bound to the application facade. */
     explicit StatementController(core::application::AppStateFacade* core, QObject* parent = nullptr);

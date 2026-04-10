@@ -28,6 +28,7 @@ MainWindowServices installMainWindowContext(QQmlContext &qmlContext,
                                             QWidget *parentWindow,
                                             QObject *parent) {
   MainWindowServices services;
+  auto *mainWindow = qobject_cast<MainWindow *>(parentWindow);
   services.actions = new ui::Actions(parent);
   auto *navigation = new ui::NavigationState(parent);
   services.dataSession = new ui::StateFacade(parent);
@@ -35,23 +36,44 @@ MainWindowServices installMainWindowContext(QQmlContext &qmlContext,
   services.status = new ui::StatusState(parent);
   services.status->setText(ui::text::status::ready());
 
-  qmlContext.setContextProperty(ui::qml::contracts::context::kActions,
-                                services.actions);
-  qmlContext.setContextProperty(ui::qml::contracts::context::kNavigation,
-                                navigation);
-  qmlContext.setContextProperty(ui::qml::contracts::context::kSession,
-                                services.dataSession);
-  qmlContext.setContextProperty(
-      ui::qml::contracts::context::kFileSystemController, fileSystem);
-  qmlContext.setContextProperty(ui::qml::contracts::context::kStatus,
-                                services.status);
+  if (mainWindow) {
+    mainWindow->setQmlContextProperty(ui::qml::contracts::context::kActions,
+                                      services.actions);
+    mainWindow->setQmlContextProperty(ui::qml::contracts::context::kNavigation,
+                                      navigation);
+    mainWindow->setQmlContextProperty(ui::qml::contracts::context::kSession,
+                                      services.dataSession);
+    mainWindow->setQmlContextProperty(ui::qml::contracts::context::kFileSystemController,
+                                      fileSystem);
+    mainWindow->setQmlContextProperty(ui::qml::contracts::context::kStatus,
+                                      services.status);
+  } else {
+    qmlContext.setContextProperty(ui::qml::contracts::context::kActions,
+                                  services.actions);
+    qmlContext.setContextProperty(ui::qml::contracts::context::kNavigation,
+                                  navigation);
+    qmlContext.setContextProperty(ui::qml::contracts::context::kSession,
+                                  services.dataSession);
+    qmlContext.setContextProperty(
+        ui::qml::contracts::context::kFileSystemController, fileSystem);
+    qmlContext.setContextProperty(ui::qml::contracts::context::kStatus,
+                                  services.status);
+  }
 
 #ifdef QT_DEBUG
-  qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
-                                QVariant(true));
+  if (mainWindow)
+    mainWindow->setQmlContextValue(ui::qml::contracts::context::kIsDebugBuild,
+                                   QVariant(true));
+  else
+    qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
+                                  QVariant(true));
 #else
-  qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
-                                QVariant(false));
+  if (mainWindow)
+    mainWindow->setQmlContextValue(ui::qml::contracts::context::kIsDebugBuild,
+                                   QVariant(false));
+  else
+    qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
+                                  QVariant(false));
 #endif
 
   return services;

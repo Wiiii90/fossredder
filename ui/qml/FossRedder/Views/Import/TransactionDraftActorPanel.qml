@@ -8,6 +8,7 @@ Controls.Panel {
     id: root
 
     property var txRoot
+    readonly property DraftController draftController: AppContext.draftController
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1

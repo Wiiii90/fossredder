@@ -6,6 +6,8 @@ import FossRedder 1.0
 Item {
     id: root
 
+    readonly property StateFacade session: AppContext.session
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.spacingMedium

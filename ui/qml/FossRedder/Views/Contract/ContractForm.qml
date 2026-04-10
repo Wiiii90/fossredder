@@ -8,6 +8,9 @@ import FossRedder.Components 1.0 as Components
 Item {
     id: root
 
+    readonly property StateFacade session: AppContext.session
+    readonly property ContractController contractController: AppContext.contractController
+
     property var current: session ? session.selectedContract : null
     property bool isEdit: current && current.id && String(current.id).length > 0
 

@@ -5,6 +5,8 @@ import FossRedder.Views 1.0 as Views
 
 Item {
     id: root
+    readonly property NavigationState navigation: AppContext.navigation
+    readonly property StateFacade session: AppContext.session
     property Component pendingViewComponent: null
     property Component currentViewComponent: null
 

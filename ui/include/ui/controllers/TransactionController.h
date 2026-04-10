@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include <qqmlintegration.h>
 
 #include "core/models/Transaction.h"
 
@@ -22,6 +23,8 @@ namespace ui {
  */
 class TransactionController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(TransactionController)
+    QML_UNCREATABLE("TransactionController is provided by the application context")
 public:
     ~TransactionController() override = default;
 

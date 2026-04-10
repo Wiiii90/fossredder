@@ -8,6 +8,8 @@ import FossRedder.Components 1.0 as Components
 Item {
     id: root
 
+    readonly property ImportController importController: AppContext.importController
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.spacingMedium
@@ -27,10 +29,10 @@ Item {
 
             Controls.Button {
                 text: qsTr("Clear")
-                enabled: typeof importController !== 'undefined' && importController && importController.runs && importController.runs.count > 0
+                enabled: importController && importController.runs && importController.runs.count > 0
                 fillColor: Theme.surface
                 textColor: Theme.textPrimary
-                onClicked: if (typeof importController !== 'undefined' && importController && importController.runs) importController.runs.clear()
+                onClicked: if (importController && importController.runs) importController.runs.clear()
             }
         }
 
@@ -38,7 +40,7 @@ Item {
             id: runLogList
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: (typeof importController !== 'undefined' && importController) ? importController.runs : null
+            model: importController ? importController.runs : null
         }
     }
 }

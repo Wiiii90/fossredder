@@ -6,11 +6,14 @@
 #pragma once
 
 #include <QObject>
+#include <qqmlintegration.h>
 
 namespace ui {
 
 class NavigationState : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(NavigationState)
+    QML_UNCREATABLE("NavigationState is provided by the application context")
     Q_PROPERTY(Section section READ section WRITE setSection NOTIFY sectionChanged)
     Q_PROPERTY(BookingView bookingView READ bookingView WRITE setBookingView NOTIFY bookingViewChanged)
 

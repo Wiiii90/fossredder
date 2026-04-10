@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QStringList>
+#include <qqmlintegration.h>
 
 class QAction;
 
@@ -17,6 +18,8 @@ namespace ui {
  */
 class Actions : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(Actions)
+    QML_UNCREATABLE("Actions is provided by the application context")
     Q_PROPERTY(QAction* newFileAction READ newFileAction CONSTANT)
     Q_PROPERTY(QAction* openFileAction READ openFileAction CONSTANT)
     Q_PROPERTY(QAction* saveFileAction READ saveFileAction CONSTANT)

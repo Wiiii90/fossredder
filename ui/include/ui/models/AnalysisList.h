@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <qqmlintegration.h>
+
 #include "core/models/Analysis.h"
 #include "ui/models/IndexedListModel.h"
 
@@ -12,6 +14,8 @@ namespace ui {
 
 class AnalysisList : public models::IndexedListModel<core::domain::Analysis> {
     Q_OBJECT
+    QML_NAMED_ELEMENT(AnalysisList)
+    QML_UNCREATABLE("AnalysisList is exposed by the application context")
     using Base = models::IndexedListModel<core::domain::Analysis>;
 public:
     enum Roles {
