@@ -155,6 +155,25 @@ target_include_directories(fossredder_ui PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
+target_include_directories(fossredder_ui PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/actions
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/analysis
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/bootstrap
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/config
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/controllers
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/dialogs
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/export
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/import
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/models
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/observability
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/payload
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/text
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/util
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/window
+)
+
 target_compile_features(fossredder_ui PUBLIC cxx_std_20)
 fossredder_set_library_output_dirs(fossredder_ui)
 
@@ -263,7 +282,7 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
         QML_FILES ${UI_QML_UTILS_FILES}
     )
 
-    target_link_libraries(fossredder_ui PUBLIC
+    target_link_libraries(fossredder_ui PRIVATE
         fossredder_ui_qml_controls
         fossredder_ui_qml_components
         fossredder_ui_qml_views
@@ -383,6 +402,34 @@ if(BUILD_UI_TESTS)
         LABELS "UI;QML"
         ENVIRONMENT "QML_DISABLE_DISK_CACHE=1"
     )
+endif()
+
+if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
+    foreach(_qml_target IN ITEMS
+        fossredder_ui_qml_controls
+        fossredder_ui_qml_components
+        fossredder_ui_qml_views
+        fossredder_ui_qml_utils
+    )
+        if(TARGET ${_qml_target})
+            fossredder_install_library_target(${_qml_target})
+        endif()
+    endforeach()
+
+    foreach(_qml_resource_base IN ITEMS
+        fossredder_ui
+        fossredder_ui_qml_controls
+        fossredder_ui_qml_components
+        fossredder_ui_qml_views
+        fossredder_ui_qml_utils
+    )
+        foreach(_resource_index RANGE 1 8)
+            if(TARGET ${_qml_resource_base}_resources_${_resource_index})
+                fossredder_install_library_target(${_qml_resource_base}_resources_${_resource_index})
+            endif()
+        endforeach()
+    endforeach()
+
 endif()
 
 fossredder_install_library_target(fossredder_ui)
