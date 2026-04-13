@@ -1,28 +1,29 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
+import FossRedder.Constants 1.0 as Constants
 import FossRedder.Controls 1.0 as Controls
-import "../../Constants/FileFormats.js" as FileFormats
 
 Item {
     id: root
-    readonly property ExportController exportCtrl: AppContext.exportController
-    readonly property Actions actions: AppContext.actions
-    readonly property FileSystemController fileSystemController: AppContext.fileSystemController
-    readonly property int csvContractValue: QmlContracts.Csv
-    readonly property int xlsxContractValue: QmlContracts.Xlsx
+    required property var appContext
+    required property var theme
+    readonly property var exportCtrl: root.appContext ? root.appContext.exportController : null
+    readonly property var actions: root.appContext ? root.appContext.actions : null
+    readonly property var fileSystemController: root.appContext ? root.appContext.fileSystemController : null
+    readonly property int csvContractValue: 0
+    readonly property int xlsxContractValue: 1
     readonly property string defaultLocale: Qt.locale().name.replace("_", "-")
     readonly property var formatOptions: [
         {
             contract: csvContractValue,
-            extension: FileFormats.exportFormats.csv.extension,
-            label: FileFormats.exportFormats.csv.label
+            extension: Constants.FileFormats.exportFormats.csv.extension,
+            label: Constants.FileFormats.exportFormats.csv.label
         },
         {
             contract: xlsxContractValue,
-            extension: FileFormats.exportFormats.xlsx.extension,
-            label: FileFormats.exportFormats.xlsx.label
+            extension: Constants.FileFormats.exportFormats.xlsx.extension,
+            label: Constants.FileFormats.exportFormats.xlsx.label
         }
     ]
     readonly property var formatLabels: formatOptions.map(function(option) { return option.label })
@@ -32,72 +33,72 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.pageMargin
-        spacing: Theme.spacingMedium
+        anchors.margins: root.theme.pageMargin
+        spacing: root.theme.spacingMedium
 
-        Label { text: qsTr("Export"); font.pointSize: Theme.fontSizeTitle + Theme.margins }
+        Label { text: qsTr("Export"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
 
         RowLayout {
-            spacing: Theme.spacingMedium
+            spacing: root.theme.spacingMedium
             Layout.fillWidth: true
 
-            Label { text: qsTr("Format:"); Layout.preferredWidth: Theme.formLabelWidth }
+            Label { text: qsTr("Format:"); Layout.preferredWidth: root.theme.formLabelWidth }
             Controls.ComboBox {
                 id: formatBox
                 objectName: "exportFormatBox"
                 model: root.formatLabels
-                Layout.preferredWidth: Theme.formFieldWidth
+                Layout.preferredWidth: root.theme.formFieldWidth
                 onCurrentIndexChanged: {
-                    if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(FileFormats.exportDefaults.baseName + ".") !== -1)) {
-                        var base = fileSystemController ? fileSystemController.appDir() : ""
-                        var selectedOption = root.formatOptions[currentIndex]
+                    if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(Constants.FileFormats.exportDefaults.baseName + ".") !== -1)) {
+                        const base = root.fileSystemController ? root.fileSystemController.appDir() : ""
+                        const selectedOption = root.formatOptions[currentIndex]
                         if (!selectedOption) return
-                        var ext = selectedOption.extension
-                        if (base && base.length > 0) pathField.text = base + "/" + FileFormats.exportDefaults.baseName + "." + ext
+                        const ext = selectedOption.extension
+                        if (base && base.length > 0) pathField.text = base + "/" + Constants.FileFormats.exportDefaults.baseName + "." + ext
                     }
                 }
             }
         }
 
         RowLayout {
-            spacing: Theme.spacingMedium
+            spacing: root.theme.spacingMedium
             Layout.fillWidth: true
-            Label { text: qsTr("Include formulas (XLSX):"); Layout.preferredWidth: Theme.formFieldWidth }
+            Label { text: qsTr("Include formulas (XLSX):"); Layout.preferredWidth: root.theme.formFieldWidth }
             Controls.CheckBox { id: formulas; objectName: "exportIncludeFormulasCheckBox"; checked: true }
         }
 
         RowLayout {
-            spacing: Theme.spacingMedium
+            spacing: root.theme.spacingMedium
             Layout.fillWidth: true
-            Label { text: qsTr("Locale:"); Layout.preferredWidth: Theme.formLabelWidth }
-            Controls.TextField { id: localeField; objectName: "exportLocaleField"; text: root.defaultLocale; Layout.preferredWidth: Theme.formFieldWidth }
+            Label { text: qsTr("Locale:"); Layout.preferredWidth: root.theme.formLabelWidth }
+            Controls.TextField { id: localeField; objectName: "exportLocaleField"; text: root.defaultLocale; Layout.preferredWidth: root.theme.formFieldWidth }
         }
 
         Item { Layout.fillHeight: true }
 
         RowLayout {
-            spacing: Theme.spacingMedium
+            spacing: root.theme.spacingMedium
             Layout.fillWidth: true
 
-            Label { text: qsTr("Save to:"); Layout.preferredWidth: Theme.formLabelWidth }
+            Label { text: qsTr("Save to:"); Layout.preferredWidth: root.theme.formLabelWidth }
             Controls.TextField { id: pathField; objectName: "exportPathField"; placeholderText: qsTr("e.g. C:/Users/You/Documents/export.xlsx"); Layout.fillWidth: true }
-            Controls.Button { objectName: "exportBrowseButton"; text: qsTr("Browse..."); onClicked: if (actions) actions.browseExportFile() }
+            Controls.Button { objectName: "exportBrowseButton"; text: qsTr("Browse..."); onClicked: if (root.actions) root.actions.browseExportFile() }
             Controls.Button {
                 objectName: "exportSubmitButton"
                 text: qsTr("Export")
                 enabled: pathField.text.length > 0
                 onClicked: {
-                    var path = pathField.text
+                    const path = pathField.text
                     if (!path) return
-                    var selectedOption = root.formatOptions[formatBox.currentIndex]
+                    const selectedOption = root.formatOptions[formatBox.currentIndex]
                     if (!selectedOption) return
-                    if (exportCtrl) exportCtrl.exportData(selectedOption.contract, path, formulas.checked, localeField.text)
+                    if (root.exportCtrl) root.exportCtrl.exportData(selectedOption.contract, path, formulas.checked, localeField.text)
                 }
             }
         }
 
         Connections {
-            target: actions
+            target: root.actions
             function onExportFileSelected(path) {
                 if (!path) return
                 pathField.text = path

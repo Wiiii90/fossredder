@@ -227,10 +227,8 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
         "${UI_QML_MODULE_ROOT}/Components/**/*.qml"
     )
     file(GLOB UI_QML_VIEWS_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS
+        "${UI_QML_MODULE_ROOT}/Views/*.qml"
         "${UI_QML_MODULE_ROOT}/Views/**/*.qml"
-    )
-    file(GLOB UI_QML_UTILS_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS
-        "${UI_QML_MODULE_ROOT}/Utils/*.js"
     )
 
     set(UI_QML_TOOLING_OUTPUT_ROOT "${CMAKE_CURRENT_BINARY_DIR}/qmltooling")
@@ -274,19 +272,10 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
         QML_FILES ${UI_QML_VIEWS_FILES}
     )
 
-    fossredder_add_ui_qml_tooling_submodule(
-        fossredder_ui_qml_utils
-        "${UI_QML_ROOT_URI}.Utils"
-        "${UI_QML_TOOLING_OUTPUT_ROOT}/FossRedder/Utils"
-        LINK_LIBRARIES Qt6::Qml
-        QML_FILES ${UI_QML_UTILS_FILES}
-    )
-
     target_link_libraries(fossredder_ui PRIVATE
         fossredder_ui_qml_controls
         fossredder_ui_qml_components
         fossredder_ui_qml_views
-        fossredder_ui_qml_utils
     )
 
     add_custom_target(fossredder_ui_qml_tooling ALL
@@ -295,7 +284,6 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
             fossredder_ui_qml_controls_generate_qmlls_ini_file
             fossredder_ui_qml_components_generate_qmlls_ini_file
             fossredder_ui_qml_views_generate_qmlls_ini_file
-            fossredder_ui_qml_utils_generate_qmlls_ini_file
     )
 else()
     message(STATUS "Qt6 Quick/Qml not found; QML features disabled in fossredder_ui")

@@ -1,10 +1,9 @@
 ﻿import QtQuick 2.15
-import QtQuick.Controls 2.15
-import FossRedder 1.0
-import "../../Constants/Analysis.js" as Analysis
+import FossRedder.Constants 1.0 as Constants
 
 Item {
     id: root
+    required property var theme
     property var table: []
     property var legendFilter: []
     property var propertyNameForId
@@ -14,36 +13,44 @@ Item {
 
     function colorForKey(k, i) {
         try {
-            if (k) return Analysis.colorForKey(k, Theme.analysis.palette, Theme.chartFallback)
-            return Theme.analysis.palette[i % Theme.analysis.palette.length]
-        } catch(e) { return Theme.chartFallback }
+            if (k) return Constants.Analysis.colorForKey(k, root.theme.analysis.palette, root.theme.chartFallback)
+            return root.theme.analysis.palette[i % root.theme.analysis.palette.length]
+        } catch(e) { return root.theme.chartFallback }
     }
 
     Canvas {
         id: pieCanvas
         anchors.fill: parent
         onPaint: {
-            var ctx = getContext("2d"); ctx.reset(); ctx.clearRect(0,0,width,height)
-            if (!root.visible || width < Theme.analysis.layout.minDebugRepaintWidth || !table || table.length === 0) return
+            const ctx = getContext("2d"); ctx.reset(); ctx.clearRect(0,0,width,height)
+            if (!root.visible || width < root.theme.analysis.layout.minDebugRepaintWidth || !root.table || root.table.length === 0) return
 
-            var total = 0
-            for (var i=0;i<table.length;i++) total += Math.abs(parseFloat(table[i][1])||0)
-            var start = Theme.analysis.render.pieStartAngle
-            var radius = Math.min(width, height)/2 - Theme.analysis.render.pieRadiusPadding
-            var cx = width/2; var cy = height/2
+            let total = 0
+            for (let i = 0; i < root.table.length; i++) total += Math.abs(parseFloat(root.table[i][1]) || 0)
+            let start = root.theme.analysis.render.pieStartAngle
+            const radius = Math.min(width, height) / 2 - root.theme.analysis.render.pieRadiusPadding
+            const cx = width / 2
+            const cy = height / 2
             if (radius <= 0) {
-                var maxv = 0
-                for (var i=0;i<table.length;i++) maxv = Math.max(maxv, Math.abs(parseFloat(table[i][1])||0))
-                for (var i=0;i<table.length;i++) { var v = Math.abs(parseFloat(table[i][1])||0); var bw = Math.max(Theme.analysis.render.compactBarMinWidth, Math.floor((width-Theme.analysis.render.compactBarWidthPadding) * (v / Math.max(1, maxv)))); ctx.fillStyle = colorForKey((table[i] && table[i].length>0) ? table[i][0] : null, i); ctx.fillRect(Theme.analysis.render.compactBarLeftPadding, i*Theme.analysis.render.compactBarVerticalSpacing + Theme.analysis.render.compactBarTopOffset, bw, Theme.analysis.render.compactBarHeight) }
+                let maxv = 0
+                for (let i = 0; i < root.table.length; i++) maxv = Math.max(maxv, Math.abs(parseFloat(root.table[i][1]) || 0))
+                for (let i = 0; i < root.table.length; i++) {
+                    const v = Math.abs(parseFloat(root.table[i][1]) || 0)
+                    const bw = Math.max(root.theme.analysis.render.compactBarMinWidth, Math.floor((width - root.theme.analysis.render.compactBarWidthPadding) * (v / Math.max(1, maxv))))
+                    ctx.fillStyle = (root.table[i] && root.table[i].length > 0)
+                        ? Constants.Analysis.colorForKey(root.table[i][0], root.theme.analysis.palette, root.theme.chartFallback)
+                        : root.theme.analysis.palette[i % root.theme.analysis.palette.length]
+                    ctx.fillRect(root.theme.analysis.render.compactBarLeftPadding, i * root.theme.analysis.render.compactBarVerticalSpacing + root.theme.analysis.render.compactBarTopOffset, bw, root.theme.analysis.render.compactBarHeight)
+                }
                 return
             }
-            for (var i=0;i<table.length;i++) {
-                var v = Math.abs(parseFloat(table[i][1])||0)
-                var angle = total>0 ? (v/total)*2*Math.PI : (2*Math.PI/table.length)
-                var label = (table[i] && table[i].length>0) ? table[i][0] : ""
-                var sliceSelected = true
-                try { if (legendFilter && legendFilter.length > 0) sliceSelected = (legendFilter.indexOf(label) !== -1) } catch(e) {}
-                ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,radius,start,start+angle); ctx.closePath(); ctx.globalAlpha = sliceSelected ? 1.0 : 0.25; ctx.fillStyle = colorForKey(label, i); ctx.fill(); ctx.globalAlpha = 1.0; start += angle
+            for (let i = 0; i < root.table.length; i++) {
+                const v = Math.abs(parseFloat(root.table[i][1]) || 0)
+                const angle = total > 0 ? (v / total) * 2 * Math.PI : (2 * Math.PI / root.table.length)
+                const label = (root.table[i] && root.table[i].length > 0) ? root.table[i][0] : ""
+                let sliceSelected = true
+                try { if (root.legendFilter && root.legendFilter.length > 0) sliceSelected = (root.legendFilter.indexOf(label) !== -1) } catch(e) {}
+                ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,radius,start,start+angle); ctx.closePath(); ctx.globalAlpha = sliceSelected ? 1.0 : 0.25; ctx.fillStyle = label ? Constants.Analysis.colorForKey(label, root.theme.analysis.palette, root.theme.chartFallback) : root.theme.analysis.palette[i % root.theme.analysis.palette.length]; ctx.fill(); ctx.globalAlpha = 1.0; start += angle
             }
         }
     }
@@ -51,21 +58,21 @@ Item {
     MouseArea {
         anchors.fill: parent
         onClicked: function(mouse) {
-            var x = mouse.x - pieCanvas.width/2
-            var y = mouse.y - pieCanvas.height/2
-            var a = Math.atan2(y, x)
-            var angle = a < -Math.PI/2 ? (a + 2*Math.PI) : a
-            var cur = -Math.PI/2
-            var total = 0
-            for (var i=0;i<table.length;i++) total += Math.abs(parseFloat(table[i][1])||0)
-            for (var i=0;i<table.length;i++) {
-                var v = Math.abs(parseFloat(table[i][1])||0)
-                var ang = total>0 ? (v/total)*2*Math.PI : (2*Math.PI/table.length)
+            const x = mouse.x - pieCanvas.width / 2
+            const y = mouse.y - pieCanvas.height / 2
+            const a = Math.atan2(y, x)
+            const angle = a < -Math.PI / 2 ? (a + 2 * Math.PI) : a
+            let cur = -Math.PI / 2
+            let total = 0
+            for (let i = 0; i < root.table.length; i++) total += Math.abs(parseFloat(root.table[i][1]) || 0)
+            for (let i = 0; i < root.table.length; i++) {
+                const v = Math.abs(parseFloat(root.table[i][1]) || 0)
+                const ang = total > 0 ? (v / total) * 2 * Math.PI : (2 * Math.PI / root.table.length)
                 if (angle >= cur && angle < cur + ang) {
-                    var name = (table[i] && table[i].length>0) ? table[i][0] : ""
-                    if (!legendFilter) legendFilter = []
-                    var idx = legendFilter.indexOf(name)
-                    if (idx === -1) legendFilter.push(name); else legendFilter.splice(idx,1)
+                    const name = (root.table[i] && root.table[i].length > 0) ? root.table[i][0] : ""
+                    if (!root.legendFilter) root.legendFilter = []
+                    const idx = root.legendFilter.indexOf(name)
+                    if (idx === -1) root.legendFilter.push(name); else root.legendFilter.splice(idx,1)
                     pieCanvas.requestPaint()
                     return
                 }
@@ -75,5 +82,5 @@ Item {
     }
 
     function requestPaint() { try { if (pieCanvas) pieCanvas.requestPaint(); } catch(e) {} }
-    Component.onCompleted: { try { if (table && table.length>0) requestPaint(); } catch(e) {} }
+    Component.onCompleted: { try { if (root.table && root.table.length > 0) root.requestPaint(); } catch(e) {} }
 }

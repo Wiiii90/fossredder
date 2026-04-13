@@ -1,72 +1,74 @@
 ﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
+    required property var appContext
+    required property var theme
 
-    readonly property StateFacade session: AppContext.session
-    readonly property PropertyController propertyController: AppContext.propertyController
+    readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var propertyController: root.appContext ? root.appContext.propertyController : null
 
-    property var current: session ? session.selectedProperty : null
-    readonly property int amountColumnWidth: Theme.formLabelWidth
-    property bool isEdit: current && current.id && String(current.id).length > 0
+    readonly property var current: root.session ? root.session.selectedProperty : null
+    readonly property int amountColumnWidth: root.theme.formLabelWidth
+    property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
     property var aliases: []
 
-    function clearFields() { nameField.text = ""; aliasesField.text = ""; sums = ({}) }
+    function clearFields() { nameField.text = ""; aliasesField.text = ""; root.sums = ({}) }
 
     function refreshSums() {
-        if (!current || !session) {
-            sums = ({})
+        if (!root.current || !root.session) {
+            root.sums = ({})
             return
         }
-        try { sums = session.propertyTransactionSums(current.id) } catch(e) {
-            try { sums = session.propertyTransactionSums(current.id, "") } catch(e2) { sums = ({}) }
+        try { root.sums = root.session.propertyTransactionSums(root.current.id) } catch(e) {
+            try { root.sums = root.session.propertyTransactionSums(root.current.id, "") } catch(e2) { root.sums = ({}) }
         }
     }
 
     function submitProperty() {
-        if (!propertyController) return
-        var aliasValues = []
+        if (!root.propertyController) return
+        const aliasValues = []
         if (aliasesField.text && aliasesField.text.length > 0) {
-            var raw = aliasesField.text.split(/\r?\n/)
-            for (var i = 0; i < raw.length; ++i) {
-                var value = String(raw[i]).trim()
+            const raw = aliasesField.text.split(/\r?\n/)
+            for (let i = 0; i < raw.length; ++i) {
+                const value = String(raw[i]).trim()
                 if (value.length > 0 && aliasValues.indexOf(value) === -1) aliasValues.push(value)
             }
         }
-        if (isEdit) {
-            propertyController.updateProperty(current.id, nameField.text, "", "", aliasValues)
+        if (root.isEdit) {
+            root.propertyController.updateProperty(root.current.id, nameField.text, "", "", aliasValues)
             return
         }
-        var id = propertyController.addProperty(nameField.text, "", "", aliasValues)
-        clearFields()
-        if (session && id && id.length > 0) session.selectedPropertyId = id
+        const propertyId = root.propertyController.addProperty(nameField.text, "", "", aliasValues)
+        root.clearFields()
+        if (root.session && propertyId && propertyId.length > 0) root.session.selectedPropertyId = propertyId
     }
 
     function syncFields() {
-        if (!isEdit) { clearFields(); return }
-        nameField.text = current.name || ""
-        aliasesField.text = (current.aliases || []).join("\n")
-        refreshSums()
-        rebuildTypes()
-        computeFilteredSums()
+        if (!root.isEdit) { root.clearFields(); return }
+        nameField.text = root.current.name || ""
+        aliasesField.text = (root.current.aliases || []).join("\n")
+        root.refreshSums()
+        root.rebuildTypes()
+        root.computeFilteredSums()
     }
 
-    Connections { target: current; function onChanged() { syncFields() } }
-    onIsEditChanged: syncFields()
+    Connections { target: root.current; function onChanged() { root.syncFields() } }
+    onIsEditChanged: root.syncFields()
 
     property var sums: ({})
     Connections {
-        target: session
+        target: root.session
         function onTransactionSumsUpdated(propertyId) {
-            if (!current) return
-            if (propertyId === current.id) {
-                refreshSums()
-                rebuildTypes()
-                computeFilteredSums()
+            if (!root.current) return
+            if (propertyId === root.current.id) {
+                root.refreshSums()
+                root.rebuildTypes()
+                root.computeFilteredSums()
             }
         }
     }
@@ -76,66 +78,66 @@ Item {
     property var sumsFiltered: ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
     property var shownSums: ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
 
-    function updateShownSums() { shownSums = (txTypeFilter && txTypeFilter.length > 0) ? sumsFiltered : sums }
+    function updateShownSums() { root.shownSums = (root.txTypeFilter && root.txTypeFilter.length > 0) ? root.sumsFiltered : root.sums }
 
     onTxTypeFilterChanged: {
-        try { var m = session ? session.propertyTransactions(current.id) : null; if (m) m.setTxType(txTypeFilter) } catch(e) {}
-        computeFilteredSums()
-        updateShownSums()
+        try { const m = root.session ? root.session.propertyTransactions(root.current.id) : null; if (m) m.setTxType(root.txTypeFilter) } catch(e) {}
+        root.computeFilteredSums()
+        root.updateShownSums()
     }
 
-    onSumsChanged: updateShownSums()
+    onSumsChanged: root.updateShownSums()
 
     function rebuildTypes() {
-        txTypes = []
-        if (!current || !session) return
+        root.txTypes = []
+        if (!root.current || !root.session) return
         try {
-            var provided = session.propertyContractTypes(current.id)
-            if (provided && provided.length !== undefined) { txTypes = provided; return }
+            const provided = root.session.propertyContractTypes(root.current.id)
+            if (provided && provided.length !== undefined) { root.txTypes = provided; return }
         } catch(e) {}
-        var model = session.propertyTransactions(current.id)
+        const model = root.session.propertyTransactions(root.current.id)
         if (!model) return
-        var set = {}
+        const set = {}
         try {
-            var cnt = (typeof model.count === 'function') ? model.count() : (model.length !== undefined ? model.length : 0)
-            for (var i=0;i<cnt;i++) {
-                var it = (typeof model.get === 'function') ? model.get(i) : (model[i] ? model[i] : null)
+            const cnt = (typeof model.count === 'function') ? model.count() : (model.length !== undefined ? model.length : 0)
+            for (let i=0;i<cnt;i++) {
+                const it = (typeof model.get === 'function') ? model.get(i) : (model[i] ? model[i] : null)
                 if (!it) continue
-                var t = it.type ? it.type : ""
-                if (t && !set[t]) { set[t] = true; txTypes.push(t) }
+                const t = it.type ? it.type : ""
+                if (t && !set[t]) { set[t] = true; root.txTypes.push(t) }
             }
         } catch(e) {}
     }
 
     function computeFilteredSums() {
-        sumsFiltered = ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
-        if (!current || !session) { updateShownSums(); return }
-        if (!txTypeFilter || txTypeFilter.length === 0) { updateShownSums(); return }
-        if (typeof session.propertyTransactionSums === 'function') {
+        root.sumsFiltered = ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
+        if (!root.current || !root.session) { root.updateShownSums(); return }
+        if (!root.txTypeFilter || root.txTypeFilter.length === 0) { root.updateShownSums(); return }
+        if (typeof root.session.propertyTransactionSums === 'function') {
             try {
-                var res = session.propertyTransactionSums(current.id, txTypeFilter)
-                sumsFiltered.total = Number(res.total) || 0
-                sumsFiltered.allocatable = Number(res.allocatable) || 0
-                sumsFiltered.nonAllocatable = Number(res.nonAllocatable) || 0
-                updateShownSums()
+                const res = root.session.propertyTransactionSums(root.current.id, root.txTypeFilter)
+                root.sumsFiltered.total = Number(res.total) || 0
+                root.sumsFiltered.allocatable = Number(res.allocatable) || 0
+                root.sumsFiltered.nonAllocatable = Number(res.nonAllocatable) || 0
+                root.updateShownSums()
                 return
             } catch(e) {}
         }
-        var model = session.propertyTransactions(current.id)
-        if (!model) { updateShownSums(); return }
+        const model = root.session.propertyTransactions(root.current.id)
+        if (!model) { root.updateShownSums(); return }
         try {
-            var cnt = (typeof model.count === 'function') ? model.count() : (model.length !== undefined ? model.length : 0)
-            for (var i=0;i<cnt;i++) {
-                var it = (typeof model.get === 'function') ? model.get(i) : (model[i] ? model[i] : null)
+            const cnt = (typeof model.count === 'function') ? model.count() : (model.length !== undefined ? model.length : 0)
+            for (let i=0;i<cnt;i++) {
+                const it = (typeof model.get === 'function') ? model.get(i) : (model[i] ? model[i] : null)
                 if (!it) continue
-                var t = it.type ? it.type : ""
-                if (t !== txTypeFilter) continue
-                var amt = Number(it.amount) || 0
-                sumsFiltered.total += amt
-                if (it.allocatable) sumsFiltered.allocatable += amt; else sumsFiltered.nonAllocatable += amt
+                const t = it.type ? it.type : ""
+                if (t !== root.txTypeFilter) continue
+                const amt = Number(it.amount) || 0
+                root.sumsFiltered.total += amt
+                if (it.allocatable) root.sumsFiltered.allocatable += amt; else root.sumsFiltered.nonAllocatable += amt
             }
         } catch(e) {}
-        updateShownSums()
+        root.updateShownSums()
     }
 
     ColumnLayout {
@@ -143,10 +145,10 @@ Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
         anchors.fill: parent
-        anchors.margins: Theme.spacing
-        spacing: Theme.spacingMedium
+        anchors.margins: root.theme.spacing
+        spacing: root.theme.spacingMedium
 
-        Label { text: isEdit ? qsTr("Building overview") : qsTr("Create new building"); font.pointSize: Theme.fontSizeTitle + Theme.margins }
+        Label { text: root.isEdit ? qsTr("Building overview") : qsTr("Create new building"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
 
         Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
 
@@ -156,8 +158,8 @@ Item {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Theme.spacingMedium
-                spacing: Theme.spacingSmall
+                anchors.margins: root.theme.spacingMedium
+                spacing: root.theme.spacingSmall
 
                 Label {
                     text: qsTr("One alias per line. Used for auto-matching during import.")
@@ -168,7 +170,7 @@ Item {
                 Controls.TextArea {
                     id: aliasesField
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Theme.chartLegendHeight
+                    Layout.preferredHeight: root.theme.chartLegendHeight
                     wrapMode: TextArea.Wrap
                     placeholderText: qsTr("e.g.\nMain Building\nHQ\nSite A")
                 }
@@ -178,27 +180,27 @@ Item {
         Item { Layout.fillHeight: true }
 
         RowLayout {
-            visible: !isEdit
+            visible: !root.isEdit
             Layout.fillWidth: true
 
             Controls.Button {
                 text: qsTr("Add")
                 enabled: nameField.text.length > 0
-                onClicked: submitProperty()
+                onClicked: root.submitProperty()
             }
 
             Item { Layout.fillWidth: true }
         }
 
         ColumnLayout {
-            visible: isEdit
+            visible: root.isEdit
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Theme.spacingMedium
+            spacing: root.theme.spacingMedium
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spacingMedium
+                spacing: root.theme.spacingMedium
 
                 Label { text: qsTr("Transactions"); Layout.alignment: Qt.AlignVCenter }
 
@@ -206,17 +208,17 @@ Item {
 
                 Controls.Button {
                     id: filterButton
-                    text: txTypeFilter && txTypeFilter.length > 0 ? txTypeFilter : qsTr("Filter")
-                    implicitWidth: amountColumnWidth
+                    text: root.txTypeFilter && root.txTypeFilter.length > 0 ? root.txTypeFilter : qsTr("Filter")
+                    implicitWidth: root.amountColumnWidth
                     onClicked: { try { typeMenu.open() } catch(e) {} }
                 }
 
                 Menu {
                     id: typeMenu
-                    onOpened: { rebuildTypes(); }
+                    onOpened: { root.rebuildTypes(); }
 
-                    MenuItem { text: qsTr("All"); onTriggered: { txTypeFilter = ""; computeFilteredSums() } }
-                    Repeater { model: txTypes; delegate: MenuItem { text: modelData; onTriggered: { txTypeFilter = modelData; computeFilteredSums() } } }
+                    MenuItem { text: qsTr("All"); onTriggered: { root.txTypeFilter = ""; root.computeFilteredSums() } }
+                    Repeater { model: root.txTypes; delegate: MenuItem { required property var modelData; text: modelData; onTriggered: { root.txTypeFilter = modelData; root.computeFilteredSums() } } }
                 }
             }
 
@@ -226,83 +228,86 @@ Item {
                 interactive: true
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                model: session ? session.propertyTransactions(current.id) : null
-                spacing: Theme.spacingSmall
+                model: root.session ? root.session.propertyTransactions(root.current.id) : null
+                spacing: root.theme.spacingSmall
 
-                delegate: Rectangle {
+                delegate: Rectangle { id: txRow
+                    required property real amount
+                    required property string bookingDate
+                    required property string description
+                    required property int status
+                    required property string type
                     width: parent ? parent.width : txList.width
                     height: 56
-                    color: Theme.surface
-                    border.color: Theme.borderSoft
-                    border.width: Theme.borderWidthThin
-                    radius: Theme.radius
+                    color: root.theme.surface
+                    border.color: root.theme.borderSoft
+                    border.width: root.theme.borderWidthThin
+                    radius: root.theme.radius
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: Theme.spacingMedium
-                        spacing: Theme.spacing
+                        anchors.margins: root.theme.spacingMedium
+                        spacing: root.theme.spacing
                         Layout.fillWidth: true
 
                         Rectangle {
                             id: statusIndicator
-                            width: Theme.spacing
-                            height: Theme.spacing
-                            radius: Theme.spacingSmall
+                            width: root.theme.spacing
+                            height: root.theme.spacing
+                            radius: root.theme.spacingSmall
                             Layout.alignment: Qt.AlignVCenter
-                            border.width: Theme.borderWidthThin
-                            color: (typeof status !== 'undefined')
-                                ? (status === 0 ? Theme.neutral
-                                   : (status === 1 ? Theme.warning
-                                      : (status === 2 ? Theme.info
-                                         : (status === 3 ? Theme.successStrong : Theme.neutral))))
-                                : Theme.neutral
+                            border.width: root.theme.borderWidthThin
+                            color: txRow.status === 0 ? root.theme.neutral
+                                : (txRow.status === 1 ? root.theme.warning
+                                   : (txRow.status === 2 ? root.theme.info
+                                      : (txRow.status === 3 ? root.theme.successStrong : root.theme.neutral)))
                             border.color: Qt.darker(color, 1.2)
                         }
 
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: Theme.margins
+                            spacing: root.theme.margins
                             Layout.alignment: Qt.AlignVCenter
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: Theme.spacingMedium
+                                spacing: root.theme.spacingMedium
                                 Layout.alignment: Qt.AlignVCenter
 
                                 Label {
-                                    text: bookingDate || ""
-                                    font.family: Theme.fontFamily
-                                    font.pointSize: Theme.fontSize
-                                    color: Theme.textMuted
+                                    text: txRow.bookingDate || ""
+                                    font.family: root.theme.fontFamily
+                                    font.pointSize: root.theme.fontSize
+                                    color: root.theme.textMuted
                                     Layout.alignment: Qt.AlignVCenter
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
                                 }
 
                                 Label {
-                                    text: (type && type.length > 0) ? type : ""
-                                    font.family: Theme.fontFamily
-                                    font.pointSize: Math.max(12, Theme.fontSize - 2)
-                                    color: Theme.textMuted
+                                    text: (txRow.type && txRow.type.length > 0) ? txRow.type : ""
+                                    font.family: root.theme.fontFamily
+                                    font.pointSize: Math.max(12, root.theme.fontSize - 2)
+                                    color: root.theme.textMuted
                                     horizontalAlignment: Text.AlignRight
                                     Layout.preferredWidth: 140
                                     Layout.alignment: Qt.AlignVCenter
                                 }
                             }
 
-                            Label { text: description ? description : ""; font.family: Theme.fontFamily; font.pointSize: Math.max(12, Theme.fontSize - 2); color: Theme.textMuted; elide: Text.ElideRight; Layout.alignment: Qt.AlignVCenter; Layout.fillWidth: true }
+                            Label { text: txRow.description ? txRow.description : ""; font.family: root.theme.fontFamily; font.pointSize: Math.max(12, root.theme.fontSize - 2); color: root.theme.textMuted; elide: Text.ElideRight; Layout.alignment: Qt.AlignVCenter; Layout.fillWidth: true }
                         }
 
                         Item { Layout.fillWidth: true }
 
                         Label {
                             id: amtText
-                            text: (amount || 0).toFixed(2)
-                            font.family: Theme.fontFamily
-                            font.pointSize: Theme.fontSize
+                            text: (txRow.amount || 0).toFixed(2)
+                            font.family: root.theme.fontFamily
+                            font.pointSize: root.theme.fontSize
                             font.bold: true
-                            color: Theme.textPrimary
-                            Layout.preferredWidth: amountColumnWidth
+                            color: root.theme.textPrimary
+                            Layout.preferredWidth: root.amountColumnWidth
                             Layout.alignment: Qt.AlignVCenter
                             horizontalAlignment: Text.AlignRight
                         }
@@ -311,52 +316,52 @@ Item {
             }
 
             Rectangle {
-                color: Theme.surface
-                border.color: Theme.borderSoft
-                border.width: Theme.borderWidthThin
-                radius: Theme.radius
+                color: root.theme.surface
+                border.color: root.theme.borderSoft
+                border.width: root.theme.borderWidthThin
+                radius: root.theme.radius
                 Layout.fillWidth: true
                 Layout.preferredHeight: 72
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Theme.spacingMedium
-                    spacing: Theme.spacingLarge
+                    anchors.margins: root.theme.spacingMedium
+                    spacing: root.theme.spacingLarge
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignVCenter
 
                     ColumnLayout {
-                        spacing: Theme.margins
+                        spacing: root.theme.margins
                         Layout.alignment: Qt.AlignVCenter
-                        width: amountColumnWidth
-                        Label { text: qsTr("Allocatable"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
+                        width: root.amountColumnWidth
+                        Label { text: qsTr("Allocatable"); font.pointSize: 12; color: root.theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
                         Label {
                             text: (root.shownSums && root.shownSums.allocatable !== undefined) ? (root.shownSums.allocatable).toFixed(2) : "0.00";
-                            font.pointSize: 14; font.bold: true; color: Theme.successStrong; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
+                            font.pointSize: 14; font.bold: true; color: root.theme.successStrong; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
                         }
                     }
 
                     ColumnLayout {
-                        spacing: Theme.margins
+                        spacing: root.theme.margins
                         Layout.alignment: Qt.AlignVCenter
-                        width: amountColumnWidth
-                        Label { text: qsTr("Non-allocatable"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
+                        width: root.amountColumnWidth
+                        Label { text: qsTr("Non-allocatable"); font.pointSize: 12; color: root.theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
                         Label {
                             text: (root.shownSums && root.shownSums.nonAllocatable !== undefined) ? (root.shownSums.nonAllocatable).toFixed(2) : "0.00";
-                            font.pointSize: 14; font.bold: true; color: Theme.dangerStrong; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
+                            font.pointSize: 14; font.bold: true; color: root.theme.dangerStrong; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
                         }
                     }
 
                     Item { Layout.fillWidth: true }
 
                     ColumnLayout {
-                        spacing: Theme.margins
+                        spacing: root.theme.margins
                         Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        width: amountColumnWidth
-                        Label { text: qsTr("Total"); font.pointSize: 12; color: Theme.textMuted; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true }
+                        width: root.amountColumnWidth
+                        Label { text: qsTr("Total"); font.pointSize: 12; color: root.theme.textMuted; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true }
                         Label {
                             text: (root.shownSums && root.shownSums.total !== undefined) ? (root.shownSums.total).toFixed(2) : "0.00";
-                            font.pointSize: 16; font.bold: true; color: Theme.textPrimary; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true
+                            font.pointSize: 16; font.bold: true; color: root.theme.textPrimary; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true
                         }
                     }
                 }
@@ -365,22 +370,22 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
-                anchors.margins: Theme.margins
-                spacing: Theme.spacingMedium
+                anchors.margins: root.theme.margins
+                spacing: root.theme.spacingMedium
 
                 RowLayout {
-                    spacing: Theme.spacingMedium
-                    Controls.Button { text: qsTr("Create new building"); onClicked: if (session) session.selectedPropertyId = "" }
-                    Controls.Button { text: qsTr("Update building"); enabled: nameField.text.length > 0; onClicked: submitProperty() }
+                    spacing: root.theme.spacingMedium
+                    Controls.Button { text: qsTr("Create new building"); onClicked: if (root.session) root.session.selectedPropertyId = "" }
+                    Controls.Button { text: qsTr("Update building"); enabled: nameField.text.length > 0; onClicked: root.submitProperty() }
                 }
 
                 Item { Layout.fillWidth: true }
 
                 Controls.Button {
                     text: qsTr("Delete")
-                    onClicked: if (propertyController) { propertyController.deleteProperty(current.id); if (session) session.selectedPropertyId = "" }
+                    onClicked: if (root.propertyController) { root.propertyController.deleteProperty(root.current.id); if (root.session) root.session.selectedPropertyId = "" }
                     Layout.alignment: Qt.AlignRight
-                    fillColor: Theme.dangerStrong
+                    fillColor: root.theme.dangerStrong
                 }
             }
         }

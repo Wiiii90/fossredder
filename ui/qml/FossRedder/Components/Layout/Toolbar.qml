@@ -1,32 +1,49 @@
 ﻿import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
+pragma ComponentBehavior: Bound
 
 Item {
     id: toolBar
-    implicitHeight: Theme.toolbarHeight
+    required property var appContext
+    required property var theme
+    readonly property var navigation: toolBar.appContext ? toolBar.appContext.navigation : null
+    readonly property var session: toolBar.appContext ? toolBar.appContext.session : null
+    readonly property int navActors: 0
+    readonly property int navProperties: 1
+    readonly property int navContracts: 2
+    readonly property int navBooking: 3
+    readonly property int navImport: 4
+    readonly property int navExport: 5
+    readonly property int navSettings: 6
+    readonly property int navAnalysis: 7
+    readonly property int navAnnual: 8
+    readonly property int navStatements: 0
+    implicitHeight: toolBar.theme.toolbarHeight
     property int iconRowHeight: Math.round(implicitHeight * 0.55)
 
+    function assetUrl(fileName) {
+        return Qt.resolvedUrl("../../Assets/" + fileName)
+    }
+
     function clearDomainSelection() {
-        if (!AppContext.session) return
-        AppContext.session.selectedActorId = ""
-        AppContext.session.selectedPropertyId = ""
-        AppContext.session.selectedContractId = ""
+        if (!toolBar.session) return
+        toolBar.session.selectedActorId = ""
+        toolBar.session.selectedPropertyId = ""
+        toolBar.session.selectedContractId = ""
     }
 
     function clearBookingStateForSection(section) {
-        if (!AppContext.navigation || section === Navigation.Booking) return
-        AppContext.navigation.bookingView = Navigation.Statements
+        if (!toolBar.navigation || section === toolBar.navBooking) return
+        toolBar.navigation.setBookingViewValue(toolBar.navStatements)
     }
 
     function navigateTo(section, clearSelection, bookingView) {
-        if (!AppContext.navigation) return
-        clearBookingStateForSection(section)
-        if (clearSelection) clearDomainSelection()
-        if (bookingView !== undefined) AppContext.navigation.bookingView = bookingView
-        AppContext.navigation.section = section
+        if (!toolBar.navigation) return
+        toolBar.clearBookingStateForSection(section)
+        if (clearSelection) toolBar.clearDomainSelection()
+        if (bookingView !== undefined) toolBar.navigation.setBookingViewValue(bookingView)
+        toolBar.navigation.setSectionValue(section)
     }
 
     Rectangle {
@@ -34,53 +51,53 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         height: toolBar.implicitHeight
-        color: Theme.toolbarBackground
-        border.width: Theme.borderWidthThin
-        border.color: Theme.toolbarBorder
+        color: toolBar.theme.toolbarBackground
+        border.width: toolBar.theme.borderWidthThin
+        border.color: toolBar.theme.toolbarBorder
             clip: false
 
         RowLayout {
             id: rootRow
             anchors.fill: parent
-            spacing: Theme.spacing + Theme.margins
+            spacing: toolBar.theme.spacing + toolBar.theme.margins
             Layout.alignment: Qt.AlignVCenter
 
             ColumnLayout {
                 id: fileGroup
-                spacing: Theme.toolbarSectionSpacing
+                spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
                 RowLayout {
                     id: fileIcons
-                    spacing: Theme.toolbarGroupSpacing
+                    spacing: toolBar.theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
+                        Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: fileIcons.height
-                        svgSource: "qrc:/qml/FossRedder/Assets/import.svg"
+                        svgSource: toolBar.assetUrl("import.svg")
                         label: qsTr("Import")
-                        active: AppContext.navigation && AppContext.navigation.section === Navigation.Import
-                        onClicked: navigateTo(Navigation.Import, false)
+                        active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navImport
+                        onClicked: toolBar.navigateTo(toolBar.navImport, false)
                     }
                     Controls.IconButton {
-                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
+                        Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: fileIcons.height
-                        svgSource: "qrc:/qml/FossRedder/Assets/export.svg"
+                        svgSource: toolBar.assetUrl("export.svg")
                         label: qsTr("Export")
-                        active: AppContext.navigation && AppContext.navigation.section === Navigation.Export
-                        onClicked: navigateTo(Navigation.Export, false)
+                        active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navExport
+                        onClicked: toolBar.navigateTo(toolBar.navExport, false)
                     }
                 }
 
                 Text {
                     id: groupLabelFile
                     text: qsTr("File")
-                    color: Theme.textMuted
-                    font.pointSize: Theme.fontSizeSmall
+                    color: toolBar.theme.textMuted
+                    font.pointSize: toolBar.theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                     elide: Text.ElideRight
@@ -88,66 +105,66 @@ Item {
                 }
             }
 
-            Rectangle { width: Theme.borderWidthThin; Layout.fillHeight: true; color: Theme.divider; Layout.alignment: Qt.AlignVCenter }
+            Rectangle { width: toolBar.theme.borderWidthThin; Layout.fillHeight: true; color: toolBar.theme.divider; Layout.alignment: Qt.AlignVCenter }
 
             ColumnLayout {
                 id: domainGroup
-                spacing: Theme.toolbarSectionSpacing
+                spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
                 RowLayout {
                     id: domainIcons
-                    spacing: Theme.toolbarGroupSpacing
+                    spacing: toolBar.theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
+                        Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
-                        svgSource: "qrc:/qml/FossRedder/Assets/booking.svg"
+                        svgSource: toolBar.assetUrl("booking.svg")
                         label: qsTr("Booking")
-                        active: AppContext.navigation && AppContext.navigation.section === Navigation.Booking
+                        active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navBooking
                         onClicked: {
-                            if (AppContext.session) {
-                                AppContext.session.selectedStatementId = ""
-                                AppContext.session.selectedTransactionId = ""
+                            if (toolBar.session) {
+                                toolBar.session.selectedStatementId = ""
+                                toolBar.session.selectedTransactionId = ""
                             }
-                            navigateTo(Navigation.Booking, false, Navigation.Statements)
+                            toolBar.navigateTo(toolBar.navBooking, false, toolBar.navStatements)
                         }
                     }
                     Controls.IconButton {
-                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
+                        Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
-                        svgSource: "qrc:/qml/FossRedder/Assets/actor.svg"
+                        svgSource: toolBar.assetUrl("actor.svg")
                         label: qsTr("Actor")
-                        active: AppContext.navigation && AppContext.navigation.section === Navigation.Actors
-                        onClicked: navigateTo(Navigation.Actors, true)
+                        active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navActors
+                        onClicked: toolBar.navigateTo(toolBar.navActors, true)
                     }
                     Controls.IconButton {
-                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
+                        Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
-                        svgSource: "qrc:/qml/FossRedder/Assets/property.svg"
+                        svgSource: toolBar.assetUrl("property.svg")
                         label: qsTr("Property")
-                        active: AppContext.navigation && AppContext.navigation.section === Navigation.Properties
-                        onClicked: navigateTo(Navigation.Properties, true)
+                        active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navProperties
+                        onClicked: toolBar.navigateTo(toolBar.navProperties, true)
                     }
                     Controls.IconButton {
-                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
+                        Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
-                        svgSource: "qrc:/qml/FossRedder/Assets/contract.svg"
+                        svgSource: toolBar.assetUrl("contract.svg")
                         label: qsTr("Contract")
-                        active: navigation && navigation.section === Navigation.Contracts
-                        onClicked: navigateTo(Navigation.Contracts, true)
+                        active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navContracts
+                        onClicked: toolBar.navigateTo(toolBar.navContracts, true)
                     }
                 }
 
                 Text {
                     id: groupLabelDomain
                     text: qsTr("Domain")
-                    color: Theme.textMuted
-                    font.pointSize: Theme.fontSizeSmall
+                    color: toolBar.theme.textMuted
+                    font.pointSize: toolBar.theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                     elide: Text.ElideRight
@@ -155,44 +172,44 @@ Item {
                 }
             }
 
-            Rectangle { width: Theme.borderWidthThin; Layout.fillHeight: true; color: Theme.divider; Layout.alignment: Qt.AlignVCenter }
+            Rectangle { width: toolBar.theme.borderWidthThin; Layout.fillHeight: true; color: toolBar.theme.divider; Layout.alignment: Qt.AlignVCenter }
 
             ColumnLayout {
                 id: toolsGroup
-                spacing: Theme.toolbarSectionSpacing
+                spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
                 RowLayout {
                     id: toolsIcons
-                    spacing: Theme.toolbarGroupSpacing
+                    spacing: toolBar.theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
+                        Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: toolsIcons.height
-                        svgSource: "qrc:/qml/FossRedder/Assets/analysis.svg"
+                        svgSource: toolBar.assetUrl("analysis.svg")
                         label: qsTr("Analysis")
-                        active: navigation && navigation.section === Navigation.Analysis
-                        onClicked: navigateTo(Navigation.Analysis, true)
+                        active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navAnalysis
+                        onClicked: toolBar.navigateTo(toolBar.navAnalysis, true)
                     }
                     Controls.IconButton {
-                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
+                        Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: toolsIcons.height
-                        svgSource: "qrc:/qml/FossRedder/Assets/annual.svg"
+                        svgSource: toolBar.assetUrl("annual.svg")
                         label: qsTr("Annual")
-                        active: navigation && navigation.section === Navigation.Annual
-                        onClicked: navigateTo(Navigation.Annual, true)
+                        active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navAnnual
+                        onClicked: toolBar.navigateTo(toolBar.navAnnual, true)
                     }
                 }
 
                 Text {
                     id: groupLabelTools
                     text: qsTr("Tools")
-                    color: Theme.textMuted
-                    font.pointSize: Theme.fontSizeSmall
+                    color: toolBar.theme.textMuted
+                    font.pointSize: toolBar.theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                     elide: Text.ElideRight
@@ -200,36 +217,36 @@ Item {
                 }
             }
 
-            Rectangle { width: Theme.borderWidthThin; Layout.fillHeight: true; color: Theme.divider; Layout.alignment: Qt.AlignVCenter }
+            Rectangle { width: toolBar.theme.borderWidthThin; Layout.fillHeight: true; color: toolBar.theme.divider; Layout.alignment: Qt.AlignVCenter }
 
             ColumnLayout {
                 id: appGroup
-                spacing: Theme.toolbarSectionSpacing
+                spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
                 Layout.maximumHeight: toolBar.implicitHeight
 
                 RowLayout {
                     id: appIcons
-                    spacing: Theme.toolbarGroupSpacing
+                    spacing: toolBar.theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        Layout.preferredWidth: Theme.toolbarIconButtonWidth
+                        Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: appIcons.height
-                        svgSource: "qrc:/qml/FossRedder/Assets/settings.svg"
+                        svgSource: toolBar.assetUrl("settings.svg")
                         label: qsTr("Settings")
-                        active: navigation && navigation.section === Navigation.Settings
-                        onClicked: navigateTo(Navigation.Settings, false)
+                        active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navSettings
+                        onClicked: toolBar.navigateTo(toolBar.navSettings, false)
     }
                 }
 
                 Text {
                     id: groupLabelApp
                     text: qsTr("Application")
-                    color: Theme.textMuted
-                    font.pointSize: Theme.fontSizeSmall
+                    color: toolBar.theme.textMuted
+                    font.pointSize: toolBar.theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     Layout.alignment: Qt.AlignHCenter
                     elide: Text.ElideRight
@@ -237,24 +254,9 @@ Item {
                 }
             }
 
-            Rectangle { width: Theme.borderWidthThin; Layout.fillHeight: true; color: Theme.divider; Layout.alignment: Qt.AlignVCenter }
+            Rectangle { width: toolBar.theme.borderWidthThin; Layout.fillHeight: true; color: toolBar.theme.divider; Layout.alignment: Qt.AlignVCenter }
 
             Item { Layout.fillWidth: true }
-        }
-        Connections {
-            target: navigation
-            function onSectionChanged() {
-                var s = navigation ? navigation.section : null;
-                if (loaderImport.item) loaderImport.item.active = (s === Navigation.Import);
-                if (loaderExport.item) loaderExport.item.active = (s === Navigation.Export);
-                if (loaderBooking.item) loaderBooking.item.active = (s === Navigation.Booking);
-                if (loaderActor.item) loaderActor.item.active = (s === Navigation.Actors);
-                if (loaderProperty.item) loaderProperty.item.active = (s === Navigation.Properties);
-                if (loaderContract.item) loaderContract.item.active = (s === Navigation.Contracts);
-                if (loaderAnalysis.item) loaderAnalysis.item.active = (s === Navigation.Analysis);
-                if (loaderAnnual.item) loaderAnnual.item.active = (s === Navigation.Annual);
-                if (loaderSettings.item) loaderSettings.item.active = (s === Navigation.Settings);
-            }
         }
     }
 }

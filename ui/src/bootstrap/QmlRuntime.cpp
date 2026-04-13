@@ -55,8 +55,6 @@ void configureRuntime(QQmlEngine* engine)
     if (QDir(imageFormatsDir).exists()) {
         QCoreApplication::addLibraryPath(imageFormatsDir);
     }
-
-    engine->addImportPath(ui::config::kQrcQmlImportPath);
 }
 
 } // namespace ui::bootstrap

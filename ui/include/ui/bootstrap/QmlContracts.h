@@ -16,6 +16,7 @@ Q_NAMESPACE
 /** Module/version and type registration metadata for the QML module. */
 namespace module {
 inline constexpr auto kName = "FossRedder";
+inline constexpr auto kMainTypeName = "Main";
 constexpr int kMajorVersion = 1;
 constexpr int kMinorVersion = 0;
 inline constexpr auto kAppContextTypeName = "AppContext";
@@ -65,6 +66,31 @@ enum class ExportFormat : int {
 };
 
 Q_ENUM_NS(ExportFormat)
+
+enum class NavigationValue : int {
+    SectionActors = 0,
+    SectionProperties = 1,
+    SectionContracts = 2,
+    SectionBooking = 3,
+    SectionImport = 4,
+    SectionExport = 5,
+    SectionSettings = 6,
+    SectionAnalysis = 7,
+    SectionAnnual = 8,
+    BookingStatements = 0,
+    BookingCalendar = 1,
+    BookingTransactions = 2,
+    SettingsGeneral = 0,
+    SettingsAppearance = 1,
+    SettingsImport = 2,
+    SettingsExport = 3,
+    SettingsStorage = 4,
+    SettingsNotifications = 5,
+    SettingsAdvanced = 6,
+    SettingsUpdates = 7
+};
+
+Q_ENUM_NS(NavigationValue)
 
 } // namespace ui::qml::contracts
 

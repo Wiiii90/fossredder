@@ -1,30 +1,31 @@
 ﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 import FossRedder.Components 1.0 as Components
 
 Item {
     id: root
+    required property var appContext
+    required property var theme
 
-    readonly property ExportController exportController: AppContext.exportController
+    readonly property var exportController: root.appContext ? root.appContext.exportController : null
 
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 8
-        spacing: Theme.spacingSmall
+        spacing: root.theme.spacingSmall
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacing
+            spacing: root.theme.spacing
             Layout.alignment: Qt.AlignVCenter
 
             Label {
                 text: qsTr("Export-Protokolle")
-                font.pointSize: Theme.fontSizeLarge
+                font.pointSize: root.theme.fontSizeLarge
                 Layout.fillWidth: true
-                color: Theme.textPrimary
+                color: root.theme.textPrimary
             }
 
             Controls.Button {
@@ -32,8 +33,8 @@ Item {
                 enabled: runsModel.count > 0
                 implicitHeight: 32
                 implicitWidth: 88
-                fillColor: Theme.surface
-                textColor: Theme.textPrimary
+                fillColor: root.theme.surface
+                textColor: root.theme.textPrimary
                 onClicked: runsModel.clear()
             }
         }
@@ -42,6 +43,7 @@ Item {
 
         Components.RunLogList {
             id: exportRunLogList
+            theme: root.theme
             Layout.fillWidth: true
             Layout.fillHeight: true
             model: runsModel
@@ -49,7 +51,7 @@ Item {
     }
 
     function addRun(path, status, message) {
-        var t = new Date().toLocaleString()
+        const t = new Date().toLocaleString()
         runsModel.append({ time: t, path: path ? path : "", status: status ? status : "Unknown", message: message ? message : "" })
     }
 
@@ -69,7 +71,7 @@ Item {
 
                 exportController.exportFinished.connect(function(success) {
                     try {
-                        var status = success ? "Success" : "Failure"
+                        const status = success ? "Success" : "Failure"
                         if (_lastRunningIndex >= 0 && _lastRunningIndex < runsModel.count) {
                             runsModel.set(_lastRunningIndex, { time: runsModel.get(_lastRunningIndex).time, path: runsModel.get(_lastRunningIndex).path, status: status, message: "" })
                         } else {

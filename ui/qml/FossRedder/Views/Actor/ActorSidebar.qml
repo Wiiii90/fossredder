@@ -1,17 +1,18 @@
 import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
+    required property var appContext
+    required property var theme
 
-    readonly property StateFacade session: AppContext.session
+    readonly property var session: root.appContext ? root.appContext.session : null
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.spacingMedium
-        spacing: Theme.spacingSmall
+        anchors.margins: root.theme.spacingMedium
+        spacing: root.theme.spacingSmall
 
         Flickable {
             Layout.fillWidth: true
@@ -23,44 +24,48 @@ Item {
             Column {
                 id: actorColumn
                 width: parent.width
-                spacing: Theme.spacingSmall
+                spacing: root.theme.spacingSmall
 
                 Repeater {
-                    model: session ? session.actorRows() : []
+                    model: root.session ? root.session.actorRows() : []
 
                     delegate: Rectangle {
+                        id: actorRow
+                        required property var modelData
                         width: actorColumn.width
                         height: 44
                         radius: 6
-                        color: session && modelData.id === session.selectedActorId ? Theme.selectionHighlight : "transparent"
-                        border.color: Theme.borderSoft
-                        border.width: Theme.borderWidthThin
+                        color: root.session && actorRow.modelData.id === root.session.selectedActorId ? root.theme.selectionHighlight : "transparent"
+                        border.color: root.theme.borderSoft
+                        border.width: root.theme.borderWidthThin
 
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                if (session) session.selectedActorId = modelData.id
+                                if (root.session) root.session.selectedActorId = actorRow.modelData.id
                             }
                         }
 
                         Column {
                             anchors.fill: parent
-                            anchors.margins: Theme.spacingSmall
+                            anchors.margins: root.theme.spacingSmall
                             spacing: 2
 
                             Text {
+                                id: actorNameText
                                 width: parent.width
-                                text: modelData.name ? modelData.name : ""
-                                color: Theme.textPrimary
+                                text: actorRow.modelData.name ? actorRow.modelData.name : ""
+                                color: root.theme.textPrimary
                                 elide: Text.ElideRight
                             }
 
                             Text {
+                                id: actorTypeText
                                 width: parent.width
-                                text: modelData.type ? modelData.type : ""
-                                color: Theme.textMuted
+                                text: actorRow.modelData.type ? actorRow.modelData.type : ""
+                                color: root.theme.textMuted
                                 elide: Text.ElideRight
-                                visible: text.length > 0
+                                visible: actorTypeText.text.length > 0
                             }
                         }
                     }

@@ -1,62 +1,64 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
+import FossRedder.Constants 1.0 as Constants
 import FossRedder.Components 1.0 as Components
-import "../../Constants/Analysis.js" as Analysis
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    readonly property StateFacade session: AppContext.session
-    Accessible.ignored: AppContext.isDebugBuild
+    required property var appContext
+    required property var theme
+    readonly property var session: root.appContext ? root.appContext.session : null
+    Accessible.ignored: root.appContext ? root.appContext.isDebugBuild : false
     property var histLegendModel: []
     property real histLegendTotal: 0
     property var propListModel: []
 
-    Timer { id: rebuildRetry; interval: 80; repeat: false; running: false; triggeredOnStart: false; onTriggered: { try { rebuild() } catch(e) {} } }
+    Timer { id: rebuildRetry; interval: 80; repeat: false; running: false; triggeredOnStart: false; onTriggered: { try { root.rebuild() } catch(e) {} } }
 
     function currentPlotType() {
         try {
-            return Analysis.plotType(session ? session.lastAnalysisResult : null)
+            return Constants.Analysis.plotType(root.session ? root.session.lastAnalysisResult : null)
         } catch (e) {
             return ""
         }
     }
 
     function colorForKey(k) {
-        return Analysis.colorForKey(k, Theme.analysis.palette, Theme.chartFallback)
+        return Constants.Analysis.colorForKey(k, root.theme.analysis.palette, root.theme.chartFallback)
     }
 
     function rebuild() {
-        var newHist = []
-        var newProps = []
-        var newHistTotal = 0
+        let newHist = []
+        let newProps = []
+        let newHistTotal = 0
         try {
-            if (!session || !session.lastAnalysisResult || !session.lastAnalysisResult.table) {
-                histLegendModel = newHist
-                histLegendTotal = newHistTotal
-                propListModel = newProps
+            if (!root.session || !root.session.lastAnalysisResult || !root.session.lastAnalysisResult.table) {
+                root.histLegendModel = newHist
+                root.histLegendTotal = newHistTotal
+                root.propListModel = newProps
                 return
             }
 
-            var contractMap = {}
-            var propertyMap = {}
-            var pieValues = []
+            const contractMap = {}
+            const propertyMap = {}
+            const pieValues = []
 
-            for (var i = 0; i < session.lastAnalysisResult.table.length; ++i) {
-                var row = session.lastAnalysisResult.table[i]
+            for (let i = 0; i < root.session.lastAnalysisResult.table.length; ++i) {
+                const row = root.session.lastAnalysisResult.table[i]
                 if (!row || row.length < 2) continue
-                var parsed = false
+                let parsed = false
                 try {
-                    var j = JSON.parse(row[1]); var bc = j.byContract || {}; var bp = j.byProperty || {}
-                    for (var k in bc) contractMap[k] = (contractMap[k] || 0) + (parseFloat(bc[k]) || 0)
-                    for (var k in bp) propertyMap[k] = (propertyMap[k] || 0) + (parseFloat(bp[k]) || 0)
+                    const j = JSON.parse(row[1]); const bc = j.byContract || {}; const bp = j.byProperty || {}
+                    for (const k in bc) contractMap[k] = (contractMap[k] || 0) + (parseFloat(bc[k]) || 0)
+                    for (const k in bp) propertyMap[k] = (propertyMap[k] || 0) + (parseFloat(bp[k]) || 0)
                     parsed = true
                 } catch(e) {}
 
                 if (!parsed) {
-                    var nv = NaN
-                    var name = null
+                    let nv = NaN
+                    let name = null
                     if (row.length > 2) {
                         nv = parseFloat(row[2])
                         name = row[1]
@@ -68,7 +70,7 @@ Item {
                 }
             }
 
-            for (var key in contractMap) {
+            for (const key in contractMap) {
                 newHist.push({ name: key, value: contractMap[key] })
                 newHistTotal += contractMap[key]
             }
@@ -76,24 +78,24 @@ Item {
             if (newHist.length === 0 && pieValues.length > 0) {
                 newHist = pieValues.slice()
                 newHistTotal = 0
-                for (var pi = 0; pi < newHist.length; ++pi) newHistTotal += newHist[pi].value
+                for (let pi = 0; pi < newHist.length; ++pi) newHistTotal += newHist[pi].value
             } else {
                 newHist.sort(function(a, b) { return b.value - a.value })
             }
 
-            for (var p in propertyMap) newProps.push({ name: p, value: propertyMap[p] })
+            for (const p in propertyMap) newProps.push({ name: p, value: propertyMap[p] })
             newProps.sort(function(a, b) { return b.value - a.value })
 
-            histLegendModel = JSON.parse(JSON.stringify(newHist))
-            histLegendTotal = newHistTotal
-            propListModel = JSON.parse(JSON.stringify(newProps))
+            root.histLegendModel = JSON.parse(JSON.stringify(newHist))
+            root.histLegendTotal = newHistTotal
+            root.propListModel = JSON.parse(JSON.stringify(newProps))
 
             try {
-                try { if (pie) pie.legendFilter = session ? (session._legendFilter ? session._legendFilter : []) : [] } catch(e) {}
-                try { if (hist) hist.legendFilter = session ? (session._legendFilter ? session._legendFilter : []) : [] } catch(e) {}
-                try { if (session && session.propertyName) { if (pie) pie.propertyNameForId = function(id) { try { return session.propertyName(id) } catch(e) { return id } }; if (hist) hist.propertyNameForId = function(id) { try { return session.propertyName(id) } catch(e) { return id } } } else { if (pie) pie.propertyNameForId = null; if (hist) hist.propertyNameForId = null } } catch(e) {}
+                try { if (pie) pie.legendFilter = root.session ? (root.session._legendFilter ? root.session._legendFilter : []) : [] } catch(e) {}
+                try { if (hist) hist.legendFilter = root.session ? (root.session._legendFilter ? root.session._legendFilter : []) : [] } catch(e) {}
+                try { if (root.session && root.session.propertyName) { if (pie) pie.propertyNameForId = function(id) { try { return root.session.propertyName(id) } catch(e) { return id } }; if (hist) hist.propertyNameForId = function(id) { try { return root.session.propertyName(id) } catch(e) { return id } } } else { if (pie) pie.propertyNameForId = null; if (hist) hist.propertyNameForId = null } } catch(e) {}
 
-                var tbl = (session && session.lastAnalysisResult) ? session.lastAnalysisResult.table : []
+                const tbl = (root.session && root.session.lastAnalysisResult) ? root.session.lastAnalysisResult.table : []
                 if (pie) pie.table = tbl
                 if (hist) hist.table = tbl
                 try { if (pie && pie.requestPaint) pie.requestPaint(); if (hist && hist.requestPaint) hist.requestPaint(); } catch(e) {}
@@ -103,49 +105,51 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: Theme.spacingSmall
+        spacing: root.theme.spacingSmall
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingMedium
+            spacing: root.theme.spacingMedium
 
             Item {
                 id: pieArea
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.chartPlotPreferredHeight
+                Layout.preferredHeight: root.theme.chartPlotPreferredHeight
                 visible: (function() {
                     try {
-                        return currentPlotType() === Analysis.chartTypes.pie
+                        return root.currentPlotType() === Constants.Analysis.chartTypes.pie
                     } catch (e) {
                         return false
                     }
                 })()
             
-                RowLayout { anchors.fill: parent; spacing: Theme.spacing
-                    Column { id: pieLegendCol; Layout.preferredWidth: Theme.analysis.layout.splitControlsWidth; Layout.fillHeight: true; spacing: Theme.spacingSmall
-                        Label { text: qsTr('Legend'); font.bold: false; color: Theme.chartText }
-                        Repeater { model: (session && session.lastAnalysisResult) ? session.lastAnalysisResult.table : []
-                            delegate: RowLayout { spacing: Theme.spacingSmall; height: 20
-                                Rectangle { width: Theme.chartLegendMarkerSize; height: Theme.chartLegendMarkerSize; color: colorForKey(modelData && modelData.length>0 ? modelData[0] : index) }
-                                Label { text: (modelData && modelData.length>0) ? modelData[0] : ''; horizontalAlignment: Text.AlignLeft; Layout.preferredWidth: 120 }
-                                Label { text: (function(){ var v = (modelData && modelData.length>1) ? parseFloat(modelData[1])||0 : 0; return ' ' + v.toFixed(2); })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: Theme.chartValueLabelWidth }
-                                Label { text: (function(){ var v = (modelData && modelData.length>1) ? parseFloat(modelData[1])||0 : 0; return (histLegendTotal>0) ? (' ' + ((parseFloat(modelData[1]) / histLegendTotal * 100).toFixed(1) + Analysis.text.percentSuffix)) : '' })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: Theme.chartPercentLabelWidth }
+                RowLayout { anchors.fill: parent; spacing: root.theme.spacing
+                    Column { id: pieLegendCol; Layout.preferredWidth: root.theme.analysis.layout.splitControlsWidth; Layout.fillHeight: true; spacing: root.theme.spacingSmall
+                        Label { text: qsTr('Legend'); font.bold: false; color: root.theme.chartText }
+                        Repeater { model: (root.session && root.session.lastAnalysisResult) ? root.session.lastAnalysisResult.table : []
+                            delegate: RowLayout { id: pieLegendRow; required property var modelData; required property int index; spacing: root.theme.spacingSmall; height: 20
+                Rectangle { width: root.theme.chartLegendMarkerSize; height: root.theme.chartLegendMarkerSize; color: root.colorForKey(pieLegendRow.modelData && pieLegendRow.modelData.length>0 ? pieLegendRow.modelData[0] : String(pieLegendRow.index)) }
+                                Label { text: (pieLegendRow.modelData && pieLegendRow.modelData.length>0) ? pieLegendRow.modelData[0] : ''; horizontalAlignment: Text.AlignLeft; Layout.preferredWidth: 120 }
+                                Label { text: (function(){ const v = (pieLegendRow.modelData && pieLegendRow.modelData.length>1) ? parseFloat(pieLegendRow.modelData[1])||0 : 0; return ' ' + v.toFixed(2); })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: root.theme.chartValueLabelWidth }
+                                Label { text: (function(){ const v = (pieLegendRow.modelData && pieLegendRow.modelData.length>1) ? parseFloat(pieLegendRow.modelData[1])||0 : 0; return (root.histLegendTotal>0) ? (' ' + ((parseFloat(pieLegendRow.modelData[1]) / root.histLegendTotal * 100).toFixed(1) + Constants.Analysis.text.percentSuffix)) : '' })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: root.theme.chartPercentLabelWidth }
                             }
                         }
                     }
 
-                    Components.Pie { id: pie; Layout.fillWidth: true; Layout.preferredHeight: Theme.chartPlotPreferredHeight }
+                    Components.Pie { id: pie; theme: root.theme; Layout.fillWidth: true; Layout.preferredHeight: root.theme.chartPlotPreferredHeight }
                 }
             }
 
             Components.Histogram {
                 id: hist
+                appContext: root.appContext
+                theme: root.theme
                 splitProgress: 0.0
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.chartPlotPreferredHeight
+                Layout.preferredHeight: root.theme.chartPlotPreferredHeight
                 visible: (function() {
                     try {
-                        return currentPlotType() === Analysis.chartTypes.histogram
+                        return root.currentPlotType() === Constants.Analysis.chartTypes.histogram
                     } catch (e) {
                         return false
                     }
@@ -155,11 +159,11 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingMedium
+            spacing: root.theme.spacingMedium
             Item { Layout.fillWidth: true }
             RowLayout {
-                spacing: Theme.spacingSmall
-                visible: currentPlotType() === Analysis.chartTypes.histogram
+                spacing: root.theme.spacingSmall
+                visible: root.currentPlotType() === Constants.Analysis.chartTypes.histogram
                 Label { text: qsTr('Split by property') }
                 Switch { id: splitSwitch; onCheckedChanged: { hist.splitProgress = checked ? 1.0 : 0.0; try { if (hist.requestPaint) hist.requestPaint(); } catch(e) {} } }
             }
@@ -169,28 +173,28 @@ Item {
         Flickable {
             id: histLegendFlick
             Layout.fillWidth: true
-            Layout.preferredHeight: Theme.chartLegendHeight
+            Layout.preferredHeight: root.theme.chartLegendHeight
             clip: true
             contentWidth: histLegendFlow.implicitWidth
             contentHeight: histLegendFlow.implicitHeight
-            visible: (histLegendModel && histLegendModel.length>0)
+            visible: (root.histLegendModel && root.histLegendModel.length>0)
 
             Flow {
                 id: histLegendFlow
                 width: parent.width
-                spacing: Theme.spacingMedium
+                spacing: root.theme.spacingMedium
                 flow: Flow.LeftToRight
 
                 Label { text: qsTr('Legend'); font.bold: false }
                 Repeater {
                     id: histLegendRepeater
-                    model: histLegendModel
-                    delegate: RowLayout {
-                        spacing: Theme.spacingSmall
-                        Rectangle { width: Theme.chartLegendMarkerSize; height: Theme.chartLegendMarkerSize; color: colorForKey(modelData && modelData.name ? modelData.name : modelData) }
-                        Label { text: (modelData && modelData.name) ? modelData.name : ''; font.pixelSize: Theme.fontSize }
-                        Label { text: (modelData && modelData.value) ? (' ' + parseFloat(modelData.value).toFixed(2)) : (' ' + Analysis.text.defaultLegendValue); font.pixelSize: Theme.fontSize }
-                        Label { text: (modelData && modelData.value && histLegendTotal>0) ? (' ' + ((parseFloat(modelData.value) / histLegendTotal * 100).toFixed(1) + Analysis.text.percentSuffix)) : '' ; font.pixelSize: Theme.fontSize }
+                    model: root.histLegendModel
+                    delegate: RowLayout { id: histLegendRow; required property var modelData;
+                        spacing: root.theme.spacingSmall
+                        Rectangle { width: root.theme.chartLegendMarkerSize; height: root.theme.chartLegendMarkerSize; color: root.colorForKey(histLegendRow.modelData && histLegendRow.modelData.name ? histLegendRow.modelData.name : histLegendRow.modelData) }
+                        Label { text: (histLegendRow.modelData && histLegendRow.modelData.name) ? histLegendRow.modelData.name : ''; font.pixelSize: root.theme.fontSize }
+                    Label { text: (histLegendRow.modelData && histLegendRow.modelData.value) ? (' ' + parseFloat(histLegendRow.modelData.value).toFixed(2)) : (' ' + Constants.Analysis.text.defaultLegendValue); font.pixelSize: root.theme.fontSize }
+                    Label { text: (histLegendRow.modelData && histLegendRow.modelData.value && root.histLegendTotal>0) ? (' ' + ((parseFloat(histLegendRow.modelData.value) / root.histLegendTotal * 100).toFixed(1) + Constants.Analysis.text.percentSuffix)) : '' ; font.pixelSize: root.theme.fontSize }
                     }
                 }
             }
@@ -199,8 +203,8 @@ Item {
 
     }
 
-    Connections { target: session
-        function onLastAnalysisResultChanged() { try { rebuild() } catch(e) {} }
+    Connections { target: root.session
+        function onLastAnalysisResultChanged() { try { root.rebuild() } catch(e) {} }
     }
 }
 

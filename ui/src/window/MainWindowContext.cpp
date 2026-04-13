@@ -30,9 +30,9 @@ MainWindowServices installMainWindowContext(QQmlContext &qmlContext,
   MainWindowServices services;
   auto *mainWindow = qobject_cast<MainWindow *>(parentWindow);
   services.actions = new ui::Actions(parent);
-  auto *navigation = new ui::NavigationState(parent);
+  services.navigation = new ui::NavigationState(parent);
   services.dataSession = new ui::StateFacade(parent);
-  auto *fileSystem = new ui::FileSystemController(parent);
+  services.fileSystem = new ui::FileSystemController(parent);
   services.status = new ui::StatusState(parent);
   services.status->setText(ui::text::status::ready());
 
@@ -40,22 +40,22 @@ MainWindowServices installMainWindowContext(QQmlContext &qmlContext,
     mainWindow->setQmlContextProperty(ui::qml::contracts::context::kActions,
                                       services.actions);
     mainWindow->setQmlContextProperty(ui::qml::contracts::context::kNavigation,
-                                      navigation);
+                                      services.navigation);
     mainWindow->setQmlContextProperty(ui::qml::contracts::context::kSession,
                                       services.dataSession);
     mainWindow->setQmlContextProperty(ui::qml::contracts::context::kFileSystemController,
-                                      fileSystem);
+                                      services.fileSystem);
     mainWindow->setQmlContextProperty(ui::qml::contracts::context::kStatus,
                                       services.status);
   } else {
     qmlContext.setContextProperty(ui::qml::contracts::context::kActions,
                                   services.actions);
     qmlContext.setContextProperty(ui::qml::contracts::context::kNavigation,
-                                  navigation);
+                                  services.navigation);
     qmlContext.setContextProperty(ui::qml::contracts::context::kSession,
                                   services.dataSession);
     qmlContext.setContextProperty(
-        ui::qml::contracts::context::kFileSystemController, fileSystem);
+        ui::qml::contracts::context::kFileSystemController, services.fileSystem);
     qmlContext.setContextProperty(ui::qml::contracts::context::kStatus,
                                   services.status);
   }

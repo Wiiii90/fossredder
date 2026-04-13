@@ -2,12 +2,15 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    readonly property StateFacade session: AppContext.session
-    readonly property TransactionController transactionController: AppContext.transactionController
-    Accessible.ignored: AppContext.isDebugBuild
+    required property var appContext
+    required property var theme
+    readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var transactionController: root.appContext ? root.appContext.transactionController : null
+    Accessible.ignored: root.appContext ? root.appContext.isDebugBuild : false
 
     property bool isNew: false
     property var current: null
@@ -17,31 +20,31 @@ Item {
     property bool propertiesExpanded: false
 
     function refreshCurrentSelection() {
-        root.isNew = session && session.selectedTransactionId === "__new__"
-        root.current = (!root.isNew && session) ? session.selectedTransaction : null
+        root.isNew = root.session && root.session.selectedTransactionId === "__new__"
+        root.current = (!root.isNew && root.session) ? root.session.selectedTransaction : null
         root.isEdit = !root.isNew && root.current && root.current.id && String(root.current.id).length > 0
     }
 
     function loadPropertyRows() {
-        propertyRowsSnapshot = session ? session.propertyRows() : []
-        propertyRowsReady = true
+        root.propertyRowsSnapshot = root.session ? root.session.propertyRows() : []
+        root.propertyRowsReady = true
     }
 
     function togglePropertiesExpanded() {
-        propertiesExpanded = !propertiesExpanded
-        if (propertiesExpanded && !propertyRowsReady)
-            Qt.callLater(loadPropertyRows)
+        root.propertiesExpanded = !root.propertiesExpanded
+        if (root.propertiesExpanded && !root.propertyRowsReady)
+            Qt.callLater(root.loadPropertyRows)
     }
 
     function hasSelectedProperty(propertyId) {
-        return propertyId && selectedPropertyIds.indexOf(propertyId) !== -1
+        return propertyId && root.selectedPropertyIds.indexOf(propertyId) !== -1
     }
 
     function toggleSelectedProperty(propertyId, checked) {
         if (!propertyId) return
 
-        var nextPropertyIds = selectedPropertyIds.slice()
-        var localIdx = nextPropertyIds.indexOf(propertyId)
+        let nextPropertyIds = root.selectedPropertyIds.slice()
+        const localIdx = nextPropertyIds.indexOf(propertyId)
 
         if (checked) {
             if (localIdx === -1) nextPropertyIds.push(propertyId)
@@ -49,11 +52,11 @@ Item {
             nextPropertyIds.splice(localIdx, 1)
         }
 
-        selectedPropertyIds = nextPropertyIds
+        root.selectedPropertyIds = nextPropertyIds
 
-        if (isEdit && current && current.id) {
-            persistCurrentTransaction()
-            if (session) session.setTransactionPropertyIdsImmediate(current.id, selectedPropertyIds)
+        if (root.isEdit && root.current && root.current.id) {
+            root.persistCurrentTransaction()
+            if (root.session) root.session.setTransactionPropertyIdsImmediate(root.current.id, root.selectedPropertyIds)
         }
     }
 
@@ -62,46 +65,46 @@ Item {
         bookingDateField.text = ""
         amountField.text = ""
         typeField.text = ""
-        selectedPropertyIds = []
+        root.selectedPropertyIds = []
         allocCheck.checked = false
         statusCombo.currentIndex = 0
     }
 
     function syncFields() {
         
-        if (isNew) {
-            clearFields()
+        if (root.isNew) {
+            root.clearFields()
             return
         }
-        if (!isEdit) {
-            clearFields()
+        if (!root.isEdit) {
+            root.clearFields()
             return
         }
         
 
-        nameField.text = current.name || ""
-        bookingDateField.text = current.bookingDate || ""
-        amountField.text = String(current.amount)
-        typeField.text = current.type || ""
-        selectedPropertyIds = current.propertyIds ? current.propertyIds.slice() : []
-        allocCheck.checked = current.allocatable ? true : false
-        statusCombo.currentIndex = Math.max(0, current.status)
+        nameField.text = root.current.name || ""
+        bookingDateField.text = root.current.bookingDate || ""
+        amountField.text = String(root.current.amount)
+        typeField.text = root.current.type || ""
+        root.selectedPropertyIds = root.current.propertyIds ? root.current.propertyIds.slice() : []
+        allocCheck.checked = root.current.allocatable ? true : false
+        statusCombo.currentIndex = Math.max(0, root.current.status)
     }
 
     function effectiveStatementId() {
-        return (current && current.statementId && current.statementId.length > 0)
-                ? current.statementId
-                : ((session && session.selectedStatementId) ? session.selectedStatementId : "")
+        return (root.current && root.current.statementId && root.current.statementId.length > 0)
+                ? root.current.statementId
+                : ((root.session && root.session.selectedStatementId) ? root.session.selectedStatementId : "")
     }
 
     function persistCurrentTransaction() {
-        if (isNew || !transactionController || !current || !current.id) return
-        var amt = parseFloat(amountField.text)
+        if (root.isNew || !root.transactionController || !root.current || !root.current.id) return
+        let amt = parseFloat(amountField.text)
         if (isNaN(amt)) amt = 0.0
-        var sid = effectiveStatementId()
-        var actorId = (current && current.actorId) ? current.actorId : ""
-        var desc = (current && current.description) ? current.description : ""
-        transactionController.updateTransaction(current.id,
+        const sid = root.effectiveStatementId()
+        const actorId = (root.current && root.current.actorId) ? root.current.actorId : ""
+        const desc = (root.current && root.current.description) ? root.current.description : ""
+        root.transactionController.updateTransaction(root.current.id,
                                                nameField.text,
                                                bookingDateField.text,
                                                amt,
@@ -110,19 +113,19 @@ Item {
                                                statusCombo.currentIndex,
                                                actorId,
                                                allocCheck.checked,
-                                               selectedPropertyIds)
+                                                root.selectedPropertyIds)
     }
 
     property var selectedPropertyIds: []
 
-    Connections { target: current; function onChanged() { syncFields() } }
+    Connections { target: root.current; function onChanged() { root.syncFields() } }
 
     Connections {
-        target: session
+        target: root.session
         function onSelectedTransactionIdChanged() {
             Qt.callLater(function() {
-                refreshCurrentSelection()
-                syncFields()
+                root.refreshCurrentSelection()
+                root.syncFields()
             })
         }
     }
@@ -139,11 +142,11 @@ Item {
                 id: propertyListView
                 Layout.fillWidth: true
                 Layout.fillHeight: false
-                Layout.preferredHeight: propertyRowsReady ? propertyColumn.implicitHeight : 0
+                Layout.preferredHeight: root.propertyRowsReady ? propertyColumn.implicitHeight : 0
                 interactive: true
                 clip: true
                 contentWidth: width
-                contentHeight: propertyRowsReady ? propertyColumn.implicitHeight : 0
+                contentHeight: root.propertyRowsReady ? propertyColumn.implicitHeight : 0
 
                 Column {
                     id: propertyColumn
@@ -151,39 +154,41 @@ Item {
                     spacing: 2
 
                     Repeater {
-                        model: propertyRowsReady ? propertyRowsSnapshot : []
+                        model: root.propertyRowsReady ? root.propertyRowsSnapshot : []
 
                         delegate: Rectangle {
+                            id: propertyRow
                             width: propertyColumn.width
+                            required property var modelData
                             height: 32
                             radius: 6
-                            color: hasSelectedProperty(modelData.id) ? Theme.selectionHighlight : "transparent"
-                            border.color: Theme.borderSoft
-                            border.width: Theme.borderWidthThin
+                            color: root.hasSelectedProperty(propertyRow.modelData.id) ? root.theme.selectionHighlight : "transparent"
+                            border.color: root.theme.borderSoft
+                            border.width: root.theme.borderWidthThin
 
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: toggleSelectedProperty(modelData.id, !hasSelectedProperty(modelData.id))
+                                onClicked: root.toggleSelectedProperty(propertyRow.modelData.id, !root.hasSelectedProperty(propertyRow.modelData.id))
                             }
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.margins: Theme.spacingSmall
-                                spacing: Theme.spacingSmall
+                                anchors.margins: root.theme.spacingSmall
+                                spacing: root.theme.spacingSmall
 
                                 Rectangle {
                                     Layout.preferredWidth: 16
                                     Layout.preferredHeight: 16
                                     radius: 3
-                                    color: hasSelectedProperty(modelData.id) ? Theme.textPrimary : "transparent"
-                                    border.color: Theme.borderSoft
-                                    border.width: Theme.borderWidthThin
+                                    color: root.hasSelectedProperty(propertyRow.modelData.id) ? root.theme.textPrimary : "transparent"
+                                    border.color: root.theme.borderSoft
+                                    border.width: root.theme.borderWidthThin
                                 }
 
                                 Text {
                                     Layout.fillWidth: true
-                                    text: modelData.name ? modelData.name : ""
-                                    color: Theme.textPrimary
+                                    text: propertyRow.modelData.name ? propertyRow.modelData.name : ""
+                                    color: root.theme.textPrimary
                                     elide: Text.ElideRight
                                 }
                             }
@@ -194,7 +199,7 @@ Item {
 
             Label {
                 Layout.fillWidth: true
-                visible: propertyRowsReady && propertyRowsSnapshot.length === 0
+                visible: root.propertyRowsReady && root.propertyRowsSnapshot.length === 0
                 text: qsTr("No properties available")
             }
         }
@@ -205,14 +210,14 @@ Item {
         anchors.margins: 12
         spacing: 10
 
-        Label { text: (isNew || isEdit) ? qsTr("Transaction") : qsTr("Create Transaction"); font.pointSize: 18 }
+        Label { text: (root.isNew || root.isEdit) ? qsTr("Transaction") : qsTr("Create Transaction"); font.pointSize: 18 }
 
         RowLayout { Layout.fillWidth: true
             Label { text: qsTr("Name"); Layout.preferredWidth: 120 }
             Controls.TextField {
                 id: nameField; Layout.fillWidth: true
                 onActiveFocusChanged: {
-                    if (!activeFocus) persistCurrentTransaction()
+                    if (!activeFocus) root.persistCurrentTransaction()
                 }
                 onTextChanged: {
                 }
@@ -224,7 +229,7 @@ Item {
             Controls.TextField {
                 id: bookingDateField; Layout.fillWidth: true
                 onActiveFocusChanged: {
-                    if (!activeFocus) persistCurrentTransaction()
+                    if (!activeFocus) root.persistCurrentTransaction()
                 }
                 onTextChanged: { /* no automatic persistence */ }
             }
@@ -233,7 +238,7 @@ Item {
             Controls.TextField {
                 id: amountField; Layout.preferredWidth: 160
                 onActiveFocusChanged: {
-                    if (!activeFocus) persistCurrentTransaction()
+                    if (!activeFocus) root.persistCurrentTransaction()
                 }
                 onTextChanged: { /* no automatic persistence */ }
             }
@@ -251,7 +256,7 @@ Item {
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingSmall
+            spacing: root.theme.spacingSmall
 
             RowLayout {
                 Layout.fillWidth: true
@@ -259,18 +264,18 @@ Item {
                 Label {
                     Layout.fillWidth: true
                     text: qsTr("Properties")
-                    font.pointSize: Theme.fontSizeTitle
+                    font.pointSize: root.theme.fontSizeTitle
                 }
 
                 Controls.Button {
-                    text: propertiesExpanded ? qsTr("Hide") : qsTr("Show")
-                    onClicked: togglePropertiesExpanded()
+                    text: root.propertiesExpanded ? qsTr("Hide") : qsTr("Show")
+                    onClicked: root.togglePropertiesExpanded()
                 }
             }
 
             Loader {
                 Layout.fillWidth: true
-                active: propertiesExpanded
+                active: root.propertiesExpanded
                 sourceComponent: propertySelectionComp
             }
         }
@@ -282,7 +287,7 @@ Item {
                 id: allocCheck
                 text: qsTr("Allocatable to tenant")
                 checked: false
-                onClicked: persistCurrentTransaction()
+                onClicked: root.persistCurrentTransaction()
             }
 
             Label { text: qsTr("Status"); Layout.preferredWidth: 80 }
@@ -291,7 +296,7 @@ Item {
                 Layout.fillWidth: true
                 model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
                 currentIndex: 2
-                onActivated: persistCurrentTransaction()
+                onActivated: root.persistCurrentTransaction()
             }
             Item { Layout.fillWidth: true }
         }
@@ -301,20 +306,20 @@ Item {
 
             Controls.Button {
                 text: qsTr("Back")
-                onClicked: { if (session) session.selectedTransactionId = "" }
+                onClicked: { if (root.session) root.session.selectedTransactionId = "" }
             }
 
             Controls.Button {
-                visible: !isEdit
+                visible: !root.isEdit
                 text: qsTr("Create")
-                enabled: nameField.text.length > 0 && ((isEdit && current && current.statementId && current.statementId.length > 0) || (session && session.selectedStatementId && session.selectedStatementId.length > 0))
+                enabled: nameField.text.length > 0 && ((root.isEdit && root.current && root.current.statementId && root.current.statementId.length > 0) || (root.session && root.session.selectedStatementId && root.session.selectedStatementId.length > 0))
                 onClicked: {
-                    if (!transactionController) return
-                    var amt = parseFloat(amountField.text)
+                    if (!root.transactionController) return
+                    let amt = parseFloat(amountField.text)
                     if (isNaN(amt)) amt = 0.0
 
-                    var sid = effectiveStatementId()
-                    var id = transactionController.addTransaction(nameField.text,
+                    const sid = root.effectiveStatementId()
+                    const id = root.transactionController.addTransaction(nameField.text,
                                                                   bookingDateField.text,
                                                                   amt,
                                                                   "",
@@ -322,22 +327,22 @@ Item {
                                                                   statusCombo.currentIndex,
                                                                   "",
                                                                   allocCheck.checked,
-                                                                  selectedPropertyIds)
+                                                                  root.selectedPropertyIds)
                     if (id && id.length > 0) {
-                        clearFields()
-                        if (session) session.selectedTransactionId = id
+                        root.clearFields()
+                        if (root.session) root.session.selectedTransactionId = id
                     }
                 }
             }
 
             Controls.Button {
-                visible: isEdit
+                visible: root.isEdit
                 text: qsTr("Delete")
                 onClicked: {
-                    if (!transactionController) return
-                    transactionController.deleteTransaction(current.id)
-                    if (session) session.selectedTransactionId = ""
-                    clearFields()
+                    if (!root.transactionController) return
+                    root.transactionController.deleteTransaction(root.current.id)
+                    if (root.session) root.session.selectedTransactionId = ""
+                    root.clearFields()
                 }
             }
 
@@ -347,8 +352,8 @@ Item {
 
     Component.onCompleted: {
         Qt.callLater(function() {
-            refreshCurrentSelection()
-            syncFields()
+            root.refreshCurrentSelection()
+            root.syncFields()
         })
     }
 }

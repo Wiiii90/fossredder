@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+pragma ComponentBehavior: Bound
 
 Popup {
     id: picker
@@ -12,7 +13,8 @@ Popup {
     signal accepted(string path)
     signal rejected()
 
-    property string folder: AppContext.fileSystemController ? AppContext.fileSystemController.appDir() : (Qt.application ? Qt.resolvedUrl(".") : ".")
+    property var fileSystemController: null
+    property string folder: picker.fileSystemController ? picker.fileSystemController.appDir() : (Qt.application ? Qt.resolvedUrl(".") : ".")
     property string selectedFile: ""
 
     ColumnLayout {
@@ -34,8 +36,8 @@ Popup {
                 objectName: "filePickerUpButton"
                 text: qsTr("Up")
                 onClicked: {
-                    var p = folderField.text
-                    var idx = p.lastIndexOf(/[\\/]/)
+                    let p = folderField.text
+                    const idx = p.lastIndexOf(/[\\/]/)
                     if (idx > 0) {
                         p = p.substring(0, idx)
                         folderField.text = p
@@ -49,20 +51,21 @@ Popup {
             objectName: "filePickerEntryList"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: AppContext.fileSystemController ? AppContext.fileSystemController.listDir(picker.folder) : []
-            delegate: Item {
+            model: picker.fileSystemController ? picker.fileSystemController.listDir(picker.folder) : []
+            delegate: Item { id: fileRow
+                required property var modelData
                 width: parent.width
                 height: 32
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
-                    Text { text: modelData.isDir ? "📁 " + modelData.name : modelData.name; elide: Text.ElideRight; Layout.fillWidth: true }
+                    Text { text: fileRow.modelData.isDir ? "📁 " + fileRow.modelData.name : fileRow.modelData.name; elide: Text.ElideRight; Layout.fillWidth: true }
                     MouseArea {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         onClicked: {
-                            if (modelData.isDir) { picker.folder = modelData.path; folderField.text = modelData.path }
-                            else { picker.selectedFile = modelData.path }
+                            if (fileRow.modelData.isDir) { picker.folder = fileRow.modelData.path; folderField.text = fileRow.modelData.path }
+                            else { picker.selectedFile = fileRow.modelData.path }
                         }
                     }
                 }
@@ -76,7 +79,7 @@ Popup {
                 objectName: "filePickerSelectButton"
                 text: qsTr("Select")
                 onClicked: {
-                    var out = nameField.text.trim()
+                    let out = nameField.text.trim()
                     if (out.length === 0) out = picker.selectedFile
                     else {
                         if (picker.folder.length > 0 && !picker.folder.endsWith("/") && !picker.folder.endsWith("\\")) out = picker.folder + "/" + out

@@ -1,19 +1,20 @@
 ﻿import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 import FossRedder.Components 1.0 as Components
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    readonly property NavigationState navigation: AppContext.navigation
+    required property var appContext
+    required property var theme
+    readonly property var navigation: root.appContext ? root.appContext.navigation : null
     
 
     ColumnLayout {
         id: col
         anchors.fill: parent
-        anchors.margins: Theme.settings.margin
-        spacing: Theme.spacingSmall
+        anchors.margins: root.theme.settings.margin
+        spacing: root.theme.spacingSmall
 
         
 
@@ -28,24 +29,27 @@ Item {
                 { id: "export", cat: 3, text: qsTr("Export") },
                 { id: "advanced", cat: 4, text: qsTr("Advanced") }
             ]
-            spacing: Theme.settings.sidebarSpacing
+            spacing: root.theme.settings.sidebarSpacing
 
             delegate: Components.ListRow {
+                required property int index
+                required property var modelData
+                theme: root.theme
                 width: list.width
                 text: modelData.text
                 subtitle: ""
-                selected: navigation ? (navigation.settingsCategory === modelData.cat) : (list.currentIndex === index)
+                selected: root.navigation ? (root.navigation.settingsCategoryValue === modelData.cat) : (list.currentIndex === index)
                 onActivated: {
                     list.currentIndex = index
-                    if (navigation) navigation.settingsCategory = modelData.cat
+                    if (root.navigation) root.navigation.setSettingsCategoryValue(modelData.cat)
                 }
             }
         }
 
     Component.onCompleted: {
-        if (navigation) {
-            for (var i = 0; i < list.count; ++i) {
-                if (list.model[i] && list.model[i].cat === navigation.settingsCategory) { list.currentIndex = i; return }
+        if (root.navigation) {
+            for (let i = 0; i < list.count; ++i) {
+                if (list.model[i] && list.model[i].cat === root.navigation.settingsCategoryValue) { list.currentIndex = i; return }
             }
             list.currentIndex = 0
         } else list.currentIndex = 0

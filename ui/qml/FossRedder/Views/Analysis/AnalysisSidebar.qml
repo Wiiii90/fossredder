@@ -1,12 +1,12 @@
 import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.3
-import FossRedder 1.0
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
+    required property var appContext
+    required property var theme
     width: 240
-    readonly property StateFacade session: AppContext.session
+    readonly property var session: root.appContext ? root.appContext.session : null
 
     Column {
         anchors.fill: parent
@@ -23,42 +23,43 @@ Item {
             Column {
                 id: analysisColumn
                 width: parent.width
-                spacing: Theme.spacingSmall
+                spacing: root.theme.spacingSmall
 
                 Repeater {
-                    model: session ? session.analysisRows() : []
+                    model: root.session ? root.session.analysisRows() : []
 
-                    delegate: Rectangle {
+                    delegate: Rectangle { id: analysisRow
+                        required property var modelData
                         width: analysisColumn.width
                         height: 44
                         radius: 6
-                        color: session && modelData.id === session.selectedAnalysisId ? Theme.selectionHighlight : "transparent"
-                        border.color: Theme.borderSoft
-                        border.width: Theme.borderWidthThin
+                        color: root.session && analysisRow.modelData.id === root.session.selectedAnalysisId ? root.theme.selectionHighlight : "transparent"
+                        border.color: root.theme.borderSoft
+                        border.width: root.theme.borderWidthThin
 
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                if (session) session.selectedAnalysisId = modelData.id
+                                if (root.session) root.session.selectedAnalysisId = analysisRow.modelData.id
                             }
                         }
 
                         Column {
                             anchors.fill: parent
-                            anchors.margins: Theme.spacingSmall
+                            anchors.margins: root.theme.spacingSmall
                             spacing: 2
 
                             Text {
                                 width: parent.width
-                                text: modelData.name ? modelData.name : ""
-                                color: Theme.textPrimary
+                                text: analysisRow.modelData.name ? analysisRow.modelData.name : ""
+                                color: root.theme.textPrimary
                                 elide: Text.ElideRight
                             }
 
                             Text {
                                 width: parent.width
-                                text: modelData.type ? modelData.type : ""
-                                color: Theme.textMuted
+                                text: analysisRow.modelData.type ? analysisRow.modelData.type : ""
+                                color: root.theme.textMuted
                                 elide: Text.ElideRight
                                 visible: text.length > 0
                             }

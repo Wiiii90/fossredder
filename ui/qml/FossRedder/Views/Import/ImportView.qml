@@ -1,15 +1,17 @@
 ﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
+import FossRedder.Constants 1.0 as Constants
 import FossRedder.Controls 1.0 as Controls
-import "../../Constants/FileFormats.js" as FileFormats
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    readonly property ImportController importController: AppContext.importController
-    readonly property Actions actions: AppContext.actions
-    readonly property StatusState status: AppContext.status
+    required property var appContext
+    required property var theme
+    readonly property var importController: root.appContext ? root.appContext.importController : null
+    readonly property var actions: root.appContext ? root.appContext.actions : null
+    readonly property var status: root.appContext ? root.appContext.status : null
     Component.onCompleted: {
         Qt.callLater(function() {
             root.importPageActivated = true
@@ -23,9 +25,9 @@ Item {
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
-    anchors.margins: Theme.spacingMedium
+    anchors.margins: root.theme.spacingMedium
 
-    property bool hasImportController: importController !== null
+    property bool hasImportController: root.importController !== null
 
     property bool showAdvanced: false
     property bool showPoppler: false
@@ -35,34 +37,40 @@ Item {
     property var pendingFiles: []
     property bool importPageActivated: false
 
+    function manualPathText() {
+        return contentStack.manualPathField ? contentStack.manualPathField.text : ""
+    }
+
     function updateContentIndex() {
-        contentStack.currentIndex = (hasImportController && importController && importController.draft) ? 1 : 0
+        contentStack.currentIndex = (root.hasImportController && root.importController && root.importController.draft) ? 1 : 0
     }
 
     function commitImportFiles(paths, updatePathField) {
         if (!paths || paths.length === 0) return
 
-        var pdfs = []
-        for (var i = 0; i < paths.length; ++i) {
-            var p = String(paths[i])
+        const pdfs = []
+        for (let i = 0; i < paths.length; ++i) {
+            const p = String(paths[i])
             if (!p || p.length === 0) continue
-            if (FileFormats.isSupportedImportPath(p)) pdfs.push(p)
+            if (Constants.FileFormats.isSupportedImportPath(p)) pdfs.push(p)
         }
         if (pdfs.length === 0) return
 
-        if (updatePathField && manualPath) manualPath.text = pdfs[0]
-        if (hasImportController) importController.addFiles(pdfs)
-        pendingFiles = []
+        if (updatePathField && contentStack.manualPathField) contentStack.manualPathField.text = pdfs[0]
+        if (root.hasImportController) root.importController.addFiles(pdfs)
+        root.pendingFiles = []
     }
 
     function addImportFiles(paths) {
-        commitImportFiles(paths, true)
+        root.commitImportFiles(paths, true)
     }
 
     StackLayout {
         id: contentStack
         anchors.fill: parent
         currentIndex: 0
+
+        property var manualPathField: null
 
         Loader {
             Layout.fillWidth: true
@@ -82,7 +90,7 @@ Item {
     }
 
     Connections {
-        target: hasImportController ? importController : null
+        target: root.hasImportController ? root.importController : null
 
         function onStateChanged() {
             root.updateContentIndex()
@@ -98,7 +106,7 @@ Item {
 
             ColumnLayout {
                 anchors.fill: parent
-                spacing: Theme.spacing
+                spacing: root.theme.spacing
 
                 Flickable {
                     id: scroll
@@ -115,28 +123,28 @@ Item {
                     ColumnLayout {
                         id: content
                         width: scroll.width
-                        spacing: Theme.spacing
+                        spacing: root.theme.spacing
 
                         Controls.Panel {
                             Layout.fillWidth: true
-                            contentSpacing: Theme.spacingSmall
+                            contentSpacing: root.theme.spacingSmall
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                Label { text: qsTr("Source"); Layout.preferredWidth: Theme.formLabelWidth }
+                                Label { text: qsTr("Source"); Layout.preferredWidth: root.theme.formLabelWidth }
                                 Controls.ComboBox {
                                     id: sourceKind
-                                    model: FileFormats.supportedImportSourceLabels()
+                                    model: Constants.FileFormats.supportedImportSourceLabels()
                                     currentIndex: 0
                                 }
                             }
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                Label { text: qsTr("Strategy"); Layout.preferredWidth: Theme.formLabelWidth }
+                                Label { text: qsTr("Strategy"); Layout.preferredWidth: root.theme.formLabelWidth }
                                 Controls.ComboBox {
                                     id: strategy
-                                    model: FileFormats.supportedStatementStrategyLabels()
+                                    model: Constants.FileFormats.supportedStatementStrategyLabels()
                                     currentIndex: 0
                                 }
                             }
@@ -150,7 +158,7 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 visible: root.showAdvanced
-                                spacing: Theme.spacingSmall
+                                spacing: root.theme.spacingSmall
 
                                 Controls.CheckBox {
                                     text: qsTr("Poppler")
@@ -160,8 +168,8 @@ Item {
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     visible: root.showPoppler
-                                    Layout.leftMargin: Theme.spacing
-                                    Label { text: root.automaticSettingsText; color: Theme.textMuted; wrapMode: Text.WordWrap }
+                                    Layout.leftMargin: root.theme.spacing
+                                    Label { text: root.automaticSettingsText; color: root.theme.textMuted; wrapMode: Text.WordWrap }
                                 }
 
                                 Controls.CheckBox {
@@ -172,8 +180,8 @@ Item {
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     visible: root.showTesseract
-                                    Layout.leftMargin: Theme.spacing
-                                    Label { text: root.automaticSettingsText; color: Theme.textMuted; wrapMode: Text.WordWrap }
+                                    Layout.leftMargin: root.theme.spacing
+                                    Label { text: root.automaticSettingsText; color: root.theme.textMuted; wrapMode: Text.WordWrap }
                                 }
 
                                 Controls.CheckBox {
@@ -184,15 +192,15 @@ Item {
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     visible: root.showParser
-                                    Layout.leftMargin: Theme.spacing
-                                    Label { text: root.automaticSettingsText; color: Theme.textMuted; wrapMode: Text.WordWrap }
+                                    Layout.leftMargin: root.theme.spacing
+                                    Label { text: root.automaticSettingsText; color: root.theme.textMuted; wrapMode: Text.WordWrap }
                                 }
                             }
                         }
 
                         Controls.Panel {
                             Layout.fillWidth: true
-                            contentSpacing: Theme.spacingSmall
+                            contentSpacing: root.theme.spacingSmall
 
                             RowLayout {
                                 Layout.fillWidth: true
@@ -201,48 +209,49 @@ Item {
                                     id: manualPath
                                     Layout.fillWidth: true
                                     placeholderText: qsTr("Enter file path...")
-                                    enabled: root.hasImportController && !importController.isRunning
+                                    enabled: root.hasImportController && !root.importController.isRunning
+                                    Component.onCompleted: contentStack.manualPathField = manualPath
                                     onTextEdited: { root.pendingFiles = [] }
                                 }
 
                                 Controls.Button {
                                     text: qsTr("Add")
-                                    enabled: root.hasImportController && !importController.isRunning && manualPath.text && manualPath.text.trim().length > 0
-                                    fillColor: Theme.surface
-                                    textColor: Theme.textPrimary
+                                    enabled: root.hasImportController && !root.importController.isRunning && root.manualPathText() && root.manualPathText().trim().length > 0
+                                    fillColor: root.theme.surface
+                                    textColor: root.theme.textPrimary
                                     onClicked: {
-                                        var files = []
+                                        let files = []
                                         if (root.pendingFiles && root.pendingFiles.length > 0) files = root.pendingFiles
-                                        else files = [manualPath.text]
+                                        else files = [root.manualPathText()]
                                         root.commitImportFiles(files, false)
-                                        manualPath.text = ""
+                                        if (contentStack.manualPathField) contentStack.manualPathField.text = ""
                                         root.pendingFiles = []
                                     }
                                 }
 
                                 Controls.Button {
                                     text: qsTr("Browse...")
-                                    enabled: root.hasImportController && !importController.isRunning
-                                    fillColor: Theme.surface
-                                    textColor: Theme.textPrimary
-                                    onClicked: { if (actions) actions.browseImportPdf() }
+                                    enabled: root.hasImportController && !root.importController.isRunning
+                                    fillColor: root.theme.surface
+                                    textColor: root.theme.textPrimary
+                                    onClicked: { if (root.actions) root.actions.browseImportPdf() }
                                 }
                             }
 
                             Controls.DropZone {
                                 Layout.fillWidth: true
-                                enabled: root.hasImportController && !importController.isRunning
+                                enabled: root.hasImportController && !root.importController.isRunning
                                 title: qsTr("Drop PDFs here")
                                 subtitle: ""
                                 allowBrowse: false
                                 clickToBrowse: true
-                                queuedCount: root.hasImportController ? importController.queuedCount : 0
-                                files: root.hasImportController ? (importController.selectedFile && importController.selectedFile.length > 0 ? [importController.selectedFile].concat(importController.queuedFiles) : importController.queuedFiles) : []
-                                onBrowseRequested: { if (actions) actions.browseImportPdf() }
+                                queuedCount: root.hasImportController ? root.importController.queuedCount : 0
+                                files: root.hasImportController ? (root.importController.selectedFile && root.importController.selectedFile.length > 0 ? [root.importController.selectedFile].concat(root.importController.queuedFiles) : root.importController.queuedFiles) : []
+                                onBrowseRequested: { if (root.actions) root.actions.browseImportPdf() }
                             }
 
                             Connections {
-                                target: actions
+                                target: root.actions
                                 function onImportFileSelected(path) {
                                     if (!path) return
                                     manualPath.text = path
@@ -264,47 +273,47 @@ Item {
                             }
 
                             Connections {
-                                target: root.hasImportController ? importController : null
+                                target: root.hasImportController ? root.importController : null
                                 function onImportCanceled() {
-                    if (status) status.text = root.importCanceledStatusText
+                                    if (root.status) root.status.text = root.importCanceledStatusText
                                 }
                                 function onImportFinished() {
-                    if (status) status.text = root.importFinishedStatusText
+                                    if (root.status) root.status.text = root.importFinishedStatusText
                                 }
                                 function onImportFailed(error) {
-                                    if (status)
-                                        status.text = (error && error.length > 0) ? error : root.importFailedStatusText
+                                    if (root.status)
+                                        root.status.text = (error && error.length > 0) ? error : root.importFailedStatusText
                                 }
                             }
                         }
 
                         Controls.Panel {
                             Layout.fillWidth: true
-                            contentSpacing: Theme.spacingSmall
+                            contentSpacing: root.theme.spacingSmall
 
                             Controls.ProgressBar {
                                 Layout.fillWidth: true
-                                visible: root.hasImportController && (importController.isRunning || importController.progress > 0)
-                                value: root.hasImportController ? importController.progress : 0
+                                visible: root.hasImportController && (root.importController.isRunning || root.importController.progress > 0)
+                                value: root.hasImportController ? root.importController.progress : 0
                             }
 
                             Label {
                                 Layout.fillWidth: true
-                                text: root.hasImportController ? (importController.error && importController.error.length > 0 ? importController.error : importController.phase) : ""
-                                color: root.hasImportController && importController.error && importController.error.length > 0 ? Theme.danger : Theme.textPrimary
+                                text: root.hasImportController ? (root.importController.error && root.importController.error.length > 0 ? root.importController.error : root.importController.phase) : ""
+                                color: root.hasImportController && root.importController.error && root.importController.error.length > 0 ? root.theme.danger : root.theme.textPrimary
                                 wrapMode: Text.WordWrap
                             }
 
                             Label {
                                 Layout.fillWidth: true
-                                visible: root.hasImportController ? (importController.isRunning && importController.pageCount > 0) : false
-                                text: root.hasImportController ? qsTr("Page %1/%2").arg(importController.currentPage).arg(importController.pageCount) : ""
-                                color: Theme.textMuted
+                                visible: root.hasImportController ? (root.importController.isRunning && root.importController.pageCount > 0) : false
+                                text: root.hasImportController ? qsTr("Page %1/%2").arg(root.importController.currentPage).arg(root.importController.pageCount) : ""
+                                color: root.theme.textMuted
                                 wrapMode: Text.WordWrap
                             }
                         }
 
-                        Item { Layout.preferredHeight: Theme.spacingLarge }
+                        Item { Layout.preferredHeight: root.theme.spacingLarge }
                     }
                 }
 
@@ -314,45 +323,46 @@ Item {
 
                     Controls.Button {
                         text: qsTr("Cancel")
-                        visible: root.hasImportController && importController.isRunning
-                        enabled: root.hasImportController && importController.isRunning
-                        fillColor: Theme.surface
-                        textColor: Theme.textPrimary
-                        onClicked: if (root.hasImportController) importController.cancelImport()
+                        visible: root.hasImportController && root.importController.isRunning
+                        enabled: root.hasImportController && root.importController.isRunning
+                        fillColor: root.theme.surface
+                        textColor: root.theme.textPrimary
+                        onClicked: if (root.hasImportController) root.importController.cancelImport()
                     }
 
                     Controls.Button {
                         text: qsTr("Cancel all")
-                        visible: root.hasImportController && importController.isRunning && importController.queuedCount > 0
-                        enabled: visible
-                        fillColor: Theme.surface
-                        textColor: Theme.textPrimary
-                        onClicked: if (root.hasImportController) importController.cancelAllImports()
+                        visible: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
+                        enabled: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
+                        fillColor: root.theme.surface
+                        textColor: root.theme.textPrimary
+                        onClicked: if (root.hasImportController) root.importController.cancelAllImports()
                     }
 
                     Item { Layout.fillWidth: true }
 
                     Controls.Button {
                         text: qsTr("Reset")
-                        visible: root.hasImportController && !importController.isRunning
-                        enabled: root.hasImportController && !importController.isRunning
-                        fillColor: Theme.surface
-                        textColor: Theme.textPrimary
-                        onClicked: { if (root.hasImportController) importController.resetStatus() }
+                        visible: root.hasImportController && !root.importController.isRunning
+                        enabled: root.hasImportController && !root.importController.isRunning
+                        fillColor: root.theme.surface
+                        textColor: root.theme.textPrimary
+                        onClicked: { if (root.hasImportController) root.importController.resetStatus() }
                     }
 
                     Controls.Button {
                         text: qsTr("Start")
-                        visible: root.hasImportController && !importController.isRunning
-                        enabled: root.hasImportController && !importController.isRunning && ((importController.selectedFile && importController.selectedFile.length > 0) || importController.queuedCount > 0)
-                        onClicked: { if (root.hasImportController) importController.startStatementImport() }
+                        visible: root.hasImportController && !root.importController.isRunning
+                        enabled: root.hasImportController && !root.importController.isRunning && ((root.importController.selectedFile && root.importController.selectedFile.length > 0) || root.importController.queuedCount > 0)
+                        onClicked: { if (root.hasImportController) root.importController.startStatementImport() }
                     }
 
                     BusyIndicator {
-                        running: root.hasImportController && importController.isRunning
-                        visible: running
-                        width: Theme.busyIndicatorSize
-                        height: Theme.busyIndicatorSize
+                        id: importBusy
+                        running: root.hasImportController && root.importController.isRunning
+                        visible: importBusy.running
+                        width: root.theme.busyIndicatorSize
+                        height: root.theme.busyIndicatorSize
                     }
                 }
             }
@@ -365,13 +375,15 @@ Item {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Theme.spacingSmall
+            spacing: root.theme.spacingSmall
 
             StatementDraftView {
                 id: stmtView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                draft: (root.hasImportController ? importController.draft : null)
+                appContext: root.appContext
+                theme: root.theme
+                draft: (root.hasImportController ? root.importController.draft : null)
             }
 
             RowLayout {
@@ -382,7 +394,7 @@ Item {
                     enabled: stmtView.draft && stmtView.draft.currentIndex > 0
                     onClicked: {
                         if (stmtView.draft) stmtView.draft.prev()
-                        stmtView.forceSync && stmtView.forceSync()
+                        if (stmtView.forceSync) stmtView.forceSync()
                     }
                 }
 
@@ -391,7 +403,7 @@ Item {
                     enabled: stmtView.draft && (stmtView.draft.currentIndex < stmtView.draft.count - 1)
                     onClicked: {
                         if (stmtView.draft) stmtView.draft.next()
-                        stmtView.forceSync && stmtView.forceSync()
+                        if (stmtView.forceSync) stmtView.forceSync()
                     }
                 }
 

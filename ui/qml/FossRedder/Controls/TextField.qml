@@ -8,7 +8,6 @@ TextField {
     Layout.fillWidth: true
     font.family: Theme.fontFamily
     font.pointSize: Theme.fontSize
-    Accessible.ignored: AppContext.isDebugBuild
 
     background: Rectangle {
         color: Theme.surface

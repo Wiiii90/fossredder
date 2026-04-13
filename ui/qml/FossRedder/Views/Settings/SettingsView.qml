@@ -1,53 +1,69 @@
 ﻿import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 import FossRedder.Views 1.0 as Views
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
+    required property var appContext
+    required property var theme
+    readonly property var navigation: root.appContext ? root.appContext.navigation : null
+    readonly property Component generalPageComponent: generalComp
+    readonly property Component appearancePageComponent: appearanceComp
+    readonly property Component importPageComponent: importComp
+    readonly property Component exportPageComponent: exportComp
+    readonly property Component advancedPageComponent: advancedComp
+
+    function componentForCategory(category) {
+        switch (category) {
+        case 1:
+            return root.appearancePageComponent
+        case 2:
+            return root.importPageComponent
+        case 3:
+            return root.exportPageComponent
+        case 4:
+            return root.advancedPageComponent
+        default:
+            return root.generalPageComponent
+        }
+    }
+
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.pageMargin
-        spacing: Theme.settings.spacing
+        anchors.margins: root.theme.pageMargin
+        spacing: root.theme.settings.spacing
 
         Loader {
             id: settingsLoader
             Layout.fillWidth: true
             Layout.fillHeight: true
-            sourceComponent: generalComp
+            sourceComponent: root.componentForCategory(root.navigation ? root.navigation.settingsCategoryValue : 0)
         }
 
-        Component { id: generalComp; Views.SettingsGeneral { } }
-        Component { id: appearanceComp; Views.SettingsAppearance { } }
-        Component { id: importComp; Views.SettingsImport { } }
-        Component { id: exportComp; Views.SettingsExport { } }
-        Component { id: advancedComp; Views.SettingsAdvanced { } }
+        Component { id: generalComp; Views.SettingsGeneral { appContext: root.appContext; theme: root.theme } }
+        Component { id: appearanceComp; Views.SettingsAppearance { theme: root.theme } }
+        Component { id: importComp; Views.SettingsImport { theme: root.theme } }
+        Component { id: exportComp; Views.SettingsExport { theme: root.theme } }
+        Component { id: advancedComp; Views.SettingsAdvanced { appContext: root.appContext; theme: root.theme } }
 
         Connections {
-            target: AppContext.navigation
+            target: root.navigation
             function onSettingsCategoryChanged() {
-                if (!settingsLoader || !AppContext.navigation) return
-                var c = AppContext.navigation.settingsCategory
-                switch (c) {
-                case 0: settingsLoader.sourceComponent = generalComp; break
-                case 1: settingsLoader.sourceComponent = appearanceComp; break
-                case 2: settingsLoader.sourceComponent = importComp; break
-                case 3: settingsLoader.sourceComponent = exportComp; break
-                case 4: settingsLoader.sourceComponent = advancedComp; break
-                default: settingsLoader.sourceComponent = generalComp; break
-                }
+                if (!settingsLoader || !root.navigation) return
+                settingsLoader.sourceComponent = root.componentForCategory(root.navigation.settingsCategoryValue)
             }
         }
 
         Component.onCompleted: {
-            if (AppContext.navigation) {
-                AppContext.navigation.settingsCategory = AppContext.navigation.settingsCategory
+            if (root.navigation) {
+                root.navigation.setSettingsCategoryValue(root.navigation.settingsCategoryValue)
             }
+            settingsLoader.sourceComponent = root.componentForCategory(root.navigation ? root.navigation.settingsCategoryValue : 0)
         }
     }
 }

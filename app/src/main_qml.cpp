@@ -5,6 +5,7 @@
 
 #ifdef USE_QML
 #include "MainWindow.h"
+#include "ui/bootstrap/AppContext.h"
 #include "api/opencv/IOpenCvAdapter.h"
 #include "api/opencv/IOpenCvService.h"
 #include "api/poppler/IPopplerAdapter.h"
@@ -146,6 +147,8 @@ UiControllers setupUiControllers(
   ui.storage = new ui::StorageController(&appStateFacade, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kStorageController,
                           ui.storage);
+  if (auto *appContext = w.appContext())
+    appContext->setStorageController(ui.storage);
 
   const auto exportSnapshotProvider = [&appStateFacade]() {
     return ui::exporting::createSnapshot(appStateFacade.state());
@@ -163,20 +166,36 @@ UiControllers setupUiControllers(
       &appStateFacade, exportSnapshotProvider, ui.analysisService, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kAnnualController,
                           ui.annual);
+  if (auto *appContext = w.appContext())
+    appContext->setAnnualController(ui.annual);
   w.setQmlContextProperty(ui::qml::contracts::context::kActorController,
                           ui.actor);
+  if (auto *appContext = w.appContext())
+    appContext->setActorController(ui.actor);
   w.setQmlContextProperty(ui::qml::contracts::context::kPropertyController,
                           ui.property);
+  if (auto *appContext = w.appContext())
+    appContext->setPropertyController(ui.property);
   w.setQmlContextProperty(ui::qml::contracts::context::kContractController,
                           ui.contract);
+  if (auto *appContext = w.appContext())
+    appContext->setContractController(ui.contract);
   w.setQmlContextProperty(ui::qml::contracts::context::kStatementController,
                           ui.statement);
+  if (auto *appContext = w.appContext())
+    appContext->setStatementController(ui.statement);
   w.setQmlContextProperty(ui::qml::contracts::context::kTransactionController,
                           ui.transaction);
+  if (auto *appContext = w.appContext())
+    appContext->setTransactionController(ui.transaction);
   w.setQmlContextProperty(ui::qml::contracts::context::kDraftController,
                           ui.draft);
+  if (auto *appContext = w.appContext())
+    appContext->setDraftController(ui.draft);
   w.setQmlContextProperty(ui::qml::contracts::context::kAnalysisController,
                           ui.analysisController);
+  if (auto *appContext = w.appContext())
+    appContext->setAnalysisController(ui.analysisController);
 
   auto exportRunner =
       std::make_shared<ui::exporting::ExportRunner>(executeExport);
@@ -184,10 +203,14 @@ UiControllers setupUiControllers(
       new ui::ExportController(exportSnapshotProvider, exportRunner, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kExportController,
                           ui.exportCtrl);
+  if (auto *appContext = w.appContext())
+    appContext->setExportController(ui.exportCtrl);
 
   ui.language = new ui::LanguageController(&app, w.qmlEngine(), &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kLanguageController,
                           ui.language);
+  if (auto *appContext = w.appContext())
+    appContext->setLanguageController(ui.language);
 
   auto importJobSystemFactory = [dbg = std::make_shared<FileDebugger>(
                                    "", std::string(debug::defaults::kImportProcessName)),
@@ -231,6 +254,8 @@ UiControllers setupUiControllers(
   ui.import->setStateSnapshotProvider(importSnapshotProvider);
   w.setQmlContextProperty(ui::qml::contracts::context::kImportController,
                           ui.import);
+  if (auto *appContext = w.appContext())
+    appContext->setImportController(ui.import);
 
   w.addImageProvider(ui::qml::contracts::providers::kImportProof,
                      ui::importing::createDraftProofProvider(ui.import));

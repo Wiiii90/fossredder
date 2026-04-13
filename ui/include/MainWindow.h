@@ -34,8 +34,9 @@ public:
     void setQmlContextProperty(const QString& name, QObject* value);
     void setQmlContextValue(const QString& name, const QVariant& value);
     void addImageProvider(const QString& id, QQmlImageProviderBase* provider);
-    void loadQml(const QUrl& source = QUrl(ui::config::kMainQmlSource));
+    void loadQml(const QUrl& source = QUrl());
     QQmlEngine* qmlEngine() const noexcept;
+    ui::bootstrap::AppContext* appContext() const noexcept { return appContext_; }
     ui::StateFacade* dataSession() const noexcept { return dataSession_; }
 
 public slots:

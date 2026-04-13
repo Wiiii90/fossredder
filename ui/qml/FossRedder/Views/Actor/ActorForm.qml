@@ -1,17 +1,19 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
+    required property var appContext
+    required property var theme
 
-    readonly property StateFacade session: AppContext.session
-    readonly property ActorController actorController: AppContext.actorController
+    readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var actorController: root.appContext ? root.appContext.actorController : null
 
-    property var current: session ? session.selectedActor : null
-    property bool isEdit: current && current.id && String(current.id).length > 0
+    readonly property var current: root.session ? root.session.selectedActor : null
+    property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
 
     property var aliases: []
 
@@ -19,56 +21,56 @@ Item {
         nameField.text = ""
         typeField.text = ""
         descField.text = ""
-        aliases = []
+        root.aliases = []
         aliasesField.text = ""
     }
 
     function syncFields() {
-        if (!isEdit) {
-            clearFields()
+        if (!root.isEdit) {
+            root.clearFields()
             return
         }
-        nameField.text = current.name || ""
-        typeField.text = current.type || ""
-        descField.text = current.description || ""
+        nameField.text = root.current.name || ""
+        typeField.text = root.current.type || ""
+        descField.text = root.current.description || ""
 
-        aliases = current.aliases ? current.aliases : []
-        aliasesField.text = aliases.join("\n")
+        root.aliases = root.current.aliases ? root.current.aliases : []
+        aliasesField.text = root.aliases.join("\n")
     }
 
     function submitActor() {
-        if (!actorController) return
+        if (!root.actorController) return
 
-        var aliasValues = []
+        const aliasValues = []
         if (aliasesField.text && aliasesField.text.length > 0) {
-            var raw = aliasesField.text.split(/\r?\n/)
-            for (var i = 0; i < raw.length; ++i) {
-                var value = String(raw[i]).trim()
+            const raw = aliasesField.text.split(/\r?\n/)
+            for (let i = 0; i < raw.length; ++i) {
+                const value = String(raw[i]).trim()
                 if (value.length > 0 && aliasValues.indexOf(value) === -1) aliasValues.push(value)
             }
         }
 
-        if (isEdit) {
-            actorController.updateActor(current.id, nameField.text, typeField.text, descField.text, aliasValues)
+        if (root.isEdit) {
+            root.actorController.updateActor(root.current.id, nameField.text, typeField.text, descField.text, aliasValues)
             return
         }
 
-        var id = actorController.addActor(nameField.text, typeField.text, descField.text, aliasValues)
-        clearFields()
-        if (session && id && id.length > 0) session.selectedActorId = id
+        const id = root.actorController.addActor(nameField.text, typeField.text, descField.text, aliasValues)
+        root.clearFields()
+        if (root.session && id && id.length > 0) root.session.selectedActorId = id
     }
 
-    onCurrentChanged: syncFields()
-    onIsEditChanged: syncFields()
+    onCurrentChanged: root.syncFields()
+    onIsEditChanged: root.syncFields()
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.pageMargin
-        spacing: Theme.spacingMedium
+        anchors.margins: root.theme.pageMargin
+        spacing: root.theme.spacingMedium
 
         Label {
-            text: isEdit ? qsTr("Edit Actor") : qsTr("Create Actor")
-            font.pointSize: Theme.fontSizeTitle + Theme.margins
+            text: root.isEdit ? qsTr("Edit Actor") : qsTr("Create Actor")
+            font.pointSize: root.theme.fontSizeTitle + root.theme.margins
         }
 
         Controls.TextField {
@@ -90,7 +92,7 @@ Item {
             objectName: "actorDescriptionField"
             placeholderText: qsTr("Description")
             Layout.fillWidth: true
-            Layout.preferredHeight: Theme.chartLegendHeight
+            Layout.preferredHeight: root.theme.chartLegendHeight
             wrapMode: TextArea.Wrap
         }
 
@@ -101,8 +103,8 @@ Item {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Theme.spacingMedium
-                spacing: Theme.spacingSmall
+                anchors.margins: root.theme.spacingMedium
+                spacing: root.theme.spacingSmall
 
                 Label {
                     text: qsTr("One alias per line. Used for auto-matching during import.")
@@ -126,28 +128,28 @@ Item {
 
             Controls.Button {
                 objectName: "actorNewButton"
-                visible: isEdit
+                visible: root.isEdit
                 text: qsTr("New")
                 onClicked: {
-                    if (session) session.selectedActorId = ""
+                    if (root.session) root.session.selectedActorId = ""
                 }
             }
 
             Controls.Button {
                 objectName: "actorSubmitButton"
-                text: isEdit ? qsTr("Update") : qsTr("Add")
+                text: root.isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: nameField.text.length > 0
-                onClicked: submitActor()
+                onClicked: root.submitActor()
             }
 
             Controls.Button {
                 objectName: "actorDeleteButton"
-                visible: isEdit
+                visible: root.isEdit
                 text: qsTr("Delete")
                 onClicked: {
-                    if (!actorController) return
-                    actorController.deleteActor(current.id)
-                    if (session) session.selectedActorId = ""
+                    if (!root.actorController) return
+                    root.actorController.deleteActor(root.current.id)
+                    if (root.session) root.session.selectedActorId = ""
                 }
             }
 
@@ -156,6 +158,6 @@ Item {
     }
 
     Component.onCompleted: {
-        syncFields()
+        root.syncFields()
     }
 }

@@ -1,10 +1,11 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
-import "../../Constants/FileFormats.js" as FileFormats
+import FossRedder.Constants 1.0 as Constants
 
 Flickable {
+    id: root
+    required property var theme
     Layout.fillWidth: true
     Layout.fillHeight: true
     contentHeight: column.implicitHeight
@@ -15,19 +16,19 @@ Flickable {
         Layout.fillWidth: true
         Layout.fillHeight: true
         anchors.fill: parent
-        spacing: Theme.settings.spacing
-        anchors.margins: Theme.settings.margin
+        spacing: root.theme.settings.spacing
+        anchors.margins: root.theme.settings.margin
 
         GroupBox {
             Layout.fillWidth: true
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.settings.spacing
+                spacing: root.theme.settings.spacing
 
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: qsTr("Supported source format"); Layout.fillWidth: true }
-                    Label { text: FileFormats.importSources.pdf.label; color: Theme.textPrimary }
+                    Label { text: Constants.FileFormats.importSources.pdf.label; color: root.theme.textPrimary }
                 }
 
                 RowLayout {
@@ -36,7 +37,7 @@ Flickable {
                     Label {
                         Layout.fillWidth: true
                         text: qsTr("PDF import is currently configured automatically by the application pipeline.")
-                        color: Theme.textMuted
+                        color: root.theme.textMuted
                         wrapMode: Text.WordWrap
                     }
                 }

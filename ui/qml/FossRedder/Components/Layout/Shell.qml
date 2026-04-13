@@ -1,10 +1,10 @@
 ﻿import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 
 GridLayout {
     id: layoutRoot
+    required property var appContext
+    required property var theme
     anchors.fill: parent
     columns: 1
     columnSpacing: 0
@@ -14,6 +14,10 @@ GridLayout {
         id: appMenu
         Layout.row: 0
         Layout.fillWidth: true
+        navigation: layoutRoot.appContext ? layoutRoot.appContext.navigation : null
+        actions: layoutRoot.appContext ? layoutRoot.appContext.actions : null
+        languageController: layoutRoot.appContext ? layoutRoot.appContext.languageController : null
+        theme: layoutRoot.theme
     }
 
     Toolbar {
@@ -22,6 +26,8 @@ GridLayout {
         Layout.preferredHeight: toolbar.implicitHeight
         Layout.minimumHeight: toolbar.implicitHeight
         Layout.fillWidth: true
+        appContext: layoutRoot.appContext
+        theme: layoutRoot.theme
     }
 
     RowLayout {
@@ -29,29 +35,33 @@ GridLayout {
         Layout.row: 2
         Layout.fillWidth: true
         Layout.fillHeight: true
-        Layout.minimumHeight: Theme.shellMinimumHeight
+        Layout.minimumHeight: layoutRoot.theme.shellMinimumHeight
         spacing: 0
 
         Item {
             id: leftWrapper
-            Layout.preferredWidth: Theme.shellSidebarPreferredWidth
-            Layout.minimumWidth: Theme.shellSidebarMinimumWidth
-            Layout.maximumWidth: Theme.shellSidebarPreferredWidth
+            Layout.preferredWidth: layoutRoot.theme.shellSidebarPreferredWidth
+            Layout.minimumWidth: layoutRoot.theme.shellSidebarMinimumWidth
+            Layout.maximumWidth: layoutRoot.theme.shellSidebarPreferredWidth
             Layout.fillHeight: true
 
             SidebarRouter {
                 anchors.fill: parent
+                appContext: layoutRoot.appContext
+                theme: layoutRoot.theme
             }
         }
 
         Item {
             id: centerWrapper
-            Layout.minimumWidth: Theme.shellContentMinimumWidth
+            Layout.minimumWidth: layoutRoot.theme.shellContentMinimumWidth
             Layout.fillWidth: true
             Layout.fillHeight: true
 
             ContentRouter {
                 anchors.fill: parent
+                appContext: layoutRoot.appContext
+                theme: layoutRoot.theme
             }
         }
     }
@@ -59,8 +69,10 @@ GridLayout {
     StatusBar {
         id: statusBar
         Layout.row: 3
-        Layout.preferredHeight: Theme.statusBarHeight
+        Layout.preferredHeight: layoutRoot.theme.statusBarHeight
         Layout.fillWidth: true
+        appContext: layoutRoot.appContext
+        theme: layoutRoot.theme
     }
 
 }

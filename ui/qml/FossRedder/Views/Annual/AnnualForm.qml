@@ -1,45 +1,48 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 
 Item {
-    readonly property AnnualController annualController: AppContext.annualController
-    readonly property StateFacade session: AppContext.session
-    Accessible.ignored: AppContext.isDebugBuild
+    id: root
+    required property var appContext
+    required property var theme
+    property var stackView
+    readonly property var annualController: root.appContext ? root.appContext.annualController : null
+    readonly property var session: root.appContext ? root.appContext.session : null
+    Accessible.ignored: root.appContext ? root.appContext.isDebugBuild : false
     anchors.fill: parent
 
     function createAnnual() {
-        if (!annualController) return
+        if (!root.annualController) return
         try {
-            var year = parseInt(yearField.text)
+            const year = parseInt(yearField.text)
             if (isNaN(year)) return
-            if (typeof annualController.addAnnual === 'function') {
-                var id = annualController.addAnnual(year)
-                if (id && id.length > 0) session.selectedAnnualId = id
+            if (typeof root.annualController.addAnnual === 'function') {
+                const id = root.annualController.addAnnual(year)
+                if (id && id.length > 0 && root.session) root.session.selectedAnnualId = id
             }
         } catch(e) {
         }
-        if (stackView) stackView.pop()
+        if (root.stackView) root.stackView.pop()
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.pageMargin
-        spacing: Theme.spacingMedium
+        anchors.margins: root.theme.pageMargin
+        spacing: root.theme.spacingMedium
 
-        Label { text: qsTr("New Year"); font.pointSize: Theme.fontSizeTitle + Theme.margins }
+        Label { text: qsTr("New Year"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
 
         Controls.TextField { id: yearField; placeholderText: qsTr("Year (e.g. 2025)") }
 
         RowLayout { Layout.fillWidth: true
-            Controls.Button { text: qsTr("Cancel"); onClicked: { if (stackView) stackView.pop() } }
+            Controls.Button { text: qsTr("Cancel"); onClicked: { if (root.stackView) root.stackView.pop() } }
             Item { Layout.fillWidth: true }
             Controls.Button {
                 text: qsTr("Create")
                 enabled: yearField.text.length > 0
-                onClicked: createAnnual()
+                onClicked: root.createAnnual()
             }
         }
     }

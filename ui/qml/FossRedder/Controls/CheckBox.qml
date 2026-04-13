@@ -7,7 +7,6 @@ CheckBox {
     id: control
     Layout.fillWidth: true
     Layout.alignment: Qt.AlignVCenter
-    Accessible.ignored: AppContext.isDebugBuild
 
     font.family: Theme.fontFamily
     font.pointSize: Theme.fontSize

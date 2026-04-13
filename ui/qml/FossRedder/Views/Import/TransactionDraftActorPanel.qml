@@ -1,29 +1,30 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 
 Controls.Panel {
     id: root
 
     property var txRoot
-    readonly property DraftController draftController: AppContext.draftController
+    required property var appContext
+    required property var theme
+    readonly property var draftController: root.appContext ? root.appContext.draftController : null
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1
-    contentSpacing: Theme.spacingSmall
+    contentSpacing: root.theme.spacingSmall
 
     background: Rectangle {
-        radius: Theme.radius
-        color: Theme.surfaceAlt
+        radius: root.theme.radius
+        color: root.theme.surfaceAlt
         border.width: 1
-        border.color: root.txRoot ? root.txRoot.suggestionColor(root.txRoot.actorTopSuggestion()) : Theme.border
+        border.color: root.txRoot ? root.txRoot.suggestionColor(root.txRoot.actorTopSuggestion()) : root.theme.border
     }
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: Theme.spacingSmall
+        spacing: root.theme.spacingSmall
 
         Label { text: qsTr("Actor"); Layout.fillWidth: true }
 
@@ -41,8 +42,8 @@ Controls.Panel {
 
             onAccepted: {
                 if (!root.txRoot || !root.txRoot.draft || !draftController) return
-                var rows = root.txRoot.actorChoices || []
-                var row = draftController.findChoiceRowByText(rows, text)
+                const rows = root.txRoot.actorChoices || []
+                const row = draftController.findChoiceRowByText(rows, text)
                 if (row && row.id !== undefined) draftController.selectCurrentActorChoice(root.txRoot.draft, row)
                 else if (root.txRoot.draft) {
                     root.txRoot.draft.transactions.setActorText(root.txRoot.draft.currentIndex, text)
@@ -57,7 +58,7 @@ Controls.Panel {
                 : (root.txRoot.actorTopSuggestion().label
                     ? qsTr("Confidence: %1% — %2").arg(root.txRoot.suggestionConfidencePercent(root.txRoot.actorTopSuggestion())).arg(root.txRoot.actorTopSuggestion().label)
                     : qsTr("No actor suggestion"))) : qsTr("No actor suggestion")
-            color: root.txRoot ? root.txRoot.suggestionColor(root.txRoot.actorTopSuggestion()) : Theme.textMuted
+            color: root.txRoot ? root.txRoot.suggestionColor(root.txRoot.actorTopSuggestion()) : root.theme.textMuted
             Layout.fillWidth: true
         }
 

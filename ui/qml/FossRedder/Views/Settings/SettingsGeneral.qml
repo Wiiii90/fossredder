@@ -1,20 +1,23 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
 
 Flickable {
     id: root
+    required property var appContext
+    required property var theme
+    readonly property var languageController: root.appContext ? root.appContext.languageController : null
+    readonly property var fileSystemController: root.appContext ? root.appContext.fileSystemController : null
     Layout.fillWidth: true
     Layout.fillHeight: true
     contentHeight: column.implicitHeight
     clip: true
 
     function languageIndexFor(code) {
-        if (!AppContext.languageController || !AppContext.languageController.availableLanguages) return -1
-        for (var i = 0; i < AppContext.languageController.availableLanguages.length; ++i) {
-            var option = AppContext.languageController.availableLanguages[i]
+        if (!root.languageController || !root.languageController.availableLanguages) return -1
+        for (let i = 0; i < root.languageController.availableLanguages.length; ++i) {
+            const option = root.languageController.availableLanguages[i]
             if (option && option.code === code) return i
         }
         return -1
@@ -25,15 +28,15 @@ Flickable {
         Layout.fillWidth: true
         Layout.fillHeight: true
         anchors.fill: parent
-        spacing: Theme.settings.spacing
-        anchors.margins: Theme.settings.margin
+        spacing: root.theme.settings.spacing
+        anchors.margins: root.theme.settings.margin
 
         GroupBox {
-            Layout.preferredWidth: Theme.settings.panelPreferredWidth
+            Layout.preferredWidth: root.theme.settings.panelPreferredWidth
             Layout.alignment: Qt.AlignHCenter
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.settings.spacing
+                spacing: root.theme.settings.spacing
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -41,23 +44,23 @@ Flickable {
                     Controls.ComboBox {
                         id: language
                         objectName: "settingsLanguageComboBox"
-                        model: AppContext.languageController ? AppContext.languageController.availableLanguages : []
+                        model: root.languageController ? root.languageController.availableLanguages : []
                         textRole: "label"
-                        currentIndex: root.languageIndexFor(AppContext.languageController ? AppContext.languageController.currentLanguage : "")
+                        currentIndex: root.languageIndexFor(root.languageController ? root.languageController.currentLanguage : "")
                         onActivated: function(index) {
-                            if (!AppContext.languageController || index < 0 || index >= model.length) return
-                            var option = model[index]
+                            if (!root.languageController || index < 0 || index >= model.length) return
+                            const option = model[index]
                             if (!option || option.available === false) {
-                                currentIndex = root.languageIndexFor(AppContext.languageController.currentLanguage)
+                                currentIndex = root.languageIndexFor(root.languageController.currentLanguage)
                                 return
                             }
-                            AppContext.languageController.currentLanguage = option.code
+                            root.languageController.currentLanguage = option.code
                         }
 
                         Connections {
-                            target: AppContext.languageController
+                            target: root.languageController
                             function onCurrentLanguageChanged() {
-                                language.currentIndex = root.languageIndexFor(AppContext.languageController.currentLanguage)
+                                language.currentIndex = root.languageIndexFor(root.languageController.currentLanguage)
                             }
                         }
                     }
@@ -75,8 +78,8 @@ Flickable {
                         objectName: "settingsAppDirectoryField"
                         Layout.fillWidth: true
                         readOnly: true
-                        text: AppContext.fileSystemController
-                              ? AppContext.fileSystemController.appDir()
+                        text: root.fileSystemController
+                              ? root.fileSystemController.appDir()
                               : ""
                         placeholderText: qsTr("Application directory is not available")
                     }

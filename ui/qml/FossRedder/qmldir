@@ -1,0 +1,4 @@
+module FossRedder
+depends QtQuick
+Main 1.0 Main.qml
+singleton Theme 1.0 Theme/Theme.qml

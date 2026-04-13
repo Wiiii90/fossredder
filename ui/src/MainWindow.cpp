@@ -95,8 +95,6 @@ void MainWindow::setupQuickHost() {
   if (m_quickView || m_quickContainer)
     return;
 
-  ui::bootstrap::registerTypes();
-
   m_quickView = new QQuickView();
   m_quickView->setResizeMode(QQuickView::SizeRootObjectToView);
   appContext_ = new ui::bootstrap::AppContext(this);
@@ -112,33 +110,36 @@ void MainWindow::setupUiContext() {
   if (!m_quickView || !m_quickView->rootContext())
     return;
 
+  if (appContext_) {
+    m_quickView->rootContext()->setContextProperty(
+        ui::qml::contracts::module::kAppContextTypeName, appContext_);
+  }
+
   const auto services =
       ui::window::installMainWindowContext(*m_quickView->rootContext(), this,
                                            this);
   actions_ = services.actions;
   dataSession_ = services.dataSession;
   status_ = services.status;
+
+  if (appContext_) {
+    appContext_->setActions(services.actions);
+    appContext_->setNavigation(services.navigation);
+    appContext_->setSession(services.dataSession);
+    appContext_->setFileSystemController(services.fileSystem);
+    appContext_->setStatus(services.status);
+  }
 }
 
 void MainWindow::setupActionRouting() {
   ui::window::wireMainWindowActions(
-      *this, {actions_, dataSession_, status_},
+      *this, {actions_, nullptr, dataSession_, nullptr, status_},
       [this]() { onAbout(); });
 }
 
 void MainWindow::setupQmlRuntime() {
   auto *engine = m_quickView ? m_quickView->engine() : nullptr;
   ui::bootstrap::configureRuntime(engine);
-
-  static bool appContextRegistered = false;
-  if (engine && appContext_ && !appContextRegistered) {
-    qmlRegisterSingletonInstance(ui::qml::contracts::module::kName,
-                                 ui::qml::contracts::module::kMajorVersion,
-                                 ui::qml::contracts::module::kMinorVersion,
-                                 ui::qml::contracts::module::kAppContextTypeName,
-                                 appContext_);
-    appContextRegistered = true;
-  }
 }
 
 void MainWindow::prepareForQmlShutdown() {
@@ -200,11 +201,18 @@ void MainWindow::addImageProvider(const QString &id,
 void MainWindow::loadQml(const QUrl &source) {
   if (!m_quickView)
     return;
-  if (m_quickView->source() == source)
+  if (!source.isEmpty() && m_quickView->source() == source)
     return;
 
-  m_quickView->setSource(source);
-  reportQmlLoadErrors(m_quickView, source);
+  if (source.isEmpty()) {
+    m_quickView->loadFromModule(ui::qml::contracts::module::kName,
+                                ui::qml::contracts::module::kMainTypeName);
+    reportQmlLoadErrors(m_quickView,
+                        QUrl(QStringLiteral("module:FossRedder/Main")));
+  } else {
+    m_quickView->setSource(source);
+    reportQmlLoadErrors(m_quickView, source);
+  }
   syncRootObjectSize(m_quickView, m_quickContainer);
 }
 

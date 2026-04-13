@@ -5,27 +5,28 @@ import FossRedder.Controls 1.0 as Controls
 
 Item {
     id: root
+    required property var appContext
 
-    readonly property StateFacade session: AppContext.session
-    readonly property StatementController statementController: AppContext.statementController
+    readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var statementController: root.appContext ? root.appContext.statementController : null
 
-    property var current: session ? session.selectedStatement : null
-    property bool isEdit: current && current.id && String(current.id).length > 0
+    property var current: root.session ? root.session.selectedStatement : null
+    property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
 
     function clearFields() {
         nameField.text = ""
     }
 
     function syncFields() {
-        if (!isEdit) {
-            clearFields()
+        if (!root.isEdit) {
+            root.clearFields()
             return
         }
-        nameField.text = current.name || ""
+        nameField.text = root.current.name || ""
     }
 
-    onCurrentChanged: syncFields()
-    onIsEditChanged: syncFields()
+    onCurrentChanged: root.syncFields()
+    onIsEditChanged: root.syncFields()
 
     ColumnLayout {
         anchors.fill: parent
@@ -33,7 +34,7 @@ Item {
         spacing: 10
 
         Label {
-            text: isEdit ? qsTr("Edit Statement") : qsTr("Create Statement")
+            text: root.isEdit ? qsTr("Edit Statement") : qsTr("Create Statement")
             font.pointSize: 18
         }
 
@@ -46,54 +47,54 @@ Item {
 
             Controls.Button {
                 objectName: "bookingStatementNewButton"
-                visible: isEdit
+                visible: root.isEdit
                 text: qsTr("New")
                 onClicked: {
-                    if (session) {
-                        session.selectedStatementId = ""
-                        session.selectedTransactionId = ""
+                    if (root.session) {
+                        root.session.selectedStatementId = ""
+                        root.session.selectedTransactionId = ""
                     }
                 }
             }
 
             Controls.Button {
                 objectName: "bookingStatementSubmitButton"
-                text: isEdit ? qsTr("Update") : qsTr("Add")
+                text: root.isEdit ? qsTr("Update") : qsTr("Add")
                 enabled: nameField.text.length > 0
                 onClicked: {
-                    if (!statementController) return
-                    if (isEdit) {
-                        statementController.updateStatement(current.id, nameField.text)
+                    if (!root.statementController) return
+                    if (root.isEdit) {
+                        root.statementController.updateStatement(root.current.id, nameField.text)
                     } else {
-                        var id = statementController.addStatement(nameField.text)
-                        clearFields()
-                        if (session && id && id.length > 0) session.selectedStatementId = id
+                        const id = root.statementController.addStatement(nameField.text)
+                        root.clearFields()
+                        if (root.session && id && id.length > 0) root.session.selectedStatementId = id
                     }
                 }
             }
 
             Controls.Button {
                 objectName: "bookingStatementDeleteButton"
-                visible: isEdit
+                visible: root.isEdit
                 text: qsTr("Delete")
                 onClicked: {
-                    if (!statementController) return
-                    statementController.deleteStatement(current.id)
-                    if (session) {
-                        session.selectedStatementId = ""
-                        session.selectedTransactionId = ""
+                    if (!root.statementController) return
+                    root.statementController.deleteStatement(root.current.id)
+                    if (root.session) {
+                        root.session.selectedStatementId = ""
+                        root.session.selectedTransactionId = ""
                     }
-                    clearFields()
+                    root.clearFields()
                 }
             }
 
             Controls.Button {
                 objectName: "bookingStatementNewTransactionButton"
-                visible: isEdit
+                visible: root.isEdit
                 text: qsTr("New Transaction")
                 onClicked: {
-                    if (!session) return
-                    session.selectedTransactionId = "__new__"
+                    if (!root.session) return
+                    root.session.selectedTransactionId = "__new__"
                 }
             }
 
@@ -102,6 +103,6 @@ Item {
     }
 
     Component.onCompleted: {
-        syncFields()
+        root.syncFields()
     }
 }

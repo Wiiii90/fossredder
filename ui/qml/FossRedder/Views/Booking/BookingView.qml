@@ -1,28 +1,29 @@
 import QtQuick 2.15
-import QtQuick.Controls 2.15
-import FossRedder 1.0
 import FossRedder.Views 1.0 as Views
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    readonly property NavigationState navigation: AppContext.navigation
-    readonly property StateFacade session: AppContext.session
+    required property var appContext
+    required property var theme
+    readonly property var navigation: root.appContext ? root.appContext.navigation : null
+    readonly property var session: root.appContext ? root.appContext.session : null
     property Component pendingViewComponent: null
     property Component currentViewComponent: null
 
-    Component { id: bookingTransactionsComp; Views.BookingTransactionsView { } }
-    Component { id: bookingStatementsComp; Views.BookingStatementsView { } }
+    Component { id: bookingTransactionsComp; Views.BookingTransactionsView { appContext: root.appContext; theme: root.theme } }
+    Component { id: bookingStatementsComp; Views.BookingStatementsView { appContext: root.appContext } }
     Component { id: placeholderViewComp; Views.PlaceholderView { } }
 
     function resolveViewComponent() {
-        if (!navigation)
+        if (!root.navigation)
             return placeholderViewComp
 
-        if (navigation.bookingView === Navigation.Transactions)
+        if (root.navigation.bookingViewValue === 2)
             return bookingTransactionsComp
 
-        if (navigation.bookingView === Navigation.Statements)
-            return (session && session.selectedTransactionId && session.selectedTransactionId.length > 0)
+        if (root.navigation.bookingViewValue === 0)
+            return (root.session && root.session.selectedTransactionId && root.session.selectedTransactionId.length > 0)
                     ? bookingTransactionsComp
                     : bookingStatementsComp
 
@@ -30,7 +31,7 @@ Item {
     }
 
     function queueResolvedView() {
-        root.pendingViewComponent = resolveViewComponent()
+        root.pendingViewComponent = root.resolveViewComponent()
         applyBookingViewTimer.restart()
     }
 
@@ -49,21 +50,21 @@ Item {
     }
 
     Connections {
-        target: navigation
+        target: root.navigation
         function onBookingViewChanged() {
             root.queueResolvedView()
         }
     }
 
     Connections {
-        target: session
+        target: root.session
         function onSelectedTransactionIdChanged() {
             root.queueResolvedView()
         }
     }
 
     Component.onCompleted: {
-        queueResolvedView()
+        root.queueResolvedView()
     }
 }
 

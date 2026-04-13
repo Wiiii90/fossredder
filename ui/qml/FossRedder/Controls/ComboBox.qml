@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
+pragma ComponentBehavior: Bound
 
 ComboBox {
     id: control
@@ -9,13 +10,12 @@ ComboBox {
     Layout.preferredHeight: 40
     font.family: Theme.fontFamily
     font.pointSize: Theme.fontSize
-    Accessible.ignored: AppContext.isDebugBuild
 
     background: Rectangle {
         id: bg
         color: Theme.surface
         radius: Theme.radius
-        border.color: control.focused ? Theme.primary.lighter(140) : Theme.border
+        border.color: control.focus ? Theme.primary.lighter(140) : Theme.border
         border.width: 1
     }
 
@@ -46,9 +46,11 @@ ComboBox {
             }
 
             delegate: ItemDelegate {
+                required property int index
+                required property var model
                 width: ListView.view ? ListView.view.width : control.width
-                text: model.display
-                enabled: typeof model.available === "undefined" ? true : model.available
+                text: model && model.display !== undefined ? model.display : ""
+                enabled: !model || model.available !== false
                 opacity: enabled ? 1.0 : 0.5
                 font.family: Theme.fontFamily
                 font.pointSize: Theme.fontSize
@@ -56,7 +58,7 @@ ComboBox {
                     if (!enabled) return
                     control.currentIndex = index
                     control.activated(index)
-                    control.close()
+                    popup.close()
                 }
             }
         }

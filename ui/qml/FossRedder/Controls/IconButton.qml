@@ -1,5 +1,4 @@
 import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import QtQuick.Effects
 import FossRedder 1.0
@@ -9,8 +8,8 @@ Item {
     implicitWidth: 100
     implicitHeight: 48
 
-    width: parent && parent.width > 0 ? parent.width : implicitWidth
-    height: parent && parent.height > 0 ? parent.height : implicitHeight
+    width: button.parent && button.parent.width > 0 ? button.parent.width : implicitWidth
+    height: button.parent && button.parent.height > 0 ? button.parent.height : implicitHeight
 
     property url svgSource: ""
     property string label: ""
@@ -37,28 +36,28 @@ Item {
                 anchors.fill: parent
                 property bool hovered: false
                 property bool pressed: false
-                scale: ((active || hovered) ? 1.08 : 1.0) * (pressed ? 0.96 : 1.0)
+                scale: ((button.active || hovered) ? 1.08 : 1.0) * (pressed ? 0.96 : 1.0)
 
                 Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutQuad } }
 
                 MultiEffect {
                     anchors.fill: parent
                     source: iconSvg
-                    colorization: active ? 0.20 : 0
+                    colorization: button.active ? 0.20 : 0
                     colorizationColor: Theme.accent
-                    visible: active
+                    visible: button.active
                     z: 2
                 }
 
                 Image {
                     id: iconSvg
                     anchors.centerIn: parent
-                    source: svgSource
+                    source: button.svgSource
                     width: parent.width
                     height: parent.height
                     fillMode: Image.PreserveAspectFit
                     smooth: true
-                    opacity: svgSource === "" ? 0 : (active ? 0.96 : 1)
+                    opacity: String(button.svgSource).length === 0 ? 0 : (button.active ? 0.96 : 1)
                     visible: status !== Image.Error
                     z: 1
                 }
@@ -66,12 +65,12 @@ Item {
         }
 
         Text {
-            text: label
+            text: button.label
             horizontalAlignment: Text.AlignHCenter
-            font.pixelSize: Math.max(10, Math.round(height * 0.14))
+            font.pixelSize: Math.max(10, Math.round(button.height * 0.14))
             color: Theme.textPrimary
             Layout.alignment: Qt.AlignHCenter
-            visible: label !== ""
+            visible: button.label !== ""
         }
     }
 
