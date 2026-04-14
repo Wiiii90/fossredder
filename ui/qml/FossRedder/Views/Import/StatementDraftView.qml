@@ -7,7 +7,6 @@ Item {
     id: stmtRoot
     required property var appContext
     required property var theme
-    anchors.fill: parent
 
     readonly property var importController: stmtRoot.appContext ? stmtRoot.appContext.importController : null
     readonly property var draftController: stmtRoot.appContext ? stmtRoot.appContext.draftController : null
@@ -101,7 +100,6 @@ Item {
             Controls.Panel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.bottomMargin: stmtRoot.theme.spacingMedium
                 contentSpacing: 0
 
                 ScrollView {
@@ -109,7 +107,6 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumHeight: 0
-                    Layout.bottomMargin: stmtRoot.theme.spacingSmall
                     clip: true
 
                     TransactionDraftView {
@@ -121,6 +118,6 @@ Item {
                     }
                 }
             }
-        }        
+        }
     }
 }

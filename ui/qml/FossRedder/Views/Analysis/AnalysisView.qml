@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Constants 1.0 as Constants
+import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
 import FossRedder.Views 1.0 as Views
 pragma ComponentBehavior: Bound
@@ -40,6 +41,22 @@ Item {
                 id: pageRect
                 width: analysisStack ? analysisStack.width : root.theme.analysis.layout.defaultWidth
                 height: analysisStack ? analysisStack.height : root.theme.analysis.layout.defaultHeight
+
+                function createAnalysis() {
+                    if (!root.session || !root.analysisController) return
+                    const strategyType = strategyCombo.currentIndex === 0 ? "tab" : (strategyCombo.currentIndex === 1 ? "plot" : "calc")
+                    const selectedPlotType = root.plotTypeOptions[Math.max(0, plotTypeCombo.currentIndex)].value
+                    const selectedPlotMeasure = root.plotMeasureOptions[Math.max(0, plotMeasureCombo.currentIndex)].value
+                    const configJson = root.analysisController.analysisConfigJson(strategyType, selectedPlotType, selectedPlotMeasure, createBox.selectedProps, createBox.selectedContractTypes, 0.0)
+                    const filterSpec = root.analysisController.analysisFilterSpec(dateFrom.text, dateTo.text)
+                    const analysisId = root.analysisController.createAnalysis(nameField.text, strategyType, configJson, filterSpec)
+                    if (analysisId && analysisId.length > 0) {
+                        root.session.selectedAnalysisId = analysisId
+                        const result = root.analysisController.computeAnalysis(analysisId, filterSpec)
+                        if (result && Object.keys(result).length > 0) root.session.lastAnalysisResult = result
+                        Qt.callLater(function() { analysisStack.push(analysisDetailComp) })
+                    }
+                }
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -209,33 +226,23 @@ Item {
                                 Label { text: qsTr("Plot Measure"); Layout.preferredWidth: root.theme.formLabelWidth }
                                 Controls.ComboBox { id: plotMeasureCombo; Layout.fillWidth: true; model: root.plotMeasureOptions; textRole: "label"; currentIndex: 0 }
                             }
-
-                            RowLayout { Layout.fillWidth: true; spacing: root.theme.settings.spacing
-                                Controls.Button {
-                                    text: qsTr("Create")
-                                    enabled: nameField.text.length > 0
-                                    onClicked: {
-                                        if (!root.session || !root.analysisController) return
-                                        const strategyType = strategyCombo.currentIndex === 0 ? "tab" : (strategyCombo.currentIndex === 1 ? "plot" : "calc")
-                                        const selectedPlotType = root.plotTypeOptions[Math.max(0, plotTypeCombo.currentIndex)].value
-                                        const selectedPlotMeasure = root.plotMeasureOptions[Math.max(0, plotMeasureCombo.currentIndex)].value
-                                        const configJson = root.analysisController.analysisConfigJson(strategyType, selectedPlotType, selectedPlotMeasure, createBox.selectedProps, createBox.selectedContractTypes, 0.0)
-                                        const filterSpec = root.analysisController.analysisFilterSpec(dateFrom.text, dateTo.text)
-                                        const analysisId = root.analysisController.createAnalysis(nameField.text, strategyType, configJson, filterSpec)
-                                        if (analysisId && analysisId.length > 0) {
-                                            root.session.selectedAnalysisId = analysisId
-                                            const result = root.analysisController.computeAnalysis(analysisId, filterSpec)
-                                            if (result && Object.keys(result).length > 0) root.session.lastAnalysisResult = result
-                                            Qt.callLater(function() { analysisStack.push(analysisDetailComp) })
-                                        }
-                                    }
-                                }
-                                Item { Layout.fillWidth: true }
-                            }
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; Layout.fillHeight: true; color: "transparent" }
+                    Item { Layout.fillHeight: true }
+
+                    Components.BottomBar {
+                        Layout.fillWidth: true
+                        theme: root.theme
+
+                        Controls.Button {
+                            text: qsTr("Create")
+                            enabled: nameField.text.length > 0
+                            onClicked: pageRect.createAnalysis()
+                        }
+
+                        Item { Layout.fillWidth: true }
+                    }
                 }
             }
         }

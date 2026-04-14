@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
 pragma ComponentBehavior: Bound
 
@@ -301,8 +302,9 @@ Item {
             Item { Layout.fillWidth: true }
         }
 
-        RowLayout {
+        Components.BottomBar {
             Layout.fillWidth: true
+            theme: root.theme
 
             Controls.Button {
                 text: qsTr("Back")

@@ -13,3 +13,4 @@ Sidebar 1.0 Layout/Sidebar.qml
 SidebarRouter 1.0 Layout/SidebarRouter.qml
 StatusBar 1.0 Layout/StatusBar.qml
 Toolbar 1.0 Layout/Toolbar.qml
+BottomBar 1.0 Layout/BottomBar.qml

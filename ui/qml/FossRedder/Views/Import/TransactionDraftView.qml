@@ -1,4 +1,5 @@
 ﻿import QtQuick 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
 pragma ComponentBehavior: Bound
@@ -188,6 +189,30 @@ Item {
                 Controls.TextField { id: valutaField
                     text: draftViewRoot.draft && draftViewRoot.draft.current ? (draftViewRoot.draft.current.valuta || "") : ""
                     onTextEdited: if (draftViewRoot.draft) draftViewRoot.draft.transactions.setValuta(draftViewRoot.draft.currentIndex, valutaField.text)
+                }
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: draftViewRoot.theme.spacingSmall
+
+            Label {
+                text: qsTr("Amount")
+                Layout.fillWidth: true
+            }
+
+            Controls.TextField {
+                id: amountField
+                Layout.fillWidth: true
+                text: draftViewRoot.draft && draftViewRoot.draft.current ? String(draftViewRoot.draft.current.amount) : ""
+                onEditingFinished: {
+                    if (draftViewRoot.draftController && draftViewRoot.draft)
+                        draftViewRoot.draftController.updateCurrentAmount(draftViewRoot.draft, amountField.text)
+                }
+                onAccepted: {
+                    if (draftViewRoot.draftController && draftViewRoot.draft)
+                        draftViewRoot.draftController.updateCurrentAmount(draftViewRoot.draft, amountField.text)
                 }
             }
         }

@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Constants 1.0 as Constants
+import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
 
 Item {
@@ -76,9 +77,9 @@ Item {
 
         Item { Layout.fillHeight: true }
 
-        RowLayout {
-            spacing: root.theme.spacingMedium
+        Components.BottomBar {
             Layout.fillWidth: true
+            theme: root.theme
 
             Label { text: qsTr("Save to:"); Layout.preferredWidth: root.theme.formLabelWidth }
             Controls.TextField { id: pathField; objectName: "exportPathField"; placeholderText: qsTr("e.g. C:/Users/You/Documents/export.xlsx"); Layout.fillWidth: true }

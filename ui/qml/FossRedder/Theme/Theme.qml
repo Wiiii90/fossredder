@@ -62,7 +62,7 @@ QtObject {
     property int chartPercentLabelWidth: 60
     property int chartPropertyChipHeight: 22
     property int chartPropertyChipMinWidth: 80
-    property int radius: 4
+    property int radius: 3
     property int borderWidthThin: 1
 
     property var settings: ({

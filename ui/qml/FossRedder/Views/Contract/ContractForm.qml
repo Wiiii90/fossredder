@@ -147,9 +147,9 @@ Item {
             }
         }
 
-        RowLayout {
+        Components.BottomBar {
             Layout.fillWidth: true
-            spacing: root.theme.spacing
+            theme: root.theme
 
             Controls.Button { visible: root.isEdit; text: qsTr("New"); onClicked: if (root.session) root.session.selectedContractId = "" }
 

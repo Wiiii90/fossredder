@@ -1,5 +1,7 @@
 ﻿import QtQuick 2.15
 import QtQuick.Layouts 1.3
+import FossRedder.Components 1.0 as Components
+import FossRedder.Controls 1.0 as Controls
 import FossRedder.Views 1.0 as Views
 pragma ComponentBehavior: Bound
 
@@ -43,6 +45,25 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             sourceComponent: root.componentForCategory(root.navigation ? root.navigation.settingsCategoryValue : 0)
+        }
+
+        Components.BottomBar {
+            Layout.fillWidth: true
+            theme: root.theme
+
+            Controls.Button {
+                text: qsTr("Save")
+                onClicked: {
+                }
+            }
+
+            Controls.Button {
+                text: qsTr("Default")
+                onClicked: {
+                }
+            }
+
+            Item { Layout.fillWidth: true }
         }
 
         Component { id: generalComp; Views.SettingsGeneral { appContext: root.appContext; theme: root.theme } }

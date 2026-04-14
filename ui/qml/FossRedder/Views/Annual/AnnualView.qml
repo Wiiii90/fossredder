@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
 import FossRedder.Views 1.0 as Views
 pragma ComponentBehavior: Bound
@@ -34,13 +35,15 @@ Item {
                         Label { text: root.session && root.session.selectedAnnual ? root.session.selectedAnnual.name : qsTr("(none)") }
                     }
 
-                    RowLayout {
+                    Item { Layout.fillHeight: true }
+
+                    Components.BottomBar {
                         Layout.fillWidth: true
-                        Controls.Button { text: qsTr("New year"); onClicked: { annualStack.push(annualFormComp) } }
+                        theme: root.theme
+
+                        Controls.Button { text: qsTr("Create"); onClicked: { annualStack.push(annualFormComp) } }
                         Item { Layout.fillWidth: true }
                     }
-
-                    Rectangle { Layout.fillWidth: true; Layout.fillHeight: true; color: "transparent" }
                 }
             }
         }

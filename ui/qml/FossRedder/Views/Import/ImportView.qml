@@ -2,6 +2,7 @@
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Constants 1.0 as Constants
+import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
 pragma ComponentBehavior: Bound
 
@@ -317,9 +318,9 @@ Item {
                     }
                 }
 
-                RowLayout {
+                Components.BottomBar {
                     Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignBottom
+                    theme: root.theme
 
                     Controls.Button {
                         text: qsTr("Cancel")
@@ -339,8 +340,6 @@ Item {
                         onClicked: if (root.hasImportController) root.importController.cancelAllImports()
                     }
 
-                    Item { Layout.fillWidth: true }
-
                     Controls.Button {
                         text: qsTr("Reset")
                         visible: root.hasImportController && !root.importController.isRunning
@@ -349,6 +348,8 @@ Item {
                         textColor: root.theme.textPrimary
                         onClicked: { if (root.hasImportController) root.importController.resetStatus() }
                     }
+
+                    Item { Layout.fillWidth: true }
 
                     Controls.Button {
                         text: qsTr("Start")
@@ -372,22 +373,28 @@ Item {
     Component {
         id: statementDraftPageComponent
 
-        ColumnLayout {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: root.theme.spacingSmall
 
             StatementDraftView {
                 id: stmtView
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: draftBottomBar.top
+                anchors.bottomMargin: root.theme.spacingSmall
                 appContext: root.appContext
                 theme: root.theme
                 draft: (root.hasImportController ? root.importController.draft : null)
             }
 
-            RowLayout {
-                Layout.fillWidth: true
+            Components.BottomBar {
+                id: draftBottomBar
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                theme: root.theme
 
                 Controls.Button {
                     text: qsTr("Previous")

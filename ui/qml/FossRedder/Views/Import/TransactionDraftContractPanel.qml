@@ -39,6 +39,7 @@ Controls.Panel {
         spacing: root.theme.spacingSmall
 
         TransactionDraftFieldRow {
+            theme: root.theme
             Layout.fillWidth: true
             leftLabel: qsTr("Type")
             rightLabel: qsTr("Contract")

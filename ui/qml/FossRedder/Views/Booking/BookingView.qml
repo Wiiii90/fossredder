@@ -12,7 +12,7 @@ Item {
     property Component currentViewComponent: null
 
     Component { id: bookingTransactionsComp; Views.BookingTransactionsView { appContext: root.appContext; theme: root.theme } }
-    Component { id: bookingStatementsComp; Views.BookingStatementsView { appContext: root.appContext } }
+    Component { id: bookingStatementsComp; Views.BookingStatementsView { appContext: root.appContext; theme: root.theme } }
     Component { id: placeholderViewComp; Views.PlaceholderView { } }
 
     function resolveViewComponent() {

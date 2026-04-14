@@ -1,6 +1,7 @@
 ﻿import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
+import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
 pragma ComponentBehavior: Bound
 
@@ -179,19 +180,6 @@ Item {
 
         Item { Layout.fillHeight: true }
 
-        RowLayout {
-            visible: !root.isEdit
-            Layout.fillWidth: true
-
-            Controls.Button {
-                text: qsTr("Add")
-                enabled: nameField.text.length > 0
-                onClicked: root.submitProperty()
-            }
-
-            Item { Layout.fillWidth: true }
-        }
-
         ColumnLayout {
             visible: root.isEdit
             Layout.fillWidth: true
@@ -366,28 +354,40 @@ Item {
                     }
                 }
             }
+        }
 
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 40
-                anchors.margins: root.theme.margins
-                spacing: root.theme.spacingMedium
+        Components.BottomBar {
+            Layout.fillWidth: true
+            theme: root.theme
 
-                RowLayout {
-                    spacing: root.theme.spacingMedium
-                    Controls.Button { text: qsTr("Create new building"); onClicked: if (root.session) root.session.selectedPropertyId = "" }
-                    Controls.Button { text: qsTr("Update building"); enabled: nameField.text.length > 0; onClicked: root.submitProperty() }
-                }
-
-                Item { Layout.fillWidth: true }
-
-                Controls.Button {
-                    text: qsTr("Delete")
-                    onClicked: if (root.propertyController) { root.propertyController.deleteProperty(root.current.id); if (root.session) root.session.selectedPropertyId = "" }
-                    Layout.alignment: Qt.AlignRight
-                    fillColor: root.theme.dangerStrong
-                }
+            Controls.Button {
+                visible: !root.isEdit
+                text: qsTr("Add")
+                enabled: nameField.text.length > 0
+                onClicked: root.submitProperty()
             }
+
+            Controls.Button {
+                visible: root.isEdit
+                text: qsTr("Create new building")
+                onClicked: if (root.session) root.session.selectedPropertyId = ""
+            }
+
+            Controls.Button {
+                visible: root.isEdit
+                text: qsTr("Update building")
+                enabled: nameField.text.length > 0
+                onClicked: root.submitProperty()
+            }
+
+            Controls.Button {
+                visible: root.isEdit
+                text: qsTr("Delete")
+                onClicked: if (root.propertyController) { root.propertyController.deleteProperty(root.current.id); if (root.session) root.session.selectedPropertyId = "" }
+                fillColor: root.theme.dangerStrong
+            }
+
+            Item { Layout.fillWidth: true }
         }
     }
 }
