@@ -7,12 +7,14 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "core/application/CatalogService.h"
 #include "core/errors/IErrorReporter.h"
 #include "core/models/StatementDraft.h"
+#include "core/models/ImportLog.h"
 #include "core/models/Transaction.h"
 #include "core/storage/IStorageManager.h"
 
@@ -109,6 +111,11 @@ public:
     void deleteAnnual(const std::string& id);
 
     std::string finalizeStatementDraft(const core::domain::StatementDraft& draft);
+    void saveStatementDraft(const core::domain::StatementDraft& draft);
+    void clearStatementDraft(const std::string& draftId = {});
+    std::optional<core::domain::StatementDraft> loadStatementDraft(const std::string& draftId = {}) const;
+    void setImportLogs(const std::vector<core::domain::ImportLog>& logs);
+    std::vector<std::shared_ptr<core::domain::ImportLog>> importLogs() const;
     void commit();
     void notifyState();
 

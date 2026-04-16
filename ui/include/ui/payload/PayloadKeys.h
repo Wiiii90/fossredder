@@ -49,7 +49,7 @@ namespace transaction {
 inline const auto kBookingDate = QStringLiteral("bookingDate");
 inline const auto kValuta = QStringLiteral("valuta");
 inline const auto kActorId = QStringLiteral("actorId");
-inline const auto kProofImagePath = QStringLiteral("proofImagePath");
+inline const auto kProofImageData = QStringLiteral("proofImageData");
 inline const auto kAllocatable = QStringLiteral("allocatable");
 inline const auto kPropertyIds = QStringLiteral("propertyIds");
 inline const auto kContractId = QStringLiteral("contractId");
@@ -81,9 +81,13 @@ inline const auto kIsDir = QStringLiteral("isDir");
 }
 
 namespace importRun {
+inline const auto kLogId = QStringLiteral("logId");
 inline const auto kTime = QStringLiteral("time");
 inline const auto kFile = QStringLiteral("file");
 inline const auto kMessage = QStringLiteral("message");
+inline const auto kDraftAttached = QStringLiteral("draftAttached");
+inline const auto kDraftId = QStringLiteral("draftId");
+inline const auto kStatementId = QStringLiteral("statementId");
 }
 
 namespace draft {

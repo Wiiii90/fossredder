@@ -48,11 +48,6 @@ inline const auto kLanguageController = QStringLiteral("languageController");
 inline const auto kIsDebugBuild = QStringLiteral("isDebugBuild");
 }
 
-/** Names of any QML image providers exposed by the application. */
-namespace providers {
-inline const auto kImportProof = QStringLiteral("importProof");
-}
-
 /** Convenience property keys used by QML components. */
 namespace properties {
 inline constexpr auto kWidth = "width";

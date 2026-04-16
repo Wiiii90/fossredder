@@ -128,11 +128,17 @@ inline constexpr auto kTypeStatementSource = QT_TRANSLATE_NOOP("ImportState", "S
 inline constexpr auto kStatusCanceledSource = QT_TRANSLATE_NOOP("ImportState", "Canceled");
 inline constexpr auto kStatusFailedSource = QT_TRANSLATE_NOOP("ImportState", "Failed");
 inline constexpr auto kStatusSuccessSource = QT_TRANSLATE_NOOP("ImportState", "Success");
+inline constexpr auto kStatusRunningSource = QT_TRANSLATE_NOOP("ImportState", "Running");
+inline constexpr auto kStatusDraftSource = QT_TRANSLATE_NOOP("ImportState", "Draft");
+inline constexpr auto kStatusFinalizedSource = QT_TRANSLATE_NOOP("ImportState", "Finalized");
 
 inline QString typeStatement() { return detail::translate(kContext, kTypeStatementSource); }
 inline QString statusCanceled() { return detail::translate(kContext, kStatusCanceledSource); }
 inline QString statusFailed() { return detail::translate(kContext, kStatusFailedSource); }
 inline QString statusSuccess() { return detail::translate(kContext, kStatusSuccessSource); }
+inline QString statusRunning() { return detail::translate(kContext, kStatusRunningSource); }
+inline QString statusDraft() { return detail::translate(kContext, kStatusDraftSource); }
+inline QString statusFinalized() { return detail::translate(kContext, kStatusFinalizedSource); }
 
 }
 

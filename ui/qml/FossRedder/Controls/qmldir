@@ -3,10 +3,12 @@ depends QtQuick
 Button 1.0 Button.qml
 CheckBox 1.0 CheckBox.qml
 ComboBox 1.0 ComboBox.qml
+DangerButton 1.0 DangerButton.qml
 DropZone 1.0 DropZone.qml
 FilePicker 1.0 FilePicker.qml
 IconButton 1.0 IconButton.qml
 Panel 1.0 Panel.qml
 ProgressBar 1.0 ProgressBar.qml
+SuccessButton 1.0 SuccessButton.qml
 TextArea 1.0 TextArea.qml
 TextField 1.0 TextField.qml

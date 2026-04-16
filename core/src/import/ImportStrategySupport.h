@@ -62,10 +62,6 @@ std::vector<detail::PageWork> collectPageWork(const ImportRequest& req,
                                               ImportResult& out,
                                               std::mutex& artifactsMutex);
 
-std::filesystem::path createProofDir(const std::filesystem::path& runRoot,
-                                     const std::string& proofOutputDir,
-                                     core::errors::IErrorReporter* errorReporter);
-
 void attachMetricsArtifact(ImportResult& out,
                            const ImportRequest& req,
                            const std::vector<detail::PageWork>& pages,

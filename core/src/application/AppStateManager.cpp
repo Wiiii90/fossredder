@@ -21,6 +21,7 @@
 #include "core/repositories/IAnalysisRepository.h"
 #include "core/repositories/IAnnualRepository.h"
 #include "core/repositories/IContractRepository.h"
+#include "core/repositories/IImportLogRepository.h"
 #include "core/repositories/IPropertyRepository.h"
 #include "core/repositories/IStatementRepository.h"
 #include "core/repositories/IStatementDraftRepository.h"
@@ -29,6 +30,7 @@
 #include "core/storage/RepositoryBundle.h"
 
 #include "core/models/Property.h"
+#include "core/models/ImportLog.h"
 #include "core/models/Statement.h"
 #include "core/models/StatementDraft.h"
 #include "core/models/Transaction.h"
@@ -92,6 +94,7 @@ AppState AppStateManager::load() {
     state.transactions = loadCollection(impl_->repos.transactions, [](const auto& repo) { return repo.getTransactions(); });
     state.analyses = loadCollection(impl_->repos.analyses, [](const auto& repo) { return repo.getAnalyses(); });
     state.annuals = loadCollection(impl_->repos.annuals, [](const auto& repo) { return repo.getAnnuals(); });
+    state.importLogs = loadCollection(impl_->repos.importLogs, [](const auto& repo) { return repo.getImportLogs(); });
 
     state.statementDrafts = loadCollection(impl_->repos.statementDrafts, [](const auto& repo) { return repo.getStatementDrafts(); });
 
@@ -116,6 +119,13 @@ void AppStateManager::save(const AppState& state) {
     upsertCollection(impl_->repos.transactions, projected.transactions, [](auto& repo, const auto& transaction) { repo.upsertTransaction(transaction); });
     upsertCollection(impl_->repos.analyses, projected.analyses, [](auto& repo, const auto& analysis) { repo.upsertAnalysis(analysis); });
     upsertCollection(impl_->repos.annuals, projected.annuals, [](auto& repo, const auto& annual) { repo.upsertAnnual(annual); });
+    if (impl_->repos.importLogs) {
+        impl_->repos.importLogs->clearImportLogs();
+        for (const auto& item : projected.importLogs) {
+            if (!item) continue;
+            impl_->repos.importLogs->upsertImportLog(item);
+        }
+    }
 
     if (impl_->repos.statementDrafts) {
         impl_->repos.statementDrafts->clearStatementDrafts();

@@ -72,7 +72,6 @@ void appendTransactionsFromBlocks(const std::vector<TransactionBlock>& blocks,
                                   const std::shared_ptr<api::opencv::IOpenCvService>& opencv,
                                   const std::string& pageCropImagePath,
                                   const std::vector<uint8_t>& pageCropImageBytes,
-                                  const std::filesystem::path& proofOutputDir,
                                   int& txIndex,
                                   DefaultStatementParser::ParseResult& out);
 

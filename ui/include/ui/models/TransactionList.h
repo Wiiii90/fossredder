@@ -32,7 +32,6 @@ public:
         StatusRole,
         ActorIdRole,
         MetadataRole,
-        ProofImagePathRole,
         TypeRole,
         AllocatableRole,
         PropertyIdsRole

@@ -31,7 +31,7 @@ public:
         ContractIdRole,
         NewContractSelectedRole,
         MetadataRole,
-        ProofImagePathRole,
+        ProofImageDataRole,
         ActorSuggestionsRole,
         PropertySuggestionsRole,
         ContractSuggestionsRole,
@@ -65,7 +65,7 @@ public:
     Q_INVOKABLE void setNewContractSelected(int index, bool selected);
 
     Q_INVOKABLE void setMetadata(int index, const QString& v);
-    Q_INVOKABLE void setProofImagePath(int index, const QString& v);
+    Q_INVOKABLE void setProofImageData(int index, const QString& v);
 
     Q_INVOKABLE void setStatus(int index, int status);
     Q_INVOKABLE void setAllocatable(int index, bool v);
@@ -73,6 +73,7 @@ public:
 
     Q_INVOKABLE void setProperties(int index, const QStringList& ids);
     Q_INVOKABLE void setType(int index, const QString& v);
+    Q_INVOKABLE void removeAt(int index);
 
 private:
     template <typename TValue, typename Accessor>

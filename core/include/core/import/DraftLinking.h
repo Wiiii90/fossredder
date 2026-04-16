@@ -66,7 +66,6 @@ struct DraftLinkSelection {
     std::string name;
     std::string description;
     std::string metadata;
-    std::string proofImagePath;
     std::string actorText;
     std::string propertyText;
     std::string actorId;

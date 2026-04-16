@@ -114,7 +114,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    contentHeight: content.implicitHeight
+                    contentHeight: Math.max(content.implicitHeight, scroll.height)
                     contentWidth: width
 
                     ScrollBar.vertical: ScrollBar {
@@ -124,6 +124,7 @@ Item {
                     ColumnLayout {
                         id: content
                         width: scroll.width
+                        height: Math.max(implicitHeight, scroll.height)
                         spacing: root.theme.spacing
 
                         Controls.Panel {
@@ -201,6 +202,8 @@ Item {
 
                         Controls.Panel {
                             Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.minimumHeight: 260
                             contentSpacing: root.theme.spacingSmall
 
                             RowLayout {
@@ -241,6 +244,8 @@ Item {
 
                             Controls.DropZone {
                                 Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.minimumHeight: 160
                                 enabled: root.hasImportController && !root.importController.isRunning
                                 title: qsTr("Drop PDFs here")
                                 subtitle: ""
@@ -294,27 +299,24 @@ Item {
 
                             Controls.ProgressBar {
                                 Layout.fillWidth: true
-                                visible: root.hasImportController && (root.importController.isRunning || root.importController.progress > 0)
+                                visible: true
                                 value: root.hasImportController ? root.importController.progress : 0
                             }
 
                             Label {
                                 Layout.fillWidth: true
-                                text: root.hasImportController ? (root.importController.error && root.importController.error.length > 0 ? root.importController.error : root.importController.phase) : ""
+                                text: root.hasImportController
+                                      ? (root.importController.error && root.importController.error.length > 0
+                                          ? root.importController.error
+                                          : (root.importController.phase && root.importController.phase.length > 0
+                                              ? root.importController.phase
+                                              : qsTr("Ready")))
+                                      : qsTr("Ready")
                                 color: root.hasImportController && root.importController.error && root.importController.error.length > 0 ? root.theme.danger : root.theme.textPrimary
-                                wrapMode: Text.WordWrap
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                visible: root.hasImportController ? (root.importController.isRunning && root.importController.pageCount > 0) : false
-                                text: root.hasImportController ? qsTr("Page %1/%2").arg(root.importController.currentPage).arg(root.importController.pageCount) : ""
-                                color: root.theme.textMuted
                                 wrapMode: Text.WordWrap
                             }
                         }
 
-                        Item { Layout.preferredHeight: root.theme.spacingLarge }
                     }
                 }
 
@@ -328,6 +330,7 @@ Item {
                         enabled: root.hasImportController && root.importController.isRunning
                         fillColor: root.theme.surface
                         textColor: root.theme.textPrimary
+                        bordered: true
                         onClicked: if (root.hasImportController) root.importController.cancelImport()
                     }
 
@@ -337,6 +340,7 @@ Item {
                         enabled: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
                         fillColor: root.theme.surface
                         textColor: root.theme.textPrimary
+                        bordered: true
                         onClicked: if (root.hasImportController) root.importController.cancelAllImports()
                     }
 
@@ -346,6 +350,7 @@ Item {
                         enabled: root.hasImportController && !root.importController.isRunning
                         fillColor: root.theme.surface
                         textColor: root.theme.textPrimary
+                        bordered: true
                         onClicked: { if (root.hasImportController) root.importController.resetStatus() }
                     }
 
@@ -377,6 +382,9 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
+            readonly property int iconButtonWidth: 72
+            readonly property int actionButtonWidth: 150
+
             StatementDraftView {
                 id: stmtView
                 anchors.left: parent.left
@@ -397,35 +405,67 @@ Item {
                 theme: root.theme
 
                 Controls.Button {
-                    text: qsTr("Previous")
-                    enabled: stmtView.draft && stmtView.draft.currentIndex > 0
-                    onClicked: {
-                        if (stmtView.draft) stmtView.draft.prev()
-                        if (stmtView.forceSync) stmtView.forceSync()
-                    }
+                    text: "⟪"
+                    enabled: !!stmtView.draft && root.hasImportController && root.importController.hasPrevDraft
+                    Layout.preferredWidth: parent.iconButtonWidth
+                    bordered: true
+                    onClicked: if (root.hasImportController) root.importController.openPrevDraft()
                 }
 
                 Controls.Button {
-                    text: qsTr("Next")
-                    enabled: stmtView.draft && (stmtView.draft.currentIndex < stmtView.draft.count - 1)
+                    text: "◀"
+                    enabled: !!stmtView.draft && stmtView.draft.currentIndex > 0
+                    Layout.preferredWidth: parent.iconButtonWidth
+                    bordered: true
                     onClicked: {
-                        if (stmtView.draft) stmtView.draft.next()
-                        if (stmtView.forceSync) stmtView.forceSync()
+                        stmtView.draft.prev()
+                        stmtView.persistDraftSnapshot()
                     }
                 }
 
                 Item { Layout.fillWidth: true }
 
                 Controls.Button {
+                    text: "↩"
+                    enabled: !!stmtView.draft
+                    Layout.preferredWidth: parent.iconButtonWidth
+                    bordered: true
+                    onClicked: stmtView.returnToImport()
+                }
+
+                Controls.DangerButton {
                     text: qsTr("Discard")
                     enabled: !!stmtView.draft
+                    Layout.preferredWidth: parent.actionButtonWidth
                     onClicked: stmtView.discardDraft()
                 }
 
-                Controls.Button {
+                Controls.SuccessButton {
                     text: qsTr("Finalize")
                     enabled: !!stmtView.draft
+                    Layout.preferredWidth: parent.actionButtonWidth
                     onClicked: stmtView.finalizeDraft()
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Controls.Button {
+                    text: "▶"
+                    enabled: !!stmtView.draft && stmtView.draft.currentIndex < (stmtView.draft.count - 1)
+                    Layout.preferredWidth: parent.iconButtonWidth
+                    bordered: true
+                    onClicked: {
+                        stmtView.draft.next()
+                        stmtView.persistDraftSnapshot()
+                    }
+                }
+
+                Controls.Button {
+                    text: "⟫"
+                    enabled: !!stmtView.draft && root.hasImportController && root.importController.hasNextDraft
+                    Layout.preferredWidth: parent.iconButtonWidth
+                    bordered: true
+                    onClicked: if (root.hasImportController) root.importController.openNextDraft()
                 }
             }
         }

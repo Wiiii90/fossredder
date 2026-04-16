@@ -8,6 +8,9 @@
 
 #include "core/application/DraftFinalizer.h"
 #include "core/application/WorkspaceSession.h"
+#include "../utils/StableId.h"
+
+#include <algorithm>
 
 namespace {
 
@@ -293,6 +296,141 @@ void AppStateFacade::deleteAnnual(const std::string& id)
 std::string AppStateFacade::finalizeStatementDraft(const core::domain::StatementDraft& draft)
 {
     return commitCreated(*this, DraftFinalizer::finalize(mutableState(), draft));
+}
+
+void AppStateFacade::saveStatementDraft(const core::domain::StatementDraft& draft)
+{
+    auto& state = mutableState();
+    auto statementDraft = std::make_shared<core::domain::StatementDraft>(draft);
+    if (!statementDraft) {
+        commit();
+        return;
+    }
+
+    if (statementDraft->id.empty()) {
+        statementDraft->id = core::utils::makeStableId();
+    }
+
+    auto statementIt = std::find_if(state.statementDrafts.begin(), state.statementDrafts.end(),
+                                    [statementDraft](const auto& item) {
+                                        return item && item->id == statementDraft->id;
+                                    });
+    if (statementIt == state.statementDrafts.end()) {
+        state.statementDrafts.push_back(statementDraft);
+    } else {
+        *statementIt = statementDraft;
+    }
+
+    state.transactionDrafts.erase(
+        std::remove_if(state.transactionDrafts.begin(), state.transactionDrafts.end(),
+                       [statementDraft](const auto& tx) {
+                           return tx && tx->statementDraftId == statementDraft->id;
+                       }),
+        state.transactionDrafts.end());
+
+    for (std::size_t i = 0; i < statementDraft->transactions.size(); ++i) {
+        auto tx = std::make_shared<core::domain::TransactionDraft>(statementDraft->transactions[i]);
+        if (!tx) continue;
+        if (tx->id.empty()) {
+            tx->id = core::utils::makeStableId();
+        }
+        tx->statementDraftId = statementDraft->id;
+        tx->position = static_cast<int>(i);
+        state.transactionDrafts.push_back(std::move(tx));
+    }
+
+    commit();
+}
+
+void AppStateFacade::clearStatementDraft(const std::string& draftId)
+{
+    auto& state = mutableState();
+    if (draftId.empty()) {
+        state.statementDrafts.clear();
+        state.transactionDrafts.clear();
+        commit();
+        return;
+    }
+
+    state.statementDrafts.erase(
+        std::remove_if(state.statementDrafts.begin(), state.statementDrafts.end(),
+                       [&draftId](const auto& draft) {
+                           return draft && draft->id == draftId;
+                       }),
+        state.statementDrafts.end());
+
+    state.transactionDrafts.erase(
+        std::remove_if(state.transactionDrafts.begin(), state.transactionDrafts.end(),
+                       [&draftId](const auto& tx) {
+                           return tx && tx->statementDraftId == draftId;
+                       }),
+        state.transactionDrafts.end());
+    commit();
+}
+
+std::optional<core::domain::StatementDraft> AppStateFacade::loadStatementDraft(const std::string& draftId) const
+{
+    const auto& state = this->state();
+    if (state.statementDrafts.empty()) {
+        return std::nullopt;
+    }
+
+    auto statementIt = state.statementDrafts.begin();
+    if (!draftId.empty()) {
+        statementIt = std::find_if(state.statementDrafts.begin(), state.statementDrafts.end(),
+                                   [&draftId](const auto& draft) {
+                                       return draft && draft->id == draftId;
+                                   });
+    }
+    if (statementIt == state.statementDrafts.end() || !*statementIt) {
+        return std::nullopt;
+    }
+
+    core::domain::StatementDraft out = **statementIt;
+    out.transactions.clear();
+
+    std::vector<std::shared_ptr<core::domain::TransactionDraft>> txDrafts;
+    txDrafts.reserve(state.transactionDrafts.size());
+    for (const auto& tx : state.transactionDrafts) {
+        if (!tx) continue;
+        if (tx->statementDraftId != out.id) continue;
+        txDrafts.push_back(tx);
+    }
+
+    std::sort(txDrafts.begin(), txDrafts.end(), [](const auto& lhs, const auto& rhs) {
+        if (!lhs) return false;
+        if (!rhs) return true;
+        return lhs->position < rhs->position;
+    });
+
+    out.transactions.reserve(txDrafts.size());
+    for (const auto& tx : txDrafts) {
+        if (!tx) continue;
+        out.transactions.push_back(*tx);
+    }
+
+    return out;
+}
+
+void AppStateFacade::setImportLogs(const std::vector<core::domain::ImportLog>& logs)
+{
+    auto& state = mutableState();
+    state.importLogs.clear();
+    state.importLogs.reserve(logs.size());
+    for (const auto& item : logs) {
+        auto log = std::make_shared<core::domain::ImportLog>(item);
+        if (!log) continue;
+        if (log->id.empty()) {
+            log->id = core::utils::makeStableId();
+        }
+        state.importLogs.push_back(std::move(log));
+    }
+    commit();
+}
+
+std::vector<std::shared_ptr<core::domain::ImportLog>> AppStateFacade::importLogs() const
+{
+    return state().importLogs;
 }
 
 void AppStateFacade::commit()

@@ -11,6 +11,7 @@ class IStatementDraftRepository;
 class ITransactionDraftRepository;
 class IAnalysisRepository;
 class IAnnualRepository;
+class IImportLogRepository;
 
 namespace core::storage {
 
@@ -24,6 +25,7 @@ struct RepositoryBundle {
     std::shared_ptr<ITransactionDraftRepository> transactionDrafts;
     std::shared_ptr<IAnalysisRepository> analyses;
     std::shared_ptr<IAnnualRepository> annuals;
+    std::shared_ptr<IImportLogRepository> importLogs;
 };
 
 }

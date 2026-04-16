@@ -238,6 +238,9 @@ UiControllers setupUiControllers(
       snapshot.transactions = ui::cloneStateItems(session->transactions()->transactions());
       snapshot.analyses = ui::cloneStateItems(session->analyses()->analyses());
       snapshot.annuals = ui::cloneStateItems(session->annuals()->annuals());
+      snapshot.statementDrafts = liveState.statementDrafts;
+      snapshot.transactionDrafts = liveState.transactionDrafts;
+      snapshot.importLogs = liveState.importLogs;
       if (snapshot.actors.empty()) snapshot.actors = liveState.actors;
       if (snapshot.properties.empty()) snapshot.properties = liveState.properties;
       if (snapshot.contracts.empty()) snapshot.contracts = liveState.contracts;
@@ -252,13 +255,16 @@ UiControllers setupUiControllers(
 
   ui.import = new ui::ImportController(importJobSystemFactory, errorReporter, &w);
   ui.import->setStateSnapshotProvider(importSnapshotProvider);
+  ui.import->setImportLogsStore([&appStateFacade](const std::vector<core::domain::ImportLog>& logs) {
+    appStateFacade.setImportLogs(logs);
+  });
+  ui.import->setStatementDraftStore([&appStateFacade](const core::domain::StatementDraft& draft) {
+    appStateFacade.saveStatementDraft(draft);
+  });
   w.setQmlContextProperty(ui::qml::contracts::context::kImportController,
                           ui.import);
   if (auto *appContext = w.appContext())
     appContext->setImportController(ui.import);
-
-  w.addImageProvider(ui::qml::contracts::providers::kImportProof,
-                     ui::importing::createDraftProofProvider(ui.import));
 
   return ui;
 }

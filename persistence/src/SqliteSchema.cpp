@@ -287,4 +287,107 @@ void SqliteSchema::migrate(sqlite3* db) {
         setUserVersion(db, 4);
         v = 4;
     }
+
+    if (v < 5) {
+        exec(db,
+            "BEGIN;"
+            "CREATE TABLE IF NOT EXISTS import_logs ("
+            "id TEXT PRIMARY KEY,"
+            "time TEXT,"
+            "type TEXT,"
+            "file TEXT,"
+            "status TEXT,"
+            "message TEXT,"
+            "draft_attached INTEGER NOT NULL DEFAULT 0,"
+            "statement_id TEXT"
+            ");"
+            "CREATE INDEX IF NOT EXISTS idx_import_logs_time ON import_logs(time DESC);"
+            "COMMIT;"
+        );
+        setUserVersion(db, 5);
+        v = 5;
+    }
+
+    if (v < 6) {
+        exec(db,
+            "BEGIN;"
+            "ALTER TABLE transaction_drafts ADD COLUMN proof_image_data BLOB;"
+            "COMMIT;"
+        );
+        setUserVersion(db, 6);
+        v = 6;
+    }
+
+    if (v < 7) {
+        exec(db,
+            "PRAGMA foreign_keys = OFF;"
+            "BEGIN;"
+            "CREATE TABLE IF NOT EXISTS transactions_v2 ("
+            "id TEXT PRIMARY KEY,"
+            "name TEXT,"
+            "booking_date TEXT,"
+            "valuta TEXT,"
+            "amount REAL,"
+            "status INTEGER NOT NULL DEFAULT 0,"
+            "description TEXT,"
+            "type TEXT,"
+            "actor_id TEXT,"
+            "contract_id TEXT,"
+            "statement_id TEXT,"
+            "metadata TEXT,"
+            "allocatable INTEGER NOT NULL DEFAULT 0,"
+            "FOREIGN KEY(actor_id) REFERENCES actors(id) ON DELETE SET NULL,"
+            "FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE SET NULL,"
+            "FOREIGN KEY(statement_id) REFERENCES statements(id) ON DELETE CASCADE"
+            ");"
+            "INSERT INTO transactions_v2 (id, name, booking_date, valuta, amount, status, description, type, actor_id, contract_id, statement_id, metadata, allocatable) "
+            "SELECT id, name, booking_date, valuta, amount, status, description, type, actor_id, contract_id, statement_id, metadata, allocatable FROM transactions;"
+            "DROP TABLE IF EXISTS transactions;"
+            "ALTER TABLE transactions_v2 RENAME TO transactions;"
+            "CREATE INDEX IF NOT EXISTS idx_transactions_contract_id ON transactions(contract_id);"
+
+            "CREATE TABLE IF NOT EXISTS transaction_drafts_v3 ("
+            "id TEXT PRIMARY KEY,"
+            "statement_draft_id TEXT,"
+            "position INTEGER NOT NULL DEFAULT 0,"
+            "name TEXT,"
+            "booking_date TEXT,"
+            "valuta TEXT,"
+            "amount REAL,"
+            "description TEXT,"
+            "actor_text TEXT,"
+            "property_text TEXT,"
+            "actor_id TEXT,"
+            "new_actor_selected INTEGER NOT NULL DEFAULT 0,"
+            "contract_id TEXT,"
+            "new_contract_selected INTEGER NOT NULL DEFAULT 0,"
+            "metadata TEXT,"
+            "type TEXT,"
+            "allocatable INTEGER NOT NULL DEFAULT 0,"
+            "allocatable_manual_override INTEGER NOT NULL DEFAULT 0,"
+            "status INTEGER NOT NULL DEFAULT 1,"
+            "proof_image_data BLOB,"
+            "FOREIGN KEY(statement_draft_id) REFERENCES statement_drafts(id) ON DELETE CASCADE"
+            ");"
+            "INSERT INTO transaction_drafts_v3 (id, statement_draft_id, position, name, booking_date, valuta, amount, description, actor_text, property_text, actor_id, new_actor_selected, contract_id, new_contract_selected, metadata, type, allocatable, allocatable_manual_override, status, proof_image_data) "
+            "SELECT id, statement_draft_id, position, name, booking_date, valuta, amount, description, actor_text, property_text, actor_id, new_actor_selected, contract_id, new_contract_selected, metadata, type, allocatable, allocatable_manual_override, status, proof_image_data FROM transaction_drafts;"
+            "DROP TABLE IF EXISTS transaction_drafts;"
+            "ALTER TABLE transaction_drafts_v3 RENAME TO transaction_drafts;"
+            "COMMIT;"
+            "PRAGMA foreign_keys = ON;"
+        );
+        setUserVersion(db, 7);
+        v = 7;
+    }
+
+    if (v < 8) {
+        exec(db,
+            "BEGIN;"
+            "ALTER TABLE import_logs ADD COLUMN draft_id TEXT;"
+            "UPDATE import_logs SET draft_id = id WHERE draft_attached = 1 AND (draft_id IS NULL OR draft_id = '');"
+            "COMMIT;"
+        );
+        setUserVersion(db, 8);
+        v = 8;
+    }
 }

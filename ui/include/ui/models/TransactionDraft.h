@@ -29,7 +29,7 @@ struct TransactionDraft {
     bool newContractSelected = false;
 
     QString metadata;
-    QString proofImagePath;
+    QString proofImageData;
 
     QString type;
 

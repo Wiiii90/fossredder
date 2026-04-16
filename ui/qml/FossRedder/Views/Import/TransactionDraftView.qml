@@ -94,16 +94,10 @@ Item {
         return draftViewRoot.viewState && draftViewRoot.viewState.effectiveAllocatable !== undefined ? !!draftViewRoot.viewState.effectiveAllocatable : !!tx.allocatable
     }
 
-    function proofSource(path) {
-        const sourcePath = path || ""
-        if (sourcePath.length === 0) return ""
-        if (sourcePath.indexOf("proof/") === 0) return "image://importProof/" + sourcePath
-        if (sourcePath.indexOf("file://") === 0) return sourcePath
-
-        const normalized = String(sourcePath).replace(/\\/g, "/")
-        if (/^[A-Za-z]:\//.test(normalized)) return "file:///" + normalized
-        if (normalized.indexOf("//") === 0) return "file:" + normalized
-        return "file:///" + normalized
+    function proofSource(proofDataBase64) {
+        const data = proofDataBase64 || ""
+        if (data.length === 0) return ""
+        return "data:image/jpeg;base64," + data
     }
 
     function syncViewState() {

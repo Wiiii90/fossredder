@@ -12,6 +12,9 @@
 ## Code Integration
 - Prefer using centralized constants like `QmlContracts.h` to avoid magic strings and keep QML/C++ integration clean.
 
+## Build Management
+- Run builds using repository CMake presets (e.g., `cmake --build --preset debug-app`) instead of ad-hoc build commands.
+
 ## Cleanup Preferences
 - Perform larger cleanup batches instead of very small incremental batches to maintain efficiency and coherence in the codebase.
 
@@ -20,3 +23,7 @@
 
 ## Issue Resolution
 - When a user says an issue is already resolved, do not rollback broadly; continue strictly with the user’s explicit numbered follow-up tasks.
+
+## Implementation Preferences
+- Address only specific numbered points when referenced by the user; do not revisit omitted points.
+- Strive for clean deterministic implementations without fallback or redundant code paths.

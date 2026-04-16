@@ -10,7 +10,6 @@ Item {
 
     readonly property var importController: stmtRoot.appContext ? stmtRoot.appContext.importController : null
     readonly property var draftController: stmtRoot.appContext ? stmtRoot.appContext.draftController : null
-    readonly property var session: stmtRoot.appContext ? stmtRoot.appContext.session : null
     readonly property var navigation: stmtRoot.appContext ? stmtRoot.appContext.navigation : null
 
     property var draft
@@ -18,40 +17,70 @@ Item {
     implicitHeight: stmtLayout.implicitHeight
     implicitWidth: stmtLayout.implicitWidth
 
-    function discardDraft() {
+
+    function returnToImport() {
+        if (stmtRoot.importController && stmtRoot.importController.addRunNote)
+            stmtRoot.importController.addRunNote(qsTr("Draft"), qsTr("Draft paused. Click log entry to continue."), true)
         if (stmtRoot.importController) stmtRoot.importController.clearDraft()
-        if (stmtRoot.session) {
-            stmtRoot.session.selectedStatementId = ""
-            stmtRoot.session.selectedTransactionId = ""
-        }
         if (stmtRoot.navigation) stmtRoot.navigation.setSectionValue(4)
+    }
+
+    function persistDraftSnapshotNow() {
+        if (!stmtRoot.draft || !stmtRoot.draftController) return
+        stmtRoot.draftController.persistStatementDraft(stmtRoot.draft)
+    }
+
+    function persistDraftSnapshot() {
+        if (!stmtRoot.draft) return
+        persistDebounce.restart()
+    }
+
+    function discardDraft() {
+        const ic = stmtRoot.importController
+        const dc = stmtRoot.draftController
+        const nav = stmtRoot.navigation
+
+        persistDebounce.stop()
+        const draftId = (stmtRoot.draft && stmtRoot.draft.draftId) ? stmtRoot.draft.draftId : ""
+        if (dc) dc.clearPersistedStatementDraft(draftId)
+        if (ic && ic.addRunNote) ic.addRunNote(qsTr("Draft discarded"), qsTr("Statement draft was discarded."), false)
+        if (ic) ic.clearDraft()
+        if (nav) nav.setSectionValue(4)
+    }
+
+    function discardCurrentTransaction() {
+        if (!stmtRoot.draft || stmtRoot.draft.count <= 1) return
+        stmtRoot.draft.removeTransaction(stmtRoot.draft.currentIndex)
+        stmtRoot.persistDraftSnapshot()
+    }
+
+    function deleteCurrentTransaction() {
+        stmtRoot.discardCurrentTransaction()
     }
 
     function finalizeDraft() {
         if (!stmtRoot.draft || !stmtRoot.draftController) return
 
-        const sid = stmtRoot.draftController.finalizeStatementDraft(stmtRoot.draft)
-        if (stmtRoot.importController) stmtRoot.importController.clearDraft()
+        const dc = stmtRoot.draftController
+        const ic = stmtRoot.importController
+        const nav = stmtRoot.navigation
+        const d = stmtRoot.draft
 
-        if (!(sid && sid.length > 0 && stmtRoot.navigation && stmtRoot.session)) return
-
-        stmtRoot.session.selectedStatementId = sid
-        try {
-            const transactions = stmtRoot.session.statementTransactionIds(sid)
-            if (transactions && transactions.length > 0) stmtRoot.session.selectedTransactionId = transactions[0]
-        } catch(e) {
+        persistDebounce.stop()
+        const sid = dc.finalizeStatementDraft(d)
+        if (!(sid && sid.length > 0)) {
+            if (ic && ic.addRunNote) ic.addRunNote(qsTr("Finalize failed"), qsTr("Draft could not be finalized."), true)
+            return
         }
 
-        Qt.callLater(function() {
-            stmtRoot.navigation.setSectionValue(3)
-            try { stmtRoot.navigation.setBookingViewValue(0) } catch(e) {}
-        })
-    }
+        dc.clearPersistedStatementDraft((d && d.draftId) ? d.draftId : "")
+        if (ic && ic.addRunNote) ic.addRunNote(qsTr("Finalized"), qsTr("Draft was finalized into a statement."), false, sid)
+        if (ic) ic.clearDraft()
 
-    function forceSync() {
-        try {
-            if (txView && txView.syncViewState) txView.syncViewState()
-        } catch(e) {
+        if (nav) {
+            Qt.callLater(function() {
+                nav.setSectionValue(4)
+            })
         }
     }
 
@@ -59,6 +88,24 @@ Item {
         id: stmtLayout
         anchors.fill: parent
         spacing: stmtRoot.theme.spacingSmall
+
+        Timer {
+            id: persistDebounce
+            interval: 350
+            repeat: false
+            onTriggered: stmtRoot.persistDraftSnapshotNow()
+        }
+
+        Component.onCompleted: {
+            stmtRoot.persistDraftSnapshot()
+        }
+
+        Connections {
+            target: stmtRoot.draft
+            function onChanged() {
+                stmtRoot.persistDraftSnapshot()
+            }
+        }
 
         Label {
             visible: !stmtRoot.draft
@@ -86,15 +133,30 @@ Item {
                 Controls.TextField {
                     Layout.fillWidth: true
                     text: stmtRoot.draft ? stmtRoot.draft.name : ""
-                    onTextEdited: if (stmtRoot.draft) stmtRoot.draft.name = text
+                    onTextChanged: if (stmtRoot.draft && stmtRoot.draft.name !== text) stmtRoot.draft.name = text
                 }
             }
 
-            Label {
+            RowLayout {
                 Layout.fillWidth: true
-                text: (stmtRoot.draft && stmtRoot.draft.current)
-                        ? (qsTr("Transaction %1 / %2").arg(stmtRoot.draft.currentIndex + 1).arg(stmtRoot.draft.count))
-                        : qsTr("No current transaction")
+
+                Label {
+                    Layout.fillWidth: true
+                    text: (stmtRoot.draft && stmtRoot.draft.current)
+                            ? (qsTr("Transaction %1 / %2").arg(stmtRoot.draft.currentIndex + 1).arg(stmtRoot.draft.count))
+                            : qsTr("No current transaction")
+                }
+
+                Controls.Button {
+                    visible: stmtRoot.draft && stmtRoot.draft.count > 1
+                    text: "×"
+                    implicitHeight: 22
+                    implicitWidth: 24
+                    fillColor: stmtRoot.theme.surface
+                    textColor: stmtRoot.theme.textMuted
+                    bordered: true
+                    onClicked: stmtRoot.deleteCurrentTransaction()
+                }
             }
 
             Controls.Panel {

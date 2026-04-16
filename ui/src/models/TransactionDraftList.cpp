@@ -36,7 +36,7 @@ QVariant TransactionDraftList::data(const QModelIndex& index, int role) const
     case ContractIdRole: return t->contractId;
     case NewContractSelectedRole: return t->newContractSelected;
     case MetadataRole: return t->metadata;
-    case ProofImagePathRole: return t->proofImagePath;
+    case ProofImageDataRole: return t->proofImageData;
     case ActorSuggestionsRole: return ui::toVariantMap(t->suggestions.actor);
     case PropertySuggestionsRole: return ui::toVariantMap(t->suggestions.property);
     case ContractSuggestionsRole: return ui::toVariantMap(t->suggestions.contract);
@@ -63,7 +63,7 @@ QHash<int, QByteArray> TransactionDraftList::roleNames() const
     roles[ContractIdRole] = payload::keys::transaction::kContractId.toUtf8();
     roles[NewContractSelectedRole] = payload::keys::draft::kNewContractSelected.toUtf8();
     roles[MetadataRole] = payload::keys::common::kMetadata.toUtf8();
-    roles[ProofImagePathRole] = payload::keys::transaction::kProofImagePath.toUtf8();
+    roles[ProofImageDataRole] = payload::keys::transaction::kProofImageData.toUtf8();
     roles[ActorSuggestionsRole] = payload::keys::draft::kActorSuggestions.toUtf8();
     roles[PropertySuggestionsRole] = payload::keys::draft::kPropertySuggestions.toUtf8();
     roles[ContractSuggestionsRole] = payload::keys::draft::kContractSuggestions.toUtf8();
@@ -96,7 +96,7 @@ QVariantMap TransactionDraftList::get(int index) const
     m[payload::keys::transaction::kContractId] = t->contractId;
     m[payload::keys::draft::kNewContractSelected] = t->newContractSelected;
     m[payload::keys::common::kMetadata] = t->metadata;
-    m[payload::keys::transaction::kProofImagePath] = t->proofImagePath;
+    m[payload::keys::transaction::kProofImageData] = t->proofImageData;
     m[payload::keys::draft::kActorSuggestions] = ui::toVariantMap(t->suggestions.actor);
     m[payload::keys::draft::kPropertySuggestions] = ui::toVariantMap(t->suggestions.property);
     m[payload::keys::draft::kContractSuggestions] = ui::toVariantMap(t->suggestions.contract);
@@ -192,10 +192,10 @@ void TransactionDraftList::setMetadata(int index, const QString& v)
     });
 }
 
-void TransactionDraftList::setProofImagePath(int index, const QString& v)
+void TransactionDraftList::setProofImageData(int index, const QString& v)
 {
-    updateField(index, v, ProofImagePathRole, [](TransactionDraft& draft) -> QString& {
-        return draft.proofImagePath;
+    updateField(index, v, ProofImageDataRole, [](TransactionDraft& draft) -> QString& {
+        return draft.proofImageData;
     });
 }
 
@@ -225,6 +225,11 @@ void TransactionDraftList::setType(int index, const QString& v)
     updateField(index, v, TypeRole, [](TransactionDraft& draft) -> QString& {
         return draft.type;
     });
+}
+
+void TransactionDraftList::removeAt(int index)
+{
+    removeRow(index);
 }
 
 }

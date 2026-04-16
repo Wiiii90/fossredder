@@ -9,15 +9,6 @@
 #include "ui/observability/Origins.h"
 #include "ui/util/StringConversions.h"
 
-#ifdef USE_QML
-#include <QImage>
-#include <QPointer>
-#include <QQuickImageProvider>
-#include <QUrl>
-
-#include "ui/controllers/ImportController.h"
-#endif
-
 namespace ui::importing {
 
 namespace {
@@ -123,53 +114,5 @@ std::map<std::string, std::vector<uint8_t>> ImportJobBridge::takeArtifacts() {
     return {};
   return jobSystem_->takeStatementArtifacts(strings::toStdString(currentJobId_));
 }
-
-#ifdef USE_QML
-
-namespace {
-
-class DraftProofProvider final : public QQuickImageProvider {
-public:
-    explicit DraftProofProvider(ImportController* controller)
-        : QQuickImageProvider(QQuickImageProvider::Image), controller_(controller)
-    {
-    }
-
-    QImage requestImage(const QString& id, QSize* size, const QSize& requestedSize) override
-    {
-        const QString key = QUrl::fromPercentEncoding(id.toUtf8());
-
-        QByteArray bytes;
-        if (controller_) {
-            bytes = controller_->artifactBytes(key);
-        }
-
-        QImage image;
-        if (!bytes.isEmpty()) {
-            image.loadFromData(bytes);
-        }
-
-        if (requestedSize.isValid() && !image.isNull()) {
-            image = image.scaled(requestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        }
-
-        if (size) {
-            *size = image.size();
-        }
-        return image;
-    }
-
-private:
-    QPointer<ImportController> controller_;
-};
-
-} // namespace
-
-QQmlImageProviderBase* createDraftProofProvider(ImportController* controller)
-{
-    return new DraftProofProvider(controller);
-}
-
-#endif
 
 } // namespace ui::importing

@@ -19,6 +19,7 @@ class StatementDraft : public QObject {
     QML_NAMED_ELEMENT(StatementDraft)
     QML_UNCREATABLE("StatementDraft is exposed by the application context")
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
+    Q_PROPERTY(QString draftId READ draftId WRITE setDraftId NOTIFY changed)
 
     Q_PROPERTY(int currentIndex READ currentIndex WRITE setCurrentIndex NOTIFY changed)
     Q_PROPERTY(int count READ count NOTIFY changed)
@@ -31,6 +32,9 @@ public:
 
     QString name() const { return name_; }
     void setName(const QString& n);
+
+    QString draftId() const { return draftId_; }
+    void setDraftId(const QString& id);
 
     int currentIndex() const { return currentIndex_; }
     void setCurrentIndex(int idx);
@@ -47,6 +51,7 @@ public:
     Q_INVOKABLE void next();
     Q_INVOKABLE void prev();
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE void removeTransaction(int index);
 
     void setCatalogState(const core::domain::AppState& state);
     void setDrafts(std::vector<TransactionDraft> drafts);
@@ -56,6 +61,7 @@ signals:
 
 private:
     QString name_;
+    QString draftId_;
 
     int currentIndex_ = 0;
     TransactionDraftList transactions_;

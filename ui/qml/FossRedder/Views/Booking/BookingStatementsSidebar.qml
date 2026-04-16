@@ -11,7 +11,35 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
 
+    function selectedStatementIndex() {
+        if (!root.session || !root.session.selectedStatementId) return -1
+        const rows = root.session.statementRows()
+        if (!rows || rows.length === undefined) return -1
+        for (let i = 0; i < rows.length; ++i) {
+            const row = rows[i]
+            if (row && row.id === root.session.selectedStatementId) return i
+        }
+        return -1
+    }
+
+    function ensureSelectedStatementVisible() {
+        const idx = selectedStatementIndex()
+        if (idx < 0 || !statementRepeater || !statementsFlick) return
+        const item = statementRepeater.itemAt(idx)
+        if (!item) return
+        const top = item.y
+        const bottom = top + item.height
+        const viewportTop = statementsFlick.contentY
+        const viewportBottom = viewportTop + statementsFlick.height
+        if (top < viewportTop) {
+            statementsFlick.contentY = top
+        } else if (bottom > viewportBottom) {
+            statementsFlick.contentY = Math.max(0, bottom - statementsFlick.height)
+        }
+    }
+
     Flickable {
+        id: statementsFlick
         anchors.fill: parent
         clip: true
         contentWidth: width
@@ -23,6 +51,7 @@ Item {
             spacing: root.theme.spacingSmall
 
             Repeater {
+                id: statementRepeater
                 model: root.session ? root.session.statementRows() : []
 
                 delegate: Column {
@@ -117,5 +146,15 @@ Item {
                 }
             }
         }
+    }
+
+    Connections {
+        target: root.session
+        function onSelectedStatementIdChanged() { root.ensureSelectedStatementVisible() }
+    }
+
+    Connections {
+        target: statementRepeater
+        function onModelChanged() { root.ensureSelectedStatementVisible() }
     }
 }

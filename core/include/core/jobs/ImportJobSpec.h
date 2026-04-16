@@ -13,7 +13,6 @@ struct ImportStatementJobSpec {
     std::string sourcePath;
     std::string runRoot;
     std::string runIdPrefix;
-    std::string proofOutputDir;
 };
 
 }

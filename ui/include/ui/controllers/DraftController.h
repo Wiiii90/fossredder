@@ -36,6 +36,8 @@ public:
      *  @return Identifier of the created statement or empty string on failure
      */
     Q_INVOKABLE QString finalizeStatementDraft(StatementDraft* draft);
+    Q_INVOKABLE void persistStatementDraft(StatementDraft* draft);
+    Q_INVOKABLE void clearPersistedStatementDraft(const QString& draftId = {});
 
     /** @brief Build the derived view state for the currently selected draft transaction.
      *  @param draft Pointer to the UI StatementDraft

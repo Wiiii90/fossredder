@@ -7,7 +7,8 @@ import FossRedder.Controls 1.0 as Controls
 Item {
     id: root
     readonly property var theme: FR.Theme
-    implicitHeight: 140
+    implicitHeight: Math.max(dropZoneMinimumHeight, dropZoneRect.implicitHeight)
+    property int dropZoneMinimumHeight: 140
 
     property string title: qsTr("Drop PDFs here")
     property string subtitle: qsTr("")
@@ -39,6 +40,7 @@ Item {
     }
 
     Rectangle {
+        id: dropZoneRect
         anchors.fill: parent
         radius: root.theme.radius
         color: root.theme.surfaceAlt

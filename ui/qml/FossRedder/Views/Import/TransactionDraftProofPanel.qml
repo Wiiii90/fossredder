@@ -31,7 +31,7 @@ Controls.Panel {
             visible: source.toString().length > 0
             fillMode: Image.PreserveAspectFit
             source: root.txRoot && root.txRoot.draft && root.txRoot.draft.current
-                ? root.txRoot.proofSource(root.txRoot.draft.current.proofImagePath || "")
+                ? root.txRoot.proofSource(root.txRoot.draft.current.proofImageData || "")
                 : ""
             cache: true
             asynchronous: true

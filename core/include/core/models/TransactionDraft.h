@@ -33,7 +33,7 @@ public:
     bool newContractSelected = false;
 
     std::string metadata;
-    std::string proofImagePath;
+    std::vector<uint8_t> proofImageData;
 
     std::string type;
 

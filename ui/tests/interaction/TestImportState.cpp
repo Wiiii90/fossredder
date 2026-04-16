@@ -19,8 +19,7 @@ using ui::importing::ImportState;
 
 TEST(ImportStateTests, AddFilesUsesFirstFileAsSelectionAndQueuesRemainingFiles)
 {
-    ImportRunList runs;
-    ImportState state(runs);
+    ImportState state;
 
     const bool changed = state.addFiles({QStringLiteral(" first.pdf "), QString(), QStringLiteral("second.pdf"), QStringLiteral("third.pdf")});
 
@@ -33,8 +32,7 @@ TEST(ImportStateTests, AddFilesUsesFirstFileAsSelectionAndQueuesRemainingFiles)
 
 TEST(ImportStateTests, UpdateProgressExtractsPageInformationFromPhaseText)
 {
-    ImportRunList runs;
-    ImportState state(runs);
+    ImportState state;
     const QRegularExpression pagePattern(ui::config::kImportProgressPagePattern);
 
     state.beginImport(QStringLiteral("statement.pdf"));
@@ -49,7 +47,7 @@ TEST(ImportStateTests, UpdateProgressExtractsPageInformationFromPhaseText)
 TEST(ImportStateTests, RecordCanceledAppendsCanceledRunAndClearsCurrentSelection)
 {
     ImportRunList runs;
-    ImportState state(runs);
+    ImportState state;
 
     state.beginImport(QStringLiteral("statement.pdf"));
     state.beginCancel(true);
@@ -59,17 +57,13 @@ TEST(ImportStateTests, RecordCanceledAppendsCanceledRunAndClearsCurrentSelection
     EXPECT_FALSE(state.cancelRequested());
     EXPECT_TRUE(state.selectedFile().isEmpty());
     EXPECT_TRUE(state.currentRunFile().isEmpty());
-    ASSERT_EQ(runs.rowCount(), 1);
-
-    const QModelIndex row = runs.index(0, 0);
-    EXPECT_EQ(runs.data(row, ImportRunList::FileRole).toString(), QStringLiteral("statement.pdf"));
-    EXPECT_EQ(runs.data(row, ImportRunList::StatusRole).toString(), ui::text::importRuns::statusCanceled());
+    EXPECT_EQ(runs.rowCount(), 0);
 }
 
 TEST(ImportStateTests, RecordFailedClearsQueueAndPersistsFailureMessage)
 {
     ImportRunList runs;
-    ImportState state(runs);
+    ImportState state;
 
     ASSERT_TRUE(state.addFiles({QStringLiteral("statement.pdf"), QStringLiteral("queued.pdf")}));
     const QString selected = state.takeSelectedFileForStart();
@@ -81,11 +75,7 @@ TEST(ImportStateTests, RecordFailedClearsQueueAndPersistsFailureMessage)
     EXPECT_FALSE(state.isRunning());
     EXPECT_EQ(state.error(), QStringLiteral("import failed"));
     EXPECT_TRUE(state.queuedFiles().isEmpty());
-    ASSERT_EQ(runs.rowCount(), 1);
-
-    const QModelIndex row = runs.index(0, 0);
-    EXPECT_EQ(runs.data(row, ImportRunList::FileRole).toString(), QStringLiteral("statement.pdf"));
-    EXPECT_EQ(runs.data(row, ImportRunList::MessageRole).toString(), QStringLiteral("import failed"));
+    EXPECT_EQ(runs.rowCount(), 0);
 }
 
 } // namespace

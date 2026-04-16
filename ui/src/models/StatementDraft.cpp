@@ -25,6 +25,13 @@ void StatementDraft::setName(const QString& n)
     emit changed();
 }
 
+void StatementDraft::setDraftId(const QString& id)
+{
+    if (draftId_ == id) return;
+    draftId_ = id;
+    emit changed();
+}
+
 void StatementDraft::setCurrentIndex(int idx)
 {
     if (idx < 0) idx = 0;
@@ -78,6 +85,20 @@ void StatementDraft::setDrafts(std::vector<TransactionDraft> drafts)
 void StatementDraft::refresh()
 {
     emit changed();
+}
+
+void StatementDraft::removeTransaction(int index)
+{
+    if (index < 0 || index >= count()) return;
+    transactions_.removeAt(index);
+    // clamp currentIndex after removal
+    const int newCount = count();
+    if (newCount == 0) {
+        currentIndex_ = 0;
+    } else if (currentIndex_ >= newCount) {
+        currentIndex_ = newCount - 1;
+        emit changed();
+    }
 }
 
 }

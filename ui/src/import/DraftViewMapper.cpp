@@ -36,7 +36,6 @@ core::importing::DraftLinkSelection toCoreSelection(const TransactionDraft& draf
     out.name = ui::strings::toStdString(draft.name);
     out.description = ui::strings::toStdString(draft.description);
     out.metadata = ui::strings::toStdString(draft.metadata);
-    out.proofImagePath = ui::strings::toStdString(draft.proofImagePath);
     out.actorText = ui::strings::toStdString(draft.actorText);
     out.propertyText = ui::strings::toStdString(draft.propertyText);
     out.actorId = ui::strings::toStdString(draft.actorId);

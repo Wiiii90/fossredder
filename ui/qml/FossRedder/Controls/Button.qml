@@ -8,6 +8,7 @@ Button {
 
     property color fillColor: Theme.primary
     property color textColor: Theme.surface
+    property bool bordered: false
 
     font.family: Theme.fontFamily
     font.pointSize: Theme.fontSize
@@ -34,8 +35,8 @@ Button {
             anchors.fill: parent
             radius: Theme.radius
             color: control.fillColor
-            border.width: control.focus ? 1.0 : (control.hovered ? 0.9 : 0)
-            border.color: control.focus ? Theme.accent : (control.hovered ? Theme.accent : "transparent")
+            border.width: control.focus ? 1.0 : (control.hovered ? 0.9 : (control.bordered ? 1.0 : 0))
+            border.color: control.focus ? Theme.accent : (control.hovered ? Theme.accent : Theme.border)
             scale: control.pressed ? 0.985 : (control.hovered ? 1.02 : 1.0)
             z: 0
 

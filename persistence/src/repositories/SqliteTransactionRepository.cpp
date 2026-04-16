@@ -115,7 +115,7 @@ void SqliteTransactionRepository::addTransaction(const std::shared_ptr<Transacti
 std::vector<std::shared_ptr<Transaction>> SqliteTransactionRepository::getTransactions() const {
     std::vector<std::shared_ptr<Transaction>> out;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        std::string(kSelectTx) + " ORDER BY id;");
+        std::string(kSelectTx) + " ORDER BY rowid;");
     if (!stmt) return out;
     while (stmt.step() == SQLITE_ROW)
         out.push_back(readTx(stmt, pimpl_->db->handle()));
