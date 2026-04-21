@@ -63,10 +63,27 @@ Item {
                     anchors.margins: root.theme.pageMargin
                     spacing: root.theme.settings.spacing
 
-                    GroupBox {
-                        id: createBox
-                        title: qsTr("Create new analysis")
+                    Flickable {
+                        id: analysisCreateScroll
                         Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        contentWidth: width
+                        contentHeight: analysisCreateContent.implicitHeight
+
+                        ScrollBar.vertical: ScrollBar {
+                            policy: ScrollBar.AsNeeded
+                        }
+
+                        ColumnLayout {
+                            id: analysisCreateContent
+                            width: analysisCreateScroll.width
+                            spacing: root.theme.settings.spacing
+
+                            GroupBox {
+                                id: createBox
+                                title: ""
+                                Layout.fillWidth: true
 
                         ListModel { id: contractTypeList }
                         property var selectedProps: []
@@ -141,8 +158,8 @@ Item {
                             }
                         }
 
-                        ColumnLayout { anchors.fill: parent; anchors.margins: root.theme.chartPanelMargin; spacing: root.theme.settings.spacing
-                            Controls.TextField { id: nameField; placeholderText: qsTr("Analysis name") }
+                                ColumnLayout { anchors.fill: parent; anchors.margins: root.theme.chartPanelMargin; spacing: root.theme.settings.spacing
+                                    Controls.TextField { id: nameField; placeholderText: qsTr("Analysis name") }
 
                             RowLayout { Layout.fillWidth: true; spacing: root.theme.settings.spacing
                                 Label { text: qsTr("Strategy"); Layout.preferredWidth: root.theme.formLabelWidth }
@@ -169,24 +186,24 @@ Item {
                                 Flickable { Layout.fillWidth: true; contentHeight: contractTypeList.count * 28; clip: true; Layout.preferredHeight: root.theme.chartLegendHeight
                                     Column { width: parent.width
                                         Repeater { model: contractTypeList
-                                            delegate: RowLayout { id: contractTypeRow; required property var model; width: createBox.width; spacing: root.theme.settings.spacing
+                                            delegate: RowLayout { required property string text; width: parent ? parent.width : createBox.width; spacing: root.theme.settings.spacing
                                                 Controls.CheckBox {
                                                     id: ctcb
                                                     checked: true
                                                     Component.onCompleted: {
-                                                        if (createBox.selectedContractTypes.indexOf(contractTypeRow.model.text) === -1) createBox.selectedContractTypes.push(contractTypeRow.model.text)
+                                                        if (createBox.selectedContractTypes.indexOf(text) === -1) createBox.selectedContractTypes.push(text)
                                                     }
                                                     onCheckedChanged: {
                                                         if (checked) {
-                                                            if (createBox.selectedContractTypes.indexOf(contractTypeRow.model.text) === -1)
-                                                                createBox.selectedContractTypes.push(contractTypeRow.model.text)
+                                                            if (createBox.selectedContractTypes.indexOf(text) === -1)
+                                                                createBox.selectedContractTypes.push(text)
                                                         } else {
-                                                            const idx = createBox.selectedContractTypes.indexOf(contractTypeRow.model.text)
+                                                            const idx = createBox.selectedContractTypes.indexOf(text)
                                                             if (idx !== -1) createBox.selectedContractTypes.splice(idx,1)
                                                         }
                                                     }
                                                 }
-                                                Label { text: contractTypeRow.model.text; Layout.fillWidth: true }
+                                                Label { text: text; Layout.fillWidth: true }
                                             }
                                         }
                                     }
@@ -226,10 +243,10 @@ Item {
                                 Label { text: qsTr("Plot Measure"); Layout.preferredWidth: root.theme.formLabelWidth }
                                 Controls.ComboBox { id: plotMeasureCombo; Layout.fillWidth: true; model: root.plotMeasureOptions; textRole: "label"; currentIndex: 0 }
                             }
+                                }
+                            }
                         }
                     }
-
-                    Item { Layout.fillHeight: true }
 
                     Components.BottomBar {
                         Layout.fillWidth: true

@@ -35,14 +35,31 @@ Item {
         anchors.margins: 12
         spacing: 10
 
-        Label {
-            text: root.isEdit ? qsTr("Edit Statement") : qsTr("Create Statement")
-            font.pointSize: 18
+        Flickable {
+            id: statementScroll
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            contentWidth: width
+            contentHeight: statementContent.implicitHeight
+
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
+
+            ColumnLayout {
+                id: statementContent
+                width: statementScroll.width
+                spacing: 10
+
+                Label {
+                    text: root.isEdit ? qsTr("Edit Statement") : qsTr("Create Statement")
+                    font.pointSize: 18
+                }
+
+                Controls.TextField { id: nameField; objectName: "bookingStatementNameField"; placeholderText: qsTr("Name"); Layout.fillWidth: true }
+            }
         }
-
-        Controls.TextField { id: nameField; objectName: "bookingStatementNameField"; placeholderText: qsTr("Name"); Layout.fillWidth: true }
-
-        Item { Layout.fillHeight: true }
 
         Components.BottomBar {
             Layout.fillWidth: true

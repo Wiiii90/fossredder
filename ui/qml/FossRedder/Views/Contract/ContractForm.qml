@@ -73,76 +73,95 @@ Item {
         anchors.margins: root.theme.pageMargin
         spacing: root.theme.spacing
 
-        Label { text: root.isEdit ? qsTr("Edit Contract") : qsTr("Create Contract"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
-
-        Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
-        Controls.TextField { id: typeField; placeholderText: qsTr("Type"); Layout.fillWidth: true }
-        Controls.TextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.preferredHeight: root.theme.chartLegendHeight; wrapMode: TextArea.Wrap }
-
-        GroupBox {
-            title: qsTr("Actors (min 1)")
+        Flickable {
+            id: contractScroll
             Layout.fillWidth: true
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: root.theme.spacingMedium
-                spacing: root.theme.spacingSmall
+            Layout.fillHeight: true
+            clip: true
+            contentWidth: width
+            contentHeight: contractContent.implicitHeight
 
-                Components.EntityPicker {
-                    id: actorPicker
-                    appContext: root.appContext
-                    Layout.fillWidth: true
-                    model: root.session ? root.session.actors : null
-                    placeholder: qsTr("New actor name")
-                    showAdd: false
-                    onAdded: function(addedId) { if (root.selectedActorIds.indexOf(addedId) === -1) root.selectedActorIds.push(addedId) }
-                    onSelectedIdsChanged: root.selectedActorIds = selectedIds ? selectedIds.slice(0) : []
-                }
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
             }
-        }
-
-        GroupBox {
-            title: qsTr("Properties (min 1)")
-            Layout.fillWidth: true
 
             ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: root.theme.spacingMedium
-                spacing: root.theme.spacingSmall
+                id: contractContent
+                width: contractScroll.width
+                spacing: root.theme.spacing
 
-                Components.EntityPicker {
-                    id: propPicker
-                    appContext: root.appContext
+                Label { text: root.isEdit ? qsTr("Edit Contract") : qsTr("Create Contract"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
+
+                Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
+                Controls.TextField { id: typeField; placeholderText: qsTr("Type"); Layout.fillWidth: true }
+                Controls.TextArea { id: descField; placeholderText: qsTr("Description"); Layout.fillWidth: true; Layout.preferredHeight: root.theme.chartLegendHeight; wrapMode: TextArea.Wrap }
+
+                GroupBox {
+                    title: qsTr("Actors (min 1)")
                     Layout.fillWidth: true
-                    model: root.session ? root.session.properties : null
-                    placeholder: qsTr("New property name")
-                    showAdd: false
-                    onAdded: function(addedId) { if (root.selectedPropertyIds.indexOf(addedId) === -1) root.selectedPropertyIds.push(addedId) }
-                    onSelectedIdsChanged: root.selectedPropertyIds = selectedIds ? selectedIds.slice(0) : []
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: root.theme.spacingMedium
+                        spacing: root.theme.spacingSmall
+
+                        Components.EntityPicker {
+                            id: actorPicker
+                            appContext: root.appContext
+                            Layout.fillWidth: true
+                            model: root.session ? root.session.actors : null
+                            placeholder: qsTr("New actor name")
+                            showAdd: false
+                            onAdded: function(addedId) { if (root.selectedActorIds.indexOf(addedId) === -1) root.selectedActorIds.push(addedId) }
+                            onSelectedIdsChanged: root.selectedActorIds = selectedIds ? selectedIds.slice(0) : []
+                        }
+                    }
                 }
-            }
-        }
 
-        GroupBox {
-            title: qsTr("Aliases")
-            Layout.fillWidth: true
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: root.theme.spacingMedium
-                spacing: root.theme.spacingSmall
-
-                Label {
-                    text: qsTr("One alias per line. Used for auto-matching during import.")
-                    wrapMode: Text.WordWrap
+                GroupBox {
+                    title: qsTr("Properties (min 1)")
                     Layout.fillWidth: true
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: root.theme.spacingMedium
+                        spacing: root.theme.spacingSmall
+
+                        Components.EntityPicker {
+                            id: propPicker
+                            appContext: root.appContext
+                            Layout.fillWidth: true
+                            model: root.session ? root.session.properties : null
+                            placeholder: qsTr("New property name")
+                            showAdd: false
+                            onAdded: function(addedId) { if (root.selectedPropertyIds.indexOf(addedId) === -1) root.selectedPropertyIds.push(addedId) }
+                            onSelectedIdsChanged: root.selectedPropertyIds = selectedIds ? selectedIds.slice(0) : []
+                        }
+                    }
                 }
 
-                Controls.TextArea {
-                    id: aliasesField
+                GroupBox {
+                    title: qsTr("Aliases")
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.theme.chartLegendHeight
-                    wrapMode: TextArea.Wrap
-                    placeholderText: qsTr("e.g.\nGasliefervertrag\nEON Vertrag\nHeizstrom")
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: root.theme.spacingMedium
+                        spacing: root.theme.spacingSmall
+
+                        Label {
+                            text: qsTr("One alias per line. Used for auto-matching during import.")
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Controls.TextArea {
+                            id: aliasesField
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: root.theme.chartLegendHeight
+                            wrapMode: TextArea.Wrap
+                            placeholderText: qsTr("e.g.\nGasliefervertrag\nEON Vertrag\nHeizstrom")
+                        }
+                    }
                 }
             }
         }

@@ -149,42 +149,56 @@ Item {
         anchors.margins: root.theme.spacing
         spacing: root.theme.spacingMedium
 
-        Label { text: root.isEdit ? qsTr("Building overview") : qsTr("Create new building"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
-
-        Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
-
-        GroupBox {
-            title: qsTr("Aliases")
-            Layout.fillWidth: true
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: root.theme.spacingMedium
-                spacing: root.theme.spacingSmall
-
-                Label {
-                    text: qsTr("One alias per line. Used for auto-matching during import.")
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-
-                Controls.TextArea {
-                    id: aliasesField
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: root.theme.chartLegendHeight
-                    wrapMode: TextArea.Wrap
-                    placeholderText: qsTr("e.g.\nMain Building\nHQ\nSite A")
-                }
-            }
-        }
-
-        Item { Layout.fillHeight: true }
-
-        ColumnLayout {
-            visible: root.isEdit
+        Flickable {
+            id: propertyScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: root.theme.spacingMedium
+            clip: true
+            contentWidth: width
+            contentHeight: propertyContent.implicitHeight
+
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
+
+            ColumnLayout {
+                id: propertyContent
+                width: propertyScroll.width
+                spacing: root.theme.spacingMedium
+
+                Label { text: root.isEdit ? qsTr("Building overview") : qsTr("Create new building"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
+
+                Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
+
+                GroupBox {
+                    title: qsTr("Aliases")
+                    Layout.fillWidth: true
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: root.theme.spacingMedium
+                        spacing: root.theme.spacingSmall
+
+                        Label {
+                            text: qsTr("One alias per line. Used for auto-matching during import.")
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Controls.TextArea {
+                            id: aliasesField
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: root.theme.chartLegendHeight
+                            wrapMode: TextArea.Wrap
+                            placeholderText: qsTr("e.g.\nMain Building\nHQ\nSite A")
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    visible: root.isEdit
+                    Layout.fillWidth: true
+                    spacing: root.theme.spacingMedium
 
             RowLayout {
                 Layout.fillWidth: true
@@ -352,6 +366,8 @@ Item {
                             font.pointSize: 16; font.bold: true; color: root.theme.textPrimary; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true
                         }
                     }
+                }
+            }
                 }
             }
         }

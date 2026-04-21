@@ -37,45 +37,60 @@ Item {
         anchors.margins: root.theme.pageMargin
         spacing: root.theme.spacingMedium
 
-        Label { text: qsTr("Export"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
-
-        RowLayout {
-            spacing: root.theme.spacingMedium
+        Flickable {
+            id: exportScroll
             Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            contentWidth: width
+            contentHeight: exportContent.implicitHeight
 
-            Label { text: qsTr("Format:"); Layout.preferredWidth: root.theme.formLabelWidth }
-            Controls.ComboBox {
-                id: formatBox
-                objectName: "exportFormatBox"
-                model: root.formatLabels
-                Layout.preferredWidth: root.theme.formFieldWidth
-                onCurrentIndexChanged: {
-                    if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(Constants.FileFormats.exportDefaults.baseName + ".") !== -1)) {
-                        const base = root.fileSystemController ? root.fileSystemController.appDir() : ""
-                        const selectedOption = root.formatOptions[currentIndex]
-                        if (!selectedOption) return
-                        const ext = selectedOption.extension
-                        if (base && base.length > 0) pathField.text = base + "/" + Constants.FileFormats.exportDefaults.baseName + "." + ext
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
+
+            ColumnLayout {
+                id: exportContent
+                width: exportScroll.width
+                spacing: root.theme.spacingMedium
+
+                RowLayout {
+                    spacing: root.theme.spacingMedium
+                    Layout.fillWidth: true
+
+                    Label { text: qsTr("Format:"); Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.ComboBox {
+                        id: formatBox
+                        objectName: "exportFormatBox"
+                        model: root.formatLabels
+                        Layout.preferredWidth: root.theme.formFieldWidth
+                        onCurrentIndexChanged: {
+                            if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(Constants.FileFormats.exportDefaults.baseName + ".") !== -1)) {
+                                const base = root.fileSystemController ? root.fileSystemController.appDir() : ""
+                                const selectedOption = root.formatOptions[currentIndex]
+                                if (!selectedOption) return
+                                const ext = selectedOption.extension
+                                if (base && base.length > 0) pathField.text = base + "/" + Constants.FileFormats.exportDefaults.baseName + "." + ext
+                            }
+                        }
                     }
+                }
+
+                RowLayout {
+                    spacing: root.theme.spacingMedium
+                    Layout.fillWidth: true
+                    Label { text: qsTr("Include formulas (XLSX):"); Layout.preferredWidth: root.theme.formFieldWidth }
+                    Controls.CheckBox { id: formulas; objectName: "exportIncludeFormulasCheckBox"; checked: true }
+                }
+
+                RowLayout {
+                    spacing: root.theme.spacingMedium
+                    Layout.fillWidth: true
+                    Label { text: qsTr("Locale:"); Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.TextField { id: localeField; objectName: "exportLocaleField"; text: root.defaultLocale; Layout.preferredWidth: root.theme.formFieldWidth }
                 }
             }
         }
-
-        RowLayout {
-            spacing: root.theme.spacingMedium
-            Layout.fillWidth: true
-            Label { text: qsTr("Include formulas (XLSX):"); Layout.preferredWidth: root.theme.formFieldWidth }
-            Controls.CheckBox { id: formulas; objectName: "exportIncludeFormulasCheckBox"; checked: true }
-        }
-
-        RowLayout {
-            spacing: root.theme.spacingMedium
-            Layout.fillWidth: true
-            Label { text: qsTr("Locale:"); Layout.preferredWidth: root.theme.formLabelWidth }
-            Controls.TextField { id: localeField; objectName: "exportLocaleField"; text: root.defaultLocale; Layout.preferredWidth: root.theme.formFieldWidth }
-        }
-
-        Item { Layout.fillHeight: true }
 
         Components.BottomBar {
             Layout.fillWidth: true

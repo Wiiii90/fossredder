@@ -27,15 +27,30 @@ Item {
                     anchors.margins: root.theme.pageMargin
                     spacing: root.theme.spacingMedium
 
-                    Label { text: qsTr("Annual"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
-
-                    RowLayout {
+                    Flickable {
+                        id: annualScroll
                         Layout.fillWidth: true
-                        Label { text: qsTr("Selected Annual:") }
-                        Label { text: root.session && root.session.selectedAnnual ? root.session.selectedAnnual.name : qsTr("(none)") }
-                    }
+                        Layout.fillHeight: true
+                        clip: true
+                        contentWidth: width
+                        contentHeight: annualContent.implicitHeight
 
-                    Item { Layout.fillHeight: true }
+                        ScrollBar.vertical: ScrollBar {
+                            policy: ScrollBar.AsNeeded
+                        }
+
+                        ColumnLayout {
+                            id: annualContent
+                            width: annualScroll.width
+                            spacing: root.theme.spacingMedium
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Label { text: qsTr("Selected Annual:") }
+                                Label { text: root.session && root.session.selectedAnnual ? root.session.selectedAnnual.name : qsTr("(none)") }
+                            }
+                        }
+                    }
 
                     Components.BottomBar {
                         Layout.fillWidth: true

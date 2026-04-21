@@ -69,57 +69,75 @@ Item {
         anchors.margins: root.theme.pageMargin
         spacing: root.theme.spacingMedium
 
-        Label {
-            text: root.isEdit ? qsTr("Edit Actor") : qsTr("Create Actor")
-            font.pointSize: root.theme.fontSizeTitle + root.theme.margins
-        }
-
-        Controls.TextField {
-            id: nameField
-            objectName: "actorNameField"
-            placeholderText: qsTr("Name")
-            Layout.fillWidth: true
-        }
-
-        Controls.TextField {
-            id: typeField
-            objectName: "actorTypeField"
-            placeholderText: qsTr("Type")
-            Layout.fillWidth: true
-        }
-
-        Controls.TextArea {
-            id: descField
-            objectName: "actorDescriptionField"
-            placeholderText: qsTr("Description")
-            Layout.fillWidth: true
-            Layout.preferredHeight: root.theme.chartLegendHeight
-            wrapMode: TextArea.Wrap
-        }
-
-        GroupBox {
-            title: qsTr("Aliases")
+        Flickable {
+            id: actorScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
+            clip: true
+            contentWidth: width
+            contentHeight: actorContent.implicitHeight
+
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
 
             ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: root.theme.spacingMedium
-                spacing: root.theme.spacingSmall
+                id: actorContent
+                width: actorScroll.width
+                spacing: root.theme.spacingMedium
 
                 Label {
-                    text: qsTr("One alias per line. Used for auto-matching during import.")
-                    wrapMode: Text.WordWrap
+                    text: root.isEdit ? qsTr("Edit Actor") : qsTr("Create Actor")
+                    font.pointSize: root.theme.fontSizeTitle + root.theme.margins
+                }
+
+                Controls.TextField {
+                    id: nameField
+                    objectName: "actorNameField"
+                    placeholderText: qsTr("Name")
+                    Layout.fillWidth: true
+                }
+
+                Controls.TextField {
+                    id: typeField
+                    objectName: "actorTypeField"
+                    placeholderText: qsTr("Type")
                     Layout.fillWidth: true
                 }
 
                 Controls.TextArea {
-                    id: aliasesField
-                    objectName: "actorAliasesField"
+                    id: descField
+                    objectName: "actorDescriptionField"
+                    placeholderText: qsTr("Description")
                     Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    Layout.preferredHeight: root.theme.chartLegendHeight
                     wrapMode: TextArea.Wrap
-                    placeholderText: qsTr("e.g.\nAMZN\nAmazon EU\nAmazon Payments")
+                }
+
+                GroupBox {
+                    title: qsTr("Aliases")
+                    Layout.fillWidth: true
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: root.theme.spacingMedium
+                        spacing: root.theme.spacingSmall
+
+                        Label {
+                            text: qsTr("One alias per line. Used for auto-matching during import.")
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Controls.TextArea {
+                            id: aliasesField
+                            objectName: "actorAliasesField"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: root.theme.chartLegendHeight
+                            wrapMode: TextArea.Wrap
+                            placeholderText: qsTr("e.g.\nAMZN\nAmazon EU\nAmazon Payments")
+                        }
+                    }
                 }
             }
         }

@@ -33,11 +33,28 @@ Item {
         anchors.margins: root.theme.pageMargin
         spacing: root.theme.spacingMedium
 
-        Label { text: qsTr("New Year"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
+        Flickable {
+            id: annualFormScroll
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            contentWidth: width
+            contentHeight: annualFormContent.implicitHeight
 
-        Controls.TextField { id: yearField; placeholderText: qsTr("Year (e.g. 2025)") }
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
 
-        Item { Layout.fillHeight: true }
+            ColumnLayout {
+                id: annualFormContent
+                width: annualFormScroll.width
+                spacing: root.theme.spacingMedium
+
+                Label { text: qsTr("New Year"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
+
+                Controls.TextField { id: yearField; placeholderText: qsTr("Year (e.g. 2025)") }
+            }
+        }
 
         Components.BottomBar {
             Layout.fillWidth: true

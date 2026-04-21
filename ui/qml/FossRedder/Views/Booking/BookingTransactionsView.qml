@@ -211,95 +211,114 @@ Item {
         anchors.margins: 12
         spacing: 10
 
-        Label { text: (root.isNew || root.isEdit) ? qsTr("Transaction") : qsTr("Create Transaction"); font.pointSize: 18 }
-
-        RowLayout { Layout.fillWidth: true
-            Label { text: qsTr("Name"); Layout.preferredWidth: 120 }
-            Controls.TextField {
-                id: nameField; Layout.fillWidth: true
-                onActiveFocusChanged: {
-                    if (!activeFocus) root.persistCurrentTransaction()
-                }
-                onTextChanged: {
-                }
-            }
-        }
-
-        RowLayout { Layout.fillWidth: true
-            Label { text: qsTr("Booking date"); Layout.preferredWidth: 120 }
-            Controls.TextField {
-                id: bookingDateField; Layout.fillWidth: true
-                onActiveFocusChanged: {
-                    if (!activeFocus) root.persistCurrentTransaction()
-                }
-                onTextChanged: { /* no automatic persistence */ }
-            }
-
-            Label { text: qsTr("Amount"); Layout.preferredWidth: 80 }
-            Controls.TextField {
-                id: amountField; Layout.preferredWidth: 160
-                onActiveFocusChanged: {
-                    if (!activeFocus) root.persistCurrentTransaction()
-                }
-                onTextChanged: { /* no automatic persistence */ }
-            }
-        }
-
-        RowLayout { Layout.fillWidth: true
-            Label { text: qsTr("Type"); Layout.preferredWidth: 120 }
-            Controls.TextField {
-                id: typeField; Layout.fillWidth: true
-                placeholderText: qsTr("Type")
-                onActiveFocusChanged: { /* no editing marker handling */ }
-                onTextChanged: { /* no automatic persistence */ }
-            }
-        }
-
-        ColumnLayout {
+        Flickable {
+            id: txScroll
             Layout.fillWidth: true
-            spacing: root.theme.spacingSmall
+            Layout.fillHeight: true
+            clip: true
+            contentWidth: width
+            contentHeight: txContent.implicitHeight
 
-            RowLayout {
-                Layout.fillWidth: true
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
 
-                Label {
+            ColumnLayout {
+                id: txContent
+                width: txScroll.width
+                spacing: 10
+
+                Label { text: (root.isNew || root.isEdit) ? qsTr("Transaction") : qsTr("Create Transaction"); font.pointSize: 18 }
+
+                RowLayout { Layout.fillWidth: true
+                    Label { text: qsTr("Name"); Layout.preferredWidth: 120 }
+                    Controls.TextField {
+                        id: nameField; Layout.fillWidth: true
+                        onActiveFocusChanged: {
+                            if (!activeFocus) root.persistCurrentTransaction()
+                        }
+                        onTextChanged: {
+                        }
+                    }
+                }
+
+                RowLayout { Layout.fillWidth: true
+                    Label { text: qsTr("Booking date"); Layout.preferredWidth: 120 }
+                    Controls.TextField {
+                        id: bookingDateField; Layout.fillWidth: true
+                        onActiveFocusChanged: {
+                            if (!activeFocus) root.persistCurrentTransaction()
+                        }
+                        onTextChanged: { /* no automatic persistence */ }
+                    }
+
+                    Label { text: qsTr("Amount"); Layout.preferredWidth: 80 }
+                    Controls.TextField {
+                        id: amountField; Layout.preferredWidth: 160
+                        onActiveFocusChanged: {
+                            if (!activeFocus) root.persistCurrentTransaction()
+                        }
+                        onTextChanged: { /* no automatic persistence */ }
+                    }
+                }
+
+                RowLayout { Layout.fillWidth: true
+                    Label { text: qsTr("Type"); Layout.preferredWidth: 120 }
+                    Controls.TextField {
+                        id: typeField; Layout.fillWidth: true
+                        placeholderText: qsTr("Type")
+                        onActiveFocusChanged: { /* no editing marker handling */ }
+                        onTextChanged: { /* no automatic persistence */ }
+                    }
+                }
+
+                ColumnLayout {
                     Layout.fillWidth: true
-                    text: qsTr("Properties")
-                    font.pointSize: root.theme.fontSizeTitle
+                    spacing: root.theme.spacingSmall
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: qsTr("Properties")
+                            font.pointSize: root.theme.fontSizeTitle
+                        }
+
+                        Controls.Button {
+                            text: root.propertiesExpanded ? qsTr("Hide") : qsTr("Show")
+                            onClicked: root.togglePropertiesExpanded()
+                        }
+                    }
+
+                    Loader {
+                        Layout.fillWidth: true
+                        active: root.propertiesExpanded
+                        sourceComponent: propertySelectionComp
+                    }
                 }
 
-                Controls.Button {
-                    text: root.propertiesExpanded ? qsTr("Hide") : qsTr("Show")
-                    onClicked: root.togglePropertiesExpanded()
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Controls.CheckBox {
+                        id: allocCheck
+                        text: qsTr("Allocatable to tenant")
+                        checked: false
+                        onClicked: root.persistCurrentTransaction()
+                    }
+
+                    Label { text: qsTr("Status"); Layout.preferredWidth: 80 }
+                    Controls.ComboBox {
+                        id: statusCombo
+                        Layout.fillWidth: true
+                        model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
+                        currentIndex: 2
+                        onActivated: root.persistCurrentTransaction()
+                    }
+                    Item { Layout.fillWidth: true }
                 }
             }
-
-            Loader {
-                Layout.fillWidth: true
-                active: root.propertiesExpanded
-                sourceComponent: propertySelectionComp
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-
-            Controls.CheckBox {
-                id: allocCheck
-                text: qsTr("Allocatable to tenant")
-                checked: false
-                onClicked: root.persistCurrentTransaction()
-            }
-
-            Label { text: qsTr("Status"); Layout.preferredWidth: 80 }
-            Controls.ComboBox {
-                id: statusCombo
-                Layout.fillWidth: true
-                model: [ qsTr("Neutral"), qsTr("Unverified"), qsTr("Verified"), qsTr("Completed") ]
-                currentIndex: 2
-                onActivated: root.persistCurrentTransaction()
-            }
-            Item { Layout.fillWidth: true }
         }
 
         Components.BottomBar {
