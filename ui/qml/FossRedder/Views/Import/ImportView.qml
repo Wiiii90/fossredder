@@ -382,9 +382,6 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            readonly property int iconButtonWidth: 72
-            readonly property int actionButtonWidth: 150
-
             StatementDraftView {
                 id: stmtView
                 anchors.left: parent.left
@@ -407,7 +404,7 @@ Item {
                 Controls.Button {
                     text: "⟪"
                     enabled: !!stmtView.draft && root.hasImportController && root.importController.hasPrevDraft
-                    Layout.preferredWidth: parent.iconButtonWidth
+                    Layout.preferredWidth: root.theme.viewNavigationButtonWidth
                     bordered: true
                     onClicked: if (root.hasImportController) root.importController.openPrevDraft()
                 }
@@ -415,7 +412,7 @@ Item {
                 Controls.Button {
                     text: "◀"
                     enabled: !!stmtView.draft && stmtView.draft.currentIndex > 0
-                    Layout.preferredWidth: parent.iconButtonWidth
+                    Layout.preferredWidth: root.theme.viewNavigationButtonWidth
                     bordered: true
                     onClicked: {
                         stmtView.draft.prev()
@@ -428,7 +425,7 @@ Item {
                 Controls.Button {
                     text: "↩"
                     enabled: !!stmtView.draft
-                    Layout.preferredWidth: parent.iconButtonWidth
+                    Layout.preferredWidth: root.theme.viewNavigationButtonWidth
                     bordered: true
                     onClicked: stmtView.returnToImport()
                 }
@@ -436,14 +433,14 @@ Item {
                 Controls.DangerButton {
                     text: qsTr("Discard")
                     enabled: !!stmtView.draft
-                    Layout.preferredWidth: parent.actionButtonWidth
+                    Layout.preferredWidth: root.theme.viewActionButtonWidth
                     onClicked: stmtView.discardDraft()
                 }
 
                 Controls.SuccessButton {
                     text: qsTr("Finalize")
                     enabled: !!stmtView.draft
-                    Layout.preferredWidth: parent.actionButtonWidth
+                    Layout.preferredWidth: root.theme.viewActionButtonWidth
                     onClicked: stmtView.finalizeDraft()
                 }
 
@@ -452,7 +449,7 @@ Item {
                 Controls.Button {
                     text: "▶"
                     enabled: !!stmtView.draft && stmtView.draft.currentIndex < (stmtView.draft.count - 1)
-                    Layout.preferredWidth: parent.iconButtonWidth
+                    Layout.preferredWidth: root.theme.viewNavigationButtonWidth
                     bordered: true
                     onClicked: {
                         stmtView.draft.next()
@@ -463,7 +460,7 @@ Item {
                 Controls.Button {
                     text: "⟫"
                     enabled: !!stmtView.draft && root.hasImportController && root.importController.hasNextDraft
-                    Layout.preferredWidth: parent.iconButtonWidth
+                    Layout.preferredWidth: root.theme.viewNavigationButtonWidth
                     bordered: true
                     onClicked: if (root.hasImportController) root.importController.openNextDraft()
                 }

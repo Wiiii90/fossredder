@@ -62,6 +62,8 @@ QtObject {
     property int chartPercentLabelWidth: 60
     property int chartPropertyChipHeight: 22
     property int chartPropertyChipMinWidth: 80
+    property int viewNavigationButtonWidth: 72
+    property int viewActionButtonWidth: 120
     property int radius: 3
     property int borderWidthThin: 1
 

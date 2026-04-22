@@ -38,32 +38,32 @@ Controls.Panel {
                 id: propertyRepeater
                 model: root.session ? root.session.propertyRows() : []
 
-                delegate: Item {
+                delegate: RowLayout {
                     id: propertyOption
                     required property var modelData
-                    implicitHeight: row.implicitHeight
-                    implicitWidth: row.implicitWidth
+                    Layout.fillWidth: true
+                    spacing: root.theme.spacingSmall
 
-                    Row {
-                        id: row
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: root.theme.spacingSmall
-
-                        Controls.CheckBox {
-                            checked: root.txRoot && root.txRoot.draft && root.txRoot.draft.current && root.txRoot.draft.current.propertyIds && propertyOption.modelData && propertyOption.modelData.id
-                                ? root.txRoot.draft.current.propertyIds.indexOf(propertyOption.modelData.id) !== -1
-                                : false
-                            onClicked: if (root.txRoot && root.txRoot.draft && root.draftController) {
-                                root.draftController.setCurrentPropertySelected(root.txRoot.draft, propertyOption.modelData.id, checked)
-                            }
+                    Controls.CheckBox {
+                        Layout.fillWidth: false
+                        Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                        checked: root.txRoot && root.txRoot.draft && root.txRoot.draft.current && root.txRoot.draft.current.propertyIds && propertyOption.modelData && propertyOption.modelData.id
+                            ? root.txRoot.draft.current.propertyIds.indexOf(propertyOption.modelData.id) !== -1
+                            : false
+                        onClicked: if (root.txRoot && root.txRoot.draft && root.draftController) {
+                            root.draftController.setCurrentPropertySelected(root.txRoot.draft, propertyOption.modelData.id, checked)
                         }
+                    }
 
-                        Label {
-                            text: propertyOption.modelData ? (propertyOption.modelData.display || propertyOption.modelData.name || "") : ""
-                            elide: Text.ElideRight
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                    Label {
+                        Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                        text: propertyOption.modelData ? (propertyOption.modelData.display || propertyOption.modelData.name || "") : ""
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
                     }
                 }
             }

@@ -167,7 +167,7 @@ Item {
         TransactionDraftFieldRow {
             theme: draftViewRoot.theme
             Layout.fillWidth: true
-            leftLabel: qsTr("Buchungsdatum")
+            leftLabel: qsTr("Booking Date")
             rightLabel: qsTr("Valuta")
             leftWeight: 3
             rightWeight: 2
