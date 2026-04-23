@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+﻿/*!
+ * @file ui/qml/FossRedder/Views/Property/PropertySidebar.qml
+ * @brief Sidebar list for navigating available property records.
+ */
+
+import QtQuick 2.15
 import QtQuick.Layouts 1.3
 pragma ComponentBehavior: Bound
 

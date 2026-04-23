@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+﻿/*!
+ * @file ui/qml/FossRedder/Views/Property/PropertyView.qml
+ * @brief Property page container that hosts the property form with app context and theme.
+ */
+
+import QtQuick 2.15
 import FossRedder.Views 1.0 as Views
 
 Item {

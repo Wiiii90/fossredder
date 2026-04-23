@@ -1,8 +1,14 @@
-﻿import QtQuick 2.15
+﻿/*!
+ * @file ui/qml/FossRedder/Views/Property/PropertyForm.qml
+ * @brief Main property edit form with name, aliases, contract links, and bottom bar actions.
+ */
+
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
+import FossRedder.Views 1.0 as Views
 pragma ComponentBehavior: Bound
 
 Item {
@@ -12,141 +18,140 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var propertyController: root.appContext ? root.appContext.propertyController : null
+    readonly property var contractController: root.appContext ? root.appContext.contractController : null
 
     readonly property var current: root.session ? root.session.selectedProperty : null
-    readonly property int amountColumnWidth: root.theme.formLabelWidth
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
+
     property var aliases: []
+    property string aliasInputText: ""
+    property int aliasIndex: aliases.length > 0 ? 0 : -1
+    property var selectedContractIds: []
 
-    function clearFields() { nameField.text = ""; aliasesField.text = ""; root.sums = ({}) }
-
-    function refreshSums() {
-        if (!root.current || !root.session) {
-            root.sums = ({})
-            return
-        }
-        try { root.sums = root.session.propertyTransactionSums(root.current.id) } catch(e) {
-            try { root.sums = root.session.propertyTransactionSums(root.current.id, "") } catch(e2) { root.sums = ({}) }
-        }
+    function clearFields() {
+        nameField.text = ""
+        root.aliases = []
+        root.aliasInputText = ""
+        root.aliasIndex = -1
+        root.selectedContractIds = []
     }
 
-    function submitProperty() {
-        if (!root.propertyController) return
-        const aliasValues = []
-        if (aliasesField.text && aliasesField.text.length > 0) {
-            const raw = aliasesField.text.split(/\r?\n/)
-            for (let i = 0; i < raw.length; ++i) {
-                const value = String(raw[i]).trim()
-                if (value.length > 0 && aliasValues.indexOf(value) === -1) aliasValues.push(value)
-            }
+    function toStringList(values) {
+        const out = []
+        if (!values || values.length === undefined)
+            return out
+        for (let i = 0; i < values.length; ++i)
+            out.push(String(values[i]))
+        return out
+    }
+
+    function propertyRows() {
+        return root.session ? root.session.propertyRows() : []
+    }
+
+    function contractRows() {
+        return root.session ? root.session.contractRows() : []
+    }
+
+    function selectedPropertyIndex() {
+        if (!root.session || !root.session.selectedPropertyId)
+            return -1
+        const rows = root.propertyRows()
+        for (let i = 0; i < rows.length; ++i) {
+            if (rows[i] && rows[i].id === root.session.selectedPropertyId)
+                return i
         }
+        return -1
+    }
+
+    function selectPropertyByIndex(index) {
+        const rows = root.propertyRows()
+        if (!root.session || rows.length === 0)
+            return
+        let idx = index
+        while (idx < 0)
+            idx += rows.length
+        idx = idx % rows.length
+        const row = rows[idx]
+        if (!row || !row.id)
+            return
+        root.session.selectedPropertyId = row.id
+    }
+
+    function navigateProperty(delta) {
+        const rows = root.propertyRows()
+        if (rows.length === 0)
+            return
+        if (!root.isEdit) {
+            root.selectPropertyByIndex(delta > 0 ? 0 : rows.length - 1)
+            return
+        }
+        const idx = root.selectedPropertyIndex()
+        if (idx < 0)
+            return
+        root.selectPropertyByIndex(idx + delta)
+    }
+
+    function addAlias(value) {
+        const trimmed = String(value || "").trim()
+        if (trimmed.length === 0)
+            return
+        const next = root.aliases ? root.aliases.slice(0) : []
+        if (next.indexOf(trimmed) !== -1)
+            return
+        next.push(trimmed)
+        root.aliases = next
+        root.aliasIndex = next.length - 1
+        root.aliasInputText = ""
+    }
+
+    function deleteAlias(index) {
+        if (!root.aliases || index < 0 || index >= root.aliases.length)
+            return
+        const next = root.aliases.slice(0)
+        next.splice(index, 1)
+        root.aliases = next
+        root.aliasIndex = next.length > 0 ? Math.min(index, next.length - 1) : -1
+    }
+
+
+    function submitProperty() {
+        if (!root.propertyController)
+            return
+
+        const aliasValues = root.toStringList(root.aliases)
         if (root.isEdit) {
             root.propertyController.updateProperty(root.current.id, nameField.text, "", "", aliasValues)
             return
         }
+
         const propertyId = root.propertyController.addProperty(nameField.text, "", "", aliasValues)
         root.clearFields()
-        if (root.session && propertyId && propertyId.length > 0) root.session.selectedPropertyId = propertyId
+        if (root.session && propertyId && propertyId.length > 0)
+            root.session.selectedPropertyId = propertyId
     }
 
     function syncFields() {
-        if (!root.isEdit) { root.clearFields(); return }
+        if (!root.isEdit) {
+            root.clearFields()
+            return
+        }
         nameField.text = root.current.name || ""
-        aliasesField.text = (root.current.aliases || []).join("\n")
-        root.refreshSums()
-        root.rebuildTypes()
-        root.computeFilteredSums()
+        root.aliases = root.current.aliases ? root.current.aliases.slice(0) : []
+        root.aliasInputText = ""
+        root.aliasIndex = root.aliases.length > 0 ? 0 : -1
+        root.selectedContractIds = []
     }
 
-    Connections { target: root.current; function onChanged() { root.syncFields() } }
+    Connections {
+        target: root.current
+        function onChanged() { root.syncFields() }
+    }
     onIsEditChanged: root.syncFields()
 
-    property var sums: ({})
-    Connections {
-        target: root.session
-        function onTransactionSumsUpdated(propertyId) {
-            if (!root.current) return
-            if (propertyId === root.current.id) {
-                root.refreshSums()
-                root.rebuildTypes()
-                root.computeFilteredSums()
-            }
-        }
-    }
-
-    property string txTypeFilter: ""
-    property var txTypes: []
-    property var sumsFiltered: ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
-    property var shownSums: ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
-
-    function updateShownSums() { root.shownSums = (root.txTypeFilter && root.txTypeFilter.length > 0) ? root.sumsFiltered : root.sums }
-
-    onTxTypeFilterChanged: {
-        try { const m = root.session ? root.session.propertyTransactions(root.current.id) : null; if (m) m.setTxType(root.txTypeFilter) } catch(e) {}
-        root.computeFilteredSums()
-        root.updateShownSums()
-    }
-
-    onSumsChanged: root.updateShownSums()
-
-    function rebuildTypes() {
-        root.txTypes = []
-        if (!root.current || !root.session) return
-        try {
-            const provided = root.session.propertyContractTypes(root.current.id)
-            if (provided && provided.length !== undefined) { root.txTypes = provided; return }
-        } catch(e) {}
-        const model = root.session.propertyTransactions(root.current.id)
-        if (!model) return
-        const set = {}
-        try {
-            const cnt = (typeof model.count === 'function') ? model.count() : (model.length !== undefined ? model.length : 0)
-            for (let i=0;i<cnt;i++) {
-                const it = (typeof model.get === 'function') ? model.get(i) : (model[i] ? model[i] : null)
-                if (!it) continue
-                const t = it.type ? it.type : ""
-                if (t && !set[t]) { set[t] = true; root.txTypes.push(t) }
-            }
-        } catch(e) {}
-    }
-
-    function computeFilteredSums() {
-        root.sumsFiltered = ({ total:0.0, allocatable:0.0, nonAllocatable:0.0 })
-        if (!root.current || !root.session) { root.updateShownSums(); return }
-        if (!root.txTypeFilter || root.txTypeFilter.length === 0) { root.updateShownSums(); return }
-        if (typeof root.session.propertyTransactionSums === 'function') {
-            try {
-                const res = root.session.propertyTransactionSums(root.current.id, root.txTypeFilter)
-                root.sumsFiltered.total = Number(res.total) || 0
-                root.sumsFiltered.allocatable = Number(res.allocatable) || 0
-                root.sumsFiltered.nonAllocatable = Number(res.nonAllocatable) || 0
-                root.updateShownSums()
-                return
-            } catch(e) {}
-        }
-        const model = root.session.propertyTransactions(root.current.id)
-        if (!model) { root.updateShownSums(); return }
-        try {
-            const cnt = (typeof model.count === 'function') ? model.count() : (model.length !== undefined ? model.length : 0)
-            for (let i=0;i<cnt;i++) {
-                const it = (typeof model.get === 'function') ? model.get(i) : (model[i] ? model[i] : null)
-                if (!it) continue
-                const t = it.type ? it.type : ""
-                if (t !== root.txTypeFilter) continue
-                const amt = Number(it.amount) || 0
-                root.sumsFiltered.total += amt
-                if (it.allocatable) root.sumsFiltered.allocatable += amt; else root.sumsFiltered.nonAllocatable += amt
-            }
-        } catch(e) {}
-        root.updateShownSums()
-    }
-
     ColumnLayout {
-        id: mainLayout
-        Layout.fillWidth: true
-        Layout.fillHeight: true
         anchors.fill: parent
-        anchors.margins: root.theme.spacing
+        anchors.margins: root.theme.spacingMedium
         spacing: root.theme.spacingMedium
 
         Flickable {
@@ -155,7 +160,8 @@ Item {
             Layout.fillHeight: true
             clip: true
             contentWidth: width
-            contentHeight: propertyContent.implicitHeight
+            contentHeight: propertyContent.height
+            boundsBehavior: Flickable.StopAtBounds
 
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded
@@ -164,211 +170,143 @@ Item {
             ColumnLayout {
                 id: propertyContent
                 width: propertyScroll.width
+                height: Math.max(implicitHeight, propertyScroll.height)
                 spacing: root.theme.spacingMedium
-
-                Label { text: root.isEdit ? qsTr("Building overview") : qsTr("Create new building"); font.pointSize: root.theme.fontSizeTitle + root.theme.margins }
-
-                Controls.TextField { id: nameField; placeholderText: qsTr("Name"); Layout.fillWidth: true }
-
-                GroupBox {
-                    title: qsTr("Aliases")
-                    Layout.fillWidth: true
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: root.theme.spacingMedium
-                        spacing: root.theme.spacingSmall
-
-                        Label {
-                            text: qsTr("One alias per line. Used for auto-matching during import.")
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-
-                        Controls.TextArea {
-                            id: aliasesField
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: root.theme.chartLegendHeight
-                            wrapMode: TextArea.Wrap
-                            placeholderText: qsTr("e.g.\nMain Building\nHQ\nSite A")
-                        }
-                    }
-                }
-
-                ColumnLayout {
-                    visible: root.isEdit
-                    Layout.fillWidth: true
-                    spacing: root.theme.spacingMedium
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: root.theme.spacingMedium
 
-                Label { text: qsTr("Transactions"); Layout.alignment: Qt.AlignVCenter }
-
-                Item { Layout.fillWidth: true }
-
-                Controls.Button {
-                    id: filterButton
-                    text: root.txTypeFilter && root.txTypeFilter.length > 0 ? root.txTypeFilter : qsTr("Filter")
-                    implicitWidth: root.amountColumnWidth
-                    onClicked: { try { typeMenu.open() } catch(e) {} }
+                Label {
+                    text: qsTr("Property Name")
+                    Layout.preferredWidth: root.theme.formLabelWidth
                 }
 
-                Menu {
-                    id: typeMenu
-                    onOpened: { root.rebuildTypes(); }
-
-                    MenuItem { text: qsTr("All"); onTriggered: { root.txTypeFilter = ""; root.computeFilteredSums() } }
-                    Repeater { model: root.txTypes; delegate: MenuItem { required property var modelData; text: modelData; onTriggered: { root.txTypeFilter = modelData; root.computeFilteredSums() } } }
+                Controls.TextField {
+                    id: nameField
+                    placeholderText: ""
+                    Layout.fillWidth: true
                 }
             }
 
-            ListView {
-                id: txList
-                clip: true
-                interactive: true
+            ColumnLayout {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-                model: root.session ? root.session.propertyTransactions(root.current.id) : null
                 spacing: root.theme.spacingSmall
 
-                delegate: Rectangle { id: txRow
-                    required property real amount
-                    required property string bookingDate
-                    required property string description
-                    required property int status
-                    required property string type
-                    width: parent ? parent.width : txList.width
-                    height: 56
-                    color: root.theme.surface
-                    border.color: root.theme.borderSoft
-                    border.width: root.theme.borderWidthThin
-                    radius: root.theme.radius
+                RowLayout {
+                    id: aliasControlsRow
+                    Layout.fillWidth: true
+                    readonly property real aliasControlSize: propertyAliasInput.implicitHeight
 
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: root.theme.spacingMedium
-                        spacing: root.theme.spacing
+                    Label {
+                        text: qsTr("Aliases")
+                        Layout.preferredWidth: root.theme.formLabelWidth
+                    }
+
+                    Controls.TextField {
+                        id: propertyAliasInput
                         Layout.fillWidth: true
+                        placeholderText: ""
+                        text: root.aliasInputText
+                        onTextEdited: root.aliasInputText = text
+                    }
 
-                        Rectangle {
-                            id: statusIndicator
-                            width: root.theme.spacing
-                            height: root.theme.spacing
-                            radius: root.theme.spacingSmall
-                            Layout.alignment: Qt.AlignVCenter
-                            border.width: root.theme.borderWidthThin
-                            color: txRow.status === 0 ? root.theme.neutral
-                                : (txRow.status === 1 ? root.theme.warning
-                                   : (txRow.status === 2 ? root.theme.info
-                                      : (txRow.status === 3 ? root.theme.successStrong : root.theme.neutral)))
-                            border.color: Qt.darker(color, 1.2)
+                    Controls.Button {
+                        text: "+"
+                        Layout.preferredWidth: aliasControlsRow.aliasControlSize
+                        Layout.preferredHeight: aliasControlsRow.aliasControlSize
+                        bordered: true
+                        fillColor: root.theme.surface
+                        textColor: root.theme.textMuted
+                        enabled: propertyAliasInput.text.trim().length > 0
+                        onClicked: root.addAlias(propertyAliasInput.text)
+                    }
+
+                    Controls.Button {
+                        text: "×"
+                        Layout.preferredWidth: aliasControlsRow.aliasControlSize
+                        Layout.preferredHeight: aliasControlsRow.aliasControlSize
+                        bordered: true
+                        fillColor: root.theme.surface
+                        textColor: root.theme.textMuted
+                        enabled: root.aliasIndex >= 0 && root.aliasIndex < root.aliases.length
+                        onClicked: root.deleteAlias(root.aliasIndex)
+                    }
+                }
+
+                Controls.Panel {
+                    Layout.fillWidth: true
+                    Layout.minimumHeight: 160
+                    Layout.preferredHeight: 180
+                    Layout.maximumHeight: 180
+                    contentSpacing: 0
+                    background: Rectangle {
+                        radius: root.theme.radius
+                        color: root.theme.surface
+                        border.width: 1
+                        border.color: root.theme.border
+                    }
+
+                    Flickable {
+                        id: propertyAliasScroll
+                        anchors.fill: parent
+                        clip: true
+                        contentWidth: width
+                        contentHeight: propertyAliasFlow.implicitHeight
+
+                        ScrollBar.vertical: ScrollBar {
+                            policy: ScrollBar.AsNeeded
                         }
 
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: root.theme.margins
-                            Layout.alignment: Qt.AlignVCenter
+                        Flow {
+                            id: propertyAliasFlow
+                            width: propertyAliasScroll.width
+                            spacing: root.theme.spacingSmall
 
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: root.theme.spacingMedium
-                                Layout.alignment: Qt.AlignVCenter
+                            Repeater {
+                                model: root.aliases
 
-                                Label {
-                                    text: txRow.bookingDate || ""
-                                    font.family: root.theme.fontFamily
-                                    font.pointSize: root.theme.fontSize
-                                    color: root.theme.textMuted
-                                    Layout.alignment: Qt.AlignVCenter
-                                    Layout.fillWidth: true
-                                    elide: Text.ElideRight
-                                }
+                                delegate: Rectangle {
+                                    id: propertyAliasChip
+                                    property var aliasData: modelData
+                                    property int aliasRowIndex: index
+                                    height: 30
+                                    radius: root.theme.radius
+                                    color: root.aliasIndex === propertyAliasChip.aliasRowIndex ? root.theme.selectionHighlight : root.theme.surfaceAlt
+                                    border.width: 1
+                                    border.color: root.theme.border
+                                    width: Math.min(propertyAliasFlow.width, propertyAliasText.implicitWidth + root.theme.spacingLarge)
 
-                                Label {
-                                    text: (txRow.type && txRow.type.length > 0) ? txRow.type : ""
-                                    font.family: root.theme.fontFamily
-                                    font.pointSize: Math.max(12, root.theme.fontSize - 2)
-                                    color: root.theme.textMuted
-                                    horizontalAlignment: Text.AlignRight
-                                    Layout.preferredWidth: 140
-                                    Layout.alignment: Qt.AlignVCenter
+                                    Text {
+                                        id: propertyAliasText
+                                        anchors.centerIn: parent
+                                        text: String(propertyAliasChip.aliasData)
+                                        color: root.theme.textPrimary
+                                        elide: Text.ElideRight
+                                        width: parent.width - root.theme.spacing
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: root.aliasIndex = propertyAliasChip.aliasRowIndex
+                                    }
                                 }
                             }
-
-                            Label { text: txRow.description ? txRow.description : ""; font.family: root.theme.fontFamily; font.pointSize: Math.max(12, root.theme.fontSize - 2); color: root.theme.textMuted; elide: Text.ElideRight; Layout.alignment: Qt.AlignVCenter; Layout.fillWidth: true }
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        Label {
-                            id: amtText
-                            text: (txRow.amount || 0).toFixed(2)
-                            font.family: root.theme.fontFamily
-                            font.pointSize: root.theme.fontSize
-                            font.bold: true
-                            color: root.theme.textPrimary
-                            Layout.preferredWidth: root.amountColumnWidth
-                            Layout.alignment: Qt.AlignVCenter
-                            horizontalAlignment: Text.AlignRight
                         }
                     }
                 }
             }
 
-            Rectangle {
-                color: root.theme.surface
-                border.color: root.theme.borderSoft
-                border.width: root.theme.borderWidthThin
-                radius: root.theme.radius
+            Views.PropertyContractPanel {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 72
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: root.theme.spacingMedium
-                    spacing: root.theme.spacingLarge
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignVCenter
-
-                    ColumnLayout {
-                        spacing: root.theme.margins
-                        Layout.alignment: Qt.AlignVCenter
-                        width: root.amountColumnWidth
-                        Label { text: qsTr("Allocatable"); font.pointSize: 12; color: root.theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
-                        Label {
-                            text: (root.shownSums && root.shownSums.allocatable !== undefined) ? (root.shownSums.allocatable).toFixed(2) : "0.00";
-                            font.pointSize: 14; font.bold: true; color: root.theme.successStrong; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
-                        }
-                    }
-
-                    ColumnLayout {
-                        spacing: root.theme.margins
-                        Layout.alignment: Qt.AlignVCenter
-                        width: root.amountColumnWidth
-                        Label { text: qsTr("Non-allocatable"); font.pointSize: 12; color: root.theme.textMuted; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true }
-                        Label {
-                            text: (root.shownSums && root.shownSums.nonAllocatable !== undefined) ? (root.shownSums.nonAllocatable).toFixed(2) : "0.00";
-                            font.pointSize: 14; font.bold: true; color: root.theme.dangerStrong; horizontalAlignment: Text.AlignLeft; Layout.fillWidth: true
-                        }
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    ColumnLayout {
-                        spacing: root.theme.margins
-                        Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                        width: root.amountColumnWidth
-                        Label { text: qsTr("Total"); font.pointSize: 12; color: root.theme.textMuted; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true }
-                        Label {
-                            text: (root.shownSums && root.shownSums.total !== undefined) ? (root.shownSums.total).toFixed(2) : "0.00";
-                            font.pointSize: 16; font.bold: true; color: root.theme.textPrimary; horizontalAlignment: Text.AlignRight; Layout.fillWidth: true
-                        }
-                    }
-                }
+                Layout.fillHeight: true
+                Layout.minimumHeight: 170
+                Layout.preferredHeight: 220
+                theme: root.theme
+                contractRows: root.contractRows()
+                selectedContractIds: root.selectedContractIds
+                onSelectionChanged: root.selectedContractIds = ids
             }
-                }
             }
         }
 
@@ -377,33 +315,62 @@ Item {
             theme: root.theme
 
             Controls.Button {
-                visible: !root.isEdit
-                text: qsTr("Add")
-                enabled: nameField.text.length > 0
-                onClicked: root.submitProperty()
-            }
-
-            Controls.Button {
-                visible: root.isEdit
-                text: qsTr("Create new building")
-                onClicked: if (root.session) root.session.selectedPropertyId = ""
-            }
-
-            Controls.Button {
-                visible: root.isEdit
-                text: qsTr("Update building")
-                enabled: nameField.text.length > 0
-                onClicked: root.submitProperty()
-            }
-
-            Controls.Button {
-                visible: root.isEdit
-                text: qsTr("Delete")
-                onClicked: if (root.propertyController) { root.propertyController.deleteProperty(root.current.id); if (root.session) root.session.selectedPropertyId = "" }
-                fillColor: root.theme.dangerStrong
+                text: "◀"
+                enabled: root.propertyRows().length > 0
+                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
+                bordered: true
+                onClicked: root.navigateProperty(-1)
             }
 
             Item { Layout.fillWidth: true }
+
+            Controls.DangerButton {
+                visible: !root.isEdit
+                text: qsTr("Clear")
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
+                onClicked: root.clearFields()
+            }
+
+            Controls.SuccessButton {
+                visible: !root.isEdit
+                text: qsTr("Create")
+                enabled: nameField.text.length > 0
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
+                onClicked: root.submitProperty()
+            }
+
+            Controls.DangerButton {
+                visible: root.isEdit
+                text: qsTr("Delete")
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
+                onClicked: {
+                    if (!root.propertyController || !root.current || !root.current.id)
+                        return
+                    root.propertyController.deleteProperty(root.current.id)
+                    if (root.session)
+                        root.session.selectedPropertyId = ""
+                }
+            }
+
+            Controls.SuccessButton {
+                visible: root.isEdit
+                text: qsTr("Update")
+                enabled: nameField.text.length > 0
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
+                onClicked: root.submitProperty()
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Controls.Button {
+                text: "▶"
+                enabled: root.propertyRows().length > 0
+                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
+                bordered: true
+                onClicked: root.navigateProperty(1)
+            }
         }
     }
+
+    Component.onCompleted: root.syncFields()
 }

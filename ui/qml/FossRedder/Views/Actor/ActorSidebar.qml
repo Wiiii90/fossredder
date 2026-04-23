@@ -1,3 +1,8 @@
+/*!
+ * @file ui/qml/FossRedder/Views/Actor/ActorSidebar.qml
+ * @brief Sidebar list for navigating available actor records.
+ */
+
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
 pragma ComponentBehavior: Bound

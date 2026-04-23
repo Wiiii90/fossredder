@@ -1,8 +1,14 @@
+/*!
+ * @file ui/qml/FossRedder/Views/Actor/ActorForm.qml
+ * @brief Main actor edit form with name, aliases, contract links, and bottom bar actions.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
+import FossRedder.Views 1.0 as Views
 pragma ComponentBehavior: Bound
 
 Item {
@@ -12,19 +18,102 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var actorController: root.appContext ? root.appContext.actorController : null
+    readonly property var contractController: root.appContext ? root.appContext.contractController : null
 
     readonly property var current: root.session ? root.session.selectedActor : null
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
 
     property var aliases: []
+    property string aliasInputText: ""
+    property int aliasIndex: aliases.length > 0 ? 0 : -1
+    property var selectedContractIds: []
 
     function clearFields() {
         nameField.text = ""
-        typeField.text = ""
-        descField.text = ""
         root.aliases = []
-        aliasesField.text = ""
+        root.aliasInputText = ""
+        root.aliasIndex = -1
+        root.selectedContractIds = []
     }
+
+    function toStringList(values) {
+        const out = []
+        if (!values || values.length === undefined)
+            return out
+        for (let i = 0; i < values.length; ++i)
+            out.push(String(values[i]))
+        return out
+    }
+
+    function actorRows() {
+        return root.session ? root.session.actorRows() : []
+    }
+
+    function contractRows() {
+        return root.session ? root.session.contractRows() : []
+    }
+
+    function selectedActorIndex() {
+        if (!root.session || !root.session.selectedActorId)
+            return -1
+        const rows = root.actorRows()
+        for (let i = 0; i < rows.length; ++i) {
+            if (rows[i] && rows[i].id === root.session.selectedActorId)
+                return i
+        }
+        return -1
+    }
+
+    function selectActorByIndex(index) {
+        const rows = root.actorRows()
+        if (!root.session || rows.length === 0)
+            return
+        let idx = index
+        while (idx < 0)
+            idx += rows.length
+        idx = idx % rows.length
+        const row = rows[idx]
+        if (!row || !row.id)
+            return
+        root.session.selectedActorId = row.id
+    }
+
+    function navigateActor(delta) {
+        const rows = root.actorRows()
+        if (rows.length === 0)
+            return
+        if (!root.isEdit) {
+            root.selectActorByIndex(delta > 0 ? 0 : rows.length - 1)
+            return
+        }
+        const idx = root.selectedActorIndex()
+        if (idx < 0)
+            return
+        root.selectActorByIndex(idx + delta)
+    }
+
+    function addAlias(value) {
+        const trimmed = String(value || "").trim()
+        if (trimmed.length === 0)
+            return
+        const next = root.aliases ? root.aliases.slice(0) : []
+        if (next.indexOf(trimmed) !== -1)
+            return
+        next.push(trimmed)
+        root.aliases = next
+        root.aliasIndex = next.length - 1
+        root.aliasInputText = ""
+    }
+
+    function deleteAlias(index) {
+        if (!root.aliases || index < 0 || index >= root.aliases.length)
+            return
+        const next = root.aliases.slice(0)
+        next.splice(index, 1)
+        root.aliases = next
+        root.aliasIndex = next.length > 0 ? Math.min(index, next.length - 1) : -1
+    }
+
 
     function syncFields() {
         if (!root.isEdit) {
@@ -32,31 +121,22 @@ Item {
             return
         }
         nameField.text = root.current.name || ""
-        typeField.text = root.current.type || ""
-        descField.text = root.current.description || ""
-
-        root.aliases = root.current.aliases ? root.current.aliases : []
-        aliasesField.text = root.aliases.join("\n")
+        root.aliases = root.current.aliases ? root.current.aliases.slice(0) : []
+        root.aliasInputText = ""
+        root.aliasIndex = root.aliases.length > 0 ? 0 : -1
+        root.selectedContractIds = []
     }
 
     function submitActor() {
         if (!root.actorController) return
-
-        const aliasValues = []
-        if (aliasesField.text && aliasesField.text.length > 0) {
-            const raw = aliasesField.text.split(/\r?\n/)
-            for (let i = 0; i < raw.length; ++i) {
-                const value = String(raw[i]).trim()
-                if (value.length > 0 && aliasValues.indexOf(value) === -1) aliasValues.push(value)
-            }
-        }
+        const aliasValues = root.toStringList(root.aliases)
 
         if (root.isEdit) {
-            root.actorController.updateActor(root.current.id, nameField.text, typeField.text, descField.text, aliasValues)
+            root.actorController.updateActor(root.current.id, nameField.text, "", "", aliasValues)
             return
         }
 
-        const id = root.actorController.addActor(nameField.text, typeField.text, descField.text, aliasValues)
+        const id = root.actorController.addActor(nameField.text, "", "", aliasValues)
         root.clearFields()
         if (root.session && id && id.length > 0) root.session.selectedActorId = id
     }
@@ -66,7 +146,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: root.theme.pageMargin
+        anchors.margins: root.theme.spacingMedium
         spacing: root.theme.spacingMedium
 
         Flickable {
@@ -75,7 +155,8 @@ Item {
             Layout.fillHeight: true
             clip: true
             contentWidth: width
-            contentHeight: actorContent.implicitHeight
+            contentHeight: actorContent.height
+            boundsBehavior: Flickable.StopAtBounds
 
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded
@@ -84,61 +165,144 @@ Item {
             ColumnLayout {
                 id: actorContent
                 width: actorScroll.width
+                height: Math.max(implicitHeight, actorScroll.height)
                 spacing: root.theme.spacingMedium
 
+            RowLayout {
+                Layout.fillWidth: true
+
                 Label {
-                    text: root.isEdit ? qsTr("Edit Actor") : qsTr("Create Actor")
-                    font.pointSize: root.theme.fontSizeTitle + root.theme.margins
+                    text: qsTr("Actor Name")
+                    Layout.preferredWidth: root.theme.formLabelWidth
                 }
 
                 Controls.TextField {
                     id: nameField
                     objectName: "actorNameField"
-                    placeholderText: qsTr("Name")
+                    placeholderText: ""
                     Layout.fillWidth: true
                 }
+            }
 
-                Controls.TextField {
-                    id: typeField
-                    objectName: "actorTypeField"
-                    placeholderText: qsTr("Type")
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: root.theme.spacingSmall
+
+                RowLayout {
+                    id: aliasControlsRow
                     Layout.fillWidth: true
+                    readonly property real aliasControlSize: actorAliasInput.implicitHeight
+
+                    Label {
+                        text: qsTr("Aliases")
+                        Layout.preferredWidth: root.theme.formLabelWidth
+                    }
+
+                    Controls.TextField {
+                        id: actorAliasInput
+                        Layout.fillWidth: true
+                        placeholderText: ""
+                        text: root.aliasInputText
+                        onTextEdited: root.aliasInputText = text
+                    }
+
+                    Controls.Button {
+                        text: "+"
+                        Layout.preferredWidth: aliasControlsRow.aliasControlSize
+                        Layout.preferredHeight: aliasControlsRow.aliasControlSize
+                        bordered: true
+                        fillColor: root.theme.surface
+                        textColor: root.theme.textMuted
+                        enabled: actorAliasInput.text.trim().length > 0
+                        onClicked: root.addAlias(actorAliasInput.text)
+                    }
+
+                    Controls.Button {
+                        text: "×"
+                        Layout.preferredWidth: aliasControlsRow.aliasControlSize
+                        Layout.preferredHeight: aliasControlsRow.aliasControlSize
+                        bordered: true
+                        fillColor: root.theme.surface
+                        textColor: root.theme.textMuted
+                        enabled: root.aliasIndex >= 0 && root.aliasIndex < root.aliases.length
+                        onClicked: root.deleteAlias(root.aliasIndex)
+                    }
                 }
 
-                Controls.TextArea {
-                    id: descField
-                    objectName: "actorDescriptionField"
-                    placeholderText: qsTr("Description")
+                Controls.Panel {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.theme.chartLegendHeight
-                    wrapMode: TextArea.Wrap
-                }
+                    Layout.minimumHeight: 160
+                    Layout.preferredHeight: 180
+                    Layout.maximumHeight: 180
+                    contentSpacing: 0
+                    background: Rectangle {
+                        radius: root.theme.radius
+                        color: root.theme.surface
+                        border.width: 1
+                        border.color: root.theme.border
+                    }
 
-                GroupBox {
-                    title: qsTr("Aliases")
-                    Layout.fillWidth: true
-
-                    ColumnLayout {
+                    Flickable {
+                        id: actorAliasScroll
                         anchors.fill: parent
-                        anchors.margins: root.theme.spacingMedium
-                        spacing: root.theme.spacingSmall
+                        clip: true
+                        contentWidth: width
+                        contentHeight: actorAliasFlow.implicitHeight
 
-                        Label {
-                            text: qsTr("One alias per line. Used for auto-matching during import.")
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
+                        ScrollBar.vertical: ScrollBar {
+                            policy: ScrollBar.AsNeeded
                         }
 
-                        Controls.TextArea {
-                            id: aliasesField
-                            objectName: "actorAliasesField"
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: root.theme.chartLegendHeight
-                            wrapMode: TextArea.Wrap
-                            placeholderText: qsTr("e.g.\nAMZN\nAmazon EU\nAmazon Payments")
+                        Flow {
+                            id: actorAliasFlow
+                            width: actorAliasScroll.width
+                            spacing: root.theme.spacingSmall
+
+                            Repeater {
+                                model: root.aliases
+
+                                delegate: Rectangle {
+                                    id: actorAliasChip
+                                    property var aliasData: modelData
+                                    property int aliasRowIndex: index
+                                    height: 30
+                                    radius: root.theme.radius
+                                    color: root.aliasIndex === actorAliasChip.aliasRowIndex ? root.theme.selectionHighlight : root.theme.surfaceAlt
+                                    border.width: 1
+                                    border.color: root.theme.border
+                                    width: Math.min(actorAliasFlow.width, actorAliasText.implicitWidth + root.theme.spacingLarge)
+
+                                    Text {
+                                        id: actorAliasText
+                                        anchors.centerIn: parent
+                                        text: String(actorAliasChip.aliasData)
+                                        color: root.theme.textPrimary
+                                        elide: Text.ElideRight
+                                        width: parent.width - root.theme.spacing
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: root.aliasIndex = actorAliasChip.aliasRowIndex
+                                    }
+                                }
+                            }
                         }
                     }
                 }
+            }
+
+            Views.ActorContractPanel {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumHeight: 170
+                Layout.preferredHeight: 220
+                theme: root.theme
+                contractRows: root.contractRows()
+                selectedContractIds: root.selectedContractIds
+                onSelectionChanged: root.selectedContractIds = ids
+            }
             }
         }
 
@@ -147,33 +311,60 @@ Item {
             theme: root.theme
 
             Controls.Button {
-                objectName: "actorNewButton"
-                visible: root.isEdit
-                text: qsTr("New")
-                onClicked: {
-                    if (root.session) root.session.selectedActorId = ""
-                }
+                text: "◀"
+                enabled: root.actorRows().length > 0
+                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
+                bordered: true
+                onClicked: root.navigateActor(-1)
             }
 
-            Controls.Button {
+            Item { Layout.fillWidth: true }
+
+            Controls.DangerButton {
+                visible: !root.isEdit
+                text: qsTr("Clear")
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
+                onClicked: root.clearFields()
+            }
+
+            Controls.SuccessButton {
                 objectName: "actorSubmitButton"
-                text: root.isEdit ? qsTr("Update") : qsTr("Add")
+                visible: !root.isEdit
+                text: qsTr("Create")
                 enabled: nameField.text.length > 0
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: root.submitActor()
             }
 
-            Controls.Button {
+            Controls.DangerButton {
                 objectName: "actorDeleteButton"
                 visible: root.isEdit
                 text: qsTr("Delete")
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: {
-                    if (!root.actorController) return
+                    if (!root.actorController || !root.current || !root.current.id) return
                     root.actorController.deleteActor(root.current.id)
                     if (root.session) root.session.selectedActorId = ""
                 }
             }
 
+            Controls.SuccessButton {
+                visible: root.isEdit
+                text: qsTr("Update")
+                enabled: nameField.text.length > 0
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
+                onClicked: root.submitActor()
+            }
+
             Item { Layout.fillWidth: true }
+
+            Controls.Button {
+                text: "▶"
+                enabled: root.actorRows().length > 0
+                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
+                bordered: true
+                onClicked: root.navigateActor(1)
+            }
         }
     }
 

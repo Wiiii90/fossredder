@@ -3,6 +3,7 @@ depends QtQuick
 PlaceholderSidebar 1.0 PlaceholderSidebar.qml
 PlaceholderView 1.0 PlaceholderView.qml
 ActorForm 1.0 Actor/ActorForm.qml
+ActorContractPanel 1.0 Actor/ActorContractPanel.qml
 ActorSidebar 1.0 Actor/ActorSidebar.qml
 ActorView 1.0 Actor/ActorView.qml
 AnalysisCalcView 1.0 Analysis/AnalysisCalcView.qml
@@ -27,6 +28,9 @@ BookingTransactionPropertyPanel 1.0 Booking/BookingTransactionPropertyPanel.qml
 BookingTransactionView 1.0 Booking/BookingTransactionView.qml
 BookingView 1.0 Booking/BookingView.qml
 ContractForm 1.0 Contract/ContractForm.qml
+ContractTypePanel 1.0 Contract/ContractTypePanel.qml
+ContractActorsPanel 1.0 Contract/ContractActorsPanel.qml
+ContractPropertiesPanel 1.0 Contract/ContractPropertiesPanel.qml
 ContractSidebar 1.0 Contract/ContractSidebar.qml
 ContractView 1.0 Contract/ContractView.qml
 ExportSidebar 1.0 Export/ExportSidebar.qml
@@ -43,6 +47,7 @@ TransactionDraftProofPanel 1.0 Import/TransactionDraftProofPanel.qml
 TransactionDraftPropertyPanel 1.0 Import/TransactionDraftPropertyPanel.qml
 TransactionDraftView 1.0 Import/TransactionDraftView.qml
 PropertyForm 1.0 Property/PropertyForm.qml
+PropertyContractPanel 1.0 Property/PropertyContractPanel.qml
 PropertySidebar 1.0 Property/PropertySidebar.qml
 PropertyView 1.0 Property/PropertyView.qml
 SettingsAdvanced 1.0 Settings/SettingsAdvanced.qml
