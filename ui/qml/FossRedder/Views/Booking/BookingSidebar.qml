@@ -1,3 +1,8 @@
+/*!
+ * @file ui/qml/FossRedder/Views/Booking/BookingSidebar.qml
+ * @brief Sidebar container for the booking page that loads booking-related sidebar components.
+ */
+
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Views 1.0 as Views

@@ -1,3 +1,8 @@
+/*!
+ * @file ui/qml/FossRedder/Views/Booking/BookingStatementView.qml
+ * @brief Main booking page for creating and editing statements and their transactions.
+ */
+
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Components 1.0 as Components

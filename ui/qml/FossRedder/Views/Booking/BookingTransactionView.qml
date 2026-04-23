@@ -1,3 +1,8 @@
+/*!
+ * @file ui/qml/FossRedder/Views/Booking/BookingTransactionView.qml
+ * @brief Form view for a single transaction inside the booking statement page.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3

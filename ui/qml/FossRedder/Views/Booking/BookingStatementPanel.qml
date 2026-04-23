@@ -1,3 +1,8 @@
+/*!
+ * @file ui/qml/FossRedder/Views/Booking/BookingStatementPanel.qml
+ * @brief Main panel for statement metadata and embedded transaction content in the booking page.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
