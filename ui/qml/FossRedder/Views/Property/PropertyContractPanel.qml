@@ -7,6 +7,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
+pragma ComponentBehavior: Bound
 
 Controls.Panel {
     id: root
@@ -16,8 +17,8 @@ Controls.Panel {
     signal selectionChanged(var ids)
 
     Layout.fillWidth: true
-    Layout.minimumHeight: 170
-    Layout.preferredHeight: 220
+    Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight
+    Layout.preferredHeight: root.theme.viewSelectionPanelPreferredHeight
     contentSpacing: root.theme.spacingSmall
 
     background: Rectangle {

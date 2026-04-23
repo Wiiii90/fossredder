@@ -141,7 +141,7 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: root.theme.spacingMedium
-        spacing: root.theme.spacing
+        spacing: root.theme.viewFormSpacing
 
         Flickable {
             id: contractScroll
@@ -160,7 +160,7 @@ Item {
                 id: contractContent
                 width: contractScroll.width
                 height: Math.max(implicitHeight, contractScroll.height)
-                spacing: root.theme.spacing
+                spacing: root.theme.viewFormSpacing
 
             RowLayout {
                 Layout.fillWidth: true
@@ -179,7 +179,7 @@ Item {
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: root.theme.spacingSmall
+                spacing: root.theme.viewAliasGroupSpacing
 
                 RowLayout {
                     id: aliasControlsRow
@@ -224,9 +224,9 @@ Item {
 
                 Controls.Panel {
                     Layout.fillWidth: true
-                    Layout.minimumHeight: 160
-                    Layout.preferredHeight: 180
-                    Layout.maximumHeight: 180
+                    Layout.minimumHeight: root.theme.viewAliasPanelMinHeight
+                    Layout.preferredHeight: root.theme.viewAliasPanelPreferredHeight
+                    Layout.maximumHeight: root.theme.viewAliasPanelPreferredHeight
                     contentSpacing: 0
                     background: Rectangle {
                         radius: root.theme.radius
@@ -256,11 +256,11 @@ Item {
 
                                 delegate: Rectangle {
                                     id: contractAliasChip
-                                    property var aliasData: modelData
-                                    property int aliasRowIndex: index
+                                    required property var modelData
+                                    required property int index
                                     height: 30
                                     radius: root.theme.radius
-                                    color: root.aliasIndex === contractAliasChip.aliasRowIndex ? root.theme.selectionHighlight : root.theme.surfaceAlt
+                                    color: root.aliasIndex === contractAliasChip.index ? root.theme.selectionHighlight : root.theme.surfaceAlt
                                     border.width: 1
                                     border.color: root.theme.border
                                     width: Math.min(contractAliasFlow.width, contractAliasText.implicitWidth + root.theme.spacingLarge)
@@ -268,7 +268,7 @@ Item {
                                     Text {
                                         id: contractAliasText
                                         anchors.centerIn: parent
-                                        text: String(contractAliasChip.aliasData)
+                                        text: String(contractAliasChip.modelData)
                                         color: root.theme.textPrimary
                                         elide: Text.ElideRight
                                         width: parent.width - root.theme.spacing
@@ -277,7 +277,7 @@ Item {
 
                                     MouseArea {
                                         anchors.fill: parent
-                                        onClicked: root.aliasIndex = contractAliasChip.aliasRowIndex
+                                        onClicked: root.aliasIndex = contractAliasChip.index
                                     }
                                 }
                             }
@@ -290,7 +290,7 @@ Item {
                 Layout.fillWidth: true
                 theme: root.theme
                 typeValue: root.contractType
-                onTypeEdited: root.contractType = text
+                onTypeEdited: (text) => root.contractType = text
             }
 
             Views.ContractActorsPanel {
@@ -300,18 +300,18 @@ Item {
                 theme: root.theme
                 actorRows: root.actorRows()
                 selectedActorIds: root.selectedActorIds
-                onSelectionChanged: root.selectedActorIds = ids
+                onSelectionChanged: (ids) => root.selectedActorIds = ids
             }
 
             Views.ContractPropertiesPanel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.minimumHeight: 170
-                Layout.preferredHeight: 220
+                Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight
+                Layout.preferredHeight: root.theme.viewSelectionPanelPreferredHeight
                 theme: root.theme
                 propertyRows: root.propertyRows()
                 selectedPropertyIds: root.selectedPropertyIds
-                onSelectionChanged: root.selectedPropertyIds = ids
+                onSelectionChanged: (ids) => root.selectedPropertyIds = ids
             }
             }
         }

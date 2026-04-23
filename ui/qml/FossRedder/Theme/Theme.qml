@@ -64,6 +64,12 @@ QtObject {
     property int chartPropertyChipMinWidth: 80
     property int viewNavigationButtonWidth: 72
     property int viewActionButtonWidth: 120
+    property int viewFormSpacing: 8
+    property int viewAliasGroupSpacing: 6
+    property int viewAliasPanelMinHeight: 160
+    property int viewAliasPanelPreferredHeight: 180
+    property int viewSelectionPanelMinHeight: 170
+    property int viewSelectionPanelPreferredHeight: 220
     property int radius: 3
     property int borderWidthThin: 1
 
