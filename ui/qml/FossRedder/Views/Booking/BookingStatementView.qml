@@ -29,39 +29,11 @@ Item {
     readonly property bool isCreateMode: !root.session || !root.session.selectedStatementId || root.session.selectedStatementId.length === 0
 
     function emptyTransaction() {
-        return {
-            id: "",
-            name: "",
-            bookingDate: "",
-            valuta: "",
-            amount: 0.0,
-            description: "",
-            status: 0,
-            actorId: "",
-            propertyIds: [],
-            allocatable: false,
-            contractId: "",
-            statementId: ""
-        }
+        return root.session ? root.session.emptyTransactionDraft() : ({})
     }
 
     function cloneTransaction(tx) {
-        const base = root.emptyTransaction()
-        const src = tx || ({})
-        for (const key in src)
-            base[key] = src[key]
-
-        const ids = []
-        if (src && src.propertyIds && src.propertyIds.length !== undefined) {
-            for (let i = 0; i < src.propertyIds.length; ++i)
-                ids.push(String(src.propertyIds[i]))
-        }
-        base.propertyIds = ids
-        base.amount = Number(base.amount)
-        if (isNaN(base.amount)) base.amount = 0.0
-        base.status = Number(base.status)
-        if (isNaN(base.status)) base.status = 0
-        return base
+        return root.session ? root.session.normalizeTransactionDraft(tx || ({})) : ({})
     }
 
     function statementRows() {
@@ -80,78 +52,48 @@ Item {
         return root.session ? root.session.propertyRows() : []
     }
 
-    function selectedStatementIndex() {
+    function editTransactionState() {
         if (!root.session || !root.session.selectedStatementId)
-            return -1
-
-        const rows = root.statementRows()
-        for (let i = 0; i < rows.length; ++i) {
-            if (rows[i] && rows[i].id === root.session.selectedStatementId)
-                return i
-        }
-        return -1
-    }
-
-    function editTransactionRows() {
-        if (!root.session || !root.session.selectedStatementId)
-            return []
+            return ({ rows: [], orderIds: [], index: -1, id: "" })
 
         const rows = root.session.statementTransactionRows(root.session.selectedStatementId)
-        if (rows.length === 0) {
-            root.editTransactionOrderIds = []
-            return []
-        }
-
-        const byId = ({})
-        const ids = []
-        for (let i = 0; i < rows.length; ++i) {
-            const row = rows[i]
-            if (!row || !row.id)
-                continue
-            byId[row.id] = row
-            ids.push(row.id)
-        }
-
-        let order = root.editTransactionOrderIds && root.editTransactionOrderIds.length > 0
-            ? root.editTransactionOrderIds.slice()
-            : ids.slice()
-
-        order = order.filter(function(id) { return ids.indexOf(id) !== -1 })
-        for (let i = 0; i < ids.length; ++i) {
-            if (order.indexOf(ids[i]) === -1)
-                order.push(ids[i])
-        }
-        root.editTransactionOrderIds = order
-
-        const ordered = []
-        for (let i = 0; i < order.length; ++i) {
-            if (byId[order[i]])
-                ordered.push(byId[order[i]])
-        }
-        return ordered
+        const preferred = root.editTransactionOrderIds && root.editTransactionOrderIds.length > 0
+            ? root.editTransactionOrderIds
+            : root.session.rowIds(rows)
+        return root.session.orderedSelectionState(rows,
+                                                  preferred,
+                                                  root.editTransactionIndex,
+                                                  root.session.selectedTransactionId || "",
+                                                  "id")
     }
 
     function transactionById(txId) {
-        if (!root.transactionController || !txId)
+        if (!root.statementController || !txId)
             return root.emptyTransaction()
-        return root.cloneTransaction(root.transactionController.transaction(txId))
+        return root.cloneTransaction(root.statementController.statement(txId))
     }
 
     function currentCreateTransaction() {
-        if (root.createTransactions.length === 0)
+        if (!root.session)
             return root.emptyTransaction()
-        const idx = Math.max(0, Math.min(root.createTransactionIndex, root.createTransactions.length - 1))
-        return root.cloneTransaction(root.createTransactions[idx])
+        const state = root.session.currentDraftState(root.createTransactions || [],
+                                                     root.createTransactionIndex,
+                                                     root.emptyTransaction())
+        root.createTransactions = state.drafts || [root.emptyTransaction()]
+        root.createTransactionIndex = state.index !== undefined ? state.index : 0
+        return state.draft || root.emptyTransaction()
     }
 
     function setCurrentCreateTransaction(data) {
-        if (root.createTransactions.length === 0)
+        if (!root.session)
             return
 
-        const idx = Math.max(0, Math.min(root.createTransactionIndex, root.createTransactions.length - 1))
-        let next = root.createTransactions.slice()
-        next[idx] = root.cloneTransaction(data)
-        root.createTransactions = next
+        const state = root.session.setCurrentDraft(root.createTransactions || [],
+                                                   root.createTransactionIndex,
+                                                   data || ({}),
+                                                   root.emptyTransaction())
+        root.createTransactions = state.drafts || [root.emptyTransaction()]
+        root.createTransactionIndex = state.index !== undefined ? state.index : 0
     }
 
     function syncEditState() {
@@ -161,69 +103,36 @@ Item {
         const statement = root.session ? root.session.selectedStatement : null
         root.editStatementName = statement && statement.name ? statement.name : ""
 
-        const rows = root.editTransactionRows()
+        const state = root.editTransactionState()
+        const rows = state.rows || []
+        root.editTransactionOrderIds = state.orderIds || []
         if (rows.length === 0) {
             root.editTransactionIndex = -1
             root.editTransactionData = root.emptyTransaction()
             return
         }
 
-        let index = root.editTransactionIndex
-        if (root.session && root.session.selectedTransactionId && root.session.selectedTransactionId.length > 0) {
-            index = -1
-            for (let i = 0; i < rows.length; ++i) {
-                if (rows[i] && rows[i].id === root.session.selectedTransactionId) {
-                    index = i
-                    break
-                }
-            }
-        }
-
-        if (index < 0 || index >= rows.length)
-            index = 0
-
-        root.editTransactionIndex = index
-        const currentRow = rows[index]
-        root.editTransactionData = root.transactionById(currentRow && currentRow.id ? currentRow.id : "")
+        root.editTransactionIndex = state.index !== undefined ? state.index : 0
+        root.editTransactionData = root.transactionById(state.id || "")
 
         if (root.session)
-            root.session.selectedTransactionId = currentRow && currentRow.id ? currentRow.id : ""
-    }
-
-    function selectStatementByIndex(index) {
-        const rows = root.statementRows()
-        if (!root.session || rows.length === 0)
-            return
-
-        let idx = index
-        while (idx < 0)
-            idx += rows.length
-        idx = idx % rows.length
-
-        const row = rows[idx]
-        if (!row || !row.id)
-            return
-
-        root.session.selectedStatementId = row.id
-        root.session.selectedTransactionId = ""
-        root.editTransactionOrderIds = []
+            root.session.selectedTransactionId = state.id || ""
     }
 
     function navigateStatement(delta) {
         const rows = root.statementRows()
-        if (rows.length === 0)
+        if (!root.session || rows.length === 0)
             return
 
-        if (root.isCreateMode) {
-            root.selectStatementByIndex(delta > 0 ? 0 : rows.length - 1)
-            return
-        }
-
-        const current = root.selectedStatementIndex()
-        if (current < 0)
+        const currentId = root.isCreateMode ? "" : (root.session.selectedStatementId || "")
+        const fallbackIndex = delta > 0 ? 0 : rows.length - 1
+        const nextId = root.session.navigatedId(rows, currentId, delta, fallbackIndex)
+        if (!nextId || nextId.length === 0)
             return
 
-        root.selectStatementByIndex(current + delta)
+        root.session.selectedStatementId = nextId
+        root.session.selectedTransactionId = ""
+        root.editTransactionOrderIds = []
     }
 
     function navigateTransaction(delta) {
@@ -231,58 +140,60 @@ Item {
             if (root.createTransactions.length === 0)
                 return
 
-            let idx = root.createTransactionIndex + delta
-            while (idx < 0)
-                idx += root.createTransactions.length
-            idx = idx % root.createTransactions.length
+            const idx = root.session ? root.session.wrappedIndex(root.createTransactionIndex + delta, root.createTransactions.length) : 0
             root.createTransactionIndex = idx
             return
         }
 
-        const rows = root.editTransactionRows()
+        const state = root.editTransactionState()
+        root.editTransactionOrderIds = state.orderIds || []
+        const rows = state.rows || []
         if (!root.session || rows.length === 0)
             return
 
-        let idx = root.editTransactionIndex
-        if (idx < 0 || idx >= rows.length)
-            idx = 0
-        idx = idx + delta
-        while (idx < 0)
-            idx += rows.length
-        idx = idx % rows.length
-
-        const row = rows[idx]
-        root.editTransactionIndex = idx
-        root.editTransactionData = root.transactionById(row && row.id ? row.id : "")
-        root.session.selectedTransactionId = row && row.id ? row.id : ""
+        const next = root.session.navigateSelectionState(rows,
+                                                         state.index !== undefined ? state.index : root.editTransactionIndex,
+                                                         state.id || root.session.selectedTransactionId || "",
+                                                         delta,
+                                                         0,
+                                                         "id")
+        root.editTransactionIndex = next.index !== undefined ? next.index : 0
+        root.editTransactionData = root.transactionById(next.id || "")
+        root.session.selectedTransactionId = next.id || ""
     }
 
     function resetCreateState() {
         root.createStatementName = ""
-        root.createTransactions = [root.emptyTransaction()]
-        root.createTransactionIndex = 0
-    }
-
-    function addCreateTransaction() {
-        if (root.createTransactions.length === 0) {
+        if (!root.session) {
             root.createTransactions = [root.emptyTransaction()]
             root.createTransactionIndex = 0
             return
         }
+        const state = root.session.createDraftListState([], 0, root.emptyTransaction())
+        root.createTransactions = state.drafts || [root.emptyTransaction()]
+        root.createTransactionIndex = state.index !== undefined ? state.index : 0
+    }
 
-        const next = root.createTransactions.slice()
-        const insertIndex = Math.max(0, Math.min(root.createTransactionIndex, next.length - 1)) + 1
-        next.splice(insertIndex, 0, root.emptyTransaction())
-        root.createTransactions = next
-        root.createTransactionIndex = insertIndex
+    function addCreateTransaction() {
+        if (!root.session) {
+            return
+        }
+
+        const state = root.session.insertDraftAfterCurrent(root.createTransactions || [],
+                                                           root.createTransactionIndex,
+                                                           root.emptyTransaction())
+        root.createTransactions = state.drafts || [root.emptyTransaction()]
+        root.createTransactionIndex = state.index !== undefined ? state.index : 0
     }
 
     function addEditTransaction() {
         if (!root.transactionController || !root.session || !root.session.selectedStatementId)
             return
 
-        const rows = root.editTransactionRows()
-        let insertAfterIndex = root.editTransactionIndex
+        const state = root.editTransactionState()
+        root.editTransactionOrderIds = state.orderIds || []
+        const rows = state.rows || []
+        let insertAfterIndex = state.index !== undefined ? state.index : root.editTransactionIndex
         if (insertAfterIndex < 0 || insertAfterIndex >= rows.length)
             insertAfterIndex = rows.length - 1
 
@@ -292,23 +203,11 @@ Item {
             return
 
         const updatedRows = root.session.statementTransactionRows(statementId)
-        const updatedIds = []
-        for (let i = 0; i < updatedRows.length; ++i) {
-            if (updatedRows[i] && updatedRows[i].id)
-                updatedIds.push(updatedRows[i].id)
-        }
+        const updatedIds = root.session.rowIds(updatedRows)
 
-        let order = root.editTransactionOrderIds && root.editTransactionOrderIds.length > 0
-            ? root.editTransactionOrderIds.slice()
-            : updatedIds.slice()
-        order = order.filter(function(id) { return updatedIds.indexOf(id) !== -1 && id !== newId })
-        const insertIndex = Math.max(0, Math.min(insertAfterIndex + 1, order.length))
-        order.splice(insertIndex, 0, newId)
-        for (let i = 0; i < updatedIds.length; ++i) {
-            if (order.indexOf(updatedIds[i]) === -1)
-                order.push(updatedIds[i])
-        }
-        root.editTransactionOrderIds = order
+        root.editTransactionOrderIds = root.session
+            ? root.session.orderWithInsertedId(root.editTransactionOrderIds || [], updatedIds, newId, insertAfterIndex)
+            : updatedIds
 
         if (root.session)
             root.session.selectedTransactionId = newId
@@ -325,32 +224,42 @@ Item {
 
     function deleteCurrentTransaction() {
         if (root.isCreateMode) {
-            if (root.createTransactions.length <= 1) {
-                root.createTransactions = [root.emptyTransaction()]
-                root.createTransactionIndex = 0
+            if (!root.session)
                 return
-            }
-
-            let next = root.createTransactions.slice()
-            next.splice(root.createTransactionIndex, 1)
-            root.createTransactions = next
-            root.createTransactionIndex = Math.min(root.createTransactionIndex, next.length - 1)
+            const state = root.session.removeDraftAt(root.createTransactions || [],
+                                                     root.createTransactionIndex,
+                                                     root.emptyTransaction())
+            root.createTransactions = state.drafts || [root.emptyTransaction()]
+            root.createTransactionIndex = state.index !== undefined ? state.index : 0
             return
         }
 
         if (!root.transactionController || !root.editTransactionData || !root.editTransactionData.id)
             return
 
-        const rows = root.editTransactionRows()
+        const selectionState = root.editTransactionState()
+        root.editTransactionOrderIds = selectionState.orderIds || []
+        const rows = selectionState.rows || []
         if (rows.length <= 1)
             return
 
         const deletedId = root.editTransactionData.id
         root.transactionController.deleteTransaction(root.editTransactionData.id)
-        root.editTransactionOrderIds = root.editTransactionOrderIds.filter(function(id) { return id !== deletedId })
+
+        const updatedRows = root.session ? root.session.statementTransactionRows(root.session.selectedStatementId || "") : []
+        const reselectionState = root.session
+            ? root.session.deleteReselectionState(updatedRows,
+                                                 root.editTransactionOrderIds || [],
+                                                 root.editTransactionIndex,
+                                                 deletedId,
+                                                 "id")
+            : ({ orderIds: [], index: -1, id: "" })
+
+        root.editTransactionOrderIds = reselectionState.orderIds || []
+        root.editTransactionIndex = reselectionState.index !== undefined ? reselectionState.index : -1
         if (root.session)
-            root.session.selectedTransactionId = ""
-        Qt.callLater(root.syncEditState)
+            root.session.selectedTransactionId = reselectionState.id || ""
+        root.editTransactionData = root.transactionById(reselectionState.id || "")
     }
 
     function currentCreateInfoText() {
@@ -360,15 +269,17 @@ Item {
     }
 
     function currentEditInfoText() {
-        const rows = root.editTransactionRows()
+        const state = root.editTransactionState()
+        const rows = state.rows || []
+        root.editTransactionOrderIds = state.orderIds || []
         if (rows.length === 0)
             return qsTr("No transactions")
-        const idx = root.editTransactionIndex >= 0 ? root.editTransactionIndex : 0
+        const idx = state.index !== undefined ? state.index : 0
         return qsTr("Transaction %1 / %2").arg(idx + 1).arg(rows.length)
     }
 
     function createStatementWithTransactions() {
-        if (!root.statementController)
+        if (!root.statementController || !root.transactionController)
             return
         if (!root.createStatementName || root.createStatementName.length === 0)
             return
@@ -377,30 +288,7 @@ Item {
         if (!statementId || statementId.length === 0)
             return
 
-        if (root.transactionController) {
-            for (let i = 0; i < root.createTransactions.length; ++i) {
-                const tx = root.cloneTransaction(root.createTransactions[i])
-                const hasContent = (tx.name && tx.name.length > 0)
-                                   || (tx.bookingDate && tx.bookingDate.length > 0)
-                                   || (tx.valuta && tx.valuta.length > 0)
-                                   || Number(tx.amount) !== 0
-                                   || (tx.actorId && tx.actorId.length > 0)
-                                   || (tx.propertyIds && tx.propertyIds.length > 0)
-                if (!hasContent)
-                    continue
-
-                root.transactionController.addTransaction(
-                    tx.name || "",
-                    tx.bookingDate || "",
-                    Number(tx.amount),
-                    tx.description || "",
-                    statementId,
-                    Number(tx.status),
-                    tx.actorId || "",
-                    !!tx.allocatable,
-                    tx.propertyIds || [])
-            }
-        }
+        root.transactionController.addTransactions(statementId, root.createTransactions || [])
 
         root.resetCreateState()
         if (root.session) {
@@ -413,21 +301,25 @@ Item {
         if (root.isCreateMode)
             return
 
-        if (root.statementController && root.session && root.session.selectedStatementId)
-            root.statementController.updateStatement(root.session.selectedStatementId, root.editStatementName)
+        if (!root.statementController || !root.session || !root.session.selectedStatementId)
+            return
+
+        root.statementController.updateStatement(root.session.selectedStatementId,
+                                                root.editStatementName)
 
         if (!root.transactionController || !root.editTransactionData || !root.editTransactionData.id)
             return
 
-        const statementId = root.session && root.session.selectedStatementId ? root.session.selectedStatementId : (root.editTransactionData.statementId || "")
+        const normalizedTx = root.cloneTransaction(root.editTransactionData)
+        const statementId = root.session.selectedStatementId || (root.editTransactionData.statementId || "")
         root.transactionController.updateTransaction(
             root.editTransactionData.id,
             root.editTransactionData.name || "",
             root.editTransactionData.bookingDate || "",
-            Number(root.editTransactionData.amount),
+            normalizedTx.amount,
             root.editTransactionData.description || "",
             statementId,
-            Number(root.editTransactionData.status),
+            normalizedTx.status,
             root.editTransactionData.actorId || "",
             !!root.editTransactionData.allocatable,
             root.editTransactionData.propertyIds || [])
@@ -439,8 +331,10 @@ Item {
         if (!root.statementController || !root.session || !root.session.selectedStatementId)
             return
 
-        root.statementController.deleteStatement(root.session.selectedStatementId)
-        root.session.selectedStatementId = ""
+        const removedId = root.session.selectedStatementId
+        root.statementController.deleteStatement(removedId)
+        const nextId = root.session.deleteNextSelectionId(root.statementRows(), removedId, 0, "id")
+        root.session.selectedStatementId = nextId || ""
         root.session.selectedTransactionId = ""
     }
 
@@ -480,7 +374,7 @@ Item {
             transactionDeleteVisible: true
             transactionDeleteEnabled: root.isCreateMode
                                       ? root.createTransactions.length > 1
-                                      : (root.editTransactionRows().length > 1 && root.editTransactionData && root.editTransactionData.id && root.editTransactionData.id.length > 0)
+                                      : (root.editTransactionState().rows.length > 1 && root.editTransactionData && root.editTransactionData.id && root.editTransactionData.id.length > 0)
             transactionAddVisible: root.isCreateMode || (!root.isCreateMode && root.session && root.session.selectedStatementId && root.session.selectedStatementId.length > 0)
             transactionAddEnabled: root.isCreateMode || (!root.isCreateMode && root.session && root.session.selectedStatementId && root.session.selectedStatementId.length > 0)
             onStatementNameEdited: function(nextText) {
@@ -496,6 +390,7 @@ Item {
                 id: transactionView
                 Layout.fillWidth: true
                 theme: root.theme
+                session: root.session
                 transactionData: root.isCreateMode ? root.currentCreateTransaction() : root.editTransactionData
                 actorRows: root.actorRows()
                 contractRows: root.contractRows()
@@ -523,7 +418,7 @@ Item {
 
             Controls.Button {
                 text: "◀"
-                enabled: root.isCreateMode ? root.createTransactions.length > 1 : root.editTransactionRows().length > 1
+                enabled: root.isCreateMode ? root.createTransactions.length > 1 : root.editTransactionState().rows.length > 1
                 Layout.preferredWidth: root.theme.viewNavigationButtonWidth
                 bordered: true
                 onClicked: root.navigateTransaction(-1)
@@ -568,7 +463,7 @@ Item {
 
             Controls.Button {
                 text: "▶"
-                enabled: root.isCreateMode ? root.createTransactions.length > 1 : root.editTransactionRows().length > 1
+                enabled: root.isCreateMode ? root.createTransactions.length > 1 : root.editTransactionState().rows.length > 1
                 Layout.preferredWidth: root.theme.viewNavigationButtonWidth
                 bordered: true
                 onClicked: root.navigateTransaction(1)

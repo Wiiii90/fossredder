@@ -18,7 +18,6 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var propertyController: root.appContext ? root.appContext.propertyController : null
-    readonly property var contractController: root.appContext ? root.appContext.contractController : null
 
     readonly property var current: root.session ? root.session.selectedProperty : null
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
@@ -28,21 +27,25 @@ Item {
     property int aliasIndex: aliases.length > 0 ? 0 : -1
     property var selectedContractIds: []
 
+    function applyFormState(state) {
+        const next = state || ({})
+        nameField.text = next.name || ""
+        root.aliases = next.aliases || []
+        root.aliasInputText = next.aliasInputText || ""
+        root.aliasIndex = next.aliasIndex !== undefined ? next.aliasIndex : -1
+        root.selectedContractIds = next.selectedIds || []
+    }
+
     function clearFields() {
-        nameField.text = ""
-        root.aliases = []
-        root.aliasInputText = ""
-        root.aliasIndex = -1
-        root.selectedContractIds = []
+        if (!root.session) {
+            root.applyFormState({})
+            return
+        }
+        root.applyFormState(root.session.basicFormState("", [], []))
     }
 
     function toStringList(values) {
-        const out = []
-        if (!values || values.length === undefined)
-            return out
-        for (let i = 0; i < values.length; ++i)
-            out.push(String(values[i]))
-        return out
+        return root.session ? root.session.normalizeStrings(values || []) : []
     }
 
     function propertyRows() {
@@ -53,63 +56,36 @@ Item {
         return root.session ? root.session.contractRows() : []
     }
 
-    function selectedPropertyIndex() {
-        if (!root.session || !root.session.selectedPropertyId)
-            return -1
-        const rows = root.propertyRows()
-        for (let i = 0; i < rows.length; ++i) {
-            if (rows[i] && rows[i].id === root.session.selectedPropertyId)
-                return i
-        }
-        return -1
-    }
-
-    function selectPropertyByIndex(index) {
+    function navigateProperty(delta) {
         const rows = root.propertyRows()
         if (!root.session || rows.length === 0)
             return
-        let idx = index
-        while (idx < 0)
-            idx += rows.length
-        idx = idx % rows.length
-        const row = rows[idx]
-        if (!row || !row.id)
-            return
-        root.session.selectedPropertyId = row.id
-    }
 
-    function navigateProperty(delta) {
-        const rows = root.propertyRows()
-        if (rows.length === 0)
+        const currentId = root.isEdit ? (root.session.selectedPropertyId || "") : ""
+        const fallbackIndex = delta > 0 ? 0 : rows.length - 1
+        const nextId = root.session.navigatedId(rows, currentId, delta, fallbackIndex)
+        if (!nextId || nextId.length === 0)
             return
-        if (!root.isEdit) {
-            root.selectPropertyByIndex(delta > 0 ? 0 : rows.length - 1)
-            return
-        }
-        const idx = root.selectedPropertyIndex()
-        if (idx < 0)
-            return
-        root.selectPropertyByIndex(idx + delta)
+        root.session.selectedPropertyId = nextId
     }
 
     function addAlias(value) {
-        const trimmed = String(value || "").trim()
-        if (trimmed.length === 0)
+        if (!root.session)
             return
-        const next = root.aliases ? root.aliases.slice(0) : []
-        if (next.indexOf(trimmed) !== -1)
+        const next = root.session.addUniqueTrimmed(root.aliases || [], value || "")
+        if (next.length === root.aliases.length)
             return
-        next.push(trimmed)
         root.aliases = next
         root.aliasIndex = next.length - 1
         root.aliasInputText = ""
     }
 
     function deleteAlias(index) {
-        if (!root.aliases || index < 0 || index >= root.aliases.length)
+        if (!root.session)
             return
-        const next = root.aliases.slice(0)
-        next.splice(index, 1)
+        const next = root.session.removeAt(root.aliases || [], index)
+        if (next.length === root.aliases.length)
+            return
         root.aliases = next
         root.aliasIndex = next.length > 0 ? Math.min(index, next.length - 1) : -1
     }
@@ -120,15 +96,25 @@ Item {
             return
 
         const aliasValues = root.toStringList(root.aliases)
-        if (root.isEdit) {
-            root.propertyController.updateProperty(root.current.id, nameField.text, "", "", aliasValues)
-            return
-        }
-
-        const propertyId = root.propertyController.addProperty(nameField.text, "", "", aliasValues)
-        root.clearFields()
+        const currentId = root.isEdit && root.current && root.current.id ? root.current.id : ""
+        const propertyId = root.propertyController.saveProperty(currentId, nameField.text, "", "", aliasValues)
+        if (!root.isEdit)
+            root.clearFields()
         if (root.session && propertyId && propertyId.length > 0)
             root.session.selectedPropertyId = propertyId
+    }
+
+    function deleteProperty() {
+        if (!root.propertyController || !root.current || !root.current.id)
+            return
+
+        const removedId = root.current.id
+        root.propertyController.deleteProperty(removedId)
+        if (!root.session)
+            return
+
+        const nextId = root.session.deleteNextSelectionId(root.propertyRows(), removedId, 0, "id")
+        root.session.selectedPropertyId = nextId || ""
     }
 
     function syncFields() {
@@ -136,11 +122,10 @@ Item {
             root.clearFields()
             return
         }
-        nameField.text = root.current.name || ""
-        root.aliases = root.current.aliases ? root.current.aliases.slice(0) : []
-        root.aliasInputText = ""
-        root.aliasIndex = root.aliases.length > 0 ? 0 : -1
-        root.selectedContractIds = []
+        const state = root.session
+            ? root.session.basicFormState(root.current.name || "", root.current.aliases || [], [])
+            : ({})
+        root.applyFormState(state)
     }
 
     Connections {
@@ -343,13 +328,7 @@ Item {
                 visible: root.isEdit
                 text: qsTr("Delete")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
-                onClicked: {
-                    if (!root.propertyController || !root.current || !root.current.id)
-                        return
-                    root.propertyController.deleteProperty(root.current.id)
-                    if (root.session)
-                        root.session.selectedPropertyId = ""
-                }
+                onClicked: root.deleteProperty()
             }
 
             Controls.SuccessButton {

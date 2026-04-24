@@ -107,6 +107,89 @@ public:
     Q_INVOKABLE QVariantList analysisRows() const;
     Q_INVOKABLE QVariantList statementRows() const;
     Q_INVOKABLE QVariantList statementTransactionRows(const QString& statementId) const;
+    Q_INVOKABLE QVariantList normalizeStrings(const QVariantList& values) const;
+    Q_INVOKABLE QVariantList addUniqueTrimmed(const QVariantList& values, const QString& value) const;
+    Q_INVOKABLE QVariantList removeAt(const QVariantList& values, int index) const;
+    Q_INVOKABLE QVariantList removeString(const QVariantList& values, const QString& value) const;
+    Q_INVOKABLE QVariantList insertAt(const QVariantList& values, int index, const QVariant& value) const;
+    Q_INVOKABLE QVariantList pruneAndAppendMissing(const QVariantList& preferredIds, const QVariantList& availableIds) const;
+    Q_INVOKABLE int indexOfId(const QVariantList& rows, const QString& id) const;
+    Q_INVOKABLE int indexOfKeyValue(const QVariantList& rows, const QString& key, const QVariant& value) const;
+    Q_INVOKABLE int indexOfString(const QVariantList& values, const QString& value) const;
+    Q_INVOKABLE int normalizedIndex(int index, int count) const;
+    Q_INVOKABLE int wrappedIndex(int index, int count) const;
+    Q_INVOKABLE QString wrappedIdAt(const QVariantList& rows, int index) const;
+    Q_INVOKABLE QString navigatedId(const QVariantList& rows,
+                                    const QString& currentId,
+                                    int delta,
+                                    int fallbackIndex = 0) const;
+    Q_INVOKABLE QVariantList displayRowsWithEmpty(const QVariantList& rows,
+                                                  const QString& emptyDisplay,
+                                                  const QString& displayKey = QStringLiteral("display")) const;
+    Q_INVOKABLE QVariantList rowIds(const QVariantList& rows, const QString& idKey = QStringLiteral("id")) const;
+    Q_INVOKABLE QVariantList orderedRowsByIds(const QVariantList& rows,
+                                              const QVariantList& orderIds,
+                                              const QString& idKey = QStringLiteral("id")) const;
+    Q_INVOKABLE QVariantMap mapWithKeyValue(const QVariantMap& base, const QString& key, const QVariant& value) const;
+    Q_INVOKABLE QVariantMap emptyTransactionDraft() const;
+    Q_INVOKABLE QVariantMap normalizeTransactionDraft(const QVariantMap& tx) const;
+    Q_INVOKABLE QVariantList normalizeTransactionDrafts(const QVariantList& values) const;
+    Q_INVOKABLE bool transactionDraftHasContent(const QVariantMap& tx) const;
+    Q_INVOKABLE QVariantMap createDraftListState(const QVariantList& drafts,
+                                                 int currentIndex,
+                                                 const QVariantMap& emptyDraft) const;
+    Q_INVOKABLE QVariantMap insertDraftAfterCurrent(const QVariantList& drafts,
+                                                    int currentIndex,
+                                                    const QVariantMap& emptyDraft) const;
+    Q_INVOKABLE QVariantMap removeDraftAt(const QVariantList& drafts,
+                                          int currentIndex,
+                                          const QVariantMap& emptyDraft) const;
+    Q_INVOKABLE QVariantMap setCurrentDraft(const QVariantList& drafts,
+                                            int currentIndex,
+                                            const QVariantMap& draft,
+                                            const QVariantMap& emptyDraft) const;
+    Q_INVOKABLE QVariantMap currentDraftState(const QVariantList& drafts,
+                                              int currentIndex,
+                                              const QVariantMap& emptyDraft) const;
+    Q_INVOKABLE QVariantMap resolveSelectionState(const QVariantList& rows,
+                                                  int currentIndex,
+                                                  const QString& selectedId,
+                                                  const QString& idKey = QStringLiteral("id")) const;
+    Q_INVOKABLE QVariantList orderWithInsertedId(const QVariantList& currentOrder,
+                                                 const QVariantList& availableIds,
+                                                 const QString& insertedId,
+                                                 int insertAfterIndex) const;
+    Q_INVOKABLE QVariantMap orderedRowsState(const QVariantList& rows,
+                                             const QVariantList& preferredOrder,
+                                             const QString& idKey = QStringLiteral("id")) const;
+    Q_INVOKABLE QVariantMap orderedSelectionState(const QVariantList& rows,
+                                                  const QVariantList& preferredOrder,
+                                                  int currentIndex,
+                                                  const QString& selectedId,
+                                                  const QString& idKey = QStringLiteral("id")) const;
+    Q_INVOKABLE QVariantMap navigateSelectionState(const QVariantList& rows,
+                                                   int currentIndex,
+                                                   const QString& selectedId,
+                                                   int delta,
+                                                   int fallbackIndex = 0,
+                                                   const QString& idKey = QStringLiteral("id")) const;
+    Q_INVOKABLE QVariantMap deleteReselectionState(const QVariantList& rows,
+                                                   const QVariantList& preferredOrder,
+                                                   int currentIndex,
+                                                   const QString& removedId,
+                                                   const QString& idKey = QStringLiteral("id")) const;
+    Q_INVOKABLE QString deleteNextSelectionId(const QVariantList& rows,
+                                              const QString& removedId,
+                                              int fallbackIndex = 0,
+                                              const QString& idKey = QStringLiteral("id")) const;
+    Q_INVOKABLE QVariantMap basicFormState(const QString& name,
+                                           const QVariantList& aliases,
+                                           const QVariantList& selectedIds = QVariantList()) const;
+    Q_INVOKABLE QVariantMap contractFormState(const QString& name,
+                                              const QString& type,
+                                              const QVariantList& actorIds,
+                                              const QVariantList& propertyIds,
+                                              const QVariantList& aliases) const;
     /** @brief Returns a live filter over transactions that belong to the given statement. */
     Q_INVOKABLE TransactionFilter* statementTransactions(const QString& statementId);
     /** @brief Returns a live filter over transactions assigned to the given property. */

@@ -29,23 +29,27 @@ Item {
     property int aliasIndex: aliases.length > 0 ? 0 : -1
     property string contractType: ""
 
+    function applyFormState(state) {
+        const next = state || ({})
+        nameField.text = next.name || ""
+        root.contractType = next.type || ""
+        root.selectedActorIds = next.selectedActorIds || []
+        root.selectedPropertyIds = next.selectedPropertyIds || []
+        root.aliases = next.aliases || []
+        root.aliasInputText = next.aliasInputText || ""
+        root.aliasIndex = next.aliasIndex !== undefined ? next.aliasIndex : -1
+    }
+
     function clearFields() {
-        nameField.text = ""
-        root.contractType = ""
-        root.selectedActorIds = []
-        root.selectedPropertyIds = []
-        root.aliases = []
-        root.aliasInputText = ""
-        root.aliasIndex = -1
+        if (!root.session) {
+            root.applyFormState({})
+            return
+        }
+        root.applyFormState(root.session.contractFormState("", "", [], [], []))
     }
 
     function toStringList(values) {
-        const out = []
-        if (!values || values.length === undefined)
-            return out
-        for (let i = 0; i < values.length; ++i)
-            out.push(String(values[i]))
-        return out
+        return root.session ? root.session.normalizeStrings(values || []) : []
     }
 
     function actorRows() {
@@ -60,80 +64,89 @@ Item {
         return root.session ? root.session.contractRows() : []
     }
 
-    function selectedContractIndex() {
-        if (!root.session || !root.session.selectedContractId)
-            return -1
-        const rows = root.contractRows()
-        for (let i = 0; i < rows.length; ++i) {
-            if (rows[i] && rows[i].id === root.session.selectedContractId)
-                return i
-        }
-        return -1
-    }
-
-    function selectContractByIndex(index) {
+    function navigateContract(delta) {
         const rows = root.contractRows()
         if (!root.session || rows.length === 0)
             return
-        let idx = index
-        while (idx < 0)
-            idx += rows.length
-        idx = idx % rows.length
-        const row = rows[idx]
-        if (!row || !row.id)
-            return
-        root.session.selectedContractId = row.id
-    }
 
-    function navigateContract(delta) {
-        const rows = root.contractRows()
-        if (rows.length === 0)
+        const currentId = root.isEdit ? (root.session.selectedContractId || "") : ""
+        const fallbackIndex = delta > 0 ? 0 : rows.length - 1
+        const nextId = root.session.navigatedId(rows, currentId, delta, fallbackIndex)
+        if (!nextId || nextId.length === 0)
             return
-        if (!root.isEdit) {
-            root.selectContractByIndex(delta > 0 ? 0 : rows.length - 1)
-            return
-        }
-        const idx = root.selectedContractIndex()
-        if (idx < 0)
-            return
-        root.selectContractByIndex(idx + delta)
+        root.session.selectedContractId = nextId
     }
 
     function addAlias(value) {
-        const trimmed = String(value || "").trim()
-        if (trimmed.length === 0)
+        if (!root.session)
             return
-        const next = root.aliases ? root.aliases.slice(0) : []
-        if (next.indexOf(trimmed) !== -1)
+        const next = root.session.addUniqueTrimmed(root.aliases || [], value || "")
+        if (next.length === root.aliases.length)
             return
-        next.push(trimmed)
         root.aliases = next
         root.aliasIndex = next.length - 1
         root.aliasInputText = ""
     }
 
     function deleteAlias(index) {
-        if (!root.aliases || index < 0 || index >= root.aliases.length)
+        if (!root.session)
             return
-        const next = root.aliases.slice(0)
-        next.splice(index, 1)
+        const next = root.session.removeAt(root.aliases || [], index)
+        if (next.length === root.aliases.length)
+            return
         root.aliases = next
         root.aliasIndex = next.length > 0 ? Math.min(index, next.length - 1) : -1
     }
 
     function syncFields() {
         if (!root.isEdit) { root.clearFields(); return }
-        nameField.text = root.current.name || ""
-        root.contractType = root.current.type || ""
-        const actorIds = root.toStringList(root.current.actorIds || [])
-        root.selectedActorIds = actorIds.length > 0 ? [actorIds[0]] : []
-        root.selectedPropertyIds = root.toStringList(root.current.propertyIds || [])
-        root.aliases = (root.current.aliases || []).slice(0)
-        root.aliasInputText = ""
-        root.aliasIndex = root.aliases.length > 0 ? 0 : -1
+        const state = root.session
+            ? root.session.contractFormState(root.current.name || "",
+                                             root.current.type || "",
+                                             root.current.actorIds || [],
+                                             root.current.propertyIds || [],
+                                             root.current.aliases || [])
+            : ({})
+        root.applyFormState(state)
     }
 
     function canSubmit() { return nameField.text.length > 0 }
+
+    function submitContract() {
+        if (!root.contractController)
+            return
+
+        const aliasValues = root.toStringList(root.aliases)
+        const currentId = root.isEdit && root.current && root.current.id ? root.current.id : ""
+        const contractId = root.contractController.saveContract(currentId,
+                                                                nameField.text,
+                                                                root.contractType,
+                                                                "",
+                                                                root.selectedActorIds,
+                                                                root.selectedPropertyIds,
+                                                                aliasValues)
+        if (!root.isEdit)
+            root.clearFields()
+        if (root.session && contractId && contractId.length > 0)
+            root.session.selectedContractId = contractId
+    }
+
+    function deleteContract() {
+        if (!root.contractController || !root.current || !root.current.id)
+            return
+
+        const removedId = root.current.id
+        root.contractController.deleteContract(removedId)
+        if (!root.session) {
+            root.clearFields()
+            return
+        }
+
+        const nextId = root.session.deleteNextSelectionId(root.contractRows(), removedId, 0, "id")
+        root.session.selectedContractId = nextId || ""
+        if (!nextId || nextId.length === 0)
+            root.clearFields()
+    }
 
     Connections { target: root.current; function onChanged() { root.syncFields() } }
     onIsEditChanged: root.syncFields()
@@ -298,6 +311,7 @@ Item {
                 Layout.preferredHeight: implicitHeight
                 Layout.maximumHeight: implicitHeight
                 theme: root.theme
+                session: root.session
                 actorRows: root.actorRows()
                 selectedActorIds: root.selectedActorIds
                 onSelectionChanged: (ids) => root.selectedActorIds = ids
@@ -342,25 +356,14 @@ Item {
                 text: qsTr("Create")
                 enabled: root.canSubmit()
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
-                onClicked: {
-                    if (!root.contractController) return
-                    const aliasValues = root.toStringList(root.aliases)
-                    const contractId = root.contractController.addContract(nameField.text, root.contractType, "", root.selectedActorIds, root.selectedPropertyIds, aliasValues)
-                    root.clearFields()
-                    if (root.session && contractId && contractId.length > 0) root.session.selectedContractId = contractId
-                }
+                onClicked: root.submitContract()
             }
 
             Controls.DangerButton {
                 visible: root.isEdit
                 text: qsTr("Delete")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
-                onClicked: {
-                    if (!root.contractController || !root.current || !root.current.id) return
-                    root.contractController.deleteContract(root.current.id)
-                    if (root.session) root.session.selectedContractId = ""
-                    root.clearFields()
-                }
+                onClicked: root.deleteContract()
             }
 
             Controls.SuccessButton {
@@ -368,11 +371,7 @@ Item {
                 text: qsTr("Update")
                 enabled: root.canSubmit()
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
-                onClicked: {
-                    if (!root.contractController || !root.current || !root.current.id) return
-                    const aliasValues = root.toStringList(root.aliases)
-                    root.contractController.updateContract(root.current.id, nameField.text, root.contractType, "", root.selectedActorIds, root.selectedPropertyIds, aliasValues)
-                }
+                onClicked: root.submitContract()
             }
 
             Item { Layout.fillWidth: true }

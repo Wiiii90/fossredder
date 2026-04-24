@@ -11,6 +11,7 @@
 
 ## Code Integration
 - Prefer using centralized constants like `QmlContracts.h` to avoid magic strings and keep QML/C++ integration clean.
+- Use existing payload abstractions (PayloadKeys, PayloadMapper, EntityPayloadMapper) and broader `ui/include/ui` + `ui/src` structure instead of concentrating new logic in `StateFacade/StateFacadeProjection`.
 
 ## Build Management
 - Run builds using repository CMake presets (e.g., `cmake --build --preset debug-app`) instead of ad-hoc build commands.

@@ -13,6 +13,7 @@ pragma ComponentBehavior: Bound
 Item {
     id: root
     required property var theme
+    required property var session
     property var transactionData: ({})
     property var actorRows: []
     property var contractRows: []
@@ -27,17 +28,17 @@ Item {
     ]
 
     function updateField(key, value) {
-        let next = {}
-        if (root.transactionData) {
-            for (const k in root.transactionData)
-                next[k] = root.transactionData[k]
-        }
-        next[key] = value
+        const base = root.transactionData || ({})
+        const next = root.session ? root.session.mapWithKeyValue(base, key, value) : base
         root.transactionEdited(next)
     }
 
     function valueOrEmpty(key) {
         return root.transactionData && root.transactionData[key] ? root.transactionData[key] : ""
+    }
+
+    function normalizedDraft() {
+        return root.session ? root.session.normalizeTransactionDraft(root.transactionData || ({})) : ({})
     }
 
     function actorIdValue() {
@@ -52,80 +53,54 @@ Item {
         return root.transactionData && root.transactionData.allocatable ? true : false
     }
 
-    function toAmount(value) {
-        const parsed = parseFloat(value)
-        return isNaN(parsed) ? 0.0 : parsed
-    }
-
     function selectedPropertyIds() {
-        return root.transactionData && root.transactionData.propertyIds ? root.transactionData.propertyIds.slice() : []
+        const tx = root.normalizedDraft()
+        return tx.propertyIds ? tx.propertyIds : []
     }
 
     function hasProperty(propertyId) {
-        return propertyId && root.selectedPropertyIds().indexOf(propertyId) !== -1
+        if (!root.session || !propertyId)
+            return false
+        return root.session.indexOfString(root.selectedPropertyIds(), String(propertyId)) !== -1
     }
 
     function toggleProperty(propertyId, checked) {
-        if (!propertyId)
+        if (!root.session || !propertyId)
             return
 
-        let ids = root.selectedPropertyIds()
-        const idx = ids.indexOf(propertyId)
-        if (checked && idx === -1)
-            ids.push(propertyId)
-        else if (!checked && idx !== -1)
-            ids.splice(idx, 1)
+        const key = String(propertyId)
+        const ids = checked
+            ? root.session.addUniqueTrimmed(root.selectedPropertyIds(), key)
+            : root.session.removeString(root.selectedPropertyIds(), key)
 
         root.updateField("propertyIds", ids)
     }
 
     function actorDisplayModel() {
-        const out = []
-        out.push({ id: "", display: qsTr("No actor") })
-        const rows = root.actorRows || []
-        for (let i = 0; i < rows.length; ++i) {
-            const row = rows[i]
-            out.push({
-                id: row && row.id ? row.id : "",
-                display: row && row.display ? row.display : (row && row.name ? row.name : "")
-            })
-        }
-        return out
+        return root.session
+            ? root.session.displayRowsWithEmpty(root.actorRows || [], qsTr("No actor"), "display")
+            : []
     }
 
     function contractDisplayModel() {
-        const out = []
-        out.push({ id: "", display: qsTr("No contract") })
-        const rows = root.contractRows || []
-        for (let i = 0; i < rows.length; ++i) {
-            const row = rows[i]
-            const name = row && row.name ? row.name : ""
-            const type = row && row.type ? row.type : ""
-            const display = (name.length > 0 && type.length > 0) ? (name + " (" + type + ")") : (row && row.display ? row.display : name)
-            out.push({
-                id: row && row.id ? row.id : "",
-                display: display
-            })
-        }
-        return out
+        return root.session
+            ? root.session.displayRowsWithEmpty(root.contractRows || [], qsTr("No contract"), "display")
+            : []
     }
 
     function selectedIndexFor(model, id) {
-        const rows = model || []
-        for (let i = 0; i < rows.length; ++i) {
-            if (rows[i].id === id)
-                return i
-        }
-        return 0
+        if (!root.session)
+            return 0
+        const idx = root.session.indexOfId(model || [], String(id || ""))
+        return idx >= 0 ? idx : 0
     }
 
     function statusIndex() {
-        const current = root.transactionData && root.transactionData.status !== undefined ? Number(root.transactionData.status) : 0
-        for (let i = 0; i < root.statusOptions.length; ++i) {
-            if (Number(root.statusOptions[i].value) === current)
-                return i
-        }
-        return 0
+        if (!root.session)
+            return 0
+        const tx = root.normalizedDraft()
+        const idx = root.session.indexOfKeyValue(root.statusOptions, "value", tx.status !== undefined ? tx.status : 0)
+        return idx >= 0 ? idx : 0
     }
 
     implicitHeight: txLayout.implicitHeight
@@ -195,7 +170,10 @@ Item {
             Controls.TextField {
                 Layout.fillWidth: true
                 text: root.transactionData && root.transactionData.amount !== undefined ? String(root.transactionData.amount) : ""
-                onTextEdited: root.updateField("amount", root.toAmount(text))
+                onTextEdited: {
+                    const normalized = root.session ? root.session.normalizeTransactionDraft({ amount: text }) : ({ amount: 0.0 })
+                    root.updateField("amount", normalized.amount)
+                }
             }
         }
 

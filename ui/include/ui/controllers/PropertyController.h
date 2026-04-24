@@ -55,6 +55,11 @@ public:
      *  @param aliases Optional aliases
      */
     Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
+    Q_INVOKABLE QString saveProperty(const QString& id,
+                                     const QString& name,
+                                     const QString& address,
+                                     const QString& description,
+                                     const QStringList& aliases = {});
 
     /** @brief Delete a property by identifier.
      *  @param id Property identifier

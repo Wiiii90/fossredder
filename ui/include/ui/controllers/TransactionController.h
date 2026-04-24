@@ -41,6 +41,8 @@ public:
      *  @return List of serialized transactions as QVariantList
      */
     Q_INVOKABLE QVariantList transactions() const;
+    Q_INVOKABLE QVariantList addTransactions(const QString& statementId,
+                                             const QVariantList& transactionDrafts);
 
     /** @brief Create a new transaction from QML-provided values.
      *  @param name Transaction name

@@ -41,6 +41,11 @@ public:
 
     /** @brief Update an existing actor from QML-provided values. */
     Q_INVOKABLE void updateActor(const QString& id, const QString& name, const QString& type, const QString& description, const QStringList& aliases = {});
+    Q_INVOKABLE QString saveActor(const QString& id,
+                                  const QString& name,
+                                  const QString& type,
+                                  const QString& description,
+                                  const QStringList& aliases = {});
 
     /** @brief Delete an actor by identifier. */
     Q_INVOKABLE void deleteActor(const QString& id);

@@ -71,6 +71,20 @@ void PropertyController::updateProperty(const QString& id,
         });
 }
 
+QString PropertyController::saveProperty(const QString& id,
+                                         const QString& name,
+                                         const QString& address,
+                                         const QString& description,
+                                         const QStringList& aliases)
+{
+    if (id.isEmpty()) {
+        return addProperty(name, address, description, aliases);
+    }
+
+    updateProperty(id, name, address, description, aliases);
+    return id;
+}
+
 void PropertyController::deleteProperty(const QString& id)
 {
   ui::util::guard::invokeVoid(

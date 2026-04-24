@@ -7,6 +7,9 @@
 
 #include <functional>
 
+#include <QVariant>
+#include <QVariantList>
+#include <QVariantMap>
 #include <QString>
 #include <QStringList>
 
@@ -22,6 +25,12 @@ class FilterState;
 class SessionMutationState {
 public:
     using TransactionSumsNotifier = std::function<void(const QString& propertyId)>;
+
+    static QVariantList normalizeStrings(const QVariantList& values);
+    static QVariantList addUniqueTrimmed(const QVariantList& values, const QString& value);
+    static QVariantList removeAt(const QVariantList& values, int index);
+    static QVariantList removeString(const QVariantList& values, const QString& value);
+    static QVariantList insertAt(const QVariantList& values, int index, const QVariant& value);
 
     static void applyDeletionImpact(const core::domain::DeletionImpact& impact,
                                     SessionModels& models,

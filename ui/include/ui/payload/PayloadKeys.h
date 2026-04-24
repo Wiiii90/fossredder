@@ -12,6 +12,7 @@ namespace ui::payload::keys {
 namespace common {
 inline const auto kId = QStringLiteral("id");
 inline const auto kName = QStringLiteral("name");
+inline const auto kDisplay = QStringLiteral("display");
 inline const auto kType = QStringLiteral("type");
 inline const auto kDescription = QStringLiteral("description");
 inline const auto kAmount = QStringLiteral("amount");
@@ -110,6 +111,19 @@ namespace metrics {
 inline const auto kTotal = QStringLiteral("total");
 inline const auto kAllocatable = QStringLiteral("allocatable");
 inline const auto kNonAllocatable = QStringLiteral("nonAllocatable");
+}
+
+namespace state {
+inline const auto kRows = QStringLiteral("rows");
+inline const auto kOrderIds = QStringLiteral("orderIds");
+inline const auto kIndex = QStringLiteral("index");
+inline const auto kDraft = QStringLiteral("draft");
+inline const auto kDrafts = QStringLiteral("drafts");
+inline const auto kAliasInputText = QStringLiteral("aliasInputText");
+inline const auto kAliasIndex = QStringLiteral("aliasIndex");
+inline const auto kSelectedIds = QStringLiteral("selectedIds");
+inline const auto kSelectedActorIds = QStringLiteral("selectedActorIds");
+inline const auto kSelectedPropertyIds = QStringLiteral("selectedPropertyIds");
 }
 
 }

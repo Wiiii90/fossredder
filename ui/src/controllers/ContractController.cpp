@@ -79,6 +79,22 @@ void ContractController::updateContract(const QString& id,
         });
 }
 
+QString ContractController::saveContract(const QString& id,
+                                         const QString& name,
+                                         const QString& type,
+                                         const QString& description,
+                                         const QStringList& actorIds,
+                                         const QStringList& propertyIds,
+                                         const QStringList& aliases)
+{
+    if (id.isEmpty()) {
+        return addContract(name, type, description, actorIds, propertyIds, aliases);
+    }
+
+    updateContract(id, name, type, description, actorIds, propertyIds, aliases);
+    return id;
+}
+
 void ContractController::deleteContract(const QString& id)
 {
     ui::util::guard::invokeVoid(

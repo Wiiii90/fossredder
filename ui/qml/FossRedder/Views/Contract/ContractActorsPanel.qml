@@ -11,35 +11,10 @@ import FossRedder.Controls 1.0 as Controls
 Controls.Panel {
     id: root
     required property var theme
+    required property var session
     property var actorRows: []
     property var selectedActorIds: []
     signal selectionChanged(var ids)
-
-    function actorDisplayModel() {
-        const rows = root.actorRows || []
-        const out = [{ id: "", display: qsTr("No actor") }]
-        for (let i = 0; i < rows.length; ++i) {
-            const row = rows[i]
-            out.push({
-                id: row && row.id ? String(row.id) : "",
-                display: row && row.name ? String(row.name) : ""
-            })
-        }
-        return out
-    }
-
-    function selectedIndex() {
-        const model = root.actorDisplayModel()
-        if (!root.selectedActorIds || root.selectedActorIds.length === 0)
-            return 0
-        const selectedId = String(root.selectedActorIds[0])
-        for (let i = 0; i < model.length; ++i) {
-            const row = model[i]
-            if (row && String(row.id) === selectedId)
-                return i
-        }
-        return 0
-    }
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1
@@ -63,10 +38,18 @@ Controls.Panel {
 
         Controls.ComboBox {
             id: actorCombo
+            readonly property string selectedActorId: root.selectedActorIds && root.selectedActorIds.length > 0
+                                                     ? String(root.selectedActorIds[0])
+                                                     : ""
             Layout.fillWidth: true
             textRole: "display"
-            model: root.actorDisplayModel()
-            currentIndex: root.selectedIndex()
+            model: root.session
+                ? root.session.displayRowsWithEmpty(root.actorRows || [], qsTr("No actor"), "name")
+                : []
+            currentIndex: {
+                const idx = root.session ? root.session.indexOfId(model, selectedActorId) : -1
+                return idx >= 0 ? idx : 0
+            }
             onActivated: {
                 const row = model[currentIndex]
                 root.selectionChanged(row && row.id ? [String(row.id)] : [])

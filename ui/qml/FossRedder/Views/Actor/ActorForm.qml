@@ -18,7 +18,6 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var actorController: root.appContext ? root.appContext.actorController : null
-    readonly property var contractController: root.appContext ? root.appContext.contractController : null
 
     readonly property var current: root.session ? root.session.selectedActor : null
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
@@ -28,21 +27,25 @@ Item {
     property int aliasIndex: aliases.length > 0 ? 0 : -1
     property var selectedContractIds: []
 
+    function applyFormState(state) {
+        const next = state || ({})
+        nameField.text = next.name || ""
+        root.aliases = next.aliases || []
+        root.aliasInputText = next.aliasInputText || ""
+        root.aliasIndex = next.aliasIndex !== undefined ? next.aliasIndex : -1
+        root.selectedContractIds = next.selectedIds || []
+    }
+
     function clearFields() {
-        nameField.text = ""
-        root.aliases = []
-        root.aliasInputText = ""
-        root.aliasIndex = -1
-        root.selectedContractIds = []
+        if (!root.session) {
+            root.applyFormState({})
+            return
+        }
+        root.applyFormState(root.session.basicFormState("", [], []))
     }
 
     function toStringList(values) {
-        const out = []
-        if (!values || values.length === undefined)
-            return out
-        for (let i = 0; i < values.length; ++i)
-            out.push(String(values[i]))
-        return out
+        return root.session ? root.session.normalizeStrings(values || []) : []
     }
 
     function actorRows() {
@@ -53,63 +56,36 @@ Item {
         return root.session ? root.session.contractRows() : []
     }
 
-    function selectedActorIndex() {
-        if (!root.session || !root.session.selectedActorId)
-            return -1
-        const rows = root.actorRows()
-        for (let i = 0; i < rows.length; ++i) {
-            if (rows[i] && rows[i].id === root.session.selectedActorId)
-                return i
-        }
-        return -1
-    }
-
-    function selectActorByIndex(index) {
+    function navigateActor(delta) {
         const rows = root.actorRows()
         if (!root.session || rows.length === 0)
             return
-        let idx = index
-        while (idx < 0)
-            idx += rows.length
-        idx = idx % rows.length
-        const row = rows[idx]
-        if (!row || !row.id)
-            return
-        root.session.selectedActorId = row.id
-    }
 
-    function navigateActor(delta) {
-        const rows = root.actorRows()
-        if (rows.length === 0)
+        const currentId = root.isEdit ? (root.session.selectedActorId || "") : ""
+        const fallbackIndex = delta > 0 ? 0 : rows.length - 1
+        const nextId = root.session.navigatedId(rows, currentId, delta, fallbackIndex)
+        if (!nextId || nextId.length === 0)
             return
-        if (!root.isEdit) {
-            root.selectActorByIndex(delta > 0 ? 0 : rows.length - 1)
-            return
-        }
-        const idx = root.selectedActorIndex()
-        if (idx < 0)
-            return
-        root.selectActorByIndex(idx + delta)
+        root.session.selectedActorId = nextId
     }
 
     function addAlias(value) {
-        const trimmed = String(value || "").trim()
-        if (trimmed.length === 0)
+        if (!root.session)
             return
-        const next = root.aliases ? root.aliases.slice(0) : []
-        if (next.indexOf(trimmed) !== -1)
+        const next = root.session.addUniqueTrimmed(root.aliases || [], value || "")
+        if (next.length === root.aliases.length)
             return
-        next.push(trimmed)
         root.aliases = next
         root.aliasIndex = next.length - 1
         root.aliasInputText = ""
     }
 
     function deleteAlias(index) {
-        if (!root.aliases || index < 0 || index >= root.aliases.length)
+        if (!root.session)
             return
-        const next = root.aliases.slice(0)
-        next.splice(index, 1)
+        const next = root.session.removeAt(root.aliases || [], index)
+        if (next.length === root.aliases.length)
+            return
         root.aliases = next
         root.aliasIndex = next.length > 0 ? Math.min(index, next.length - 1) : -1
     }
@@ -120,25 +96,34 @@ Item {
             root.clearFields()
             return
         }
-        nameField.text = root.current.name || ""
-        root.aliases = root.current.aliases ? root.current.aliases.slice(0) : []
-        root.aliasInputText = ""
-        root.aliasIndex = root.aliases.length > 0 ? 0 : -1
-        root.selectedContractIds = []
+        const state = root.session
+            ? root.session.basicFormState(root.current.name || "", root.current.aliases || [], [])
+            : ({})
+        root.applyFormState(state)
     }
 
     function submitActor() {
         if (!root.actorController) return
         const aliasValues = root.toStringList(root.aliases)
+        const actorId = root.isEdit && root.current && root.current.id ? root.current.id : ""
+        const id = root.actorController.saveActor(actorId, nameField.text, "", "", aliasValues)
+        if (!root.isEdit)
+            root.clearFields()
+        if (root.session && id && id.length > 0)
+            root.session.selectedActorId = id
+    }
 
-        if (root.isEdit) {
-            root.actorController.updateActor(root.current.id, nameField.text, "", "", aliasValues)
+    function deleteActor() {
+        if (!root.actorController || !root.current || !root.current.id)
             return
-        }
 
-        const id = root.actorController.addActor(nameField.text, "", "", aliasValues)
-        root.clearFields()
-        if (root.session && id && id.length > 0) root.session.selectedActorId = id
+        const removedId = root.current.id
+        root.actorController.deleteActor(removedId)
+        if (!root.session)
+            return
+
+        const nextId = root.session.deleteNextSelectionId(root.actorRows(), removedId, 0, "id")
+        root.session.selectedActorId = nextId || ""
     }
 
     onCurrentChanged: root.syncFields()
@@ -341,11 +326,7 @@ Item {
                 visible: root.isEdit
                 text: qsTr("Delete")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
-                onClicked: {
-                    if (!root.actorController || !root.current || !root.current.id) return
-                    root.actorController.deleteActor(root.current.id)
-                    if (root.session) root.session.selectedActorId = ""
-                }
+                onClicked: root.deleteActor()
             }
 
             Controls.SuccessButton {

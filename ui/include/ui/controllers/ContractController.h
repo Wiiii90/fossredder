@@ -66,6 +66,13 @@ public:
     Q_INVOKABLE void updateContract(const QString& id, const QString& name, const QString& type, const QString& description,
                                     const QStringList& actorIds, const QStringList& propertyIds,
                                     const QStringList& aliases = {});
+    Q_INVOKABLE QString saveContract(const QString& id,
+                                     const QString& name,
+                                     const QString& type,
+                                     const QString& description,
+                                     const QStringList& actorIds,
+                                     const QStringList& propertyIds,
+                                     const QStringList& aliases = {});
 
     /** @brief Delete a contract by identifier.
      *  @param id Contract identifier
