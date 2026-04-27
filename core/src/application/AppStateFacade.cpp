@@ -263,14 +263,47 @@ void AppStateFacade::deleteTransaction(const std::string& id)
     commitIfChanged(*this, catalog_.deleteTransaction(mutableState(), id));
 }
 
-std::string AppStateFacade::addAnalysis(const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec)
+std::string AppStateFacade::addAnalysis(const std::string& name,
+                                        const std::string& type,
+                                        const std::string& configJson,
+                                        const std::string& filterSpec,
+                                        const std::string& exportFormat,
+                                        bool includeCalcAdjustments,
+                                        const std::string& exportStateJson,
+                                        const std::string& snapshotTransactionsJson)
 {
-    return commitCreated(*this, catalog_.addAnalysis(mutableState(), {name, type, configJson, filterSpec}));
+    return commitCreated(*this, catalog_.addAnalysis(mutableState(), {
+        name,
+        type,
+        configJson,
+        filterSpec,
+        exportFormat,
+        includeCalcAdjustments,
+        exportStateJson,
+        snapshotTransactionsJson
+    }));
 }
 
-void AppStateFacade::updateAnalysis(const std::string& id, const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec)
+void AppStateFacade::updateAnalysis(const std::string& id,
+                                    const std::string& name,
+                                    const std::string& type,
+                                    const std::string& configJson,
+                                    const std::string& filterSpec,
+                                    const std::string& exportFormat,
+                                    bool includeCalcAdjustments,
+                                    const std::string& exportStateJson,
+                                    const std::string& snapshotTransactionsJson)
 {
-    commitIfChanged(*this, catalog_.updateAnalysis(mutableState(), id, {name, type, configJson, filterSpec}));
+    commitIfChanged(*this, catalog_.updateAnalysis(mutableState(), id, {
+        name,
+        type,
+        configJson,
+        filterSpec,
+        exportFormat,
+        includeCalcAdjustments,
+        exportStateJson,
+        snapshotTransactionsJson
+    }));
 }
 
 void AppStateFacade::deleteAnalysis(const std::string& id)

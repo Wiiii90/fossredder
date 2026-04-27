@@ -193,7 +193,11 @@ Item {
                         svgSource: toolBar.assetUrl("analysis.svg")
                         label: qsTr("Analysis")
                         active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navAnalysis
-                        onClicked: toolBar.navigateTo(toolBar.navAnalysis, true)
+                        onClicked: {
+                            if (toolBar.session)
+                                toolBar.session.selectedAnalysisId = ""
+                            toolBar.navigateTo(toolBar.navAnalysis, true)
+                        }
                     }
                     Controls.IconButton {
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth

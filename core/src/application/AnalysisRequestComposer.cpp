@@ -27,6 +27,24 @@ std::string trim(std::string value)
     return value.substr(first, last - first + 1);
 }
 
+std::string lowerCopy(std::string value)
+{
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::tolower(ch));
+    });
+    return value;
+}
+
+std::string joinList(const std::vector<std::string>& values)
+{
+    std::string out;
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        if (i > 0) out.push_back(core::constants::filters::separators::kList);
+        out += values[i];
+    }
+    return out;
+}
+
 std::vector<std::string> normalizedCopy(const std::vector<std::string>& values)
 {
     std::vector<std::string> out;
@@ -74,23 +92,63 @@ std::string AnalysisRequestComposer::buildConfigJson(const std::string& type,
     return config.dump();
 }
 
-std::string AnalysisRequestComposer::buildFilterSpec(const std::string& dateFrom,
-                                                    const std::string& dateTo)
+std::string AnalysisRequestComposer::buildFilterSpec(
+    const std::string& dateMode,
+    const std::string& year,
+    const std::string& dateFrom,
+    const std::string& dateTo,
+    const std::vector<std::string>& propertyIds,
+    const std::vector<std::string>& contractTypes,
+    const std::string& allocatableMode)
 {
+    std::vector<std::string> clauses;
+
+    const auto normalizedDateMode = lowerCopy(trim(dateMode));
+    const auto normalizedYear = trim(year);
     const auto from = trim(dateFrom);
     const auto to = trim(dateTo);
-    if (from.empty() && to.empty()) return {};
 
-    std::vector<std::string> clauses;
-    if (!from.empty()) {
+    if (normalizedDateMode == "year" && !normalizedYear.empty()) {
+        const std::string yearFrom = normalizedYear + "-01-01";
+        const std::string yearTo = normalizedYear + "-12-31";
         clauses.push_back(std::string(core::constants::filters::kDate)
                           + std::string(core::constants::filters::operators::kGreaterEqual)
-                          + from);
-    }
-    if (!to.empty()) {
+                          + yearFrom);
         clauses.push_back(std::string(core::constants::filters::kDate)
                           + std::string(core::constants::filters::operators::kLessEqual)
-                          + to);
+                          + yearTo);
+    } else {
+        if (!from.empty()) {
+            clauses.push_back(std::string(core::constants::filters::kDate)
+                              + std::string(core::constants::filters::operators::kGreaterEqual)
+                              + from);
+        }
+        if (!to.empty()) {
+            clauses.push_back(std::string(core::constants::filters::kDate)
+                              + std::string(core::constants::filters::operators::kLessEqual)
+                              + to);
+        }
+    }
+
+    const auto normalizedPropertyIds = normalizedCopy(propertyIds);
+    if (!normalizedPropertyIds.empty()) {
+        clauses.push_back(std::string(core::constants::filters::kPropertyId)
+                          + std::string(core::constants::filters::operators::kEqual)
+                          + joinList(normalizedPropertyIds));
+    }
+
+    const auto normalizedContractTypes = normalizedCopy(contractTypes);
+    if (!normalizedContractTypes.empty()) {
+        clauses.push_back(std::string(core::constants::filters::kContractType)
+                          + std::string(core::constants::filters::operators::kEqual)
+                          + joinList(normalizedContractTypes));
+    }
+
+    const auto normalizedAllocatable = lowerCopy(trim(allocatableMode));
+    if (normalizedAllocatable == "allocatable" || normalizedAllocatable == "non-allocatable") {
+        clauses.push_back(std::string(core::constants::filters::kAllocatable)
+                          + std::string(core::constants::filters::operators::kEqual)
+                          + normalizedAllocatable);
     }
 
     std::string filterSpec;
@@ -98,6 +156,7 @@ std::string AnalysisRequestComposer::buildFilterSpec(const std::string& dateFrom
         if (i > 0) filterSpec.push_back(core::constants::filters::separators::kClause);
         filterSpec += clauses[i];
     }
+
     return filterSpec;
 }
 

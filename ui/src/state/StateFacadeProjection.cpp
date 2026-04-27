@@ -11,6 +11,8 @@
 #include "ui/state/SessionMutationState.h"
 #include "ui/state/SessionStore.h"
 
+#include "core/application/AnalysisRequestComposer.h"
+
 #include <QStringList>
 #include <QVariantMap>
 
@@ -453,6 +455,16 @@ QVariantList buildAnalysisRows(const SessionStore& session)
         row.insert(ui::payload::keys::common::kId, QString::fromStdString(analysis->id));
         row.insert(ui::payload::keys::common::kName, QString::fromStdString(analysis->name));
         row.insert(ui::payload::keys::common::kType, QString::fromStdString(analysis->type));
+        row.insert(ui::payload::keys::analysis::kConfig, QString::fromStdString(analysis->configJson));
+        row.insert(ui::payload::keys::analysis::kFilter, QString::fromStdString(analysis->filterSpec));
+        row.insert(ui::payload::keys::analysis::kAdjustments,
+                   QString::fromStdString(core::application::AnalysisRequestComposer::serializeAdjustments(analysis->adjustments)));
+        row.insert(ui::payload::keys::analysis::kExportFormat, QString::fromStdString(analysis->exportFormat));
+        row.insert(ui::payload::keys::analysis::kIncludeCalcAdjustments, analysis->includeCalcAdjustments);
+        row.insert(ui::payload::keys::analysis::kExportState, QString::fromStdString(analysis->exportStateJson));
+        row.insert(ui::payload::keys::analysis::kSnapshotTransactions, QString::fromStdString(analysis->snapshotTransactionsJson));
+        row.insert(ui::payload::keys::analysis::kCreatedAt, QString::fromStdString(analysis->createdAt));
+        row.insert(ui::payload::keys::analysis::kUpdatedAt, QString::fromStdString(analysis->updatedAt));
         out.push_back(row);
     }
     return out;

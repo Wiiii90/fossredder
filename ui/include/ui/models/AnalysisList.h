@@ -24,7 +24,13 @@ public:
         TypeRole,
         ConfigRole,
         FilterRole,
-        AdjustmentsRole
+        AdjustmentsRole,
+        ExportFormatRole,
+        IncludeCalcAdjustmentsRole,
+        ExportStateRole,
+        SnapshotTransactionsRole,
+        CreatedAtRole,
+        UpdatedAtRole
     };
 
     explicit AnalysisList(QObject* parent = nullptr);

@@ -75,6 +75,18 @@ QVariant AnalysisList::data(const QModelIndex &index, int role) const {
     return QString::fromStdString(a->filterSpec);
   case AdjustmentsRole:
     return adjustmentsJson;
+  case ExportFormatRole:
+    return QString::fromStdString(a->exportFormat);
+  case IncludeCalcAdjustmentsRole:
+    return a->includeCalcAdjustments;
+  case ExportStateRole:
+    return QString::fromStdString(a->exportStateJson);
+  case SnapshotTransactionsRole:
+    return QString::fromStdString(a->snapshotTransactionsJson);
+  case CreatedAtRole:
+    return QString::fromStdString(a->createdAt);
+  case UpdatedAtRole:
+    return QString::fromStdString(a->updatedAt);
   default:
     return {};
   }
@@ -88,6 +100,12 @@ QHash<int, QByteArray> AnalysisList::roleNames() const {
   roles[ConfigRole] = ui::payload::keys::analysis::kConfig.toUtf8();
   roles[FilterRole] = ui::payload::keys::analysis::kFilter.toUtf8();
   roles[AdjustmentsRole] = ui::payload::keys::analysis::kAdjustments.toUtf8();
+  roles[ExportFormatRole] = ui::payload::keys::analysis::kExportFormat.toUtf8();
+  roles[IncludeCalcAdjustmentsRole] = ui::payload::keys::analysis::kIncludeCalcAdjustments.toUtf8();
+  roles[ExportStateRole] = ui::payload::keys::analysis::kExportState.toUtf8();
+  roles[SnapshotTransactionsRole] = ui::payload::keys::analysis::kSnapshotTransactions.toUtf8();
+  roles[CreatedAtRole] = ui::payload::keys::analysis::kCreatedAt.toUtf8();
+  roles[UpdatedAtRole] = ui::payload::keys::analysis::kUpdatedAt.toUtf8();
   return roles;
 }
 

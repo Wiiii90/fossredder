@@ -288,6 +288,9 @@ void MainWindow::handleStorageOperationFailed(const QString &operation,
       "Pending close save failed; keeping main window open",
       core::errors::ErrorSeverity::Warning,
       {{kError, ui::strings::toStdString(message)}});
+
+  QMetaObject::invokeMethod(
+      this, [this]() { close(); }, Qt::QueuedConnection);
 }
 
 void MainWindow::onAbout() {

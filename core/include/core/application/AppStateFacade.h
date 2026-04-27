@@ -102,8 +102,23 @@ public:
                            const std::vector<std::string>& propertyIds);
     void deleteTransaction(const std::string& id);
 
-    std::string addAnalysis(const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec);
-    void updateAnalysis(const std::string& id, const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec);
+    std::string addAnalysis(const std::string& name,
+                            const std::string& type,
+                            const std::string& configJson,
+                            const std::string& filterSpec,
+                            const std::string& exportFormat,
+                            bool includeCalcAdjustments,
+                            const std::string& exportStateJson,
+                            const std::string& snapshotTransactionsJson);
+    void updateAnalysis(const std::string& id,
+                        const std::string& name,
+                        const std::string& type,
+                        const std::string& configJson,
+                        const std::string& filterSpec,
+                        const std::string& exportFormat,
+                        bool includeCalcAdjustments,
+                        const std::string& exportStateJson,
+                        const std::string& snapshotTransactionsJson);
     void deleteAnalysis(const std::string& id);
 
     std::string addAnnual(int year);

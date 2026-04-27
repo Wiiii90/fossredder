@@ -13,6 +13,25 @@ static void exec(sqlite3* db, const char* sql) {
     }
 }
 
+static bool hasColumn(sqlite3* db, const char* table, const char* column) {
+    if (!db || !table || !column) return false;
+
+    const std::string sql = std::string("PRAGMA table_info(") + table + ");";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
+
+    bool found = false;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const auto* name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        if (name && std::string(name) == column) {
+            found = true;
+            break;
+        }
+    }
+    sqlite3_finalize(stmt);
+    return found;
+}
+
 int SqliteSchema::getUserVersion(sqlite3* db) {
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(db, "PRAGMA user_version;", -1, &stmt, nullptr) != SQLITE_OK) return 0;
@@ -389,5 +408,35 @@ void SqliteSchema::migrate(sqlite3* db) {
         );
         setUserVersion(db, 8);
         v = 8;
+    }
+
+    if (v < 9) {
+        exec(db, "BEGIN;");
+        exec(db,
+            "CREATE TABLE IF NOT EXISTS analyses ("
+            "id TEXT PRIMARY KEY,"
+            "name TEXT,"
+            "type TEXT,"
+            "config_json TEXT,"
+            "filter_spec TEXT,"
+            "created_at TEXT,"
+            "updated_at TEXT,"
+            "schema_version INTEGER"
+            ");");
+        if (!hasColumn(db, "analyses", "export_format")) {
+            exec(db, "ALTER TABLE analyses ADD COLUMN export_format TEXT NOT NULL DEFAULT ''; ");
+        }
+        if (!hasColumn(db, "analyses", "include_calc_adjustments")) {
+            exec(db, "ALTER TABLE analyses ADD COLUMN include_calc_adjustments INTEGER NOT NULL DEFAULT 1; ");
+        }
+        if (!hasColumn(db, "analyses", "export_state_json")) {
+            exec(db, "ALTER TABLE analyses ADD COLUMN export_state_json TEXT NOT NULL DEFAULT '{}'; ");
+        }
+        if (!hasColumn(db, "analyses", "snapshot_transactions_json")) {
+            exec(db, "ALTER TABLE analyses ADD COLUMN snapshot_transactions_json TEXT NOT NULL DEFAULT '{}'; ");
+        }
+        exec(db, "COMMIT;");
+        setUserVersion(db, 9);
+        v = 9;
     }
 }

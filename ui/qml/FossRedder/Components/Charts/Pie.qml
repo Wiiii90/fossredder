@@ -7,6 +7,7 @@ Item {
     property var table: []
     property var legendFilter: []
     property var propertyNameForId
+    signal legendFilterChangedByUser(var legendFilter)
     implicitWidth: 320
     implicitHeight: 320
     onTableChanged: { try { if (pieCanvas) pieCanvas.requestPaint(); } catch(e) {} }
@@ -70,9 +71,14 @@ Item {
                 const ang = total > 0 ? (v / total) * 2 * Math.PI : (2 * Math.PI / root.table.length)
                 if (angle >= cur && angle < cur + ang) {
                     const name = (root.table[i] && root.table[i].length > 0) ? root.table[i][0] : ""
-                    if (!root.legendFilter) root.legendFilter = []
-                    const idx = root.legendFilter.indexOf(name)
-                    if (idx === -1) root.legendFilter.push(name); else root.legendFilter.splice(idx,1)
+                    const next = root.legendFilter ? root.legendFilter.slice() : []
+                    const idx = next.indexOf(name)
+                    if (idx === -1)
+                        next.push(name)
+                    else
+                        next.splice(idx, 1)
+                    root.legendFilter = next
+                    root.legendFilterChangedByUser(next)
                     pieCanvas.requestPaint()
                     return
                 }

@@ -21,6 +21,10 @@ public:
     std::string type;
     std::string configJson;
     std::string filterSpec;
+    std::string exportFormat;
+    bool includeCalcAdjustments = true;
+    std::string exportStateJson;
+    std::string snapshotTransactionsJson;
     std::unordered_map<std::string, double> adjustments;
     std::string createdAt;
     std::string updatedAt;

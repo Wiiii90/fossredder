@@ -53,6 +53,10 @@ struct AnalysisInput {
     std::string type;
     std::string configJson;
     std::string filterSpec;
+    std::string exportFormat;
+    bool includeCalcAdjustments = true;
+    std::string exportStateJson;
+    std::string snapshotTransactionsJson;
 };
 
 class CatalogService {

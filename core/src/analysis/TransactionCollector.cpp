@@ -43,6 +43,7 @@ std::vector<AnalysisTransaction> collectTransactionsForAnalysis(const AppState& 
         projected.bookingDate = transaction->bookingDate;
         projected.amount = transaction->amount;
         projected.contractId = transaction->contractId;
+        projected.propertyIds = transaction->propertyIds;
         if (!transaction->contractId.empty()) {
             const auto it = contractById.find(transaction->contractId);
             if (it != contractById.end() && it->second) projected.contractType = it->second->type;

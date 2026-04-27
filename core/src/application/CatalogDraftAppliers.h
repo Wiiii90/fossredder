@@ -63,6 +63,10 @@ inline void applyAnalysisDraft(Analysis& analysis, const AnalysisInput& input)
     analysis.type = input.type;
     analysis.configJson = input.configJson;
     analysis.filterSpec = input.filterSpec;
+    analysis.exportFormat = input.exportFormat;
+    analysis.includeCalcAdjustments = input.includeCalcAdjustments;
+    analysis.exportStateJson = input.exportStateJson;
+    analysis.snapshotTransactionsJson = input.snapshotTransactionsJson;
 }
 
 inline void applyAnnualDraft(Annual& annual, int year)

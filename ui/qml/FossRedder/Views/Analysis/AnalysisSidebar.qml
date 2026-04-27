@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import QtQuick.Layouts 1.3
 pragma ComponentBehavior: Bound
 
 Item {
@@ -8,14 +9,14 @@ Item {
     width: 240
     readonly property var session: root.appContext ? root.appContext.session : null
 
-    Column {
+    ColumnLayout {
         anchors.fill: parent
-        spacing: 8
+        anchors.margins: root.theme.spacingMedium
+        spacing: root.theme.spacingSmall
 
         Flickable {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: parent.height - 40
+            Layout.fillWidth: true
+            Layout.fillHeight: true
             clip: true
             contentWidth: width
             contentHeight: analysisColumn.implicitHeight
@@ -26,21 +27,23 @@ Item {
                 spacing: root.theme.spacingSmall
 
                 Repeater {
-                    model: root.session ? root.session.analysisRows() : []
+                    model: root.session ? root.session.analyses : null
 
                     delegate: Rectangle { id: analysisRow
-                        required property var modelData
+                        required property string id
+                        required property string name
+                        required property string type
                         width: analysisColumn.width
                         height: 44
                         radius: 6
-                        color: root.session && analysisRow.modelData.id === root.session.selectedAnalysisId ? root.theme.selectionHighlight : "transparent"
+                        color: root.session && analysisRow.id === root.session.selectedAnalysisId ? root.theme.selectionHighlight : "transparent"
                         border.color: root.theme.borderSoft
                         border.width: root.theme.borderWidthThin
 
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                if (root.session) root.session.selectedAnalysisId = analysisRow.modelData.id
+                                if (root.session) root.session.selectedAnalysisId = analysisRow.id
                             }
                         }
 
@@ -51,14 +54,14 @@ Item {
 
                             Text {
                                 width: parent.width
-                                text: analysisRow.modelData.name ? analysisRow.modelData.name : ""
+                                text: analysisRow.name ? analysisRow.name : ""
                                 color: root.theme.textPrimary
                                 elide: Text.ElideRight
                             }
 
                             Text {
                                 width: parent.width
-                                text: analysisRow.modelData.type ? analysisRow.modelData.type : ""
+                                text: analysisRow.type ? analysisRow.type : ""
                                 color: root.theme.textMuted
                                 elide: Text.ElideRight
                                 visible: text.length > 0

@@ -9,11 +9,14 @@ Item {
     id: root
     required property var appContext
     required property var theme
+    property string exportStateJson: "{}"
+    signal exportStateChanged(string exportStateJson)
     readonly property var session: root.appContext ? root.appContext.session : null
     Accessible.ignored: root.appContext ? root.appContext.isDebugBuild : false
     property var histLegendModel: []
     property real histLegendTotal: 0
     property var propListModel: []
+    property bool applyingExportState: false
 
     Timer { id: rebuildRetry; interval: 80; repeat: false; running: false; triggeredOnStart: false; onTriggered: { try { root.rebuild() } catch(e) {} } }
 
@@ -22,6 +25,52 @@ Item {
             return Constants.Analysis.plotType(root.session ? root.session.lastAnalysisResult : null)
         } catch (e) {
             return ""
+        }
+    }
+
+    function parseExportState() {
+        if (!root.exportStateJson || String(root.exportStateJson).length === 0)
+            return ({})
+        try {
+            const parsed = JSON.parse(root.exportStateJson)
+            return parsed && typeof parsed === "object" ? parsed : ({})
+        } catch (e) {
+            return ({})
+        }
+    }
+
+    function persistExportState() {
+        if (root.applyingExportState)
+            return
+        const state = {
+            pieLegendFilter: pie && pie.legendFilter ? pie.legendFilter.slice() : [],
+            histogramSplitByProperty: !!splitSwitch.checked
+        }
+        root.exportStateChanged(JSON.stringify(state))
+    }
+
+    function applyExportState() {
+        const state = root.parseExportState()
+        root.applyingExportState = true
+        try {
+            const pieLegendFilter = state.pieLegendFilter && state.pieLegendFilter.length !== undefined
+                    ? state.pieLegendFilter.slice()
+                    : []
+            if (pie)
+                pie.legendFilter = pieLegendFilter
+
+            const splitByProperty = !!state.histogramSplitByProperty
+            splitSwitch.checked = splitByProperty
+            hist.splitProgress = splitByProperty ? 1.0 : 0.0
+            try {
+                if (pie && pie.requestPaint)
+                    pie.requestPaint()
+                if (hist && hist.requestPaint)
+                    hist.requestPaint()
+            } catch (e) {
+            }
+        } finally {
+            root.applyingExportState = false
         }
     }
 
@@ -114,6 +163,8 @@ Item {
             Item {
                 id: pieArea
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumHeight: root.theme.chartPlotMinimumHeight
                 Layout.preferredHeight: root.theme.chartPlotPreferredHeight
                 visible: (function() {
                     try {
@@ -136,7 +187,14 @@ Item {
                         }
                     }
 
-                    Components.Pie { id: pie; theme: root.theme; Layout.fillWidth: true; Layout.preferredHeight: root.theme.chartPlotPreferredHeight }
+                    Components.Pie {
+                        id: pie
+                        theme: root.theme
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.minimumHeight: root.theme.chartPlotMinimumHeight
+                        onLegendFilterChangedByUser: root.persistExportState()
+                    }
                 }
             }
 
@@ -146,6 +204,8 @@ Item {
                 theme: root.theme
                 splitProgress: 0.0
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumHeight: root.theme.chartPlotMinimumHeight
                 Layout.preferredHeight: root.theme.chartPlotPreferredHeight
                 visible: (function() {
                     try {
@@ -165,7 +225,14 @@ Item {
                 spacing: root.theme.spacingSmall
                 visible: root.currentPlotType() === Constants.Analysis.chartTypes.histogram
                 Label { text: qsTr('Split by property') }
-                Switch { id: splitSwitch; onCheckedChanged: { hist.splitProgress = checked ? 1.0 : 0.0; try { if (hist.requestPaint) hist.requestPaint(); } catch(e) {} } }
+                Switch {
+                    id: splitSwitch
+                    onCheckedChanged: {
+                        hist.splitProgress = checked ? 1.0 : 0.0
+                        try { if (hist.requestPaint) hist.requestPaint(); } catch(e) {}
+                        root.persistExportState()
+                    }
+                }
             }
         }
 
@@ -203,8 +270,16 @@ Item {
 
     }
 
+    onExportStateJsonChanged: {
+        root.applyExportState()
+    }
+
     Connections { target: root.session
         function onLastAnalysisResultChanged() { try { root.rebuild() } catch(e) {} }
+    }
+
+    Component.onCompleted: {
+        root.applyExportState()
     }
 }
 

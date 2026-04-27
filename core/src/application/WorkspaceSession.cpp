@@ -72,8 +72,16 @@ void WorkspaceSession::openLatest()
         return;
     }
 
-    state_ = storageManager_->loadFrom(*path);
-    notifyState();
+    try {
+        state_ = storageManager_->loadFrom(*path);
+        notifyState();
+    } catch (...) {
+        reportException(core::errors::ErrorSeverity::Error,
+                        "WorkspaceSession::openLatest",
+                        std::current_exception());
+        state_ = AppState{};
+        notifyState();
+    }
 }
 
 void WorkspaceSession::newFile(const std::string& path)
@@ -85,8 +93,15 @@ void WorkspaceSession::newFile(const std::string& path)
 
 void WorkspaceSession::openFile(const std::string& path)
 {
-    state_ = storageManager_->loadFrom(path);
-    notifyState();
+    try {
+        state_ = storageManager_->loadFrom(path);
+        notifyState();
+    } catch (...) {
+        reportException(core::errors::ErrorSeverity::Error,
+                        "WorkspaceSession::openFile",
+                        std::current_exception());
+        throw;
+    }
 }
 
 void WorkspaceSession::saveFile()
