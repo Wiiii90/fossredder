@@ -236,17 +236,8 @@ ctest --preset release-coverage --output-on-failure
 
 Coverage output: `./coverage/` and `./coverage/coverage.lcov`.
 
-## Demo
-
-[TODO: Potential Setup.exe demo AND showcases / screenshots / videos / key features]
-
-## Background
-
-[TODO: Story behind DEV and project motivation]
-
 ## Docs
 
-- [TODO: Doxyfiles]
 - `docs/` contains design artifacts and requirements. The implementation (code) should be considered the authoritative source when documentation and code disagree.
 
 ## License
