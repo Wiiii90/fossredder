@@ -100,34 +100,8 @@ Die Anwendung „FOSSredder“ dient der lokalen Verwaltung von Ausgaben für pr
   - Die Schnittstellen zur KI sind in `include/llama/ILlamaEngine.h` und `src/llama/LlamaEngine.cpp` implementiert.
   - Die Modellkonfiguration und -auswahl erfolgt über die Projektkonfiguration und kann flexibel angepasst werden.
   - Die Architektur erlaubt den Austausch des Modells (z. B. Wechsel von Mistral zu Llama 3 oder anderen GGUF-kompatiblen Modellen) ohne größere Codeänderungen.
-- Projektstruktur:
-```
-fossredder/ 
-├── docs/             # Dokumentation 
-├── include/          # Header-Dateien 
-│   ├── models/       # Datenmodelle (Property, Tenant, etc.) 
-│   ├── views/        # GUI- oder Konsolenansichten 
-│   ├── controllers/  # Steuerungsklassen 
-│   ├── managers/     # Datenmanagement (z. B. für Immobilien, Auszüge)
-│   ├── persistence/  # Persistenzschicht (JSON)
-│   ├── poppler/      # Schnittstellen für PDF-Verarbeitung
-│   ├── ocr/          # Schnittstellen für OCR-Verarbeitung
-│   └── llama/        # Schnittstellen und Engines für LLM-Integration 
-├── src/              # Quellcode 
-│   ├── models/       # Implementierung der Datenmodelle 
-│   ├── views/        # Implementierung der Ansichten 
-│   ├── controllers/  # Implementierung der Steuerung 
-│   ├── managers/     # Implementierung der Datenmanagement-Klassen
-│   ├── persistence/  # Implementierung der Persistenzschicht
-│   ├── poppler/      # Implementierung der PDF-Verarbeitung
-│   ├── ocr/          # Implementierung der OCR-Verarbeitung
-│   └── llama/        # Implementierung der LLM-Engine 
-├── extern/llama.cpp/ # Externe Bibliothek für LLMs (z. B. Mistral, Llama, etc.) 
-├── CMakeLists.txt 
-└── README.md
-```
 
-## 4. Benutzeroberfläche (Skizze)
+## 4. Benutzeroberfläche
 
 - Dashboard mit Übersicht aktueller Einnahmen/Ausgaben
 - Navigationsleiste mit Zugriff auf:
@@ -154,4 +128,4 @@ fossredder/
 - Datenschutz: Keine Netzübertragung, keine Cloudbindung
 - Nachvollziehbarkeit: Jeder Verarbeitungsschritt einsehbar und rückverfolgbar
 
-Letzte Aktualisierung: 2025-07-13
+Letzte Aktualisierung: 2026-04-27
