@@ -218,10 +218,39 @@ ctest --preset release-coverage --output-on-failure
 
 Coverage output: `./coverage/` and `./coverage/coverage.lcov`.
 
+## Skill Showcase
+
+The following table maps key software-engineering competencies to concrete evidence in this repository. It is intended as a quick reference for code reviews, technical interviews, and portfolio evaluations.
+
+| Competency | Evidence |
+|---|---|
+| **C++20 / Modern C++** | `CMakeLists.txt` (`CMAKE_CXX_STANDARD 20`); RAII, `std::shared_ptr`, structured bindings throughout |
+| **Clean / Layered Architecture** | `docs/DESIGN.md § 3.1`; `docs/adr/0001-layered-architecture.md`; six independent CMake targets |
+| **Dependency Inversion** | `core` depends only on `api` interfaces; concrete adapters in `services/*` are injected at `app` |
+| **Mockable Service Adapters** | `api/opencv/IOpenCvAdapter.h`, `api/poppler/IPopplerAdapter.h`, `api/tesseract/ITesseractAdapter.h` |
+| **Unit & Integration Tests (GoogleTest)** | `core/tests/unit/` (17 files), `core/tests/interaction/` (3 files), `persistence/tests/`, `ui/tests/` |
+| **CI/CD (GitHub Actions)** | `.github/workflows/quality.yml` — build, test, clang-tidy, LLVM coverage, Codecov upload |
+| **Static Analysis (clang-tidy)** | `.clang-tidy`; `tidy` CMake preset; enforced as a separate CI job |
+| **Code Coverage (LLVM / Codecov)** | `codecov.yml`; `coverage` preset; badge in README |
+| **CMake / vcpkg build system** | `CMakeLists.txt`, `CMakePresets.json`, `vcpkg.json` (manifest mode) |
+| **Qt6 / QML GUI** | `ui/qml/`, `ui/src/controllers/`, `app/src/main_qml.cpp` |
+| **Multi-threaded pipeline** | `core/src/jobs/Scheduler.cpp`, `core/src/jobs/JobSystem.*`, `ui/src/import/ImportJobBridge.cpp` |
+| **OCR + Computer Vision** | Poppler → OpenCV → Tesseract pipeline in `services/`, `core/src/import/` |
+| **SQLite persistence** | `persistence/src/`, schema migrations via `PRAGMA user_version` in `SqliteSchema.cpp` |
+| **Design Patterns** | Strategy (`core/src/analysis/strategies/`), Factory (`persistence/Factory.h`), Facade (`core/application/AppStateFacade.*`) |
+| **i18n / Localization** | `ui/src/controllers/LanguageController.cpp`, `app/i18n/`, Qt Linguist integration |
+| **Packaging / Deployment** | `installer/fossredder.iss` (Inno Setup), `release-package` CMake preset, `ci/package-inno.ps1` |
+| **Architecture Decision Records** | `docs/adr/0001-layered-architecture.md` |
+| **Doxygen Documentation** | `Doxyfile`; all public headers in `core/include/` and `api/` are documented |
+
+> For a full portfolio evaluation — including strengths, weaknesses, job-requirements matching guide, talking points, and a pre-submission checklist — see [`docs/PORTFOLIO_ANALYSIS.md`](docs/PORTFOLIO_ANALYSIS.md).
+
 ## Docs
 
 - `docs/` contains design artifacts and requirements. The implementation (code) should be considered the authoritative source when documentation and code disagree.
 - All source headers are documented using Doxygen-style comments (`@brief`, `@param`, etc.). You can generate the full HTML reference by running `doxygen Doxyfile` in the project root.
+- See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the development setup, build workflow, code style, and PR process.
+- Architecture decisions are recorded in [`docs/adr/`](docs/adr/).
 
 ## License
 
