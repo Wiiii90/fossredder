@@ -105,6 +105,7 @@ public:
     Q_INVOKABLE QVariantList propertyRows() const;
     Q_INVOKABLE QVariantList contractRows() const;
     Q_INVOKABLE QVariantList analysisRows() const;
+    Q_INVOKABLE QVariantList annualRows() const;
     Q_INVOKABLE QVariantList statementRows() const;
     Q_INVOKABLE QVariantList statementTransactionRows(const QString& statementId) const;
     Q_INVOKABLE QVariantList normalizeStrings(const QVariantList& values) const;

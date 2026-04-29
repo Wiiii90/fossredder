@@ -24,6 +24,8 @@ inline constexpr auto kCloseFailed = "ui::MainWindow::handleStorageOperationFail
 namespace controller {
 namespace annual {
 inline constexpr auto kAdd = "ui::AnnualController::addAnnual";
+inline constexpr auto kUpdate = "ui::AnnualController::updateAnnual";
+inline constexpr auto kDelete = "ui::AnnualController::deleteAnnual";
 }
 namespace actor {
 inline constexpr auto kAdd = "ui::ActorController::addActor";

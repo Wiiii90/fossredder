@@ -439,4 +439,26 @@ void SqliteSchema::migrate(sqlite3* db) {
         setUserVersion(db, 9);
         v = 9;
     }
+
+    if (v < 10) {
+        exec(db, "BEGIN;");
+        exec(db,
+            "CREATE TABLE IF NOT EXISTS annuals ("
+            "id TEXT PRIMARY KEY,"
+            "name TEXT,"
+            "year INTEGER,"
+            "transaction_ids TEXT,"
+            "assigned_analysis_ids TEXT,"
+            "verification_state INTEGER NOT NULL DEFAULT 0,"
+            "created_at TEXT,"
+            "updated_at TEXT,"
+            "schema_version INTEGER"
+            ");");
+        if (!hasColumn(db, "annuals", "name")) {
+            exec(db, "ALTER TABLE annuals ADD COLUMN name TEXT NOT NULL DEFAULT ''; ");
+        }
+        exec(db, "COMMIT;");
+        setUserVersion(db, 10);
+        v = 10;
+    }
 }

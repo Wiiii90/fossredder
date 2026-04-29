@@ -118,6 +118,11 @@ QVariantList StateFacade::analysisRows() const
     return buildAnalysisRows(*session_);
 }
 
+QVariantList StateFacade::annualRows() const
+{
+    return buildAnnualRows(*session_);
+}
+
 QVariantList StateFacade::statementRows() const
 {
     return buildStatementRows(*session_);

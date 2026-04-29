@@ -20,6 +20,7 @@ class AnnualList : public models::IndexedListModel<core::domain::Annual> {
 public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
+        NameRole,
         YearRole,
         VerificationRole
     };

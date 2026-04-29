@@ -311,14 +311,20 @@ void AppStateFacade::deleteAnalysis(const std::string& id)
     commitIfChanged(*this, catalog_.deleteAnalysis(mutableState(), id));
 }
 
-std::string AppStateFacade::addAnnual(int year)
+std::string AppStateFacade::addAnnual(const std::string& name,
+                                      int year,
+                                      const std::vector<std::string>& assignedAnalysisIds)
 {
-    return commitCreated(*this, catalog_.addAnnual(mutableState(), year));
+    return commitCreated(*this, catalog_.addAnnual(mutableState(), name, year, assignedAnalysisIds));
 }
 
-void AppStateFacade::updateAnnual(const std::string& id, int year)
+void AppStateFacade::updateAnnual(const std::string& id,
+                                  const std::string& name,
+                                  int year,
+                                  const std::vector<std::string>& assignedAnalysisIds)
 {
-    commitIfChanged(*this, catalog_.updateAnnual(mutableState(), id, year));
+    commitIfChanged(*this,
+                    catalog_.updateAnnual(mutableState(), id, name, year, assignedAnalysisIds));
 }
 
 void AppStateFacade::deleteAnnual(const std::string& id)

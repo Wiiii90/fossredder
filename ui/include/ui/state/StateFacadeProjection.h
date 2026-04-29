@@ -19,6 +19,7 @@ QVariantList buildActorRows(const SessionStore& session);
 QVariantList buildPropertyRows(const SessionStore& session);
 QVariantList buildContractRows(const SessionStore& session);
 QVariantList buildAnalysisRows(const SessionStore& session);
+QVariantList buildAnnualRows(const SessionStore& session);
 QVariantList buildStatementRows(const SessionStore& session);
 QVariantList buildStatementTransactionRows(const SessionStore& session, const QString& statementId);
 

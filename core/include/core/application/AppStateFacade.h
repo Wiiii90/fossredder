@@ -121,8 +121,13 @@ public:
                         const std::string& snapshotTransactionsJson);
     void deleteAnalysis(const std::string& id);
 
-    std::string addAnnual(int year);
-    void updateAnnual(const std::string& id, int year);
+    std::string addAnnual(const std::string& name,
+                          int year,
+                          const std::vector<std::string>& assignedAnalysisIds = {});
+    void updateAnnual(const std::string& id,
+                      const std::string& name,
+                      int year,
+                      const std::vector<std::string>& assignedAnalysisIds = {});
     void deleteAnnual(const std::string& id);
 
     std::string finalizeStatementDraft(const core::domain::StatementDraft& draft);

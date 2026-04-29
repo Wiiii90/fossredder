@@ -16,6 +16,7 @@ public:
     Annual() = default;
 
     std::string id;
+    std::string name;
     int year = 0;
     std::vector<std::string> transactionIds;
     std::vector<std::string> assignedAnalysisIds;

@@ -31,6 +31,10 @@ Item {
         toolBar.session.selectedActorId = ""
         toolBar.session.selectedPropertyId = ""
         toolBar.session.selectedContractId = ""
+        toolBar.session.selectedAnalysisId = ""
+        toolBar.session.selectedAnnualId = ""
+        toolBar.session.selectedStatementId = ""
+        toolBar.session.selectedTransactionId = ""
     }
 
     function clearBookingStateForSection(section) {

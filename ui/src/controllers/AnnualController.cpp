@@ -11,6 +11,7 @@
 #include "ui/observability/Origins.h"
 #include "ui/payload/EntityPayloadMapper.h"
 #include "ui/util/CoreFacadeGuard.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 
@@ -38,11 +39,53 @@ QVariantList AnnualController::annuals() const
     return core_ ? ui::payload::entity::toPayloadList(core_->state().annuals) : QVariantList{};
 }
 
-QString AnnualController::addAnnual(int year)
+QString AnnualController::addAnnual(const QString& name,
+                                    int year,
+                                    const QStringList& assignedAnalysisIds)
 {
     return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::annual::kAdd, {},
-        [&]() { return QString::fromStdString(core_->addAnnual(year)); });
+        [&]() {
+            return QString::fromStdString(
+                core_->addAnnual(strings::toStdString(name),
+                                 year,
+                                 strings::toStdList(assignedAnalysisIds)));
+        });
+}
+
+void AnnualController::updateAnnual(const QString& id,
+                                    const QString& name,
+                                    int year,
+                                    const QStringList& assignedAnalysisIds)
+{
+    ui::util::guard::invokeVoid(
+        core_, observability::origins::controller::annual::kUpdate,
+        [&]() {
+            core_->updateAnnual(strings::toStdString(id),
+                                strings::toStdString(name),
+                                year,
+                                strings::toStdList(assignedAnalysisIds));
+        });
+}
+
+QString AnnualController::saveAnnual(const QString& id,
+                                     const QString& name,
+                                     int year,
+                                     const QStringList& assignedAnalysisIds)
+{
+    if (id.isEmpty()) {
+        return addAnnual(name, year, assignedAnalysisIds);
+    }
+
+    updateAnnual(id, name, year, assignedAnalysisIds);
+    return id;
+}
+
+void AnnualController::deleteAnnual(const QString& id)
+{
+    ui::util::guard::invokeVoid(
+        core_, observability::origins::controller::annual::kDelete,
+        [&]() { core_->deleteAnnual(strings::toStdString(id)); });
 }
 
 } // namespace ui

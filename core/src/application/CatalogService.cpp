@@ -139,14 +139,24 @@ bool CatalogService::deleteAnalysis(AppState& state, const std::string& id) cons
     return eraseEntity(state.analyses, id);
 }
 
-std::string CatalogService::addAnnual(AppState& state, int year) const
+std::string CatalogService::addAnnual(AppState& state,
+                                      const std::string& name,
+                                      int year,
+                                      const std::vector<std::string>& assignedAnalysisIds) const
 {
-    return appendEntity(state.annuals, [&](Annual& annual) { applyAnnualDraft(annual, year); });
+    return appendEntity(state.annuals,
+                        [&](Annual& annual) { applyAnnualDraft(annual, name, year, assignedAnalysisIds); });
 }
 
-bool CatalogService::updateAnnual(AppState& state, const std::string& id, int year) const
+bool CatalogService::updateAnnual(AppState& state,
+                                  const std::string& id,
+                                  const std::string& name,
+                                  int year,
+                                  const std::vector<std::string>& assignedAnalysisIds) const
 {
-    return updateEntity(state.annuals, id, [&](Annual& annual) { applyAnnualDraft(annual, year); });
+    return updateEntity(state.annuals,
+                        id,
+                        [&](Annual& annual) { applyAnnualDraft(annual, name, year, assignedAnalysisIds); });
 }
 
 bool CatalogService::deleteAnnual(AppState& state, const std::string& id) const

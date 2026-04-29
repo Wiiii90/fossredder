@@ -76,6 +76,7 @@ inline const auto kGeneratedAt = QStringLiteral("generatedAt");
 }
 
 namespace annual {
+inline const auto kName = QStringLiteral("name");
 inline const auto kYear = QStringLiteral("year");
 inline const auto kVerificationState = QStringLiteral("verificationState");
 inline const auto kTransactionIds = QStringLiteral("transactionIds");

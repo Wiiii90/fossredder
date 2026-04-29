@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
 #include <qqmlintegration.h>
@@ -40,11 +41,40 @@ public:
      */
     Q_INVOKABLE QVariantList annuals() const;
 
-    /** @brief Create an annual aggregate for the specified year.
+    /** @brief Create an annual aggregate for the specified name and year.
+     *  @param name Name for the aggregate
      *  @param year Year for the aggregate
      *  @return Identifier of the created annual aggregate
      */
-    Q_INVOKABLE QString addAnnual(int year);
+    Q_INVOKABLE QString addAnnual(const QString& name,
+                                  int year,
+                                  const QStringList& assignedAnalysisIds = {});
+
+    /** @brief Update an existing annual aggregate.
+     *  @param id Annual identifier
+     *  @param name Name for the aggregate
+     *  @param year Year for the aggregate
+     */
+    Q_INVOKABLE void updateAnnual(const QString& id,
+                                  const QString& name,
+                                  int year,
+                                  const QStringList& assignedAnalysisIds = {});
+
+    /** @brief Create or update an annual aggregate based on identifier presence.
+     *  @param id Annual identifier (empty to create)
+     *  @param name Name for the aggregate
+     *  @param year Year for the aggregate
+     *  @return Identifier of the saved annual aggregate
+     */
+    Q_INVOKABLE QString saveAnnual(const QString& id,
+                                   const QString& name,
+                                   int year,
+                                   const QStringList& assignedAnalysisIds = {});
+
+    /** @brief Delete an annual aggregate by identifier.
+     *  @param id Annual identifier
+     */
+    Q_INVOKABLE void deleteAnnual(const QString& id);
 
 private:
     core::application::AppStateFacade* core_ = nullptr;

@@ -86,8 +86,15 @@ public:
     bool updateAnalysis(core::domain::AppState& state, const std::string& id, const AnalysisInput& input) const;
     bool deleteAnalysis(core::domain::AppState& state, const std::string& id) const;
 
-    std::string addAnnual(core::domain::AppState& state, int year) const;
-    bool updateAnnual(core::domain::AppState& state, const std::string& id, int year) const;
+    std::string addAnnual(core::domain::AppState& state,
+                          const std::string& name,
+                          int year,
+                          const std::vector<std::string>& assignedAnalysisIds = {}) const;
+    bool updateAnnual(core::domain::AppState& state,
+                      const std::string& id,
+                      const std::string& name,
+                      int year,
+                      const std::vector<std::string>& assignedAnalysisIds = {}) const;
     bool deleteAnnual(core::domain::AppState& state, const std::string& id) const;
 };
 

@@ -102,6 +102,7 @@ inline QVariantMap toPayload(const core::domain::Annual& annual)
 {
     QVariantMap payload;
     payload[ui::payload::keys::common::kId] = QString::fromStdString(annual.id);
+    payload[ui::payload::keys::annual::kName] = QString::fromStdString(annual.name);
     payload[ui::payload::keys::annual::kYear] = annual.year;
     payload[ui::payload::keys::annual::kVerificationState] = static_cast<int>(annual.verificationState);
     payload[ui::payload::keys::annual::kTransactionIds] = ui::payload::mapper::toVariantStringList(annual.transactionIds);

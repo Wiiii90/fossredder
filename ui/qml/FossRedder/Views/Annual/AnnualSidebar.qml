@@ -1,6 +1,10 @@
+/*!
+ * @file ui/qml/FossRedder/Views/Annual/AnnualSidebar.qml
+ * @brief Sidebar list for navigating annual records.
+ */
+
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
-import FossRedder.Components 1.0 as Components
 pragma ComponentBehavior: Bound
 
 Item {
@@ -13,21 +17,67 @@ Item {
         anchors.fill: parent
         anchors.margins: root.theme.spacingMedium
         spacing: root.theme.spacingSmall
-        ListView {
-            id: annualList
+
+        Flickable {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: root.session ? root.session.annuals : null
-            spacing: root.theme.spacingSmall
-            delegate: Components.ListRow {
-                id: annualRow
-                required property var model
-                theme: root.theme
-                width: annualList.width
-                text: annualRow.model.year ? annualRow.model.year : ""
-                subtitle: annualRow.model.verificationState ? annualRow.model.verificationState : ""
-                selected: root.session ? (annualRow.model.id === root.session.selectedAnnualId) : false
-                onActivated: { if (root.session) root.session.selectedAnnualId = annualRow.model.id }
+            clip: true
+            contentWidth: width
+            contentHeight: annualColumn.implicitHeight
+
+            Column {
+                id: annualColumn
+                width: parent.width
+                spacing: root.theme.spacingSmall
+
+                Repeater {
+                    model: root.session ? root.session.annuals : null
+
+                    delegate: Rectangle {
+                        id: annualRow
+                        required property string id
+                        required property string name
+                        required property int year
+                        width: annualColumn.width
+                        height: 44
+                        radius: 6
+                        color: root.session && annualRow.id === root.session.selectedAnnualId
+                               ? root.theme.selectionHighlight
+                               : "transparent"
+                        border.color: root.theme.borderSoft
+                        border.width: root.theme.borderWidthThin
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                if (root.session)
+                                    root.session.selectedAnnualId = annualRow.id
+                            }
+                        }
+
+                        Column {
+                            anchors.fill: parent
+                            anchors.margins: root.theme.spacingSmall
+                            spacing: 2
+
+                            Text {
+                                width: parent.width
+                                text: annualRow.name.length > 0
+                                      ? annualRow.name
+                                      : String(annualRow.year)
+                                color: root.theme.textPrimary
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                width: parent.width
+                                text: annualRow.year > 0 ? String(annualRow.year) : ""
+                                color: root.theme.textMuted
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+                }
             }
         }
     }

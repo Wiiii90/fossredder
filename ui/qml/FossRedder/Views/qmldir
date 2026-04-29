@@ -17,6 +17,9 @@ AnalysisTableView 1.0 Analysis/AnalysisTableView.qml
 AnalysisTransactionsPanel 1.0 Analysis/AnalysisTransactionsPanel.qml
 AnalysisView 1.0 Analysis/AnalysisView.qml
 AnnualForm 1.0 Annual/AnnualForm.qml
+AnnualAnalysesPanel 1.0 Annual/AnnualAnalysesPanel.qml
+AnnualTransactionsPanel 1.0 Annual/AnnualTransactionsPanel.qml
+AnnualVerificationPanel 1.0 Annual/AnnualVerificationPanel.qml
 AnnualSidebar 1.0 Annual/AnnualSidebar.qml
 AnnualView 1.0 Annual/AnnualView.qml
 BookingSidebar 1.0 Booking/BookingSidebar.qml

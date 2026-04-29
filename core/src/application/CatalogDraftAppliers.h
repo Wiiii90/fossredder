@@ -69,9 +69,14 @@ inline void applyAnalysisDraft(Analysis& analysis, const AnalysisInput& input)
     analysis.snapshotTransactionsJson = input.snapshotTransactionsJson;
 }
 
-inline void applyAnnualDraft(Annual& annual, int year)
+inline void applyAnnualDraft(Annual& annual,
+                             const std::string& name,
+                             int year,
+                             const std::vector<std::string>& assignedAnalysisIds)
 {
+    annual.name = name;
     annual.year = year;
+    annual.assignedAnalysisIds = assignedAnalysisIds;
 }
 
 inline void applyTransactionDraft(Transaction& tx, const TransactionInput& input)
