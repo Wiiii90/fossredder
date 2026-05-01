@@ -21,6 +21,7 @@ struct ExportRequest {
   QString path;
   bool includeFormulas = true;
   QString locale;
+  QString payload;
 };
 
 /** @brief Represents the outcome of an export execution. */

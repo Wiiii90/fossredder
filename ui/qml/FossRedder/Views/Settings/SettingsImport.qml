@@ -44,5 +44,29 @@ Flickable {
             }
         }
 
+        GroupBox {
+            Layout.fillWidth: true
+            title: qsTr("Advanced settings (temporary)")
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: root.theme.settings.spacing
+
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Import advanced settings are temporarily stored here while the Import view stays simplified.")
+                    color: root.theme.textMuted
+                    wrapMode: Text.WordWrap
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Poppler, Tesseract and Parser are currently managed automatically by the pipeline.")
+                    color: root.theme.textMuted
+                    wrapMode: Text.WordWrap
+                }
+            }
+        }
+
     }
 }

@@ -25,6 +25,7 @@ QStringList pickImportFiles(QWidget* parent, const QString& filter);
  *  @return Chosen export file path or empty when cancelled
  */
 QString pickExportFile(QWidget* parent, const QString& filter);
+QString pickExportDirectory(QWidget* parent, const QString& title);
 
 /** @brief Opens a save dialog for creating a new storage database.
  *  @param parent Parent widget for the dialog

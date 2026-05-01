@@ -52,6 +52,41 @@ Flickable {
                         wrapMode: Text.WordWrap
                     }
                 }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label { text: qsTr("Default target path (next)"); Layout.fillWidth: true }
+                    Label {
+                        Layout.fillWidth: true
+                        text: qsTr("Will be configurable here and used to prefill the Export target path.")
+                        color: root.theme.textMuted
+                        wrapMode: Text.WordWrap
+                    }
+                }
+            }
+        }
+
+        GroupBox {
+            Layout.fillWidth: true
+            title: qsTr("Advanced settings (temporary)")
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: root.theme.settings.spacing
+
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Export advanced settings are temporarily stored here while the Export view stays simplified.")
+                    color: root.theme.textMuted
+                    wrapMode: Text.WordWrap
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Analysis export output selection remains available directly in Export entries.")
+                    color: root.theme.textMuted
+                    wrapMode: Text.WordWrap
+                }
             }
         }
 

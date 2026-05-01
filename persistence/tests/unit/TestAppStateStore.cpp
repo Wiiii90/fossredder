@@ -14,6 +14,7 @@
 #include "core/models/Statement.h"
 #include "core/models/StatementDraft.h"
 #include "core/models/Transaction.h"
+#include "core/models/ExportLog.h"
 #include "core/models/TransactionDraft.h"
 #include "persistence/AppStateStore.h"
 #include "persistence/Factory.h"
@@ -177,6 +178,15 @@ TEST(AppStateStoreTests, PersistsAndLoadsCompleteAggregate)
     transactionDraft->metadata = "ocr line";
     state.transactionDrafts.push_back(transactionDraft);
 
+    auto exportLog = std::make_shared<core::domain::ExportLog>();
+    exportLog->id = "export-log-1";
+    exportLog->time = "2025-01-03T00:00:00Z";
+    exportLog->targetPath = "C:/exports/annual.zip";
+    exportLog->status = "Success";
+    exportLog->message = "Export completed";
+    exportLog->payload = "{}";
+    state.exportLogs.push_back(exportLog);
+
     store.save(state);
     const auto loaded = store.load();
 
@@ -189,6 +199,7 @@ TEST(AppStateStoreTests, PersistsAndLoadsCompleteAggregate)
     ASSERT_EQ(loaded.annuals.size(), 1u);
     ASSERT_EQ(loaded.statementDrafts.size(), 1u);
     ASSERT_EQ(loaded.transactionDrafts.size(), 1u);
+    ASSERT_EQ(loaded.exportLogs.size(), 1u);
 
     EXPECT_EQ(loaded.actors.front()->name, "Alice");
     EXPECT_EQ(loaded.properties.front()->address, "Main St 1");
@@ -203,4 +214,6 @@ TEST(AppStateStoreTests, PersistsAndLoadsCompleteAggregate)
     EXPECT_EQ(loaded.statementDrafts.front()->name, "Imported January");
     EXPECT_EQ(loaded.transactionDrafts.front()->name, "Draft Rent");
     EXPECT_EQ(loaded.transactionDrafts.front()->metadata, "ocr line");
+    EXPECT_EQ(loaded.exportLogs.front()->targetPath, "C:/exports/annual.zip");
+    EXPECT_EQ(loaded.exportLogs.front()->status, "Success");
 }

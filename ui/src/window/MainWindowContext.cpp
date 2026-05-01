@@ -165,6 +165,22 @@ void wireMainWindowActions(MainWindow &window,
                 ui::text::mainWindow::exportPathStatusPattern().arg(file));
         }
       });
+
+  QObject::connect(
+      actions, &ui::Actions::exportDirectoryBrowseRequested, &window,
+      [&window, actions, status = services.status](const QString &title) {
+        const QString directory = ui::dialogs::pickExportDirectory(&window, title);
+        if (!directory.isEmpty()) {
+          ui::window::reportMainWindowFlow(
+              ui::observability::origins::mainWindow::kActionRouting,
+              "UI selected export directory", core::errors::ErrorSeverity::Info,
+              ui::window::makePathContext(directory));
+          emit actions->exportDirectorySelected(directory);
+          if (status)
+            status->setText(
+                ui::text::mainWindow::exportPathStatusPattern().arg(directory));
+        }
+      });
 }
 
 } // namespace ui::window

@@ -22,6 +22,7 @@
 #include "core/repositories/IAnnualRepository.h"
 #include "core/repositories/IContractRepository.h"
 #include "core/repositories/IImportLogRepository.h"
+#include "core/repositories/IExportLogRepository.h"
 #include "core/repositories/IPropertyRepository.h"
 #include "core/repositories/IStatementRepository.h"
 #include "core/repositories/IStatementDraftRepository.h"
@@ -31,6 +32,7 @@
 
 #include "core/models/Property.h"
 #include "core/models/ImportLog.h"
+#include "core/models/ExportLog.h"
 #include "core/models/Statement.h"
 #include "core/models/StatementDraft.h"
 #include "core/models/Transaction.h"
@@ -95,6 +97,7 @@ AppState AppStateManager::load() {
     state.analyses = loadCollection(impl_->repos.analyses, [](const auto& repo) { return repo.getAnalyses(); });
     state.annuals = loadCollection(impl_->repos.annuals, [](const auto& repo) { return repo.getAnnuals(); });
     state.importLogs = loadCollection(impl_->repos.importLogs, [](const auto& repo) { return repo.getImportLogs(); });
+    state.exportLogs = loadCollection(impl_->repos.exportLogs, [](const auto& repo) { return repo.getExportLogs(); });
 
     state.statementDrafts = loadCollection(impl_->repos.statementDrafts, [](const auto& repo) { return repo.getStatementDrafts(); });
 
@@ -124,6 +127,13 @@ void AppStateManager::save(const AppState& state) {
         for (const auto& item : projected.importLogs) {
             if (!item) continue;
             impl_->repos.importLogs->upsertImportLog(item);
+        }
+    }
+    if (impl_->repos.exportLogs) {
+        impl_->repos.exportLogs->clearExportLogs();
+        for (const auto& item : projected.exportLogs) {
+            if (!item) continue;
+            impl_->repos.exportLogs->upsertExportLog(item);
         }
     }
 

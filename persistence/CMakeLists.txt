@@ -11,6 +11,7 @@ set(PERSISTENCE_SRCS
     src/repositories/SqliteAnnualRepository.cpp
     src/repositories/SqliteContractRepository.cpp
     src/repositories/SqliteImportLogRepository.cpp
+    src/repositories/SqliteExportLogRepository.cpp
     src/repositories/SqliteStatementDraftRepository.cpp
     src/repositories/SqlitePropertyRepository.cpp
     src/repositories/SqliteStatementRepository.cpp

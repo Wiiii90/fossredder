@@ -34,6 +34,22 @@ Item {
                                                    { value: FileFormats.exportFormats.csv.extension, label: qsTr("CSV") }
                                                ]
 
+    function allowedExportFormatsForUiType(uiType) {
+        if (uiType === "table")
+            return [FileFormats.exportFormats.xlsx.extension, FileFormats.exportFormats.csv.extension]
+        return ["png", "jpg"]
+    }
+
+    function normalizeExportFormatForUiType(value, uiType) {
+        const allowed = root.allowedExportFormatsForUiType(uiType)
+        const normalized = value ? String(value).toLowerCase() : ""
+        for (let i = 0; i < allowed.length; ++i) {
+            if (allowed[i] === normalized)
+                return normalized
+        }
+        return allowed.length > 0 ? allowed[0] : ""
+    }
+
     property bool filterEditMode: !root.isEdit
     property var selectedPropertyIds: []
     property var selectedContractTypes: []
@@ -235,12 +251,11 @@ Item {
 
         root.pendingAdjustmentsJson = row && row.adjustments ? row.adjustments : "{}"
         root.adjustmentAmountsById = root.parseJson(root.pendingAdjustmentsJson, {})
-        root.exportFormat = row && row.exportFormat ? row.exportFormat : ""
+        root.exportFormat = root.normalizeExportFormatForUiType(row && row.exportFormat ? row.exportFormat : "", uiType)
         root.includeCalcAdjustments = row && row.includeCalcAdjustments !== undefined ? !!row.includeCalcAdjustments : true
         root.exportStateJson = root.normalizeExportStateJson(row && row.exportState ? row.exportState : "{}")
         root.snapshotTransactionsJson = row && row.snapshotTransactions ? row.snapshotTransactions : "{}"
-        if (!root.exportFormat || root.exportFormat.length === 0)
-            root.exportFormat = root.resolvedExportFormat()
+        root.syncExportFormatCombo()
 
         root.filterEditMode = false
         if (root.analysisController) {
@@ -419,9 +434,7 @@ Item {
     }
 
     function resolvedExportFormat() {
-        if (root.exportFormat && String(root.exportFormat).length > 0)
-            return root.exportFormat
-        return root.exportFormatOptions.length > 0 ? root.exportFormatOptions[0].value : ""
+        return root.normalizeExportFormatForUiType(root.exportFormat, root.currentMainType())
     }
 
     function exportFormatIndexForValue(value) {
@@ -435,9 +448,14 @@ Item {
     function syncExportFormatCombo() {
         if (!exportFormatCombo)
             return
+        root.exportFormat = root.resolvedExportFormat()
         const nextIndex = root.exportFormatIndexForValue(root.resolvedExportFormat())
         if (exportFormatCombo.currentIndex !== nextIndex)
             exportFormatCombo.currentIndex = nextIndex
+    }
+
+    onExportFormatOptionsChanged: {
+        root.syncExportFormatCombo()
     }
 
     property var propertyFilterRows: []

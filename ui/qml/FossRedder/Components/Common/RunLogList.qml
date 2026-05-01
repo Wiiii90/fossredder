@@ -26,6 +26,37 @@ Item {
         return idx >= 0 ? s.substring(idx + 1) : s
     }
 
+    function payloadSummary(payloadText) {
+        if (!payloadText || String(payloadText).length === 0) return ""
+        try {
+            const payload = JSON.parse(String(payloadText))
+            const items = payload && payload.items && payload.items.length !== undefined ? payload.items : []
+            if (!items || items.length === 0) return ""
+
+            let annualCount = 0
+            let analysisCount = 0
+            const exportTypes = []
+            for (let i = 0; i < items.length; ++i) {
+                const item = items[i]
+                if (!item || !item.objectType) continue
+                const type = String(item.objectType).toLowerCase()
+                if (type === "annual") annualCount += 1
+                if (type === "analysis") {
+                    analysisCount += 1
+                    if (item.exportType && exportTypes.indexOf(item.exportType) < 0) exportTypes.push(item.exportType)
+                }
+            }
+
+            const parts = []
+            if (annualCount > 0) parts.push(qsTr("Annuals: %1").arg(annualCount))
+            if (analysisCount > 0) parts.push(qsTr("Analyses: %1").arg(analysisCount))
+            if (exportTypes.length > 0) parts.push(qsTr("Formats: %1").arg(exportTypes.join(", ")))
+            return parts.join(" | ")
+        } catch (e) {
+            return ""
+        }
+    }
+
     ListView {
         id: runsList
         anchors.fill: parent
@@ -42,9 +73,10 @@ Item {
             required property var status
             required property var file
             required property var message
-            required property bool draftAttached
-            required property string draftId
-            required property string statementId
+            property var payload: ""
+            property bool draftAttached: false
+            property string draftId: ""
+            property string statementId: ""
             width: runsList.width
             radius: root.theme.radius
             color: "transparent"
@@ -55,7 +87,7 @@ Item {
                 id: hoverArea
                 anchors.fill: parent
                 hoverEnabled: true
-                enabled: runEntry.draftAttached || (runEntry.statementId && runEntry.statementId.length > 0)
+                enabled: runEntry.draftAttached || (runEntry.statementId && runEntry.statementId.length > 0) || !runEntry.draftAttached
                 cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                 onClicked: root.runClicked(runEntry.index, runEntry.logId, runEntry.draftAttached, runEntry.statementId)
             }
@@ -117,6 +149,15 @@ Item {
                     text: runEntry.message
                     wrapMode: Text.WordWrap
                     opacity: 0.8
+                    Layout.fillWidth: true
+                }
+
+                Label {
+                    visible: root.payloadSummary(runEntry.payload).length > 0
+                    text: root.payloadSummary(runEntry.payload)
+                    wrapMode: Text.WordWrap
+                    opacity: 0.8
+                    color: root.theme.textMuted
                     Layout.fillWidth: true
                 }
             }

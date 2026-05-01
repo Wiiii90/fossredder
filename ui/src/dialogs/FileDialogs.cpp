@@ -21,6 +21,11 @@ QString pickExportFile(QWidget* parent, const QString& filter)
     return QFileDialog::getSaveFileName(parent, ui::text::dialogs::exportFileTitle(), QString(), filter);
 }
 
+QString pickExportDirectory(QWidget* parent, const QString& title)
+{
+    return QFileDialog::getExistingDirectory(parent, title, QString(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+}
+
 QString pickNewStorageFile(QWidget* parent)
 {
     return QFileDialog::getSaveFileName(parent,

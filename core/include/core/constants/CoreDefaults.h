@@ -162,6 +162,7 @@ inline constexpr std::string_view kOutputPathEmpty = "EXPORT_OUTPUT_PATH_EMPTY";
 inline constexpr std::string_view kStateMissing = "EXPORT_STATE_MISSING";
 inline constexpr std::string_view kFileOpenFailed = "EXPORT_FILE_OPEN_FAILED";
 inline constexpr std::string_view kFileWriteFailed = "EXPORT_FILE_WRITE_FAILED";
+inline constexpr std::string_view kArchiveFailed = "EXPORT_ARCHIVE_FAILED";
 inline constexpr std::string_view kXlsxGenerationFailed = "EXPORT_XLSX_GENERATION_FAILED";
 inline constexpr std::string_view kInternalError = "EXPORT_INTERNAL_ERROR";
 }
@@ -171,8 +172,13 @@ inline constexpr std::string_view kOutputPathEmpty = "Output path is empty";
 inline constexpr std::string_view kStateMissing = "State snapshot is missing";
 inline constexpr std::string_view kFileOpenFailed = "Failed to open export output file";
 inline constexpr std::string_view kFileWriteFailed = "Failed while writing export output file";
+inline constexpr std::string_view kArchiveFailed = "Failed to package export output";
 inline constexpr std::string_view kXlsxGenerationFailed = "XLSX generation failed";
 inline constexpr std::string_view kInternalError = "Unexpected error during export";
+}
+
+namespace packaging {
+inline constexpr std::string_view kZipExtension = ".zip";
 }
 
 namespace labels {

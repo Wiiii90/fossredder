@@ -59,6 +59,7 @@ namespace dialogs {
 inline constexpr auto kContext = "FileDialogs";
 inline constexpr auto kSelectPdfTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "Select PDF");
 inline constexpr auto kExportFileTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "Export File");
+inline constexpr auto kExportDirectoryTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "Select Export Directory");
 inline constexpr auto kNewFileTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "New File");
 inline constexpr auto kOpenFileTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "Open File");
 inline constexpr auto kSaveFileAsTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "Save File As");
@@ -68,6 +69,7 @@ inline constexpr auto kExportFileFilterSource = QT_TRANSLATE_NOOP("FileDialogs",
 
 inline QString selectPdfTitle() { return detail::translate(kContext, kSelectPdfTitleSource); }
 inline QString exportFileTitle() { return detail::translate(kContext, kExportFileTitleSource); }
+inline QString exportDirectoryTitle() { return detail::translate(kContext, kExportDirectoryTitleSource); }
 inline QString newFileTitle() { return detail::translate(kContext, kNewFileTitleSource); }
 inline QString openFileTitle() { return detail::translate(kContext, kOpenFileTitleSource); }
 inline QString saveFileAsTitle() { return detail::translate(kContext, kSaveFileAsTitleSource); }

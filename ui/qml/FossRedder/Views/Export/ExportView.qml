@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.3
 import FossRedder.Constants 1.0 as Constants
 import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
@@ -12,6 +13,8 @@ Item {
     readonly property var exportCtrl: root.appContext ? root.appContext.exportController : null
     readonly property var actions: root.appContext ? root.appContext.actions : null
     readonly property var fileSystemController: root.appContext ? root.appContext.fileSystemController : null
+    readonly property bool hasExportCtrl: root.exportCtrl !== null
+    readonly property string readyText: qsTr("Ready")
     readonly property int csvContractValue: 0
     readonly property int xlsxContractValue: 1
     readonly property string defaultLocale: Qt.locale().name.replace("_", "-")
@@ -27,15 +30,43 @@ Item {
             label: Constants.FileFormats.exportFormats.xlsx.label
         }
     ]
-    readonly property var formatLabels: formatOptions.map(function(option) { return option.label })
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
 
+    function buildPayload() {
+        const targetDirectory = formPanel ? formPanel.targetDirectory : ""
+        const packageFormatIndex = formPanel ? formPanel.packageFormatIndex : 0
+        const items = objectsPanel ? objectsPanel.exportItems() : []
+        const payload = {
+            targetDirectory: targetDirectory,
+            packageFormatIndex: packageFormatIndex,
+            items: items
+        }
+        return JSON.stringify(payload)
+    }
+
+    function defaultTargetDirectory() {
+        if (root.fileSystemController && root.fileSystemController.appDir) {
+            const appPath = root.fileSystemController.appDir()
+            if (appPath && String(appPath).length > 0) return String(appPath)
+        }
+        return Qt.resolvedUrl(".").toString().replace("file:///", "")
+    }
+
+    function clearForm() {
+        if (formPanel) {
+            formPanel.targetDirectory = root.defaultTargetDirectory()
+            formPanel.packageFormatIndex = 0
+        }
+        if (objectsPanel) objectsPanel.clearAll()
+        if (root.hasExportCtrl) root.exportCtrl.clearActiveRun()
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: root.theme.pageMargin
-        spacing: root.theme.spacingMedium
+        anchors.margins: root.theme.spacingMedium
+        spacing: root.theme.spacing
 
         Flickable {
             id: exportScroll
@@ -43,7 +74,7 @@ Item {
             Layout.fillHeight: true
             clip: true
             contentWidth: width
-            contentHeight: exportContent.implicitHeight
+            contentHeight: Math.max(exportContent.implicitHeight, exportScroll.height)
 
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded
@@ -52,73 +83,111 @@ Item {
             ColumnLayout {
                 id: exportContent
                 width: exportScroll.width
-                spacing: root.theme.spacingMedium
+                height: Math.max(implicitHeight, exportScroll.height)
+                spacing: root.theme.spacing
 
-                RowLayout {
-                    spacing: root.theme.spacingMedium
+                ExportForm {
+                    id: formPanel
                     Layout.fillWidth: true
-
-                    Label { text: qsTr("Format:"); Layout.preferredWidth: root.theme.formLabelWidth }
-                    Controls.ComboBox {
-                        id: formatBox
-                        objectName: "exportFormatBox"
-                        model: root.formatLabels
-                        Layout.preferredWidth: root.theme.formFieldWidth
-                        onCurrentIndexChanged: {
-                            if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(Constants.FileFormats.exportDefaults.baseName + ".") !== -1)) {
-                                const base = root.fileSystemController ? root.fileSystemController.appDir() : ""
-                                const selectedOption = root.formatOptions[currentIndex]
-                                if (!selectedOption) return
-                                const ext = selectedOption.extension
-                                if (base && base.length > 0) pathField.text = base + "/" + Constants.FileFormats.exportDefaults.baseName + "." + ext
-                            }
-                        }
+                    theme: root.theme
+                    Component.onCompleted: {
+                        if (!targetDirectory || targetDirectory.length === 0)
+                            targetDirectory = root.defaultTargetDirectory()
+                    }
+                    onBrowseRequested: {
+                        if (root.actions) root.actions.browseExportDirectory()
                     }
                 }
 
-                RowLayout {
-                    spacing: root.theme.spacingMedium
+                ExportPanel {
+                    id: objectsPanel
                     Layout.fillWidth: true
-                    Label { text: qsTr("Include formulas (XLSX):"); Layout.preferredWidth: root.theme.formFieldWidth }
-                    Controls.CheckBox { id: formulas; objectName: "exportIncludeFormulasCheckBox"; checked: true }
-                }
-
-                RowLayout {
-                    spacing: root.theme.spacingMedium
-                    Layout.fillWidth: true
-                    Label { text: qsTr("Locale:"); Layout.preferredWidth: root.theme.formLabelWidth }
-                    Controls.TextField { id: localeField; objectName: "exportLocaleField"; text: root.defaultLocale; Layout.preferredWidth: root.theme.formFieldWidth }
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 320
+                    appContext: root.appContext
+                    theme: root.theme
                 }
             }
+        }
+
+        ExportProgressBar {
+            Layout.fillWidth: true
+            theme: root.theme
+            exportCtrl: root.exportCtrl
+            hasExportCtrl: root.hasExportCtrl
+            readyText: root.readyText
         }
 
         Components.BottomBar {
             Layout.fillWidth: true
             theme: root.theme
 
-            Label { text: qsTr("Save to:"); Layout.preferredWidth: root.theme.formLabelWidth }
-            Controls.TextField { id: pathField; objectName: "exportPathField"; placeholderText: qsTr("e.g. C:/Users/You/Documents/export.xlsx"); Layout.fillWidth: true }
-            Controls.Button { objectName: "exportBrowseButton"; text: qsTr("Browse..."); onClicked: if (root.actions) root.actions.browseExportFile() }
             Controls.Button {
-                objectName: "exportSubmitButton"
-                text: qsTr("Export")
-                enabled: pathField.text.length > 0
+                text: qsTr("Clear")
+                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 0
+                bordered: true
+                fillColor: root.theme.surface
+                textColor: root.theme.textPrimary
+                onClicked: root.clearForm()
+            }
+
+            Controls.DangerButton {
+                text: qsTr("Delete")
+                visible: false
                 onClicked: {
-                    const path = pathField.text
-                    if (!path) return
-                    const selectedOption = root.formatOptions[formatBox.currentIndex]
-                    if (!selectedOption) return
-                    if (root.exportCtrl) root.exportCtrl.exportData(selectedOption.contract, path, formulas.checked, localeField.text)
+                    if (!root.hasExportCtrl) return
+                    const idx = root.exportCtrl.currentRunIndex
+                    if (idx >= 0) root.exportCtrl.removeRunAt(idx)
+                    root.clearForm()
+                }
+            }
+
+            Controls.Button {
+                text: root.hasExportCtrl && root.exportCtrl.isPaused ? qsTr("Resume") : qsTr("Pause")
+                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
+                bordered: true
+                fillColor: root.theme.surface
+                textColor: root.theme.textPrimary
+                onClicked: if (root.hasExportCtrl) root.exportCtrl.togglePause()
+            }
+
+            Controls.Button {
+                text: qsTr("Cancel")
+                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
+                bordered: true
+                fillColor: root.theme.surface
+                textColor: root.theme.textPrimary
+                onClicked: if (root.hasExportCtrl) root.exportCtrl.cancelExport()
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Controls.Button {
+                text: qsTr("Start")
+                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 0
+                enabled: {
+                    const dir = formPanel ? formPanel.targetDirectory : ""
+                    const items = objectsPanel ? objectsPanel.exportItems() : []
+                    return dir.length > 0 && items.length > 0
+                }
+                onClicked: {
+                    if (!root.hasExportCtrl) return
+                    const payload = root.buildPayload()
+                    const path = (formPanel ? formPanel.targetDirectory : "") + "/export"
+                    const selectedOption = root.formatOptions[0]
+                    const items = objectsPanel ? objectsPanel.exportItems() : []
+                    root.exportCtrl.exportDataWithPayload(selectedOption.contract, path, true, root.defaultLocale, payload, Math.max(1, items.length))
                 }
             }
         }
 
         Connections {
             target: root.actions
-            function onExportFileSelected(path) {
+            function onExportDirectorySelected(path) {
                 if (!path) return
-                pathField.text = path
+                if (formPanel) formPanel.targetDirectory = path
             }
         }
+
     }
 }

@@ -15,6 +15,7 @@
 #include "core/errors/IErrorReporter.h"
 #include "core/models/StatementDraft.h"
 #include "core/models/ImportLog.h"
+#include "core/models/ExportLog.h"
 #include "core/models/Transaction.h"
 #include "core/storage/IStorageManager.h"
 
@@ -136,6 +137,8 @@ public:
     std::optional<core::domain::StatementDraft> loadStatementDraft(const std::string& draftId = {}) const;
     void setImportLogs(const std::vector<core::domain::ImportLog>& logs);
     std::vector<std::shared_ptr<core::domain::ImportLog>> importLogs() const;
+    void setExportLogs(const std::vector<core::domain::ExportLog>& logs);
+    std::vector<std::shared_ptr<core::domain::ExportLog>> exportLogs() const;
     void commit();
     void notifyState();
 

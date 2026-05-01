@@ -34,6 +34,7 @@ set(UI_SOURCES
     src/models/AnalysisList.cpp
     src/models/AnnualList.cpp
     src/models/ContractList.cpp
+    src/models/ExportRunList.cpp
     src/models/ImportRunList.cpp
     src/models/PropertyList.cpp
     src/models/StatementDraft.cpp
@@ -97,6 +98,7 @@ set(UI_HEADERS
     include/ui/models/AnalysisList.h
     include/ui/models/AnnualList.h
     include/ui/models/ContractList.h
+    include/ui/models/ExportRunList.h
     include/ui/models/ImportRunList.h
     include/ui/models/ImportSuggestion.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/models/IndexedListModel.h

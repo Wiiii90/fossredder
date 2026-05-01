@@ -13,12 +13,14 @@
 #include "core/repositories/IStatementRepository.h"
 #include "core/repositories/ITransactionRepository.h"
 #include "core/storage/RepositoryBundle.h"
+#include "core/repositories/IExportLogRepository.h"
 
 #include "core/models/Actor.h"
 #include "core/models/Property.h"
 #include "core/models/Contract.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
+#include "core/models/ExportLog.h"
 
 #include <algorithm>
 #include <memory>
@@ -33,6 +35,24 @@ using core::domain::Contract;
 using core::domain::Property;
 using core::domain::Statement;
 using core::domain::Transaction;
+using core::domain::ExportLog;
+
+class FakeExportLogRepository : public IExportLogRepository {
+public:
+    std::vector<std::shared_ptr<ExportLog>> logs;
+    bool upsertCalled = false;
+
+    void addExportLog(const std::shared_ptr<ExportLog>& log) override { logs.push_back(log); }
+    std::vector<std::shared_ptr<ExportLog>> getExportLogs() const override { return logs; }
+    std::optional<std::shared_ptr<ExportLog>> getExportLogById(const std::string& id) const override {
+        for (auto& log : logs) if (log && log->id == id) return log;
+        return std::nullopt;
+    }
+    void removeExportLog(const std::string&) override {}
+    void updateExportLog(const std::shared_ptr<ExportLog>&) override {}
+    void upsertExportLog(const std::shared_ptr<ExportLog>& log) override { upsertCalled = true; logs.push_back(log); }
+    void clearExportLogs() override { logs.clear(); }
+};
 
 // Minimal fake repository implementations for testing
 class FakeActorRepository : public IActorRepository {
@@ -46,6 +66,33 @@ public:
         for (auto& a : actors) if (a && a->id == id) return a;
         return std::nullopt;
     }
+
+TEST(AppStateManagerTests, SaveAndLoadExportLogs) {
+    AppStateManager::Repositories repos;
+    auto exportRepo = std::make_shared<FakeExportLogRepository>();
+    repos.exportLogs = exportRepo;
+
+    AppStateManager mgr(repos);
+
+    AppState state;
+    auto log = std::make_shared<ExportLog>();
+    log->id = "exp-1";
+    log->time = "2026-01-01T12:00:00";
+    log->targetPath = "C:/tmp/export.zip";
+    log->status = "Success";
+    log->message = "Done";
+    log->payload = "{}";
+    state.exportLogs.push_back(log);
+
+    mgr.save(state);
+    EXPECT_TRUE(exportRepo->upsertCalled);
+
+    AppState loaded = mgr.load();
+    ASSERT_EQ(loaded.exportLogs.size(), 1u);
+    ASSERT_TRUE(loaded.exportLogs.front());
+    EXPECT_EQ(loaded.exportLogs.front()->id, "exp-1");
+    EXPECT_EQ(loaded.exportLogs.front()->status, "Success");
+}
     void removeActor(const std::string&) override {}
     void updateActor(const std::shared_ptr<Actor>&) override {}
     void upsertActor(const std::shared_ptr<Actor>& actor) override { upsertCalled = true; (void)actor; }

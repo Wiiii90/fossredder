@@ -472,6 +472,27 @@ std::vector<std::shared_ptr<core::domain::ImportLog>> AppStateFacade::importLogs
     return state().importLogs;
 }
 
+void AppStateFacade::setExportLogs(const std::vector<core::domain::ExportLog>& logs)
+{
+    auto& state = mutableState();
+    state.exportLogs.clear();
+    state.exportLogs.reserve(logs.size());
+    for (const auto& item : logs) {
+        auto log = std::make_shared<core::domain::ExportLog>(item);
+        if (!log) continue;
+        if (log->id.empty()) {
+            log->id = core::utils::makeStableId();
+        }
+        state.exportLogs.push_back(std::move(log));
+    }
+    commit();
+}
+
+std::vector<std::shared_ptr<core::domain::ExportLog>> AppStateFacade::exportLogs() const
+{
+    return state().exportLogs;
+}
+
 void AppStateFacade::commit()
 {
     session_->commit();

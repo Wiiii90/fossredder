@@ -20,6 +20,7 @@ class Annual;
 class StatementDraft;
 class TransactionDraft;
 class ImportLog;
+class ExportLog;
 
 struct AppState {
     template <typename T>
@@ -35,6 +36,7 @@ struct AppState {
     using StatementDraftList = EntityList<core::domain::StatementDraft>;
     using TransactionDraftList = EntityList<core::domain::TransactionDraft>;
     using ImportLogList = EntityList<core::domain::ImportLog>;
+    using ExportLogList = EntityList<core::domain::ExportLog>;
 
     PropertyList properties;
     ActorList actors;
@@ -46,11 +48,13 @@ struct AppState {
     StatementDraftList statementDrafts;
     TransactionDraftList transactionDrafts;
     ImportLogList importLogs;
+    ExportLogList exportLogs;
 
     [[nodiscard]] bool empty() const noexcept {
         return properties.empty() && actors.empty() && contracts.empty() && statements.empty() &&
                transactions.empty() && analyses.empty() && annuals.empty() &&
-               statementDrafts.empty() && transactionDrafts.empty() && importLogs.empty();
+               statementDrafts.empty() && transactionDrafts.empty() &&
+               importLogs.empty() && exportLogs.empty();
     }
 };
 

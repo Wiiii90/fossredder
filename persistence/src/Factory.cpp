@@ -8,6 +8,7 @@
 #include "persistence/repositories/SqliteStatementDraftRepository.h"
 #include "persistence/repositories/SqliteTransactionDraftRepository.h"
 #include "persistence/repositories/SqliteImportLogRepository.h"
+#include "persistence/repositories/SqliteExportLogRepository.h"
 #include "persistence/repositories/SqlitePropertyRepository.h"
 #include "persistence/repositories/SqliteStatementRepository.h"
 #include "persistence/repositories/SqliteTransactionRepository.h"
@@ -81,6 +82,10 @@ std::shared_ptr<IImportLogRepository> createSqliteImportLogRepository(const std:
     return std::make_shared<SqliteImportLogRepository>(db);
 }
 
+std::shared_ptr<IExportLogRepository> createSqliteExportLogRepository(const std::shared_ptr<SqliteDb>& db) {
+    return std::make_shared<SqliteExportLogRepository>(db);
+}
+
 core::storage::RepositoryBundle createSqliteRepositoryBundle(const std::shared_ptr<SqliteDb>& db) {
     return createSqliteRepositoryBundle(db, nullptr);
 }
@@ -98,6 +103,7 @@ core::storage::RepositoryBundle createSqliteRepositoryBundle(const std::shared_p
     bundle.analyses = createSqliteAnalysisRepository(db);
     bundle.annuals = createSqliteAnnualRepository(db);
     bundle.importLogs = createSqliteImportLogRepository(db);
+    bundle.exportLogs = createSqliteExportLogRepository(db);
     return bundle;
 }
 

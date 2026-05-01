@@ -21,6 +21,7 @@
 #include "core/jobs/JobSystem.h"
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
+#include "core/models/ExportLog.h"
 #include "debug/DebugDefaults.h"
 
 using core::domain::AppState;
@@ -52,6 +53,9 @@ using core::domain::DeletionImpact;
 #include <QList>
 #include <QQmlEngine>
 #include <QQmlError>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 #include <exception>
 #include <memory>
@@ -113,6 +117,44 @@ executeExport(std::shared_ptr<const AppState> snapshot,
   exportRequest.locale = request.locale.toStdString();
   exportRequest.stateSnapshot = std::move(snapshot);
   exportRequest.format = toCoreExportFormat(request.format);
+
+  QJsonParseError parseError;
+  const QJsonDocument payloadDoc = QJsonDocument::fromJson(request.payload.toUtf8(), &parseError);
+  if (parseError.error == QJsonParseError::NoError && payloadDoc.isObject()) {
+    const QJsonObject payloadObj = payloadDoc.object();
+    const int packageIndex = payloadObj.value(QStringLiteral("packageFormatIndex")).toInt(0);
+    switch (packageIndex) {
+    case 1:
+      exportRequest.packageFormat = core::exporting::PackageFormat::Zip;
+      break;
+    default:
+      exportRequest.packageFormat = core::exporting::PackageFormat::None;
+      break;
+    }
+
+    const QJsonArray items = payloadObj.value(QStringLiteral("items")).toArray();
+    for (const QJsonValue& value : items) {
+      if (!value.isObject()) continue;
+      const QJsonObject item = value.toObject();
+      if (item.value(QStringLiteral("objectType")).toString().compare(QStringLiteral("Analysis"), Qt::CaseInsensitive) != 0) continue;
+
+      const QString exportType = item.value(QStringLiteral("exportType")).toString();
+      core::exporting::AnalysisExportItem analysisItem;
+      analysisItem.annualId = item.value(QStringLiteral("annualId")).toString().toStdString();
+      analysisItem.analysisId = item.value(QStringLiteral("objectId")).toString().toStdString();
+      analysisItem.name = item.value(QStringLiteral("objectName")).toString().toStdString();
+
+      const QString normalized = exportType.trimmed().toLower();
+      if (normalized == QStringLiteral("xlsx")) analysisItem.format = core::exporting::AnalysisExportFormat::Xlsx;
+      else if (normalized == QStringLiteral("jpg") || normalized == QStringLiteral("jpeg")) analysisItem.format = core::exporting::AnalysisExportFormat::Jpg;
+      else if (normalized == QStringLiteral("png")) analysisItem.format = core::exporting::AnalysisExportFormat::Png;
+      else analysisItem.format = core::exporting::AnalysisExportFormat::Csv;
+
+      if (!analysisItem.analysisId.empty()) {
+        exportRequest.analysisItems.push_back(std::move(analysisItem));
+      }
+    }
+  }
 
   core::exporting::ExportService exporter;
   const auto result = exporter.exportData(exportRequest);
@@ -201,6 +243,9 @@ UiControllers setupUiControllers(
       std::make_shared<ui::exporting::ExportRunner>(executeExport);
   ui.exportCtrl =
       new ui::ExportController(exportSnapshotProvider, exportRunner, &w);
+  ui.exportCtrl->setExportLogsStore([&appStateFacade](const std::vector<core::domain::ExportLog>& logs) {
+    appStateFacade.setExportLogs(logs);
+  });
   w.setQmlContextProperty(ui::qml::contracts::context::kExportController,
                           ui.exportCtrl);
   if (auto *appContext = w.appContext())

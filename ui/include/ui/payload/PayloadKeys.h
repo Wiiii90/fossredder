@@ -46,6 +46,14 @@ namespace statement {
 inline const auto kStatementId = QStringLiteral("statementId");
 }
 
+namespace exportRun {
+inline const auto kLogId = QStringLiteral("logId");
+inline const auto kTime = QStringLiteral("time");
+inline const auto kFile = QStringLiteral("file");
+inline const auto kMessage = QStringLiteral("message");
+inline const auto kPayload = QStringLiteral("payload");
+}
+
 namespace transaction {
 inline const auto kBookingDate = QStringLiteral("bookingDate");
 inline const auto kValuta = QStringLiteral("valuta");

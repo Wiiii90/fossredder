@@ -461,4 +461,22 @@ void SqliteSchema::migrate(sqlite3* db) {
         setUserVersion(db, 10);
         v = 10;
     }
+
+    if (v < 11) {
+        exec(db,
+            "BEGIN;"
+            "CREATE TABLE IF NOT EXISTS export_logs ("
+            "id TEXT PRIMARY KEY,"
+            "time TEXT,"
+            "target_path TEXT,"
+            "status TEXT,"
+            "message TEXT,"
+            "payload TEXT"
+            ");"
+            "CREATE INDEX IF NOT EXISTS idx_export_logs_time ON export_logs(time DESC);"
+            "COMMIT;"
+        );
+        setUserVersion(db, 11);
+        v = 11;
+    }
 }
