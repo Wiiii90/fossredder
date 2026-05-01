@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingStatementPanel.qml
+ * @brief Provides the BookingStatementPanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Booking/BookingStatementPanel.qml
  * @brief Main panel for statement metadata and embedded transaction content in the booking page.
@@ -59,28 +64,24 @@ Item {
                 Layout.fillWidth: true
             }
 
-            Controls.Button {
+            Controls.SecondaryButton {
                 visible: root.transactionAddVisible
                 enabled: root.transactionAddEnabled
                 text: "+"
-                implicitHeight: 22
-                implicitWidth: 24
-                fillColor: root.theme.surface
+                implicitHeight: root.theme.viewCompactActionButtonSize
+                implicitWidth: root.theme.viewCompactActionButtonSize
                 textColor: root.theme.textMuted
-                bordered: true
                 focusPolicy: Qt.NoFocus
                 onClicked: root.transactionAddRequested()
             }
 
-            Controls.Button {
+            Controls.SecondaryButton {
                 visible: root.transactionDeleteVisible
                 enabled: root.transactionDeleteEnabled
                 text: "×"
-                implicitHeight: 22
-                implicitWidth: 24
-                fillColor: root.theme.surface
+                implicitHeight: root.theme.viewCompactActionButtonSize
+                implicitWidth: root.theme.viewCompactActionButtonSize
                 textColor: root.theme.textMuted
-                bordered: true
                 focusPolicy: Qt.NoFocus
                 onClicked: root.transactionDeleteRequested()
             }

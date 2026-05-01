@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisPlotView.qml
+ * @brief Provides the AnalysisPlotView component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3

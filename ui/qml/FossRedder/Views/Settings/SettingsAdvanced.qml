@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Settings/SettingsAdvanced.qml
+ * @brief Provides the SettingsAdvanced component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3

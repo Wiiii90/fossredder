@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/StatementDraftView.qml
+ * @brief Provides the StatementDraftView component.
+ */
+
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
@@ -147,14 +152,12 @@ Item {
                             : qsTr("No current transaction")
                 }
 
-                Controls.Button {
+                Controls.SecondaryButton {
                     visible: stmtRoot.draft && stmtRoot.draft.count > 1
                     text: "×"
-                    implicitHeight: 22
-                    implicitWidth: 24
-                    fillColor: stmtRoot.theme.surface
+                    implicitHeight: stmtRoot.theme.viewCompactActionButtonSize
+                    implicitWidth: stmtRoot.theme.viewCompactActionButtonSize
                     textColor: stmtRoot.theme.textMuted
-                    bordered: true
                     onClicked: stmtRoot.deleteCurrentTransaction()
                 }
             }

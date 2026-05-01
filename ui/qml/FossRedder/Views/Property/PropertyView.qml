@@ -1,4 +1,9 @@
-﻿/*!
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Property/PropertyView.qml
+ * @brief Provides the PropertyView component.
+ */
+
+/*!
  * @file ui/qml/FossRedder/Views/Property/PropertyView.qml
  * @brief Property page container that hosts the property form with app context and theme.
  */

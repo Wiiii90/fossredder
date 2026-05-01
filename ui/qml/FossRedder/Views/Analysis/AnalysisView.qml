@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisView.qml
+ * @brief Provides the AnalysisView component.
+ */
+
 import QtQuick 2.15
 import FossRedder.Views 1.0 as Views
 

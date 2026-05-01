@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+﻿/**
+ * @file ui/qml/FossRedder/Views/Settings/SettingsView.qml
+ * @brief Provides the SettingsView component.
+ */
+
+import QtQuick 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
@@ -10,11 +15,24 @@ Item {
     required property var appContext
     required property var theme
     readonly property var navigation: root.appContext ? root.appContext.navigation : null
+    readonly property var languageController: root.appContext ? root.appContext.languageController : null
     readonly property Component generalPageComponent: generalComp
     readonly property Component appearancePageComponent: appearanceComp
     readonly property Component importPageComponent: importComp
     readonly property Component exportPageComponent: exportComp
     readonly property Component advancedPageComponent: advancedComp
+
+    function saveSettings() {
+        if (settingsLoader && settingsLoader.item)
+            settingsLoader.focus = true
+    }
+
+    function resetSettings() {
+        if (root.navigation)
+            root.navigation.setSettingsCategoryValue(0)
+        if (root.languageController)
+            root.languageController.currentLanguage = "en"
+    }
 
     function componentForCategory(category) {
         switch (category) {
@@ -37,7 +55,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: root.theme.pageMargin
+        anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.settings.spacing
 
         Loader {
@@ -51,16 +69,14 @@ Item {
             Layout.fillWidth: true
             theme: root.theme
 
-            Controls.Button {
+            Controls.PrimaryButton {
                 text: qsTr("Save")
-                onClicked: {
-                }
+                onClicked: root.saveSettings()
             }
 
-            Controls.Button {
+            Controls.SecondaryButton {
                 text: qsTr("Default")
-                onClicked: {
-                }
+                onClicked: root.resetSettings()
             }
 
             Item { Layout.fillWidth: true }

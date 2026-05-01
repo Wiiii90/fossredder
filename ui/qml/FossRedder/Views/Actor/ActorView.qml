@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Actor/ActorView.qml
+ * @brief Provides the ActorView component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Actor/ActorView.qml
  * @brief Actor page container that hosts the actor form with app context and theme.

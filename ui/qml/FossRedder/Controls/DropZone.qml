@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/DropZone.qml
+ * @brief Provides the DropZone component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
@@ -54,9 +59,9 @@ Item {
 
             Image {
                 Layout.alignment: Qt.AlignHCenter
-            source: "../Assets/import.svg"
-                width: 28
-                height: 28
+                source: "../Assets/import.svg"
+                width: root.theme.viewSectionIconSize
+                height: root.theme.viewSectionIconSize
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 opacity: 0.85
@@ -99,12 +104,10 @@ Item {
 
             Item { Layout.fillHeight: true }
 
-            Controls.Button {
+            Controls.SecondaryButton {
                 visible: root.allowBrowse
                 Layout.alignment: Qt.AlignHCenter
                 text: root.browseText
-                fillColor: root.theme.surface
-                textColor: root.theme.textPrimary
                 onClicked: root.browseRequested()
             }
         }

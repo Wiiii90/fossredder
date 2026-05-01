@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Export/ExportView.qml
+ * @brief Provides the ExportView component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
@@ -65,7 +70,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: root.theme.spacingMedium
+        anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.spacing
 
         Flickable {
@@ -122,47 +127,27 @@ Item {
             Layout.fillWidth: true
             theme: root.theme
 
-            Controls.Button {
+            Controls.SecondaryButton {
                 text: qsTr("Clear")
                 visible: root.hasExportCtrl && root.exportCtrl.currentMode === 0
-                bordered: true
-                fillColor: root.theme.surface
-                textColor: root.theme.textPrimary
                 onClicked: root.clearForm()
             }
 
-            Controls.DangerButton {
-                text: qsTr("Delete")
-                visible: false
-                onClicked: {
-                    if (!root.hasExportCtrl) return
-                    const idx = root.exportCtrl.currentRunIndex
-                    if (idx >= 0) root.exportCtrl.removeRunAt(idx)
-                    root.clearForm()
-                }
-            }
-
-            Controls.Button {
-                text: root.hasExportCtrl && root.exportCtrl.isPaused ? qsTr("Resume") : qsTr("Pause")
-                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
-                bordered: true
-                fillColor: root.theme.surface
-                textColor: root.theme.textPrimary
-                onClicked: if (root.hasExportCtrl) root.exportCtrl.togglePause()
-            }
-
-            Controls.Button {
+            Controls.SecondaryButton {
                 text: qsTr("Cancel")
                 visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
-                bordered: true
-                fillColor: root.theme.surface
-                textColor: root.theme.textPrimary
                 onClicked: if (root.hasExportCtrl) root.exportCtrl.cancelExport()
             }
 
             Item { Layout.fillWidth: true }
 
-            Controls.Button {
+            Controls.SecondaryButton {
+                text: root.hasExportCtrl && root.exportCtrl.isPaused ? qsTr("Resume") : qsTr("Pause")
+                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
+                onClicked: if (root.hasExportCtrl) root.exportCtrl.togglePause()
+            }
+
+            Controls.SuccessButton {
                 text: qsTr("Start")
                 visible: root.hasExportCtrl && root.exportCtrl.currentMode === 0
                 enabled: {

@@ -1,8 +1,12 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisForm.qml
+ * @brief Provides the AnalysisForm component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Constants 1.0 as Constants
-import FossRedder.Constants 1.0 as FileFormats
 import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
 import FossRedder.Views 1.0 as Views
@@ -30,13 +34,13 @@ Item {
                                                    { value: "jpg", label: qsTr("JPG") }
                                                ]
                                                : [
-                                                   { value: FileFormats.exportFormats.xlsx.extension, label: qsTr("XLSX") },
-                                                   { value: FileFormats.exportFormats.csv.extension, label: qsTr("CSV") }
+                                                    { value: Constants.FileFormats.exportFormats.xlsx.extension, label: qsTr("XLSX") },
+                                                    { value: Constants.FileFormats.exportFormats.csv.extension, label: qsTr("CSV") }
                                                ]
 
     function allowedExportFormatsForUiType(uiType) {
         if (uiType === "table")
-            return [FileFormats.exportFormats.xlsx.extension, FileFormats.exportFormats.csv.extension]
+            return [Constants.FileFormats.exportFormats.xlsx.extension, Constants.FileFormats.exportFormats.csv.extension]
         return ["png", "jpg"]
     }
 
@@ -68,6 +72,22 @@ Item {
     property bool includeCalcAdjustments: true
     property string exportStateJson: "{}"
     property string snapshotTransactionsJson: "{}"
+
+    property string savedName: ""
+    property int savedMainTypeIndex: 0
+    property int savedPlotSubtypeIndex: 0
+    property int savedDateModeIndex: 1
+    property string savedYearValue: ""
+    property string savedDateFromValue: ""
+    property string savedDateToValue: ""
+    property var savedSelectedPropertyIds: []
+    property var savedSelectedContractTypes: []
+    property string savedAllocatableMode: "all"
+    property string savedExportFormat: ""
+    property bool savedIncludeCalcAdjustments: true
+    property string savedExportStateJson: "{}"
+    property string savedSnapshotTransactionsJson: "{}"
+    property string savedPendingAdjustmentsJson: "{}"
 
     function mapTypeToUi(typeValue) {
         return typeValue === "tab" ? "table" : "plot"
@@ -143,6 +163,55 @@ Item {
 
     function currentMainType() {
         return mainTypeCombo.currentIndex === 1 ? "table" : "plot"
+    }
+
+    function canSubmitAnalysis() {
+        return !!nameField && !!nameField.text && String(nameField.text).length > 0
+    }
+
+    function normalizedList(values) {
+        const list = values ? values.slice() : []
+        list.sort()
+        return JSON.stringify(list)
+    }
+
+    function captureSavedAnalysisState() {
+        root.savedName = nameField.text ? String(nameField.text) : ""
+        root.savedMainTypeIndex = mainTypeCombo.currentIndex
+        root.savedPlotSubtypeIndex = plotSubtypeCombo.currentIndex
+        root.savedDateModeIndex = dateFilter.dateModeIndex
+        root.savedYearValue = dateFilter.yearValue
+        root.savedDateFromValue = dateFilter.dateFromValue
+        root.savedDateToValue = dateFilter.dateToValue
+        root.savedSelectedPropertyIds = root.selectedPropertyIds ? root.selectedPropertyIds.slice() : []
+        root.savedSelectedContractTypes = root.selectedContractTypes ? root.selectedContractTypes.slice() : []
+        root.savedAllocatableMode = root.allocatableMode
+        root.savedExportFormat = root.exportFormat
+        root.savedIncludeCalcAdjustments = root.includeCalcAdjustments
+        root.savedExportStateJson = root.normalizeExportStateJson(root.exportStateJson)
+        root.savedSnapshotTransactionsJson = root.snapshotTransactionsJson || "{}"
+        root.savedPendingAdjustmentsJson = root.pendingAdjustmentsJson || "{}"
+    }
+
+    function hasAnalysisChanges() {
+        if (!root.isEdit)
+            return root.canSubmitAnalysis()
+
+        return (root.savedName !== String(nameField.text || ""))
+                || root.savedMainTypeIndex !== mainTypeCombo.currentIndex
+                || root.savedPlotSubtypeIndex !== plotSubtypeCombo.currentIndex
+                || root.savedDateModeIndex !== dateFilter.dateModeIndex
+                || root.savedYearValue !== String(dateFilter.yearValue || "")
+                || root.savedDateFromValue !== String(dateFilter.dateFromValue || "")
+                || root.savedDateToValue !== String(dateFilter.dateToValue || "")
+                || root.normalizedList(root.savedSelectedPropertyIds) !== root.normalizedList(root.selectedPropertyIds)
+                || root.normalizedList(root.savedSelectedContractTypes) !== root.normalizedList(root.selectedContractTypes)
+                || root.savedAllocatableMode !== root.allocatableMode
+                || root.savedExportFormat !== root.exportFormat
+                || root.savedIncludeCalcAdjustments !== root.includeCalcAdjustments
+                || root.savedExportStateJson !== root.normalizeExportStateJson(root.exportStateJson)
+                || root.savedSnapshotTransactionsJson !== (root.snapshotTransactionsJson || "{}")
+                || root.savedPendingAdjustmentsJson !== (root.pendingAdjustmentsJson || "{}")
     }
 
     function currentFilterSpec() {
@@ -229,6 +298,7 @@ Item {
             root.exportStateJson = "{}"
             root.snapshotTransactionsJson = "{}"
             root.resetAdjustments()
+            root.captureSavedAnalysisState()
             root.refreshPreview()
             return
         }
@@ -263,6 +333,7 @@ Item {
             if (result && Object.keys(result).length > 0)
                 root.session.lastAnalysisResult = result
         }
+        root.captureSavedAnalysisState()
         root.refreshPreview()
     }
 
@@ -318,6 +389,7 @@ Item {
             root.session.lastAnalysisResult = result
 
         root.filterEditMode = false
+        root.captureSavedAnalysisState()
     }
 
     function deleteCurrentAnalysis() {
@@ -471,7 +543,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: root.theme.spacingMedium
+        anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.viewFormSpacing
 
         Flickable {
@@ -502,23 +574,31 @@ Item {
                 Controls.Panel {
                     visible: !root.isEdit
                     Layout.fillWidth: true
-                    Layout.preferredHeight: implicitHeight
+                    Layout.preferredHeight: analysisTypeColumn.implicitHeight + (root.theme.panelPadding * 2)
 
                     ColumnLayout {
+                        id: analysisTypeColumn
                         Layout.fillWidth: true
                         spacing: root.theme.spacingSmall
 
                         RowLayout {
                             Layout.fillWidth: true
                             Label { text: qsTr("Analysis Type"); Layout.preferredWidth: root.theme.formLabelWidth }
-                            Controls.ComboBox { id: mainTypeCombo; Layout.fillWidth: true; model: [ qsTr("Plot"), qsTr("Table") ]; currentIndex: 0 }
+                            Controls.DropdownMenu { id: mainTypeCombo; Layout.fillWidth: true; model: [ qsTr("Plot"), qsTr("Table") ]; currentIndex: 0 }
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
                             visible: root.currentMainType() === "plot"
                             Label { text: qsTr("Plot Subtype"); Layout.preferredWidth: root.theme.formLabelWidth }
-                            Controls.ComboBox { id: plotSubtypeCombo; Layout.fillWidth: true; model: root.plotTypeOptions; textRole: "label"; currentIndex: 0 }
+                            Controls.DropdownMenu {
+                                id: plotSubtypeCombo
+                                Layout.fillWidth: true
+                                Layout.maximumWidth: root.width - root.theme.formLabelWidth - root.theme.panelContentSafeWidthOffset
+                                model: root.plotTypeOptions
+                                textRole: "label"
+                                currentIndex: 0
+                            }
                         }
                     }
                 }
@@ -526,24 +606,25 @@ Item {
                 Controls.Panel {
                     visible: root.isEdit
                     Layout.fillWidth: true
-                    Layout.preferredHeight: implicitHeight
+                    Layout.preferredHeight: exportOptionsColumn.implicitHeight + (root.theme.panelPadding * 2)
 
                     ColumnLayout {
+                        id: exportOptionsColumn
                         Layout.fillWidth: true
                         spacing: root.theme.spacingSmall
 
                         RowLayout {
                             Layout.fillWidth: true
                             Label { text: qsTr("Export Format"); Layout.preferredWidth: root.theme.formLabelWidth }
-                            Controls.ComboBox {
+                            Controls.DropdownMenu {
                                 id: exportFormatCombo
                                 Layout.preferredWidth: root.theme.formFieldWidth
                                 model: root.exportFormatOptions
                                 textRole: "label"
                                 currentIndex: 0
-                                onCurrentIndexChanged: {
-                                    if (currentIndex >= 0 && currentIndex < root.exportFormatOptions.length)
-                                        root.exportFormat = root.exportFormatOptions[currentIndex].value
+                                onActivated: function(index) {
+                                    if (index >= 0 && index < root.exportFormatOptions.length)
+                                        root.exportFormat = root.exportFormatOptions[index].value
                                 }
                             }
                             Item { Layout.fillWidth: true }
@@ -551,22 +632,20 @@ Item {
 
                         RowLayout {
                             Layout.fillWidth: true
-                            Label { text: qsTr("Include Calc Adjustments"); Layout.preferredWidth: root.theme.formLabelWidth }
                             Controls.CheckBox {
+                                id: includeCalcAdjustmentsCheckBox
+                                Layout.fillWidth: false
+                                Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                                 checked: root.includeCalcAdjustments
-                                onClicked: root.includeCalcAdjustments = checked
+                                onClicked: root.includeCalcAdjustments = this.checked
+                            }
+                            Label {
+                                text: qsTr("Include Calc Adjustments")
+                                Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                             }
                             Item { Layout.fillWidth: true }
                         }
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Label { text: qsTr("Preview Export State"); Layout.preferredWidth: root.theme.formLabelWidth }
-                            Label {
-                                text: root.hasCustomExportState() ? qsTr("Customized") : qsTr("Default")
-                            }
-                            Item { Layout.fillWidth: true }
-                        }
                     }
                 }
 
@@ -594,6 +673,7 @@ Item {
             visible: !root.isEdit && root.filterEditMode
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight + root.theme.controlHeight + root.theme.viewFormSpacing * 3
 
             ColumnLayout {
                 Layout.fillWidth: true
@@ -633,33 +713,36 @@ Item {
                                     id: dateFilter
                                     theme: root.theme
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: implicitHeight
+                                    Layout.preferredHeight: dateFilter.implicitHeight
                                     onFilterChanged: previewDebounce.restart()
                                 }
 
                                 Views.AnalysisPropertyFilter {
+                                    id: propertyFilterPanel
                                     theme: root.theme
                                     propertyRows: root.propertyFilterRows
                                     selectedIds: root.selectedPropertyIds
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: implicitHeight
+                                    Layout.preferredHeight: propertyFilterPanel.implicitHeight
                                     onSelectionChanged: (ids) => { root.selectedPropertyIds = ids; previewDebounce.restart() }
                                 }
 
                                 Views.AnalysisContractTypeFilter {
+                                    id: contractTypeFilterPanel
                                     theme: root.theme
                                     contractTypes: root.contractTypeRows
                                     selectedTypes: root.selectedContractTypes
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: implicitHeight
+                                    Layout.preferredHeight: contractTypeFilterPanel.implicitHeight
                                     onSelectionChanged: (selected) => { root.selectedContractTypes = selected; previewDebounce.restart() }
                                 }
 
                                 Views.AnalysisAllocatableFilter {
+                                    id: allocatableFilterPanel
                                     theme: root.theme
                                     mode: root.allocatableMode
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: implicitHeight
+                                    Layout.preferredHeight: allocatableFilterPanel.implicitHeight
                                     onModeSelected: (mode) => { root.allocatableMode = mode; previewDebounce.restart() }
                                 }
 
@@ -694,20 +777,16 @@ Item {
             Layout.fillWidth: true
             theme: root.theme
 
-            Controls.Button {
-                text: "◀"
+            Controls.PrevButton {
                 enabled: root.analysesCount() > 0
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateAnalysis(-1)
             }
 
             Item { Layout.fillWidth: true }
 
-            Controls.Button {
+            Controls.SecondaryButton {
                 visible: !root.isEdit && root.filterEditMode
                 text: "⇆"
-                bordered: true
                 Layout.preferredWidth: 48
                 onClicked: root.toggleFilterWorkspace()
             }
@@ -722,7 +801,7 @@ Item {
             Controls.SuccessButton {
                 visible: !root.isEdit
                 text: qsTr("Create")
-                enabled: nameField.text.length > 0
+                enabled: root.canSubmitAnalysis()
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: root.submitAnalysis(true)
             }
@@ -737,18 +816,15 @@ Item {
             Controls.SuccessButton {
                 visible: root.isEdit
                 text: qsTr("Update")
-                enabled: nameField.text.length > 0
+                enabled: root.canSubmitAnalysis()
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: root.submitAnalysis(false)
             }
 
             Item { Layout.fillWidth: true }
 
-            Controls.Button {
-                text: "▶"
+            Controls.NextButton {
                 enabled: root.analysesCount() > 0
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateAnalysis(1)
             }
         }
@@ -763,7 +839,7 @@ Item {
             onExportStateChanged: (stateJson) => root.exportStateJson = root.normalizeExportStateJson(stateJson)
         }
     }
-    Component { id: tableComp; Views.AnalysisTableView { appContext: root.appContext; theme: root.theme } }
+    Component { id: tableComp; Views.AnalysisTableView { appContext: root.appContext; theme: root.theme; adjustmentAmountsById: root.adjustmentAmountsById } }
 
     Connections {
         target: root.session

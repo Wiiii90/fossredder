@@ -1,6 +1,6 @@
-/*!
- * @file ui/qml/FossRedder/Views/Annual/AnnualForm.qml
- * @brief Main annual edit form with assigned analyses, transactions workspace, and verification summary.
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Annual/AnnualForm.qml
+ * @brief Provides the AnnualForm component.
  */
 
 import QtQuick 2.15
@@ -29,6 +29,9 @@ Item {
     property var annualVerificationIssues: ({ missingFromYear: 0, mixedInAnnual: 0, duplicateCount: 0, missingLive: 0 })
     property var annualStatusMetrics: ({ neutral: 0, unverified: 0, verified: 0, completed: 0 })
     property var annualTransactions: []
+    property string savedAnnualNameText: ""
+    property string savedYearText: ""
+    property var savedAssignedAnalysisIds: []
     Accessible.ignored: root.appContext ? root.appContext.isDebugBuild : false
     anchors.fill: parent
 
@@ -47,6 +50,26 @@ Item {
 
     function canSubmit() {
         return root.parseYear(root.yearText) > 0
+    }
+
+    function normalizedList(values) {
+        const list = values ? values.slice() : []
+        list.sort()
+        return JSON.stringify(list)
+    }
+
+    function captureSavedState() {
+        root.savedAnnualNameText = String(root.annualNameText || "")
+        root.savedYearText = String(root.yearText || "")
+        root.savedAssignedAnalysisIds = root.assignedAnalysisIds ? root.assignedAnalysisIds.slice() : []
+    }
+
+    function hasChanges() {
+        if (!root.isEdit)
+            return root.canSubmit()
+        return root.savedAnnualNameText !== String(root.annualNameText || "")
+                || root.savedYearText !== String(root.yearText || "")
+                || root.normalizedList(root.savedAssignedAnalysisIds) !== root.normalizedList(root.assignedAnalysisIds)
     }
 
     function clearFields() {
@@ -266,6 +289,7 @@ Item {
         root.assignedAnalysisIds = payload && payload.assignedAnalysisIds ? payload.assignedAnalysisIds : []
         root.assignedAnalysisRows = root.resolveAssignedAnalyses(root.analysisRows(), root.assignedAnalysisIds)
         root.rebuildAnnualDerivedState()
+        root.captureSavedState()
     }
 
     function navigateAnnual(delta) {
@@ -301,6 +325,7 @@ Item {
 
         if (root.session)
             root.session.selectedAnnualId = annualId
+        root.captureSavedState()
     }
 
     function deleteAnnual() {
@@ -330,7 +355,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: root.theme.spacingMedium
+        anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.viewFormSpacing
 
         Flickable {
@@ -392,6 +417,7 @@ Item {
                     Views.AnnualAnalysesPanel {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        appContext: root.appContext
                         theme: root.theme
                         allAnalysisRows: root.availableAnalysisRows()
                         analysisRows: root.assignedAnalysisRows
@@ -426,19 +452,15 @@ Item {
             Layout.fillWidth: true
             theme: root.theme
 
-            Controls.Button {
-                text: "◀"
+            Controls.PrevButton {
                 enabled: root.annualRows().length > 0
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateAnnual(-1)
             }
 
             Item { Layout.fillWidth: true }
 
-            Controls.Button {
+            Controls.SecondaryButton {
                 text: "⇆"
-                bordered: true
                 Layout.preferredWidth: 48
                 onClicked: root.annualWorkspaceIndex = root.annualWorkspaceIndex === 0 ? 1 : 0
             }
@@ -468,18 +490,15 @@ Item {
             Controls.SuccessButton {
                 visible: root.isEdit
                 text: qsTr("Update")
-                enabled: root.canSubmit()
+                enabled: root.canSubmit() && root.hasChanges()
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: root.submitAnnual()
             }
 
             Item { Layout.fillWidth: true }
 
-            Controls.Button {
-                text: "▶"
+            Controls.NextButton {
                 enabled: root.annualRows().length > 0
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateAnnual(1)
             }
         }

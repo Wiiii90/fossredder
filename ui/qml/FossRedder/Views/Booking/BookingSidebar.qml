@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingSidebar.qml
+ * @brief Provides the BookingSidebar component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Booking/BookingSidebar.qml
  * @brief Sidebar container for the booking page that loads booking-related sidebar components.

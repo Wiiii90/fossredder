@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/ContentRouter.qml
+ * @brief Provides the ContentRouter component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Views 1.0 as Views

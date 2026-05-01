@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/Content.qml
+ * @brief Provides the Content component.
+ */
+
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 

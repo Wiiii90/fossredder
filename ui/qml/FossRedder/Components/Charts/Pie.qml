@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Charts/Pie.qml
+ * @brief Provides the Pie component.
+ */
+
+import QtQuick 2.15
 import FossRedder.Constants 1.0 as Constants
 
 Item {

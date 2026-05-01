@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisDateFilter.qml
+ * @brief Provides the AnalysisDateFilter component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
@@ -11,6 +16,9 @@ Controls.Panel {
     property string yearValue: ""
     property string dateFromValue: ""
     property string dateToValue: ""
+    readonly property real modeFieldWidth: root.theme.formFieldWidth
+    readonly property real valueFieldWidth: root.theme.formFieldWidth
+    readonly property real yearFieldWidth: (root.theme.formFieldWidth * 2) + root.theme.spacingSmall + implicitFromLabel.implicitWidth + implicitToLabel.implicitWidth
     signal filterChanged()
 
     Layout.fillWidth: true
@@ -25,7 +33,7 @@ Controls.Panel {
             Layout.preferredWidth: root.theme.formLabelWidth
         }
 
-        Controls.ComboBox {
+        Controls.DropdownMenu {
             id: dateModeCombo
             Layout.preferredWidth: root.theme.formFieldWidth
             model: [ qsTr("Year"), qsTr("Date Range") ]
@@ -37,6 +45,7 @@ Controls.Panel {
         }
 
         Label {
+            id: implicitFromLabel
             visible: root.dateModeIndex === 1
             text: qsTr("From")
         }
@@ -54,6 +63,7 @@ Controls.Panel {
         }
 
         Label {
+            id: implicitToLabel
             visible: root.dateModeIndex === 1
             text: qsTr("To")
         }
@@ -73,7 +83,7 @@ Controls.Panel {
         Controls.TextField {
             id: yearField
             visible: root.dateModeIndex === 0
-            Layout.preferredWidth: (root.theme.formFieldWidth * 2)
+            Layout.preferredWidth: root.yearFieldWidth
             placeholderText: qsTr("YYYY")
             text: root.yearValue
             onTextChanged: {

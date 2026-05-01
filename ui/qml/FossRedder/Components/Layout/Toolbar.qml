@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/Toolbar.qml
+ * @brief Provides the Toolbar component.
+ */
+
+import QtQuick 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
 pragma ComponentBehavior: Bound

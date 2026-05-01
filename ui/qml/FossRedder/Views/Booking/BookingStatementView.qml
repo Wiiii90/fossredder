@@ -1,6 +1,6 @@
-/*!
- * @file ui/qml/FossRedder/Views/Booking/BookingStatementView.qml
- * @brief Main booking page for creating and editing statements and their transactions.
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingStatementView.qml
+ * @brief Provides the BookingStatementView component.
  */
 
 import QtQuick 2.15
@@ -25,6 +25,8 @@ Item {
     property var editTransactionData: root.emptyTransaction()
     property int editTransactionIndex: -1
     property var editTransactionOrderIds: []
+    property string savedEditStatementName: ""
+    property string savedEditTransactionJson: "{}"
 
     readonly property bool isCreateMode: !root.session || !root.session.selectedStatementId || root.session.selectedStatementId.length === 0
 
@@ -34,6 +36,22 @@ Item {
 
     function cloneTransaction(tx) {
         return root.session ? root.session.normalizeTransactionDraft(tx || ({})) : ({})
+    }
+
+    function transactionSnapshot(data) {
+        return JSON.stringify(root.cloneTransaction(data || root.emptyTransaction()))
+    }
+
+    function captureEditState() {
+        root.savedEditStatementName = String(root.editStatementName || "")
+        root.savedEditTransactionJson = root.transactionSnapshot(root.editTransactionData)
+    }
+
+    function hasEditChanges() {
+        if (root.isCreateMode)
+            return root.createStatementName.length > 0
+        return root.savedEditStatementName !== String(root.editStatementName || "")
+                || root.savedEditTransactionJson !== root.transactionSnapshot(root.editTransactionData)
     }
 
     function statementRows() {
@@ -117,6 +135,7 @@ Item {
 
         if (root.session)
             root.session.selectedTransactionId = state.id || ""
+        root.captureEditState()
     }
 
     function navigateStatement(delta) {
@@ -323,6 +342,7 @@ Item {
             root.editTransactionData.actorId || "",
             !!root.editTransactionData.allocatable,
             root.editTransactionData.propertyIds || [])
+        root.captureEditState()
     }
 
     function deleteStatement() {
@@ -361,7 +381,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
+        anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.spacingSmall
 
         BookingStatementPanel {
@@ -408,19 +428,13 @@ Item {
             Layout.fillWidth: true
             theme: root.theme
 
-            Controls.Button {
-                text: "⟪"
+            Controls.PrevPageButton {
                 enabled: root.statementRows().length > 0
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateStatement(-1)
             }
 
-            Controls.Button {
-                text: "◀"
+            Controls.PrevButton {
                 enabled: root.isCreateMode ? root.createTransactions.length > 1 : root.editTransactionState().rows.length > 1
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateTransaction(-1)
             }
 
@@ -454,6 +468,7 @@ Item {
                 visible: !root.isCreateMode
                 text: qsTr("Update")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
+                enabled: root.hasEditChanges()
                 onClicked: root.updateSelectedEntity()
             }
 
@@ -461,19 +476,13 @@ Item {
                 Layout.fillWidth: true
             }
 
-            Controls.Button {
-                text: "▶"
+            Controls.NextButton {
                 enabled: root.isCreateMode ? root.createTransactions.length > 1 : root.editTransactionState().rows.length > 1
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateTransaction(1)
             }
 
-            Controls.Button {
-                text: "⟫"
+            Controls.NextPageButton {
                 enabled: root.statementRows().length > 0
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateStatement(1)
             }
         }

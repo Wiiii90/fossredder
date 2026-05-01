@@ -1,6 +1,6 @@
-/*!
- * @file ui/qml/FossRedder/Views/Contract/ContractForm.qml
- * @brief Main contract edit form with name, aliases, type, actor/property links, and bottom bar actions.
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Contract/ContractForm.qml
+ * @brief Provides the ContractForm component.
  */
 
 import QtQuick 2.15
@@ -28,6 +28,11 @@ Item {
     property string aliasInputText: ""
     property int aliasIndex: aliases.length > 0 ? 0 : -1
     property string contractType: ""
+    property string savedName: ""
+    property string savedContractType: ""
+    property var savedSelectedActorIds: []
+    property var savedSelectedPropertyIds: []
+    property var savedAliases: []
 
     function applyFormState(state) {
         const next = state || ({})
@@ -38,6 +43,30 @@ Item {
         root.aliases = next.aliases || []
         root.aliasInputText = next.aliasInputText || ""
         root.aliasIndex = next.aliasIndex !== undefined ? next.aliasIndex : -1
+    }
+
+    function normalizedList(values) {
+        const list = values ? values.slice() : []
+        list.sort()
+        return JSON.stringify(list)
+    }
+
+    function captureSavedState() {
+        root.savedName = String(nameField.text || "")
+        root.savedContractType = String(root.contractType || "")
+        root.savedSelectedActorIds = root.selectedActorIds ? root.selectedActorIds.slice() : []
+        root.savedSelectedPropertyIds = root.selectedPropertyIds ? root.selectedPropertyIds.slice() : []
+        root.savedAliases = root.aliases ? root.aliases.slice() : []
+    }
+
+    function hasChanges() {
+        if (!root.isEdit)
+            return root.canSubmit()
+        return root.savedName !== String(nameField.text || "")
+                || root.savedContractType !== String(root.contractType || "")
+                || root.normalizedList(root.savedSelectedActorIds) !== root.normalizedList(root.selectedActorIds)
+                || root.normalizedList(root.savedSelectedPropertyIds) !== root.normalizedList(root.selectedPropertyIds)
+                || root.normalizedList(root.savedAliases) !== root.normalizedList(root.aliases)
     }
 
     function clearFields() {
@@ -129,6 +158,7 @@ Item {
             root.clearFields()
         if (root.session && contractId && contractId.length > 0)
             root.session.selectedContractId = contractId
+        root.captureSavedState()
     }
 
     function deleteContract() {
@@ -153,7 +183,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: root.theme.spacingMedium
+        anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.viewFormSpacing
 
         Flickable {
@@ -212,23 +242,19 @@ Item {
                         onTextEdited: root.aliasInputText = text
                     }
 
-                    Controls.Button {
+                    Controls.SecondaryButton {
                         text: "+"
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
-                        bordered: true
-                        fillColor: root.theme.surface
                         textColor: root.theme.textMuted
                         enabled: contractAliasInput.text.trim().length > 0
                         onClicked: root.addAlias(contractAliasInput.text)
                     }
 
-                    Controls.Button {
+                    Controls.SecondaryButton {
                         text: "×"
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
-                        bordered: true
-                        fillColor: root.theme.surface
                         textColor: root.theme.textMuted
                         enabled: root.aliasIndex >= 0 && root.aliasIndex < root.aliases.length
                         onClicked: root.deleteAlias(root.aliasIndex)
@@ -334,11 +360,8 @@ Item {
             Layout.fillWidth: true
             theme: root.theme
 
-            Controls.Button {
-                text: "◀"
+            Controls.PrevButton {
                 enabled: root.contractRows().length > 0
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateContract(-1)
             }
 
@@ -369,18 +392,15 @@ Item {
             Controls.SuccessButton {
                 visible: root.isEdit
                 text: qsTr("Update")
-                enabled: root.canSubmit()
+                enabled: root.canSubmit() && root.hasChanges()
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: root.submitContract()
             }
 
             Item { Layout.fillWidth: true }
 
-            Controls.Button {
-                text: "▶"
+            Controls.NextButton {
                 enabled: root.contractRows().length > 0
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateContract(1)
             }
         }

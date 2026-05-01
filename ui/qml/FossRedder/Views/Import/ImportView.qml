@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/ImportView.qml
+ * @brief Provides the ImportView component.
+ */
+
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Components 1.0 as Components
@@ -21,7 +26,7 @@ Item {
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
-    anchors.margins: root.theme.spacingMedium
+    anchors.margins: root.theme.pageContentMargin
 
     property bool hasImportController: root.importController !== null
 
@@ -120,48 +125,36 @@ Item {
                     Layout.fillWidth: true
                     theme: root.theme
 
-                    Controls.Button {
-                        text: qsTr("Reset")
+                    Controls.SecondaryButton {
+                        text: qsTr("Clear")
                         visible: root.hasImportController && !root.importController.isRunning
                         enabled: root.hasImportController && !root.importController.isRunning
-                        fillColor: root.theme.surface
-                        textColor: root.theme.textPrimary
-                        bordered: true
                         onClicked: { if (root.hasImportController) root.importController.resetStatus() }
                     }
 
-                    Controls.Button {
+                    Controls.SecondaryButton {
                         text: qsTr("Cancel")
                         visible: root.hasImportController && root.importController.isRunning
                         enabled: root.hasImportController && root.importController.isRunning
-                        fillColor: root.theme.surface
-                        textColor: root.theme.textPrimary
-                        bordered: true
                         onClicked: if (root.hasImportController) root.importController.cancelImport()
                     }
 
-                    Controls.Button {
+                    Controls.SecondaryButton {
                         text: qsTr("Pause")
                         visible: root.hasImportController && root.importController.isRunning
                         enabled: root.hasImportController && root.importController.isRunning
-                        fillColor: root.theme.surface
-                        textColor: root.theme.textPrimary
-                        bordered: true
-                    }
-
-                    Controls.Button {
-                        text: qsTr("Cancel all")
-                        visible: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
-                        enabled: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
-                        fillColor: root.theme.surface
-                        textColor: root.theme.textPrimary
-                        bordered: true
-                        onClicked: if (root.hasImportController) root.importController.cancelAllImports()
                     }
 
                     Item { Layout.fillWidth: true }
 
-                    Controls.Button {
+                    Controls.SecondaryButton {
+                        text: qsTr("Cancel all")
+                        visible: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
+                        enabled: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
+                        onClicked: if (root.hasImportController) root.importController.cancelAllImports()
+                    }
+
+                    Controls.SuccessButton {
                         text: qsTr("Start")
                         visible: root.hasImportController && !root.importController.isRunning
                         enabled: root.hasImportController && !root.importController.isRunning && ((root.importController.selectedFile && root.importController.selectedFile.length > 0) || root.importController.queuedCount > 0)
@@ -198,19 +191,13 @@ Item {
                 anchors.bottom: parent.bottom
                 theme: root.theme
 
-                Controls.Button {
-                    text: "⟪"
+                Controls.PrevPageButton {
                     enabled: !!stmtView.draft && root.hasImportController && root.importController.hasPrevDraft
-                    Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                    bordered: true
                     onClicked: if (root.hasImportController) root.importController.openPrevDraft()
                 }
 
-                Controls.Button {
-                    text: "◀"
+                Controls.PrevButton {
                     enabled: !!stmtView.draft && stmtView.draft.currentIndex > 0
-                    Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                    bordered: true
                     onClicked: {
                         stmtView.draft.prev()
                         stmtView.persistDraftSnapshot()
@@ -243,22 +230,16 @@ Item {
 
                 Item { Layout.fillWidth: true }
 
-                Controls.Button {
-                    text: "▶"
+                Controls.NextButton {
                     enabled: !!stmtView.draft && stmtView.draft.currentIndex < (stmtView.draft.count - 1)
-                    Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                    bordered: true
                     onClicked: {
                         stmtView.draft.next()
                         stmtView.persistDraftSnapshot()
                     }
                 }
 
-                Controls.Button {
-                    text: "⟫"
+                Controls.NextPageButton {
                     enabled: !!stmtView.draft && root.hasImportController && root.importController.hasNextDraft
-                    Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                    bordered: true
                     onClicked: if (root.hasImportController) root.importController.openNextDraft()
                 }
             }

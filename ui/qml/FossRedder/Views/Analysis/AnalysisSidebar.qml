@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisSidebar.qml
+ * @brief Provides the AnalysisSidebar component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
 pragma ComponentBehavior: Bound

@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingStatementsSidebar.qml
+ * @brief Provides the BookingStatementsSidebar component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Booking/BookingStatementsSidebar.qml
  * @brief Sidebar list of available statements in the booking page.

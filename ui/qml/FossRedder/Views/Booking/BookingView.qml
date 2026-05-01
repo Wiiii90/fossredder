@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingView.qml
+ * @brief Provides the BookingView component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Booking/BookingView.qml
  * @brief Booking page container that hosts the statement view with app context and theme.

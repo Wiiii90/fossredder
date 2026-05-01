@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Annual/AnnualVerificationPanel.qml
+ * @brief Provides the AnnualVerificationPanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Annual/AnnualVerificationPanel.qml
  * @brief Verification summary panel for annual status and snapshot consistency hints.

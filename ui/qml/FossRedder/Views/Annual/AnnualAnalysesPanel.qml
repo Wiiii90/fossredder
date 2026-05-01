@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Annual/AnnualAnalysesPanel.qml
+ * @brief Provides the AnnualAnalysesPanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Annual/AnnualAnalysesPanel.qml
  * @brief Read-only panel that previews assigned analyses for the selected annual.
@@ -11,10 +16,12 @@ pragma ComponentBehavior: Bound
 
 Controls.Panel {
     id: root
+    required property var appContext
     required property var theme
     property var allAnalysisRows: []
     property var analysisRows: []
     property var selectedAnalysisIds: []
+    readonly property var analysisController: root.appContext ? root.appContext.analysisController : null
 
     signal selectionChanged(var ids)
 
@@ -24,40 +31,66 @@ Controls.Panel {
     Layout.preferredHeight: root.theme.viewSelectionPanelPreferredHeight
     contentSpacing: root.theme.spacingSmall
 
-    background: Rectangle {
-        radius: root.theme.radius
-        color: root.theme.surfaceAlt
-        border.width: 1
-        border.color: root.theme.border
+    function updateAnalysisExportFormat(row, exportFormat) {
+        const analysis = row || ({})
+        const analysisId = analysis.id ? String(analysis.id) : ""
+        if (!root.analysisController || analysisId.length === 0)
+            return
+
+        root.analysisController.updateAnalysis(
+            analysisId,
+            analysis.name ? String(analysis.name) : "",
+            analysis.type ? String(analysis.type) : "tab",
+            analysis.config ? String(analysis.config) : "{}",
+            analysis.filter ? String(analysis.filter) : "",
+            exportFormat ? String(exportFormat).toLowerCase() : "",
+            analysis.includeCalcAdjustments !== undefined ? !!analysis.includeCalcAdjustments : true,
+            analysis.exportState ? String(analysis.exportState) : "{}",
+            analysis.snapshotTransactions ? String(analysis.snapshotTransactions) : "{}")
+        root.selectionChanged(root.selectedAnalysisIds ? root.selectedAnalysisIds.slice() : [])
     }
 
     ColumnLayout {
         anchors.fill: parent
         spacing: root.theme.spacingSmall
 
-        Label {
-            text: qsTr("Assigned analyses")
-            Layout.fillWidth: true
-        }
-
         RowLayout {
             Layout.fillWidth: true
-            readonly property real actionButtonSize: Math.max(addAnalysisCombo.implicitHeight, root.theme.spacingLarge * 2)
 
-            Controls.ComboBox {
+            Rectangle {
+                Layout.preferredWidth: 92
+                Layout.preferredHeight: root.theme.controlHeight
+                radius: root.theme.radius
+                color: root.theme.surface
+                border.width: root.theme.borderWidthThin
+                border.color: root.theme.borderSoft
+
+                Label {
+                    anchors.fill: parent
+                    text: qsTr("Analysis")
+                    color: root.theme.textPrimary
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font.bold: true
+                }
+            }
+
+            Controls.DropdownMenu {
                 id: addAnalysisCombo
                 Layout.fillWidth: true
                 model: root.allAnalysisRows
                 textRole: "display"
-                currentIndex: -1
+                currentIndex: model && model.length > 0 ? 0 : -1
             }
 
-            Controls.Button {
+            Controls.SecondaryButton {
                 text: "+"
-                bordered: true
-                Layout.preferredWidth: parent.actionButtonSize
-                Layout.preferredHeight: parent.actionButtonSize
-                fillColor: root.theme.surface
+                Layout.preferredWidth: root.theme.viewCompactActionButtonSize
+                Layout.minimumWidth: root.theme.viewCompactActionButtonSize
+                Layout.maximumWidth: root.theme.viewCompactActionButtonSize
+                Layout.preferredHeight: root.theme.viewCompactActionButtonSize
+                Layout.minimumHeight: root.theme.viewCompactActionButtonSize
+                Layout.maximumHeight: root.theme.viewCompactActionButtonSize
                 textColor: root.theme.textMuted
                 enabled: addAnalysisCombo.currentIndex >= 0
                 onClicked: {
@@ -77,89 +110,146 @@ Controls.Panel {
             }
         }
 
-        Flickable {
-            id: analysisScroll
+        Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            contentWidth: width
-            contentHeight: analysisList.implicitHeight
+            Layout.minimumHeight: 160
+            radius: root.theme.radius
+            color: root.theme.surfaceAlt
+            border.width: 1
+            border.color: root.theme.border
 
-            ScrollBar.vertical: ScrollBar {
-                policy: ScrollBar.AsNeeded
-            }
+            Flickable {
+                id: analysisScroll
+                anchors.fill: parent
+                anchors.margins: root.theme.spacing
+                clip: true
+                contentWidth: width
+                contentHeight: Math.max(analysisList.implicitHeight, analysisScroll.height)
 
-            ColumnLayout {
-                id: analysisList
-                width: analysisScroll.width
-                spacing: root.theme.spacingSmall
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                }
 
-                Repeater {
-                    model: root.analysisRows
+                Column {
+                    id: analysisList
+                    width: analysisScroll.width
+                    spacing: root.theme.spacing
 
-                    delegate: Rectangle {
-                        id: analysisRow
-                        required property var modelData
-                        Layout.fillWidth: true
-                        implicitHeight: 34
-                        radius: root.theme.radius
-                        color: root.theme.surface
-                        border.width: 1
-                        border.color: root.theme.border
+                    Repeater {
+                        model: root.analysisRows
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: root.theme.spacingSmall
-                            anchors.rightMargin: root.theme.spacingSmall
-                            spacing: root.theme.spacingSmall
+                        delegate: Rectangle {
+                            id: analysisRow
+                            required property var modelData
+                            width: analysisList.width
+                            implicitHeight: analysisContentRow.implicitHeight + (root.theme.spacing * 2)
+                            height: implicitHeight
+                            radius: root.theme.radius
+                            color: "transparent"
+                            border.width: root.theme.borderWidthThin
+                            border.color: root.theme.borderSoft
 
-                            Label {
-                                text: analysisRow.modelData && analysisRow.modelData.name
-                                      ? analysisRow.modelData.name
-                                      : ""
-                                Layout.fillWidth: true
-                                elide: Text.ElideRight
-                            }
+                            RowLayout {
+                                id: analysisContentRow
+                                anchors.fill: parent
+                                anchors.margins: root.theme.spacing
+                                spacing: root.theme.spacing
 
-                            Label {
-                                text: analysisRow.modelData && analysisRow.modelData.type
-                                      ? analysisRow.modelData.type
-                                      : ""
-                                color: root.theme.textMuted
-                                elide: Text.ElideRight
-                            }
+                                Rectangle {
+                                    Layout.preferredWidth: 92
+                                    Layout.preferredHeight: root.theme.controlHeight
+                                    radius: root.theme.radius
+                                    color: root.theme.surface
+                                    border.width: root.theme.borderWidthThin
+                                    border.color: root.theme.borderSoft
 
-                            Controls.Button {
-                                text: "×"
-                                bordered: true
-                                Layout.preferredWidth: root.theme.spacingLarge
-                                Layout.preferredHeight: root.theme.spacingLarge
-                                fillColor: root.theme.surface
-                                textColor: root.theme.textMuted
-                                onClicked: {
-                                    const rowId = analysisRow.modelData && analysisRow.modelData.id
-                                                  ? String(analysisRow.modelData.id)
-                                                  : ""
-                                    if (rowId.length === 0)
-                                        return
+                                    Label {
+                                        anchors.fill: parent
+                                        text: qsTr("Analysis")
+                                        color: root.theme.textPrimary
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                        font.bold: true
+                                    }
+                                }
 
-                                    const next = root.selectedAnalysisIds ? root.selectedAnalysisIds.slice() : []
-                                    const removeIndex = next.indexOf(rowId)
-                                    if (removeIndex === -1)
-                                        return
-                                    next.splice(removeIndex, 1)
-                                    root.selectionChanged(next)
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: root.theme.controlHeight
+                                    radius: root.theme.radius
+                                    color: root.theme.surface
+                                    border.width: root.theme.borderWidthThin
+                                    border.color: root.theme.borderSoft
+
+                                    Label {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: root.theme.spacing
+                                        anchors.rightMargin: root.theme.spacing
+                                        text: analysisRow.modelData && analysisRow.modelData.display
+                                              ? analysisRow.modelData.display
+                                              : ""
+                                        color: root.theme.textPrimary
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                        elide: Text.ElideRight
+                                    }
+                                }
+
+                                Controls.DropdownMenu {
+                                    Layout.preferredWidth: 110
+                                    model: analysisRow.modelData && String(analysisRow.modelData.type).toLowerCase() === "plot"
+                                           ? ["PNG", "JPG"]
+                                           : ["XLSX", "CSV"]
+                                    currentIndex: Math.max(0, model.indexOf(String(analysisRow.modelData && analysisRow.modelData.exportFormat ? analysisRow.modelData.exportFormat : "").toUpperCase()))
+                                    onActivated: {
+                                        const selectedExportFormat = model && currentIndex >= 0 ? model[currentIndex] : ""
+                                        root.updateAnalysisExportFormat(analysisRow.modelData, selectedExportFormat)
+                                    }
+                                }
+
+                                Controls.SecondaryButton {
+                                    text: "×"
+                                    Layout.preferredWidth: root.theme.viewCompactActionButtonSize
+                                    Layout.minimumWidth: root.theme.viewCompactActionButtonSize
+                                    Layout.maximumWidth: root.theme.viewCompactActionButtonSize
+                                    Layout.preferredHeight: root.theme.viewCompactActionButtonSize
+                                    Layout.minimumHeight: root.theme.viewCompactActionButtonSize
+                                    Layout.maximumHeight: root.theme.viewCompactActionButtonSize
+                                    textColor: root.theme.textMuted
+                                    onClicked: {
+                                        const rowId = analysisRow.modelData && analysisRow.modelData.id
+                                                      ? String(analysisRow.modelData.id)
+                                                      : ""
+                                        if (rowId.length === 0)
+                                            return
+
+                                        const next = root.selectedAnalysisIds ? root.selectedAnalysisIds.slice() : []
+                                        const removeIndex = next.indexOf(rowId)
+                                        if (removeIndex === -1)
+                                            return
+                                        next.splice(removeIndex, 1)
+                                        root.selectionChanged(next)
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                Label {
-                    visible: (root.analysisRows ? root.analysisRows.length : 0) === 0
-                    text: qsTr("No analyses assigned")
-                    color: root.theme.textMuted
-                    Layout.fillWidth: true
+                    Item {
+                        width: parent.width
+                        height: (root.analysisRows ? root.analysisRows.length : 0) === 0 ? Math.max(analysisScroll.height, emptyContent.implicitHeight) : 0
+                        visible: (root.analysisRows ? root.analysisRows.length : 0) === 0
+
+                        ColumnLayout {
+                            id: emptyContent
+                            anchors.fill: parent
+                            anchors.margins: root.theme.spacing
+                            spacing: root.theme.spacingSmall
+
+                            Item { Layout.fillHeight: true }
+                        }
+                    }
                 }
             }
         }

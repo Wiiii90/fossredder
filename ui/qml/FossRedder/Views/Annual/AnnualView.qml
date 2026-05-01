@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Annual/AnnualView.qml
+ * @brief Provides the AnnualView component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Annual/AnnualView.qml
  * @brief Annual page container that hosts the annual form with app context and theme.

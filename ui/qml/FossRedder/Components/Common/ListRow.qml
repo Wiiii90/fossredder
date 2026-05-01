@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Common/ListRow.qml
+ * @brief Provides the ListRow component.
+ */
+
+import QtQuick 2.15
 
 Item {
     id: root

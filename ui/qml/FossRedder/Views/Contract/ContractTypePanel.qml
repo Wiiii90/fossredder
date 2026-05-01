@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Contract/ContractTypePanel.qml
+ * @brief Provides the ContractTypePanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Contract/ContractTypePanel.qml
  * @brief Type input panel used inside the contract form.

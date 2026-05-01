@@ -1,6 +1,6 @@
-﻿/*!
- * @file ui/qml/FossRedder/Views/Property/PropertyForm.qml
- * @brief Main property edit form with name, aliases, contract links, and bottom bar actions.
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Property/PropertyForm.qml
+ * @brief Provides the PropertyForm component.
  */
 
 import QtQuick 2.15
@@ -26,6 +26,8 @@ Item {
     property string aliasInputText: ""
     property int aliasIndex: aliases.length > 0 ? 0 : -1
     property var selectedContractIds: []
+    property string savedName: ""
+    property var savedAliases: []
 
     function applyFormState(state) {
         const next = state || ({})
@@ -34,6 +36,24 @@ Item {
         root.aliasInputText = next.aliasInputText || ""
         root.aliasIndex = next.aliasIndex !== undefined ? next.aliasIndex : -1
         root.selectedContractIds = next.selectedIds || []
+    }
+
+    function normalizedList(values) {
+        const list = values ? values.slice() : []
+        list.sort()
+        return JSON.stringify(list)
+    }
+
+    function captureSavedState() {
+        root.savedName = String(nameField.text || "")
+        root.savedAliases = root.aliases ? root.aliases.slice() : []
+    }
+
+    function hasChanges() {
+        if (!root.isEdit)
+            return nameField.text.length > 0
+        return root.savedName !== String(nameField.text || "")
+                || root.normalizedList(root.savedAliases) !== root.normalizedList(root.aliases)
     }
 
     function clearFields() {
@@ -102,6 +122,7 @@ Item {
             root.clearFields()
         if (root.session && propertyId && propertyId.length > 0)
             root.session.selectedPropertyId = propertyId
+        root.captureSavedState()
     }
 
     function deleteProperty() {
@@ -126,6 +147,7 @@ Item {
             ? root.session.basicFormState(root.current.name || "", root.current.aliases || [], [])
             : ({})
         root.applyFormState(state)
+        root.captureSavedState()
     }
 
     Connections {
@@ -136,7 +158,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: root.theme.spacingMedium
+        anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.viewFormSpacing
 
         Flickable {
@@ -195,23 +217,19 @@ Item {
                         onTextEdited: root.aliasInputText = text
                     }
 
-                    Controls.Button {
+                    Controls.SecondaryButton {
                         text: "+"
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
-                        bordered: true
-                        fillColor: root.theme.surface
                         textColor: root.theme.textMuted
                         enabled: propertyAliasInput.text.trim().length > 0
                         onClicked: root.addAlias(propertyAliasInput.text)
                     }
 
-                    Controls.Button {
+                    Controls.SecondaryButton {
                         text: "×"
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
-                        bordered: true
-                        fillColor: root.theme.surface
                         textColor: root.theme.textMuted
                         enabled: root.aliasIndex >= 0 && root.aliasIndex < root.aliases.length
                         onClicked: root.deleteAlias(root.aliasIndex)
@@ -299,11 +317,8 @@ Item {
             Layout.fillWidth: true
             theme: root.theme
 
-            Controls.Button {
-                text: "◀"
+            Controls.PrevButton {
                 enabled: root.propertyRows().length > 0
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateProperty(-1)
             }
 
@@ -334,18 +349,15 @@ Item {
             Controls.SuccessButton {
                 visible: root.isEdit
                 text: qsTr("Update")
-                enabled: nameField.text.length > 0
+                enabled: nameField.text.length > 0 && root.hasChanges()
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: root.submitProperty()
             }
 
             Item { Layout.fillWidth: true }
 
-            Controls.Button {
-                text: "▶"
+            Controls.NextButton {
                 enabled: root.propertyRows().length > 0
-                Layout.preferredWidth: root.theme.viewNavigationButtonWidth
-                bordered: true
                 onClicked: root.navigateProperty(1)
             }
         }

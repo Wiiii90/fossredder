@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Contract/ContractActorsPanel.qml
+ * @brief Provides the ContractActorsPanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Contract/ContractActorsPanel.qml
  * @brief Actor selection panel for contracts with a single-select dropdown and a no-actor option.
@@ -36,7 +41,7 @@ Controls.Panel {
             Layout.fillWidth: true
         }
 
-        Controls.ComboBox {
+        Controls.DropdownMenu {
             id: actorCombo
             readonly property string selectedActorId: root.selectedActorIds && root.selectedActorIds.length > 0
                                                      ? String(root.selectedActorIds[0])

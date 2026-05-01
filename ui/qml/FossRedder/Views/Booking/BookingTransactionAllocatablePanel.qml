@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingTransactionAllocatablePanel.qml
+ * @brief Provides the BookingTransactionAllocatablePanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Booking/BookingTransactionAllocatablePanel.qml
  * @brief Toggle panel to mark a transaction as allocatable in the booking page.

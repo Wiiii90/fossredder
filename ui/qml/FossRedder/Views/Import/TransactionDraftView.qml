@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/TransactionDraftView.qml
+ * @brief Provides the TransactionDraftView component.
+ */
+
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
@@ -153,7 +158,7 @@ Item {
             }
 
             rightContent: Component {
-                Controls.ComboBox { id: statusCombo
+                Controls.DropdownMenu { id: statusCombo
                     textRole: "label"
                     model: draftViewRoot.statusOptions
                     currentIndex: draftViewRoot.statusCurrentIndex()

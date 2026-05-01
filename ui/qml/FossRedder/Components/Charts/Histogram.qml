@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Charts/Histogram.qml
+ * @brief Provides the Histogram component.
+ */
+
 import QtQuick 2.15
 import FossRedder.Constants 1.0 as Constants
 pragma NativeMethodBehavior: AcceptThisObject

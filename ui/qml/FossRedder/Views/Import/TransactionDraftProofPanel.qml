@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml
+ * @brief Provides the TransactionDraftProofPanel component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0

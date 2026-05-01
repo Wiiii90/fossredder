@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Theme/Theme.qml
+ * @brief Provides the Theme component.
+ */
+
 import QtQuick 2.15
 pragma Singleton
 
@@ -39,7 +44,6 @@ QtObject {
     property int spacingMedium: 8
     property int spacingSmall: 6
     property int spacingLarge: 20
-    property int pageMargin: 12
     property int shellMinimumHeight: 100
     property int shellSidebarMinimumWidth: 100
     property int shellSidebarPreferredWidth: 320
@@ -62,7 +66,8 @@ QtObject {
     property int chartPercentLabelWidth: 60
     property int chartPropertyChipHeight: 22
     property int chartPropertyChipMinWidth: 80
-    property int viewNavigationButtonWidth: 72
+    property int viewNavigationButtonWidth: 42
+    property int panelContentSafeWidthOffset: 24
     property int viewActionButtonWidth: 120
     property int viewFormSpacing: 8
     property int viewAliasGroupSpacing: 6
@@ -70,6 +75,16 @@ QtObject {
     property int viewAliasPanelPreferredHeight: 180
     property int viewSelectionPanelMinHeight: 170
     property int viewSelectionPanelPreferredHeight: 220
+    property int controlHeight: 40
+    property int controlPaddingHorizontal: 8
+    property int controlPaddingVertical: 6
+    property int buttonMinHeight: 36
+    property int panelPadding: 12
+    property int pageContentMargin: 8
+    property int viewInlineIconSize: 28
+    property int viewSectionIconSize: 28
+    property int viewCompactActionButtonSize: 40
+    property color subtlePrimaryFill: "#DCEBFA"
     property int radius: 3
     property int borderWidthThin: 1
 
@@ -115,6 +130,8 @@ QtObject {
             dateColumnWidth: 140,
             amountColumnWidth: 100,
             contractColumnWidth: 160,
+            propertyColumnWidth: 160,
+            totalColumnWidth: 100,
             detailListHeight: 300
         },
         calc: {

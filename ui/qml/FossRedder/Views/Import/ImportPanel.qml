@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/ImportPanel.qml
+ * @brief Provides the ImportPanel component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Constants 1.0 as Constants
@@ -53,11 +58,9 @@ Controls.Panel {
             onTextEdited: { root.pendingFiles = [] }
         }
 
-        Controls.Button {
+        Controls.SecondaryButton {
             text: qsTr("Add")
             enabled: root.hasImportController && !root.importController.isRunning && root.manualPathText() && root.manualPathText().trim().length > 0
-            fillColor: root.theme.surface
-            textColor: root.theme.textPrimary
             onClicked: {
                 let files = []
                 if (root.pendingFiles && root.pendingFiles.length > 0) files = root.pendingFiles
@@ -68,11 +71,9 @@ Controls.Panel {
             }
         }
 
-        Controls.Button {
+        Controls.SecondaryButton {
             text: qsTr("Browse...")
             enabled: root.hasImportController && !root.importController.isRunning
-            fillColor: root.theme.surface
-            textColor: root.theme.textPrimary
             onClicked: { if (root.actions) root.actions.browseImportPdf() }
         }
     }

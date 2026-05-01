@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Common/RunLogList.qml
+ * @brief Provides the RunLogList component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
@@ -104,7 +109,7 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 24
+                    Layout.preferredHeight: root.theme.viewCompactActionButtonSize
 
                     Label {
                         text: root.friendlyDateTime(runEntry.time)
@@ -127,13 +132,11 @@ Item {
                                    : root.theme.danger)
                     }
 
-                    Controls.Button {
+                    Controls.SecondaryButton {
                         text: "×"
-                        implicitHeight: 22
-                        implicitWidth: 24
-                        fillColor: root.theme.surface
+                        implicitHeight: root.theme.viewCompactActionButtonSize
+                        implicitWidth: root.theme.viewCompactActionButtonSize
                         textColor: root.theme.textMuted
-                        bordered: true
                         onClicked: root.deleteClicked(runEntry.index, runEntry.draftAttached, runEntry.draftId)
                     }
                 }

@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/SidebarRouter.qml
+ * @brief Provides the SidebarRouter component.
+ */
+
+import QtQuick 2.15
 import FossRedder.Views 1.0 as Views
 pragma ComponentBehavior: Bound
 

@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Contract/ContractPropertiesPanel.qml
+ * @brief Provides the ContractPropertiesPanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Contract/ContractPropertiesPanel.qml
  * @brief Property selection panel used by the contract form with an internal scrollable list.

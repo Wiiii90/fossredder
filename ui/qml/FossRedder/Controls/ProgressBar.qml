@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/ProgressBar.qml
+ * @brief Provides the ProgressBar component.
+ */
+
 import QtQuick 2.15
 import FossRedder 1.0
 

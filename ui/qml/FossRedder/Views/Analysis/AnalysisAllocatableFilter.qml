@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisAllocatableFilter.qml
+ * @brief Provides the AnalysisAllocatableFilter component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
@@ -22,7 +27,7 @@ Controls.Panel {
             Layout.preferredWidth: root.theme.formLabelWidth
         }
 
-        Controls.ComboBox {
+        Controls.DropdownMenu {
             id: allocatableCombo
             Layout.preferredWidth: root.theme.formFieldWidth
             model: [ qsTr("All"), qsTr("Only allocatable"), qsTr("Only non allocatable") ]

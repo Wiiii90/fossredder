@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Settings/SettingsGeneral.qml
+ * @brief Provides the SettingsGeneral component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
@@ -41,7 +46,7 @@ Flickable {
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: qsTr("Language"); Layout.fillWidth: true }
-                    Controls.ComboBox {
+                    Controls.DropdownMenu {
                         id: language
                         objectName: "settingsLanguageComboBox"
                         model: root.languageController ? root.languageController.availableLanguages : []

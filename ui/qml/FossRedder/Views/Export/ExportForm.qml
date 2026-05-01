@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Export/ExportForm.qml
+ * @brief Provides the ExportForm component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
@@ -24,10 +29,8 @@ Controls.Panel {
             text: root.targetDirectory
             onTextChanged: root.targetDirectory = text
         }
-        Controls.Button {
+        Controls.SecondaryButton {
             text: qsTr("Browse...")
-            fillColor: root.theme.surface
-            textColor: root.theme.textPrimary
             onClicked: root.browseRequested()
         }
     }
@@ -35,7 +38,7 @@ Controls.Panel {
     RowLayout {
         Layout.fillWidth: true
         Label { text: qsTr("Archive"); Layout.preferredWidth: root.theme.formLabelWidth }
-        Controls.ComboBox {
+        Controls.DropdownMenu {
             id: packageFormatBox
             Layout.fillWidth: true
             model: [qsTr("None"), qsTr("ZIP")]

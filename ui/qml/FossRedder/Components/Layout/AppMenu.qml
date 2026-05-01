@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/AppMenu.qml
+ * @brief Provides the AppMenu component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 pragma ComponentBehavior: Bound

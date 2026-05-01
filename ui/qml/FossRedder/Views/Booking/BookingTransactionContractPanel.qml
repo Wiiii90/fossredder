@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingTransactionContractPanel.qml
+ * @brief Provides the BookingTransactionContractPanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Booking/BookingTransactionContractPanel.qml
  * @brief Contract selection panel for a transaction in the booking page.
@@ -33,7 +38,7 @@ Controls.Panel {
             Layout.fillWidth: true
         }
 
-        Controls.ComboBox {
+        Controls.DropdownMenu {
             id: contractCombo
             Layout.fillWidth: true
             textRole: "display"

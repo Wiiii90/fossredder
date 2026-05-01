@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingTransactionView.qml
+ * @brief Provides the BookingTransactionView component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Booking/BookingTransactionView.qml
  * @brief Form view for a single transaction inside the booking statement page.
@@ -126,7 +131,7 @@ Item {
             }
 
             rightContent: Component {
-                Controls.ComboBox {
+                Controls.DropdownMenu {
                     textRole: "label"
                     model: root.statusOptions
                     currentIndex: root.statusIndex()

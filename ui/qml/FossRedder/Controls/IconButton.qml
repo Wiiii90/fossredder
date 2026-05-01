@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/IconButton.qml
+ * @brief Provides the IconButton component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
 import QtQuick.Effects

@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingTransactionPropertyPanel.qml
+ * @brief Provides the BookingTransactionPropertyPanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Booking/BookingTransactionPropertyPanel.qml
  * @brief Property multi-selection panel for a transaction in the booking page.

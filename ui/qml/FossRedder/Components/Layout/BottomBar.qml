@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/BottomBar.qml
+ * @brief Provides the BottomBar component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
 pragma ComponentBehavior: Bound

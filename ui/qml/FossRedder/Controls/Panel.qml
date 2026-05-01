@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/Panel.qml
+ * @brief Provides the Panel component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
@@ -8,7 +13,7 @@ Frame {
 
     property int contentSpacing: Theme.spacingSmall
 
-    padding: Theme.spacing
+    padding: Theme.panelPadding
 
     background: Rectangle {
         radius: Theme.radius

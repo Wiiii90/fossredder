@@ -1,4 +1,9 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/Shell.qml
+ * @brief Provides the Shell component.
+ */
+
+import QtQuick 2.15
 import QtQuick.Layouts 1.3
 
 GridLayout {

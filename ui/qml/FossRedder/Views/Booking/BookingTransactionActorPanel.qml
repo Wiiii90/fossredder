@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingTransactionActorPanel.qml
+ * @brief Provides the BookingTransactionActorPanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Booking/BookingTransactionActorPanel.qml
  * @brief Actor selection panel for a transaction in the booking page.
@@ -33,7 +38,7 @@ Controls.Panel {
             Layout.fillWidth: true
         }
 
-        Controls.ComboBox {
+        Controls.DropdownMenu {
             id: actorCombo
             Layout.fillWidth: true
             textRole: "display"

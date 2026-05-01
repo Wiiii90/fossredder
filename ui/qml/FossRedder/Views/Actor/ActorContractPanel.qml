@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Actor/ActorContractPanel.qml
+ * @brief Provides the ActorContractPanel component.
+ */
+
 /*!
  * @file ui/qml/FossRedder/Views/Actor/ActorContractPanel.qml
  * @brief Contract selection panel used by the actor form with an internal scrollable list.
