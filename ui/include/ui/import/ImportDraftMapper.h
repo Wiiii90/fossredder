@@ -32,6 +32,8 @@ StatementDraft* createStatementDraft(const QString& sourceFile,
                                      const std::shared_ptr<core::domain::Statement>& statement,
                                      const core::domain::AppState& state,
                                      const std::vector<core::domain::TransactionDraft>& transactions,
+                                     const QString& draftId,
+                                     int currentTransactionIndex,
                                      QObject* parent);
 
 } // namespace ui::importing

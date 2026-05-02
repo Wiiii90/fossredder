@@ -9,6 +9,7 @@
 #include <QString>
 #include <QVariantList>
 #include <QTranslator>
+#include <qqmlintegration.h>
 
 class QApplication;
 class QQmlEngine;
@@ -20,6 +21,8 @@ namespace ui {
  */
 class LanguageController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(LanguageController)
+    QML_UNCREATABLE("LanguageController is provided by the application context")
     Q_PROPERTY(QString currentLanguage READ currentLanguage WRITE setCurrentLanguage NOTIFY currentLanguageChanged)
     Q_PROPERTY(QVariantList availableLanguages READ availableLanguages CONSTANT)
 
@@ -40,14 +43,18 @@ public:
     /** @brief Return the available language options for the UI. */
     QVariantList availableLanguages() const { return availableLanguages_; }
 
+    Q_INVOKABLE bool applyLanguage(const QString& languageCode);
+
 signals:
     void currentLanguageChanged();
 
 private:
+    void refreshAvailableLanguages();
     bool isLanguageAvailable(const QString& languageCode) const;
     QString normalizeLanguageCode(const QString& languageCode) const;
     QString translationFileName(const QString& languageCode) const;
     bool translationFileExists(const QString& languageCode) const;
+    bool applyCurrentLanguage(const QString& languageCode);
     bool loadTranslation(const QString& languageCode);
     void retranslateUi();
     void persistLanguage(const QString& languageCode);

@@ -1,21 +1,30 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/Button.qml
+ * @brief Provides the Button component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.3
 import FossRedder 1.0
 
 Button {
     id: control
     hoverEnabled: true
-    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
 
-    property color fillColor: Theme.primary
-    property color textColor: Theme.surface
+    property color fillColor: Theme.surface
+    property color textColor: Theme.textPrimary
+    property bool bordered: false
+    property bool filled: false
 
     font.family: Theme.fontFamily
     font.pointSize: Theme.fontSize
     implicitWidth: contentItem.implicitWidth + 32
-    implicitHeight: Math.max(36, contentItem.implicitHeight + 12)
-    focusPolicy: Qt.StrongFocus
+    implicitHeight: Math.max(Theme.buttonMinHeight, contentItem.implicitHeight + 12)
+    focusPolicy: Qt.NoFocus
+
+    function clearVisualState() {
+        control.down = false
+    }
 
     background: Item {
         anchors.fill: parent
@@ -36,8 +45,8 @@ Button {
             anchors.fill: parent
             radius: Theme.radius
             color: control.fillColor
-            border.width: control.focus ? 1.0 : (control.hovered ? 0.9 : 0)
-            border.color: control.focus ? Theme.accent : (control.hovered ? Theme.accent : "transparent")
+            border.width: control.hovered ? 0.9 : ((control.bordered || !control.filled) ? 1.0 : 0)
+            border.color: control.hovered ? Theme.accent : Theme.border
             scale: control.pressed ? 0.985 : (control.hovered ? 1.02 : 1.0)
             z: 0
 
@@ -90,12 +99,18 @@ Button {
     states: State {
         name: "disabled"
         when: !control.enabled
-        PropertyChanges { target: control.contentItem; opacity: 0.55 }
-        PropertyChanges { target: bg; opacity: 0.7 }
+        PropertyChanges { control.contentItem.opacity: 0.55 }
+        PropertyChanges { bg.opacity: 0.7 }
     }
 
     transitions: Transition {
         NumberAnimation { properties: "opacity, scale"; duration: 220; easing.type: Easing.OutQuad }
+    }
+
+    onClicked: control.clearVisualState()
+    onPressedChanged: {
+        if (!pressed)
+            control.clearVisualState()
     }
 
     Accessible.name: control.text

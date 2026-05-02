@@ -6,6 +6,7 @@
 #include "ui/analysis/AnalysisPayloadMapper.h"
 
 #include <QVariantList>
+#include <QStringList>
 
 #include "core/models/AnalysisResult.h"
 #include "ui/payload/PayloadKeys.h"
@@ -63,6 +64,15 @@ QVariantList toTransactionList(const core::domain::AnalysisResult& result)
         item[ui::payload::keys::transaction::kContractType] = transaction.contractType.empty()
             ? ui::text::analysis::unassignedContractType()
             : QString::fromStdString(transaction.contractType);
+
+        QStringList propertyIds;
+        propertyIds.reserve(static_cast<int>(transaction.propertyIds.size()));
+        for (const auto& propertyId : transaction.propertyIds) {
+            if (propertyId.empty()) continue;
+            propertyIds.push_back(QString::fromStdString(propertyId));
+        }
+        item[ui::payload::keys::transaction::kPropertyIds] = propertyIds;
+
         transactions.push_back(item);
     }
     return transactions;

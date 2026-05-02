@@ -737,7 +737,6 @@ static void attachProofCrop(core::domain::TransactionDraft& tx,
                             const std::shared_ptr<api::opencv::IOpenCvService>& opencv,
                             const std::string& pageCropImagePath,
                             const std::vector<uint8_t>& pageCropImageBytes,
-                            const std::filesystem::path& proofOutputDir,
                             DefaultStatementParser::ParseResult& out)
 {
     try {
@@ -762,7 +761,6 @@ static void attachProofCrop(core::domain::TransactionDraft& tx,
         api::opencv::CropRequest request;
         if (!pageCropImagePath.empty()) request.imagePath = std::filesystem::path(pageCropImagePath);
         request.imageBytes = pageCropImageBytes;
-        request.outputDir = proofOutputDir;
         request.uniqIdPrefix = std::string(utils::makeUniqId());
         request.filePrefix = std::string("opencv_proof_tx") + std::to_string(txIndex);
         request.outputFormat = api::opencv::CropRequest::OutputFormat::Jpg;
@@ -777,12 +775,7 @@ static void attachProofCrop(core::domain::TransactionDraft& tx,
             const auto response = opencv->crop(request);
             out.debugLines.push_back(std::string("crop.result.count\t") + std::to_string(response.croppedImagePaths.size()));
             if (!response.croppedImageBytes.empty() && !response.croppedImageBytes.front().empty()) {
-                std::string proofKey = std::string("proof/tx_") + std::string(utils::makeUniqId()) + std::string(".jpg");
-                tx.proofImagePath = proofKey;
-                out.artifacts.emplace(proofKey, response.croppedImageBytes.front());
-            } else if (!response.croppedImagePaths.empty()) {
-                try { tx.proofImagePath = std::filesystem::absolute(response.croppedImagePaths.front()).string(); }
-                catch (...) { tx.proofImagePath = response.croppedImagePaths.front().string(); }
+                tx.proofImageData = response.croppedImageBytes.front();
             }
         } catch (const std::exception& ex) {
             out.debugLines.push_back(std::string("crop.exception\t") + ex.what());
@@ -798,7 +791,6 @@ void appendTransactionsFromBlocks(const std::vector<TransactionBlock>& blocks,
                                   const std::shared_ptr<api::opencv::IOpenCvService>& opencv,
                                   const std::string& pageCropImagePath,
                                   const std::vector<uint8_t>& pageCropImageBytes,
-                                  const std::filesystem::path& proofOutputDir,
                                   int& txIndex,
                                   DefaultStatementParser::ParseResult& out)
 {
@@ -821,7 +813,7 @@ void appendTransactionsFromBlocks(const std::vector<TransactionBlock>& blocks,
         tx.metadata = !blockMetadata.empty() ? blockMetadata : parsed.metadata;
 
         applyCellAmountOverride(tx, block, cols, ocr, out);
-        attachProofCrop(tx, block, txIndex, opencv, pageCropImagePath, pageCropImageBytes, proofOutputDir, out);
+        attachProofCrop(tx, block, txIndex, opencv, pageCropImagePath, pageCropImageBytes, out);
 
         ++txIndex;
         out.transactions.push_back(std::move(tx));

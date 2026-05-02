@@ -13,6 +13,7 @@ struct AnalysisTransaction {
     double amount = 0.0;
     std::string contractId;
     std::string contractType;
+    std::vector<std::string> propertyIds;
 };
 
 class AnalysisResult {

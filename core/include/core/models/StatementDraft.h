@@ -16,6 +16,7 @@ class StatementDraft {
 public:
     std::string id;
     std::string name;
+    int currentTransactionIndex = 0;
     std::vector<TransactionDraft> transactions;
 };
 

@@ -1,15 +1,28 @@
-﻿import QtQuick 2.15
-import QtQuick.Controls 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Property/PropertySidebar.qml
+ * @brief Provides the PropertySidebar component.
+ */
+
+/*!
+ * @file ui/qml/FossRedder/Views/Property/PropertySidebar.qml
+ * @brief Sidebar list for navigating available property records.
+ */
+
+import QtQuick 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
+    required property var appContext
+    required property var theme
+
+    readonly property var session: root.appContext ? root.appContext.session : null
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.spacingMedium
-        spacing: Theme.spacingSmall
+        anchors.margins: root.theme.spacingMedium
+        spacing: root.theme.spacingSmall
 
         Flickable {
             Layout.fillWidth: true
@@ -21,42 +34,43 @@ Item {
             Column {
                 id: propertyColumn
                 width: parent.width
-                spacing: Theme.spacingSmall
+                spacing: root.theme.spacingSmall
 
                 Repeater {
-                    model: session ? session.propertyRows() : []
+                    model: root.session ? root.session.propertyRows() : []
 
-                    delegate: Rectangle {
+                    delegate: Rectangle { id: propertyRow
+                        required property var modelData
                         width: propertyColumn.width
                         height: 44
                         radius: 6
-                        color: session && modelData.id === session.selectedPropertyId ? Theme.selectionHighlight : "transparent"
-                        border.color: Theme.borderSoft
-                        border.width: Theme.borderWidthThin
+                        color: root.session && propertyRow.modelData.id === root.session.selectedPropertyId ? root.theme.selectionHighlight : "transparent"
+                        border.color: root.theme.borderSoft
+                        border.width: root.theme.borderWidthThin
 
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                if (session) session.selectedPropertyId = modelData.id
+                                if (root.session) root.session.selectedPropertyId = propertyRow.modelData.id
                             }
                         }
 
                         Column {
                             anchors.fill: parent
-                            anchors.margins: Theme.spacingSmall
+                            anchors.margins: root.theme.spacingSmall
                             spacing: 2
 
                             Text {
                                 width: parent.width
-                                text: modelData.name ? modelData.name : ""
-                                color: Theme.textPrimary
+                                text: propertyRow.modelData.name ? propertyRow.modelData.name : ""
+                                color: root.theme.textPrimary
                                 elide: Text.ElideRight
                             }
 
                             Text {
                                 width: parent.width
-                                text: modelData.address ? modelData.address : ""
-                                color: Theme.textMuted
+                                text: propertyRow.modelData.address ? propertyRow.modelData.address : ""
+                                color: root.theme.textMuted
                                 elide: Text.ElideRight
                                 visible: text.length > 0
                             }

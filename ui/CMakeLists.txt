@@ -6,6 +6,7 @@ set(UI_SOURCES
     src/actions/Actions.cpp
     src/analysis/AnalysisInputMapper.cpp
     src/analysis/AnalysisPayloadMapper.cpp
+    src/bootstrap/AppContext.cpp
     src/bootstrap/QmlRuntime.cpp
     src/controllers/ActorController.cpp
     src/controllers/AnalysisController.cpp
@@ -17,6 +18,7 @@ set(UI_SOURCES
     src/controllers/ImportController.cpp
     src/controllers/LanguageController.cpp
     src/controllers/PropertyController.cpp
+    src/controllers/SettingsController.cpp
     src/controllers/StatementController.cpp
     src/controllers/StorageController.cpp
     src/controllers/TransactionController.cpp
@@ -33,6 +35,7 @@ set(UI_SOURCES
     src/models/AnalysisList.cpp
     src/models/AnnualList.cpp
     src/models/ContractList.cpp
+    src/models/ExportRunList.cpp
     src/models/ImportRunList.cpp
     src/models/PropertyList.cpp
     src/models/StatementDraft.cpp
@@ -58,7 +61,6 @@ set(UI_SOURCES
     src/window/CloseWorkflow.cpp
     src/window/DropController.cpp
     src/window/MainWindowContext.cpp
-    qml/qml.qrc
 )
 
 set(UI_HEADERS
@@ -67,6 +69,7 @@ set(UI_HEADERS
     include/ui/actions/Actions.h
     include/ui/analysis/AnalysisInputMapper.h
     include/ui/analysis/AnalysisPayloadMapper.h
+    include/ui/bootstrap/AppContext.h
     include/ui/bootstrap/QmlContracts.h
     include/ui/bootstrap/QmlRuntime.h
     include/ui/config/Defaults.h
@@ -80,6 +83,7 @@ set(UI_HEADERS
     include/ui/controllers/ImportController.h
     include/ui/controllers/LanguageController.h
     include/ui/controllers/PropertyController.h
+    include/ui/controllers/SettingsController.h
     include/ui/controllers/StatementController.h
     include/ui/controllers/StorageController.h
     include/ui/controllers/TransactionController.h
@@ -96,6 +100,7 @@ set(UI_HEADERS
     include/ui/models/AnalysisList.h
     include/ui/models/AnnualList.h
     include/ui/models/ContractList.h
+    include/ui/models/ExportRunList.h
     include/ui/models/ImportRunList.h
     include/ui/models/ImportSuggestion.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/models/IndexedListModel.h
@@ -154,6 +159,25 @@ target_include_directories(fossredder_ui PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
+target_include_directories(fossredder_ui PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/actions
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/analysis
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/bootstrap
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/config
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/controllers
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/dialogs
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/export
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/import
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/models
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/observability
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/payload
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/text
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/util
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/window
+)
+
 target_compile_features(fossredder_ui PUBLIC cxx_std_20)
 fossredder_set_library_output_dirs(fossredder_ui)
 
@@ -161,6 +185,110 @@ fossredder_set_library_output_dirs(fossredder_ui)
 if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
     target_link_libraries(fossredder_ui PUBLIC Qt6::Quick Qt6::Qml)
     target_compile_definitions(fossredder_ui PUBLIC USE_QML=1)
+
+    if(COMMAND qt_policy)
+        qt_policy(SET QTP0004 NEW)
+    endif()
+
+    set(UI_QML_IMPORT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/qml")
+    set(UI_QML_MODULE_ROOT "${UI_QML_IMPORT_ROOT}/FossRedder")
+    set(UI_QML_ROOT_URI "FossRedder")
+    set(UI_QML_MODULE_VERSION "1.0")
+    set(UI_QML_TOOLING_QUICK_LIBRARIES Qt6::Quick Qt6::Qml Qt6::QuickControls2)
+
+    function(fossredder_add_ui_qml_tooling_submodule target_name module_uri output_directory)
+        cmake_parse_arguments(ARG "" "" "LINK_LIBRARIES;QML_FILES" ${ARGN})
+
+        add_library(${target_name} STATIC EXCLUDE_FROM_ALL)
+        set_target_properties(${target_name} PROPERTIES AUTOMOC ON)
+        if(ARG_LINK_LIBRARIES)
+            target_link_libraries(${target_name} PRIVATE ${ARG_LINK_LIBRARIES})
+        endif()
+
+        qt_add_qml_module(${target_name}
+            URI ${module_uri}
+            VERSION ${UI_QML_MODULE_VERSION}
+            OUTPUT_DIRECTORY "${output_directory}"
+            RESOURCE_PREFIX /qml
+            IMPORT_PATH "${UI_QML_IMPORT_ROOT}"
+            NO_PLUGIN
+            QML_FILES ${ARG_QML_FILES}
+        )
+    endfunction()
+
+    file(GLOB UI_QML_ROOT_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS
+        "${UI_QML_MODULE_ROOT}/Main.qml"
+        "${UI_QML_MODULE_ROOT}/Theme/*.qml"
+        "${UI_QML_MODULE_ROOT}/Constants/*.js"
+    )
+    file(GLOB UI_QML_ROOT_RESOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS
+        "${UI_QML_MODULE_ROOT}/Assets/*"
+    )
+    file(GLOB UI_QML_CONTROLS_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS
+        "${UI_QML_MODULE_ROOT}/Controls/*.qml"
+    )
+    file(GLOB UI_QML_COMPONENTS_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS
+        "${UI_QML_MODULE_ROOT}/Components/**/*.qml"
+    )
+    file(GLOB UI_QML_VIEWS_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS
+        "${UI_QML_MODULE_ROOT}/Views/*.qml"
+        "${UI_QML_MODULE_ROOT}/Views/**/*.qml"
+    )
+
+    set(UI_QML_TOOLING_OUTPUT_ROOT "${CMAKE_CURRENT_BINARY_DIR}/qmltooling")
+
+    set_source_files_properties(
+        qml/FossRedder/Theme/Theme.qml
+        PROPERTIES QT_QML_SINGLETON_TYPE TRUE
+    )
+
+    qt_add_qml_module(fossredder_ui
+        URI ${UI_QML_ROOT_URI}
+        VERSION ${UI_QML_MODULE_VERSION}
+        OUTPUT_DIRECTORY "${UI_QML_TOOLING_OUTPUT_ROOT}/FossRedder"
+        RESOURCE_PREFIX /qml
+        IMPORT_PATH "${UI_QML_IMPORT_ROOT}"
+        QML_FILES ${UI_QML_ROOT_FILES}
+        RESOURCES ${UI_QML_ROOT_RESOURCES}
+    )
+
+    fossredder_add_ui_qml_tooling_submodule(
+        fossredder_ui_qml_controls
+        "${UI_QML_ROOT_URI}.Controls"
+        "${UI_QML_TOOLING_OUTPUT_ROOT}/FossRedder/Controls"
+        LINK_LIBRARIES ${UI_QML_TOOLING_QUICK_LIBRARIES}
+        QML_FILES ${UI_QML_CONTROLS_FILES}
+    )
+
+    fossredder_add_ui_qml_tooling_submodule(
+        fossredder_ui_qml_components
+        "${UI_QML_ROOT_URI}.Components"
+        "${UI_QML_TOOLING_OUTPUT_ROOT}/FossRedder/Components"
+        LINK_LIBRARIES ${UI_QML_TOOLING_QUICK_LIBRARIES}
+        QML_FILES ${UI_QML_COMPONENTS_FILES}
+    )
+
+    fossredder_add_ui_qml_tooling_submodule(
+        fossredder_ui_qml_views
+        "${UI_QML_ROOT_URI}.Views"
+        "${UI_QML_TOOLING_OUTPUT_ROOT}/FossRedder/Views"
+        LINK_LIBRARIES ${UI_QML_TOOLING_QUICK_LIBRARIES}
+        QML_FILES ${UI_QML_VIEWS_FILES}
+    )
+
+    target_link_libraries(fossredder_ui PRIVATE
+        fossredder_ui_qml_controls
+        fossredder_ui_qml_components
+        fossredder_ui_qml_views
+    )
+
+    add_custom_target(fossredder_ui_qml_tooling ALL
+        DEPENDS
+            fossredder_ui_generate_qmlls_ini_file
+            fossredder_ui_qml_controls_generate_qmlls_ini_file
+            fossredder_ui_qml_components_generate_qmlls_ini_file
+            fossredder_ui_qml_views_generate_qmlls_ini_file
+    )
 else()
     message(STATUS "Qt6 Quick/Qml not found; QML features disabled in fossredder_ui")
 endif()
@@ -266,6 +394,34 @@ if(BUILD_UI_TESTS)
         LABELS "UI;QML"
         ENVIRONMENT "QML_DISABLE_DISK_CACHE=1"
     )
+endif()
+
+if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
+    foreach(_qml_target IN ITEMS
+        fossredder_ui_qml_controls
+        fossredder_ui_qml_components
+        fossredder_ui_qml_views
+        fossredder_ui_qml_utils
+    )
+        if(TARGET ${_qml_target})
+            fossredder_install_library_target(${_qml_target})
+        endif()
+    endforeach()
+
+    foreach(_qml_resource_base IN ITEMS
+        fossredder_ui
+        fossredder_ui_qml_controls
+        fossredder_ui_qml_components
+        fossredder_ui_qml_views
+        fossredder_ui_qml_utils
+    )
+        foreach(_resource_index RANGE 1 8)
+            if(TARGET ${_qml_resource_base}_resources_${_resource_index})
+                fossredder_install_library_target(${_qml_resource_base}_resources_${_resource_index})
+            endif()
+        endforeach()
+    endforeach()
+
 endif()
 
 fossredder_install_library_target(fossredder_ui)

@@ -13,6 +13,25 @@ static void exec(sqlite3* db, const char* sql) {
     }
 }
 
+static bool hasColumn(sqlite3* db, const char* table, const char* column) {
+    if (!db || !table || !column) return false;
+
+    const std::string sql = std::string("PRAGMA table_info(") + table + ");";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) return false;
+
+    bool found = false;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const auto* name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        if (name && std::string(name) == column) {
+            found = true;
+            break;
+        }
+    }
+    sqlite3_finalize(stmt);
+    return found;
+}
+
 int SqliteSchema::getUserVersion(sqlite3* db) {
     sqlite3_stmt* stmt = nullptr;
     if (sqlite3_prepare_v2(db, "PRAGMA user_version;", -1, &stmt, nullptr) != SQLITE_OK) return 0;
@@ -286,5 +305,178 @@ void SqliteSchema::migrate(sqlite3* db) {
         );
         setUserVersion(db, 4);
         v = 4;
+    }
+
+    if (v < 5) {
+        exec(db,
+            "BEGIN;"
+            "CREATE TABLE IF NOT EXISTS import_logs ("
+            "id TEXT PRIMARY KEY,"
+            "time TEXT,"
+            "type TEXT,"
+            "file TEXT,"
+            "status TEXT,"
+            "message TEXT,"
+            "draft_attached INTEGER NOT NULL DEFAULT 0,"
+            "statement_id TEXT"
+            ");"
+            "CREATE INDEX IF NOT EXISTS idx_import_logs_time ON import_logs(time DESC);"
+            "COMMIT;"
+        );
+        setUserVersion(db, 5);
+        v = 5;
+    }
+
+    if (v < 6) {
+        exec(db,
+            "BEGIN;"
+            "ALTER TABLE transaction_drafts ADD COLUMN proof_image_data BLOB;"
+            "COMMIT;"
+        );
+        setUserVersion(db, 6);
+        v = 6;
+    }
+
+    if (v < 7) {
+        exec(db,
+            "PRAGMA foreign_keys = OFF;"
+            "BEGIN;"
+            "CREATE TABLE IF NOT EXISTS transactions_v2 ("
+            "id TEXT PRIMARY KEY,"
+            "name TEXT,"
+            "booking_date TEXT,"
+            "valuta TEXT,"
+            "amount REAL,"
+            "status INTEGER NOT NULL DEFAULT 0,"
+            "description TEXT,"
+            "type TEXT,"
+            "actor_id TEXT,"
+            "contract_id TEXT,"
+            "statement_id TEXT,"
+            "metadata TEXT,"
+            "allocatable INTEGER NOT NULL DEFAULT 0,"
+            "FOREIGN KEY(actor_id) REFERENCES actors(id) ON DELETE SET NULL,"
+            "FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE SET NULL,"
+            "FOREIGN KEY(statement_id) REFERENCES statements(id) ON DELETE CASCADE"
+            ");"
+            "INSERT INTO transactions_v2 (id, name, booking_date, valuta, amount, status, description, type, actor_id, contract_id, statement_id, metadata, allocatable) "
+            "SELECT id, name, booking_date, valuta, amount, status, description, type, actor_id, contract_id, statement_id, metadata, allocatable FROM transactions;"
+            "DROP TABLE IF EXISTS transactions;"
+            "ALTER TABLE transactions_v2 RENAME TO transactions;"
+            "CREATE INDEX IF NOT EXISTS idx_transactions_contract_id ON transactions(contract_id);"
+
+            "CREATE TABLE IF NOT EXISTS transaction_drafts_v3 ("
+            "id TEXT PRIMARY KEY,"
+            "statement_draft_id TEXT,"
+            "position INTEGER NOT NULL DEFAULT 0,"
+            "name TEXT,"
+            "booking_date TEXT,"
+            "valuta TEXT,"
+            "amount REAL,"
+            "description TEXT,"
+            "actor_text TEXT,"
+            "property_text TEXT,"
+            "actor_id TEXT,"
+            "new_actor_selected INTEGER NOT NULL DEFAULT 0,"
+            "contract_id TEXT,"
+            "new_contract_selected INTEGER NOT NULL DEFAULT 0,"
+            "metadata TEXT,"
+            "type TEXT,"
+            "allocatable INTEGER NOT NULL DEFAULT 0,"
+            "allocatable_manual_override INTEGER NOT NULL DEFAULT 0,"
+            "status INTEGER NOT NULL DEFAULT 1,"
+            "proof_image_data BLOB,"
+            "FOREIGN KEY(statement_draft_id) REFERENCES statement_drafts(id) ON DELETE CASCADE"
+            ");"
+            "INSERT INTO transaction_drafts_v3 (id, statement_draft_id, position, name, booking_date, valuta, amount, description, actor_text, property_text, actor_id, new_actor_selected, contract_id, new_contract_selected, metadata, type, allocatable, allocatable_manual_override, status, proof_image_data) "
+            "SELECT id, statement_draft_id, position, name, booking_date, valuta, amount, description, actor_text, property_text, actor_id, new_actor_selected, contract_id, new_contract_selected, metadata, type, allocatable, allocatable_manual_override, status, proof_image_data FROM transaction_drafts;"
+            "DROP TABLE IF EXISTS transaction_drafts;"
+            "ALTER TABLE transaction_drafts_v3 RENAME TO transaction_drafts;"
+            "COMMIT;"
+            "PRAGMA foreign_keys = ON;"
+        );
+        setUserVersion(db, 7);
+        v = 7;
+    }
+
+    if (v < 8) {
+        exec(db,
+            "BEGIN;"
+            "ALTER TABLE import_logs ADD COLUMN draft_id TEXT;"
+            "UPDATE import_logs SET draft_id = id WHERE draft_attached = 1 AND (draft_id IS NULL OR draft_id = '');"
+            "COMMIT;"
+        );
+        setUserVersion(db, 8);
+        v = 8;
+    }
+
+    if (v < 9) {
+        exec(db, "BEGIN;");
+        exec(db,
+            "CREATE TABLE IF NOT EXISTS analyses ("
+            "id TEXT PRIMARY KEY,"
+            "name TEXT,"
+            "type TEXT,"
+            "config_json TEXT,"
+            "filter_spec TEXT,"
+            "created_at TEXT,"
+            "updated_at TEXT,"
+            "schema_version INTEGER"
+            ");");
+        if (!hasColumn(db, "analyses", "export_format")) {
+            exec(db, "ALTER TABLE analyses ADD COLUMN export_format TEXT NOT NULL DEFAULT ''; ");
+        }
+        if (!hasColumn(db, "analyses", "include_calc_adjustments")) {
+            exec(db, "ALTER TABLE analyses ADD COLUMN include_calc_adjustments INTEGER NOT NULL DEFAULT 1; ");
+        }
+        if (!hasColumn(db, "analyses", "export_state_json")) {
+            exec(db, "ALTER TABLE analyses ADD COLUMN export_state_json TEXT NOT NULL DEFAULT '{}'; ");
+        }
+        if (!hasColumn(db, "analyses", "snapshot_transactions_json")) {
+            exec(db, "ALTER TABLE analyses ADD COLUMN snapshot_transactions_json TEXT NOT NULL DEFAULT '{}'; ");
+        }
+        exec(db, "COMMIT;");
+        setUserVersion(db, 9);
+        v = 9;
+    }
+
+    if (v < 10) {
+        exec(db, "BEGIN;");
+        exec(db,
+            "CREATE TABLE IF NOT EXISTS annuals ("
+            "id TEXT PRIMARY KEY,"
+            "name TEXT,"
+            "year INTEGER,"
+            "transaction_ids TEXT,"
+            "assigned_analysis_ids TEXT,"
+            "verification_state INTEGER NOT NULL DEFAULT 0,"
+            "created_at TEXT,"
+            "updated_at TEXT,"
+            "schema_version INTEGER"
+            ");");
+        if (!hasColumn(db, "annuals", "name")) {
+            exec(db, "ALTER TABLE annuals ADD COLUMN name TEXT NOT NULL DEFAULT ''; ");
+        }
+        exec(db, "COMMIT;");
+        setUserVersion(db, 10);
+        v = 10;
+    }
+
+    if (v < 11) {
+        exec(db,
+            "BEGIN;"
+            "CREATE TABLE IF NOT EXISTS export_logs ("
+            "id TEXT PRIMARY KEY,"
+            "time TEXT,"
+            "target_path TEXT,"
+            "status TEXT,"
+            "message TEXT,"
+            "payload TEXT"
+            ");"
+            "CREATE INDEX IF NOT EXISTS idx_export_logs_time ON export_logs(time DESC);"
+            "COMMIT;"
+        );
+        setUserVersion(db, 11);
+        v = 11;
     }
 }

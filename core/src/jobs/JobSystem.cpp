@@ -94,7 +94,6 @@ JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec) {
             req.sourcePath = spec.sourcePath;
             req.runRoot = spec.runRoot;
             req.runIdPrefix = spec.runIdPrefix;
-            req.proofOutputDir = spec.proofOutputDir;
             req.jobId = id;
             req.progressCallback = std::move(progressCb);
             req.cancelFlag = cancel;

@@ -13,6 +13,7 @@
 #include <QVariantMap>
 #include <QString>
 #include <QStringList>
+#include <qqmlintegration.h>
 
 namespace core::application { class AppStateFacade; class AnalysisService; }
 namespace core::domain { struct AppState; }
@@ -24,6 +25,8 @@ namespace ui {
  */
 class AnalysisController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(AnalysisController)
+    QML_UNCREATABLE("AnalysisController is provided by the application context")
 public:
     using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::AppState>()>;
 
@@ -54,7 +57,11 @@ public:
     Q_INVOKABLE QString createAnalysis(const QString& name,
                                        const QString& type,
                                        const QString& configJson,
-                                       const QString& filterSpec);
+                                       const QString& filterSpec,
+                                       const QString& exportFormat,
+                                       bool includeCalcAdjustments,
+                                       const QString& exportStateJson,
+                                       const QString& snapshotTransactionsJson);
 
     /** @brief Update an existing analysis from serialized inputs.
      *  @param id Analysis identifier
@@ -67,7 +74,11 @@ public:
                                     const QString& name,
                                     const QString& type,
                                     const QString& configJson,
-                                    const QString& filterSpec);
+                                    const QString& filterSpec,
+                                    const QString& exportFormat,
+                                    bool includeCalcAdjustments,
+                                    const QString& exportStateJson,
+                                    const QString& snapshotTransactionsJson);
 
     /** @brief Delete an analysis by identifier.
      *  @param id Analysis identifier
@@ -90,12 +101,23 @@ public:
                                           const QStringList& contractTypes,
                                           double taxPercent) const;
 
-    /** @brief Build an analysis filter specification from the selected date range.
+    /** @brief Build an analysis filter specification from selected filter controls.
+     *  @param dateMode Date mode (year or range)
+     *  @param year Year value for year mode
      *  @param dateFrom Start date string
      *  @param dateTo End date string
+     *  @param propertyIds Selected property ids
+     *  @param contractTypes Selected contract types
+     *  @param allocatableMode Allocatable selector
      *  @return Filter specification string
      */
-    Q_INVOKABLE QString analysisFilterSpec(const QString& dateFrom, const QString& dateTo) const;
+    Q_INVOKABLE QString analysisFilterSpec(const QString& dateMode,
+                                           const QString& year,
+                                           const QString& dateFrom,
+                                           const QString& dateTo,
+                                           const QStringList& propertyIds,
+                                           const QStringList& contractTypes,
+                                           const QString& allocatableMode) const;
 
     /** @brief Build the JSON adjustments payload for selected transactions.
      *  @param transactions List of transactions
@@ -113,6 +135,9 @@ public:
      *  @return Serialized analysis result as QVariantMap
      */
     Q_INVOKABLE QVariantMap computeAnalysis(const QString& analysisId, const QString& filterSpec) const;
+
+    /** @brief Return filtered transaction preview data for the analysis builder. */
+    Q_INVOKABLE QVariantMap previewTransactions(const QString& filterSpec) const;
 
     /** @brief Return the currently configured contract types. */
     Q_INVOKABLE QStringList contractTypes() const;

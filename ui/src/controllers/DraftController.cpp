@@ -5,6 +5,8 @@
 
 #include "ui/controllers/DraftController.h"
 
+#include <QByteArray>
+
 #include "core/application/AppStateFacade.h"
 #include "core/import/parsing/AmountParser.h"
 #include "core/import/DraftLinking.h"
@@ -56,7 +58,9 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
     }
 
     const auto& drafts = draft->transactions()->drafts();
+    input.id = ui::strings::toStdString(draft->draftId());
     input.name = ui::strings::toStdString(draft->name());
+    input.currentTransactionIndex = draft->currentIndex();
     input.transactions.reserve(drafts.size());
 
     const auto appState = matchingStateForDraft(draft, core);
@@ -64,8 +68,16 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
         core::domain::TransactionDraft transaction;
         transaction.name = ui::strings::toStdString(draftTransaction.name);
         transaction.bookingDate = ui::strings::toStdString(draftTransaction.bookingDate);
+        transaction.valuta = ui::strings::toStdString(draftTransaction.valuta);
         transaction.amount = draftTransaction.amount;
         transaction.description = ui::strings::toStdString(draftTransaction.description);
+        transaction.metadata = ui::strings::toStdString(draftTransaction.metadata);
+        if (!draftTransaction.proofImageData.isEmpty()) {
+            const QByteArray imageBytes = QByteArray::fromBase64(draftTransaction.proofImageData.toLatin1());
+            if (!imageBytes.isEmpty()) {
+                transaction.proofImageData.assign(imageBytes.begin(), imageBytes.end());
+            }
+        }
         transaction.status = static_cast<core::domain::Transaction::Status>(draftTransaction.status);
 
         QString actorId = draftTransaction.actorId;
@@ -213,6 +225,23 @@ QString DraftController::finalizeStatementDraft(StatementDraft* draft)
             if (input.transactions.empty()) return QString{};
             return QString::fromStdString(core_->finalizeStatementDraft(input));
         });
+}
+
+void DraftController::persistStatementDraft(StatementDraft* draft)
+{
+    ui::util::guard::invokeVoid(core_, observability::origins::controller::draft::kFinalize, [&]() {
+        if (!draft) return;
+        auto input = buildFinalizationInput(draft, core_);
+        if (input.transactions.empty()) return;
+        core_->saveStatementDraft(input);
+    });
+}
+
+void DraftController::clearPersistedStatementDraft(const QString& draftId)
+{
+    ui::util::guard::invokeVoid(core_, observability::origins::controller::draft::kFinalize, [&]() {
+        core_->clearStatementDraft(ui::strings::toStdString(draftId));
+    });
 }
 
 QVariantMap DraftController::currentTransactionViewState(StatementDraft* draft) const

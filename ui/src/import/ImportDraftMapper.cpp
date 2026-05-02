@@ -5,6 +5,7 @@
 
 #include "ui/import/ImportDraftMapper.h"
 
+#include <QByteArray>
 #include <QFileInfo>
 
 #include "core/import/DraftLinking.h"
@@ -96,7 +97,11 @@ std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppSta
         draft.propertyText = QString::fromStdString(draftSignals.propertyText);
         draft.type = QString::fromStdString(draftSignals.typeText);
         draft.metadata = QString::fromStdString(tx.metadata);
-        draft.proofImagePath = QString::fromStdString(tx.proofImagePath);
+        if (!tx.proofImageData.empty()) {
+            const QByteArray bytes(reinterpret_cast<const char*>(tx.proofImageData.data()),
+                                   static_cast<int>(tx.proofImageData.size()));
+            draft.proofImageData = QString::fromLatin1(bytes.toBase64());
+        }
         drafts.push_back(std::move(draft));
     }
 
@@ -107,9 +112,12 @@ StatementDraft* createStatementDraft(const QString& sourceFile,
                                       const std::shared_ptr<core::domain::Statement>& statement,
                                       const core::domain::AppState& state,
                                       const std::vector<core::domain::TransactionDraft>& transactions,
+                                      const QString& draftId,
+                                      int currentTransactionIndex,
                                       QObject* parent)
 {
     auto* draft = new StatementDraft(parent);
+    draft->setDraftId(draftId);
     draft->setName((statement && !statement->name.empty())
                        ? QString::fromStdString(statement->name)
                        : QFileInfo(sourceFile).baseName());
@@ -122,6 +130,7 @@ StatementDraft* createStatementDraft(const QString& sourceFile,
     }
 
     draft->setDrafts(std::move(drafts));
+    draft->setCurrentIndex(currentTransactionIndex);
     return draft;
 }
 

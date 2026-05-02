@@ -1,6 +1,9 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/ProgressBar.qml
+ * @brief Provides the ProgressBar component.
+ */
+
 import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.3
 import FossRedder 1.0
 
 Item {
@@ -28,7 +31,7 @@ Item {
         SequentialAnimation on x {
             running: root.indeterminate && root.visible
             loops: Animation.Infinite
-            NumberAnimation { from: -fill.width; to: parent.width; duration: 900; easing.type: Easing.InOutQuad }
+            NumberAnimation { from: -fill.width; to: root.width; duration: 900; easing.type: Easing.InOutQuad }
         }
     }
 }

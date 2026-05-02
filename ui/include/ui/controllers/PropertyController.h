@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include <qqmlintegration.h>
 
 namespace core::application { class AppStateFacade; }
 
@@ -20,6 +21,8 @@ namespace ui {
  */
 class PropertyController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(PropertyController)
+    QML_UNCREATABLE("PropertyController is provided by the application context")
 public:
     /** @brief Create a property controller bound to the application facade. */
     explicit PropertyController(core::application::AppStateFacade* core, QObject* parent = nullptr);
@@ -52,6 +55,11 @@ public:
      *  @param aliases Optional aliases
      */
     Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
+    Q_INVOKABLE QString saveProperty(const QString& id,
+                                     const QString& name,
+                                     const QString& address,
+                                     const QString& description,
+                                     const QStringList& aliases = {});
 
     /** @brief Delete a property by identifier.
      *  @param id Property identifier

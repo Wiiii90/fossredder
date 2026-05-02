@@ -5,6 +5,7 @@
 
 #ifdef USE_QML
 #include "MainWindow.h"
+#include "ui/bootstrap/AppContext.h"
 #include "api/opencv/IOpenCvAdapter.h"
 #include "api/opencv/IOpenCvService.h"
 #include "api/poppler/IPopplerAdapter.h"
@@ -20,6 +21,7 @@
 #include "core/jobs/JobSystem.h"
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
+#include "core/models/ExportLog.h"
 #include "debug/DebugDefaults.h"
 
 using core::domain::AppState;
@@ -37,6 +39,7 @@ using core::domain::DeletionImpact;
 #include "ui/controllers/ImportController.h"
 #include "ui/controllers/LanguageController.h"
 #include "ui/controllers/PropertyController.h"
+#include "ui/controllers/SettingsController.h"
 #include "ui/controllers/StatementController.h"
 #include "ui/controllers/StorageController.h"
 #include "ui/controllers/TransactionController.h"
@@ -51,6 +54,9 @@ using core::domain::DeletionImpact;
 #include <QList>
 #include <QQmlEngine>
 #include <QQmlError>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 #include <exception>
 #include <memory>
@@ -113,6 +119,44 @@ executeExport(std::shared_ptr<const AppState> snapshot,
   exportRequest.stateSnapshot = std::move(snapshot);
   exportRequest.format = toCoreExportFormat(request.format);
 
+  QJsonParseError parseError;
+  const QJsonDocument payloadDoc = QJsonDocument::fromJson(request.payload.toUtf8(), &parseError);
+  if (parseError.error == QJsonParseError::NoError && payloadDoc.isObject()) {
+    const QJsonObject payloadObj = payloadDoc.object();
+    const int packageIndex = payloadObj.value(QStringLiteral("packageFormatIndex")).toInt(0);
+    switch (packageIndex) {
+    case 1:
+      exportRequest.packageFormat = core::exporting::PackageFormat::Zip;
+      break;
+    default:
+      exportRequest.packageFormat = core::exporting::PackageFormat::None;
+      break;
+    }
+
+    const QJsonArray items = payloadObj.value(QStringLiteral("items")).toArray();
+    for (const QJsonValue& value : items) {
+      if (!value.isObject()) continue;
+      const QJsonObject item = value.toObject();
+      if (item.value(QStringLiteral("objectType")).toString().compare(QStringLiteral("Analysis"), Qt::CaseInsensitive) != 0) continue;
+
+      const QString exportType = item.value(QStringLiteral("exportType")).toString();
+      core::exporting::AnalysisExportItem analysisItem;
+      analysisItem.annualId = item.value(QStringLiteral("annualId")).toString().toStdString();
+      analysisItem.analysisId = item.value(QStringLiteral("objectId")).toString().toStdString();
+      analysisItem.name = item.value(QStringLiteral("objectName")).toString().toStdString();
+
+      const QString normalized = exportType.trimmed().toLower();
+      if (normalized == QStringLiteral("xlsx")) analysisItem.format = core::exporting::AnalysisExportFormat::Xlsx;
+      else if (normalized == QStringLiteral("jpg") || normalized == QStringLiteral("jpeg")) analysisItem.format = core::exporting::AnalysisExportFormat::Jpg;
+      else if (normalized == QStringLiteral("png")) analysisItem.format = core::exporting::AnalysisExportFormat::Png;
+      else analysisItem.format = core::exporting::AnalysisExportFormat::Csv;
+
+      if (!analysisItem.analysisId.empty()) {
+        exportRequest.analysisItems.push_back(std::move(analysisItem));
+      }
+    }
+  }
+
   core::exporting::ExportService exporter;
   const auto result = exporter.exportData(exportRequest);
 
@@ -146,6 +190,8 @@ UiControllers setupUiControllers(
   ui.storage = new ui::StorageController(&appStateFacade, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kStorageController,
                           ui.storage);
+  if (auto *appContext = w.appContext())
+    appContext->setStorageController(ui.storage);
 
   const auto exportSnapshotProvider = [&appStateFacade]() {
     return ui::exporting::createSnapshot(appStateFacade.state());
@@ -163,31 +209,60 @@ UiControllers setupUiControllers(
       &appStateFacade, exportSnapshotProvider, ui.analysisService, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kAnnualController,
                           ui.annual);
+  if (auto *appContext = w.appContext())
+    appContext->setAnnualController(ui.annual);
   w.setQmlContextProperty(ui::qml::contracts::context::kActorController,
                           ui.actor);
+  if (auto *appContext = w.appContext())
+    appContext->setActorController(ui.actor);
   w.setQmlContextProperty(ui::qml::contracts::context::kPropertyController,
                           ui.property);
+  if (auto *appContext = w.appContext())
+    appContext->setPropertyController(ui.property);
   w.setQmlContextProperty(ui::qml::contracts::context::kContractController,
                           ui.contract);
+  if (auto *appContext = w.appContext())
+    appContext->setContractController(ui.contract);
   w.setQmlContextProperty(ui::qml::contracts::context::kStatementController,
                           ui.statement);
+  if (auto *appContext = w.appContext())
+    appContext->setStatementController(ui.statement);
   w.setQmlContextProperty(ui::qml::contracts::context::kTransactionController,
                           ui.transaction);
+  if (auto *appContext = w.appContext())
+    appContext->setTransactionController(ui.transaction);
   w.setQmlContextProperty(ui::qml::contracts::context::kDraftController,
                           ui.draft);
+  if (auto *appContext = w.appContext())
+    appContext->setDraftController(ui.draft);
   w.setQmlContextProperty(ui::qml::contracts::context::kAnalysisController,
                           ui.analysisController);
+  if (auto *appContext = w.appContext())
+    appContext->setAnalysisController(ui.analysisController);
 
   auto exportRunner =
       std::make_shared<ui::exporting::ExportRunner>(executeExport);
   ui.exportCtrl =
       new ui::ExportController(exportSnapshotProvider, exportRunner, &w);
+  ui.exportCtrl->setExportLogsStore([&appStateFacade](const std::vector<core::domain::ExportLog>& logs) {
+    appStateFacade.setExportLogs(logs);
+  });
   w.setQmlContextProperty(ui::qml::contracts::context::kExportController,
                           ui.exportCtrl);
+  if (auto *appContext = w.appContext())
+    appContext->setExportController(ui.exportCtrl);
 
   ui.language = new ui::LanguageController(&app, w.qmlEngine(), &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kLanguageController,
                           ui.language);
+  if (auto *appContext = w.appContext())
+    appContext->setLanguageController(ui.language);
+
+  auto *settingsController = new ui::SettingsController(&w);
+  w.setQmlContextProperty(ui::qml::contracts::context::kSettingsController,
+                          settingsController);
+  if (auto *appContext = w.appContext())
+    appContext->setSettingsController(settingsController);
 
   auto importJobSystemFactory = [dbg = std::make_shared<FileDebugger>(
                                    "", std::string(debug::defaults::kImportProcessName)),
@@ -215,6 +290,9 @@ UiControllers setupUiControllers(
       snapshot.transactions = ui::cloneStateItems(session->transactions()->transactions());
       snapshot.analyses = ui::cloneStateItems(session->analyses()->analyses());
       snapshot.annuals = ui::cloneStateItems(session->annuals()->annuals());
+      snapshot.statementDrafts = liveState.statementDrafts;
+      snapshot.transactionDrafts = liveState.transactionDrafts;
+      snapshot.importLogs = liveState.importLogs;
       if (snapshot.actors.empty()) snapshot.actors = liveState.actors;
       if (snapshot.properties.empty()) snapshot.properties = liveState.properties;
       if (snapshot.contracts.empty()) snapshot.contracts = liveState.contracts;
@@ -229,11 +307,16 @@ UiControllers setupUiControllers(
 
   ui.import = new ui::ImportController(importJobSystemFactory, errorReporter, &w);
   ui.import->setStateSnapshotProvider(importSnapshotProvider);
+  ui.import->setImportLogsStore([&appStateFacade](const std::vector<core::domain::ImportLog>& logs) {
+    appStateFacade.setImportLogs(logs);
+  });
+  ui.import->setStatementDraftStore([&appStateFacade](const core::domain::StatementDraft& draft) {
+    appStateFacade.saveStatementDraft(draft);
+  });
   w.setQmlContextProperty(ui::qml::contracts::context::kImportController,
                           ui.import);
-
-  w.addImageProvider(ui::qml::contracts::providers::kImportProof,
-                     ui::importing::createDraftProofProvider(ui.import));
+  if (auto *appContext = w.appContext())
+    appContext->setImportController(ui.import);
 
   return ui;
 }

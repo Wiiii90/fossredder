@@ -9,18 +9,21 @@
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
+#include <qqmlintegration.h>
+
+#include "ui/models/StatementDraft.h"
 
 namespace core::application { class AppStateFacade; }
 
 namespace ui {
-
-class StatementDraft;
 
 /**
  * @brief Exposes statement-draft finalization to QML.
  */
 class DraftController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(DraftController)
+    QML_UNCREATABLE("DraftController is provided by the application context")
 public:
     /** @brief Create a draft controller bound to the application facade.
      *  @param core Core application facade pointer
@@ -33,6 +36,8 @@ public:
      *  @return Identifier of the created statement or empty string on failure
      */
     Q_INVOKABLE QString finalizeStatementDraft(StatementDraft* draft);
+    Q_INVOKABLE void persistStatementDraft(StatementDraft* draft);
+    Q_INVOKABLE void clearPersistedStatementDraft(const QString& draftId = {});
 
     /** @brief Build the derived view state for the currently selected draft transaction.
      *  @param draft Pointer to the UI StatementDraft

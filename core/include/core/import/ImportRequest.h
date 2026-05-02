@@ -16,7 +16,6 @@ struct ImportRequest {
     std::string sourcePath;
     std::string runRoot;
     std::string runIdPrefix;
-    std::string proofOutputDir;
     std::string jobId;
     std::function<void(double, const std::string&)> progressCallback;
     std::shared_ptr<std::atomic<bool>> cancelFlag;

@@ -16,9 +16,22 @@ enum class ExportStatus {
     Ok,
     InvalidInput,
     WriteFailed,
+    ArchiveFailed,
     XlsxGenerationFailed,
     UnsupportedFormat,
     InternalError
+};
+
+enum class AnalysisExportFormat {
+    Csv,
+    Xlsx,
+    Jpg,
+    Png
+};
+
+enum class PackageFormat {
+    None,
+    Zip
 };
 
 } // namespace core::exporting

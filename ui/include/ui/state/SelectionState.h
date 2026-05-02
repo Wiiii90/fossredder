@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <qqmlintegration.h>
 
 #include <memory>
 
@@ -23,6 +24,8 @@ namespace ui {
 
 class ActorSelection : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(ActorSelection)
+    QML_UNCREATABLE("ActorSelection is exposed by StateFacade")
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QString type READ type NOTIFY changed)
@@ -54,6 +57,8 @@ private:
 
 class PropertySelection : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(PropertySelection)
+    QML_UNCREATABLE("PropertySelection is exposed by StateFacade")
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QString address READ address NOTIFY changed)
@@ -85,6 +90,8 @@ private:
 
 class ContractSelection : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(ContractSelection)
+    QML_UNCREATABLE("ContractSelection is exposed by StateFacade")
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QString type READ type NOTIFY changed)
@@ -122,6 +129,8 @@ private:
 
 class StatementSelection : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(StatementSelection)
+    QML_UNCREATABLE("StatementSelection is exposed by StateFacade")
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
 
@@ -144,6 +153,8 @@ private:
 
 class TransactionSelection : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(TransactionSelection)
+    QML_UNCREATABLE("TransactionSelection is exposed by StateFacade")
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QString bookingDate READ bookingDate NOTIFY changed)
@@ -201,6 +212,8 @@ private:
 
 class AnalysisSelection : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(AnalysisSelection)
+    QML_UNCREATABLE("AnalysisSelection is exposed by StateFacade")
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QString type READ type NOTIFY changed)
@@ -226,6 +239,8 @@ private:
 
 class AnnualSelection : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(AnnualSelection)
+    QML_UNCREATABLE("AnnualSelection is exposed by StateFacade")
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
 

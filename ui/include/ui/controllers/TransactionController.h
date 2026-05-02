@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include <qqmlintegration.h>
 
 #include "core/models/Transaction.h"
 
@@ -22,6 +23,8 @@ namespace ui {
  */
 class TransactionController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(TransactionController)
+    QML_UNCREATABLE("TransactionController is provided by the application context")
 public:
     ~TransactionController() override = default;
 
@@ -38,6 +41,8 @@ public:
      *  @return List of serialized transactions as QVariantList
      */
     Q_INVOKABLE QVariantList transactions() const;
+    Q_INVOKABLE QVariantList addTransactions(const QString& statementId,
+                                             const QVariantList& transactionDrafts);
 
     /** @brief Create a new transaction from QML-provided values.
      *  @param name Transaction name

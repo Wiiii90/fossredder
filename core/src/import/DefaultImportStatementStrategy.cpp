@@ -101,13 +101,11 @@ public:
                                                       artifactsMutex);
 
         const size_t totalPages = pages.size();
-        const auto proofDir = core::importing::createProofDir(runRoot, req.proofOutputDir, errorReporter_.get());
 
         const auto finalizeStart = core::importing::ImportClock::now();
         const auto finalizeStats = finalizeParsedPages(req,
                                                        pages,
                                                        opencv_,
-                                                       proofDir,
                                                        out,
                                                        all,
                                                        carriedBookingDate,

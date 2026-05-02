@@ -1,5 +1,9 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml
+ * @brief Provides the TransactionDraftProofPanel component.
+ */
+
 import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
@@ -32,7 +36,7 @@ Controls.Panel {
             visible: source.toString().length > 0
             fillMode: Image.PreserveAspectFit
             source: root.txRoot && root.txRoot.draft && root.txRoot.draft.current
-                ? root.txRoot.proofSource(root.txRoot.draft.current.proofImagePath || "")
+                ? root.txRoot.proofSource(root.txRoot.draft.current.proofImageData || "")
                 : ""
             cache: true
             asynchronous: true

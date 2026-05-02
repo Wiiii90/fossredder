@@ -1,54 +1,76 @@
-﻿import QtQuick 2.15
-import QtQuick.Controls 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Settings/SettingsSidebar.qml
+ * @brief Provides the SettingsSidebar component.
+ */
+
+import QtQuick 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
-import FossRedder.Components 1.0 as Components
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    
+    required property var appContext
+    required property var theme
+    readonly property var navigation: root.appContext ? root.appContext.navigation : null
+
+    readonly property var categories: [
+        { cat: 0, text: qsTr("General") },
+        { cat: 1, text: qsTr("Import") },
+        { cat: 2, text: qsTr("Export") },
+        { cat: 3, text: qsTr("Miscellaneous") }
+    ]
 
     ColumnLayout {
-        id: col
         anchors.fill: parent
-        anchors.margins: Theme.settings.margin
-        spacing: Theme.spacingSmall
+        anchors.margins: root.theme.spacingMedium
+        spacing: root.theme.spacingSmall
 
-        
-
-        ListView {
-            id: list
+        Flickable {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: [
-                { id: "general", cat: 0, text: qsTr("General") },
-                { id: "appearance", cat: 1, text: qsTr("Appearance") },
-                { id: "import", cat: 2, text: qsTr("Import") },
-                { id: "export", cat: 3, text: qsTr("Export") },
-                { id: "advanced", cat: 4, text: qsTr("Advanced") }
-            ]
-            spacing: Theme.settings.sidebarSpacing
+            clip: true
+            contentWidth: width
+            contentHeight: settingsColumn.implicitHeight
 
-            delegate: Components.ListRow {
-                width: list.width
-                text: modelData.text
-                subtitle: ""
-                selected: navigation ? (navigation.settingsCategory === modelData.cat) : (list.currentIndex === index)
-                onActivated: {
-                    list.currentIndex = index
-                    if (navigation) navigation.settingsCategory = modelData.cat
+            Column {
+                id: settingsColumn
+                width: parent.width
+                spacing: root.theme.spacingSmall
+
+                Repeater {
+                    model: root.categories
+
+                    delegate: Rectangle {
+                        id: settingsRow
+                        required property var modelData
+                        width: settingsColumn.width
+                        height: 44
+                        radius: 6
+                        color: root.navigation && settingsRow.modelData.cat === root.navigation.settingsCategoryValue ? root.theme.selectionHighlight : "transparent"
+                        border.color: root.theme.borderSoft
+                        border.width: root.theme.borderWidthThin
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                if (root.navigation) root.navigation.setSettingsCategoryValue(settingsRow.modelData.cat)
+                            }
+                        }
+
+                        Text {
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.leftMargin: root.theme.spacingSmall
+                            anchors.topMargin: root.theme.spacingSmall
+                            width: parent.width - (2 * root.theme.spacingSmall)
+                            text: settingsRow.modelData.text
+                            color: root.theme.textPrimary
+                            elide: Text.ElideRight
+                        }
+                    }
                 }
             }
         }
-
-    Component.onCompleted: {
-        if (navigation) {
-            for (var i = 0; i < list.count; ++i) {
-                if (list.model[i] && list.model[i].cat === navigation.settingsCategory) { list.currentIndex = i; return }
-            }
-            list.currentIndex = 0
-        } else list.currentIndex = 0
-    }
     }
 }
 

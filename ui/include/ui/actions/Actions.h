@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QStringList>
+#include <qqmlintegration.h>
 
 class QAction;
 
@@ -17,6 +18,8 @@ namespace ui {
  */
 class Actions : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(Actions)
+    QML_UNCREATABLE("Actions is provided by the application context")
     Q_PROPERTY(QAction* newFileAction READ newFileAction CONSTANT)
     Q_PROPERTY(QAction* openFileAction READ openFileAction CONSTANT)
     Q_PROPERTY(QAction* saveFileAction READ saveFileAction CONSTANT)
@@ -63,6 +66,7 @@ public:
 
     Q_INVOKABLE void browseImportPdf();
     Q_INVOKABLE void browseExportFile();
+    Q_INVOKABLE void browseExportDirectory();
 
 signals:
     /**
@@ -100,12 +104,14 @@ signals:
      * @param filter Native file dialog filter string (e.g. "All Files (*.*)").
      */
     void exportBrowseRequested(const QString& filter);
+    void exportDirectoryBrowseRequested(const QString& title);
 
     /**
      * @brief Emitted after an export path was chosen by the user.
      * @param path Absolute path of the target file.
      */
     void exportFileSelected(const QString& path);
+    void exportDirectorySelected(const QString& path);
 
 private:
     QAction* newFileAction_;

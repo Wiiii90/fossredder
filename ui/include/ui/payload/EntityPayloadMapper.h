@@ -102,6 +102,7 @@ inline QVariantMap toPayload(const core::domain::Annual& annual)
 {
     QVariantMap payload;
     payload[ui::payload::keys::common::kId] = QString::fromStdString(annual.id);
+    payload[ui::payload::keys::annual::kName] = QString::fromStdString(annual.name);
     payload[ui::payload::keys::annual::kYear] = annual.year;
     payload[ui::payload::keys::annual::kVerificationState] = static_cast<int>(annual.verificationState);
     payload[ui::payload::keys::annual::kTransactionIds] = ui::payload::mapper::toVariantStringList(annual.transactionIds);
@@ -118,6 +119,12 @@ inline QVariantMap toPayload(const core::domain::Analysis& analysis)
     payload[ui::payload::keys::common::kType] = QString::fromStdString(analysis.type);
     payload[ui::payload::keys::analysis::kConfig] = QString::fromStdString(analysis.configJson);
     payload[ui::payload::keys::analysis::kFilter] = QString::fromStdString(analysis.filterSpec);
+    payload[ui::payload::keys::analysis::kExportFormat] = QString::fromStdString(analysis.exportFormat);
+    payload[ui::payload::keys::analysis::kIncludeCalcAdjustments] = analysis.includeCalcAdjustments;
+    payload[ui::payload::keys::analysis::kExportState] = QString::fromStdString(analysis.exportStateJson);
+    payload[ui::payload::keys::analysis::kSnapshotTransactions] = QString::fromStdString(analysis.snapshotTransactionsJson);
+    payload[ui::payload::keys::analysis::kCreatedAt] = QString::fromStdString(analysis.createdAt);
+    payload[ui::payload::keys::analysis::kUpdatedAt] = QString::fromStdString(analysis.updatedAt);
     return payload;
 }
 

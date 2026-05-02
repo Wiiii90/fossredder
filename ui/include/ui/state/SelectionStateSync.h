@@ -7,6 +7,8 @@
 
 #include <QAbstractItemModel>
 #include <QString>
+#include <QVariantList>
+#include <QVariantMap>
 
 #include <utility>
 
@@ -28,6 +30,54 @@ struct SelectionIdsSnapshot {
 
 SelectionIdsSnapshot captureSelectionIds(const SelectionState& selection);
 void emitSelectionChanges(SessionSelection& selection, const SelectionIdsSnapshot& before);
+
+int selectionIndexOfId(const QVariantList& rows, const QString& id, const QString& idKey = QStringLiteral("id"));
+int selectionIndexOfKeyValue(const QVariantList& rows, const QString& key, const QVariant& value);
+int selectionIndexOfString(const QVariantList& values, const QString& value);
+int normalizedSelectionIndex(int index, int count);
+int wrappedSelectionIndex(int index, int count);
+QString wrappedSelectionIdAt(const QVariantList& rows, int index, const QString& idKey = QStringLiteral("id"));
+QString navigatedSelectionId(const QVariantList& rows,
+                             const QString& currentId,
+                             int delta,
+                             int fallbackIndex = 0,
+                             const QString& idKey = QStringLiteral("id"));
+QVariantList pruneAndAppendMissingIds(const QVariantList& preferredIds, const QVariantList& availableIds);
+QVariantList selectionRowIds(const QVariantList& rows, const QString& idKey = QStringLiteral("id"));
+QVariantList orderedRowsBySelectionIds(const QVariantList& rows,
+                                       const QVariantList& orderIds,
+                                       const QString& idKey = QStringLiteral("id"));
+QVariantMap resolveSelectionRowState(const QVariantList& rows,
+                                     int currentIndex,
+                                     const QString& selectedId,
+                                     const QString& idKey = QStringLiteral("id"));
+QVariantList orderWithInsertedSelectionId(const QVariantList& currentOrder,
+                                          const QVariantList& availableIds,
+                                          const QString& insertedId,
+                                          int insertAfterIndex);
+QVariantMap orderedSelectionRowsState(const QVariantList& rows,
+                                      const QVariantList& preferredOrder,
+                                      const QString& idKey = QStringLiteral("id"));
+QVariantMap orderedSelectionStateForRows(const QVariantList& rows,
+                                         const QVariantList& preferredOrder,
+                                         int currentIndex,
+                                         const QString& selectedId,
+                                         const QString& idKey = QStringLiteral("id"));
+QVariantMap navigateSelectionDeltaState(const QVariantList& rows,
+                                        int currentIndex,
+                                        const QString& selectedId,
+                                        int delta,
+                                        int fallbackIndex = 0,
+                                        const QString& idKey = QStringLiteral("id"));
+QVariantMap deleteReselectionStateForRows(const QVariantList& rows,
+                                          const QVariantList& preferredOrder,
+                                          int currentIndex,
+                                          const QString& removedId,
+                                          const QString& idKey = QStringLiteral("id"));
+QString deleteNextSelectionIdForRows(const QVariantList& rows,
+                                     const QString& removedId,
+                                     int fallbackIndex = 0,
+                                     const QString& idKey = QStringLiteral("id"));
 
 template <typename RefreshFn>
 void bindSelectionRefresh(QAbstractItemModel& model, QObject* context, RefreshFn&& refresh)

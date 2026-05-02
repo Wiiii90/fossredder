@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include <qqmlintegration.h>
 
 namespace core::application { class AppStateFacade; }
 
@@ -20,6 +21,8 @@ namespace ui {
  */
 class ContractController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(ContractController)
+    QML_UNCREATABLE("ContractController is provided by the application context")
 public:
     /** @brief Create a contract controller bound to the application facade.
      *  @param core Core application facade pointer
@@ -63,6 +66,13 @@ public:
     Q_INVOKABLE void updateContract(const QString& id, const QString& name, const QString& type, const QString& description,
                                     const QStringList& actorIds, const QStringList& propertyIds,
                                     const QStringList& aliases = {});
+    Q_INVOKABLE QString saveContract(const QString& id,
+                                     const QString& name,
+                                     const QString& type,
+                                     const QString& description,
+                                     const QStringList& actorIds,
+                                     const QStringList& propertyIds,
+                                     const QStringList& aliases = {});
 
     /** @brief Delete a contract by identifier.
      *  @param id Contract identifier

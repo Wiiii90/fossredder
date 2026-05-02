@@ -1,3 +1,8 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/CheckBox.qml
+ * @brief Provides the CheckBox component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
@@ -7,7 +12,6 @@ CheckBox {
     id: control
     Layout.fillWidth: true
     Layout.alignment: Qt.AlignVCenter
-    Accessible.ignored: typeof isDebugBuild !== 'undefined' && isDebugBuild
 
     font.family: Theme.fontFamily
     font.pointSize: Theme.fontSize

@@ -75,14 +75,12 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
                                                                   const std::string& pageCropImagePath,
                                                                   std::shared_ptr<api::opencv::IOpenCvService> opencv,
                                                                   const std::vector<uint8_t>& pageCropImageBytes,
-                                                                  const std::filesystem::path& proofOutputDir,
                                                                   std::string initialBookingDate,
                                                                   int initialTransactionIndex) {
     ParseResult out;
 
     out.debugLines.push_back(std::string("pageCropImagePath\t") + pageCropImagePath);
     out.debugLines.push_back(std::string("pageCropImageBytes\t") + std::to_string(pageCropImageBytes.size()));
-    try { out.debugLines.push_back(std::string("proofOutputDir\t") + proofOutputDir.string()); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::proofOutputDir", std::current_exception()); }
     out.debugLines.push_back(std::string("initialBookingDate\t") + initialBookingDate);
     out.debugLines.push_back(std::string("initialTransactionIndex\t") + std::to_string(initialTransactionIndex));
 
@@ -503,7 +501,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse(const api::ope
     out.debugLines.push_back(std::string("blocks\t") + std::to_string(blocks.size()));
 
     appendPageSummary(lines, headerBottomY, blocks, txStartLooseCount, out);
-    appendTransactionsFromBlocks(blocks, cols, ocr, opencv, pageCropImagePath, pageCropImageBytes, proofOutputDir, txIndex, out);
+    appendTransactionsFromBlocks(blocks, cols, ocr, opencv, pageCropImagePath, pageCropImageBytes, txIndex, out);
 
     out.debugLines.push_back(std::string("transactions\t") + std::to_string(out.transactions.size()));
 

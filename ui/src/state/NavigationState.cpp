@@ -22,6 +22,11 @@ void NavigationState::setSection(Section s) {
     }, Qt::QueuedConnection);
 }
 
+void NavigationState::setSectionValue(int value)
+{
+    setSection(static_cast<Section>(value));
+}
+
 void NavigationState::setBookingView(BookingView v)
 {
     if (bookingView_ == v) return;
@@ -34,6 +39,11 @@ void NavigationState::setBookingView(BookingView v)
     }, Qt::QueuedConnection);
 }
 
+void NavigationState::setBookingViewValue(int value)
+{
+    setBookingView(static_cast<BookingView>(value));
+}
+
 void NavigationState::setSettingsCategory(SettingsCategory c)
 {
     if (settingsCategory_ == c) return;
@@ -44,6 +54,11 @@ void NavigationState::setSettingsCategory(SettingsCategory c)
         settingsCategoryChangeQueued_ = false;
         emit settingsCategoryChanged();
     }, Qt::QueuedConnection);
+}
+
+void NavigationState::setSettingsCategoryValue(int value)
+{
+    setSettingsCategory(static_cast<SettingsCategory>(value));
 }
 
 }

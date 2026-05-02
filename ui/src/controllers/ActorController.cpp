@@ -70,6 +70,20 @@ void ActorController::updateActor(const QString& id,
         });
 }
 
+QString ActorController::saveActor(const QString& id,
+                                   const QString& name,
+                                   const QString& type,
+                                   const QString& description,
+                                   const QStringList& aliases)
+{
+    if (id.isEmpty()) {
+        return addActor(name, type, description, aliases);
+    }
+
+    updateActor(id, name, type, description, aliases);
+    return id;
+}
+
 void ActorController::deleteActor(const QString& id)
 {
     ui::util::guard::invokeVoid(

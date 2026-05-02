@@ -1,8 +1,4 @@
 module FossRedder
-
+depends QtQuick
+Main 1.0 Main.qml
 singleton Theme 1.0 Theme/Theme.qml
-
-depends FossRedder.Controls 1.0
-depends FossRedder.Components 1.0
-depends FossRedder.Views 1.0
-depends FossRedder.Utils 1.0

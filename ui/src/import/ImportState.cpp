@@ -11,8 +11,6 @@
 
 namespace ui::importing {
 
-ImportState::ImportState(ImportRunList& runs) : runs_(runs) {}
-
 void ImportState::clearDraftObject()
 {
     if (!draft_) return;
@@ -68,7 +66,7 @@ bool ImportState::resetStatus()
     selectedFile_.clear();
     currentImportFile_.clear();
     queuedFiles_.clear();
-    artifacts_.clear();
+    artifactCount_ = 0;
     return true;
 }
 
@@ -76,19 +74,21 @@ bool ImportState::clearDraft()
 {
     clearDraftObject();
 
-    artifacts_.clear();
+    artifactCount_ = 0;
     if (!isRunning_ && queuedFiles_.isEmpty()) {
         selectedFile_.clear();
         currentImportFile_.clear();
     }
-
     return !isRunning_ && !queuedFiles_.isEmpty();
 }
 
-QByteArray ImportState::artifactBytes(const QString& key) const
+void ImportState::recordFinished(const QString& now)
 {
-    const auto it = artifacts_.find(key);
-    return it == artifacts_.end() ? QByteArray() : it.value();
+    (void)now;
+    error_.clear();
+    finalizeRun(ui::text::importPhases::finished());
+    selectedFile_.clear();
+    currentImportFile_.clear();
 }
 
 QString ImportState::currentRunFile() const
@@ -106,7 +106,7 @@ QString ImportState::takeSelectedFileForStart()
 
 bool ImportState::takeNextQueuedFile(QString& nextFile)
 {
-    if (isRunning_ || draft_ || queuedFiles_.isEmpty()) return false;
+    if (isRunning_ || queuedFiles_.isEmpty()) return false;
     nextFile = queuedFiles_.takeFirst();
     return true;
 }
@@ -127,20 +127,13 @@ void ImportState::resetCancellationState()
 
 void ImportState::storeArtifacts(const std::map<std::string, std::vector<uint8_t>>& artifacts)
 {
-    artifacts_.clear();
-    for (const auto& [key, value] : artifacts) {
-        artifacts_.insert(QString::fromStdString(key),
-                          value.empty()
-                              ? QByteArray()
-                              : QByteArray(reinterpret_cast<const char*>(value.data()), static_cast<int>(value.size())));
-    }
+    artifactCount_ = static_cast<int>(artifacts.size());
 }
 
-void ImportState::finalizeRun(const QString& now, const QString& phase, const QString& status, const QString& message)
+void ImportState::finalizeRun(const QString& phase)
 {
     phase_ = phase;
     clearTransientImportState();
-    appendRun(now, status, message);
     resetCancellationState();
 }
 
@@ -149,9 +142,7 @@ void ImportState::beginImport(const QString& path)
     selectedFile_ = path;
     currentImportFile_ = path;
 
-    clearDraftObject();
-
-    artifacts_.clear();
+    artifactCount_ = 0;
     error_.clear();
     phase_ = ui::text::importPhases::starting();
     progress_ = ui::config::importProgress::kInitial;
@@ -180,34 +171,22 @@ void ImportState::beginCancel(bool clearQueue)
     phase_ = ui::text::importPhases::stopping();
 }
 
-void ImportState::appendRun(const QString& now, const QString& status, const QString& message)
-{
-    runs_.addRun(now,
-                 ui::text::importRuns::typeStatement(),
-                 currentRunFile(),
-                 status,
-                 message);
-}
-
 void ImportState::recordCanceled(const QString& now)
 {
+    (void)now;
     error_.clear();
     if (cancelClearsQueue_) queuedFiles_.clear();
-    finalizeRun(now,
-                ui::text::importPhases::canceled(),
-                ui::text::importRuns::statusCanceled());
+    finalizeRun(ui::text::importPhases::canceled());
     selectedFile_.clear();
     currentImportFile_.clear();
 }
 
 void ImportState::recordFailed(const QString& now, const QString& errorMessage)
 {
+    (void)now;
     error_ = errorMessage;
     queuedFiles_.clear();
-    finalizeRun(now,
-                ui::text::importPhases::failed(),
-                ui::text::importRuns::statusFailed(),
-                error_);
+    finalizeRun(ui::text::importPhases::failed());
     currentImportFile_.clear();
 }
 
@@ -216,19 +195,39 @@ bool ImportState::populateDraft(const QString& now,
                                 const core::domain::AppState& state,
                                 const std::vector<core::domain::TransactionDraft>& transactions,
                                 const std::map<std::string, std::vector<uint8_t>>& artifacts,
+                                const QString& draftId,
+                                int currentTransactionIndex,
                                 QObject* parent)
 {
+    (void)now;
     if (!statement) return false;
 
     storeArtifacts(artifacts);
 
-    draft_ = createStatementDraft(currentImportFile_, statement, state, transactions, parent);
-    progress_ = ui::config::importProgress::kMaximum;
-    finalizeRun(now,
-                ui::text::importPhases::finished(),
-                ui::text::importRuns::statusSuccess());
-    currentImportFile_.clear();
+    clearDraftObject();
+    draft_ = createStatementDraft(currentImportFile_, statement, state, transactions, draftId, currentTransactionIndex, parent);
+    recordFinished(now);
     return true;
+}
+
+bool ImportState::restoreDraft(const std::shared_ptr<core::domain::Statement>& statement,
+                               const core::domain::AppState& state,
+                               const std::vector<core::domain::TransactionDraft>& transactions,
+                               const QString& draftId,
+                               int currentTransactionIndex,
+                               QObject* parent)
+{
+    if (!statement) return false;
+
+    clearDraftObject();
+    draft_ = createStatementDraft(currentRunFile(),
+                                  statement,
+                                  state,
+                                  transactions,
+                                  draftId,
+                                  currentTransactionIndex,
+                                  parent);
+    return draft_ != nullptr;
 }
 
 void ImportState::updateProgress(double progress, const QString& phase, const QRegularExpression& pagePattern)

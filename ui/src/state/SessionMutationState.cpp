@@ -5,6 +5,7 @@
 
 #include "ui/state/SessionMutationState.h"
 
+#include <algorithm>
 #include <QModelIndex>
 #include <QSet>
 
@@ -62,6 +63,66 @@ void assignTransactionPropertyIds(Transaction &transaction,
 }
 
 } // namespace
+
+QVariantList SessionMutationState::normalizeStrings(const QVariantList& values)
+{
+    QVariantList out;
+    out.reserve(values.size());
+    for (const auto& value : values) {
+        out.push_back(value.toString());
+    }
+    return out;
+}
+
+QVariantList SessionMutationState::addUniqueTrimmed(const QVariantList& values, const QString& value)
+{
+    const QString trimmed = value.trimmed();
+    QVariantList out = normalizeStrings(values);
+    if (trimmed.isEmpty()) {
+        return out;
+    }
+
+    for (const auto& current : out) {
+        if (current.toString() == trimmed) {
+            return out;
+        }
+    }
+
+    out.push_back(trimmed);
+    return out;
+}
+
+QVariantList SessionMutationState::removeAt(const QVariantList& values, int index)
+{
+    QVariantList out = normalizeStrings(values);
+    if (index < 0 || index >= out.size()) {
+        return out;
+    }
+    out.removeAt(index);
+    return out;
+}
+
+QVariantList SessionMutationState::removeString(const QVariantList& values, const QString& value)
+{
+    QVariantList out;
+    out.reserve(values.size());
+    for (const auto& item : values) {
+        const QString current = item.toString();
+        if (current != value) {
+            out.push_back(current);
+        }
+    }
+    return out;
+}
+
+QVariantList SessionMutationState::insertAt(const QVariantList& values, int index, const QVariant& value)
+{
+    QVariantList out = values;
+    const int size = static_cast<int>(out.size());
+    const int bounded = std::max(0, std::min(index, size));
+    out.insert(bounded, value);
+    return out;
+}
 
 void SessionMutationState::applyDeletionImpact(
     const DeletionImpact &impact, SessionModels &models, FilterState &filters,

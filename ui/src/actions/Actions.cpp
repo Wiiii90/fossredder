@@ -52,4 +52,9 @@ void Actions::browseExportFile()
     emit exportBrowseRequested(ui::text::dialogs::exportFileFilter());
 }
 
+void Actions::browseExportDirectory()
+{
+    emit exportDirectoryBrowseRequested(ui::text::dialogs::exportDirectoryTitle());
+}
+
 }

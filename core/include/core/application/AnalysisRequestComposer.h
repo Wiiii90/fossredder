@@ -31,8 +31,13 @@ public:
                                        const std::vector<std::string>& contractTypes,
                                        double taxPercent = 0.0);
 
-    static std::string buildFilterSpec(const std::string& dateFrom,
-                                       const std::string& dateTo);
+    static std::string buildFilterSpec(const std::string& dateMode,
+                                       const std::string& year,
+                                       const std::string& dateFrom,
+                                       const std::string& dateTo,
+                                       const std::vector<std::string>& propertyIds,
+                                       const std::vector<std::string>& contractTypes,
+                                       const std::string& allocatableMode);
 
     static std::unordered_map<std::string, double> buildTaxAdjustments(
         const std::vector<core::domain::AnalysisTransaction>& transactions,

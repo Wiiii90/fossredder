@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <qqmlintegration.h>
+
 #include "core/models/Statement.h"
 #include "ui/models/IndexedListModel.h"
 
@@ -12,6 +14,8 @@ namespace ui {
 
 class StatementList : public models::IndexedListModel<core::domain::Statement> {
     Q_OBJECT
+    QML_NAMED_ELEMENT(StatementList)
+    QML_UNCREATABLE("StatementList is exposed by the application context")
     using Base = models::IndexedListModel<core::domain::Statement>;
 public:
     enum Roles {

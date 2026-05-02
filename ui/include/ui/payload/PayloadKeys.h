@@ -12,6 +12,7 @@ namespace ui::payload::keys {
 namespace common {
 inline const auto kId = QStringLiteral("id");
 inline const auto kName = QStringLiteral("name");
+inline const auto kDisplay = QStringLiteral("display");
 inline const auto kType = QStringLiteral("type");
 inline const auto kDescription = QStringLiteral("description");
 inline const auto kAmount = QStringLiteral("amount");
@@ -45,11 +46,19 @@ namespace statement {
 inline const auto kStatementId = QStringLiteral("statementId");
 }
 
+namespace exportRun {
+inline const auto kLogId = QStringLiteral("logId");
+inline const auto kTime = QStringLiteral("time");
+inline const auto kFile = QStringLiteral("file");
+inline const auto kMessage = QStringLiteral("message");
+inline const auto kPayload = QStringLiteral("payload");
+}
+
 namespace transaction {
 inline const auto kBookingDate = QStringLiteral("bookingDate");
 inline const auto kValuta = QStringLiteral("valuta");
 inline const auto kActorId = QStringLiteral("actorId");
-inline const auto kProofImagePath = QStringLiteral("proofImagePath");
+inline const auto kProofImageData = QStringLiteral("proofImageData");
 inline const auto kAllocatable = QStringLiteral("allocatable");
 inline const auto kPropertyIds = QStringLiteral("propertyIds");
 inline const auto kContractId = QStringLiteral("contractId");
@@ -63,12 +72,19 @@ inline const auto kTable = QStringLiteral("table");
 inline const auto kConfig = QStringLiteral("config");
 inline const auto kFilter = QStringLiteral("filterSpec");
 inline const auto kAdjustments = QStringLiteral("adjustments");
+inline const auto kExportFormat = QStringLiteral("exportFormat");
+inline const auto kIncludeCalcAdjustments = QStringLiteral("includeCalcAdjustments");
+inline const auto kExportState = QStringLiteral("exportState");
+inline const auto kSnapshotTransactions = QStringLiteral("snapshotTransactions");
+inline const auto kCreatedAt = QStringLiteral("createdAt");
+inline const auto kUpdatedAt = QStringLiteral("updatedAt");
 inline const auto kTransactions = QStringLiteral("transactions");
 inline const auto kArtifacts = QStringLiteral("artifacts");
 inline const auto kGeneratedAt = QStringLiteral("generatedAt");
 }
 
 namespace annual {
+inline const auto kName = QStringLiteral("name");
 inline const auto kYear = QStringLiteral("year");
 inline const auto kVerificationState = QStringLiteral("verificationState");
 inline const auto kTransactionIds = QStringLiteral("transactionIds");
@@ -81,9 +97,13 @@ inline const auto kIsDir = QStringLiteral("isDir");
 }
 
 namespace importRun {
+inline const auto kLogId = QStringLiteral("logId");
 inline const auto kTime = QStringLiteral("time");
 inline const auto kFile = QStringLiteral("file");
 inline const auto kMessage = QStringLiteral("message");
+inline const auto kDraftAttached = QStringLiteral("draftAttached");
+inline const auto kDraftId = QStringLiteral("draftId");
+inline const auto kStatementId = QStringLiteral("statementId");
 }
 
 namespace draft {
@@ -106,6 +126,19 @@ namespace metrics {
 inline const auto kTotal = QStringLiteral("total");
 inline const auto kAllocatable = QStringLiteral("allocatable");
 inline const auto kNonAllocatable = QStringLiteral("nonAllocatable");
+}
+
+namespace state {
+inline const auto kRows = QStringLiteral("rows");
+inline const auto kOrderIds = QStringLiteral("orderIds");
+inline const auto kIndex = QStringLiteral("index");
+inline const auto kDraft = QStringLiteral("draft");
+inline const auto kDrafts = QStringLiteral("drafts");
+inline const auto kAliasInputText = QStringLiteral("aliasInputText");
+inline const auto kAliasIndex = QStringLiteral("aliasIndex");
+inline const auto kSelectedIds = QStringLiteral("selectedIds");
+inline const auto kSelectedActorIds = QStringLiteral("selectedActorIds");
+inline const auto kSelectedPropertyIds = QStringLiteral("selectedPropertyIds");
 }
 
 }

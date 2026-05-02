@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include <qqmlintegration.h>
 
 namespace ui::qml::contracts {
 
@@ -15,8 +16,12 @@ Q_NAMESPACE
 /** Module/version and type registration metadata for the QML module. */
 namespace module {
 inline constexpr auto kName = "FossRedder";
+inline constexpr auto kMainTypeName = "Main";
 constexpr int kMajorVersion = 1;
 constexpr int kMinorVersion = 0;
+inline constexpr auto kAppContextTypeName = "AppContext";
+inline constexpr auto kQmlContractsTypeName = "QmlContracts";
+inline constexpr auto kQmlContractsTypeDescription = "QML contracts are exposed as enums only";
 inline constexpr auto kNavigationTypeName = "Navigation";
 inline constexpr auto kNavigationTypeDescription = "Navigation is exposed via context property 'navigation'";
 }
@@ -40,12 +45,8 @@ inline const auto kAnalysisController = QStringLiteral("analysisController");
 inline const auto kExportController = QStringLiteral("exportController");
 inline const auto kImportController = QStringLiteral("importController");
 inline const auto kLanguageController = QStringLiteral("languageController");
+inline const auto kSettingsController = QStringLiteral("settingsController");
 inline const auto kIsDebugBuild = QStringLiteral("isDebugBuild");
-}
-
-/** Names of any QML image providers exposed by the application. */
-namespace providers {
-inline const auto kImportProof = QStringLiteral("importProof");
 }
 
 /** Convenience property keys used by QML components. */
@@ -62,4 +63,35 @@ enum class ExportFormat : int {
 
 Q_ENUM_NS(ExportFormat)
 
+enum class NavigationValue : int {
+    SectionActors = 0,
+    SectionProperties = 1,
+    SectionContracts = 2,
+    SectionBooking = 3,
+    SectionImport = 4,
+    SectionExport = 5,
+    SectionSettings = 6,
+    SectionAnalysis = 7,
+    SectionAnnual = 8,
+    BookingStatements = 0,
+    BookingCalendar = 1,
+    BookingTransactions = 2,
+    SettingsGeneral = 0,
+    SettingsImport = 1,
+    SettingsExport = 2,
+    SettingsMiscellaneous = 3
+};
+
+Q_ENUM_NS(NavigationValue)
+
 } // namespace ui::qml::contracts
+
+namespace ui::qml {
+
+struct QmlContractsRegistration {
+    Q_GADGET
+    QML_FOREIGN_NAMESPACE(ui::qml::contracts)
+    QML_NAMED_ELEMENT(QmlContracts)
+};
+
+} // namespace ui::qml

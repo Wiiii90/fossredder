@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <qqmlintegration.h>
+
 #include "core/models/Property.h"
 #include "ui/models/IndexedListModel.h"
 
@@ -12,6 +14,8 @@ namespace ui {
 
 class PropertyList : public models::IndexedListModel<core::domain::Property> {
     Q_OBJECT
+    QML_NAMED_ELEMENT(PropertyList)
+    QML_UNCREATABLE("PropertyList is exposed by the application context")
     using Base = models::IndexedListModel<core::domain::Property>;
 
 public:

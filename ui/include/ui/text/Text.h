@@ -59,6 +59,7 @@ namespace dialogs {
 inline constexpr auto kContext = "FileDialogs";
 inline constexpr auto kSelectPdfTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "Select PDF");
 inline constexpr auto kExportFileTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "Export File");
+inline constexpr auto kExportDirectoryTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "Select Export Directory");
 inline constexpr auto kNewFileTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "New File");
 inline constexpr auto kOpenFileTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "Open File");
 inline constexpr auto kSaveFileAsTitleSource = QT_TRANSLATE_NOOP("FileDialogs", "Save File As");
@@ -68,6 +69,7 @@ inline constexpr auto kExportFileFilterSource = QT_TRANSLATE_NOOP("FileDialogs",
 
 inline QString selectPdfTitle() { return detail::translate(kContext, kSelectPdfTitleSource); }
 inline QString exportFileTitle() { return detail::translate(kContext, kExportFileTitleSource); }
+inline QString exportDirectoryTitle() { return detail::translate(kContext, kExportDirectoryTitleSource); }
 inline QString newFileTitle() { return detail::translate(kContext, kNewFileTitleSource); }
 inline QString openFileTitle() { return detail::translate(kContext, kOpenFileTitleSource); }
 inline QString saveFileAsTitle() { return detail::translate(kContext, kSaveFileAsTitleSource); }
@@ -128,11 +130,17 @@ inline constexpr auto kTypeStatementSource = QT_TRANSLATE_NOOP("ImportState", "S
 inline constexpr auto kStatusCanceledSource = QT_TRANSLATE_NOOP("ImportState", "Canceled");
 inline constexpr auto kStatusFailedSource = QT_TRANSLATE_NOOP("ImportState", "Failed");
 inline constexpr auto kStatusSuccessSource = QT_TRANSLATE_NOOP("ImportState", "Success");
+inline constexpr auto kStatusRunningSource = QT_TRANSLATE_NOOP("ImportState", "Running");
+inline constexpr auto kStatusDraftSource = QT_TRANSLATE_NOOP("ImportState", "Draft");
+inline constexpr auto kStatusFinalizedSource = QT_TRANSLATE_NOOP("ImportState", "Finalized");
 
 inline QString typeStatement() { return detail::translate(kContext, kTypeStatementSource); }
 inline QString statusCanceled() { return detail::translate(kContext, kStatusCanceledSource); }
 inline QString statusFailed() { return detail::translate(kContext, kStatusFailedSource); }
 inline QString statusSuccess() { return detail::translate(kContext, kStatusSuccessSource); }
+inline QString statusRunning() { return detail::translate(kContext, kStatusRunningSource); }
+inline QString statusDraft() { return detail::translate(kContext, kStatusDraftSource); }
+inline QString statusFinalized() { return detail::translate(kContext, kStatusFinalizedSource); }
 
 }
 

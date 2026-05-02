@@ -1,105 +1,195 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Export/ExportView.qml
+ * @brief Provides the ExportView component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
+import FossRedder.Constants 1.0 as Constants
+import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
-import "../../Constants/FileFormats.js" as FileFormats
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    property var exportCtrl: (typeof exportController !== 'undefined' ? exportController : null)
-    readonly property int csvContractValue: (typeof UIContracts !== 'undefined' && UIContracts && UIContracts.Csv !== undefined ? UIContracts.Csv : 0)
-    readonly property int xlsxContractValue: (typeof UIContracts !== 'undefined' && UIContracts && UIContracts.Xlsx !== undefined ? UIContracts.Xlsx : 1)
+    required property var appContext
+    required property var theme
+    readonly property var exportCtrl: root.appContext ? root.appContext.exportController : null
+    readonly property var actions: root.appContext ? root.appContext.actions : null
+    readonly property var fileSystemController: root.appContext ? root.appContext.fileSystemController : null
+    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
+    readonly property bool hasExportCtrl: root.exportCtrl !== null
+    readonly property string readyText: qsTr("Ready")
+    readonly property int csvContractValue: 0
+    readonly property int xlsxContractValue: 1
     readonly property string defaultLocale: Qt.locale().name.replace("_", "-")
     readonly property var formatOptions: [
         {
             contract: csvContractValue,
-            extension: FileFormats.exportFormats.csv.extension,
-            label: FileFormats.exportFormats.csv.label
+            extension: Constants.FileFormats.exportFormats.csv.extension,
+            label: Constants.FileFormats.exportFormats.csv.label
         },
         {
             contract: xlsxContractValue,
-            extension: FileFormats.exportFormats.xlsx.extension,
-            label: FileFormats.exportFormats.xlsx.label
+            extension: Constants.FileFormats.exportFormats.xlsx.extension,
+            label: Constants.FileFormats.exportFormats.xlsx.label
         }
     ]
-    readonly property var formatLabels: formatOptions.map(function(option) { return option.label })
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
 
+    function buildPayload() {
+        const targetDirectory = formPanel ? formPanel.targetDirectory : ""
+        const packageFormatIndex = formPanel ? formPanel.packageFormatIndex : 0
+        const items = objectsPanel ? objectsPanel.exportItems() : []
+        const payload = {
+            targetDirectory: targetDirectory,
+            packageFormatIndex: packageFormatIndex,
+            items: items
+        }
+        return JSON.stringify(payload)
+    }
+
+    function defaultTargetDirectory() {
+        if (root.settingsController && root.settingsController.exportDefaultDirectory && root.settingsController.exportDefaultDirectory.length > 0)
+            return String(root.settingsController.exportDefaultDirectory)
+        if (root.fileSystemController && root.fileSystemController.appDir) {
+            const appPath = root.fileSystemController.appDir()
+            if (appPath && String(appPath).length > 0) return String(appPath)
+        }
+        return Qt.resolvedUrl(".").toString().replace("file:///", "")
+    }
+
+    function clearForm() {
+        if (formPanel) {
+            formPanel.targetDirectory = root.defaultTargetDirectory()
+            formPanel.packageFormatIndex = root.settingsController ? root.settingsController.exportArchiveFormat : 0
+        }
+        if (objectsPanel) objectsPanel.clearAll()
+        if (root.hasExportCtrl) root.exportCtrl.clearActiveRun()
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.pageMargin
-        spacing: Theme.spacingMedium
+        anchors.margins: root.theme.pageContentMargin
+        spacing: root.theme.spacing
 
-        Label { text: qsTr("Export"); font.pointSize: Theme.fontSizeTitle + Theme.margins }
-
-        RowLayout {
-            spacing: Theme.spacingMedium
+        Flickable {
+            id: exportScroll
             Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            contentWidth: width
+            contentHeight: Math.max(exportContent.implicitHeight, exportScroll.height)
 
-            Label { text: qsTr("Format:"); Layout.preferredWidth: Theme.formLabelWidth }
-            Controls.ComboBox {
-                id: formatBox
-                objectName: "exportFormatBox"
-                model: root.formatLabels
-                Layout.preferredWidth: Theme.formFieldWidth
-                onCurrentIndexChanged: {
-                    if (pathField && (!pathField.text || pathField.text.length === 0 || pathField.text.indexOf(FileFormats.exportDefaults.baseName + ".") !== -1)) {
-                        var base = (typeof fileSystemController !== 'undefined' && fileSystemController) ? fileSystemController.appDir() : ""
-                        var selectedOption = root.formatOptions[currentIndex]
-                        if (!selectedOption) return
-                        var ext = selectedOption.extension
-                        if (base && base.length > 0) pathField.text = base + "/" + FileFormats.exportDefaults.baseName + "." + ext
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
+
+            ColumnLayout {
+                id: exportContent
+                width: exportScroll.width
+                height: Math.max(implicitHeight, exportScroll.height)
+                spacing: root.theme.spacing
+
+                ExportForm {
+                    id: formPanel
+                    Layout.fillWidth: true
+                    theme: root.theme
+                    Component.onCompleted: {
+                        if (!targetDirectory || targetDirectory.length === 0)
+                            targetDirectory = root.defaultTargetDirectory()
+                        packageFormatIndex = root.settingsController ? root.settingsController.exportArchiveFormat : 0
                     }
+                    onBrowseRequested: {
+                        if (root.actions) root.actions.browseExportDirectory()
+                    }
+                }
+
+                ExportPanel {
+                    id: objectsPanel
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 320
+                    appContext: root.appContext
+                    theme: root.theme
                 }
             }
         }
 
-        RowLayout {
-            spacing: Theme.spacingMedium
+        ExportProgressBar {
             Layout.fillWidth: true
-            Label { text: qsTr("Include formulas (XLSX):"); Layout.preferredWidth: Theme.formFieldWidth }
-            Controls.CheckBox { id: formulas; objectName: "exportIncludeFormulasCheckBox"; checked: true }
+            theme: root.theme
+            exportCtrl: root.exportCtrl
+            hasExportCtrl: root.hasExportCtrl
+            readyText: root.readyText
         }
 
-        RowLayout {
-            spacing: Theme.spacingMedium
+        Components.BottomBar {
             Layout.fillWidth: true
-            Label { text: qsTr("Locale:"); Layout.preferredWidth: Theme.formLabelWidth }
-            Controls.TextField { id: localeField; objectName: "exportLocaleField"; text: root.defaultLocale; Layout.preferredWidth: Theme.formFieldWidth }
-        }
+            theme: root.theme
 
-        Item { Layout.fillHeight: true }
+            Controls.SecondaryButton {
+                text: qsTr("Clear")
+                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 0
+                onClicked: root.clearForm()
+            }
 
-        RowLayout {
-            spacing: Theme.spacingMedium
-            Layout.fillWidth: true
+            Controls.SecondaryButton {
+                text: qsTr("Cancel")
+                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
+                onClicked: if (root.hasExportCtrl) root.exportCtrl.cancelExport()
+            }
 
-            Label { text: qsTr("Save to:"); Layout.preferredWidth: Theme.formLabelWidth }
-            Controls.TextField { id: pathField; objectName: "exportPathField"; placeholderText: qsTr("e.g. C:/Users/You/Documents/export.xlsx"); Layout.fillWidth: true }
-            Controls.Button { objectName: "exportBrowseButton"; text: qsTr("Browse..."); onClicked: if (actions) actions.browseExportFile() }
-            Controls.Button {
-                objectName: "exportSubmitButton"
-                text: qsTr("Export")
-                enabled: pathField.text.length > 0
+            Item { Layout.fillWidth: true }
+
+            Controls.SecondaryButton {
+                text: root.hasExportCtrl && root.exportCtrl.isPaused ? qsTr("Resume") : qsTr("Pause")
+                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
+                onClicked: if (root.hasExportCtrl) root.exportCtrl.togglePause()
+            }
+
+            Controls.SuccessButton {
+                text: qsTr("Start")
+                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 0
+                enabled: {
+                    const dir = formPanel ? formPanel.targetDirectory : ""
+                    const items = objectsPanel ? objectsPanel.exportItems() : []
+                    return dir.length > 0 && items.length > 0
+                }
                 onClicked: {
-                    var path = pathField.text
-                    if (!path) return
-                    var selectedOption = root.formatOptions[formatBox.currentIndex]
-                    if (!selectedOption) return
-                    if (exportCtrl) exportCtrl.exportData(selectedOption.contract, path, formulas.checked, localeField.text)
+                    if (!root.hasExportCtrl) return
+                    const payload = root.buildPayload()
+                    const path = (formPanel ? formPanel.targetDirectory : "") + "/export"
+                    const selectedOption = root.formatOptions[0]
+                    const items = objectsPanel ? objectsPanel.exportItems() : []
+                    const includeFormulas = root.settingsController ? root.settingsController.exportIncludeFormulas : true
+                    root.exportCtrl.exportDataWithPayload(selectedOption.contract, path, includeFormulas, root.defaultLocale, payload, Math.max(1, items.length))
                 }
             }
         }
 
         Connections {
-            target: actions
-            function onExportFileSelected(path) {
+            target: root.actions
+            function onExportDirectorySelected(path) {
                 if (!path) return
-                pathField.text = path
+                if (formPanel) formPanel.targetDirectory = path
             }
         }
+
+        Connections {
+            target: root.settingsController
+            function onExportDefaultDirectoryChanged() {
+                if (formPanel && (!formPanel.targetDirectory || formPanel.targetDirectory.length === 0))
+                    formPanel.targetDirectory = root.defaultTargetDirectory()
+            }
+            function onExportArchiveFormatChanged() {
+                if (formPanel)
+                    formPanel.packageFormatIndex = root.settingsController.exportArchiveFormat
+            }
+        }
+
     }
 }

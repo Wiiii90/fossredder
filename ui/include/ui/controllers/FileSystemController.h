@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QVariant>
 #include <QString>
+#include <qqmlintegration.h>
 
 namespace ui {
 
@@ -16,6 +17,8 @@ namespace ui {
  */
 class FileSystemController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(FileSystemController)
+    QML_UNCREATABLE("FileSystemController is provided by the application context")
 public:
     /** @brief Create the filesystem helper exposed to QML. */
     explicit FileSystemController(QObject* parent = nullptr);

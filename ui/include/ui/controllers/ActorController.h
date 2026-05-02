@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include <qqmlintegration.h>
 
 namespace core::application { class AppStateFacade; }
 
@@ -20,6 +21,8 @@ namespace ui {
  */
 class ActorController : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(ActorController)
+    QML_UNCREATABLE("ActorController is provided by the application context")
 public:
     /** @brief Create an actor controller bound to the application facade.
      *  @param core Core application facade pointer
@@ -38,6 +41,11 @@ public:
 
     /** @brief Update an existing actor from QML-provided values. */
     Q_INVOKABLE void updateActor(const QString& id, const QString& name, const QString& type, const QString& description, const QStringList& aliases = {});
+    Q_INVOKABLE QString saveActor(const QString& id,
+                                  const QString& name,
+                                  const QString& type,
+                                  const QString& description,
+                                  const QStringList& aliases = {});
 
     /** @brief Delete an actor by identifier. */
     Q_INVOKABLE void deleteActor(const QString& id);

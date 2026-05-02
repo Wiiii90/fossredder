@@ -7,11 +7,14 @@
 
 #include <QObject>
 #include <QString>
+#include <qqmlintegration.h>
 
 namespace ui {
 
 class StatusState : public QObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(StatusState)
+    QML_UNCREATABLE("StatusState is provided by the application context")
     Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
 
 public:

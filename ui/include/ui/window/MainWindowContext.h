@@ -14,6 +14,8 @@ class QWidget;
 
 namespace ui {
 class Actions;
+class FileSystemController;
+class NavigationState;
 class StateFacade;
 class StatusState;
 }
@@ -22,7 +24,9 @@ namespace ui::window {
 
 struct MainWindowServices {
     ui::Actions* actions = nullptr;
+    ui::NavigationState* navigation = nullptr;
     ui::StateFacade* dataSession = nullptr;
+    ui::FileSystemController* fileSystem = nullptr;
     ui::StatusState* status = nullptr;
 };
 

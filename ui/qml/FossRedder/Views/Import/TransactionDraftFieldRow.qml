@@ -1,10 +1,16 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/TransactionDraftFieldRow.qml
+ * @brief Provides the TransactionDraftFieldRow component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
+    required property var theme
 
     property string leftLabel: ""
     property string rightLabel: ""
@@ -13,6 +19,24 @@ Item {
     property Component leftContent
     property Component rightContent
 
+    function loaderItem(loader) {
+        return loader ? loader["item"] : null
+    }
+
+    function loaderPreferredHeight(loader) {
+        const loadedItem = root.loaderItem(loader)
+        return loadedItem ? Math.max(40, loadedItem.implicitHeight || 0) : 40
+    }
+
+    function syncLoaderWidth(loader) {
+        const loadedItem = root.loaderItem(loader)
+        if (loadedItem && loadedItem.hasOwnProperty("width")) loadedItem.width = loader.width
+    }
+
+    function onLoaderWidthChanged(loader) {
+        root.syncLoaderWidth(loader)
+    }
+
     implicitWidth: row.implicitWidth
     implicitHeight: Math.max(leftColumn.implicitHeight, rightColumn.implicitHeight)
 
@@ -20,26 +44,25 @@ Item {
         id: row
         anchors.fill: parent
         anchors.top: parent.top
-        spacing: Theme.spacingMedium
+        spacing: root.theme.spacingMedium
 
         ColumnLayout {
             id: leftColumn
             Layout.fillWidth: true
             Layout.preferredWidth: root.leftWeight
             Layout.alignment: Qt.AlignTop
-            spacing: Theme.spacingSmall
+            spacing: root.theme.spacingSmall
 
             Label { text: root.leftLabel; Layout.fillWidth: true }
 
             Loader {
+                id: leftLoader
                 Layout.fillWidth: true
-                Layout.preferredHeight: item ? Math.max(40, item.implicitHeight) : 40
+                Layout.preferredHeight: root.loaderPreferredHeight(leftLoader)
                 Layout.alignment: Qt.AlignTop
                 sourceComponent: root.leftContent
-                onLoaded: {
-                    if (item && item.hasOwnProperty("width")) item.width = width
-                }
-                onWidthChanged: if (item && item.hasOwnProperty("width")) item.width = width
+                onLoaded: root.syncLoaderWidth(leftLoader)
+                onWidthChanged: root.onLoaderWidthChanged(leftLoader)
             }
         }
 
@@ -48,19 +71,18 @@ Item {
             Layout.fillWidth: true
             Layout.preferredWidth: root.rightWeight
             Layout.alignment: Qt.AlignTop
-            spacing: Theme.spacingSmall
+            spacing: root.theme.spacingSmall
 
             Label { text: root.rightLabel; Layout.fillWidth: true }
 
             Loader {
+                id: rightLoader
                 Layout.fillWidth: true
-                Layout.preferredHeight: item ? Math.max(40, item.implicitHeight) : 40
+                Layout.preferredHeight: root.loaderPreferredHeight(rightLoader)
                 Layout.alignment: Qt.AlignTop
                 sourceComponent: root.rightContent
-                onLoaded: {
-                    if (item && item.hasOwnProperty("width")) item.width = width
-                }
-                onWidthChanged: if (item && item.hasOwnProperty("width")) item.width = width
+                onLoaded: root.syncLoaderWidth(rightLoader)
+                onWidthChanged: root.onLoaderWidthChanged(rightLoader)
             }
         }
     }

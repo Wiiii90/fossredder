@@ -32,8 +32,8 @@ void registerTypes()
                                      ui::qml::contracts::module::kName,
                                      ui::qml::contracts::module::kMajorVersion,
                                      ui::qml::contracts::module::kMinorVersion,
-                                     ui::config::qmlRegistration::kQmlContractsTypeName,
-                                     ui::config::qmlRegistration::kQmlContractsTypeDescription);
+                                     ui::qml::contracts::module::kQmlContractsTypeName,
+                                     ui::qml::contracts::module::kQmlContractsTypeDescription);
     registered = true;
 }
 
@@ -55,8 +55,6 @@ void configureRuntime(QQmlEngine* engine)
     if (QDir(imageFormatsDir).exists()) {
         QCoreApplication::addLibraryPath(imageFormatsDir);
     }
-
-    engine->addImportPath(ui::config::kQrcQmlImportPath);
 }
 
 } // namespace ui::bootstrap

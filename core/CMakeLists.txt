@@ -19,6 +19,7 @@ set(CORE_SRCS
     src/application/WorkspaceSession.cpp
     src/errors/ErrorReporterRegistry.cpp
     src/export/CsvExporter.cpp
+    src/export/AnalysisExportService.cpp
     src/export/ExportService.cpp
     src/export/XlsxExporter.cpp
     src/import/DefaultImportStatementStrategy.cpp
@@ -38,6 +39,8 @@ set(CORE_SRCS
     src/jobs/Scheduler.cpp
     src/storage/StorageManager.cpp
     src/utils/Util.cpp
+    include/core/models/ExportLog.h
+    include/core/repositories/IExportLogRepository.h
 )
 
 add_library(fossredder_core STATIC ${CORE_SRCS})
@@ -56,9 +59,13 @@ target_include_directories(fossredder_core PUBLIC
 # Internal dependencies used by core implementation code.
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(xlnt CONFIG QUIET)
+find_package(OpenCV REQUIRED)
+find_package(libzip CONFIG REQUIRED)
 
 target_link_libraries(fossredder_core PUBLIC FossRedder::Api)
 target_link_libraries(fossredder_core PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(fossredder_core PRIVATE ${OpenCV_LIBS})
+target_link_libraries(fossredder_core PRIVATE libzip::zip)
 
 if(TARGET xlnt::xlnt)
     target_link_libraries(fossredder_core PRIVATE xlnt::xlnt)

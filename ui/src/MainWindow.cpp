@@ -12,14 +12,17 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQmlImageProviderBase>
+#include <QVariant>
 #include <QQuickItem>
 #include <QQuickView>
 #include <QSizePolicy>
 #include <QWidget>
+#include <qqml.h>
 #include <string>
 
 #include "core/constants/CoreDefaults.h"
 #include "ui/actions/Actions.h"
+#include "ui/bootstrap/AppContext.h"
 #include "ui/bootstrap/QmlContracts.h"
 #include "ui/bootstrap/QmlRuntime.h"
 #include "ui/config/Defaults.h"
@@ -92,10 +95,9 @@ void MainWindow::setupQuickHost() {
   if (m_quickView || m_quickContainer)
     return;
 
-  ui::bootstrap::registerTypes();
-
   m_quickView = new QQuickView();
   m_quickView->setResizeMode(QQuickView::SizeRootObjectToView);
+  appContext_ = new ui::bootstrap::AppContext(this);
 
   m_quickContainer = QWidget::createWindowContainer(m_quickView, this);
   m_quickContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -108,24 +110,36 @@ void MainWindow::setupUiContext() {
   if (!m_quickView || !m_quickView->rootContext())
     return;
 
+  if (appContext_) {
+    m_quickView->rootContext()->setContextProperty(
+        ui::qml::contracts::module::kAppContextTypeName, appContext_);
+  }
+
   const auto services =
       ui::window::installMainWindowContext(*m_quickView->rootContext(), this,
                                            this);
   actions_ = services.actions;
   dataSession_ = services.dataSession;
   status_ = services.status;
+
+  if (appContext_) {
+    appContext_->setActions(services.actions);
+    appContext_->setNavigation(services.navigation);
+    appContext_->setSession(services.dataSession);
+    appContext_->setFileSystemController(services.fileSystem);
+    appContext_->setStatus(services.status);
+  }
 }
 
 void MainWindow::setupActionRouting() {
   ui::window::wireMainWindowActions(
-      *this, {actions_, dataSession_, status_},
+      *this, {actions_, nullptr, dataSession_, nullptr, status_},
       [this]() { onAbout(); });
 }
 
 void MainWindow::setupQmlRuntime() {
-  Q_INIT_RESOURCE(qml);
-  ui::bootstrap::configureRuntime(m_quickView ? m_quickView->engine()
-                                              : nullptr);
+  auto *engine = m_quickView ? m_quickView->engine() : nullptr;
+  ui::bootstrap::configureRuntime(engine);
 }
 
 void MainWindow::prepareForQmlShutdown() {
@@ -161,6 +175,18 @@ void MainWindow::setQmlContextProperty(const QString &name, QObject *value) {
   if (!m_quickView->rootContext())
     return;
   m_quickView->rootContext()->setContextProperty(name, value);
+  if (appContext_)
+    appContext_->setProperty(name.toUtf8().constData(), QVariant::fromValue(value));
+}
+
+void MainWindow::setQmlContextValue(const QString &name, const QVariant &value) {
+  if (!m_quickView)
+    return;
+  if (!m_quickView->rootContext())
+    return;
+  m_quickView->rootContext()->setContextProperty(name, value);
+  if (appContext_)
+    appContext_->setProperty(name.toUtf8().constData(), value);
 }
 
 void MainWindow::addImageProvider(const QString &id,
@@ -175,11 +201,18 @@ void MainWindow::addImageProvider(const QString &id,
 void MainWindow::loadQml(const QUrl &source) {
   if (!m_quickView)
     return;
-  if (m_quickView->source() == source)
+  if (!source.isEmpty() && m_quickView->source() == source)
     return;
 
-  m_quickView->setSource(source);
-  reportQmlLoadErrors(m_quickView, source);
+  if (source.isEmpty()) {
+    m_quickView->loadFromModule(ui::qml::contracts::module::kName,
+                                ui::qml::contracts::module::kMainTypeName);
+    reportQmlLoadErrors(m_quickView,
+                        QUrl(QStringLiteral("module:FossRedder/Main")));
+  } else {
+    m_quickView->setSource(source);
+    reportQmlLoadErrors(m_quickView, source);
+  }
   syncRootObjectSize(m_quickView, m_quickContainer);
 }
 
@@ -255,6 +288,9 @@ void MainWindow::handleStorageOperationFailed(const QString &operation,
       "Pending close save failed; keeping main window open",
       core::errors::ErrorSeverity::Warning,
       {{kError, ui::strings::toStdString(message)}});
+
+  QMetaObject::invokeMethod(
+      this, [this]() { close(); }, Qt::QueuedConnection);
 }
 
 void MainWindow::onAbout() {

@@ -1,6 +1,7 @@
 ﻿# IDE / Editor
 .vs/
 .vscode/
+*.qmlls.ini
 *.suo
 *.user
 

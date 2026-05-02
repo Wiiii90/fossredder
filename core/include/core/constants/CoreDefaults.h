@@ -27,6 +27,42 @@ inline constexpr std::string_view kApplicationName = "FOSSRedder";
 namespace keys {
 /** @brief Settings key storing the preferred UI language code. */
 inline constexpr std::string_view kLanguage = "general/language";
+/** @brief Settings key storing the default import source path shown in the UI. */
+inline constexpr std::string_view kImportDefaultPath = "import/defaultPath";
+/** @brief Settings key storing placeholder Poppler configuration text. */
+inline constexpr std::string_view kImportPoppler = "import/poppler";
+/** @brief Settings key storing placeholder OpenCV configuration text. */
+inline constexpr std::string_view kImportOpenCv = "import/opencv";
+/** @brief Settings key storing placeholder Tesseract configuration text. */
+inline constexpr std::string_view kImportTesseract = "import/tesseract";
+/** @brief Settings key storing placeholder parser configuration text. */
+inline constexpr std::string_view kImportParser = "import/parser";
+/** @brief Settings key storing placeholder matcher configuration text. */
+inline constexpr std::string_view kImportMatcher = "import/matcher";
+/** @brief Settings key storing the default export target directory. */
+inline constexpr std::string_view kExportDefaultDirectory = "export/defaultDirectory";
+/** @brief Settings key storing the default export archive mode. */
+inline constexpr std::string_view kExportArchiveFormat = "export/archiveFormat";
+/** @brief Settings key storing the default XLSX formula mode. */
+inline constexpr std::string_view kExportIncludeFormulas = "export/includeFormulas";
+/** @brief Settings key storing whether the toolbar should show booking navigation. */
+inline constexpr std::string_view kToolbarShowBooking = "workspace/toolbar/showBooking";
+/** @brief Settings key storing whether the toolbar should show actor navigation. */
+inline constexpr std::string_view kToolbarShowActors = "workspace/toolbar/showActors";
+/** @brief Settings key storing whether the toolbar should show property navigation. */
+inline constexpr std::string_view kToolbarShowProperties = "workspace/toolbar/showProperties";
+/** @brief Settings key storing whether the toolbar should show contract navigation. */
+inline constexpr std::string_view kToolbarShowContracts = "workspace/toolbar/showContracts";
+/** @brief Settings key storing whether the toolbar should show import navigation. */
+inline constexpr std::string_view kToolbarShowImport = "workspace/toolbar/showImport";
+/** @brief Settings key storing whether the toolbar should show export navigation. */
+inline constexpr std::string_view kToolbarShowExport = "workspace/toolbar/showExport";
+/** @brief Settings key storing whether the toolbar should show analysis navigation. */
+inline constexpr std::string_view kToolbarShowAnalysis = "workspace/toolbar/showAnalysis";
+/** @brief Settings key storing whether the toolbar should show annual navigation. */
+inline constexpr std::string_view kToolbarShowAnnual = "workspace/toolbar/showAnnual";
+/** @brief Settings key storing whether the toolbar should show settings navigation. */
+inline constexpr std::string_view kToolbarShowSettings = "workspace/toolbar/showSettings";
 }
 
 }
@@ -38,8 +74,6 @@ namespace languages {
 inline constexpr std::string_view kEnglish = "en";
 /** @brief German language code used by the desktop UI. */
 inline constexpr std::string_view kGerman = "de";
-/** @brief French language code reserved for future localization support. */
-inline constexpr std::string_view kFrench = "fr";
 }
 
 }
@@ -64,7 +98,6 @@ namespace config {
 namespace languages {
 inline constexpr std::string_view kEnglish = "en";
 inline constexpr std::string_view kGerman = "de";
-inline constexpr std::string_view kFrench = "fr";
 }
 }
 
@@ -129,6 +162,7 @@ inline constexpr std::string_view kDate = "date";
 inline constexpr std::string_view kAmount = "amount";
 inline constexpr std::string_view kContractType = "contract.type";
 inline constexpr std::string_view kPropertyId = "propertyId";
+inline constexpr std::string_view kAllocatable = "allocatable";
 inline constexpr std::string_view kUnassigned = "unassigned";
 
 namespace operators {
@@ -161,6 +195,7 @@ inline constexpr std::string_view kOutputPathEmpty = "EXPORT_OUTPUT_PATH_EMPTY";
 inline constexpr std::string_view kStateMissing = "EXPORT_STATE_MISSING";
 inline constexpr std::string_view kFileOpenFailed = "EXPORT_FILE_OPEN_FAILED";
 inline constexpr std::string_view kFileWriteFailed = "EXPORT_FILE_WRITE_FAILED";
+inline constexpr std::string_view kArchiveFailed = "EXPORT_ARCHIVE_FAILED";
 inline constexpr std::string_view kXlsxGenerationFailed = "EXPORT_XLSX_GENERATION_FAILED";
 inline constexpr std::string_view kInternalError = "EXPORT_INTERNAL_ERROR";
 }
@@ -170,8 +205,13 @@ inline constexpr std::string_view kOutputPathEmpty = "Output path is empty";
 inline constexpr std::string_view kStateMissing = "State snapshot is missing";
 inline constexpr std::string_view kFileOpenFailed = "Failed to open export output file";
 inline constexpr std::string_view kFileWriteFailed = "Failed while writing export output file";
+inline constexpr std::string_view kArchiveFailed = "Failed to package export output";
 inline constexpr std::string_view kXlsxGenerationFailed = "XLSX generation failed";
 inline constexpr std::string_view kInternalError = "Unexpected error during export";
+}
+
+namespace packaging {
+inline constexpr std::string_view kZipExtension = ".zip";
 }
 
 namespace labels {

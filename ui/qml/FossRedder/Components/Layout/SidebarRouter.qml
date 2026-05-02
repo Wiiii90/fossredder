@@ -1,11 +1,23 @@
-﻿import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.3
-import FossRedder 1.0
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/SidebarRouter.qml
+ * @brief Provides the SidebarRouter component.
+ */
+
+import QtQuick 2.15
 import FossRedder.Views 1.0 as Views
+pragma ComponentBehavior: Bound
 
 Item {
     id: sidebarLeft
+    required property var appContext
+    required property var theme
+    readonly property var navigation: sidebarLeft.appContext ? sidebarLeft.appContext.navigation : null
+    readonly property var session: sidebarLeft.appContext ? sidebarLeft.appContext.session : null
+    readonly property int navExport: 5
+    readonly property int navAnalysis: 7
+    readonly property int navAnnual: 8
+    readonly property int navSettings: 6
+    readonly property int navStatements: 0
 
     readonly property int sectionActors: 0
     readonly property int sectionProperties: 1
@@ -27,158 +39,158 @@ Item {
 
     function rememberSection(sec) {
         switch (sec) {
-        case sectionActors:
-            actorLoaded = true
+        case sidebarLeft.sectionActors:
+            sidebarLeft.actorLoaded = true
             break
-        case sectionProperties:
-            propertyLoaded = true
+        case sidebarLeft.sectionProperties:
+            sidebarLeft.propertyLoaded = true
             break
-        case sectionContracts:
-            contractLoaded = true
+        case sidebarLeft.sectionContracts:
+            sidebarLeft.contractLoaded = true
             break
-        case sectionBooking:
-            bookingLoaded = true
+        case sidebarLeft.sectionBooking:
+            sidebarLeft.bookingLoaded = true
             break
-        case sectionImport:
-            importLoaded = true
+        case sidebarLeft.sectionImport:
+            sidebarLeft.importLoaded = true
             break
-        case Navigation.Export:
-            exportLoaded = true
+        case sidebarLeft.navExport:
+            sidebarLeft.exportLoaded = true
             break
-        case Navigation.Analysis:
-            analysisLoaded = true
+        case sidebarLeft.navAnalysis:
+            sidebarLeft.analysisLoaded = true
             break
-        case Navigation.Annual:
-            annualLoaded = true
+        case sidebarLeft.navAnnual:
+            sidebarLeft.annualLoaded = true
             break
-        case Navigation.Settings:
-            settingsLoaded = true
+        case sidebarLeft.navSettings:
+            sidebarLeft.settingsLoaded = true
             break
         default:
-            placeholderLoaded = true
+            sidebarLeft.placeholderLoaded = true
             break
         }
     }
 
     function resolveSection() {
-        if (!navigation) return sectionImport;
-        var v = navigation.section;
+        if (!sidebarLeft.navigation) return sidebarLeft.sectionImport;
+        var v = sidebarLeft.navigation.sectionValue;
         try {
-            if (typeof v === 'string' && v.indexOf('Export') >= 0) return Navigation.Export;
+            if (typeof v === 'string' && v.indexOf('Export') >= 0) return sidebarLeft.navExport;
         } catch(e) {}
         if (typeof v === 'number') return v;
         try {
             var s = String(v);
-            if (s.indexOf('Actors') >= 0) return sectionActors;
-            if (s.indexOf('Properties') >= 0) return sectionProperties;
-            if (s.indexOf('Contracts') >= 0) return sectionContracts;
-            if (s.indexOf('Booking') >= 0) return sectionBooking;
-            if (s.indexOf('Import') >= 0) return sectionImport;
-            if (s.indexOf('Export') >= 0) return Navigation.Export;
+            if (s.indexOf('Actors') >= 0) return sidebarLeft.sectionActors;
+            if (s.indexOf('Properties') >= 0) return sidebarLeft.sectionProperties;
+            if (s.indexOf('Contracts') >= 0) return sidebarLeft.sectionContracts;
+            if (s.indexOf('Booking') >= 0) return sidebarLeft.sectionBooking;
+            if (s.indexOf('Import') >= 0) return sidebarLeft.sectionImport;
+            if (s.indexOf('Export') >= 0) return sidebarLeft.navExport;
         } catch (e) {}
-        return sectionImport;
+        return sidebarLeft.sectionImport;
     }
 
     function update() {
-        var sec = resolveSection();
+        var sec = sidebarLeft.resolveSection();
 
-        if (sec !== sectionBooking && session) {
-            if (session.selectedTransactionId && session.selectedTransactionId.length > 0)
-                session.selectedTransactionId = ""
-            if (session.selectedStatementId && session.selectedStatementId.length > 0)
-                session.selectedStatementId = ""
+        if (sec !== sidebarLeft.sectionBooking && sidebarLeft.session) {
+            if (sidebarLeft.session.selectedTransactionId && sidebarLeft.session.selectedTransactionId.length > 0)
+                sidebarLeft.session.selectedTransactionId = ""
+            if (sidebarLeft.session.selectedStatementId && sidebarLeft.session.selectedStatementId.length > 0)
+                sidebarLeft.session.selectedStatementId = ""
         }
 
-        if (sec !== sectionBooking && navigation && navigation.bookingView !== Navigation.Statements)
-            navigation.bookingView = Navigation.Statements
+        if (sec !== sidebarLeft.sectionBooking && sidebarLeft.navigation && sidebarLeft.navigation.bookingViewValue !== sidebarLeft.navStatements)
+            sidebarLeft.navigation.setBookingViewValue(sidebarLeft.navStatements)
 
-        resolvedSection = sec;
-        rememberSection(sec)
+        sidebarLeft.resolvedSection = sec;
+        sidebarLeft.rememberSection(sec)
     }
 
-    Component { id: actorSidebarComp; Views.ActorSidebar { } }
-    Component { id: propertySidebarComp; Views.PropertySidebar { } }
-    Component { id: contractSidebarComp; Views.ContractSidebar { } }
-    Component { id: bookingSidebarComp; Views.BookingSidebar { } }
-    Component { id: importSidebarComp; Views.ImportSidebar { } }
-    Component { id: exportSidebarComp; Views.ExportSidebar { } }
-    Component { id: analysisSidebarComp; Views.AnalysisSidebar { } }
-    Component { id: annualSidebarComp; Views.AnnualSidebar { } }
-    Component { id: settingsSidebarComp; Views.SettingsSidebar { } }
+    Component { id: actorSidebarComp; Views.ActorSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: propertySidebarComp; Views.PropertySidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: contractSidebarComp; Views.ContractSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: bookingSidebarComp; Views.BookingSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: importSidebarComp; Views.ImportSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: exportSidebarComp; Views.ExportSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: analysisSidebarComp; Views.AnalysisSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: annualSidebarComp; Views.AnnualSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: settingsSidebarComp; Views.SettingsSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: placeholderSidebarComp; Views.PlaceholderSidebar { } }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === sectionActors
-        contentComponent: actorLoaded ? actorSidebarComp : null
+        visible: sidebarLeft.resolvedSection === sidebarLeft.sectionActors
+        contentComponent: sidebarLeft.actorLoaded ? actorSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === sectionProperties
-        contentComponent: propertyLoaded ? propertySidebarComp : null
+        visible: sidebarLeft.resolvedSection === sidebarLeft.sectionProperties
+        contentComponent: sidebarLeft.propertyLoaded ? propertySidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === sectionContracts
-        contentComponent: contractLoaded ? contractSidebarComp : null
+        visible: sidebarLeft.resolvedSection === sidebarLeft.sectionContracts
+        contentComponent: sidebarLeft.contractLoaded ? contractSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === sectionBooking
-        contentComponent: bookingLoaded ? bookingSidebarComp : null
+        visible: sidebarLeft.resolvedSection === sidebarLeft.sectionBooking
+        contentComponent: sidebarLeft.bookingLoaded ? bookingSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === sectionImport
-        contentComponent: importLoaded ? importSidebarComp : null
+        visible: sidebarLeft.resolvedSection === sidebarLeft.sectionImport
+        contentComponent: sidebarLeft.importLoaded ? importSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === Navigation.Export
-        contentComponent: exportLoaded ? exportSidebarComp : null
+        visible: sidebarLeft.resolvedSection === sidebarLeft.navExport
+        contentComponent: sidebarLeft.exportLoaded ? exportSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === Navigation.Analysis
-        contentComponent: analysisLoaded ? analysisSidebarComp : null
+        visible: sidebarLeft.resolvedSection === sidebarLeft.navAnalysis
+        contentComponent: sidebarLeft.analysisLoaded ? analysisSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === Navigation.Annual
-        contentComponent: annualLoaded ? annualSidebarComp : null
+        visible: sidebarLeft.resolvedSection === sidebarLeft.navAnnual
+        contentComponent: sidebarLeft.annualLoaded ? annualSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection === Navigation.Settings
-        contentComponent: settingsLoaded ? settingsSidebarComp : null
+        visible: sidebarLeft.resolvedSection === sidebarLeft.navSettings
+        contentComponent: sidebarLeft.settingsLoaded ? settingsSidebarComp : null
     }
 
     Sidebar {
         anchors.fill: parent
-        visible: resolvedSection !== sectionActors
-                 && resolvedSection !== sectionProperties
-                 && resolvedSection !== sectionContracts
-                 && resolvedSection !== sectionBooking
-                 && resolvedSection !== sectionImport
-                 && resolvedSection !== Navigation.Export
-                 && resolvedSection !== Navigation.Analysis
-                 && resolvedSection !== Navigation.Annual
-                 && resolvedSection !== Navigation.Settings
-        contentComponent: placeholderLoaded ? placeholderSidebarComp : null
+        visible: sidebarLeft.resolvedSection !== sidebarLeft.sectionActors
+                 && sidebarLeft.resolvedSection !== sidebarLeft.sectionProperties
+                 && sidebarLeft.resolvedSection !== sidebarLeft.sectionContracts
+                 && sidebarLeft.resolvedSection !== sidebarLeft.sectionBooking
+                 && sidebarLeft.resolvedSection !== sidebarLeft.sectionImport
+                 && sidebarLeft.resolvedSection !== sidebarLeft.navExport
+                 && sidebarLeft.resolvedSection !== sidebarLeft.navAnalysis
+                 && sidebarLeft.resolvedSection !== sidebarLeft.navAnnual
+                 && sidebarLeft.resolvedSection !== sidebarLeft.navSettings
+        contentComponent: sidebarLeft.placeholderLoaded ? placeholderSidebarComp : null
     }
 
-    Connections { target: navigation; function onSectionChanged() { update(); } }
+    Connections { target: sidebarLeft.navigation; function onSectionChanged() { sidebarLeft.update(); } }
 
     Component.onCompleted: {
-        update()
+        sidebarLeft.update()
     }
 }
 

@@ -19,7 +19,6 @@ struct DefaultTransactionParser {
     double amount = 0.0;
     std::string description;
     std::string metadata;
-    std::string proofImagePath;
     int status = 0;
 
     static DefaultTransactionParser parseTransaction(

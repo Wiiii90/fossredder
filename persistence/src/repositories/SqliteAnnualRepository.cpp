@@ -22,19 +22,20 @@ std::vector<std::string> deserializeIds(const std::string& s)
 }
 
 constexpr auto kSelectAnnual =
-    "SELECT id, year, transaction_ids, assigned_analysis_ids, verification_state,"
+    "SELECT id, name, year, transaction_ids, assigned_analysis_ids, verification_state,"
     " created_at, updated_at, schema_version FROM annuals";
 
 std::shared_ptr<Annual> readAnnual(persistence::StmtGuard& s) {
     auto a = std::make_shared<Annual>();
     a->id = s.columnText(0);
-    a->year = s.columnInt(1);
-    a->transactionIds       = deserializeIds(s.columnText(2));
-    a->assignedAnalysisIds  = deserializeIds(s.columnText(3));
-    a->verificationState    = static_cast<Annual::VerificationState>(s.columnInt(4));
-    a->createdAt            = s.columnText(5);
-    a->updatedAt            = s.columnText(6);
-    a->schemaVersion        = s.columnInt(7);
+    a->name = s.columnText(1);
+    a->year = s.columnInt(2);
+    a->transactionIds       = deserializeIds(s.columnText(3));
+    a->assignedAnalysisIds  = deserializeIds(s.columnText(4));
+    a->verificationState    = static_cast<Annual::VerificationState>(s.columnInt(5));
+    a->createdAt            = s.columnText(6);
+    a->updatedAt            = s.columnText(7);
+    a->schemaVersion        = s.columnInt(8);
     return a;
 }
 
@@ -57,18 +58,19 @@ void SqliteAnnualRepository::addAnnual(const std::shared_ptr<Annual>& annual) {
     if (!annual || annual->id.empty()) return;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
         "INSERT OR IGNORE INTO annuals"
-        " (id, year, transaction_ids, assigned_analysis_ids, verification_state,"
+        " (id, name, year, transaction_ids, assigned_analysis_ids, verification_state,"
         "  created_at, updated_at, schema_version)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!stmt) return;
     stmt.bindText(1, annual->id);
-    stmt.bindInt (2, annual->year);
-    stmt.bindText(3, serializeIds(annual->transactionIds));
-    stmt.bindText(4, serializeIds(annual->assignedAnalysisIds));
-    stmt.bindInt (5, static_cast<int>(annual->verificationState));
-    stmt.bindText(6, annual->createdAt);
-    stmt.bindText(7, annual->updatedAt);
-    stmt.bindInt (8, annual->schemaVersion);
+    stmt.bindText(2, annual->name);
+    stmt.bindInt (3, annual->year);
+    stmt.bindText(4, serializeIds(annual->transactionIds));
+    stmt.bindText(5, serializeIds(annual->assignedAnalysisIds));
+    stmt.bindInt (6, static_cast<int>(annual->verificationState));
+    stmt.bindText(7, annual->createdAt);
+    stmt.bindText(8, annual->updatedAt);
+    stmt.bindInt (9, annual->schemaVersion);
     stmt.step();
 }
 
@@ -99,17 +101,18 @@ void SqliteAnnualRepository::removeAnnual(const std::string& id) {
 void SqliteAnnualRepository::updateAnnual(const std::shared_ptr<Annual>& annual) {
     if (!annual || annual->id.empty()) return;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "UPDATE annuals SET year=?, transaction_ids=?, assigned_analysis_ids=?,"
+        "UPDATE annuals SET name=?, year=?, transaction_ids=?, assigned_analysis_ids=?,"
         " verification_state=?, created_at=?, updated_at=?, schema_version=? WHERE id=?;");
     if (!stmt) return;
-    stmt.bindInt (1, annual->year);
-    stmt.bindText(2, serializeIds(annual->transactionIds));
-    stmt.bindText(3, serializeIds(annual->assignedAnalysisIds));
-    stmt.bindInt (4, static_cast<int>(annual->verificationState));
-    stmt.bindText(5, annual->createdAt);
-    stmt.bindText(6, annual->updatedAt);
-    stmt.bindInt (7, annual->schemaVersion);
-    stmt.bindText(8, annual->id);
+    stmt.bindText(1, annual->name);
+    stmt.bindInt (2, annual->year);
+    stmt.bindText(3, serializeIds(annual->transactionIds));
+    stmt.bindText(4, serializeIds(annual->assignedAnalysisIds));
+    stmt.bindInt (5, static_cast<int>(annual->verificationState));
+    stmt.bindText(6, annual->createdAt);
+    stmt.bindText(7, annual->updatedAt);
+    stmt.bindInt (8, annual->schemaVersion);
+    stmt.bindText(9, annual->id);
     stmt.step();
 }
 

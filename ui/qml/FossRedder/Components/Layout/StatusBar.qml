@@ -1,28 +1,34 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/StatusBar.qml
+ * @brief Provides the StatusBar component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 
 Item {
     id: bar
+    required property var appContext
+    required property var theme
     readonly property string readyStatusText: qsTr("Ready")
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.statusBarBackground
-        border.width: Theme.borderWidthThin
-        border.color: Theme.statusBarBorder
+        color: bar.theme.statusBarBackground
+        border.width: bar.theme.borderWidthThin
+        border.color: bar.theme.statusBarBorder
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: Theme.spacingMedium
+            anchors.margins: bar.theme.spacingMedium
 
             Label {
                 id: lblStatus
-                text: (typeof status !== 'undefined' && status && status.text && status.text.length > 0)
-                      ? status.text
+                text: (bar.appContext && bar.appContext.status && bar.appContext.status.text && bar.appContext.status.text.length > 0)
+                      ? bar.appContext.status.text
                       : bar.readyStatusText
-                color: Theme.textPrimary
+                color: bar.theme.textPrimary
                 elide: Label.ElideRight
                 Layout.fillWidth: true
             }

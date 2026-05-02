@@ -19,10 +19,9 @@ TestCase {
         ]
     }
 
-    property var fileSystemController: QtObject {
-        function appDir() {
-            return "/workspace/app"
-        }
+    property var settingsController: QtObject {
+        property string language: "en"
+        signal languageChanged()
     }
 
     Component {
@@ -52,13 +51,6 @@ TestCase {
         ]
     }
 
-    function test_appDirectoryFieldShowsFileSystemAppDir() {
-        var view = createView()
-        var appDirectoryField = findRequired(view, "settingsAppDirectoryField")
-
-        compare(appDirectoryField.text, "/workspace/app")
-    }
-
     function test_languageSelectionUpdatesControllerProperty() {
         var view = createView()
         var comboBox = findRequired(view, "settingsLanguageComboBox")
@@ -66,7 +58,7 @@ TestCase {
         comboBox.currentIndex = 1
         comboBox.activated(1)
 
-        compare(languageController.currentLanguage, "de")
+        compare(settingsController.language, "de")
         compare(comboBox.currentIndex, 1)
     }
 
@@ -82,7 +74,7 @@ TestCase {
         comboBox.currentIndex = 1
         comboBox.activated(1)
 
-        compare(languageController.currentLanguage, "en")
+        compare(settingsController.language, "en")
         compare(comboBox.currentIndex, 0)
     }
 }

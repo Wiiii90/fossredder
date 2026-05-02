@@ -355,7 +355,7 @@ void SelectionState::refreshSelectedAnalysis()
 void SelectionState::refreshSelectedAnnual()
 {
     refreshSelection(selectedAnnualId_, annuals_, [](const AnnualList& model) -> const auto& { return model.annuals(); }, *selectedAnnual_, [](const Annual& annual, AnnualSelection& selection) {
-        selection.set(QString::fromStdString(annual.id), QString::number(annual.year));
+        selection.set(QString::fromStdString(annual.id), QString::fromStdString(annual.name));
     });
 }
 

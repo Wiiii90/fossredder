@@ -1,56 +1,111 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Settings/SettingsExport.qml
+ * @brief Provides the SettingsExport component.
+ */
+
 import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
-import "../../Constants/FileFormats.js" as FileFormats
+import FossRedder.Controls 1.0 as Controls
 
 Flickable {
+    id: root
+    required property var appContext
+    required property var theme
+    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
+    readonly property var actions: root.appContext ? root.appContext.actions : null
     Layout.fillWidth: true
     Layout.fillHeight: true
     contentHeight: column.implicitHeight
+    contentWidth: width
     clip: true
 
     ColumnLayout {
         id: column
-        Layout.fillWidth: true
-        Layout.fillHeight: true
         anchors.fill: parent
-        spacing: Theme.settings.spacing
-        anchors.margins: Theme.settings.margin
+        width: parent.width
+        spacing: root.theme.viewFormSpacing
 
-        GroupBox {
+        Controls.Panel {
             Layout.fillWidth: true
+            contentSpacing: root.theme.spacingSmall
+
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.settings.spacing
+                spacing: root.theme.spacingSmall
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Supported formats"); Layout.fillWidth: true }
-                    Label { text: FileFormats.supportedExportLabels().join(", "); color: Theme.textPrimary }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    Label { text: qsTr("Formula support"); Layout.fillWidth: true }
-                    Label {
+                    Text { text: qsTr("Default output folder"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.TextField {
                         Layout.fillWidth: true
-                        text: qsTr("Formulas are available for %1 exports.").arg(FileFormats.exportFormats.xlsx.label)
-                        color: Theme.textMuted
-                        wrapMode: Text.WordWrap
+                        placeholderText: qsTr("Select default output folder...")
+                        text: root.settingsController ? root.settingsController.exportDefaultDirectory : ""
+                        onTextChanged: if (root.settingsController && root.settingsController.exportDefaultDirectory !== text) root.settingsController.exportDefaultDirectory = text
+                    }
+                    Controls.SecondaryButton {
+                        text: qsTr("Browse...")
+                        onClicked: if (root.actions) root.actions.browseExportDirectory()
                     }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Defaults"); Layout.fillWidth: true }
-                    Label {
+                    Text { text: qsTr("Default archive"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.DropdownMenu {
+                        model: [qsTr("None"), qsTr("ZIP")]
+                        currentIndex: root.settingsController ? root.settingsController.exportArchiveFormat : 0
+                        onActivated: function(index) {
+                            if (root.settingsController)
+                                root.settingsController.exportArchiveFormat = index
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: qsTr("XLSX formulas"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.CheckBox {
+                        checked: root.settingsController ? root.settingsController.exportIncludeFormulas : true
+                        text: qsTr("Use Excel formulas for totals when possible")
+                        onToggled: if (root.settingsController) root.settingsController.exportIncludeFormulas = checked
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: qsTr("Implementation status"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Text {
                         Layout.fillWidth: true
-                        text: qsTr("Export options are currently selected per export action in the Export view.")
-                        color: Theme.textMuted
+                        text: qsTr("XLSX formula support is feasible and now mapped as a saved default. Totals can be written as formulas instead of static values in the spreadsheet.")
+                        color: root.theme.textMuted
                         wrapMode: Text.WordWrap
                     }
                 }
+            }
+        }
+
+        Controls.Panel {
+            Layout.fillWidth: true
+            contentSpacing: root.theme.spacingSmall
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: root.theme.spacingSmall
+
+                Text {
+                    Layout.fillWidth: true
+                    text: qsTr("Saved defaults are limited to the current export workflow: output folder, archive mode and XLSX formula handling.")
+                    color: root.theme.textMuted
+                    wrapMode: Text.WordWrap
+                }
+            }
+        }
+
+        Connections {
+            target: root.actions
+            function onExportDirectorySelected(path) {
+                if (!path || !root.settingsController) return
+                root.settingsController.exportDefaultDirectory = path
             }
         }
 

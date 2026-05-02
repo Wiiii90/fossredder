@@ -153,6 +153,8 @@ if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
             -DTARGET_DIR="$<TARGET_FILE_DIR:fossredder>"
             -DVCPKG_INSTALLED_DIR="${VCPKG_INSTALLED_DIR}"
             -DVCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET}"
+            -DAPP_QML_SOURCE_DIR="${CMAKE_SOURCE_DIR}/ui/qml/FossRedder"
+            -DAPP_QML_TOOLING_DIR="${CMAKE_BINARY_DIR}/ui/qmltooling/FossRedder"
             -DBUILD_CONFIG="$<CONFIG>"
             -P "${CMAKE_SOURCE_DIR}/cmake/QtDeploy.cmake"
         VERBATIM

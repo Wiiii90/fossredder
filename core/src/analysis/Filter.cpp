@@ -40,6 +40,29 @@ std::string trim(const std::string& value)
     return value.substr(first, last - first);
 }
 
+std::string cleanValue(const std::string& value);
+
+std::vector<std::string> splitList(const std::string& value)
+{
+    std::vector<std::string> wanted;
+    std::string current;
+    for (const char ch : cleanValue(value)) {
+        if (ch == core::constants::filters::separators::kAlternatives
+            || ch == core::constants::filters::separators::kList) {
+            const auto token = trim(current);
+            if (!token.empty()) wanted.push_back(token);
+            current.clear();
+            continue;
+        }
+
+        current.push_back(ch);
+    }
+
+    const auto tail = trim(current);
+    if (!tail.empty()) wanted.push_back(tail);
+    return wanted;
+}
+
 std::string cleanValue(const std::string& value)
 {
     auto cleaned = trim(value);
@@ -229,10 +252,29 @@ void addContractTypePredicate(core::analysis::Filter& filter, const FilterClause
 
 void addPropertyPredicate(core::analysis::Filter& filter, const FilterClause& clause)
 {
-    const std::string propertyId = cleanValue(clause.value);
-    filter.addPredicate([propertyId](const std::shared_ptr<Transaction>& transaction, const AppState&) {
+    const auto wanted = splitList(clause.value);
+    if (wanted.empty()) return;
+
+    filter.addPredicate([wanted](const std::shared_ptr<Transaction>& transaction, const AppState&) {
         if (!transaction) return false;
-        return std::find(transaction->propertyIds.begin(), transaction->propertyIds.end(), propertyId) != transaction->propertyIds.end();
+
+        for (const auto& propertyId : wanted) {
+            if (std::find(transaction->propertyIds.begin(), transaction->propertyIds.end(), propertyId) != transaction->propertyIds.end()) {
+                return true;
+            }
+        }
+        return false;
+    });
+}
+
+void addAllocatablePredicate(core::analysis::Filter& filter, const FilterClause& clause)
+{
+    const std::string mode = toLowerStr(cleanValue(clause.value));
+    if (mode != "allocatable" && mode != "non-allocatable") return;
+
+    const bool expected = mode == "allocatable";
+    filter.addPredicate([expected](const std::shared_ptr<Transaction>& transaction, const AppState&) {
+        return transaction && transaction->allocatable == expected;
     });
 }
 
@@ -261,6 +303,8 @@ Filter parseFilterSpec(const std::string& spec) {
             addContractTypePredicate(f, *clause);
         } else if (clause->key == core::constants::filters::kPropertyId) {
             addPropertyPredicate(f, *clause);
+        } else if (clause->key == core::constants::filters::kAllocatable) {
+            addAllocatablePredicate(f, *clause);
         }
     }
 

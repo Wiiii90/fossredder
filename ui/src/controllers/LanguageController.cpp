@@ -53,25 +53,47 @@ LanguageController::LanguageController(QApplication* application, QQmlEngine* en
     , application_(application)
     , engine_(engine)
 {
+    refreshAvailableLanguages();
+
+    const QString preferredLanguage = normalizeLanguageCode(persistedLanguage());
+    applyCurrentLanguage(preferredLanguage);
+}
+
+void LanguageController::refreshAvailableLanguages()
+{
+    availableLanguages_.clear();
     availableLanguages_.append(makeLanguageOption(core::constants::localization::languages::kEnglish.data(),
                                                   ui::text::language::englishLabel(),
                                                   true));
     availableLanguages_.append(makeLanguageOption(core::constants::localization::languages::kGerman.data(),
                                                   ui::text::language::germanLabel(),
-                                                  translationFileExists(fromCoreString(core::constants::localization::languages::kGerman))));
+                                                  true));
+}
 
-    const QString preferredLanguage = normalizeLanguageCode(persistedLanguage());
-    setCurrentLanguage(preferredLanguage);
+bool LanguageController::applyLanguage(const QString& languageCode)
+{
+    const bool changed = applyCurrentLanguage(languageCode);
+    return changed || normalizeLanguageCode(languageCode) == currentLanguage_;
 }
 
 void LanguageController::setCurrentLanguage(const QString& languageCode)
+{
+    applyCurrentLanguage(languageCode);
+}
+
+bool LanguageController::applyCurrentLanguage(const QString& languageCode)
 {
     const QString normalizedLanguage = normalizeLanguageCode(languageCode);
     QString targetLanguage = normalizedLanguage;
     if (!isLanguageAvailable(targetLanguage)) {
         targetLanguage = fromCoreString(core::constants::localization::languages::kEnglish);
     }
-    if (currentLanguage_ == targetLanguage) return;
+
+    const bool isSameLanguage = currentLanguage_ == targetLanguage;
+    if (isSameLanguage && targetLanguage == fromCoreString(core::constants::localization::languages::kEnglish)) {
+        persistLanguage(targetLanguage);
+        return false;
+    }
 
     if (application_) application_->removeTranslator(&translator_);
 
@@ -81,10 +103,18 @@ void LanguageController::setCurrentLanguage(const QString& languageCode)
         }
     }
 
+    if (isSameLanguage && currentLanguage_ == targetLanguage) {
+        if (application_) application_->installTranslator(&translator_);
+        persistLanguage(targetLanguage);
+        retranslateUi();
+        return false;
+    }
+
     currentLanguage_ = targetLanguage;
     persistLanguage(currentLanguage_);
     retranslateUi();
     emit currentLanguageChanged();
+    return true;
 }
 
 bool LanguageController::isLanguageAvailable(const QString& languageCode) const

@@ -10,6 +10,7 @@
 #include "core/application/AppStateFacade.h"
 #include "ui/observability/Origins.h"
 #include "ui/payload/EntityPayloadMapper.h"
+#include "ui/state/StateFacadeProjection.h"
 #include "ui/util/CoreFacadeGuard.h"
 #include "ui/util/StringConversions.h"
 
@@ -56,6 +57,42 @@ QVariantMap TransactionController::transaction(const QString& id) const
 QVariantList TransactionController::transactions() const
 {
     return core_ ? ui::payload::entity::toPayloadList(core_->state().transactions) : QVariantList{};
+}
+
+QVariantList TransactionController::addTransactions(const QString& statementId,
+                                                    const QVariantList& transactionDrafts)
+{
+    return ui::util::guard::invokeValue<QVariantList>(
+        core_, observability::origins::controller::transaction::kAdd, {}, [&]() {
+            QVariantList createdIds;
+            if (statementId.isEmpty()) {
+                return createdIds;
+            }
+
+            const QVariantList drafts = ui::normalizeTransactionDrafts(transactionDrafts);
+            for (const auto& draftValue : drafts) {
+                const QVariantMap draft = ui::normalizeTransactionDraft(draftValue.toMap());
+                if (!ui::transactionDraftHasContent(draft)) {
+                    continue;
+                }
+
+                const std::string createdId = core_->addTransaction(
+                    strings::toStdString(draft.value(QStringLiteral("name")).toString()),
+                    strings::toStdString(draft.value(QStringLiteral("bookingDate")).toString()),
+                    draft.value(QStringLiteral("amount")).toDouble(),
+                    strings::toStdString(draft.value(QStringLiteral("description")).toString()),
+                    strings::toStdString(statementId),
+                    toTransactionStatus(draft.value(QStringLiteral("status")).toInt()),
+                    strings::toStdString(draft.value(QStringLiteral("actorId")).toString()),
+                    draft.value(QStringLiteral("allocatable")).toBool(),
+                    strings::toStdList(draft.value(QStringLiteral("propertyIds")).toStringList()));
+
+                if (!createdId.empty()) {
+                    createdIds.push_back(QString::fromStdString(createdId));
+                }
+            }
+            return createdIds;
+        });
 }
 
 QString TransactionController::addTransaction(const QString& name,

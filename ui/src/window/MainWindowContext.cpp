@@ -28,30 +28,52 @@ MainWindowServices installMainWindowContext(QQmlContext &qmlContext,
                                             QWidget *parentWindow,
                                             QObject *parent) {
   MainWindowServices services;
+  auto *mainWindow = qobject_cast<MainWindow *>(parentWindow);
   services.actions = new ui::Actions(parent);
-  auto *navigation = new ui::NavigationState(parent);
+  services.navigation = new ui::NavigationState(parent);
   services.dataSession = new ui::StateFacade(parent);
-  auto *fileSystem = new ui::FileSystemController(parent);
+  services.fileSystem = new ui::FileSystemController(parent);
   services.status = new ui::StatusState(parent);
   services.status->setText(ui::text::status::ready());
 
-  qmlContext.setContextProperty(ui::qml::contracts::context::kActions,
-                                services.actions);
-  qmlContext.setContextProperty(ui::qml::contracts::context::kNavigation,
-                                navigation);
-  qmlContext.setContextProperty(ui::qml::contracts::context::kSession,
-                                services.dataSession);
-  qmlContext.setContextProperty(
-      ui::qml::contracts::context::kFileSystemController, fileSystem);
-  qmlContext.setContextProperty(ui::qml::contracts::context::kStatus,
-                                services.status);
+  if (mainWindow) {
+    mainWindow->setQmlContextProperty(ui::qml::contracts::context::kActions,
+                                      services.actions);
+    mainWindow->setQmlContextProperty(ui::qml::contracts::context::kNavigation,
+                                      services.navigation);
+    mainWindow->setQmlContextProperty(ui::qml::contracts::context::kSession,
+                                      services.dataSession);
+    mainWindow->setQmlContextProperty(ui::qml::contracts::context::kFileSystemController,
+                                      services.fileSystem);
+    mainWindow->setQmlContextProperty(ui::qml::contracts::context::kStatus,
+                                      services.status);
+  } else {
+    qmlContext.setContextProperty(ui::qml::contracts::context::kActions,
+                                  services.actions);
+    qmlContext.setContextProperty(ui::qml::contracts::context::kNavigation,
+                                  services.navigation);
+    qmlContext.setContextProperty(ui::qml::contracts::context::kSession,
+                                  services.dataSession);
+    qmlContext.setContextProperty(
+        ui::qml::contracts::context::kFileSystemController, services.fileSystem);
+    qmlContext.setContextProperty(ui::qml::contracts::context::kStatus,
+                                  services.status);
+  }
 
 #ifdef QT_DEBUG
-  qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
-                                QVariant(true));
+  if (mainWindow)
+    mainWindow->setQmlContextValue(ui::qml::contracts::context::kIsDebugBuild,
+                                   QVariant(true));
+  else
+    qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
+                                  QVariant(true));
 #else
-  qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
-                                QVariant(false));
+  if (mainWindow)
+    mainWindow->setQmlContextValue(ui::qml::contracts::context::kIsDebugBuild,
+                                   QVariant(false));
+  else
+    qmlContext.setContextProperty(ui::qml::contracts::context::kIsDebugBuild,
+                                  QVariant(false));
 #endif
 
   return services;
@@ -141,6 +163,22 @@ void wireMainWindowActions(MainWindow &window,
           if (status)
             status->setText(
                 ui::text::mainWindow::exportPathStatusPattern().arg(file));
+        }
+      });
+
+  QObject::connect(
+      actions, &ui::Actions::exportDirectoryBrowseRequested, &window,
+      [&window, actions, status = services.status](const QString &title) {
+        const QString directory = ui::dialogs::pickExportDirectory(&window, title);
+        if (!directory.isEmpty()) {
+          ui::window::reportMainWindowFlow(
+              ui::observability::origins::mainWindow::kActionRouting,
+              "UI selected export directory", core::errors::ErrorSeverity::Info,
+              ui::window::makePathContext(directory));
+          emit actions->exportDirectorySelected(directory);
+          if (status)
+            status->setText(
+                ui::text::mainWindow::exportPathStatusPattern().arg(directory));
         }
       });
 }

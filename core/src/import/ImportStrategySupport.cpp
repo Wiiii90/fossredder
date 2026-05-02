@@ -134,17 +134,6 @@ std::vector<detail::PageWork> collectPageWork(const ImportRequest& req,
     return pages;
 }
 
-std::filesystem::path createProofDir(const std::filesystem::path& runRoot,
-                                     const std::string& proofOutputDir,
-                                     core::errors::IErrorReporter* errorReporter)
-{
-    if (proofOutputDir.empty()) return {};
-
-    const auto proofDir = std::filesystem::path(proofOutputDir);
-    ensureDirectoryExists(proofDir, errorReporter, "core::import::DefaultImportStatementStrategy::createProofDir");
-    return proofDir;
-}
-
 void attachMetricsArtifact(ImportResult& out,
                            const ImportRequest& req,
                            const std::vector<detail::PageWork>& pages,

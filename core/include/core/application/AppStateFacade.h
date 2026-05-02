@@ -7,12 +7,15 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "core/application/CatalogService.h"
 #include "core/errors/IErrorReporter.h"
 #include "core/models/StatementDraft.h"
+#include "core/models/ImportLog.h"
+#include "core/models/ExportLog.h"
 #include "core/models/Transaction.h"
 #include "core/storage/IStorageManager.h"
 
@@ -100,15 +103,42 @@ public:
                            const std::vector<std::string>& propertyIds);
     void deleteTransaction(const std::string& id);
 
-    std::string addAnalysis(const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec);
-    void updateAnalysis(const std::string& id, const std::string& name, const std::string& type, const std::string& configJson, const std::string& filterSpec);
+    std::string addAnalysis(const std::string& name,
+                            const std::string& type,
+                            const std::string& configJson,
+                            const std::string& filterSpec,
+                            const std::string& exportFormat,
+                            bool includeCalcAdjustments,
+                            const std::string& exportStateJson,
+                            const std::string& snapshotTransactionsJson);
+    void updateAnalysis(const std::string& id,
+                        const std::string& name,
+                        const std::string& type,
+                        const std::string& configJson,
+                        const std::string& filterSpec,
+                        const std::string& exportFormat,
+                        bool includeCalcAdjustments,
+                        const std::string& exportStateJson,
+                        const std::string& snapshotTransactionsJson);
     void deleteAnalysis(const std::string& id);
 
-    std::string addAnnual(int year);
-    void updateAnnual(const std::string& id, int year);
+    std::string addAnnual(const std::string& name,
+                          int year,
+                          const std::vector<std::string>& assignedAnalysisIds = {});
+    void updateAnnual(const std::string& id,
+                      const std::string& name,
+                      int year,
+                      const std::vector<std::string>& assignedAnalysisIds = {});
     void deleteAnnual(const std::string& id);
 
     std::string finalizeStatementDraft(const core::domain::StatementDraft& draft);
+    void saveStatementDraft(const core::domain::StatementDraft& draft);
+    void clearStatementDraft(const std::string& draftId = {});
+    std::optional<core::domain::StatementDraft> loadStatementDraft(const std::string& draftId = {}) const;
+    void setImportLogs(const std::vector<core::domain::ImportLog>& logs);
+    std::vector<std::shared_ptr<core::domain::ImportLog>> importLogs() const;
+    void setExportLogs(const std::vector<core::domain::ExportLog>& logs);
+    std::vector<std::shared_ptr<core::domain::ExportLog>> exportLogs() const;
     void commit();
     void notifyState();
 

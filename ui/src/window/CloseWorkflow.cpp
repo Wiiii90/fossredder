@@ -27,7 +27,12 @@ void CloseWorkflow::requestClose(QCloseEvent* event, const std::function<void()>
 
     pendingCloseAfterSave_ = true;
     event->ignore();
-    if (requestSave) requestSave();
+    try {
+        if (requestSave) requestSave();
+    } catch (...) {
+        pendingCloseAfterSave_ = false;
+        allowImmediateClose_ = true;
+    }
 }
 
 bool CloseWorkflow::handleStorageOperationSucceeded(const QString& operation,
@@ -47,7 +52,7 @@ bool CloseWorkflow::handleStorageOperationFailed(const QString& operation, const
     if (!pendingCloseAfterSave_ || operation != saveOperation) return false;
 
     pendingCloseAfterSave_ = false;
-    allowImmediateClose_ = false;
+    allowImmediateClose_ = true;
     return true;
 }
 

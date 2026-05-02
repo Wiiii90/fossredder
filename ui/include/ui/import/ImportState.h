@@ -17,7 +17,6 @@
 
 #include "core/models/AppState.h"
 #include "core/models/TransactionDraft.h"
-#include "ui/models/ImportRunList.h"
 #include "ui/models/StatementDraft.h"
 
 namespace core::domain { class Statement; }
@@ -27,7 +26,7 @@ namespace ui::importing {
 
 class ImportState {
 public:
-    explicit ImportState(ImportRunList& runs);
+    ImportState() = default;
 
     bool isRunning() const noexcept { return isRunning_; }
     double progress() const noexcept { return progress_; }
@@ -38,7 +37,7 @@ public:
     const QString& selectedFile() const noexcept { return selectedFile_; }
     const QStringList& queuedFiles() const noexcept { return queuedFiles_; }
     StatementDraft* draft() const noexcept { return draft_; }
-    int artifactCount() const noexcept { return artifacts_.size(); }
+    int artifactCount() const noexcept { return artifactCount_; }
     bool cancelRequested() const noexcept { return canceled_; }
 
     bool setSelectedFile(const QString& path);
@@ -46,7 +45,6 @@ public:
     bool resetStatus();
     bool clearDraft();
 
-    QByteArray artifactBytes(const QString& key) const;
     QString currentRunFile() const;
     QString takeSelectedFileForStart();
     bool takeNextQueuedFile(QString& nextFile);
@@ -56,12 +54,21 @@ public:
     void beginCancel(bool clearQueue);
     void recordCanceled(const QString& now);
     void recordFailed(const QString& now, const QString& errorMessage);
+    void recordFinished(const QString& now);
     bool populateDraft(const QString& now,
                        const std::shared_ptr<core::domain::Statement>& statement,
                         const core::domain::AppState& state,
                        const std::vector<core::domain::TransactionDraft>& transactions,
                        const std::map<std::string, std::vector<uint8_t>>& artifacts,
+                       const QString& draftId,
+                       int currentTransactionIndex,
                        QObject* parent);
+    bool restoreDraft(const std::shared_ptr<core::domain::Statement>& statement,
+                      const core::domain::AppState& state,
+                      const std::vector<core::domain::TransactionDraft>& transactions,
+                      const QString& draftId,
+                      int currentTransactionIndex,
+                      QObject* parent);
     void updateProgress(double progress, const QString& phase, const QRegularExpression& pagePattern);
 
 private:
@@ -69,10 +76,8 @@ private:
     void clearTransientImportState();
     void resetCancellationState();
     void storeArtifacts(const std::map<std::string, std::vector<uint8_t>>& artifacts);
-    void finalizeRun(const QString& now, const QString& phase, const QString& status, const QString& message = {});
-    void appendRun(const QString& now, const QString& status, const QString& message);
+    void finalizeRun(const QString& phase);
 
-    ImportRunList& runs_;
     bool isRunning_ = false;
     double progress_ = 0.0;
     QString phase_;
@@ -82,7 +87,7 @@ private:
     QString selectedFile_;
     QStringList queuedFiles_;
     StatementDraft* draft_ = nullptr;
-    QHash<QString, QByteArray> artifacts_;
+    int artifactCount_ = 0;
     bool canceled_ = false;
     bool cancelClearsQueue_ = false;
     QString currentImportFile_;

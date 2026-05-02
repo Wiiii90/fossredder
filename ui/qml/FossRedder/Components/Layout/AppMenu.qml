@@ -1,25 +1,45 @@
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/AppMenu.qml
+ * @brief Provides the AppMenu component.
+ */
+
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import FossRedder 1.0
+pragma ComponentBehavior: Bound
 
 MenuBar {
     id: root
+    required property var navigation
+    required property var actions
+    required property var languageController
+    required property var settingsController
+    required property var theme
+    readonly property int navActors: 0
+    readonly property int navProperties: 1
+    readonly property int navContracts: 2
+    readonly property int navBooking: 3
+    readonly property int navImport: 4
+    readonly property int navExport: 5
+    readonly property int navSettings: 6
+    readonly property int navAnalysis: 7
+    readonly property int navAnnual: 8
+    readonly property int navStatements: 0
 
     function clearBookingStateForSection(section) {
-        if (!navigation || section === Navigation.Booking) return
-        navigation.bookingView = Navigation.Statements
+        if (!root.navigation || section === root.navBooking) return
+        root.navigation.setBookingViewValue(root.navStatements)
     }
 
     function navigateToSection(section) {
-        if (!navigation) return
-        clearBookingStateForSection(section)
-        navigation.section = section
+        if (!root.navigation) return
+        root.clearBookingStateForSection(section)
+        root.navigation.setSectionValue(section)
     }
 
     background: Rectangle {
-        color: Theme.toolbarBackground
-        border.width: Theme.borderWidthThin
-        border.color: Theme.toolbarBorder
+        color: root.theme.toolbarBackground
+        border.width: root.theme.borderWidthThin
+        border.color: root.theme.toolbarBorder
     }
 
     Menu {
@@ -28,13 +48,13 @@ MenuBar {
         Action {
             text: qsTr("New")
             shortcut: StandardKey.New
-            onTriggered: if (actions) actions.newFile()
+            onTriggered: if (root.actions) root.actions.newFile()
         }
 
         Action {
             text: qsTr("Open...")
             shortcut: StandardKey.Open
-            onTriggered: if (actions) actions.openFile()
+            onTriggered: if (root.actions) root.actions.openFile()
         }
 
         MenuSeparator { }
@@ -42,42 +62,42 @@ MenuBar {
         Action {
             text: qsTr("Save")
             shortcut: StandardKey.Save
-            onTriggered: if (actions) actions.saveFile()
+            onTriggered: if (root.actions) root.actions.saveFile()
         }
 
         Action {
             text: qsTr("Save As...")
             shortcut: StandardKey.SaveAs
-            onTriggered: if (actions) actions.saveFileAs()
+            onTriggered: if (root.actions) root.actions.saveFileAs()
         }
 
         MenuSeparator { }
 
-            Action {
-                text: qsTr("Import...")
-                onTriggered: {
-                    navigateToSection(Navigation.Import)
-                    if (actions) actions.browseImportPdf()
-                }
+        Action {
+            text: qsTr("Import...")
+            onTriggered: {
+                root.navigateToSection(root.navImport)
+                if (root.actions) root.actions.browseImportPdf()
             }
+        }
 
-            Action {
-                text: qsTr("Export...")
-                onTriggered: {
-                    navigateToSection(Navigation.Export)
-                }
+        Action {
+            text: qsTr("Export...")
+            onTriggered: {
+                root.navigateToSection(root.navExport)
             }
+        }
 
         MenuSeparator { }
 
-            Action {
-                text: qsTr("Quit")
-                shortcut: StandardKey.Quit
-                onTriggered: {
-                    if (actions && actions.quitAction) actions.quitAction.trigger()
-                    else Qt.quit()
-                }
+        Action {
+            text: qsTr("Quit")
+            shortcut: StandardKey.Quit
+            onTriggered: {
+                if (root.actions && root.actions.quitAction) root.actions.quitAction.trigger()
+                else Qt.quit()
             }
+        }
     }
 
     Menu {
@@ -85,41 +105,41 @@ MenuBar {
 
         Action {
             text: qsTr("Import")
-            onTriggered: navigateToSection(Navigation.Import)
+            onTriggered: root.navigateToSection(root.navImport)
         }
         Action {
             text: qsTr("Export")
-            onTriggered: navigateToSection(Navigation.Export)
+            onTriggered: root.navigateToSection(root.navExport)
         }
         Action {
             text: qsTr("Booking")
-            onTriggered: navigateToSection(Navigation.Booking)
+            onTriggered: root.navigateToSection(root.navBooking)
         }
         Action {
             text: qsTr("Actors")
-            onTriggered: navigateToSection(Navigation.Actors)
+            onTriggered: root.navigateToSection(root.navActors)
         }
         Action {
             text: qsTr("Properties")
-            onTriggered: navigateToSection(Navigation.Properties)
+            onTriggered: root.navigateToSection(root.navProperties)
         }
         Action {
             text: qsTr("Contracts")
-            onTriggered: navigateToSection(Navigation.Contracts)
+            onTriggered: root.navigateToSection(root.navContracts)
         }
         MenuSeparator { }
         Action {
             text: qsTr("Analysis")
-            onTriggered: navigateToSection(Navigation.Analysis)
+            onTriggered: root.navigateToSection(root.navAnalysis)
         }
         Action {
             text: qsTr("Annual")
-            onTriggered: navigateToSection(Navigation.Annual)
+            onTriggered: root.navigateToSection(root.navAnnual)
         }
         MenuSeparator { }
         Action {
             text: qsTr("Settings")
-            onTriggered: navigateToSection(Navigation.Settings)
+            onTriggered: root.navigateToSection(root.navSettings)
         }
     }
 
@@ -128,16 +148,21 @@ MenuBar {
         title: qsTr("Language")
 
         Instantiator {
-            model: languageController ? languageController.availableLanguages : []
+            model: root.languageController ? root.languageController.availableLanguages : []
 
             delegate: Action {
                 required property var modelData
                 text: modelData.label
                 checkable: true
-                checked: languageController && languageController.currentLanguage === modelData.code
+                checked: root.languageController && root.languageController.currentLanguage === modelData.code
                 enabled: modelData.available !== false
                 onTriggered: {
-                    if (languageController && enabled) languageController.currentLanguage = modelData.code
+                    if (!enabled)
+                        return
+                    if (root.settingsController)
+                        root.settingsController.language = modelData.code
+                    if (root.languageController)
+                        root.languageController.applyLanguage(modelData.code)
                 }
             }
 
@@ -152,7 +177,7 @@ MenuBar {
         Action {
             text: qsTr("About")
             onTriggered: {
-                if (actions && actions.aboutAction) actions.aboutAction.trigger()
+                if (root.actions && root.actions.aboutAction) root.actions.aboutAction.trigger()
             }
         }
     }

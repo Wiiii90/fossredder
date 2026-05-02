@@ -1,60 +1,53 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/ImportView.qml
+ * @brief Provides the ImportView component.
+ */
+
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
+import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
-import "../../Constants/FileFormats.js" as FileFormats
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
+    required property var appContext
+    required property var theme
+    readonly property var importController: root.appContext ? root.appContext.importController : null
+    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
+    readonly property var actions: root.appContext ? root.appContext.actions : null
+    readonly property var status: root.appContext ? root.appContext.status : null
+
+    function ensureDefaultImportSelection() {
+        if (!root.hasImportController || !root.settingsController || root.importController.isRunning)
+            return
+        if ((root.importController.selectedFile && root.importController.selectedFile.length > 0) || root.importController.queuedCount > 0)
+            return
+        if (root.settingsController.importDefaultPath && root.settingsController.importDefaultPath.length > 0)
+            root.importController.selectedFile = root.settingsController.importDefaultPath
+    }
+
     Component.onCompleted: {
         Qt.callLater(function() {
             root.importPageActivated = true
+            root.ensureDefaultImportSelection()
             root.updateContentIndex()
         })
     }
-    readonly property string automaticSettingsText: qsTr("Settings are currently managed automatically.")
-    readonly property string importCanceledStatusText: qsTr("Import canceled")
-    readonly property string importFinishedStatusText: qsTr("Import finished")
-    readonly property string importFailedStatusText: qsTr("Import failed")
     Layout.fillWidth: true
     Layout.fillHeight: true
     anchors.fill: parent
-    anchors.margins: Theme.spacingMedium
+    anchors.margins: root.theme.pageContentMargin
 
-    property bool hasImportController: typeof importController !== 'undefined'
+    property bool hasImportController: root.importController !== null
 
-    property bool showAdvanced: false
-    property bool showPoppler: false
-    property bool showTesseract: false
-    property bool showParser: false
-
-    property var pendingFiles: []
     property bool importPageActivated: false
 
     function updateContentIndex() {
-        contentStack.currentIndex = (hasImportController && importController && importController.draft) ? 1 : 0
+        contentStack.currentIndex = (root.hasImportController && root.importController && root.importController.draft) ? 1 : 0
     }
 
-    function commitImportFiles(paths, updatePathField) {
-        if (!paths || paths.length === 0) return
-
-        var pdfs = []
-        for (var i = 0; i < paths.length; ++i) {
-            var p = String(paths[i])
-            if (!p || p.length === 0) continue
-            if (FileFormats.isSupportedImportPath(p)) pdfs.push(p)
-        }
-        if (pdfs.length === 0) return
-
-        if (updatePathField && manualPath) manualPath.text = pdfs[0]
-        if (hasImportController) importController.addFiles(pdfs)
-        pendingFiles = []
-    }
-
-    function addImportFiles(paths) {
-        commitImportFiles(paths, true)
-    }
 
     StackLayout {
         id: contentStack
@@ -79,10 +72,18 @@ Item {
     }
 
     Connections {
-        target: hasImportController ? importController : null
+        target: root.hasImportController ? root.importController : null
 
         function onStateChanged() {
+            root.ensureDefaultImportSelection()
             root.updateContentIndex()
+        }
+    }
+
+    Connections {
+        target: root.settingsController
+        function onImportDefaultPathChanged() {
+            root.ensureDefaultImportSelection()
         }
     }
 
@@ -95,14 +96,14 @@ Item {
 
             ColumnLayout {
                 anchors.fill: parent
-                spacing: Theme.spacing
+                spacing: root.theme.spacing
 
                 Flickable {
                     id: scroll
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    contentHeight: content.implicitHeight
+                    contentHeight: Math.max(content.implicitHeight, scroll.height)
                     contentWidth: width
 
                     ScrollBar.vertical: ScrollBar {
@@ -112,244 +113,72 @@ Item {
                     ColumnLayout {
                         id: content
                         width: scroll.width
-                        spacing: Theme.spacing
+                        height: Math.max(implicitHeight, scroll.height)
+                        spacing: root.theme.spacing
 
-                        Controls.Panel {
+                        ImportForm {
                             Layout.fillWidth: true
-                            contentSpacing: Theme.spacingSmall
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                Label { text: qsTr("Source"); Layout.preferredWidth: Theme.formLabelWidth }
-                                Controls.ComboBox {
-                                    id: sourceKind
-                                    model: FileFormats.supportedImportSourceLabels()
-                                    currentIndex: 0
-                                }
-                            }
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                Label { text: qsTr("Strategy"); Layout.preferredWidth: Theme.formLabelWidth }
-                                Controls.ComboBox {
-                                    id: strategy
-                                    model: FileFormats.supportedStatementStrategyLabels()
-                                    currentIndex: 0
-                                }
-                            }
-
-                            Controls.CheckBox {
-                                text: qsTr("Advanced settings")
-                                checked: root.showAdvanced
-                                onToggled: root.showAdvanced = checked
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                visible: root.showAdvanced
-                                spacing: Theme.spacingSmall
-
-                                Controls.CheckBox {
-                                    text: qsTr("Poppler")
-                                    checked: root.showPoppler
-                                    onToggled: root.showPoppler = checked
-                                }
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    visible: root.showPoppler
-                                    Layout.leftMargin: Theme.spacing
-                                    Label { text: root.automaticSettingsText; color: Theme.textMuted; wrapMode: Text.WordWrap }
-                                }
-
-                                Controls.CheckBox {
-                                    text: qsTr("Tesseract")
-                                    checked: root.showTesseract
-                                    onToggled: root.showTesseract = checked
-                                }
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    visible: root.showTesseract
-                                    Layout.leftMargin: Theme.spacing
-                                    Label { text: root.automaticSettingsText; color: Theme.textMuted; wrapMode: Text.WordWrap }
-                                }
-
-                                Controls.CheckBox {
-                                    text: qsTr("Parser")
-                                    checked: root.showParser
-                                    onToggled: root.showParser = checked
-                                }
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    visible: root.showParser
-                                    Layout.leftMargin: Theme.spacing
-                                    Label { text: root.automaticSettingsText; color: Theme.textMuted; wrapMode: Text.WordWrap }
-                                }
-                            }
+                            theme: root.theme
                         }
 
-                        Controls.Panel {
+                        ImportPanel {
                             Layout.fillWidth: true
-                            contentSpacing: Theme.spacingSmall
-
-                            RowLayout {
-                                Layout.fillWidth: true
-
-                                Controls.TextField {
-                                    id: manualPath
-                                    Layout.fillWidth: true
-                                    placeholderText: qsTr("Enter file path...")
-                                    enabled: root.hasImportController && !importController.isRunning
-                                    onTextEdited: { root.pendingFiles = [] }
-                                }
-
-                                Controls.Button {
-                                    text: qsTr("Add")
-                                    enabled: root.hasImportController && !importController.isRunning && manualPath.text && manualPath.text.trim().length > 0
-                                    fillColor: Theme.surface
-                                    textColor: Theme.textPrimary
-                                    onClicked: {
-                                        var files = []
-                                        if (root.pendingFiles && root.pendingFiles.length > 0) files = root.pendingFiles
-                                        else files = [manualPath.text]
-                                        root.commitImportFiles(files, false)
-                                        manualPath.text = ""
-                                        root.pendingFiles = []
-                                    }
-                                }
-
-                                Controls.Button {
-                                    text: qsTr("Browse...")
-                                    enabled: root.hasImportController && !importController.isRunning
-                                    fillColor: Theme.surface
-                                    textColor: Theme.textPrimary
-                                    onClicked: { if (actions) actions.browseImportPdf() }
-                                }
-                            }
-
-                            Controls.DropZone {
-                                Layout.fillWidth: true
-                                enabled: root.hasImportController && !importController.isRunning
-                                title: qsTr("Drop PDFs here")
-                                subtitle: ""
-                                allowBrowse: false
-                                clickToBrowse: true
-                                queuedCount: root.hasImportController ? importController.queuedCount : 0
-                                files: root.hasImportController ? (importController.selectedFile && importController.selectedFile.length > 0 ? [importController.selectedFile].concat(importController.queuedFiles) : importController.queuedFiles) : []
-                                onBrowseRequested: { if (actions) actions.browseImportPdf() }
-                            }
-
-                            Connections {
-                                target: actions
-                                function onImportFileSelected(path) {
-                                    if (!path) return
-                                    manualPath.text = path
-                                    root.pendingFiles = [path]
-                                }
-                                function onImportFilesSelected(paths) {
-                                    if (!paths || paths.length === 0) return
-                                    manualPath.text = paths[0]
-                                    root.pendingFiles = paths
-                                }
-                                function onImportFileDropped(path) {
-                                    if (!path) return
-                                    root.commitImportFiles([path], false)
-                                }
-                                function onImportFilesDropped(paths) {
-                                    if (!paths || paths.length === 0) return
-                                    root.commitImportFiles(paths, false)
-                                }
-                            }
-
-                            Connections {
-                                target: root.hasImportController ? importController : null
-                                function onImportCanceled() {
-                                    if (typeof status !== 'undefined' && status) status.text = root.importCanceledStatusText
-                                }
-                                function onImportFinished() {
-                                    if (typeof status !== 'undefined' && status) status.text = root.importFinishedStatusText
-                                }
-                                function onImportFailed(error) {
-                                    if (typeof status !== 'undefined' && status)
-                                        status.text = (error && error.length > 0) ? error : root.importFailedStatusText
-                                }
-                            }
+                            Layout.fillHeight: true
+                            Layout.minimumHeight: 260
+                            theme: root.theme
+                            importController: root.importController
+                            actions: root.actions
+                            status: root.status
                         }
 
-                        Controls.Panel {
-                            Layout.fillWidth: true
-                            contentSpacing: Theme.spacingSmall
-
-                            Controls.ProgressBar {
-                                Layout.fillWidth: true
-                                visible: root.hasImportController && (importController.isRunning || importController.progress > 0)
-                                value: root.hasImportController ? importController.progress : 0
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: root.hasImportController ? (importController.error && importController.error.length > 0 ? importController.error : importController.phase) : ""
-                                color: root.hasImportController && importController.error && importController.error.length > 0 ? Theme.danger : Theme.textPrimary
-                                wrapMode: Text.WordWrap
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                visible: root.hasImportController ? (importController.isRunning && importController.pageCount > 0) : false
-                                text: root.hasImportController ? qsTr("Page %1/%2").arg(importController.currentPage).arg(importController.pageCount) : ""
-                                color: Theme.textMuted
-                                wrapMode: Text.WordWrap
-                            }
-                        }
-
-                        Item { Layout.preferredHeight: Theme.spacingLarge }
                     }
                 }
 
-                RowLayout {
+                ImportProgressBar {
                     Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignBottom
+                    theme: root.theme
+                    importController: root.importController
+                    hasImportController: root.hasImportController
+                }
 
-                    Controls.Button {
-                        text: qsTr("Cancel")
-                        visible: root.hasImportController && importController.isRunning
-                        enabled: root.hasImportController && importController.isRunning
-                        fillColor: Theme.surface
-                        textColor: Theme.textPrimary
-                        onClicked: if (root.hasImportController) importController.cancelImport()
+                Components.BottomBar {
+                    Layout.fillWidth: true
+                    theme: root.theme
+
+                    Controls.SecondaryButton {
+                        text: qsTr("Clear")
+                        visible: root.hasImportController && !root.importController.isRunning
+                        enabled: root.hasImportController && !root.importController.isRunning
+                        onClicked: { if (root.hasImportController) root.importController.resetStatus() }
                     }
 
-                    Controls.Button {
-                        text: qsTr("Cancel all")
-                        visible: root.hasImportController && importController.isRunning && importController.queuedCount > 0
-                        enabled: visible
-                        fillColor: Theme.surface
-                        textColor: Theme.textPrimary
-                        onClicked: if (root.hasImportController) importController.cancelAllImports()
+                    Controls.SecondaryButton {
+                        text: qsTr("Cancel")
+                        visible: root.hasImportController && root.importController.isRunning
+                        enabled: root.hasImportController && root.importController.isRunning
+                        onClicked: if (root.hasImportController) root.importController.cancelImport()
+                    }
+
+                    Controls.SecondaryButton {
+                        text: qsTr("Pause")
+                        visible: root.hasImportController && root.importController.isRunning
+                        enabled: root.hasImportController && root.importController.isRunning
                     }
 
                     Item { Layout.fillWidth: true }
 
-                    Controls.Button {
-                        text: qsTr("Reset")
-                        visible: root.hasImportController && !importController.isRunning
-                        enabled: root.hasImportController && !importController.isRunning
-                        fillColor: Theme.surface
-                        textColor: Theme.textPrimary
-                        onClicked: { if (root.hasImportController) importController.resetStatus() }
+                    Controls.SecondaryButton {
+                        text: qsTr("Cancel all")
+                        visible: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
+                        enabled: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
+                        onClicked: if (root.hasImportController) root.importController.cancelAllImports()
                     }
 
-                    Controls.Button {
+                    Controls.SuccessButton {
                         text: qsTr("Start")
-                        visible: root.hasImportController && !importController.isRunning
-                        enabled: root.hasImportController && !importController.isRunning && ((importController.selectedFile && importController.selectedFile.length > 0) || importController.queuedCount > 0)
-                        onClicked: { if (root.hasImportController) importController.startStatementImport() }
-                    }
-
-                    BusyIndicator {
-                        running: root.hasImportController && importController.isRunning
-                        visible: running
-                        width: Theme.busyIndicatorSize
-                        height: Theme.busyIndicatorSize
+                        visible: root.hasImportController && !root.importController.isRunning
+                        enabled: root.hasImportController && !root.importController.isRunning && ((root.importController.selectedFile && root.importController.selectedFile.length > 0) || root.importController.queuedCount > 0)
+                        onClicked: { if (root.hasImportController) root.importController.startStatementImport() }
                     }
                 }
             }
@@ -359,51 +188,79 @@ Item {
     Component {
         id: statementDraftPageComponent
 
-        ColumnLayout {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Theme.spacingSmall
 
             StatementDraftView {
                 id: stmtView
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                draft: (root.hasImportController ? importController.draft : null)
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: draftBottomBar.top
+                anchors.bottomMargin: root.theme.spacingSmall
+                appContext: root.appContext
+                theme: root.theme
+                draft: (root.hasImportController ? root.importController.draft : null)
             }
 
-            RowLayout {
-                Layout.fillWidth: true
+            Components.BottomBar {
+                id: draftBottomBar
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                theme: root.theme
 
-                Controls.Button {
-                    text: qsTr("Previous")
-                    enabled: stmtView.draft && stmtView.draft.currentIndex > 0
-                    onClicked: {
-                        if (stmtView.draft) stmtView.draft.prev()
-                        stmtView.forceSync && stmtView.forceSync()
-                    }
+                Controls.PrevPageButton {
+                    enabled: !!stmtView.draft && root.hasImportController && root.importController.hasPrevDraft
+                    onClicked: if (root.hasImportController) root.importController.openPrevDraft()
                 }
 
-                Controls.Button {
-                    text: qsTr("Next")
-                    enabled: stmtView.draft && (stmtView.draft.currentIndex < stmtView.draft.count - 1)
+                Controls.PrevButton {
+                    enabled: !!stmtView.draft && stmtView.draft.currentIndex > 0
                     onClicked: {
-                        if (stmtView.draft) stmtView.draft.next()
-                        stmtView.forceSync && stmtView.forceSync()
+                        stmtView.draft.prev()
+                        stmtView.persistDraftSnapshot()
                     }
                 }
 
                 Item { Layout.fillWidth: true }
 
                 Controls.Button {
+                    text: "↩"
+                    enabled: !!stmtView.draft
+                    Layout.preferredWidth: root.theme.viewNavigationButtonWidth
+                    bordered: true
+                    onClicked: stmtView.returnToImport()
+                }
+
+                Controls.DangerButton {
                     text: qsTr("Discard")
                     enabled: !!stmtView.draft
+                    Layout.preferredWidth: root.theme.viewActionButtonWidth
                     onClicked: stmtView.discardDraft()
                 }
 
-                Controls.Button {
+                Controls.SuccessButton {
                     text: qsTr("Finalize")
                     enabled: !!stmtView.draft
+                    Layout.preferredWidth: root.theme.viewActionButtonWidth
                     onClicked: stmtView.finalizeDraft()
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Controls.NextButton {
+                    enabled: !!stmtView.draft && stmtView.draft.currentIndex < (stmtView.draft.count - 1)
+                    onClicked: {
+                        stmtView.draft.next()
+                        stmtView.persistDraftSnapshot()
+                    }
+                }
+
+                Controls.NextPageButton {
+                    enabled: !!stmtView.draft && root.hasImportController && root.importController.hasNextDraft
+                    onClicked: if (root.hasImportController) root.importController.openNextDraft()
                 }
             }
         }

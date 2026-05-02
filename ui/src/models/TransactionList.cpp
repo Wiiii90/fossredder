@@ -26,7 +26,6 @@ const QVector<int>& transactionRoles()
         TransactionList::StatusRole,
         TransactionList::ActorIdRole,
         TransactionList::MetadataRole,
-        TransactionList::ProofImagePathRole,
         TransactionList::TypeRole,
         TransactionList::AllocatableRole,
         TransactionList::PropertyIdsRole
@@ -72,7 +71,6 @@ void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& tr
     map[payload::keys::common::kStatus] = static_cast<int>(transaction.status);
     map[payload::keys::transaction::kActorId] = QString::fromStdString(transaction.actorId);
     map[payload::keys::common::kMetadata] = QString();
-    map[payload::keys::transaction::kProofImagePath] = QString();
     map[payload::keys::common::kType] = contractTypeForTransaction(transaction);
     map[payload::keys::transaction::kAllocatable] = transaction.allocatable;
     map[payload::keys::transaction::kPropertyIds] = payload::mapper::toVariantStringList(transaction.propertyIds);
@@ -98,7 +96,6 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case StatusRole: return static_cast<int>(t.status);
     case ActorIdRole: return QString::fromStdString(t.actorId);
     case MetadataRole: return QString();
-    case ProofImagePathRole: return QString();
     case TypeRole: return contractTypeForTransaction(t);
     case AllocatableRole: return t.allocatable;
     case PropertyIdsRole: return payload::mapper::toVariantStringList(t.propertyIds);
@@ -119,7 +116,6 @@ QHash<int, QByteArray> TransactionList::roleNames() const
     roles[StatusRole] = payload::keys::common::kStatus.toUtf8();
     roles[ActorIdRole] = payload::keys::transaction::kActorId.toUtf8();
     roles[MetadataRole] = payload::keys::common::kMetadata.toUtf8();
-    roles[ProofImagePathRole] = payload::keys::transaction::kProofImagePath.toUtf8();
     roles[TypeRole] = payload::keys::common::kType.toUtf8();
     roles[AllocatableRole] = payload::keys::transaction::kAllocatable.toUtf8();
     roles[PropertyIdsRole] = payload::keys::transaction::kPropertyIds.toUtf8();

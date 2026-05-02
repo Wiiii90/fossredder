@@ -20,6 +20,8 @@ class IRegistry;
 
 class IStatementDraftRepository;
 class ITransactionDraftRepository;
+class IImportLogRepository;
+class IExportLogRepository;
 
 class SqliteDb;
 
@@ -41,6 +43,8 @@ std::shared_ptr<ITransactionDraftRepository> createSqliteTransactionDraftReposit
 std::shared_ptr<class IContractRepository> createSqliteContractRepository(const std::shared_ptr<SqliteDb>& db);
 std::shared_ptr<class IAnalysisRepository> createSqliteAnalysisRepository(const std::shared_ptr<SqliteDb>& db);
 std::shared_ptr<class IAnnualRepository> createSqliteAnnualRepository(const std::shared_ptr<SqliteDb>& db);
+std::shared_ptr<IImportLogRepository> createSqliteImportLogRepository(const std::shared_ptr<SqliteDb>& db);
+std::shared_ptr<IExportLogRepository> createSqliteExportLogRepository(const std::shared_ptr<SqliteDb>& db);
 
 
 core::storage::RepositoryBundle createSqliteRepositoryBundle(const std::shared_ptr<SqliteDb>& db);

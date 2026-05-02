@@ -1,28 +1,40 @@
-﻿import QtQuick 2.15
+/**
+ * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/Content.qml
+ * @brief Provides the Content component.
+ */
+
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 
 Item {
     id: contentWrapper
+    required property var theme
     property string title: ""
     property string subtitle: ""
     property bool showHeader: true
 
     property Component contentComponent: null
 
+    Rectangle {
+        anchors.fill: parent
+        color: contentWrapper.theme.background
+        border.width: contentWrapper.theme.borderWidthThin
+        border.color: contentWrapper.theme.borderLight
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.pageMargin
-        spacing: Theme.spacing
+        anchors.margins: contentWrapper.theme.pageContentMargin
+        spacing: contentWrapper.theme.spacing
 
         Item {
-            visible: showHeader && title && title.length > 0
+            visible: contentWrapper.showHeader && contentWrapper.title && contentWrapper.title.length > 0
             Layout.fillWidth: true
             ColumnLayout {
-                Label { text: title; font.pointSize: Theme.fontSizeTitle + Theme.margins; color: Theme.textPrimary }
-                Label { text: subtitle; font.pointSize: Math.max(12, Theme.fontSize - 2); color: Theme.textMuted; visible: subtitle && subtitle.length > 0 }
-                Rectangle { height: Theme.borderWidthThin; color: Theme.borderLight; Layout.fillWidth: true }
+                Label { text: contentWrapper.title; font.pointSize: contentWrapper.theme.fontSizeTitle + contentWrapper.theme.margins; color: contentWrapper.theme.textPrimary }
+                Label { text: contentWrapper.subtitle; font.pointSize: Math.max(12, contentWrapper.theme.fontSize - 2); color: contentWrapper.theme.textMuted; visible: contentWrapper.subtitle && contentWrapper.subtitle.length > 0 }
+                Rectangle { height: contentWrapper.theme.borderWidthThin; color: contentWrapper.theme.borderLight; Layout.fillWidth: true }
             }
         }
 

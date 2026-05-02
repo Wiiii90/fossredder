@@ -379,19 +379,6 @@ int confidencePercent(const DraftSuggestionCandidate* suggestion)
     return suggestion ? static_cast<int>(std::round(std::clamp(suggestion->confidence, 0.0, 1.0) * 100.0)) : 0;
 }
 
-std::string proofSourceFor(const std::string& path)
-{
-    if (path.empty()) return {};
-    if (path.rfind("proof/", 0) == 0) return std::string("image://importProof/") + path;
-    if (path.rfind("file://", 0) == 0) return path;
-
-    std::string normalized = path;
-    std::replace(normalized.begin(), normalized.end(), '\\', '/');
-    if (normalized.rfind("//", 0) == 0) return std::string("file:") + normalized;
-    if (normalized.size() >= 2 && normalized[1] == ':') return std::string("file:///") + normalized;
-    return std::string("file:///") + normalized;
-}
-
 std::string actorDisplay(const core::domain::Actor& actor)
 {
     return actor.type.empty() ? actor.name : actor.name + " — " + actor.type;
@@ -991,7 +978,7 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
     const auto contracts = contractRows(state);
 
     derived.propertyRows = properties;
-    derived.proofSource = proofSourceFor(effectiveSelection.proofImagePath);
+    derived.proofSource.clear();
 
     const auto* actorTop = topSuggestion(effectiveSelection.actorSuggestions);
     const auto* propertyTop = topSuggestion(effectiveSelection.propertySuggestions);
