@@ -104,6 +104,11 @@ void AppContext::setLanguageController(ui::LanguageController* value)
     assignIfChanged(languageController_, value, this, &AppContext::languageControllerChanged);
 }
 
+void AppContext::setSettingsController(ui::SettingsController* value)
+{
+    assignIfChanged(settingsController_, value, this, &AppContext::settingsControllerChanged);
+}
+
 void AppContext::setIsDebugBuild(bool value)
 {
     if (isDebugBuild_ == value) return;

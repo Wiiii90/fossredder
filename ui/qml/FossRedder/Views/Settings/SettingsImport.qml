@@ -4,44 +4,60 @@
  */
 
 import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder.Constants 1.0 as Constants
+import FossRedder.Controls 1.0 as Controls
 
 Flickable {
     id: root
+    required property var appContext
     required property var theme
+    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
+    readonly property var actions: root.appContext ? root.appContext.actions : null
     Layout.fillWidth: true
     Layout.fillHeight: true
     contentHeight: column.implicitHeight
+    contentWidth: width
     clip: true
 
     ColumnLayout {
         id: column
-        Layout.fillWidth: true
-        Layout.fillHeight: true
         anchors.fill: parent
-        spacing: root.theme.settings.spacing
-        anchors.margins: root.theme.settings.margin
+        width: parent.width
+        spacing: root.theme.viewFormSpacing
 
-        GroupBox {
+        Controls.Panel {
             Layout.fillWidth: true
+            contentSpacing: root.theme.spacingSmall
+
+            readonly property real browseButtonHeight: defaultImportPathField.implicitHeight
+
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: root.theme.settings.spacing
+                spacing: root.theme.spacingSmall
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Supported source format"); Layout.fillWidth: true }
-                    Label { text: Constants.FileFormats.importSources.pdf.label; color: root.theme.textPrimary }
+                    Text { text: qsTr("Default file path"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.TextField {
+                        id: defaultImportPathField
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Select default import path...")
+                        text: root.settingsController ? root.settingsController.importDefaultPath : ""
+                        onTextChanged: if (root.settingsController && root.settingsController.importDefaultPath !== text) root.settingsController.importDefaultPath = text
+                    }
+                    Controls.SecondaryButton {
+                        text: qsTr("Browse...")
+                        Layout.preferredHeight: parent.browseButtonHeight
+                        onClicked: if (root.actions) root.actions.browseImportPdf()
+                    }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Pipeline configuration"); Layout.fillWidth: true }
-                    Label {
+                    Text { text: qsTr("Import defaults"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Text {
                         Layout.fillWidth: true
-                        text: qsTr("PDF import is currently configured automatically by the application pipeline.")
+                        text: qsTr("This path is used to prefill the Import view so repeated imports start from a consistent default.")
                         color: root.theme.textMuted
                         wrapMode: Text.WordWrap
                     }
@@ -49,27 +65,85 @@ Flickable {
             }
         }
 
-        GroupBox {
+        Controls.Panel {
             Layout.fillWidth: true
-            title: qsTr("Advanced settings (temporary)")
+            contentSpacing: root.theme.spacingSmall
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: root.theme.settings.spacing
+                spacing: root.theme.spacingSmall
 
-                Label {
-                    Layout.fillWidth: true
-                    text: qsTr("Import advanced settings are temporarily stored here while the Import view stays simplified.")
-                    color: root.theme.textMuted
-                    wrapMode: Text.WordWrap
+                Text {
+                    text: qsTr("Pipeline configuration")
+                    color: root.theme.textPrimary
                 }
 
-                Label {
+                RowLayout {
                     Layout.fillWidth: true
-                    text: qsTr("Poppler, Tesseract and Parser are currently managed automatically by the pipeline.")
-                    color: root.theme.textMuted
-                    wrapMode: Text.WordWrap
+                    Text { text: qsTr("Poppler"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.TextField {
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Placeholder for Poppler defaults")
+                        text: root.settingsController ? root.settingsController.importPoppler : ""
+                        onTextChanged: if (root.settingsController && root.settingsController.importPoppler !== text) root.settingsController.importPoppler = text
+                    }
                 }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: qsTr("OpenCV"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.TextField {
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Placeholder for OpenCV defaults")
+                        text: root.settingsController ? root.settingsController.importOpenCv : ""
+                        onTextChanged: if (root.settingsController && root.settingsController.importOpenCv !== text) root.settingsController.importOpenCv = text
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: qsTr("Tesseract"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.TextField {
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Placeholder for Tesseract defaults")
+                        text: root.settingsController ? root.settingsController.importTesseract : ""
+                        onTextChanged: if (root.settingsController && root.settingsController.importTesseract !== text) root.settingsController.importTesseract = text
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: qsTr("Parser"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.TextField {
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Placeholder for parser defaults")
+                        text: root.settingsController ? root.settingsController.importParser : ""
+                        onTextChanged: if (root.settingsController && root.settingsController.importParser !== text) root.settingsController.importParser = text
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: qsTr("Matcher"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Controls.TextField {
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Placeholder for matcher defaults")
+                        text: root.settingsController ? root.settingsController.importMatcher : ""
+                        onTextChanged: if (root.settingsController && root.settingsController.importMatcher !== text) root.settingsController.importMatcher = text
+                    }
+                }
+            }
+        }
+
+        Connections {
+            target: root.actions
+            function onImportFileSelected(path) {
+                if (!path || !root.settingsController) return
+                root.settingsController.importDefaultPath = path
+            }
+            function onImportFilesSelected(paths) {
+                if (!paths || paths.length === 0 || !root.settingsController) return
+                root.settingsController.importDefaultPath = paths[0]
             }
         }
 

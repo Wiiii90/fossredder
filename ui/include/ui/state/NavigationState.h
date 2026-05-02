@@ -45,13 +45,9 @@ public:
 
     enum class SettingsCategory {
         General,
-        Appearance,
         Import,
         Export,
-        Storage,
-        Notifications,
-        Advanced,
-        Updates
+        Miscellaneous
     };
     // Do not register SettingsCategory with Q_ENUM to avoid name clashes in QML
 

@@ -16,34 +16,47 @@ Item {
     required property var theme
     readonly property var navigation: root.appContext ? root.appContext.navigation : null
     readonly property var languageController: root.appContext ? root.appContext.languageController : null
+    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
     readonly property Component generalPageComponent: generalComp
-    readonly property Component appearancePageComponent: appearanceComp
     readonly property Component importPageComponent: importComp
     readonly property Component exportPageComponent: exportComp
-    readonly property Component advancedPageComponent: advancedComp
+    readonly property Component miscellaneousPageComponent: miscellaneousComp
+
+    readonly property int firstCategory: 0
+    readonly property int lastCategory: 3
+    readonly property int currentCategory: root.navigation ? root.navigation.settingsCategoryValue : root.firstCategory
+
+    function navigateCategory(delta) {
+        if (!root.navigation)
+            return
+        const nextCategory = Math.max(root.firstCategory, Math.min(root.lastCategory, root.currentCategory + delta))
+        if (nextCategory === root.currentCategory)
+            return
+        root.navigation.setSettingsCategoryValue(nextCategory)
+    }
 
     function saveSettings() {
-        if (settingsLoader && settingsLoader.item)
-            settingsLoader.focus = true
+        if (root.settingsController)
+            root.settingsController.save()
+        if (root.languageController && root.settingsController)
+            root.languageController.applyLanguage(root.settingsController.language)
     }
 
     function resetSettings() {
         if (root.navigation)
             root.navigation.setSettingsCategoryValue(0)
-        if (root.languageController)
-            root.languageController.currentLanguage = "en"
+        if (root.settingsController)
+            root.settingsController.resetToDefaults()
     }
 
     function componentForCategory(category) {
         switch (category) {
         case 1:
-            return root.appearancePageComponent
-        case 2:
             return root.importPageComponent
-        case 3:
+        case 2:
             return root.exportPageComponent
-        case 4:
-            return root.advancedPageComponent
+        case 3:
+            return root.miscellaneousPageComponent
         default:
             return root.generalPageComponent
         }
@@ -56,7 +69,7 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: root.theme.pageContentMargin
-        spacing: root.theme.settings.spacing
+        spacing: root.theme.viewFormSpacing
 
         Loader {
             id: settingsLoader
@@ -69,24 +82,37 @@ Item {
             Layout.fillWidth: true
             theme: root.theme
 
-            Controls.PrimaryButton {
-                text: qsTr("Save")
-                onClicked: root.saveSettings()
-            }
-
-            Controls.SecondaryButton {
-                text: qsTr("Default")
-                onClicked: root.resetSettings()
+            Controls.PrevButton {
+                enabled: root.currentCategory > root.firstCategory
+                onClicked: root.navigateCategory(-1)
             }
 
             Item { Layout.fillWidth: true }
+
+            Controls.DangerButton {
+                text: qsTr("Default")
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
+                onClicked: root.resetSettings()
+            }
+
+            Controls.SuccessButton {
+                text: qsTr("Update")
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
+                onClicked: root.saveSettings()
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Controls.NextButton {
+                enabled: root.currentCategory < root.lastCategory
+                onClicked: root.navigateCategory(1)
+            }
         }
 
         Component { id: generalComp; Views.SettingsGeneral { appContext: root.appContext; theme: root.theme } }
-        Component { id: appearanceComp; Views.SettingsAppearance { theme: root.theme } }
-        Component { id: importComp; Views.SettingsImport { theme: root.theme } }
-        Component { id: exportComp; Views.SettingsExport { theme: root.theme } }
-        Component { id: advancedComp; Views.SettingsAdvanced { appContext: root.appContext; theme: root.theme } }
+        Component { id: importComp; Views.SettingsImport { appContext: root.appContext; theme: root.theme } }
+        Component { id: exportComp; Views.SettingsExport { appContext: root.appContext; theme: root.theme } }
+        Component { id: miscellaneousComp; SettingsMiscellaneous { appContext: root.appContext; theme: root.theme } }
 
         Connections {
             target: root.navigation
@@ -97,6 +123,8 @@ Item {
         }
 
         Component.onCompleted: {
+            if (root.settingsController)
+                root.settingsController.load()
             if (root.navigation) {
                 root.navigation.setSettingsCategoryValue(root.navigation.settingsCategoryValue)
             }

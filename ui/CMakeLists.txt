@@ -18,6 +18,7 @@ set(UI_SOURCES
     src/controllers/ImportController.cpp
     src/controllers/LanguageController.cpp
     src/controllers/PropertyController.cpp
+    src/controllers/SettingsController.cpp
     src/controllers/StatementController.cpp
     src/controllers/StorageController.cpp
     src/controllers/TransactionController.cpp
@@ -82,6 +83,7 @@ set(UI_HEADERS
     include/ui/controllers/ImportController.h
     include/ui/controllers/LanguageController.h
     include/ui/controllers/PropertyController.h
+    include/ui/controllers/SettingsController.h
     include/ui/controllers/StatementController.h
     include/ui/controllers/StorageController.h
     include/ui/controllers/TransactionController.h

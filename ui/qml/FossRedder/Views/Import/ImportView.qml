@@ -15,11 +15,23 @@ Item {
     required property var appContext
     required property var theme
     readonly property var importController: root.appContext ? root.appContext.importController : null
+    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
     readonly property var actions: root.appContext ? root.appContext.actions : null
     readonly property var status: root.appContext ? root.appContext.status : null
+
+    function ensureDefaultImportSelection() {
+        if (!root.hasImportController || !root.settingsController || root.importController.isRunning)
+            return
+        if ((root.importController.selectedFile && root.importController.selectedFile.length > 0) || root.importController.queuedCount > 0)
+            return
+        if (root.settingsController.importDefaultPath && root.settingsController.importDefaultPath.length > 0)
+            root.importController.selectedFile = root.settingsController.importDefaultPath
+    }
+
     Component.onCompleted: {
         Qt.callLater(function() {
             root.importPageActivated = true
+            root.ensureDefaultImportSelection()
             root.updateContentIndex()
         })
     }
@@ -63,7 +75,15 @@ Item {
         target: root.hasImportController ? root.importController : null
 
         function onStateChanged() {
+            root.ensureDefaultImportSelection()
             root.updateContentIndex()
+        }
+    }
+
+    Connections {
+        target: root.settingsController
+        function onImportDefaultPathChanged() {
+            root.ensureDefaultImportSelection()
         }
     }
 

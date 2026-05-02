@@ -4,7 +4,6 @@
  */
 
 import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
 
@@ -12,11 +11,12 @@ Flickable {
     id: root
     required property var appContext
     required property var theme
+    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
     readonly property var languageController: root.appContext ? root.appContext.languageController : null
-    readonly property var fileSystemController: root.appContext ? root.appContext.fileSystemController : null
     Layout.fillWidth: true
     Layout.fillHeight: true
     contentHeight: column.implicitHeight
+    contentWidth: width
     clip: true
 
     function languageIndexFor(code) {
@@ -30,63 +30,73 @@ Flickable {
 
     ColumnLayout {
         id: column
-        Layout.fillWidth: true
-        Layout.fillHeight: true
         anchors.fill: parent
-        spacing: root.theme.settings.spacing
-        anchors.margins: root.theme.settings.margin
+        width: parent.width
+        spacing: root.theme.viewFormSpacing
 
-        GroupBox {
-            Layout.preferredWidth: root.theme.settings.panelPreferredWidth
-            Layout.alignment: Qt.AlignHCenter
+        Controls.Panel {
+            Layout.fillWidth: true
+            contentSpacing: root.theme.spacingSmall
+
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: root.theme.settings.spacing
+                spacing: root.theme.spacingSmall
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Language"); Layout.fillWidth: true }
+                    Text { text: qsTr("Language"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
                     Controls.DropdownMenu {
                         id: language
                         objectName: "settingsLanguageComboBox"
                         model: root.languageController ? root.languageController.availableLanguages : []
                         textRole: "label"
-                        currentIndex: root.languageIndexFor(root.languageController ? root.languageController.currentLanguage : "")
+                        currentIndex: root.languageIndexFor(root.settingsController ? root.settingsController.language : (root.languageController ? root.languageController.currentLanguage : ""))
                         onActivated: function(index) {
                             if (!root.languageController || index < 0 || index >= model.length) return
                             const option = model[index]
                             if (!option || option.available === false) {
-                                currentIndex = root.languageIndexFor(root.languageController.currentLanguage)
+                                currentIndex = root.languageIndexFor(root.settingsController ? root.settingsController.language : root.languageController.currentLanguage)
                                 return
                             }
-                            root.languageController.currentLanguage = option.code
+                            if (root.settingsController)
+                                root.settingsController.language = option.code
                         }
 
                         Connections {
-                            target: root.languageController
-                            function onCurrentLanguageChanged() {
-                                language.currentIndex = root.languageIndexFor(root.languageController.currentLanguage)
+                            target: root.settingsController
+                            function onLanguageChanged() {
+                                language.currentIndex = root.languageIndexFor(root.settingsController.language)
                             }
                         }
                     }
                 }
 
-                RowLayout {
+            }
+        }
+
+        Controls.Panel {
+            Layout.fillWidth: true
+            contentSpacing: root.theme.spacingSmall
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: root.theme.spacingSmall
+
+                Text {
                     Layout.fillWidth: true
-                    Label { text: qsTr("Application directory"); Layout.fillWidth: true }
+                    text: qsTr("Only English and German are supported.")
+                    color: root.theme.textMuted
+                    wrapMode: Text.WordWrap
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Controls.TextField {
-                        id: appDirectoryField
-                        objectName: "settingsAppDirectoryField"
+                    Text { text: qsTr("Note"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
+                    Text {
                         Layout.fillWidth: true
-                        readOnly: true
-                        text: root.fileSystemController
-                              ? root.fileSystemController.appDir()
-                              : ""
-                        placeholderText: qsTr("Application directory is not available")
+                        text: qsTr("Language changes are applied when you update the global settings.")
+                        color: root.theme.textMuted
+                        wrapMode: Text.WordWrap
                     }
                 }
             }

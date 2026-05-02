@@ -50,6 +50,8 @@ Controls.Panel {
     RowLayout {
         Layout.fillWidth: true
 
+        readonly property real actionButtonHeight: manualPath.implicitHeight
+
         Controls.TextField {
             id: manualPath
             Layout.fillWidth: true
@@ -60,6 +62,7 @@ Controls.Panel {
 
         Controls.SecondaryButton {
             text: qsTr("Add")
+            Layout.preferredHeight: parent.actionButtonHeight
             enabled: root.hasImportController && !root.importController.isRunning && root.manualPathText() && root.manualPathText().trim().length > 0
             onClicked: {
                 let files = []
@@ -73,6 +76,7 @@ Controls.Panel {
 
         Controls.SecondaryButton {
             text: qsTr("Browse...")
+            Layout.preferredHeight: parent.actionButtonHeight
             enabled: root.hasImportController && !root.importController.isRunning
             onClicked: { if (root.actions) root.actions.browseImportPdf() }
         }
@@ -116,6 +120,10 @@ Controls.Panel {
 
     Connections {
         target: root.hasImportController ? root.importController : null
+        function onStateChanged() {
+            if (!manualPath.activeFocus && (!root.pendingFiles || root.pendingFiles.length === 0))
+                manualPath.text = root.importController.selectedFile
+        }
         function onImportCanceled() {
             if (root.status) root.status.text = root.importCanceledStatusText
         }

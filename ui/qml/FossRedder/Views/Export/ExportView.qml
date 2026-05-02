@@ -18,6 +18,7 @@ Item {
     readonly property var exportCtrl: root.appContext ? root.appContext.exportController : null
     readonly property var actions: root.appContext ? root.appContext.actions : null
     readonly property var fileSystemController: root.appContext ? root.appContext.fileSystemController : null
+    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
     readonly property bool hasExportCtrl: root.exportCtrl !== null
     readonly property string readyText: qsTr("Ready")
     readonly property int csvContractValue: 0
@@ -52,6 +53,8 @@ Item {
     }
 
     function defaultTargetDirectory() {
+        if (root.settingsController && root.settingsController.exportDefaultDirectory && root.settingsController.exportDefaultDirectory.length > 0)
+            return String(root.settingsController.exportDefaultDirectory)
         if (root.fileSystemController && root.fileSystemController.appDir) {
             const appPath = root.fileSystemController.appDir()
             if (appPath && String(appPath).length > 0) return String(appPath)
@@ -62,7 +65,7 @@ Item {
     function clearForm() {
         if (formPanel) {
             formPanel.targetDirectory = root.defaultTargetDirectory()
-            formPanel.packageFormatIndex = 0
+            formPanel.packageFormatIndex = root.settingsController ? root.settingsController.exportArchiveFormat : 0
         }
         if (objectsPanel) objectsPanel.clearAll()
         if (root.hasExportCtrl) root.exportCtrl.clearActiveRun()
@@ -98,6 +101,7 @@ Item {
                     Component.onCompleted: {
                         if (!targetDirectory || targetDirectory.length === 0)
                             targetDirectory = root.defaultTargetDirectory()
+                        packageFormatIndex = root.settingsController ? root.settingsController.exportArchiveFormat : 0
                     }
                     onBrowseRequested: {
                         if (root.actions) root.actions.browseExportDirectory()
@@ -161,7 +165,8 @@ Item {
                     const path = (formPanel ? formPanel.targetDirectory : "") + "/export"
                     const selectedOption = root.formatOptions[0]
                     const items = objectsPanel ? objectsPanel.exportItems() : []
-                    root.exportCtrl.exportDataWithPayload(selectedOption.contract, path, true, root.defaultLocale, payload, Math.max(1, items.length))
+                    const includeFormulas = root.settingsController ? root.settingsController.exportIncludeFormulas : true
+                    root.exportCtrl.exportDataWithPayload(selectedOption.contract, path, includeFormulas, root.defaultLocale, payload, Math.max(1, items.length))
                 }
             }
         }
@@ -171,6 +176,18 @@ Item {
             function onExportDirectorySelected(path) {
                 if (!path) return
                 if (formPanel) formPanel.targetDirectory = path
+            }
+        }
+
+        Connections {
+            target: root.settingsController
+            function onExportDefaultDirectoryChanged() {
+                if (formPanel && (!formPanel.targetDirectory || formPanel.targetDirectory.length === 0))
+                    formPanel.targetDirectory = root.defaultTargetDirectory()
+            }
+            function onExportArchiveFormatChanged() {
+                if (formPanel)
+                    formPanel.packageFormatIndex = root.settingsController.exportArchiveFormat
             }
         }
 

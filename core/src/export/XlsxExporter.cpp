@@ -10,12 +10,19 @@
 #include "core/errors/ErrorReporterRegistry.h"
 
 #include <vector>
+#include <string>
 
 #include <xlnt/xlnt.hpp>
+#include <xlnt/cell/cell_reference.hpp>
 
 namespace {
 
 constexpr auto kWorksheetTitle = "Export";
+
+std::string cellRef(int column, int row)
+{
+    return xlnt::cell_reference(column, row).to_string();
+}
 
 } // namespace
 
@@ -59,7 +66,6 @@ ExportResult XlsxExporter::exportData(const ExportRequest& request) const
         std::vector<double> columnSums(matrix.propertyNames.size(), 0.0);
         for (const auto& contractType : matrix.contractTypes) {
             worksheet.cell(row, 1).value(contractType);
-            double rowSum = 0.0;
             for (size_t column = 0; column < matrix.propertyNames.size(); ++column) {
                 double value = 0.0;
                 const auto propertyIt = matrix.amountsByProperty.find(matrix.propertyNames[column]);
@@ -70,21 +76,42 @@ ExportResult XlsxExporter::exportData(const ExportRequest& request) const
                     }
                 }
                 worksheet.cell(row, static_cast<int>(2 + column)).value(value);
-                rowSum += value;
                 columnSums[column] += value;
             }
-            worksheet.cell(row, static_cast<int>(2 + matrix.propertyNames.size())).value(rowSum);
+            auto totalCell = worksheet.cell(row, static_cast<int>(2 + matrix.propertyNames.size()));
+            if (request.includeFormulas && !matrix.propertyNames.empty()) {
+                totalCell.formula("=SUM(" + cellRef(2, row) + ":" + cellRef(static_cast<int>(1 + matrix.propertyNames.size()), row) + ")");
+            } else {
+                double rowSum = 0.0;
+                for (size_t column = 0; column < matrix.propertyNames.size(); ++column) {
+                    rowSum += worksheet.cell(row, static_cast<int>(2 + column)).value<double>();
+                }
+                totalCell.value(rowSum);
+            }
             ++row;
         }
 
         if (!matrix.propertyNames.empty()) {
             worksheet.cell(row, 1).value(std::string(core::constants::exportFlow::labels::kTotal));
-            double grandTotal = 0.0;
             for (size_t column = 0; column < matrix.propertyNames.size(); ++column) {
-                worksheet.cell(row, static_cast<int>(2 + column)).value(columnSums[column]);
-                grandTotal += columnSums[column];
+                auto totalColumnCell = worksheet.cell(row, static_cast<int>(2 + column));
+                if (request.includeFormulas && !matrix.contractTypes.empty()) {
+                    totalColumnCell.formula("=SUM(" + cellRef(static_cast<int>(2 + column), 2) + ":" + cellRef(static_cast<int>(2 + column), row - 1) + ")");
+                } else {
+                    totalColumnCell.value(columnSums[column]);
+                }
             }
-            worksheet.cell(row, static_cast<int>(2 + matrix.propertyNames.size())).value(grandTotal);
+
+            auto grandTotalCell = worksheet.cell(row, static_cast<int>(2 + matrix.propertyNames.size()));
+            if (request.includeFormulas && !matrix.contractTypes.empty()) {
+                grandTotalCell.formula("=SUM(" + cellRef(static_cast<int>(2 + matrix.propertyNames.size()), 2) + ":" + cellRef(static_cast<int>(2 + matrix.propertyNames.size()), row - 1) + ")");
+            } else {
+                double grandTotal = 0.0;
+                for (double value : columnSums) {
+                    grandTotal += value;
+                }
+                grandTotalCell.value(grandTotal);
+            }
         }
 
         workbook.save(request.outputPath);

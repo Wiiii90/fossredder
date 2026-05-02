@@ -39,6 +39,7 @@ using core::domain::DeletionImpact;
 #include "ui/controllers/ImportController.h"
 #include "ui/controllers/LanguageController.h"
 #include "ui/controllers/PropertyController.h"
+#include "ui/controllers/SettingsController.h"
 #include "ui/controllers/StatementController.h"
 #include "ui/controllers/StorageController.h"
 #include "ui/controllers/TransactionController.h"
@@ -256,6 +257,12 @@ UiControllers setupUiControllers(
                           ui.language);
   if (auto *appContext = w.appContext())
     appContext->setLanguageController(ui.language);
+
+  auto *settingsController = new ui::SettingsController(&w);
+  w.setQmlContextProperty(ui::qml::contracts::context::kSettingsController,
+                          settingsController);
+  if (auto *appContext = w.appContext())
+    appContext->setSettingsController(settingsController);
 
   auto importJobSystemFactory = [dbg = std::make_shared<FileDebugger>(
                                    "", std::string(debug::defaults::kImportProcessName)),

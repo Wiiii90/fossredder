@@ -43,14 +43,18 @@ public:
     /** @brief Return the available language options for the UI. */
     QVariantList availableLanguages() const { return availableLanguages_; }
 
+    Q_INVOKABLE bool applyLanguage(const QString& languageCode);
+
 signals:
     void currentLanguageChanged();
 
 private:
+    void refreshAvailableLanguages();
     bool isLanguageAvailable(const QString& languageCode) const;
     QString normalizeLanguageCode(const QString& languageCode) const;
     QString translationFileName(const QString& languageCode) const;
     bool translationFileExists(const QString& languageCode) const;
+    bool applyCurrentLanguage(const QString& languageCode);
     bool loadTranslation(const QString& languageCode);
     void retranslateUi();
     void persistLanguage(const QString& languageCode);

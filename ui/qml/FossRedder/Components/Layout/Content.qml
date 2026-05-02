@@ -16,9 +16,16 @@ Item {
 
     property Component contentComponent: null
 
+    Rectangle {
+        anchors.fill: parent
+        color: contentWrapper.theme.background
+        border.width: contentWrapper.theme.borderWidthThin
+        border.color: contentWrapper.theme.borderLight
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: contentWrapper.theme.pageMargin
+        anchors.margins: contentWrapper.theme.pageContentMargin
         spacing: contentWrapper.theme.spacing
 
         Item {

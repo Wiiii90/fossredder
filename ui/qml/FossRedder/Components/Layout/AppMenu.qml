@@ -12,6 +12,7 @@ MenuBar {
     required property var navigation
     required property var actions
     required property var languageController
+    required property var settingsController
     required property var theme
     readonly property int navActors: 0
     readonly property int navProperties: 1
@@ -156,7 +157,12 @@ MenuBar {
                 checked: root.languageController && root.languageController.currentLanguage === modelData.code
                 enabled: modelData.available !== false
                 onTriggered: {
-                    if (root.languageController && enabled) root.languageController.currentLanguage = modelData.code
+                    if (!enabled)
+                        return
+                    if (root.settingsController)
+                        root.settingsController.language = modelData.code
+                    if (root.languageController)
+                        root.languageController.applyLanguage(modelData.code)
                 }
             }
 

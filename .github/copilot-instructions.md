@@ -22,6 +22,7 @@
 
 ## Planning Execution
 - When creating a plan for this repository, always execute the plan in the same response instead of stopping after the plan announcement.
+- When a multi-step implementation plan is active, execute through the plan instead of sending repeated single-line progress messages between steps.
 
 ## Issue Resolution
 - When a user says an issue is already resolved, do not rollback broadly; continue strictly with the user’s explicit numbered follow-up tasks.

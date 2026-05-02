@@ -14,6 +14,7 @@
 #include "ui/controllers/ImportController.h"
 #include "ui/controllers/LanguageController.h"
 #include "ui/controllers/PropertyController.h"
+#include "ui/controllers/SettingsController.h"
 #include "ui/controllers/StatementController.h"
 #include "ui/controllers/StorageController.h"
 #include "ui/controllers/TransactionController.h"
@@ -44,6 +45,7 @@ class AppContext : public QObject {
     Q_PROPERTY(ui::ExportController* exportController READ exportController WRITE setExportController NOTIFY exportControllerChanged)
     Q_PROPERTY(ui::ImportController* importController READ importController WRITE setImportController NOTIFY importControllerChanged)
     Q_PROPERTY(ui::LanguageController* languageController READ languageController WRITE setLanguageController NOTIFY languageControllerChanged)
+    Q_PROPERTY(ui::SettingsController* settingsController READ settingsController WRITE setSettingsController NOTIFY settingsControllerChanged)
     Q_PROPERTY(bool isDebugBuild READ isDebugBuild WRITE setIsDebugBuild NOTIFY isDebugBuildChanged)
 
 public:
@@ -66,6 +68,7 @@ public:
     ui::ExportController* exportController() const noexcept { return exportController_; }
     ui::ImportController* importController() const noexcept { return importController_; }
     ui::LanguageController* languageController() const noexcept { return languageController_; }
+    ui::SettingsController* settingsController() const noexcept { return settingsController_; }
     bool isDebugBuild() const noexcept { return isDebugBuild_; }
 
     void setActions(ui::Actions* value);
@@ -85,6 +88,7 @@ public:
     void setExportController(ui::ExportController* value);
     void setImportController(ui::ImportController* value);
     void setLanguageController(ui::LanguageController* value);
+    void setSettingsController(ui::SettingsController* value);
     void setIsDebugBuild(bool value);
 
 signals:
@@ -105,6 +109,7 @@ signals:
     void exportControllerChanged();
     void importControllerChanged();
     void languageControllerChanged();
+    void settingsControllerChanged();
     void isDebugBuildChanged();
 
 private:
@@ -125,6 +130,7 @@ private:
     ui::ExportController* exportController_ = nullptr;
     ui::ImportController* importController_ = nullptr;
     ui::LanguageController* languageController_ = nullptr;
+    ui::SettingsController* settingsController_ = nullptr;
     bool isDebugBuild_ = false;
 };
 

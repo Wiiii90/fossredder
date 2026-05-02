@@ -45,6 +45,7 @@ inline const auto kAnalysisController = QStringLiteral("analysisController");
 inline const auto kExportController = QStringLiteral("exportController");
 inline const auto kImportController = QStringLiteral("importController");
 inline const auto kLanguageController = QStringLiteral("languageController");
+inline const auto kSettingsController = QStringLiteral("settingsController");
 inline const auto kIsDebugBuild = QStringLiteral("isDebugBuild");
 }
 
@@ -76,13 +77,9 @@ enum class NavigationValue : int {
     BookingCalendar = 1,
     BookingTransactions = 2,
     SettingsGeneral = 0,
-    SettingsAppearance = 1,
-    SettingsImport = 2,
-    SettingsExport = 3,
-    SettingsStorage = 4,
-    SettingsNotifications = 5,
-    SettingsAdvanced = 6,
-    SettingsUpdates = 7
+    SettingsImport = 1,
+    SettingsExport = 2,
+    SettingsMiscellaneous = 3
 };
 
 Q_ENUM_NS(NavigationValue)

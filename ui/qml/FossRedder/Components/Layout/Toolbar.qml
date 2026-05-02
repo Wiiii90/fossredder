@@ -14,6 +14,7 @@ Item {
     required property var theme
     readonly property var navigation: toolBar.appContext ? toolBar.appContext.navigation : null
     readonly property var session: toolBar.appContext ? toolBar.appContext.session : null
+    readonly property var settingsController: toolBar.appContext ? toolBar.appContext.settingsController : null
     readonly property int navActors: 0
     readonly property int navProperties: 1
     readonly property int navContracts: 2
@@ -55,6 +56,10 @@ Item {
         toolBar.navigation.setSectionValue(section)
     }
 
+    function showDividerForGroup(visibleGroup, hasVisibleAfter) {
+        return visibleGroup && hasVisibleAfter
+    }
+
     Rectangle {
         id: bg
         anchors.left: parent.left
@@ -73,6 +78,8 @@ Item {
 
             ColumnLayout {
                 id: fileGroup
+                visible: (toolBar.settingsController ? toolBar.settingsController.toolbarShowImport : true)
+                         || (toolBar.settingsController ? toolBar.settingsController.toolbarShowExport : true)
                 spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
@@ -85,6 +92,7 @@ Item {
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
+                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowImport : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: fileIcons.height
                         svgSource: toolBar.assetUrl("import.svg")
@@ -93,6 +101,7 @@ Item {
                         onClicked: toolBar.navigateTo(toolBar.navImport, false)
                     }
                     Controls.IconButton {
+                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowExport : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: fileIcons.height
                         svgSource: toolBar.assetUrl("export.svg")
@@ -114,10 +123,21 @@ Item {
                 }
             }
 
-            Rectangle { width: toolBar.theme.borderWidthThin; Layout.fillHeight: true; color: toolBar.theme.divider; Layout.alignment: Qt.AlignVCenter }
+            Rectangle {
+                width: toolBar.theme.borderWidthThin
+                Layout.fillHeight: true
+                color: toolBar.theme.divider
+                Layout.alignment: Qt.AlignVCenter
+                visible: toolBar.showDividerForGroup(fileGroup.visible,
+                    domainGroup.visible || toolsGroup.visible || appGroup.visible)
+            }
 
             ColumnLayout {
                 id: domainGroup
+                visible: (toolBar.settingsController ? toolBar.settingsController.toolbarShowBooking : true)
+                         || (toolBar.settingsController ? toolBar.settingsController.toolbarShowActors : true)
+                         || (toolBar.settingsController ? toolBar.settingsController.toolbarShowProperties : true)
+                         || (toolBar.settingsController ? toolBar.settingsController.toolbarShowContracts : true)
                 spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
@@ -130,6 +150,7 @@ Item {
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
+                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowBooking : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: toolBar.assetUrl("booking.svg")
@@ -144,6 +165,7 @@ Item {
                         }
                     }
                     Controls.IconButton {
+                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowActors : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: toolBar.assetUrl("actor.svg")
@@ -152,6 +174,7 @@ Item {
                         onClicked: toolBar.navigateTo(toolBar.navActors, true)
                     }
                     Controls.IconButton {
+                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowProperties : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: toolBar.assetUrl("property.svg")
@@ -160,6 +183,7 @@ Item {
                         onClicked: toolBar.navigateTo(toolBar.navProperties, true)
                     }
                     Controls.IconButton {
+                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowContracts : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: toolBar.assetUrl("contract.svg")
@@ -181,10 +205,19 @@ Item {
                 }
             }
 
-            Rectangle { width: toolBar.theme.borderWidthThin; Layout.fillHeight: true; color: toolBar.theme.divider; Layout.alignment: Qt.AlignVCenter }
+            Rectangle {
+                width: toolBar.theme.borderWidthThin
+                Layout.fillHeight: true
+                color: toolBar.theme.divider
+                Layout.alignment: Qt.AlignVCenter
+                visible: toolBar.showDividerForGroup(domainGroup.visible,
+                    toolsGroup.visible || appGroup.visible)
+            }
 
             ColumnLayout {
                 id: toolsGroup
+                visible: (toolBar.settingsController ? toolBar.settingsController.toolbarShowAnalysis : true)
+                         || (toolBar.settingsController ? toolBar.settingsController.toolbarShowAnnual : true)
                 spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
@@ -197,6 +230,7 @@ Item {
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
+                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowAnalysis : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: toolBar.assetUrl("analysis.svg")
@@ -209,6 +243,7 @@ Item {
                         }
                     }
                     Controls.IconButton {
+                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowAnnual : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: toolBar.assetUrl("annual.svg")
@@ -230,10 +265,17 @@ Item {
                 }
             }
 
-            Rectangle { width: toolBar.theme.borderWidthThin; Layout.fillHeight: true; color: toolBar.theme.divider; Layout.alignment: Qt.AlignVCenter }
+            Rectangle {
+                width: toolBar.theme.borderWidthThin
+                Layout.fillHeight: true
+                color: toolBar.theme.divider
+                Layout.alignment: Qt.AlignVCenter
+                visible: toolBar.showDividerForGroup(toolsGroup.visible, appGroup.visible)
+            }
 
             ColumnLayout {
                 id: appGroup
+                visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowSettings : true
                 spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
@@ -246,6 +288,7 @@ Item {
                     height: toolBar.iconRowHeight
 
                     Controls.IconButton {
+                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowSettings : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: appIcons.height
                         svgSource: toolBar.assetUrl("settings.svg")
@@ -267,7 +310,13 @@ Item {
                 }
             }
 
-            Rectangle { width: toolBar.theme.borderWidthThin; Layout.fillHeight: true; color: toolBar.theme.divider; Layout.alignment: Qt.AlignVCenter }
+            Rectangle {
+                width: toolBar.theme.borderWidthThin
+                Layout.fillHeight: true
+                color: toolBar.theme.divider
+                Layout.alignment: Qt.AlignVCenter
+                visible: appGroup.visible
+            }
 
             Item { Layout.fillWidth: true }
         }
