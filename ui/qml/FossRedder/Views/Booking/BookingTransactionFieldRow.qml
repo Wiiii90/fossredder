@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingTransactionFieldRow.qml
- * @brief Provides the BookingTransactionFieldRow component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Booking/BookingTransactionFieldRow.qml
- * @brief Reusable two-column field row for transaction inputs in the booking page.
+ * @brief Provides the BookingTransactionFieldRow component.
  */
 
 import QtQuick 2.15

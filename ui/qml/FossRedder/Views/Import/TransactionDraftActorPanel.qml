@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/TransactionDraftActorPanel.qml
- * @brief Provides the TransactionDraftActorPanel component.
+ * @file ui/qml/FossRedder/Views/Import/TransactionDraftActorPanel.qml
+ * @brief Edits actor text and actor matching for the current transaction draft.
  */
 
 import QtQuick 2.15
@@ -46,10 +46,10 @@ Controls.Panel {
             }
 
             onAccepted: {
-                if (!root.txRoot || !root.txRoot.draft || !draftController) return
+                if (!root.txRoot || !root.txRoot.draft || !root.draftController) return
                 const rows = root.txRoot.actorChoices || []
-                const row = draftController.findChoiceRowByText(rows, text)
-                if (row && row.id !== undefined) draftController.selectCurrentActorChoice(root.txRoot.draft, row)
+                const row = root.draftController.findChoiceRowByText(rows, text)
+                if (row && row.id !== undefined) root.draftController.selectCurrentActorChoice(root.txRoot.draft, row)
                 else if (root.txRoot.draft) {
                     root.txRoot.draft.transactions.setActorText(root.txRoot.draft.currentIndex, text)
                     root.txRoot.draft.transactions.setNewActorSelected(root.txRoot.draft.currentIndex, true)

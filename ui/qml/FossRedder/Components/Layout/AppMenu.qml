@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/AppMenu.qml
+ * @file ui/qml/FossRedder/Components/Layout/AppMenu.qml
  * @brief Provides the AppMenu component.
  */
 

@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/PrimaryButton.qml
+ * @file ui/qml/FossRedder/Controls/PrimaryButton.qml
  * @brief Provides the PrimaryButton component.
  */
 

@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Annual/AnnualForm.qml
+ * @file ui/qml/FossRedder/Views/Annual/AnnualForm.qml
  * @brief Provides the AnnualForm component.
  */
 
@@ -385,6 +385,7 @@ Item {
                     }
 
                     Controls.TextField {
+                        objectName: "annualNameField"
                         Layout.fillWidth: true
                         text: root.annualNameText
                         onTextEdited: root.annualNameText = text
@@ -400,6 +401,7 @@ Item {
                     }
 
                     Controls.TextField {
+                        objectName: "annualYearField"
                         Layout.fillWidth: true
                         text: root.yearText
                         inputMethodHints: Qt.ImhDigitsOnly
@@ -453,6 +455,7 @@ Item {
             theme: root.theme
 
             Controls.PrevButton {
+                objectName: "annualPreviousButton"
                 enabled: root.annualRows().length > 0
                 onClicked: root.navigateAnnual(-1)
             }
@@ -460,12 +463,14 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.SecondaryButton {
+                objectName: "annualToggleWorkspaceButton"
                 text: "⇆"
                 Layout.preferredWidth: 48
                 onClicked: root.annualWorkspaceIndex = root.annualWorkspaceIndex === 0 ? 1 : 0
             }
 
             Controls.DangerButton {
+                objectName: "annualClearButton"
                 visible: !root.isEdit
                 text: qsTr("Clear")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -473,6 +478,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "annualCreateButton"
                 visible: !root.isEdit
                 text: qsTr("Create")
                 enabled: root.canSubmit()
@@ -481,6 +487,7 @@ Item {
             }
 
             Controls.DangerButton {
+                objectName: "annualDeleteButton"
                 visible: root.isEdit
                 text: qsTr("Delete")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -488,6 +495,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "annualUpdateButton"
                 visible: root.isEdit
                 text: qsTr("Update")
                 enabled: root.canSubmit() && root.hasChanges()
@@ -498,6 +506,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.NextButton {
+                objectName: "annualNextButton"
                 enabled: root.annualRows().length > 0
                 onClicked: root.navigateAnnual(1)
             }

@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/ContentRouter.qml
+ * @file ui/qml/FossRedder/Components/Layout/ContentRouter.qml
  * @brief Provides the ContentRouter component.
  */
 

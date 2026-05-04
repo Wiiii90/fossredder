@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml
- * @brief Provides the TransactionDraftPropertyPanel component.
+ * @file ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml
+ * @brief Manages property selection and suggestion handling for the current transaction draft.
  */
 
 import QtQuick 2.15

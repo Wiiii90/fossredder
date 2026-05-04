@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Contract/ContractPropertiesPanel.qml
- * @brief Provides the ContractPropertiesPanel component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Contract/ContractPropertiesPanel.qml
- * @brief Property selection panel used by the contract form with an internal scrollable list.
+ * @brief Provides the ContractPropertiesPanel component.
  */
 
 import QtQuick 2.15
@@ -71,6 +66,7 @@ Controls.Panel {
                         spacing: root.theme.spacingSmall
 
                         Controls.CheckBox {
+                            objectName: "contractPropertyCheckBox"
                             Layout.fillWidth: false
                             Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                             checked: root.selectedPropertyIds.indexOf(propertyRow.propertyId) !== -1

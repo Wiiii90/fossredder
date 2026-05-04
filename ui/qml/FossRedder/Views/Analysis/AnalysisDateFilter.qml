@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisDateFilter.qml
+ * @file ui/qml/FossRedder/Views/Analysis/AnalysisDateFilter.qml
  * @brief Provides the AnalysisDateFilter component.
  */
 
@@ -35,6 +35,7 @@ Controls.Panel {
 
         Controls.DropdownMenu {
             id: dateModeCombo
+            objectName: "analysisDateModeComboBox"
             Layout.preferredWidth: root.theme.formFieldWidth
             model: [ qsTr("Year"), qsTr("Date Range") ]
             currentIndex: root.dateModeIndex
@@ -52,6 +53,7 @@ Controls.Panel {
 
         Controls.TextField {
             id: dateFromField
+            objectName: "analysisDateFromField"
             visible: root.dateModeIndex === 1
             Layout.preferredWidth: root.theme.formFieldWidth
             placeholderText: qsTr("YYYY-MM-DD")
@@ -70,6 +72,7 @@ Controls.Panel {
 
         Controls.TextField {
             id: dateToField
+            objectName: "analysisDateToField"
             visible: root.dateModeIndex === 1
             Layout.preferredWidth: root.theme.formFieldWidth
             placeholderText: qsTr("YYYY-MM-DD")
@@ -82,6 +85,7 @@ Controls.Panel {
 
         Controls.TextField {
             id: yearField
+            objectName: "analysisYearField"
             visible: root.dateModeIndex === 0
             Layout.preferredWidth: root.yearFieldWidth
             placeholderText: qsTr("YYYY")

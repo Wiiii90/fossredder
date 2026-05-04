@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisSidebar.qml
+ * @file ui/qml/FossRedder/Views/Analysis/AnalysisSidebar.qml
  * @brief Provides the AnalysisSidebar component.
  */
 

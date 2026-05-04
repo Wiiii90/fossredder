@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Common/ListRow.qml
+ * @file ui/qml/FossRedder/Components/Common/ListRow.qml
  * @brief Provides the ListRow component.
  */
 

@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingTransactionPropertyPanel.qml
- * @brief Provides the BookingTransactionPropertyPanel component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Booking/BookingTransactionPropertyPanel.qml
- * @brief Property multi-selection panel for a transaction in the booking page.
+ * @brief Provides the BookingTransactionPropertyPanel component.
  */
 
 import QtQuick 2.15
@@ -54,6 +49,7 @@ Controls.Panel {
                 spacing: root.theme.spacingSmall
 
                 Controls.CheckBox {
+                    objectName: "bookingTransactionPropertyCheckBox"
                     Layout.fillWidth: false
                     Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                     checked: root.txRoot.hasProperty(propertyDelegate.propertyId)

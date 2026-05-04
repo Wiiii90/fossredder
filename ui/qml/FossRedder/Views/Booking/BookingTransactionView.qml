@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingTransactionView.qml
- * @brief Provides the BookingTransactionView component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Booking/BookingTransactionView.qml
- * @brief Form view for a single transaction inside the booking statement page.
+ * @brief Provides the BookingTransactionView component.
  */
 
 import QtQuick 2.15
@@ -125,6 +120,7 @@ Item {
 
             leftContent: Component {
                 Controls.TextField {
+                    objectName: "bookingTransactionNameField"
                     text: root.valueOrEmpty("name")
                     onTextEdited: root.updateField("name", text)
                 }
@@ -132,6 +128,7 @@ Item {
 
             rightContent: Component {
                 Controls.DropdownMenu {
+                    objectName: "bookingTransactionStatusComboBox"
                     textRole: "label"
                     model: root.statusOptions
                     currentIndex: root.statusIndex()
@@ -150,6 +147,7 @@ Item {
 
             leftContent: Component {
                 Controls.TextField {
+                    objectName: "bookingTransactionBookingDateField"
                     text: root.valueOrEmpty("bookingDate")
                     onTextEdited: root.updateField("bookingDate", text)
                 }
@@ -157,6 +155,7 @@ Item {
 
             rightContent: Component {
                 Controls.TextField {
+                    objectName: "bookingTransactionValutaField"
                     text: root.valueOrEmpty("valuta")
                     onTextEdited: root.updateField("valuta", text)
                 }
@@ -173,6 +172,7 @@ Item {
             }
 
             Controls.TextField {
+                objectName: "bookingTransactionAmountField"
                 Layout.fillWidth: true
                 text: root.transactionData && root.transactionData.amount !== undefined ? String(root.transactionData.amount) : ""
                 onTextEdited: {

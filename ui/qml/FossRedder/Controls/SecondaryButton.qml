@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/SecondaryButton.qml
+ * @file ui/qml/FossRedder/Controls/SecondaryButton.qml
  * @brief Provides the SecondaryButton component.
  */
 

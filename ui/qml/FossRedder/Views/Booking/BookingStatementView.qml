@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingStatementView.qml
+ * @file ui/qml/FossRedder/Views/Booking/BookingStatementView.qml
  * @brief Provides the BookingStatementView component.
  */
 
@@ -86,9 +86,9 @@ Item {
     }
 
     function transactionById(txId) {
-        if (!root.statementController || !txId)
+        if (!root.transactionController || !txId)
             return root.emptyTransaction()
-        return root.cloneTransaction(root.statementController.statement(txId))
+        return root.cloneTransaction(root.transactionController.transaction(txId))
     }
 
     function currentCreateTransaction() {
@@ -429,11 +429,13 @@ Item {
             theme: root.theme
 
             Controls.PrevPageButton {
+                objectName: "bookingPreviousStatementButton"
                 enabled: root.statementRows().length > 0
                 onClicked: root.navigateStatement(-1)
             }
 
             Controls.PrevButton {
+                objectName: "bookingPreviousTransactionButton"
                 enabled: root.isCreateMode ? root.createTransactions.length > 1 : root.editTransactionState().rows.length > 1
                 onClicked: root.navigateTransaction(-1)
             }
@@ -443,6 +445,7 @@ Item {
             }
 
             Controls.DangerButton {
+                objectName: "bookingClearButton"
                 visible: root.isCreateMode
                 text: qsTr("Clear")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -450,6 +453,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "bookingCreateButton"
                 visible: root.isCreateMode
                 text: qsTr("Create")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -458,6 +462,7 @@ Item {
             }
 
             Controls.DangerButton {
+                objectName: "bookingDeleteButton"
                 visible: !root.isCreateMode
                 text: qsTr("Delete")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -465,6 +470,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "bookingUpdateButton"
                 visible: !root.isCreateMode
                 text: qsTr("Update")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -477,11 +483,13 @@ Item {
             }
 
             Controls.NextButton {
+                objectName: "bookingNextTransactionButton"
                 enabled: root.isCreateMode ? root.createTransactions.length > 1 : root.editTransactionState().rows.length > 1
                 onClicked: root.navigateTransaction(1)
             }
 
             Controls.NextPageButton {
+                objectName: "bookingNextStatementButton"
                 enabled: root.statementRows().length > 0
                 onClicked: root.navigateStatement(1)
             }

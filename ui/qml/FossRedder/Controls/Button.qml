@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/Button.qml
+ * @file ui/qml/FossRedder/Controls/Button.qml
  * @brief Provides the Button component.
  */
 

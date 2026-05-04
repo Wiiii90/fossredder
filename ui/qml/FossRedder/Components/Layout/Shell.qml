@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/Shell.qml
+ * @file ui/qml/FossRedder/Components/Layout/Shell.qml
  * @brief Provides the Shell component.
  */
 

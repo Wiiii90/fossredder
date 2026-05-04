@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/Panel.qml
+ * @file ui/qml/FossRedder/Controls/Panel.qml
  * @brief Provides the Panel component.
  */
 

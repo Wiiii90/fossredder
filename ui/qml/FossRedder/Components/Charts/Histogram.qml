@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Charts/Histogram.qml
+ * @file ui/qml/FossRedder/Components/Charts/Histogram.qml
  * @brief Provides the Histogram component.
  */
 
@@ -14,9 +14,14 @@ Item {
     property var table: []
     property var session: root.appContext ? root.appContext.session : null
     property var legendFilter: []
-    property var propertyNameForId
     property real splitProgress: 0.0
     Behavior on splitProgress { NumberAnimation { duration: 300; easing.type: Easing.InOutQuad } }
+
+    function propertyNameForId(id) {
+        if (root.session && root.session.propertyName)
+            return root.session.propertyName(id)
+        return id
+    }
 
     function colorForKey(k) {
         return Constants.Analysis.colorForKey(k, root.theme.analysis.palette, root.theme.chartFallback)
@@ -86,7 +91,7 @@ Item {
                             ctx.textBaseline = "top"
                             const label = props[pi].k || ""
                             propName = label
-                            try { if (root.propertyNameForId) propName = root.propertyNameForId(label) } catch(e) {}
+                            try { propName = root.propertyNameForId(label) } catch(e) {}
                             const tw = ctx.measureText ? (ctx.measureText(propName).width || 0) : 0
                             const lx = xprop + ((gw - root.theme.analysis.render.propertyBarInset) / 2) - (tw / 2)
                             if (gw >= root.theme.analysis.render.propertyLabelMinWidth) ctx.fillText(propName, Math.max(xprop, lx), height - (root.theme.spacing * 3))

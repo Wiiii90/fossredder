@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/ImportProgressBar.qml
+ * @file ui/qml/FossRedder/Views/Import/ImportProgressBar.qml
  * @brief Provides the ImportProgressBar component.
  */
 
@@ -19,6 +19,7 @@ Controls.Panel {
     contentSpacing: root.theme.spacingSmall
 
     Controls.ProgressBar {
+        objectName: "importProgressBar"
         Layout.fillWidth: true
         visible: true
         value: root.hasImportController ? root.importController.progress : 0

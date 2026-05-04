@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingTransactionAllocatablePanel.qml
- * @brief Provides the BookingTransactionAllocatablePanel component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Booking/BookingTransactionAllocatablePanel.qml
- * @brief Toggle panel to mark a transaction as allocatable in the booking page.
+ * @brief Provides the BookingTransactionAllocatablePanel component.
  */
 
 import QtQuick 2.15
@@ -55,6 +50,7 @@ Controls.Panel {
             }
 
             MouseArea {
+                objectName: "bookingTransactionAllocatableToggle"
                 anchors.fill: parent
                 onClicked: root.txRoot.updateField("allocatable", !root.txRoot.allocatableValue())
             }

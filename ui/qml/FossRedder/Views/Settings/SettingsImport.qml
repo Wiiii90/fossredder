@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Settings/SettingsImport.qml
- * @brief Provides the SettingsImport component.
+ * @file ui/qml/FossRedder/Views/Settings/SettingsImport.qml
+ * @brief Configures import defaults and pipeline-related import settings.
  */
 
 import QtQuick 2.15
@@ -29,8 +29,6 @@ Flickable {
             Layout.fillWidth: true
             contentSpacing: root.theme.spacingSmall
 
-            readonly property real browseButtonHeight: defaultImportPathField.implicitHeight
-
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: root.theme.spacingSmall
@@ -40,14 +38,16 @@ Flickable {
                     Text { text: qsTr("Default file path"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
                     Controls.TextField {
                         id: defaultImportPathField
+                        objectName: "settingsImportDefaultPathField"
                         Layout.fillWidth: true
                         placeholderText: qsTr("Select default import path...")
                         text: root.settingsController ? root.settingsController.importDefaultPath : ""
                         onTextChanged: if (root.settingsController && root.settingsController.importDefaultPath !== text) root.settingsController.importDefaultPath = text
                     }
                     Controls.SecondaryButton {
+                        objectName: "settingsImportBrowseButton"
                         text: qsTr("Browse...")
-                        Layout.preferredHeight: parent.browseButtonHeight
+                        Layout.preferredHeight: defaultImportPathField.implicitHeight
                         onClicked: if (root.actions) root.actions.browseImportPdf()
                     }
                 }

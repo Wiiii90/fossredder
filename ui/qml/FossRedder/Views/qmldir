@@ -40,8 +40,12 @@ ContractPropertiesPanel 1.0 Contract/ContractPropertiesPanel.qml
 ContractSidebar 1.0 Contract/ContractSidebar.qml
 ContractView 1.0 Contract/ContractView.qml
 ExportSidebar 1.0 Export/ExportSidebar.qml
+ExportForm 1.0 Export/ExportForm.qml
+ExportPanel 1.0 Export/ExportPanel.qml
+ExportProgressBar 1.0 Export/ExportProgressBar.qml
 ExportView 1.0 Export/ExportView.qml
 ImportSidebar 1.0 Import/ImportSidebar.qml
+ImportForm 1.0 Import/ImportForm.qml
 ImportView 1.0 Import/ImportView.qml
 StatementDraftView 1.0 Import/StatementDraftView.qml
 TransactionDraftActorPanel 1.0 Import/TransactionDraftActorPanel.qml
@@ -56,10 +60,9 @@ PropertyForm 1.0 Property/PropertyForm.qml
 PropertyContractPanel 1.0 Property/PropertyContractPanel.qml
 PropertySidebar 1.0 Property/PropertySidebar.qml
 PropertyView 1.0 Property/PropertyView.qml
-SettingsAdvanced 1.0 Settings/SettingsAdvanced.qml
-SettingsAppearance 1.0 Settings/SettingsAppearance.qml
 SettingsExport 1.0 Settings/SettingsExport.qml
 SettingsGeneral 1.0 Settings/SettingsGeneral.qml
 SettingsImport 1.0 Settings/SettingsImport.qml
+SettingsMiscellaneous 1.0 Settings/SettingsMiscellaneous.qml
 SettingsSidebar 1.0 Settings/SettingsSidebar.qml
 SettingsView 1.0 Settings/SettingsView.qml

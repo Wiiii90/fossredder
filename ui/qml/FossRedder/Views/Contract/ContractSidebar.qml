@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Contract/ContractSidebar.qml
- * @brief Provides the ContractSidebar component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Contract/ContractSidebar.qml
- * @brief Sidebar list for navigating available contract records.
+ * @brief Provides the ContractSidebar component.
  */
 
 import QtQuick 2.15

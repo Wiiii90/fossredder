@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisPropertyFilter.qml
+ * @file ui/qml/FossRedder/Views/Analysis/AnalysisPropertyFilter.qml
  * @brief Provides the AnalysisPropertyFilter component.
  */
 
@@ -64,6 +64,7 @@ Controls.Panel {
                         spacing: root.theme.spacingSmall
 
                         Controls.CheckBox {
+                            objectName: "analysisPropertyFilterCheckBox"
                             Layout.fillWidth: false
                             Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                             checked: root.selectedIds.indexOf(rowRoot.modelData.id) !== -1

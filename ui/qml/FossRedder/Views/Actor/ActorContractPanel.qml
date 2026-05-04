@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Actor/ActorContractPanel.qml
- * @brief Provides the ActorContractPanel component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Actor/ActorContractPanel.qml
- * @brief Contract selection panel used by the actor form with an internal scrollable list.
+ * @brief Provides the ActorContractPanel component.
  */
 
 import QtQuick 2.15
@@ -71,6 +66,7 @@ Controls.Panel {
                         spacing: root.theme.spacingSmall
 
                         Controls.CheckBox {
+                            objectName: "actorContractCheckBox"
                             Layout.fillWidth: false
                             Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                             checked: root.selectedContractIds.indexOf(contractRow.contractId) !== -1

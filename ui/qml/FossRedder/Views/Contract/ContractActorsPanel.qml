@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Contract/ContractActorsPanel.qml
- * @brief Provides the ContractActorsPanel component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Contract/ContractActorsPanel.qml
- * @brief Actor selection panel for contracts with a single-select dropdown and a no-actor option.
+ * @brief Provides the ContractActorsPanel component.
  */
 
 import QtQuick 2.15
@@ -43,6 +38,7 @@ Controls.Panel {
 
         Controls.DropdownMenu {
             id: actorCombo
+            objectName: "contractActorComboBox"
             readonly property string selectedActorId: root.selectedActorIds && root.selectedActorIds.length > 0
                                                      ? String(root.selectedActorIds[0])
                                                      : ""

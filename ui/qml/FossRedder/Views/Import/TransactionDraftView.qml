@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/TransactionDraftView.qml
- * @brief Provides the TransactionDraftView component.
+ * @file ui/qml/FossRedder/Views/Import/TransactionDraftView.qml
+ * @brief Coordinates transaction draft panels and keeps draft view state synchronized.
  */
 
 import QtQuick 2.15

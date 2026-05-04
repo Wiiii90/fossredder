@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Common/RunLogList.qml
+ * @file ui/qml/FossRedder/Components/Common/RunLogList.qml
  * @brief Provides the RunLogList component.
  */
 
@@ -20,7 +20,7 @@ Item {
         if (!value) return ""
         const raw = String(value)
         const d = new Date(raw)
-        if (!isNaN(d.getTime())) return Qt.formatDateTime(d, Qt.DefaultLocaleShortDate)
+        if (!isNaN(d.getTime())) return Qt.formatDateTime(d)
         return raw
     }
 

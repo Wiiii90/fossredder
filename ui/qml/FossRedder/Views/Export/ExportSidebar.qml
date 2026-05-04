@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Export/ExportSidebar.qml
+ * @file ui/qml/FossRedder/Views/Export/ExportSidebar.qml
  * @brief Provides the ExportSidebar component.
  */
 

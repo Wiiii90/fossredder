@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/BottomBar.qml
+ * @file ui/qml/FossRedder/Components/Layout/BottomBar.qml
  * @brief Provides the BottomBar component.
  */
 

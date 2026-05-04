@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/TransactionDraftFieldRow.qml
- * @brief Provides the TransactionDraftFieldRow component.
+ * @file ui/qml/FossRedder/Views/Import/TransactionDraftFieldRow.qml
+ * @brief Provides a reusable two-column field row layout for transaction draft panels.
  */
 
 import QtQuick 2.15

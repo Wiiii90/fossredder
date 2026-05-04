@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Settings/SettingsExport.qml
- * @brief Provides the SettingsExport component.
+ * @file ui/qml/FossRedder/Views/Settings/SettingsExport.qml
+ * @brief Edits export defaults such as output directory and archive format.
  */
 
 import QtQuick 2.15
@@ -37,12 +37,14 @@ Flickable {
                     Layout.fillWidth: true
                     Text { text: qsTr("Default output folder"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
                     Controls.TextField {
+                        objectName: "settingsExportDefaultDirectoryField"
                         Layout.fillWidth: true
                         placeholderText: qsTr("Select default output folder...")
                         text: root.settingsController ? root.settingsController.exportDefaultDirectory : ""
                         onTextChanged: if (root.settingsController && root.settingsController.exportDefaultDirectory !== text) root.settingsController.exportDefaultDirectory = text
                     }
                     Controls.SecondaryButton {
+                        objectName: "settingsExportBrowseButton"
                         text: qsTr("Browse...")
                         onClicked: if (root.actions) root.actions.browseExportDirectory()
                     }
@@ -52,6 +54,7 @@ Flickable {
                     Layout.fillWidth: true
                     Text { text: qsTr("Default archive"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
                     Controls.DropdownMenu {
+                        objectName: "settingsExportArchiveFormatComboBox"
                         model: [qsTr("None"), qsTr("ZIP")]
                         currentIndex: root.settingsController ? root.settingsController.exportArchiveFormat : 0
                         onActivated: function(index) {
@@ -65,6 +68,7 @@ Flickable {
                     Layout.fillWidth: true
                     Text { text: qsTr("XLSX formulas"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
                     Controls.CheckBox {
+                        objectName: "settingsExportIncludeFormulasCheckBox"
                         checked: root.settingsController ? root.settingsController.exportIncludeFormulas : true
                         text: qsTr("Use Excel formulas for totals when possible")
                         onToggled: if (root.settingsController) root.settingsController.exportIncludeFormulas = checked

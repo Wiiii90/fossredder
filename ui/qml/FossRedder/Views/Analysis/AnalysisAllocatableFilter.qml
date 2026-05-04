@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisAllocatableFilter.qml
+ * @file ui/qml/FossRedder/Views/Analysis/AnalysisAllocatableFilter.qml
  * @brief Provides the AnalysisAllocatableFilter component.
  */
 
@@ -29,6 +29,7 @@ Controls.Panel {
 
         Controls.DropdownMenu {
             id: allocatableCombo
+            objectName: "analysisAllocatableModeComboBox"
             Layout.preferredWidth: root.theme.formFieldWidth
             model: [ qsTr("All"), qsTr("Only allocatable"), qsTr("Only non allocatable") ]
             currentIndex: root.mode === "allocatable" ? 1 : (root.mode === "non-allocatable" ? 2 : 0)

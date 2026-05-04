@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/DropdownMenu.qml
+ * @file ui/qml/FossRedder/Controls/DropdownMenu.qml
  * @brief Provides the DropdownMenu component.
  */
 

@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Settings/SettingsMiscellaneous.qml
- * @brief Provides the SettingsMiscellaneous component.
+ * @file ui/qml/FossRedder/Views/Settings/SettingsMiscellaneous.qml
+ * @brief Provides miscellaneous settings toggles such as toolbar visibility options.
  */
 
 import QtQuick 2.15

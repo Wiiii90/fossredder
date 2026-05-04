@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisPlotView.qml
+ * @file ui/qml/FossRedder/Views/Analysis/AnalysisPlotView.qml
  * @brief Provides the AnalysisPlotView component.
  */
 
@@ -183,8 +183,8 @@ Item {
                     Column { id: pieLegendCol; Layout.preferredWidth: root.theme.analysis.layout.splitControlsWidth; Layout.fillHeight: true; spacing: root.theme.spacingSmall
                         Label { text: qsTr('Legend'); font.bold: false; color: root.theme.chartText }
                         Repeater { model: (root.session && root.session.lastAnalysisResult) ? root.session.lastAnalysisResult.table : []
-                            delegate: RowLayout { id: pieLegendRow; required property var modelData; required property int index; spacing: root.theme.spacingSmall; height: 20
-                Rectangle { width: root.theme.chartLegendMarkerSize; height: root.theme.chartLegendMarkerSize; color: root.colorForKey(pieLegendRow.modelData && pieLegendRow.modelData.length>0 ? pieLegendRow.modelData[0] : String(pieLegendRow.index)) }
+                            delegate: RowLayout { id: pieLegendRow; required property var modelData; required property int index; spacing: root.theme.spacingSmall; Layout.preferredHeight: 20
+                Rectangle { Layout.preferredWidth: root.theme.chartLegendMarkerSize; Layout.preferredHeight: root.theme.chartLegendMarkerSize; color: root.colorForKey(pieLegendRow.modelData && pieLegendRow.modelData.length>0 ? pieLegendRow.modelData[0] : String(pieLegendRow.index)) }
                                 Label { text: (pieLegendRow.modelData && pieLegendRow.modelData.length>0) ? pieLegendRow.modelData[0] : ''; horizontalAlignment: Text.AlignLeft; Layout.preferredWidth: 120 }
                                 Label { text: (function(){ const v = (pieLegendRow.modelData && pieLegendRow.modelData.length>1) ? parseFloat(pieLegendRow.modelData[1])||0 : 0; return ' ' + v.toFixed(2); })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: root.theme.chartValueLabelWidth }
                                 Label { text: (function(){ const v = (pieLegendRow.modelData && pieLegendRow.modelData.length>1) ? parseFloat(pieLegendRow.modelData[1])||0 : 0; return (root.histLegendTotal>0) ? (' ' + ((parseFloat(pieLegendRow.modelData[1]) / root.histLegendTotal * 100).toFixed(1) + Constants.Analysis.text.percentSuffix)) : '' })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: root.theme.chartPercentLabelWidth }
@@ -232,6 +232,7 @@ Item {
                 Label { text: qsTr('Split by property') }
                 Switch {
                     id: splitSwitch
+                    objectName: "analysisHistogramSplitSwitch"
                     onCheckedChanged: {
                         hist.splitProgress = checked ? 1.0 : 0.0
                         try { if (hist.requestPaint) hist.requestPaint(); } catch(e) {}
@@ -263,7 +264,7 @@ Item {
                     model: root.histLegendModel
                     delegate: RowLayout { id: histLegendRow; required property var modelData;
                         spacing: root.theme.spacingSmall
-                        Rectangle { width: root.theme.chartLegendMarkerSize; height: root.theme.chartLegendMarkerSize; color: root.colorForKey(histLegendRow.modelData && histLegendRow.modelData.name ? histLegendRow.modelData.name : histLegendRow.modelData) }
+                        Rectangle { Layout.preferredWidth: root.theme.chartLegendMarkerSize; Layout.preferredHeight: root.theme.chartLegendMarkerSize; color: root.colorForKey(histLegendRow.modelData && histLegendRow.modelData.name ? histLegendRow.modelData.name : histLegendRow.modelData) }
                         Label { text: (histLegendRow.modelData && histLegendRow.modelData.name) ? histLegendRow.modelData.name : ''; font.pixelSize: root.theme.fontSize }
                     Label { text: (histLegendRow.modelData && histLegendRow.modelData.value) ? (' ' + parseFloat(histLegendRow.modelData.value).toFixed(2)) : (' ' + Constants.Analysis.text.defaultLegendValue); font.pixelSize: root.theme.fontSize }
                     Label { text: (histLegendRow.modelData && histLegendRow.modelData.value && root.histLegendTotal>0) ? (' ' + ((parseFloat(histLegendRow.modelData.value) / root.histLegendTotal * 100).toFixed(1) + Constants.Analysis.text.percentSuffix)) : '' ; font.pixelSize: root.theme.fontSize }

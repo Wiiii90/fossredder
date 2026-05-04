@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/TextField.qml
+ * @file ui/qml/FossRedder/Controls/TextField.qml
  * @brief Provides the TextField component.
  */
 

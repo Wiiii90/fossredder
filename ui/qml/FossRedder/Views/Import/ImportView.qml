@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/ImportView.qml
- * @brief Provides the ImportView component.
+ * @file ui/qml/FossRedder/Views/Import/ImportView.qml
+ * @brief Composes import workflow pages and bottom actions for statement import runs.
  */
 
 import QtQuick 2.15
@@ -51,6 +51,7 @@ Item {
 
     StackLayout {
         id: contentStack
+        objectName: "importContentStack"
         anchors.fill: parent
         currentIndex: 0
 
@@ -146,6 +147,7 @@ Item {
                     theme: root.theme
 
                     Controls.SecondaryButton {
+                        objectName: "importClearButton"
                         text: qsTr("Clear")
                         visible: root.hasImportController && !root.importController.isRunning
                         enabled: root.hasImportController && !root.importController.isRunning
@@ -153,6 +155,7 @@ Item {
                     }
 
                     Controls.SecondaryButton {
+                        objectName: "importCancelButton"
                         text: qsTr("Cancel")
                         visible: root.hasImportController && root.importController.isRunning
                         enabled: root.hasImportController && root.importController.isRunning
@@ -160,6 +163,7 @@ Item {
                     }
 
                     Controls.SecondaryButton {
+                    objectName: "importPauseButton"
                         text: qsTr("Pause")
                         visible: root.hasImportController && root.importController.isRunning
                         enabled: root.hasImportController && root.importController.isRunning
@@ -168,6 +172,7 @@ Item {
                     Item { Layout.fillWidth: true }
 
                     Controls.SecondaryButton {
+                        objectName: "importCancelAllButton"
                         text: qsTr("Cancel all")
                         visible: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
                         enabled: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
@@ -175,6 +180,7 @@ Item {
                     }
 
                     Controls.SuccessButton {
+                        objectName: "importStartButton"
                         text: qsTr("Start")
                         visible: root.hasImportController && !root.importController.isRunning
                         enabled: root.hasImportController && !root.importController.isRunning && ((root.importController.selectedFile && root.importController.selectedFile.length > 0) || root.importController.queuedCount > 0)
@@ -212,11 +218,13 @@ Item {
                 theme: root.theme
 
                 Controls.PrevPageButton {
+                    objectName: "statementDraftPrevPageButton"
                     enabled: !!stmtView.draft && root.hasImportController && root.importController.hasPrevDraft
                     onClicked: if (root.hasImportController) root.importController.openPrevDraft()
                 }
 
                 Controls.PrevButton {
+                    objectName: "statementDraftPrevTransactionButton"
                     enabled: !!stmtView.draft && stmtView.draft.currentIndex > 0
                     onClicked: {
                         stmtView.draft.prev()
@@ -251,6 +259,7 @@ Item {
                 Item { Layout.fillWidth: true }
 
                 Controls.NextButton {
+                    objectName: "statementDraftNextTransactionButton"
                     enabled: !!stmtView.draft && stmtView.draft.currentIndex < (stmtView.draft.count - 1)
                     onClicked: {
                         stmtView.draft.next()
@@ -259,6 +268,7 @@ Item {
                 }
 
                 Controls.NextPageButton {
+                    objectName: "statementDraftNextPageButton"
                     enabled: !!stmtView.draft && root.hasImportController && root.importController.hasNextDraft
                     onClicked: if (root.hasImportController) root.importController.openNextDraft()
                 }

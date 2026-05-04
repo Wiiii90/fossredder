@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Export/ExportPanel.qml
+ * @file ui/qml/FossRedder/Views/Export/ExportPanel.qml
  * @brief Provides the ExportPanel component.
  */
 
@@ -272,6 +272,7 @@ Controls.Panel {
         Layout.fillWidth: true
 
         Controls.Button {
+            objectName: "exportAddAnnualModeButton"
             text: qsTr("Annual")
             bordered: true
             filled: root.addMode === "annual"
@@ -283,6 +284,7 @@ Controls.Panel {
         }
 
         Controls.Button {
+            objectName: "exportAddAnalysisModeButton"
             text: qsTr("Analysis")
             bordered: true
             filled: root.addMode === "analysis"
@@ -295,6 +297,7 @@ Controls.Panel {
 
         Controls.DropdownMenu {
             id: addObjectDropdown
+            objectName: "exportAddObjectComboBox"
             Layout.fillWidth: true
             Layout.preferredWidth: root.theme.formFieldWidth
             model: root.addRows()
@@ -304,6 +307,7 @@ Controls.Panel {
         }
 
         Controls.SecondaryButton {
+            objectName: "exportAddEntryButton"
             text: "+"
             Layout.preferredWidth: root.theme.viewCompactActionButtonSize
             Layout.minimumWidth: root.theme.viewCompactActionButtonSize

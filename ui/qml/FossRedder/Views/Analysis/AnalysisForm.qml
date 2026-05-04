@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisForm.qml
+ * @file ui/qml/FossRedder/Views/Analysis/AnalysisForm.qml
  * @brief Provides the AnalysisForm component.
  */
 
@@ -568,7 +568,12 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: qsTr("Analysis Name"); Layout.preferredWidth: root.theme.formLabelWidth }
-                    Controls.TextField { id: nameField; Layout.fillWidth: true; placeholderText: "" }
+                    Controls.TextField {
+                        id: nameField
+                        objectName: "analysisNameField"
+                        Layout.fillWidth: true
+                        placeholderText: ""
+                    }
                 }
 
                 Controls.Panel {
@@ -584,7 +589,13 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Label { text: qsTr("Analysis Type"); Layout.preferredWidth: root.theme.formLabelWidth }
-                            Controls.DropdownMenu { id: mainTypeCombo; Layout.fillWidth: true; model: [ qsTr("Plot"), qsTr("Table") ]; currentIndex: 0 }
+                            Controls.DropdownMenu {
+                                id: mainTypeCombo
+                                objectName: "analysisMainTypeComboBox"
+                                Layout.fillWidth: true
+                                model: [ qsTr("Plot"), qsTr("Table") ]
+                                currentIndex: 0
+                            }
                         }
 
                         RowLayout {
@@ -593,6 +604,7 @@ Item {
                             Label { text: qsTr("Plot Subtype"); Layout.preferredWidth: root.theme.formLabelWidth }
                             Controls.DropdownMenu {
                                 id: plotSubtypeCombo
+                                objectName: "analysisPlotSubtypeComboBox"
                                 Layout.fillWidth: true
                                 Layout.maximumWidth: root.width - root.theme.formLabelWidth - root.theme.panelContentSafeWidthOffset
                                 model: root.plotTypeOptions
@@ -618,6 +630,7 @@ Item {
                             Label { text: qsTr("Export Format"); Layout.preferredWidth: root.theme.formLabelWidth }
                             Controls.DropdownMenu {
                                 id: exportFormatCombo
+                                objectName: "analysisExportFormatComboBox"
                                 Layout.preferredWidth: root.theme.formFieldWidth
                                 model: root.exportFormatOptions
                                 textRole: "label"
@@ -634,6 +647,7 @@ Item {
                             Layout.fillWidth: true
                             Controls.CheckBox {
                                 id: includeCalcAdjustmentsCheckBox
+                                objectName: "analysisIncludeCalcAdjustmentsCheckBox"
                                 Layout.fillWidth: false
                                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                                 checked: root.includeCalcAdjustments
@@ -778,6 +792,7 @@ Item {
             theme: root.theme
 
             Controls.PrevButton {
+                objectName: "analysisPreviousButton"
                 enabled: root.analysesCount() > 0
                 onClicked: root.navigateAnalysis(-1)
             }
@@ -785,6 +800,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.SecondaryButton {
+                objectName: "analysisToggleWorkspaceButton"
                 visible: !root.isEdit && root.filterEditMode
                 text: "⇆"
                 Layout.preferredWidth: 48
@@ -792,6 +808,7 @@ Item {
             }
 
             Controls.DangerButton {
+                objectName: "analysisResetButton"
                 visible: !root.isEdit
                 text: qsTr("Reset")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -799,6 +816,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "analysisCreateButton"
                 visible: !root.isEdit
                 text: qsTr("Create")
                 enabled: root.canSubmitAnalysis()
@@ -807,6 +825,7 @@ Item {
             }
 
             Controls.DangerButton {
+                objectName: "analysisDeleteButton"
                 visible: root.isEdit
                 text: qsTr("Delete")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -814,6 +833,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "analysisUpdateButton"
                 visible: root.isEdit
                 text: qsTr("Update")
                 enabled: root.canSubmitAnalysis()
@@ -824,6 +844,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.NextButton {
+                objectName: "analysisNextButton"
                 enabled: root.analysesCount() > 0
                 onClicked: root.navigateAnalysis(1)
             }

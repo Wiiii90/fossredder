@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/ProgressBar.qml
+ * @file ui/qml/FossRedder/Controls/ProgressBar.qml
  * @brief Provides the ProgressBar component.
  */
 

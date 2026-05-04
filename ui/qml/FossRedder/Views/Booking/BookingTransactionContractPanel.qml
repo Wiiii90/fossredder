@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Booking/BookingTransactionContractPanel.qml
- * @brief Provides the BookingTransactionContractPanel component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Booking/BookingTransactionContractPanel.qml
- * @brief Contract selection panel for a transaction in the booking page.
+ * @brief Provides the BookingTransactionContractPanel component.
  */
 
 import QtQuick 2.15
@@ -40,6 +35,7 @@ Controls.Panel {
 
         Controls.DropdownMenu {
             id: contractCombo
+            objectName: "bookingTransactionContractComboBox"
             Layout.fillWidth: true
             textRole: "display"
             model: root.txRoot.contractDisplayModel()

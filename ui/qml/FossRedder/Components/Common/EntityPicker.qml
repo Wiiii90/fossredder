@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Common/EntityPicker.qml
+ * @file ui/qml/FossRedder/Components/Common/EntityPicker.qml
  * @brief Provides the EntityPicker component.
  */
 

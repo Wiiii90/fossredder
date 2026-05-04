@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisContractTypeFilter.qml
+ * @file ui/qml/FossRedder/Views/Analysis/AnalysisContractTypeFilter.qml
  * @brief Provides the AnalysisContractTypeFilter component.
  */
 
@@ -64,6 +64,7 @@ Controls.Panel {
                         spacing: root.theme.spacingSmall
 
                         Controls.CheckBox {
+                            objectName: "analysisContractTypeFilterCheckBox"
                             Layout.fillWidth: false
                             Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                             checked: root.selectedTypes.indexOf(String(ctRow.modelData)) !== -1

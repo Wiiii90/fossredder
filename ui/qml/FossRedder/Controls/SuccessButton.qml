@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/SuccessButton.qml
+ * @file ui/qml/FossRedder/Controls/SuccessButton.qml
  * @brief Provides the SuccessButton component.
  */
 

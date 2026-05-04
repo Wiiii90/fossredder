@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Property/PropertyForm.qml
- * @brief Provides the PropertyForm component.
+ * @file ui/qml/FossRedder/Views/Property/PropertyForm.qml
+ * @brief Handles property create/update/delete flows and related form state.
  */
 
 import QtQuick 2.15
@@ -190,6 +190,7 @@ Item {
 
                 Controls.TextField {
                     id: nameField
+                    objectName: "propertyNameField"
                     placeholderText: ""
                     Layout.fillWidth: true
                 }
@@ -211,6 +212,7 @@ Item {
 
                     Controls.TextField {
                         id: propertyAliasInput
+                        objectName: "propertyAliasInput"
                         Layout.fillWidth: true
                         placeholderText: ""
                         text: root.aliasInputText
@@ -218,7 +220,8 @@ Item {
                     }
 
                     Controls.SecondaryButton {
-                        text: "+"
+                        objectName: "propertyAddAliasButton"
+                        text: qsTr("Add")
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
                         textColor: root.theme.textMuted
@@ -227,7 +230,8 @@ Item {
                     }
 
                     Controls.SecondaryButton {
-                        text: "×"
+                        objectName: "propertyRemoveAliasButton"
+                        text: qsTr("Remove")
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
                         textColor: root.theme.textMuted
@@ -318,6 +322,7 @@ Item {
             theme: root.theme
 
             Controls.PrevButton {
+                objectName: "propertyPreviousButton"
                 enabled: root.propertyRows().length > 0
                 onClicked: root.navigateProperty(-1)
             }
@@ -325,6 +330,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.DangerButton {
+                objectName: "propertyClearButton"
                 visible: !root.isEdit
                 text: qsTr("Clear")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -332,6 +338,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "propertyCreateButton"
                 visible: !root.isEdit
                 text: qsTr("Create")
                 enabled: nameField.text.length > 0
@@ -340,6 +347,7 @@ Item {
             }
 
             Controls.DangerButton {
+                objectName: "propertyDeleteButton"
                 visible: root.isEdit
                 text: qsTr("Delete")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -347,6 +355,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "propertyUpdateButton"
                 visible: root.isEdit
                 text: qsTr("Update")
                 enabled: nameField.text.length > 0 && root.hasChanges()
@@ -357,6 +366,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.NextButton {
+                objectName: "propertyNextButton"
                 enabled: root.propertyRows().length > 0
                 onClicked: root.navigateProperty(1)
             }

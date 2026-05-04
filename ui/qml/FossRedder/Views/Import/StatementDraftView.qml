@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/StatementDraftView.qml
- * @brief Provides the StatementDraftView component.
+ * @file ui/qml/FossRedder/Views/Import/StatementDraftView.qml
+ * @brief Handles draft review, finalize, discard, and navigation actions for imported statements.
  */
 
 import QtQuick 2.15
@@ -136,6 +136,7 @@ Item {
                 }
 
                 Controls.TextField {
+                    objectName: "statementDraftNameField"
                     Layout.fillWidth: true
                     text: stmtRoot.draft ? stmtRoot.draft.name : ""
                     onTextChanged: if (stmtRoot.draft && stmtRoot.draft.name !== text) stmtRoot.draft.name = text
@@ -153,6 +154,7 @@ Item {
                 }
 
                 Controls.SecondaryButton {
+                    objectName: "statementDraftDeleteTransactionButton"
                     visible: stmtRoot.draft && stmtRoot.draft.count > 1
                     text: "×"
                     implicitHeight: stmtRoot.theme.viewCompactActionButtonSize

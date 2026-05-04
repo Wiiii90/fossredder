@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Actor/ActorForm.qml
+ * @file ui/qml/FossRedder/Views/Actor/ActorForm.qml
  * @brief Provides the ActorForm component.
  */
 
@@ -211,6 +211,7 @@ Item {
 
                     Controls.TextField {
                         id: actorAliasInput
+                        objectName: "actorAliasInput"
                         Layout.fillWidth: true
                         placeholderText: ""
                         text: root.aliasInputText
@@ -218,7 +219,8 @@ Item {
                     }
 
                     Controls.SecondaryButton {
-                        text: "+"
+                        objectName: "actorAddAliasButton"
+                        text: qsTr("Add")
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
                         textColor: root.theme.textMuted
@@ -227,7 +229,8 @@ Item {
                     }
 
                     Controls.SecondaryButton {
-                        text: "×"
+                        objectName: "actorRemoveAliasButton"
+                        text: qsTr("Remove")
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
                         textColor: root.theme.textMuted
@@ -318,6 +321,7 @@ Item {
             theme: root.theme
 
             Controls.PrevButton {
+                objectName: "actorPreviousButton"
                 enabled: root.actorRows().length > 0
                 onClicked: root.navigateActor(-1)
             }
@@ -325,6 +329,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.DangerButton {
+                objectName: "actorClearButton"
                 visible: !root.isEdit
                 text: qsTr("Clear")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -349,6 +354,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "actorUpdateButton"
                 visible: root.isEdit
                 text: qsTr("Update")
                 enabled: root.hasChanges() && nameField.text.length > 0
@@ -359,6 +365,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.NextButton {
+                objectName: "actorNextButton"
                 enabled: root.actorRows().length > 0
                 onClicked: root.navigateActor(1)
             }

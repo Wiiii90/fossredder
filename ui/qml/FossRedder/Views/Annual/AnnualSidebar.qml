@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Annual/AnnualSidebar.qml
- * @brief Provides the AnnualSidebar component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Annual/AnnualSidebar.qml
- * @brief Sidebar list for navigating annual records.
+ * @brief Provides the AnnualSidebar component.
  */
 
 import QtQuick 2.15

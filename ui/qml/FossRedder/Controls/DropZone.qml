@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/DropZone.qml
+ * @file ui/qml/FossRedder/Controls/DropZone.qml
  * @brief Provides the DropZone component.
  */
 
@@ -60,8 +60,8 @@ Item {
             Image {
                 Layout.alignment: Qt.AlignHCenter
                 source: "../Assets/import.svg"
-                width: root.theme.viewSectionIconSize
-                height: root.theme.viewSectionIconSize
+                Layout.preferredWidth: root.theme.viewSectionIconSize
+                Layout.preferredHeight: root.theme.viewSectionIconSize
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 opacity: 0.85

@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Export/ExportForm.qml
+ * @file ui/qml/FossRedder/Views/Export/ExportForm.qml
  * @brief Provides the ExportForm component.
  */
 
@@ -24,12 +24,14 @@ Controls.Panel {
         Label { text: qsTr("Target"); Layout.preferredWidth: root.theme.formLabelWidth }
         Controls.TextField {
             id: targetDirField
+            objectName: "exportTargetDirectoryField"
             Layout.fillWidth: true
             placeholderText: qsTr("Select target directory...")
             text: root.targetDirectory
             onTextChanged: root.targetDirectory = text
         }
         Controls.SecondaryButton {
+            objectName: "exportBrowseDirectoryButton"
             text: qsTr("Browse...")
             onClicked: root.browseRequested()
         }
@@ -40,6 +42,7 @@ Controls.Panel {
         Label { text: qsTr("Archive"); Layout.preferredWidth: root.theme.formLabelWidth }
         Controls.DropdownMenu {
             id: packageFormatBox
+            objectName: "exportArchiveFormatComboBox"
             Layout.fillWidth: true
             model: [qsTr("None"), qsTr("ZIP")]
             currentIndex: root.packageFormatIndex

@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Export/ExportProgressBar.qml
+ * @file ui/qml/FossRedder/Views/Export/ExportProgressBar.qml
  * @brief Provides the ExportProgressBar component.
  */
 
@@ -19,11 +19,13 @@ Controls.Panel {
     contentSpacing: root.theme.spacingSmall
 
     Controls.ProgressBar {
+        objectName: "exportProgressBar"
         Layout.fillWidth: true
         value: root.hasExportCtrl && root.exportCtrl.currentMode !== 0 ? root.exportCtrl.progress : 0
     }
 
     Label {
+        objectName: "exportProgressStatusLabel"
         Layout.fillWidth: true
         text: root.hasExportCtrl
               ? (root.exportCtrl.error && root.exportCtrl.error.length > 0

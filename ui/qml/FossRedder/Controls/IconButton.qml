@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/IconButton.qml
+ * @file ui/qml/FossRedder/Controls/IconButton.qml
  * @brief Provides the IconButton component.
  */
 
@@ -31,8 +31,8 @@ Item {
         Layout.alignment: Qt.AlignVCenter
 
         Item {
-            width: Math.min(Math.round(button.implicitHeight * 0.65), Math.round(button.width * 0.9))
-            height: width
+            Layout.preferredWidth: Math.min(Math.round(button.implicitHeight * 0.65), Math.round(button.width * 0.9))
+            Layout.preferredHeight: Layout.preferredWidth
             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             transformOrigin: Item.Center
 

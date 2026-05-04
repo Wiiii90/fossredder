@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Property/PropertySidebar.qml
- * @brief Provides the PropertySidebar component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Property/PropertySidebar.qml
- * @brief Sidebar list for navigating available property records.
+ * @brief Shows and selects property entries in the sidebar list.
  */
 
 import QtQuick 2.15

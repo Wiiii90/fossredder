@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/TransactionDraftContractPanel.qml
- * @brief Provides the TransactionDraftContractPanel component.
+ * @file ui/qml/FossRedder/Views/Import/TransactionDraftContractPanel.qml
+ * @brief Selects and updates contract assignment for the current transaction draft.
  */
 
 import QtQuick 2.15

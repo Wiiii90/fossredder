@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisTransactionsPanel.qml
+ * @file ui/qml/FossRedder/Views/Analysis/AnalysisTransactionsPanel.qml
  * @brief Provides the AnalysisTransactionsPanel component.
  */
 
@@ -41,6 +41,7 @@ Controls.Panel {
             }
             Controls.TextField {
                 id: calcNameField
+                objectName: "analysisCalcNameField"
                 Layout.preferredWidth: root.theme.formFieldWidth
                 placeholderText: qsTr("e.g. VAT")
                 text: root.calcName
@@ -49,12 +50,14 @@ Controls.Panel {
             Label { text: qsTr("Calc %") }
             Controls.TextField {
                 id: calcPercentField
+                objectName: "analysisCalcPercentField"
                 Layout.preferredWidth: 90
                 placeholderText: qsTr("0")
                 text: root.calcPercentText
                 onTextChanged: root.calcPercentEdited(text)
             }
             Controls.Button {
+                objectName: "analysisApplyCalcButton"
                 text: qsTr("Apply to selected")
                 onClicked: root.applyCalcRequested()
             }
@@ -118,6 +121,7 @@ Controls.Panel {
                     delegate: Rectangle {
                         id: txRow
                         required property var modelData
+                        required property int index
                         width: txTable.width
                         height: 30
                         color: index % 2 === 0 ? root.theme.surface : root.theme.surfaceAlt
@@ -133,6 +137,7 @@ Controls.Panel {
                             spacing: root.theme.spacingSmall
 
                             Controls.CheckBox {
+                                objectName: "analysisTransactionSelectionCheckBox"
                                 Layout.preferredWidth: 44
                                 Layout.fillWidth: false
                                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
@@ -171,7 +176,7 @@ Controls.Panel {
 
         Rectangle {
             Layout.fillWidth: true
-            height: 1
+            Layout.preferredHeight: 1
             color: root.theme.border
         }
 

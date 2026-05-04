@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Annual/AnnualTransactionsPanel.qml
- * @brief Provides the AnnualTransactionsPanel component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Annual/AnnualTransactionsPanel.qml
- * @brief Annual transaction status list shown in the dedicated transactions workspace.
+ * @brief Provides the AnnualTransactionsPanel component.
  */
 
 import QtQuick 2.15

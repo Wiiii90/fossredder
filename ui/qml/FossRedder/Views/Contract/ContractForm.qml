@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Contract/ContractForm.qml
+ * @file ui/qml/FossRedder/Views/Contract/ContractForm.qml
  * @brief Provides the ContractForm component.
  */
 
@@ -215,6 +215,7 @@ Item {
 
                 Controls.TextField {
                     id: nameField
+                    objectName: "contractNameField"
                     placeholderText: ""
                     Layout.fillWidth: true
                 }
@@ -236,6 +237,7 @@ Item {
 
                     Controls.TextField {
                         id: contractAliasInput
+                        objectName: "contractAliasInput"
                         Layout.fillWidth: true
                         placeholderText: ""
                         text: root.aliasInputText
@@ -243,7 +245,8 @@ Item {
                     }
 
                     Controls.SecondaryButton {
-                        text: "+"
+                        objectName: "contractAddAliasButton"
+                        text: qsTr("Add")
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
                         textColor: root.theme.textMuted
@@ -252,7 +255,8 @@ Item {
                     }
 
                     Controls.SecondaryButton {
-                        text: "×"
+                        objectName: "contractRemoveAliasButton"
+                        text: qsTr("Remove")
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
                         textColor: root.theme.textMuted
@@ -361,6 +365,7 @@ Item {
             theme: root.theme
 
             Controls.PrevButton {
+                objectName: "contractPreviousButton"
                 enabled: root.contractRows().length > 0
                 onClicked: root.navigateContract(-1)
             }
@@ -368,6 +373,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.DangerButton {
+                objectName: "contractClearButton"
                 visible: !root.isEdit
                 text: qsTr("Clear")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -375,6 +381,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "contractCreateButton"
                 visible: !root.isEdit
                 text: qsTr("Create")
                 enabled: root.canSubmit()
@@ -383,6 +390,7 @@ Item {
             }
 
             Controls.DangerButton {
+                objectName: "contractDeleteButton"
                 visible: root.isEdit
                 text: qsTr("Delete")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
@@ -390,6 +398,7 @@ Item {
             }
 
             Controls.SuccessButton {
+                objectName: "contractUpdateButton"
                 visible: root.isEdit
                 text: qsTr("Update")
                 enabled: root.canSubmit() && root.hasChanges()
@@ -400,6 +409,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.NextButton {
+                objectName: "contractNextButton"
                 enabled: root.contractRows().length > 0
                 onClicked: root.navigateContract(1)
             }

@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Analysis/AnalysisView.qml
+ * @file ui/qml/FossRedder/Views/Analysis/AnalysisView.qml
  * @brief Provides the AnalysisView component.
  */
 

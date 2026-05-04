@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Contract/ContractView.qml
- * @brief Provides the ContractView component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Contract/ContractView.qml
- * @brief Contract page container that hosts the contract form with app context and theme.
+ * @brief Provides the ContractView component.
  */
 
 import QtQuick 2.15

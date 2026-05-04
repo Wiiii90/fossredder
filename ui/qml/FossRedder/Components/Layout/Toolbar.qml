@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/Toolbar.qml
+ * @file ui/qml/FossRedder/Components/Layout/Toolbar.qml
  * @brief Provides the Toolbar component.
  */
 
@@ -89,7 +89,7 @@ Item {
                     id: fileIcons
                     spacing: toolBar.theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    height: toolBar.iconRowHeight
+                    Layout.preferredHeight: toolBar.iconRowHeight
 
                     Controls.IconButton {
                         visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowImport : true
@@ -124,7 +124,7 @@ Item {
             }
 
             Rectangle {
-                width: toolBar.theme.borderWidthThin
+                Layout.preferredWidth: toolBar.theme.borderWidthThin
                 Layout.fillHeight: true
                 color: toolBar.theme.divider
                 Layout.alignment: Qt.AlignVCenter
@@ -147,7 +147,7 @@ Item {
                     id: domainIcons
                     spacing: toolBar.theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    height: toolBar.iconRowHeight
+                    Layout.preferredHeight: toolBar.iconRowHeight
 
                     Controls.IconButton {
                         visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowBooking : true
@@ -206,7 +206,7 @@ Item {
             }
 
             Rectangle {
-                width: toolBar.theme.borderWidthThin
+                Layout.preferredWidth: toolBar.theme.borderWidthThin
                 Layout.fillHeight: true
                 color: toolBar.theme.divider
                 Layout.alignment: Qt.AlignVCenter
@@ -227,7 +227,7 @@ Item {
                     id: toolsIcons
                     spacing: toolBar.theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    height: toolBar.iconRowHeight
+                    Layout.preferredHeight: toolBar.iconRowHeight
 
                     Controls.IconButton {
                         visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowAnalysis : true
@@ -266,7 +266,7 @@ Item {
             }
 
             Rectangle {
-                width: toolBar.theme.borderWidthThin
+                Layout.preferredWidth: toolBar.theme.borderWidthThin
                 Layout.fillHeight: true
                 color: toolBar.theme.divider
                 Layout.alignment: Qt.AlignVCenter
@@ -285,7 +285,7 @@ Item {
                     id: appIcons
                     spacing: toolBar.theme.toolbarGroupSpacing
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-                    height: toolBar.iconRowHeight
+                    Layout.preferredHeight: toolBar.iconRowHeight
 
                     Controls.IconButton {
                         visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowSettings : true
@@ -311,7 +311,7 @@ Item {
             }
 
             Rectangle {
-                width: toolBar.theme.borderWidthThin
+                Layout.preferredWidth: toolBar.theme.borderWidthThin
                 Layout.fillHeight: true
                 color: toolBar.theme.divider
                 Layout.alignment: Qt.AlignVCenter

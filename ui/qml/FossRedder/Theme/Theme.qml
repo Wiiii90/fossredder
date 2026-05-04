@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Theme/Theme.qml
+ * @file ui/qml/FossRedder/Theme/Theme.qml
  * @brief Provides the Theme component.
  */
 

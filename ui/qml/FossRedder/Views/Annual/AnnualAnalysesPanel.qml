@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Annual/AnnualAnalysesPanel.qml
- * @brief Provides the AnnualAnalysesPanel component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Annual/AnnualAnalysesPanel.qml
- * @brief Read-only panel that previews assigned analyses for the selected annual.
+ * @brief Provides the AnnualAnalysesPanel component.
  */
 
 import QtQuick 2.15
@@ -77,6 +72,7 @@ Controls.Panel {
 
             Controls.DropdownMenu {
                 id: addAnalysisCombo
+                objectName: "annualAddAnalysisComboBox"
                 Layout.fillWidth: true
                 model: root.allAnalysisRows
                 textRole: "display"
@@ -84,6 +80,7 @@ Controls.Panel {
             }
 
             Controls.SecondaryButton {
+                objectName: "annualAddAnalysisButton"
                 text: "+"
                 Layout.preferredWidth: root.theme.viewCompactActionButtonSize
                 Layout.minimumWidth: root.theme.viewCompactActionButtonSize
@@ -197,6 +194,7 @@ Controls.Panel {
                                 }
 
                                 Controls.DropdownMenu {
+                                    objectName: "annualAnalysisExportFormatComboBox"
                                     Layout.preferredWidth: 110
                                     model: analysisRow.modelData && String(analysisRow.modelData.type).toLowerCase() === "plot"
                                            ? ["PNG", "JPG"]
@@ -209,6 +207,7 @@ Controls.Panel {
                                 }
 
                                 Controls.SecondaryButton {
+                                    objectName: "annualRemoveAnalysisButton"
                                     text: "×"
                                     Layout.preferredWidth: root.theme.viewCompactActionButtonSize
                                     Layout.minimumWidth: root.theme.viewCompactActionButtonSize

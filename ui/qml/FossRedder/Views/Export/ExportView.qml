@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Export/ExportView.qml
+ * @file ui/qml/FossRedder/Views/Export/ExportView.qml
  * @brief Provides the ExportView component.
  */
 
@@ -96,6 +96,7 @@ Item {
 
                 ExportForm {
                     id: formPanel
+                    objectName: "exportFormPanel"
                     Layout.fillWidth: true
                     theme: root.theme
                     Component.onCompleted: {
@@ -110,6 +111,7 @@ Item {
 
                 ExportPanel {
                     id: objectsPanel
+                    objectName: "exportObjectsPanel"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumHeight: 320
@@ -132,12 +134,14 @@ Item {
             theme: root.theme
 
             Controls.SecondaryButton {
+                objectName: "exportClearButton"
                 text: qsTr("Clear")
                 visible: root.hasExportCtrl && root.exportCtrl.currentMode === 0
                 onClicked: root.clearForm()
             }
 
             Controls.SecondaryButton {
+                objectName: "exportCancelButton"
                 text: qsTr("Cancel")
                 visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
                 onClicked: if (root.hasExportCtrl) root.exportCtrl.cancelExport()
@@ -146,12 +150,14 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.SecondaryButton {
+                objectName: "exportTogglePauseButton"
                 text: root.hasExportCtrl && root.exportCtrl.isPaused ? qsTr("Resume") : qsTr("Pause")
                 visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
                 onClicked: if (root.hasExportCtrl) root.exportCtrl.togglePause()
             }
 
             Controls.SuccessButton {
+                objectName: "exportStartButton"
                 text: qsTr("Start")
                 visible: root.hasExportCtrl && root.exportCtrl.currentMode === 0
                 enabled: {

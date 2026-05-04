@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/TransactionDraftMetadataPanel.qml
- * @brief Provides the TransactionDraftMetadataPanel component.
+ * @file ui/qml/FossRedder/Views/Import/TransactionDraftMetadataPanel.qml
+ * @brief Displays and edits metadata fields for the current transaction draft.
  */
 
 import QtQuick 2.15

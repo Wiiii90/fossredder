@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Settings/SettingsSidebar.qml
- * @brief Provides the SettingsSidebar component.
+ * @file ui/qml/FossRedder/Views/Settings/SettingsSidebar.qml
+ * @brief Renders settings category navigation entries in the sidebar.
  */
 
 import QtQuick 2.15

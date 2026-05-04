@@ -1,11 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Actor/ActorSidebar.qml
- * @brief Provides the ActorSidebar component.
- */
-
-/*!
  * @file ui/qml/FossRedder/Views/Actor/ActorSidebar.qml
- * @brief Sidebar list for navigating available actor records.
+ * @brief Provides the ActorSidebar component.
  */
 
 import QtQuick 2.15

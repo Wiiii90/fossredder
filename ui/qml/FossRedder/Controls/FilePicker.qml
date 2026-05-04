@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/FilePicker.qml
+ * @file ui/qml/FossRedder/Controls/FilePicker.qml
  * @brief Provides the FilePicker component.
  */
 

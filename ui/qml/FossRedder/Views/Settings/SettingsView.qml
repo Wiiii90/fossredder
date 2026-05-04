@@ -73,6 +73,7 @@ Item {
 
         Loader {
             id: settingsLoader
+            objectName: "settingsLoader"
             Layout.fillWidth: true
             Layout.fillHeight: true
             sourceComponent: root.componentForCategory(root.navigation ? root.navigation.settingsCategoryValue : 0)
@@ -83,6 +84,7 @@ Item {
             theme: root.theme
 
             Controls.PrevButton {
+                objectName: "settingsPrevCategoryButton"
                 enabled: root.currentCategory > root.firstCategory
                 onClicked: root.navigateCategory(-1)
             }
@@ -90,12 +92,14 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.DangerButton {
+                objectName: "settingsDefaultButton"
                 text: qsTr("Default")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: root.resetSettings()
             }
 
             Controls.SuccessButton {
+                objectName: "settingsUpdateButton"
                 text: qsTr("Update")
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: root.saveSettings()
@@ -104,6 +108,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             Controls.NextButton {
+                objectName: "settingsNextCategoryButton"
                 enabled: root.currentCategory < root.lastCategory
                 onClicked: root.navigateCategory(1)
             }

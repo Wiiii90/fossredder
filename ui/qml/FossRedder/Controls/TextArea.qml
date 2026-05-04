@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/TextArea.qml
+ * @file ui/qml/FossRedder/Controls/TextArea.qml
  * @brief Provides the TextArea component.
  */
 

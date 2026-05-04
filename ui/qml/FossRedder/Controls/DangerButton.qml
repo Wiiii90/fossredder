@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/DangerButton.qml
+ * @file ui/qml/FossRedder/Controls/DangerButton.qml
  * @brief Provides the DangerButton component.
  */
 

@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/Sidebar.qml
+ * @file ui/qml/FossRedder/Components/Layout/Sidebar.qml
  * @brief Provides the Sidebar component.
  */
 
@@ -40,7 +40,7 @@ Item {
 
         Rectangle {
             id: headerSep
-            height: Theme.borderWidthThin
+            Layout.preferredHeight: Theme.borderWidthThin
             color: Theme.borderLight
             Layout.fillWidth: true
             visible: headerLabel.visible

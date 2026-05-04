@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/Content.qml
+ * @file ui/qml/FossRedder/Components/Layout/Content.qml
  * @brief Provides the Content component.
  */
 
@@ -34,7 +34,7 @@ Item {
             ColumnLayout {
                 Label { text: contentWrapper.title; font.pointSize: contentWrapper.theme.fontSizeTitle + contentWrapper.theme.margins; color: contentWrapper.theme.textPrimary }
                 Label { text: contentWrapper.subtitle; font.pointSize: Math.max(12, contentWrapper.theme.fontSize - 2); color: contentWrapper.theme.textMuted; visible: contentWrapper.subtitle && contentWrapper.subtitle.length > 0 }
-                Rectangle { height: contentWrapper.theme.borderWidthThin; color: contentWrapper.theme.borderLight; Layout.fillWidth: true }
+                Rectangle { Layout.preferredHeight: contentWrapper.theme.borderWidthThin; color: contentWrapper.theme.borderLight; Layout.fillWidth: true }
             }
         }
 

@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Settings/SettingsGeneral.qml
- * @brief Provides the SettingsGeneral component.
+ * @file ui/qml/FossRedder/Views/Settings/SettingsGeneral.qml
+ * @brief Manages general settings options such as application language.
  */
 
 import QtQuick 2.15
@@ -47,7 +47,7 @@ Flickable {
                     Text { text: qsTr("Language"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
                     Controls.DropdownMenu {
                         id: language
-                        objectName: "settingsLanguageComboBox"
+        objectName: "settingsLanguageDropdown"
                         model: root.languageController ? root.languageController.availableLanguages : []
                         textRole: "label"
                         currentIndex: root.languageIndexFor(root.settingsController ? root.settingsController.language : (root.languageController ? root.languageController.currentLanguage : ""))

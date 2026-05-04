@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/ImportPanel.qml
+ * @file ui/qml/FossRedder/Views/Import/ImportPanel.qml
  * @brief Provides the ImportPanel component.
  */
 
@@ -54,6 +54,7 @@ Controls.Panel {
 
         Controls.TextField {
             id: manualPath
+            objectName: "importManualPathField"
             Layout.fillWidth: true
             placeholderText: qsTr("Enter file path...")
             enabled: root.hasImportController && !root.importController.isRunning
@@ -61,6 +62,7 @@ Controls.Panel {
         }
 
         Controls.SecondaryButton {
+            objectName: "importAddFileButton"
             text: qsTr("Add")
             Layout.preferredHeight: parent.actionButtonHeight
             enabled: root.hasImportController && !root.importController.isRunning && root.manualPathText() && root.manualPathText().trim().length > 0
@@ -75,6 +77,7 @@ Controls.Panel {
         }
 
         Controls.SecondaryButton {
+            objectName: "importBrowseFileButton"
             text: qsTr("Browse...")
             Layout.preferredHeight: parent.actionButtonHeight
             enabled: root.hasImportController && !root.importController.isRunning

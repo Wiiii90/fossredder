@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/StatusBar.qml
+ * @file ui/qml/FossRedder/Components/Layout/StatusBar.qml
  * @brief Provides the StatusBar component.
  */
 

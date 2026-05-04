@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Controls/CheckBox.qml
+ * @file ui/qml/FossRedder/Controls/CheckBox.qml
  * @brief Provides the CheckBox component.
  */
 

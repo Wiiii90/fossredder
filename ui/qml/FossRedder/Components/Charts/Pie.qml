@@ -1,6 +1,6 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Charts/Pie.qml
- * @brief Provides the Pie component.
+ * @file ui/qml/FossRedder/Components/Charts/Pie.qml
+ * @brief Renders analysis pie charts and emits legend filter updates.
  */
 
 import QtQuick 2.15

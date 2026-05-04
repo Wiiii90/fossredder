@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Views/Import/ImportForm.qml
+ * @file ui/qml/FossRedder/Views/Import/ImportForm.qml
  * @brief Provides the ImportForm component.
  */
 
@@ -21,6 +21,7 @@ Controls.Panel {
         Label { text: qsTr("Source"); Layout.preferredWidth: root.theme.formLabelWidth }
         Controls.DropdownMenu {
             id: sourceKind
+            objectName: "importSourceComboBox"
             model: Constants.FileFormats.supportedImportSourceLabels()
             currentIndex: 0
         }
@@ -31,6 +32,7 @@ Controls.Panel {
         Label { text: qsTr("Strategy"); Layout.preferredWidth: root.theme.formLabelWidth }
         Controls.DropdownMenu {
             id: strategy
+            objectName: "importStrategyComboBox"
             model: Constants.FileFormats.supportedStatementStrategyLabels()
             currentIndex: 0
         }

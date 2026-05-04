@@ -1,5 +1,5 @@
 /**
- * @file P:/fossredder-ui/ui/qml/FossRedder/Components/Layout/SidebarRouter.qml
+ * @file ui/qml/FossRedder/Components/Layout/SidebarRouter.qml
  * @brief Provides the SidebarRouter component.
  */
 
