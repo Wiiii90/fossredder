@@ -26,7 +26,8 @@ Controls.Panel {
     }
 
     ColumnLayout {
-        anchors.fill: parent
+        Layout.fillWidth: true
+        Layout.fillHeight: true
         spacing: Theme.spacingSmall
 
         Label { text: qsTr("Metadata"); Layout.fillWidth: true }

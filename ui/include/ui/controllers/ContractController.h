@@ -44,32 +44,35 @@ public:
     /** @brief Create a new contract from QML-provided values.
      *  @param name Contract name
      *  @param type Contract type
-     *  @param description Contract description
      *  @param actorIds Associated actor identifiers
      *  @param propertyIds Associated property identifiers
      *  @param aliases Optional aliases
      *  @return Identifier of the created contract
      */
-    Q_INVOKABLE QString addContract(const QString& name, const QString& type, const QString& description,
-                                    const QStringList& actorIds, const QStringList& propertyIds,
+    Q_INVOKABLE QString addContract(const QString& name,
+                                    const QString& type,
+                                    const QStringList& actorIds,
+                                    const QStringList& propertyIds,
                                     const QStringList& aliases = {});
 
     /** @brief Update an existing contract from QML-provided values.
      *  @param id Contract identifier
      *  @param name Contract name
      *  @param type Contract type
-     *  @param description Contract description
      *  @param actorIds Associated actor identifiers
      *  @param propertyIds Associated property identifiers
      *  @param aliases Optional aliases
      */
-    Q_INVOKABLE void updateContract(const QString& id, const QString& name, const QString& type, const QString& description,
-                                    const QStringList& actorIds, const QStringList& propertyIds,
+    Q_INVOKABLE void updateContract(const QString& id,
+                                    const QString& name,
+                                    const QString& type,
+                                    const QStringList& actorIds,
+                                    const QStringList& propertyIds,
                                     const QStringList& aliases = {});
+
     Q_INVOKABLE QString saveContract(const QString& id,
                                      const QString& name,
                                      const QString& type,
-                                     const QString& description,
                                      const QStringList& actorIds,
                                      const QStringList& propertyIds,
                                      const QStringList& aliases = {});

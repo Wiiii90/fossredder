@@ -14,6 +14,19 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var analysisTableTheme: root.theme && root.theme.analysis && root.theme.analysis.table ? root.theme.analysis.table : ({})
+    readonly property int tablePropertyColumnWidthValue: root.theme && root.theme.analysis && root.theme.analysis.table && typeof root.theme.analysis.table.propertyColumnWidth === "number" ? root.theme.analysis.table.propertyColumnWidth : 180
+    readonly property int tableAmountColumnWidthValue: root.theme && root.theme.analysis && root.theme.analysis.table && typeof root.theme.analysis.table.amountColumnWidth === "number" ? root.theme.analysis.table.amountColumnWidth : 120
+    readonly property int tableTotalColumnWidthValue: root.theme && root.theme.analysis && root.theme.analysis.table && typeof root.theme.analysis.table.totalColumnWidth === "number" ? root.theme.analysis.table.totalColumnWidth : 140
+    readonly property int tableRowHeightValue: root.theme && root.theme.analysis && root.theme.analysis.table && typeof root.theme.analysis.table.rowHeight === "number" ? root.theme.analysis.table.rowHeight : 30
+    readonly property int spacingSmallValue: root.theme && typeof root.theme.spacingSmall === "number" ? root.theme.spacingSmall : 6
+    readonly property int borderWidthThinValue: root.theme && typeof root.theme.borderWidthThin === "number" ? root.theme.borderWidthThin : 1
+    readonly property color surfaceColor: root.theme && root.theme.surface ? root.theme.surface : "#ffffff"
+    readonly property color surfaceAltColor: root.theme && root.theme.surfaceAlt ? root.theme.surfaceAlt : "#f5f5f5"
+    readonly property color textPrimaryColor: root.theme && root.theme.textPrimary ? root.theme.textPrimary : "#202020"
+    readonly property color textMutedColor: root.theme && root.theme.textMuted ? root.theme.textMuted : "#666666"
+    readonly property color borderLightColor: root.theme && root.theme.borderLight ? root.theme.borderLight : "#d7d7d7"
+    readonly property color borderStrongColor: root.theme && root.theme.borderStrong ? root.theme.borderStrong : "#888888"
 
     property var adjustmentAmountsById: ({})
     property var contractTypes: []
@@ -62,12 +75,12 @@ Item {
 
     function gridCellColor(isHeader, isTotal, alternateRow) {
         if (isHeader || isTotal)
-            return root.theme.surfaceAlt
-        return alternateRow ? Qt.lighter(root.theme.surfaceAlt, 1.02) : root.theme.surface
+            return root.surfaceAltColor
+        return alternateRow ? Qt.lighter(root.surfaceAltColor, 1.02) : root.surfaceColor
     }
 
     function gridBorderColor(isHeader, isTotal) {
-        return (isHeader || isTotal) ? root.theme.borderStrong : root.theme.borderLight
+        return (isHeader || isTotal) ? root.borderStrongColor : root.borderLightColor
     }
 
     function rebuildMatrix() {
@@ -146,8 +159,9 @@ Item {
     }
 
     ColumnLayout {
-        anchors.fill: parent
-        spacing: root.theme.spacingSmall
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        spacing: root.spacingSmallValue
 
         Flickable {
             id: matrixViewport
@@ -164,26 +178,27 @@ Item {
             ColumnLayout {
                 id: matrixContent
                 width: Math.max(matrixViewport.width,
-                                root.theme.analysis.table.propertyColumnWidth
-                                + Math.max(1, root.contractTypes.length) * root.theme.analysis.table.amountColumnWidth
-                                + root.theme.analysis.table.totalColumnWidth)
+                                root.tablePropertyColumnWidthValue
+                                + Math.max(1, root.contractTypes.length) * root.tableAmountColumnWidthValue
+                                + root.tableTotalColumnWidthValue)
                 spacing: 0
 
                 Rectangle {
                     visible: root.matrixPropertyNames.length > 0
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.theme.analysis.table.rowHeight
-                    color: root.theme.surfaceAlt
-                    border.width: root.theme.borderWidthThin
-                    border.color: root.theme.borderStrong
+                    Layout.preferredHeight: root.tableRowHeightValue
+                    color: root.surfaceAltColor
+                    border.width: root.borderWidthThinValue
+                    border.color: root.borderStrongColor
 
                     RowLayout {
-                        anchors.fill: parent
+                        width: parent ? parent.width : 0
+                        height: parent ? parent.height : implicitHeight
                         spacing: 0
                         Label {
                             text: qsTr("Property")
-                            Layout.preferredWidth: root.theme.analysis.table.propertyColumnWidth
-                            leftPadding: root.theme.spacingSmall
+                            Layout.preferredWidth: root.tablePropertyColumnWidthValue
+                            leftPadding: root.spacingSmallValue
                             elide: Text.ElideRight
                         }
                         Repeater {
@@ -191,17 +206,17 @@ Item {
                             Label {
                                 required property var modelData
                                 text: modelData
-                                Layout.preferredWidth: root.theme.analysis.table.amountColumnWidth
+                                Layout.preferredWidth: root.tableAmountColumnWidthValue
                                 horizontalAlignment: Text.AlignRight
-                                rightPadding: root.theme.spacingSmall
+                                rightPadding: root.spacingSmallValue
                                 elide: Text.ElideRight
                             }
                         }
                         Label {
                             text: qsTr("Total")
-                            Layout.preferredWidth: root.theme.analysis.table.totalColumnWidth
+                            Layout.preferredWidth: root.tableTotalColumnWidthValue
                             horizontalAlignment: Text.AlignRight
-                            rightPadding: root.theme.spacingSmall
+                            rightPadding: root.spacingSmallValue
                         }
                     }
                 }
@@ -214,10 +229,10 @@ Item {
                         required property int index
                         required property var modelData
                         Layout.fillWidth: true
-                        Layout.preferredHeight: root.theme.analysis.table.rowHeight
-                        color: index % 2 === 0 ? root.theme.surface : root.theme.surfaceAlt
-                        border.width: root.theme.borderWidthThin
-                        border.color: root.theme.borderLight
+                        Layout.preferredHeight: root.tableRowHeightValue
+                        color: index % 2 === 0 ? root.surfaceColor : root.surfaceAltColor
+                        border.width: root.borderWidthThinValue
+                        border.color: root.borderLightColor
 
                         RowLayout {
                             anchors.fill: parent
@@ -225,8 +240,8 @@ Item {
 
                             Label {
                                 text: rowContainer.modelData
-                                Layout.preferredWidth: root.theme.analysis.table.propertyColumnWidth
-                                leftPadding: root.theme.spacingSmall
+                                Layout.preferredWidth: root.tablePropertyColumnWidthValue
+                                leftPadding: root.spacingSmallValue
                                 elide: Text.ElideRight
                             }
 
@@ -236,35 +251,35 @@ Item {
                                 Rectangle {
                                     id: valueCell
                                     required property var modelData
-                                    Layout.preferredWidth: root.theme.analysis.table.amountColumnWidth
-                                    Layout.preferredHeight: root.theme.analysis.table.rowHeight
-                                    color: rowContainer.index % 2 === 0 ? root.theme.surface : root.theme.surfaceAlt
-                                    border.width: root.theme.borderWidthThin
-                                    border.color: root.theme.borderLight
+                                    Layout.preferredWidth: root.tableAmountColumnWidthValue
+                                    Layout.preferredHeight: root.tableRowHeightValue
+                                    color: rowContainer.index % 2 === 0 ? root.surfaceColor : root.surfaceAltColor
+                                    border.width: root.borderWidthThinValue
+                                    border.color: root.borderLightColor
 
                                     Label {
                                         anchors.fill: parent
                                         text: root.matrixValue(valueCell.modelData, rowContainer.modelData).toFixed(2)
                                         horizontalAlignment: Text.AlignRight
                                         verticalAlignment: Text.AlignVCenter
-                                        rightPadding: root.theme.spacingSmall
+                                        rightPadding: root.spacingSmallValue
                                     }
                                 }
                             }
 
                             Rectangle {
-                                Layout.preferredWidth: root.theme.analysis.table.totalColumnWidth
-                                Layout.preferredHeight: root.theme.analysis.table.rowHeight
-                                color: root.theme.surfaceAlt
-                                border.width: root.theme.borderWidthThin
-                                border.color: root.theme.borderStrong
+                                Layout.preferredWidth: root.tableTotalColumnWidthValue
+                                Layout.preferredHeight: root.tableRowHeightValue
+                                color: root.surfaceAltColor
+                                border.width: root.borderWidthThinValue
+                                border.color: root.borderStrongColor
 
                                 Label {
                                     anchors.fill: parent
                                     text: root.propertyTotal(rowContainer.modelData).toFixed(2)
                                     horizontalAlignment: Text.AlignRight
                                     verticalAlignment: Text.AlignVCenter
-                                    rightPadding: root.theme.spacingSmall
+                                    rightPadding: root.spacingSmallValue
                                     font.bold: true
                                 }
                             }
@@ -275,10 +290,10 @@ Item {
                 Rectangle {
                     visible: root.matrixPropertyNames.length > 0
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.theme.analysis.table.rowHeight
-                    color: root.theme.surfaceAlt
-                    border.width: root.theme.borderWidthThin
-                    border.color: root.theme.borderStrong
+                    Layout.preferredHeight: root.tableRowHeightValue
+                    color: root.surfaceAltColor
+                    border.width: root.borderWidthThinValue
+                    border.color: root.borderStrongColor
 
                     RowLayout {
                         anchors.fill: parent
@@ -286,11 +301,11 @@ Item {
 
                         Label {
                             text: qsTr("Total")
-                            Layout.preferredWidth: root.theme.analysis.table.propertyColumnWidth
-                            leftPadding: root.theme.spacingSmall
+                            Layout.preferredWidth: root.tablePropertyColumnWidthValue
+                            leftPadding: root.spacingSmallValue
                             verticalAlignment: Text.AlignVCenter
                             font.bold: true
-                            color: root.theme.textPrimary
+                            color: root.textPrimaryColor
                         }
 
                         Repeater {
@@ -299,16 +314,16 @@ Item {
                             Rectangle {
                                 id: contractTotalCell
                                 required property var modelData
-                                Layout.preferredWidth: root.theme.analysis.table.amountColumnWidth
-                                Layout.preferredHeight: root.theme.analysis.table.rowHeight
+                                Layout.preferredWidth: root.tableAmountColumnWidthValue
+                                Layout.preferredHeight: root.tableRowHeightValue
                                 color: root.gridCellColor(false, true, false)
-                                border.width: root.theme.borderWidthThin
+                                border.width: root.borderWidthThinValue
                                 border.color: root.gridBorderColor(false, true)
 
                                 Label {
                                     anchors.fill: parent
                                     text: root.contractTotal(contractTotalCell.modelData).toFixed(2)
-                                    rightPadding: root.theme.spacingSmall
+                                    rightPadding: root.spacingSmallValue
                                     horizontalAlignment: Text.AlignRight
                                     verticalAlignment: Text.AlignVCenter
                                     font.bold: true
@@ -317,16 +332,16 @@ Item {
                         }
 
                         Rectangle {
-                            Layout.preferredWidth: root.theme.analysis.table.totalColumnWidth
-                            Layout.preferredHeight: root.theme.analysis.table.rowHeight
+                            Layout.preferredWidth: root.tableTotalColumnWidthValue
+                            Layout.preferredHeight: root.tableRowHeightValue
                             color: root.gridCellColor(false, true, false)
-                            border.width: root.theme.borderWidthThin
+                            border.width: root.borderWidthThinValue
                             border.color: root.gridBorderColor(false, true)
 
                             Label {
                                 anchors.fill: parent
                                 text: root.grandTotal.toFixed(2)
-                                rightPadding: root.theme.spacingSmall
+                                rightPadding: root.spacingSmallValue
                                 horizontalAlignment: Text.AlignRight
                                 verticalAlignment: Text.AlignVCenter
                                 font.bold: true
@@ -338,15 +353,15 @@ Item {
                 Rectangle {
                     visible: root.matrixPropertyNames.length === 0
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.theme.analysis.table.rowHeight * 2
-                    color: root.theme.surfaceAlt
-                    border.width: root.theme.borderWidthThin
-                    border.color: root.theme.borderLight
+                    Layout.preferredHeight: root.tableRowHeightValue * 2
+                    color: root.surfaceAltColor
+                    border.width: root.borderWidthThinValue
+                    border.color: root.borderLightColor
 
                     Label {
                         anchors.centerIn: parent
                         text: qsTr("No table preview available")
-                        color: root.theme.textMuted
+                        color: root.textMutedColor
                     }
                 }
             }

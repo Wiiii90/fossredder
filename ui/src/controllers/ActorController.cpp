@@ -40,47 +40,37 @@ QVariantList ActorController::actors() const
 }
 
 QString ActorController::addActor(const QString& name,
-                                  const QString& type,
-                                  const QString& description,
                                   const QStringList& aliases)
 {
     return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::actor::kAdd, {}, [&]() {
             return QString::fromStdString(core_->addActor(
                 strings::toStdString(name),
-                strings::toStdString(type),
-                strings::toStdString(description),
-                strings::toStdList(aliases)));
+                strings::toAliases(aliases)));
         });
 }
 
 void ActorController::updateActor(const QString& id,
                                   const QString& name,
-                                  const QString& type,
-                                  const QString& description,
                                   const QStringList& aliases)
 {
     ui::util::guard::invokeVoid(
         core_, observability::origins::controller::actor::kUpdate, [&]() {
             core_->updateActor(strings::toStdString(id),
                                strings::toStdString(name),
-                               strings::toStdString(type),
-                               strings::toStdString(description),
-                               strings::toStdList(aliases));
+                               strings::toAliases(aliases));
         });
 }
 
 QString ActorController::saveActor(const QString& id,
                                    const QString& name,
-                                   const QString& type,
-                                   const QString& description,
                                    const QStringList& aliases)
 {
     if (id.isEmpty()) {
-        return addActor(name, type, description, aliases);
+        return addActor(name, aliases);
     }
 
-    updateActor(id, name, type, description, aliases);
+    updateActor(id, name, aliases);
     return id;
 }
 

@@ -107,9 +107,10 @@ Item {
 
         Connections {
             target: stmtRoot.draft
-            function onChanged() {
-                stmtRoot.persistDraftSnapshot()
-            }
+            function onDraftIdChanged() { stmtRoot.persistDraftSnapshot() }
+            function onNameChanged() { stmtRoot.persistDraftSnapshot() }
+            function onCurrentIndexChanged() { stmtRoot.persistDraftSnapshot() }
+            function onCountChanged() { stmtRoot.persistDraftSnapshot() }
         }
 
         Label {

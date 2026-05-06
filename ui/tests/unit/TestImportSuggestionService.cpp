@@ -26,7 +26,7 @@ std::shared_ptr<Actor> makeActor(const std::string& id, const std::string& name,
     auto actor = std::make_shared<Actor>();
     actor->id = id;
     actor->name = name;
-    if (!alias.empty()) actor->aliases.push_back(alias);
+    if (!alias.empty()) actor->aliases.push_back(core::domain::Alias{.value = alias});
     return actor;
 }
 
@@ -35,7 +35,7 @@ std::shared_ptr<Property> makeProperty(const std::string& id, const std::string&
     auto property = std::make_shared<Property>();
     property->id = id;
     property->name = name;
-    if (!alias.empty()) property->aliases.push_back(alias);
+    if (!alias.empty()) property->aliases.push_back(core::domain::Alias{.value = alias});
     return property;
 }
 

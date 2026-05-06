@@ -24,7 +24,8 @@ Controls.Panel {
     }
 
     ColumnLayout {
-        anchors.fill: parent
+        width: parent ? parent.width : 0
+        height: parent ? parent.height : implicitHeight
         spacing: root.theme.spacingSmall
 
         Item {

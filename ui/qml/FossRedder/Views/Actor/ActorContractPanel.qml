@@ -29,7 +29,8 @@ Controls.Panel {
     }
 
     ColumnLayout {
-        anchors.fill: parent
+        Layout.fillWidth: true
+        Layout.fillHeight: true
         spacing: root.theme.spacingSmall
 
         Label {

@@ -30,3 +30,6 @@
 ## Implementation Preferences
 - Address only specific numbered points when referenced by the user; do not revisit omitted points.
 - Strive for clean deterministic implementations without fallback or redundant code paths.
+
+## Warning Management
+- Handle warnings explicitly and do not suppress them; do not hide QWarnings or similar warnings during tests. Treat warning output as data to investigate and fix.

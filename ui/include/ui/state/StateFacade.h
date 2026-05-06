@@ -14,6 +14,13 @@
 
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
+#include "ui/models/ActorList.h"
+#include "ui/models/AnalysisList.h"
+#include "ui/models/AnnualList.h"
+#include "ui/models/ContractList.h"
+#include "ui/models/PropertyList.h"
+#include "ui/models/StatementList.h"
+#include "ui/models/TransactionList.h"
 #include "ui/models/TransactionFilter.h"
 #include "ui/state/SessionSelection.h"
 #include "ui/state/SessionStore.h"
@@ -195,12 +202,6 @@ public:
     Q_INVOKABLE TransactionFilter* statementTransactions(const QString& statementId);
     /** @brief Returns a live filter over transactions assigned to the given property. */
     Q_INVOKABLE TransactionFilter* propertyTransactions(const QString& propertyId);
-    /** @brief Returns the distinct contract types currently associated with a property. */
-    Q_INVOKABLE QStringList propertyContractTypes(const QString& propertyId) const;
-    /** @brief Returns computed transaction sums for a property and optional contract type. */
-    Q_INVOKABLE QVariantMap propertyTransactionSums(const QString& propertyId, const QString& contractType = QString()) const;
-    /** @brief Resolves a property id to its display name. */
-    Q_INVOKABLE QString propertyName(const QString& id) const;
 
     /** @brief Applies deletion side effects from the domain layer to UI state. */
     Q_INVOKABLE void applyDeletionImpact(const core::domain::DeletionImpact& impact);
@@ -218,7 +219,6 @@ signals:
     void selectedTransactionIdChanged();
     void selectedAnalysisIdChanged();
     void selectedAnnualIdChanged();
-    void transactionSumsUpdated(const QString& propertyId);
     void lastAnalysisResultChanged();
 
 private:

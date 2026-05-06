@@ -14,7 +14,7 @@ namespace ui::dialogs {
 QStringList pickImportFiles(QWidget* parent, const QString& filter)
 {
     return QFileDialog::getOpenFileNames(parent, ui::text::dialogs::selectPdfTitle(), QString(), filter);
-} // namespace ui::dialogs
+} 
 
 QString pickExportFile(QWidget* parent, const QString& filter)
 {
@@ -50,4 +50,4 @@ QString pickSaveStorageFileAs(QWidget* parent)
                                         ui::text::dialogs::databaseFilter());
 }
 
-}
+} // namespace ui::dialogs

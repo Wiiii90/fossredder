@@ -60,9 +60,7 @@ std::shared_ptr<core::domain::Actor> makeActor(const std::string& id, const std:
     auto actor = std::make_shared<core::domain::Actor>();
     actor->id = id;
     actor->name = name;
-    actor->type = "person";
-    actor->description = "actor-desc";
-    actor->aliases = {name + " alias"};
+    actor->aliases = {core::domain::Alias{.value = name + " alias"}};
     return actor;
 }
 
@@ -71,24 +69,21 @@ std::shared_ptr<core::domain::Property> makeProperty(const std::string& id, cons
     auto property = std::make_shared<core::domain::Property>();
     property->id = id;
     property->name = name;
-    property->address = "Street 1";
-    property->description = "property-desc";
-    property->aliases = {name + " alias"};
+    property->aliases = {core::domain::Alias{.value = name + " alias"}};
     return property;
 }
 
 std::shared_ptr<core::domain::Contract> makeContract(const std::string& id,
-                                                     const std::vector<std::string>& actorIds,
-                                                     const std::vector<std::string>& propertyIds)
+                                                      const std::vector<std::string>& actorIds,
+                                                      const std::vector<std::string>& propertyIds)
 {
     auto contract = std::make_shared<core::domain::Contract>();
     contract->id = id;
     contract->name = "Contract " + id;
     contract->type = "rental";
-    contract->description = "contract-desc";
     contract->actorIds = actorIds;
     contract->propertyIds = propertyIds;
-    contract->aliases = {"contract alias " + id};
+    contract->aliases = {core::domain::Alias{.value = "contract alias " + id}};
     return contract;
 }
 

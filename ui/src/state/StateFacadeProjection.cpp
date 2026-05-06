@@ -398,11 +398,16 @@ QVariantList buildActorRows(const SessionStore& session)
         QVariantMap row;
         row.insert(ui::payload::keys::common::kId, QString::fromStdString(actor->id));
         row.insert(ui::payload::keys::common::kName, QString::fromStdString(actor->name));
-        row.insert(ui::payload::keys::common::kType, QString::fromStdString(actor->type));
-        row.insert(ui::payload::keys::common::kDisplay, actor->type.empty()
-                                  ? QString::fromStdString(actor->name)
-                                  : QString::fromStdString(actor->name) + QStringLiteral(" — ") + QString::fromStdString(actor->type));
-        row.insert(ui::payload::keys::actor::kAliases, payload::mapper::toQStringList(actor->aliases));
+        row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(actor->name));
+        QVariantList aliases;
+        aliases.reserve(static_cast<int>(actor->aliases.size()));
+        for (const auto& alias : actor->aliases) {
+            QVariantMap aliasMap;
+            aliasMap.insert(QStringLiteral("value"), QString::fromStdString(alias.value));
+            aliasMap.insert(QStringLiteral("kind"), QString::fromStdString(alias.kind));
+            aliases.push_back(aliasMap);
+        }
+        row.insert(ui::payload::keys::actor::kAliases, aliases);
         out.push_back(row);
     }
     return out;
@@ -417,10 +422,16 @@ QVariantList buildPropertyRows(const SessionStore& session)
         QVariantMap row;
         row.insert(ui::payload::keys::common::kId, QString::fromStdString(property->id));
         row.insert(ui::payload::keys::common::kName, QString::fromStdString(property->name));
-        row.insert(ui::payload::keys::common::kDisplay, property->address.empty()
-                                  ? QString::fromStdString(property->name)
-                                  : QString::fromStdString(property->name) + QStringLiteral(" — ") + QString::fromStdString(property->address));
-        row.insert(ui::payload::keys::property::kAliases, payload::mapper::toQStringList(property->aliases));
+        row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(property->name));
+        QVariantList aliases;
+        aliases.reserve(static_cast<int>(property->aliases.size()));
+        for (const auto& alias : property->aliases) {
+            QVariantMap aliasMap;
+            aliasMap.insert(QStringLiteral("value"), QString::fromStdString(alias.value));
+            aliasMap.insert(QStringLiteral("kind"), QString::fromStdString(alias.kind));
+            aliases.push_back(aliasMap);
+        }
+        row.insert(ui::payload::keys::property::kAliases, aliases);
         out.push_back(row);
     }
     return out;
@@ -437,7 +448,12 @@ QVariantList buildContractRows(const SessionStore& session)
         row.insert(ui::payload::keys::common::kName, QString::fromStdString(contract->name));
         row.insert(ui::payload::keys::common::kType, QString::fromStdString(contract->type));
         row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(contract->name));
-        row.insert(ui::payload::keys::contract::kAliases, payload::mapper::toQStringList(contract->aliases));
+        std::vector<std::string> aliases;
+        aliases.reserve(contract->aliases.size());
+        for (const auto& alias : contract->aliases) {
+            aliases.push_back(alias.value);
+        }
+        row.insert(ui::payload::keys::contract::kAliases, payload::mapper::toVariantStringList(aliases));
         row.insert(ui::payload::keys::contract::kActorIds, payload::mapper::toQStringList(contract->actorIds));
         row.insert(ui::payload::keys::contract::kPropertyIds, payload::mapper::toQStringList(contract->propertyIds));
         out.push_back(row);

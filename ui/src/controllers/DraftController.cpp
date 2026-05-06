@@ -10,6 +10,7 @@
 #include "core/application/AppStateFacade.h"
 #include "core/import/parsing/AmountParser.h"
 #include "core/import/DraftLinking.h"
+#include "core/models/Alias.h"
 #include "ui/payload/PayloadMapper.h"
 #include "ui/import/DraftViewMapper.h"
 #include "ui/models/StatementDraft.h"
@@ -21,6 +22,12 @@
 #include <QVariantList>
 
 namespace {
+
+core::domain::Alias makeAlias(const QString& value)
+{
+    const std::string stdValue = ui::strings::toStdString(value);
+    return core::domain::Alias{stdValue, {}, stdValue, {}, {}};
+}
 
 const ui::TransactionDraft* currentDraft(ui::StatementDraft* draft)
 {
@@ -86,8 +93,8 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
             if (actorId.isEmpty()) {
                 const QString actorName = draftTransaction.actorText.trimmed();
                 if (!actorName.isEmpty()) {
-                    const std::vector<std::string> aliases{ui::strings::toStdString(actorName)};
-                    actorId = QString::fromStdString(core->addActor(ui::strings::toStdString(actorName), std::string{}, std::string{}, aliases));
+                    const std::vector<core::domain::Alias> aliases{makeAlias(actorName)};
+                    actorId = QString::fromStdString(core->addActor(ui::strings::toStdString(actorName), aliases));
                 }
             }
         }
@@ -101,8 +108,11 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
                     actorIds.push_back(ui::strings::toStdString(actorId));
                 }
                 std::vector<std::string> propertyIds = ui::strings::toStdList(draftTransaction.propertyIds);
-                std::vector<std::string> aliases = core::importing::referenceAliasesFromMetadata(ui::strings::toStdString(draftTransaction.metadata));
-                contractId = QString::fromStdString(core->addContract(std::string{}, ui::strings::toStdString(contractType), std::string{}, actorIds, propertyIds, aliases));
+                std::vector<core::domain::Alias> aliases;
+                for (const auto& value : core::importing::referenceAliasesFromMetadata(ui::strings::toStdString(draftTransaction.metadata))) {
+                    aliases.push_back(core::domain::Alias{value, {}, value, {}, {}});
+                }
+                contractId = QString::fromStdString(core->addContract(std::string{}, ui::strings::toStdString(contractType), actorIds, propertyIds, aliases));
             }
         }
 

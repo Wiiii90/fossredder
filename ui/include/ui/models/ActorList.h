@@ -21,9 +21,7 @@ class ActorList : public models::IndexedListModel<core::domain::Actor> {
 public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
-        NameRole,
-        TypeRole,
-        DescriptionRole
+        NameRole
     };
 
     explicit ActorList(QObject* parent = nullptr);
@@ -35,7 +33,7 @@ public:
     const std::vector<std::shared_ptr<core::domain::Actor>>& actors() const { return items(); }
     int findRowById(const QString& id) const { return findIndexedRow(id); }
 
-    Q_INVOKABLE int addActor(const QString& name, const QString& type, const QString& description);
+    Q_INVOKABLE int addActor(const QString& name);
     Q_INVOKABLE void removeAt(int row) { removeItemAt(row); }
 };
 

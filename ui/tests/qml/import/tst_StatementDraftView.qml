@@ -83,6 +83,7 @@ TestCase {
         property int spacingSmall: 6
         property int chartValueLabelWidth: 120
         property int viewCompactActionButtonSize: 28
+        property int spacing: 8
         property int radius: 3
         property int borderWidthThin: 1
         property color borderSoft: "#cccccc"

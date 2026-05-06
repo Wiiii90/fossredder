@@ -66,7 +66,23 @@ TEST(AppStateStoreTests, SaveReportsDeletionImpactForRemovedPersistedRows)
     auto actor = std::make_shared<Actor>();
     actor->id = "actor-1";
     actor->name = "Alice";
+    actor->aliases = {core::domain::Alias{.value = "A. Example"}};
     initialState.actors.push_back(actor);
+
+    auto property = std::make_shared<core::domain::Property>();
+    property->id = "property-1";
+    property->name = "Main Building";
+    property->aliases = {core::domain::Alias{.value = "HQ"}};
+    initialState.properties.push_back(property);
+
+    auto contract = std::make_shared<core::domain::Contract>();
+    contract->id = "contract-1";
+    contract->name = "Rental Contract";
+    contract->type = "rental";
+    contract->actorIds = {"actor-1"};
+    contract->propertyIds = {"property-1"};
+    contract->aliases = {core::domain::Alias{.value = "C1"}};
+    initialState.contracts.push_back(contract);
 
     auto statement = std::make_shared<Statement>();
     statement->id = "statement-1";
@@ -102,27 +118,22 @@ TEST(AppStateStoreTests, PersistsAndLoadsCompleteAggregate)
     auto actor = std::make_shared<Actor>();
     actor->id = "actor-1";
     actor->name = "Alice";
-    actor->type = "person";
-    actor->description = "primary actor";
-    actor->aliases = {"A. Example"};
+    actor->aliases = {core::domain::Alias{.value = "A. Example"}};
     state.actors.push_back(actor);
 
     auto property = std::make_shared<core::domain::Property>();
     property->id = "property-1";
     property->name = "Main Building";
-    property->address = "Main St 1";
-    property->description = "central asset";
-    property->aliases = {"HQ"};
+    property->aliases = {core::domain::Alias{.value = "HQ"}};
     state.properties.push_back(property);
 
     auto contract = std::make_shared<core::domain::Contract>();
     contract->id = "contract-1";
     contract->name = "Rental Contract";
     contract->type = "rental";
-    contract->description = "primary contract";
     contract->actorIds = {"actor-1"};
     contract->propertyIds = {"property-1"};
-    contract->aliases = {"C1"};
+    contract->aliases = {core::domain::Alias{.value = "C1"}};
     state.contracts.push_back(contract);
 
     auto statement = std::make_shared<Statement>();
@@ -202,7 +213,7 @@ TEST(AppStateStoreTests, PersistsAndLoadsCompleteAggregate)
     ASSERT_EQ(loaded.exportLogs.size(), 1u);
 
     EXPECT_EQ(loaded.actors.front()->name, "Alice");
-    EXPECT_EQ(loaded.properties.front()->address, "Main St 1");
+    EXPECT_EQ(loaded.properties.front()->name, "Main Building");
     EXPECT_EQ(loaded.contracts.front()->actorIds, (std::vector<std::string>{"actor-1"}));
     EXPECT_EQ(loaded.contracts.front()->propertyIds, (std::vector<std::string>{"property-1"}));
     EXPECT_EQ(loaded.statements.front()->name, "January Statement");

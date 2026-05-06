@@ -180,20 +180,25 @@ Item {
         Connections {
             target: root.actions
             function onExportDirectorySelected(path) {
-                if (!path) return
-                if (formPanel) formPanel.targetDirectory = path
+                if (!path)
+                    return
+                if (formPanel)
+                    formPanel.targetDirectory = path
             }
         }
 
         Connections {
             target: root.settingsController
             function onExportDefaultDirectoryChanged() {
-                if (formPanel && (!formPanel.targetDirectory || formPanel.targetDirectory.length === 0))
+                if (!formPanel)
+                    return
+                if (!formPanel.targetDirectory || formPanel.targetDirectory.length === 0)
                     formPanel.targetDirectory = root.defaultTargetDirectory()
             }
             function onExportArchiveFormatChanged() {
-                if (formPanel)
-                    formPanel.packageFormatIndex = root.settingsController.exportArchiveFormat
+                if (!formPanel)
+                    return
+                formPanel.packageFormatIndex = root.settingsController.exportArchiveFormat
             }
         }
 

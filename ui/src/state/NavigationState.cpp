@@ -27,23 +27,6 @@ void NavigationState::setSectionValue(int value)
     setSection(static_cast<Section>(value));
 }
 
-void NavigationState::setBookingView(BookingView v)
-{
-    if (bookingView_ == v) return;
-    bookingView_ = v;
-    if (bookingViewChangeQueued_) return;
-    bookingViewChangeQueued_ = true;
-    QMetaObject::invokeMethod(this, [this]() {
-        bookingViewChangeQueued_ = false;
-        emit bookingViewChanged();
-    }, Qt::QueuedConnection);
-}
-
-void NavigationState::setBookingViewValue(int value)
-{
-    setBookingView(static_cast<BookingView>(value));
-}
-
 void NavigationState::setSettingsCategory(SettingsCategory c)
 {
     if (settingsCategory_ == c) return;

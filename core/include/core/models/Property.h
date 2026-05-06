@@ -6,9 +6,9 @@
 #pragma once
 
 #include <string>
-#include <utility>
 #include <vector>
 
+#include "core/models/Alias.h"
 #include "core/models/AliasUsage.h"
 
 namespace core::domain {
@@ -17,18 +17,10 @@ class Property {
 public:
     std::string id;
     std::string name;
-    std::string address;
-    std::string description;
-    double consumption = 0.0;
-    std::string consumptionUnit;
-    std::vector<std::string> aliases;
+    std::string createdAt;
+    std::string updatedAt;
+    std::vector<Alias> aliases;
     std::vector<AliasUsage> aliasUsage;
-
-    Property() = default;
-    Property(std::string name, std::string address, std::string description = {})
-        : name(std::move(name)),
-          address(std::move(address)),
-          description(std::move(description)) {}
 };
 
 }

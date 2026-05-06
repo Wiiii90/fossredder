@@ -38,8 +38,8 @@ Item {
 
     RowLayout {
         id: row
-        anchors.fill: parent
-        spacing: root.theme.spacingMedium
+        width: parent ? parent.width : 0
+        spacing: root.theme.spacingMedium !== undefined ? root.theme.spacingMedium : root.theme.spacingSmall
 
         ColumnLayout {
             id: leftColumn

@@ -73,6 +73,11 @@ QtObject {
     property int viewAliasGroupSpacing: 6
     property int viewAliasPanelMinHeight: 160
     property int viewAliasPanelPreferredHeight: 180
+    property int viewSidebarRowHeight: 44
+    property int viewSidebarRowRadius: 6
+    property int viewSidebarRowSpacing: 2
+    property int viewAliasChipHeight: 30
+    property int viewAliasChipRadius: 6
     property int viewSelectionPanelMinHeight: 170
     property int viewSelectionPanelPreferredHeight: 220
     property int controlHeight: 40

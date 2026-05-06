@@ -9,6 +9,7 @@ import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
 import FossRedder.Components 1.0 as Components
 import FossRedder.Views 1.0 as Views
+import FossRedder 1.0 as FossRedder
 pragma ComponentBehavior: Bound
 
 Item {
@@ -94,7 +95,7 @@ Item {
     }
 
     function navigateContract(delta) {
-        const rows = root.contractRows()
+        const rows = root.session && root.session.contracts ? root.session.contracts : []
         if (!root.session || rows.length === 0)
             return
 
@@ -150,7 +151,6 @@ Item {
         const contractId = root.contractController.saveContract(currentId,
                                                                 nameField.text,
                                                                 root.contractType,
-                                                                "",
                                                                 root.selectedActorIds,
                                                                 root.selectedPropertyIds,
                                                                 aliasValues)
@@ -172,13 +172,20 @@ Item {
             return
         }
 
-        const nextId = root.session.deleteNextSelectionId(root.contractRows(), removedId, 0, "id")
+        const nextId = root.session.deleteNextSelectionId(root.session.contractRows(), removedId, 0, "id")
         root.session.selectedContractId = nextId || ""
         if (!nextId || nextId.length === 0)
             root.clearFields()
     }
 
-    Connections { target: root.current; function onChanged() { root.syncFields() } }
+    Connections {
+        target: root.current
+        function onNameChanged() { root.syncFields() }
+        function onTypeChanged() { root.syncFields() }
+        function onActorIdsChanged() { root.syncFields() }
+        function onPropertyIdsChanged() { root.syncFields() }
+        function onAliasesChanged() { root.syncFields() }
+    }
     onIsEditChanged: root.syncFields()
 
     ColumnLayout {
@@ -192,8 +199,8 @@ Item {
             Layout.fillHeight: true
             clip: true
             contentWidth: width
-            contentHeight: contractContent.height
-            boundsBehavior: Flickable.StopAtBounds
+                contentHeight: contractContent.height
+                boundsBehavior: Flickable.StopAtBounds
 
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded
@@ -205,65 +212,73 @@ Item {
                 height: Math.max(implicitHeight, contractScroll.height)
                 spacing: root.theme.viewFormSpacing
 
-            RowLayout {
-                Layout.fillWidth: true
-
-                Label {
-                    text: qsTr("Contract Name")
-                    Layout.preferredWidth: root.theme.formLabelWidth
-                }
-
-                Controls.TextField {
-                    id: nameField
-                    objectName: "contractNameField"
-                    placeholderText: ""
-                    Layout.fillWidth: true
-                }
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: root.theme.viewAliasGroupSpacing
-
                 RowLayout {
-                    id: aliasControlsRow
                     Layout.fillWidth: true
-                    readonly property real aliasControlSize: contractAliasInput.implicitHeight
 
                     Label {
-                        text: qsTr("Aliases")
+                        text: qsTr("Contract Name")
                         Layout.preferredWidth: root.theme.formLabelWidth
                     }
 
                     Controls.TextField {
-                        id: contractAliasInput
-                        objectName: "contractAliasInput"
-                        Layout.fillWidth: true
+                        id: nameField
+                        objectName: "contractNameField"
                         placeholderText: ""
-                        text: root.aliasInputText
-                        onTextEdited: root.aliasInputText = text
-                    }
-
-                    Controls.SecondaryButton {
-                        objectName: "contractAddAliasButton"
-                        text: qsTr("Add")
-                        Layout.preferredWidth: aliasControlsRow.aliasControlSize
-                        Layout.preferredHeight: aliasControlsRow.aliasControlSize
-                        textColor: root.theme.textMuted
-                        enabled: contractAliasInput.text.trim().length > 0
-                        onClicked: root.addAlias(contractAliasInput.text)
-                    }
-
-                    Controls.SecondaryButton {
-                        objectName: "contractRemoveAliasButton"
-                        text: qsTr("Remove")
-                        Layout.preferredWidth: aliasControlsRow.aliasControlSize
-                        Layout.preferredHeight: aliasControlsRow.aliasControlSize
-                        textColor: root.theme.textMuted
-                        enabled: root.aliasIndex >= 0 && root.aliasIndex < root.aliases.length
-                        onClicked: root.deleteAlias(root.aliasIndex)
+                        Layout.fillWidth: true
                     }
                 }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: root.theme.viewAliasGroupSpacing
+
+                    RowLayout {
+                        id: aliasControlsRow
+                        Layout.fillWidth: true
+                        readonly property real aliasControlSize: root.theme.viewCompactActionButtonSize
+
+                        Label {
+                            text: qsTr("Aliases")
+                            Layout.preferredWidth: root.theme.formLabelWidth
+                        }
+
+                        Controls.TextField {
+                            id: contractAliasInput
+                            objectName: "contractAliasInput"
+                            Layout.fillWidth: true
+                            placeholderText: ""
+                            text: root.aliasInputText
+                            onTextEdited: root.aliasInputText = text
+                        }
+
+                        Controls.SecondaryButton {
+                            objectName: "contractAddAliasButton"
+                            text: qsTr("+")
+                            Layout.preferredWidth: aliasControlsRow.aliasControlSize
+                            Layout.minimumWidth: aliasControlsRow.aliasControlSize
+                            Layout.maximumWidth: aliasControlsRow.aliasControlSize
+                            Layout.preferredHeight: aliasControlsRow.aliasControlSize
+                            Layout.minimumHeight: aliasControlsRow.aliasControlSize
+                            Layout.maximumHeight: aliasControlsRow.aliasControlSize
+                            textColor: root.theme.textMuted
+                            enabled: contractAliasInput.text.trim().length > 0
+                            onClicked: root.addAlias(contractAliasInput.text)
+                        }
+
+                        Controls.SecondaryButton {
+                            objectName: "contractRemoveAliasButton"
+                            text: qsTr("-")
+                            Layout.preferredWidth: aliasControlsRow.aliasControlSize
+                            Layout.minimumWidth: aliasControlsRow.aliasControlSize
+                            Layout.maximumWidth: aliasControlsRow.aliasControlSize
+                            Layout.preferredHeight: aliasControlsRow.aliasControlSize
+                            Layout.minimumHeight: aliasControlsRow.aliasControlSize
+                            Layout.maximumHeight: aliasControlsRow.aliasControlSize
+                            textColor: root.theme.textMuted
+                            enabled: root.aliasIndex >= 0 && root.aliasIndex < root.aliases.length
+                            onClicked: root.deleteAlias(root.aliasIndex)
+                        }
+                    }
 
                 Controls.Panel {
                     Layout.fillWidth: true
@@ -280,7 +295,8 @@ Item {
 
                     Flickable {
                         id: contractAliasScroll
-                        anchors.fill: parent
+                        width: parent ? parent.width : 0
+                        height: parent ? parent.height : 0
                         clip: true
                         contentWidth: width
                         contentHeight: contractAliasFlow.implicitHeight
@@ -301,8 +317,8 @@ Item {
                                     id: contractAliasChip
                                     required property var modelData
                                     required property int index
-                                    height: 30
-                                    radius: root.theme.radius
+                                    height: root.theme.viewAliasChipHeight
+                                    radius: root.theme.viewAliasChipRadius
                                     color: root.aliasIndex === contractAliasChip.index ? root.theme.selectionHighlight : root.theme.surfaceAlt
                                     border.width: 1
                                     border.color: root.theme.border
@@ -327,36 +343,36 @@ Item {
                         }
                     }
                 }
-            }
+                }
 
-            Views.ContractTypePanel {
-                Layout.fillWidth: true
-                theme: root.theme
-                typeValue: root.contractType
-                onTypeEdited: (text) => root.contractType = text
-            }
+                Views.ContractTypePanel {
+                    Layout.fillWidth: true
+                    theme: root.theme
+                    typeValue: root.contractType
+                    onTypeEdited: (text) => root.contractType = text
+                }
 
-            Views.ContractActorsPanel {
-                Layout.fillWidth: true
-                Layout.preferredHeight: implicitHeight
-                Layout.maximumHeight: implicitHeight
-                theme: root.theme
-                session: root.session
-                actorRows: root.actorRows()
-                selectedActorIds: root.selectedActorIds
-                onSelectionChanged: (ids) => root.selectedActorIds = ids
-            }
+                Views.ContractActorsPanel {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: implicitHeight
+                    Layout.maximumHeight: implicitHeight
+                    theme: root.theme
+                    session: root.session
+                    actorRows: root.actorRows()
+                    selectedActorIds: root.selectedActorIds
+                    onSelectionChanged: (ids) => root.selectedActorIds = ids
+                }
 
-            Views.ContractPropertiesPanel {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight
-                Layout.preferredHeight: root.theme.viewSelectionPanelPreferredHeight
-                theme: root.theme
-                propertyRows: root.propertyRows()
-                selectedPropertyIds: root.selectedPropertyIds
-                onSelectionChanged: (ids) => root.selectedPropertyIds = ids
-            }
+                Views.ContractPropertiesPanel {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight
+                    Layout.preferredHeight: root.theme.viewSelectionPanelPreferredHeight
+                    theme: root.theme
+                    propertyRows: root.propertyRows()
+                    selectedPropertyIds: root.selectedPropertyIds
+                    onSelectionChanged: (ids) => root.selectedPropertyIds = ids
+                }
             }
         }
 
@@ -387,6 +403,23 @@ Item {
                 enabled: root.canSubmit()
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: root.submitContract()
+            }
+
+            Controls.SecondaryButton {
+                objectName: "contractCreateModeButton"
+                visible: root.isEdit
+                text: qsTr("+")
+                Layout.preferredWidth: root.theme.viewCompactActionButtonSize
+                Layout.minimumWidth: root.theme.viewCompactActionButtonSize
+                Layout.maximumWidth: root.theme.viewCompactActionButtonSize
+                textColor: root.theme.textMuted
+                onClicked: {
+                    if (!root.session)
+                        return
+                    root.session.selectedContract = null
+                    root.session.selectedContractId = ""
+                    root.clearFields()
+                }
             }
 
             Controls.DangerButton {

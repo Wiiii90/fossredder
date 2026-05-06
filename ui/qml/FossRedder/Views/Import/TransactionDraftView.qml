@@ -132,7 +132,9 @@ Item {
 
     Connections {
         target: draftViewRoot.draft
-        function onChanged() { draftViewRoot.scheduleSyncViewState() }
+        function onCurrentIndexChanged() { draftViewRoot.scheduleSyncViewState() }
+        function onCurrentChanged() { draftViewRoot.scheduleSyncViewState() }
+        function onCountChanged() { draftViewRoot.scheduleSyncViewState() }
     }
 
     Component.onCompleted: draftViewRoot.scheduleSyncViewState()

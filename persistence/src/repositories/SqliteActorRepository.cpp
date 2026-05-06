@@ -2,6 +2,7 @@
 #include "persistence/StmtGuard.h"
 #include "core/models/Actor.h"
 #include "persistence/SqliteDb.h"
+#include "core/utils/Time.h"
 #include <sqlite3.h>
 #include <algorithm>
 #include <string>
@@ -21,6 +22,29 @@ struct AliasStats {
     std::string updatedAt;
 };
 
+std::string aliasValue(const core::domain::AliasUsage& usage)
+{
+    return usage.alias.value;
+}
+
+core::domain::AliasUsage makeAliasUsage(const std::string& alias,
+                                       int hitCount,
+                                       const std::string& createdAt,
+                                       const std::string& updatedAt,
+                                       const std::string& lastUsedAt)
+{
+    core::domain::AliasUsage usage;
+    usage.alias.value = alias;
+    usage.alias.source = alias;
+    usage.alias.createdAt = createdAt;
+    usage.alias.updatedAt = updatedAt;
+    usage.hitCount = hitCount;
+    usage.createdAt = createdAt;
+    usage.updatedAt = updatedAt;
+    usage.lastUsedAt = lastUsedAt;
+    return usage;
+}
+
 std::vector<core::domain::AliasUsage> collectAliasUsage(const core::domain::Actor& actor)
 {
     if (!actor.aliasUsage.empty()) return actor.aliasUsage;
@@ -28,8 +52,8 @@ std::vector<core::domain::AliasUsage> collectAliasUsage(const core::domain::Acto
     std::vector<core::domain::AliasUsage> out;
     out.reserve(actor.aliases.size());
     for (const auto& alias : actor.aliases) {
-        if (alias.empty()) continue;
-        out.push_back(core::domain::AliasUsage{alias, 1, {}, {}, {}});
+        if (alias.value.empty()) continue;
+        out.push_back(makeAliasUsage(alias.value, 1, alias.createdAt, alias.updatedAt, {}));
     }
     return out;
 }
@@ -61,7 +85,10 @@ void loadActorAliases(sqlite3* db, core::domain::Actor& actor)
     stmt.bindText(1, actor.id);
     while (stmt.step() == SQLITE_ROW) {
         core::domain::AliasUsage usage;
-        usage.alias = stmt.columnText(0);
+        usage.alias.value = stmt.columnText(0);
+        usage.alias.source = usage.alias.value;
+        usage.alias.createdAt = stmt.columnText(2);
+        usage.alias.updatedAt = stmt.columnText(3);
         usage.hitCount = stmt.columnInt(1);
         usage.createdAt = stmt.columnText(2);
         usage.updatedAt = stmt.columnText(3);
@@ -94,16 +121,16 @@ void replaceActorAliases(sqlite3* db,
 
     std::unordered_set<std::string> seen;
     for (const auto& usage : collectAliasUsage(actor)) {
-        if (usage.alias.empty() || !seen.insert(usage.alias).second) continue;
+        if (usage.alias.value.empty() || !seen.insert(usage.alias.value).second) continue;
 
-        const auto it = existing.find(usage.alias);
+        const auto it = existing.find(usage.alias.value);
         const int hitCount = it == existing.end() ? std::max(1, usage.hitCount) : std::max(1, it->second.hitCount);
         const std::string createdAt = it == existing.end() || it->second.createdAt.empty() ? usage.createdAt : it->second.createdAt;
         const std::string updatedAt = it == existing.end() || it->second.updatedAt.empty() ? usage.updatedAt : it->second.updatedAt;
         const std::string lastUsedAt = it == existing.end() || it->second.lastUsedAt.empty() ? usage.lastUsedAt : it->second.lastUsedAt;
         stmt.reset();
         stmt.bindText(1, actor.id);
-        stmt.bindText(2, usage.alias);
+        stmt.bindText(2, usage.alias.value);
         stmt.bindInt(3, hitCount);
         stmt.bindText(4, createdAt);
         stmt.bindText(5, updatedAt);
@@ -128,23 +155,24 @@ SqliteActorRepository::~SqliteActorRepository() = default;
 void SqliteActorRepository::addActor(const std::shared_ptr<Actor>& actor) {
     if (!actor || actor->id.empty()) return;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "INSERT OR IGNORE INTO actors (id, name, type, description) VALUES (?, ?, ?, ?);");
+        "INSERT OR IGNORE INTO actors (id, name, created_at, updated_at) VALUES (?, ?, ?, ?);");
     if (!stmt) return;
     stmt.bindText(1, actor->id);  stmt.bindText(2, actor->name);
-    stmt.bindText(3, actor->type); stmt.bindText(4, actor->description);
+    stmt.bindText(3, actor->createdAt); stmt.bindText(4, actor->updatedAt);
     if (stmt.step() == SQLITE_DONE) replaceActorAliases(pimpl_->db->handle(), *actor, {});
 }
 
 std::vector<std::shared_ptr<Actor>> SqliteActorRepository::getActors() const {
     std::vector<std::shared_ptr<Actor>> out;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "SELECT id, name, type, description FROM actors ORDER BY id;");
+        "SELECT id, name, created_at, updated_at FROM actors ORDER BY id;");
     if (!stmt) return out;
     while (stmt.step() == SQLITE_ROW) {
         auto a = std::make_shared<Actor>();
         a->id = stmt.columnText(0); a->name = stmt.columnText(1);
-        a->type = stmt.columnText(2); a->description = stmt.columnText(3);
-    a->aliasUsage.clear();
+        a->createdAt = stmt.columnText(2);
+        a->updatedAt = stmt.columnText(3);
+        a->aliasUsage.clear();
         loadActorAliases(pimpl_->db->handle(), *a);
         out.push_back(std::move(a));
     }
@@ -154,13 +182,14 @@ std::vector<std::shared_ptr<Actor>> SqliteActorRepository::getActors() const {
 std::optional<std::shared_ptr<Actor>> SqliteActorRepository::getActorById(const std::string& id) const {
     if (id.empty()) return std::nullopt;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "SELECT id, name, type, description FROM actors WHERE id = ?;");
+        "SELECT id, name, created_at, updated_at FROM actors WHERE id = ?;");
     if (!stmt) return std::nullopt;
     stmt.bindText(1, id);
     if (stmt.step() != SQLITE_ROW) return std::nullopt;
     auto a = std::make_shared<Actor>();
     a->id = stmt.columnText(0); a->name = stmt.columnText(1);
-    a->type = stmt.columnText(2); a->description = stmt.columnText(3);
+    a->createdAt = stmt.columnText(2);
+    a->updatedAt = stmt.columnText(3);
     a->aliasUsage.clear();
     loadActorAliases(pimpl_->db->handle(), *a);
     return a;
@@ -177,10 +206,9 @@ void SqliteActorRepository::updateActor(const std::shared_ptr<Actor>& actor) {
     if (!actor || actor->id.empty()) return;
     const auto existing = loadActorAliasStats(pimpl_->db->handle(), actor->id);
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "UPDATE actors SET name = ?, type = ?, description = ? WHERE id = ?;");
+        "UPDATE actors SET name = ?, created_at = COALESCE(NULLIF(created_at, ''), ?), updated_at = ? WHERE id = ?;");
     if (!stmt) return;
-    stmt.bindText(1, actor->name); stmt.bindText(2, actor->type);
-    stmt.bindText(3, actor->description); stmt.bindText(4, actor->id);
+    stmt.bindText(1, actor->name); stmt.bindText(2, actor->createdAt); stmt.bindText(3, actor->updatedAt); stmt.bindText(4, actor->id);
     if (stmt.step() == SQLITE_DONE) replaceActorAliases(pimpl_->db->handle(), *actor, existing);
 }
 

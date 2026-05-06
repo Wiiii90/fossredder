@@ -44,11 +44,7 @@ set(UI_SOURCES
     src/models/TransactionFilter.cpp
     src/models/TransactionList.cpp
     src/state/FilterState.cpp
-    src/state/MetricsState.cpp
-    src/state/SessionMetricsSync.cpp
     src/state/NavigationState.cpp
-    src/state/PropertyNameProjection.cpp
-    src/state/PropertyNameCatalog.cpp
     src/state/SessionSelection.cpp
     src/state/SelectionState.cpp
     src/state/SelectionStateSync.cpp
@@ -103,7 +99,7 @@ set(UI_HEADERS
     include/ui/models/ExportRunList.h
     include/ui/models/ImportRunList.h
     include/ui/models/ImportSuggestion.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/models/IndexedListModel.h
+    include/ui/models/IndexedListModel.h
     include/ui/models/PropertyList.h
     include/ui/models/RowListModel.h
     include/ui/models/StatementDraft.h
@@ -117,12 +113,8 @@ set(UI_HEADERS
     include/ui/payload/PayloadKeys.h
     include/ui/payload/PayloadMapper.h
     include/ui/state/FilterState.h
-    include/ui/state/MetricsState.h
     include/ui/state/NavigationState.h
     include/ui/state/AppStateClone.h
-    include/ui/state/PropertyNameCatalog.h
-    include/ui/state/PropertyNameProjection.h
-    include/ui/state/SessionMetricsSync.h
     include/ui/state/SessionSelection.h
     include/ui/state/SelectionState.h
     include/ui/state/SelectionStateSync.h

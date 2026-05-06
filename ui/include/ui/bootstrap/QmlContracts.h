@@ -55,6 +55,19 @@ inline constexpr auto kWidth = "width";
 inline constexpr auto kHeight = "height";
 }
 
+/** Reusable QML labels and object names. */
+namespace labels {
+inline constexpr auto kAdd = "+";
+inline constexpr auto kRemove = "-";
+inline constexpr auto kCreate = "Create";
+inline constexpr auto kClear = "Clear";
+inline constexpr auto kDelete = "Delete";
+inline constexpr auto kUpdate = "Update";
+inline constexpr auto kActorCreateModeButton = "actorCreateModeButton";
+inline constexpr auto kPropertyCreateModeButton = "propertyCreateModeButton";
+inline constexpr auto kContractCreateModeButton = "contractCreateModeButton";
+}
+
 /** Supported export formats exposed to QML. */
 enum class ExportFormat : int {
     Csv = 0,

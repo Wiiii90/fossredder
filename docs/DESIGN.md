@@ -710,6 +710,8 @@ This project includes unit, integration and UI tests. The test layout and tools 
 
 ### 7.5 Adding tests
 - Add new tests under the appropriate `*/tests/*` folder and update the subproject `CMakeLists.txt` following the existing examples. Add mocks in `core/tests/include/mocks` when needed.
+- UI source-layer test planning is documented in `docs/design/uisrctesting.md`.
+- QML/UI test planning is documented in `docs/design/uiqmltesting.md`.
 
 ## 8. Deployment & Environment <a id="8-deployment--environment"></a>
 ### 8.1 Target Platform

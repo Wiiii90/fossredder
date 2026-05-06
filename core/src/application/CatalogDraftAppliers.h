@@ -6,6 +6,7 @@
 #pragma once
 
 #include "core/application/CatalogService.h"
+#include "core/models/Alias.h"
 #include "core/models/Actor.h"
 #include "core/models/Analysis.h"
 #include "core/models/Annual.h"
@@ -13,6 +14,7 @@
 #include "core/models/Property.h"
 #include "core/models/Statement.h"
 #include "core/models/Transaction.h"
+#include "core/utils/Time.h"
 #include "../utils/Util.h"
 
 #include <algorithm>
@@ -20,6 +22,22 @@
 #include <string>
 
 namespace core::application::detail {
+
+inline void normalizeAlias(core::domain::Alias& alias)
+{
+    const std::string now = core::utils::currentTimestampUtc();
+    if (alias.value.empty()) alias.value = alias.source;
+    if (alias.source.empty()) alias.source = alias.value;
+    if (alias.createdAt.empty()) alias.createdAt = now;
+    if (alias.updatedAt.empty()) alias.updatedAt = now;
+}
+
+inline void normalizeAliases(std::vector<core::domain::Alias>& aliases)
+{
+    for (auto& alias : aliases) {
+        normalizeAlias(alias);
+    }
+}
 
 inline void resetTransientTransactionFields(Transaction& tx)
 {
@@ -29,27 +47,25 @@ inline void resetTransientTransactionFields(Transaction& tx)
 inline void applyActorDraft(Actor& actor, const ActorInput& input)
 {
     actor.name = input.name;
-    actor.type = input.type;
-    actor.description = input.description;
     actor.aliases = input.aliases;
+    normalizeAliases(actor.aliases);
 }
 
 inline void applyPropertyDraft(Property& property, const PropertyInput& input)
 {
     property.name = input.name;
-    property.address = input.address;
-    property.description = input.description;
     property.aliases = input.aliases;
+    normalizeAliases(property.aliases);
 }
 
 inline void applyContractDraft(Contract& contract, const ContractInput& input)
 {
     contract.name = input.name;
     contract.type = input.type;
-    contract.description = input.description;
     contract.actorIds = input.actorIds;
     contract.propertyIds = input.propertyIds;
     contract.aliases = input.aliases;
+    normalizeAliases(contract.aliases);
 }
 
 inline void applyStatementName(Statement& statement, const std::string& name)

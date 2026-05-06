@@ -92,9 +92,6 @@ Item {
                 contentRouter.session.selectedStatementId = ""
         }
 
-        if (contentRouter.navigation && contentRouter.navigation.sectionValue !== contentRouter.navBooking && contentRouter.navigation.bookingViewValue !== contentRouter.navBookingStatements)
-            contentRouter.navigation.setBookingViewValue(contentRouter.navBookingStatements)
-
         contentRouter.activeSection = contentRouter.navigation ? contentRouter.navigation.sectionValue : contentRouter.navImport
         contentRouter.rememberSection(contentRouter.activeSection)
     }
@@ -178,6 +175,11 @@ Item {
     }
 
     Component.onCompleted: contentRouter.updateContent()
-    Connections { target: contentRouter.navigation; function onSectionChanged() { contentRouter.updateContent() } }
+    Connections {
+        target: contentRouter.navigation
+        function onSectionChanged() {
+            contentRouter.updateContent()
+        }
+    }
 }
 

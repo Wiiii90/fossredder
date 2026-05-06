@@ -41,55 +41,39 @@ QVariantList PropertyController::properties() const
 }
 
 QString PropertyController::addProperty(const QString& name,
-                                        const QString& address,
-                                        const QString& description,
                                         const QStringList& aliases)
 {
-  return ui::util::guard::invokeValue<QString>(
-        core_, observability::origins::controller::property::kAdd, {}, [&]() {
-            return QString::fromStdString(core_->addProperty(
-                strings::toStdString(name),
-                strings::toStdString(address),
-                strings::toStdString(description),
-                strings::toStdList(aliases)));
-        });
+    return ui::util::guard::invokeValue<QString>(core_, observability::origins::controller::property::kAdd, {}, [&]() {
+        return QString::fromStdString(core_->addProperty(strings::toStdString(name), strings::toAliases(aliases)));
+    });
 }
 
 void PropertyController::updateProperty(const QString& id,
                                         const QString& name,
-                                        const QString& address,
-                                        const QString& description,
                                         const QStringList& aliases)
 {
-  ui::util::guard::invokeVoid(
-        core_, observability::origins::controller::property::kUpdate, [&]() {
-            core_->updateProperty(strings::toStdString(id),
-                                  strings::toStdString(name),
-                                  strings::toStdString(address),
-                                  strings::toStdString(description),
-                                  strings::toStdList(aliases));
-        });
+    ui::util::guard::invokeVoid(core_, observability::origins::controller::property::kUpdate, [&]() {
+        core_->updateProperty(strings::toStdString(id), strings::toStdString(name), strings::toAliases(aliases));
+    });
 }
 
 QString PropertyController::saveProperty(const QString& id,
                                          const QString& name,
-                                         const QString& address,
-                                         const QString& description,
                                          const QStringList& aliases)
 {
     if (id.isEmpty()) {
-        return addProperty(name, address, description, aliases);
+        return addProperty(name, aliases);
     }
 
-    updateProperty(id, name, address, description, aliases);
+    updateProperty(id, name, aliases);
     return id;
 }
 
 void PropertyController::deleteProperty(const QString& id)
 {
-  ui::util::guard::invokeVoid(
-        core_, observability::origins::controller::property::kDelete,
-        [&]() { core_->deleteProperty(strings::toStdString(id)); });
+    ui::util::guard::invokeVoid(core_, observability::origins::controller::property::kDelete, [&]() {
+        core_->deleteProperty(strings::toStdString(id));
+    });
 }
 
 } // namespace ui

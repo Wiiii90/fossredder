@@ -9,6 +9,8 @@
 #include <QString>
 #include <QStringList>
 
+#include "core/models/Alias.h"
+
 #include <string>
 #include <vector>
 
@@ -51,6 +53,21 @@ inline std::vector<std::string> toStdListTrimmed(const QStringList& values)
             continue;
         }
         out.push_back(trimmed.toStdString());
+    }
+    return out;
+}
+
+inline std::vector<core::domain::Alias> toAliases(const QStringList& values)
+{
+    std::vector<core::domain::Alias> out;
+    out.reserve(static_cast<size_t>(values.size()));
+    for (const auto& value : values) {
+        const auto trimmed = value.trimmed();
+        if (trimmed.isEmpty()) {
+            continue;
+        }
+        const auto stdValue = trimmed.toStdString();
+        out.push_back(core::domain::Alias{stdValue, {}, stdValue, {}, {}});
     }
     return out;
 }

@@ -23,12 +23,6 @@ public:
         IdRole = Qt::UserRole + 1,
         NameRole,
         TypeRole,
-        DescriptionRole,
-        StartDateRole,
-        EndDateRole,
-        BasePriceRole,
-        ConsumptionPriceRole,
-        MonthlyAdvanceRole,
         ActorIdsRole,
         PropertyIdsRole
     };
@@ -42,7 +36,7 @@ public:
     const std::vector<std::shared_ptr<core::domain::Contract>>& contracts() const { return items(); }
     Q_INVOKABLE int findRowById(const QString& id) const { return findIndexedRow(id); }
 
-    Q_INVOKABLE int addContract(const QString& name, const QString& type, const QString& description);
+    Q_INVOKABLE int addContract(const QString& name, const QString& type);
     Q_INVOKABLE void removeAt(int row) { removeItemAt(row); }
     Q_INVOKABLE QVariantMap get(int index) const;
 };

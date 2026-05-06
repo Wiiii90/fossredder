@@ -20,7 +20,11 @@ TestCase {
 
     property var navigation: QtObject {
         property int settingsCategoryValue: 0
-        function setSettingsCategoryValue(value) { settingsCategoryValue = value }
+        signal settingsCategoryChanged()
+        function setSettingsCategoryValue(value) {
+            settingsCategoryValue = value
+            settingsCategoryChanged()
+        }
     }
 
     property var settingsController: QtObject {

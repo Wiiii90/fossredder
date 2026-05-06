@@ -14,18 +14,15 @@
 #include <QStringList>
 
 #include "core/models/DeletionImpact.h"
+#include "core/models/Transaction.h"
 
 namespace ui {
 
-class MetricsState;
-class PropertyNameCatalog;
 class SessionModels;
 class FilterState;
 
 class SessionMutationState {
 public:
-    using TransactionSumsNotifier = std::function<void(const QString& propertyId)>;
-
     static QVariantList normalizeStrings(const QVariantList& values);
     static QVariantList addUniqueTrimmed(const QVariantList& values, const QString& value);
     static QVariantList removeAt(const QVariantList& values, int index);
@@ -34,15 +31,11 @@ public:
 
     static void applyDeletionImpact(const core::domain::DeletionImpact& impact,
                                     SessionModels& models,
-                                    FilterState& filters,
-                                    MetricsState& metrics,
-                                    PropertyNameCatalog& propertyNames);
+                                    FilterState& filters);
 
     static void setTransactionPropertyIdsImmediate(const QString& transactionId,
                                                    const QStringList& propertyIds,
-                                                   SessionModels& models,
-                                                   MetricsState& metrics,
-                                                   const TransactionSumsNotifier& notifyTransactionSums);
+                                                    SessionModels& models);
 };
 
 }

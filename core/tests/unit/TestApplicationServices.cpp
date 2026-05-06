@@ -26,15 +26,14 @@ TEST(CatalogServiceTests, ActorLifecycleMutatesState)
     AppState state;
     CatalogService service;
 
-    const std::string actorId = service.addActor(state, {.name = "Alice", .type = "Owner", .description = "Primary"});
+    const std::string actorId = service.addActor(state, {.name = "Alice"});
 
     ASSERT_EQ(state.actors.size(), 1u);
     EXPECT_EQ(state.actors.front()->id, actorId);
     EXPECT_EQ(state.actors.front()->name, "Alice");
 
-    EXPECT_TRUE(service.updateActor(state, actorId, {.name = "Bob", .type = "Tenant", .description = "Updated"}));
+    EXPECT_TRUE(service.updateActor(state, actorId, {.name = "Bob"}));
     EXPECT_EQ(state.actors.front()->name, "Bob");
-    EXPECT_EQ(state.actors.front()->type, "Tenant");
 
     EXPECT_TRUE(service.deleteActor(state, actorId));
     EXPECT_TRUE(state.actors.empty());

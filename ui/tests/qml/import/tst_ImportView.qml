@@ -28,6 +28,10 @@ TestCase {
 
     property var actions: QtObject {
         property int browseCalls: 0
+        signal importFileSelected(string path)
+        signal importFilesSelected(var paths)
+        signal importFileDropped(string path)
+        signal importFilesDropped(var paths)
         function browseImportPdf() { browseCalls += 1 }
     }
 
@@ -52,12 +56,24 @@ TestCase {
 
     property var importController: QtObject {
         property bool isRunning: false
+        property real progress: 0
+        property string phase: ""
+        property string error: ""
         property string selectedFile: ""
         property int queuedCount: 0
         property var queuedFiles: []
         property var draft: null
         property bool hasPrevDraft: false
         property bool hasNextDraft: false
+
+        signal stateChanged()
+        signal importFileSelected(string path)
+        signal importFilesSelected(var paths)
+        signal importFileDropped(string path)
+        signal importFilesDropped(var paths)
+        signal importFinished()
+        signal importCanceled()
+        signal importFailed(string error)
 
         property int startCalls: 0
         property int resetCalls: 0

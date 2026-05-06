@@ -45,14 +45,12 @@ Item {
 
     function clearBookingStateForSection(section) {
         if (!toolBar.navigation || section === toolBar.navBooking) return
-        toolBar.navigation.setBookingViewValue(toolBar.navStatements)
     }
 
-    function navigateTo(section, clearSelection, bookingView) {
+    function navigateTo(section, clearSelection) {
         if (!toolBar.navigation) return
         toolBar.clearBookingStateForSection(section)
         if (clearSelection) toolBar.clearDomainSelection()
-        if (bookingView !== undefined) toolBar.navigation.setBookingViewValue(bookingView)
         toolBar.navigation.setSectionValue(section)
     }
 
@@ -161,7 +159,7 @@ Item {
                                 toolBar.session.selectedStatementId = ""
                                 toolBar.session.selectedTransactionId = ""
                             }
-                            toolBar.navigateTo(toolBar.navBooking, false, toolBar.navStatements)
+                            toolBar.navigateTo(toolBar.navBooking, false)
                         }
                     }
                     Controls.IconButton {

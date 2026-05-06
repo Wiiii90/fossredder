@@ -24,6 +24,7 @@ using core::domain::AppState;
 #include "ui/observability/ErrorCodes.h"
 
 #include <QDir>
+#include <QStandardPaths>
 #include <filesystem>
 #include <cstdio>
 
@@ -109,25 +110,26 @@ int main(int argc, char* argv[]) {
     app.setApplicationName(QString::fromLatin1(core::constants::preferences::kApplicationName.data()));
 
     // Setup storage manager and controller (manages application state files)
-    const QString homePath = QDir::homePath();
-
-    const std::string homePathStd = homePath.toStdString();
-    const std::filesystem::path appDataRoot = std::filesystem::path(homePathStd)
-        / std::string(core::constants::runtime::kAppDataDirectoryName);
+    const QString appDataLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    const std::filesystem::path appDataRoot = appDataLocation.isEmpty()
+        ? std::filesystem::path(QDir::homePath().toStdString()) / std::string(core::constants::runtime::kAppDataDirectoryName)
+        : std::filesystem::path(appDataLocation.toStdString());
 
     const std::filesystem::path defaultDbPath = appDataRoot / std::string(core::constants::runtime::kDatabaseFileName);
+    const std::filesystem::path registryDbPath = appDataRoot / std::string(core::constants::runtime::kRegistryFileName);
     ensureParentDirectoryExists(defaultDbPath, "app::main::createConfigDirectory");
+    ensureParentDirectoryExists(registryDbPath, "app::main::createRegistryDirectory");
 
     std::shared_ptr<core::storage::IRegistry> registry;
     try {
-        registry = createSqliteRegistry(defaultDbPath.string());
+        registry = createSqliteRegistry(registryDbPath.string());
     } catch (const std::exception& ex) {
         core::errors::report(
             core::errors::ErrorSeverity::Warning,
             core::errors::codes::ConfigDbOpenFailed,
             "app::main::openRegistryDb",
-            std::string("failed to open registry DB '") + defaultDbPath.string() + "': " + ex.what(),
-            {{"path", defaultDbPath.string()}}
+            std::string("failed to open registry DB '") + registryDbPath.string() + "': " + ex.what(),
+            {{"path", registryDbPath.string()}}
         );
     }
 

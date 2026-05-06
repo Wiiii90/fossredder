@@ -115,13 +115,11 @@ TestCase {
             lastDeleteId = ""
         }
 
-        function saveActor(id, name, type, description, aliases) {
+        function saveActor(id, name, aliases) {
             saveCalls += 1
             lastSave = {
                 id: id,
                 name: name,
-                type: type,
-                description: description,
                 aliases: aliases
             }
             return id && id.length > 0 ? id : "actor-new"
@@ -156,6 +154,10 @@ TestCase {
         property int viewSelectionPanelMinHeight: 160
         property int viewSelectionPanelPreferredHeight: 220
         property int viewActionButtonWidth: 120
+        property int viewCompactActionButtonSize: 28
+        property int viewAliasChipHeight: 24
+        property int viewAliasChipRadius: 3
+        property int borderWidthThin: 1
         property int radius: 3
     }
 
@@ -204,7 +206,7 @@ TestCase {
     function test_createModeSavesActorAndSelectsNewId() {
         var form = createForm(null)
         var nameField = findRequired(form, "actorNameField")
-        var submitButton = findRequired(form, "actorSubmitButton")
+        var submitButton = findRequired(form, "actorCreateButton")
 
         nameField.text = "Alice"
         submitButton.clicked()
@@ -282,6 +284,16 @@ TestCase {
 
         previousButton.clicked()
         compare(session.selectedActorId, "actor-1")
+    }
+
+    function test_createShortcutButtonClearsSelectionAndSwitchesToCreateMode() {
+        var form = createForm({ id: "actor-9", name: "Selected", aliases: [] })
+        var createModeButton = findRequired(form, "actorCreateModeButton")
+
+        createModeButton.clicked()
+
+        compare(session.selectedActorId, "")
+        compare(form.isEdit, false)
     }
 
     function test_deleteButtonDeletesCurrentActor() {

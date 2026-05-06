@@ -62,27 +62,21 @@ void SqliteSchema::migrate(sqlite3* db) {
             "CREATE TABLE IF NOT EXISTS actors ("
             "id TEXT PRIMARY KEY,"
             "name TEXT UNIQUE,"
-            "type TEXT,"
-            "description TEXT"
+            "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP"
             ");"
             "CREATE TABLE IF NOT EXISTS properties ("
             "id TEXT PRIMARY KEY,"
             "name TEXT UNIQUE,"
-            "address TEXT,"
-            "description TEXT,"
-            "consumption REAL,"
-            "consumption_unit TEXT"
+            "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP"
             ");"
             "CREATE TABLE IF NOT EXISTS contracts ("
             "id TEXT PRIMARY KEY,"
             "name TEXT,"
             "type TEXT,"
-            "description TEXT,"
-            "start_date TEXT,"
-            "end_date TEXT,"
-            "base_price REAL,"
-            "consumption_price REAL,"
-            "monthly_advance REAL"
+            "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            "updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP"
             ");"
             "CREATE TABLE IF NOT EXISTS contract_actors ("
             "contract_id TEXT NOT NULL,"
@@ -156,6 +150,31 @@ void SqliteSchema::migrate(sqlite3* db) {
         );
         setUserVersion(db, 1);
         v = 1;
+    }
+
+    if (v < 12) {
+        exec(db, "BEGIN;");
+        if (!hasColumn(db, "actors", "created_at")) {
+            exec(db, "ALTER TABLE actors ADD COLUMN created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;");
+        }
+        if (!hasColumn(db, "actors", "updated_at")) {
+            exec(db, "ALTER TABLE actors ADD COLUMN updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;");
+        }
+        if (!hasColumn(db, "properties", "created_at")) {
+            exec(db, "ALTER TABLE properties ADD COLUMN created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;");
+        }
+        if (!hasColumn(db, "properties", "updated_at")) {
+            exec(db, "ALTER TABLE properties ADD COLUMN updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;");
+        }
+        if (!hasColumn(db, "contracts", "created_at")) {
+            exec(db, "ALTER TABLE contracts ADD COLUMN created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;");
+        }
+        if (!hasColumn(db, "contracts", "updated_at")) {
+            exec(db, "ALTER TABLE contracts ADD COLUMN updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;");
+        }
+        exec(db, "COMMIT;");
+        setUserVersion(db, 12);
+        v = 12;
     }
 
     if (v < 2) {

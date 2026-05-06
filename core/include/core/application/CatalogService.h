@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "core/models/Alias.h"
 #include "core/models/AppState.h"
 #include "core/models/Transaction.h"
 
@@ -15,25 +16,20 @@ namespace core::application {
 
 struct ActorInput {
     std::string name;
-    std::string type;
-    std::string description;
-    std::vector<std::string> aliases;
+    std::vector<core::domain::Alias> aliases;
 };
 
 struct PropertyInput {
     std::string name;
-    std::string address;
-    std::string description;
-    std::vector<std::string> aliases;
+    std::vector<core::domain::Alias> aliases;
 };
 
 struct ContractInput {
     std::string name;
     std::string type;
-    std::string description;
     std::vector<std::string> actorIds;
     std::vector<std::string> propertyIds;
-    std::vector<std::string> aliases;
+    std::vector<core::domain::Alias> aliases;
 };
 
 struct TransactionInput {

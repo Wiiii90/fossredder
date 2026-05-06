@@ -21,11 +21,7 @@ class PropertyList : public models::IndexedListModel<core::domain::Property> {
 public:
     enum Roles {
         IdRole = Qt::UserRole + 1,
-        NameRole,
-        AddressRole,
-        DescriptionRole,
-        ConsumptionRole,
-        ConsumptionUnitRole
+        NameRole
     };
 
     explicit PropertyList(QObject* parent = nullptr);
@@ -37,7 +33,7 @@ public:
     const std::vector<std::shared_ptr<core::domain::Property>>& properties() const { return items(); }
     int findRowById(const QString& id) const { return findIndexedRow(id); }
 
-    Q_INVOKABLE int addProperty(const QString& name, const QString& address, const QString& description);
+    Q_INVOKABLE int addProperty(const QString& name);
     Q_INVOKABLE void removeAt(int row) { removeItemAt(row); }
 };
 

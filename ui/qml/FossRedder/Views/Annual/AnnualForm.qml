@@ -348,11 +348,6 @@ Item {
     onCurrentChanged: root.syncFields()
     onIsEditChanged: root.syncFields()
 
-    Connections {
-        target: root.current
-        function onChanged() { root.syncFields() }
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: root.theme.pageContentMargin

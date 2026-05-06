@@ -48,7 +48,6 @@ Item {
         contentStack.currentIndex = (root.hasImportController && root.importController && root.importController.draft) ? 1 : 0
     }
 
-
     StackLayout {
         id: contentStack
         objectName: "importContentStack"
@@ -163,7 +162,7 @@ Item {
                     }
 
                     Controls.SecondaryButton {
-                    objectName: "importPauseButton"
+                        objectName: "importPauseButton"
                         text: qsTr("Pause")
                         visible: root.hasImportController && root.importController.isRunning
                         enabled: root.hasImportController && root.importController.isRunning

@@ -28,8 +28,21 @@ void dedupAliasUsage(std::vector<core::domain::AliasUsage>& v)
     std::vector<core::domain::AliasUsage> out;
     out.reserve(v.size());
     for (const auto& value : v) {
-        if (value.alias.empty()) continue;
-        if (!seen.insert(value.alias).second) continue;
+        if (value.alias.value.empty()) continue;
+        if (!seen.insert(value.alias.value).second) continue;
+        out.push_back(value);
+    }
+    v = std::move(out);
+}
+
+void dedupAliases(std::vector<core::domain::Alias>& v)
+{
+    std::unordered_set<std::string> seen;
+    std::vector<core::domain::Alias> out;
+    out.reserve(v.size());
+    for (const auto& value : v) {
+        if (value.value.empty()) continue;
+        if (!seen.insert(value.value).second) continue;
         out.push_back(value);
     }
     v = std::move(out);
@@ -41,17 +54,17 @@ namespace core::application {
 void StateHydrator::rehydrate(AppState& state) {
     for (auto& a : state.actors) {
         if (!a) continue;
-        dedupStrings(a->aliases);
+        dedupAliases(a->aliases);
         dedupAliasUsage(a->aliasUsage);
     }
     for (auto& p : state.properties) {
         if (!p) continue;
-        dedupStrings(p->aliases);
+        dedupAliases(p->aliases);
         dedupAliasUsage(p->aliasUsage);
     }
     for (auto& c : state.contracts) {
         if (!c || c->id.empty()) continue;
-        dedupStrings(c->aliases);
+        dedupAliases(c->aliases);
         dedupAliasUsage(c->aliasUsage);
         dedupStrings(c->actorIds);
         dedupStrings(c->propertyIds);

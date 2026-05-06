@@ -301,9 +301,14 @@ std::vector<core::domain::AliasUsage> aliasUsages(const TEntity& entity)
 
     std::vector<core::domain::AliasUsage> out;
     out.reserve(entity.aliases.size());
-    for (const auto& alias : entity.aliases) {
-        if (alias.empty()) continue;
-        out.push_back(core::domain::AliasUsage{alias, 1, {}, {}, {}});
+    for (const auto& alias : entity.aliases) { 
+        if (alias.value.empty()) continue;
+        core::domain::AliasUsage usage;
+        usage.alias = alias;
+        usage.hitCount = 1;
+        usage.createdAt = alias.createdAt;
+        usage.updatedAt = alias.updatedAt;
+        out.push_back(std::move(usage));
     }
     return out;
 }
@@ -381,12 +386,12 @@ int confidencePercent(const DraftSuggestionCandidate* suggestion)
 
 std::string actorDisplay(const core::domain::Actor& actor)
 {
-    return actor.type.empty() ? actor.name : actor.name + " — " + actor.type;
+    return actor.name;
 }
 
 std::string propertyDisplay(const core::domain::Property& property)
 {
-    return property.address.empty() ? property.name : property.name + " — " + property.address;
+    return property.name;
 }
 
 DraftChoiceRow actorRow(const std::shared_ptr<core::domain::Actor>& actor)
@@ -396,8 +401,9 @@ DraftChoiceRow actorRow(const std::shared_ptr<core::domain::Actor>& actor)
     row.id = actor->id;
     row.name = actor->name;
     row.display = actorDisplay(*actor);
-    row.type = actor->type;
-    row.aliases = actor->aliases;
+    for (const auto& alias : actor->aliases) {
+        row.aliases.push_back(alias.value);
+    }
     return row;
 }
 
@@ -408,7 +414,9 @@ DraftChoiceRow propertyRow(const std::shared_ptr<core::domain::Property>& proper
     row.id = property->id;
     row.name = property->name;
     row.display = propertyDisplay(*property);
-    row.aliases = property->aliases;
+    for (const auto& alias : property->aliases) {
+        row.aliases.push_back(alias.value);
+    }
     return row;
 }
 
@@ -420,7 +428,9 @@ DraftChoiceRow contractRow(const std::shared_ptr<core::domain::Contract>& contra
     row.name = contract->name;
     row.display = contract->name;
     row.type = contract->type;
-    row.aliases = contract->aliases;
+    for (const auto& alias : contract->aliases) {
+        row.aliases.push_back(alias.value);
+    }
     row.actorIds = contract->actorIds;
     row.propertyIds = contract->propertyIds;
     return row;
@@ -785,7 +795,7 @@ DraftImportSuggestions buildImportSuggestions(const core::domain::AppState& stat
             score += tokenOverlapScore(sourceLeadTokens, candidateTokens) * 18.0;
 
             for (const auto& usage : usages) {
-                const std::string alias = usage.alias;
+                const std::string alias = usage.alias.value;
                 const auto aliasNorm = normalizeText(alias);
                 if (aliasNorm.empty()) continue;
 
@@ -863,26 +873,20 @@ DraftImportSuggestions buildImportSuggestions(const core::domain::AppState& stat
     suggestions.actor = buildBucket(state.actors,
                                     "actor",
                                     [](const core::domain::Actor& actor) {
-                                        return actor.type.empty() ? actor.name : actor.name + " — " + actor.type;
+                                        return actor.name;
                                     },
                                     [](const core::domain::Actor& actor) {
-                                        std::string text = actor.name;
-                                        if (!actor.type.empty()) text += " " + actor.type;
-                                        if (!actor.description.empty()) text += " " + actor.description;
-                                        return text;
+                                        return actor.name;
                                     },
                                     actorSourceText);
 
     suggestions.property = buildBucket(state.properties,
                                       "property",
                                       [](const core::domain::Property& property) {
-                                          return property.address.empty() ? property.name : property.name + " — " + property.address;
+                                          return property.name;
                                       },
                                       [](const core::domain::Property& property) {
-                                          std::string text = property.name;
-                                          if (!property.address.empty()) text += " " + property.address;
-                                          if (!property.description.empty()) text += " " + property.description;
-                                          return text;
+                                          return property.name;
                                        },
                                        propertySourceText);
 
@@ -894,10 +898,7 @@ DraftImportSuggestions buildImportSuggestions(const core::domain::AppState& stat
                                           return contract.type + " — " + contract.name;
                                       },
                                       [](const core::domain::Contract& contract) {
-                                          std::string text = contract.type;
-                                          if (!contract.name.empty()) text += " " + contract.name;
-                                          if (!contract.description.empty()) text += " " + contract.description;
-                                          return text;
+                                          return contract.type.empty() ? contract.name : contract.type + " " + contract.name;
                                        },
                                        contractSourceText);
 
@@ -913,7 +914,7 @@ std::string resolveActorId(const core::domain::AppState& state, const std::strin
         if (!actor) continue;
         if (normalizeDraftText(actor->name) == key) return actor->id;
         for (const auto& alias : actor->aliases) {
-            if (normalizeDraftText(alias) == key) return actor->id;
+            if (normalizeDraftText(alias.value) == key) return actor->id;
         }
     }
     return {};
@@ -929,7 +930,7 @@ std::string resolveContractId(const core::domain::AppState& state, const std::st
         if (normalizeDraftText(contract->type) == key) return contract->id;
         if (normalizeDraftText(contract->name) == key) return contract->id;
         for (const auto& alias : contract->aliases) {
-            if (normalizeDraftText(alias) == key) return contract->id;
+            if (normalizeDraftText(alias.value) == key) return contract->id;
         }
     }
     return {};

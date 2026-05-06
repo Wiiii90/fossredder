@@ -36,7 +36,7 @@ TEST(AppStateFacadeInteraction, AddActorCommitsThroughStorageSaveWhenWorkspaceIs
     core::application::AppStateFacade facade(std::move(mock));
     facade.newFile("interaction.db");
 
-    const auto id = facade.addActor("Alice", "person", "desc", {"A"});
+    const auto id = facade.addActor("Alice", {});
     EXPECT_FALSE(id.empty());
 }
 

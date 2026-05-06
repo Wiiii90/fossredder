@@ -32,14 +32,14 @@ Item {
                 spacing: root.theme.spacingSmall
 
                 Repeater {
-                    model: root.session ? root.session.actorRows() : []
+                    model: root.session ? root.session.actors : []
 
                     delegate: Rectangle {
                         id: actorRow
                         required property var modelData
                         width: actorColumn.width
-                        height: 44
-                        radius: 6
+                        height: root.theme.viewSidebarRowHeight
+                        radius: root.theme.viewSidebarRowRadius
                         color: root.session && actorRow.modelData.id === root.session.selectedActorId ? root.theme.selectionHighlight : "transparent"
                         border.color: root.theme.borderSoft
                         border.width: root.theme.borderWidthThin
@@ -54,7 +54,7 @@ Item {
                         Column {
                             anchors.fill: parent
                             anchors.margins: root.theme.spacingSmall
-                            spacing: 2
+                            spacing: root.theme.viewSidebarRowSpacing
 
                             Text {
                                 id: actorNameText
@@ -64,14 +64,6 @@ Item {
                                 elide: Text.ElideRight
                             }
 
-                            Text {
-                                id: actorTypeText
-                                width: parent.width
-                                text: actorRow.modelData.type ? actorRow.modelData.type : ""
-                                color: root.theme.textMuted
-                                elide: Text.ElideRight
-                                visible: actorTypeText.text.length > 0
-                            }
                         }
                     }
                 }

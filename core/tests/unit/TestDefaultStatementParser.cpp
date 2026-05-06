@@ -25,6 +25,7 @@ api::tesseract::Word makeWord(const std::string& text, int x, int y, int width =
 TEST(DefaultStatementParserTests, PreservesStandaloneMetadataLinesBelowMainRow)
 {
     api::tesseract::ExtractResult ocr;
+    const std::vector<uint8_t> pageCropImageBytes;
     ocr.words = {
         makeWord("Lastschrift", 10, 10, 90),
         makeWord("01.04", 200, 10, 45),
@@ -34,7 +35,7 @@ TEST(DefaultStatementParserTests, PreservesStandaloneMetadataLinesBelowMainRow)
         makeWord("Dauerauftrag", 10, 52, 95),
     };
 
-    const auto result = DefaultStatementParser::parse({}, ocr, "", nullptr, {}, {}, "2025-04-01", 1);
+    const auto result = DefaultStatementParser::parse({}, ocr, "", nullptr, pageCropImageBytes, "2025-04-01", 1);
 
     ASSERT_EQ(result.transactions.size(), 1U);
     const auto& tx = result.transactions.front();
@@ -46,6 +47,7 @@ TEST(DefaultStatementParserTests, PreservesStandaloneMetadataLinesBelowMainRow)
 TEST(DefaultStatementParserTests, PreservesSecondMetadataLineWhenItContainsAmountAndTrailingText)
 {
     api::tesseract::ExtractResult ocr;
+    const std::vector<uint8_t> pageCropImageBytes;
     ocr.words = {
         makeWord("Lastschrift", 10, 10, 90),
         makeWord("01.04", 200, 10, 45),
@@ -57,7 +59,7 @@ TEST(DefaultStatementParserTests, PreservesSecondMetadataLineWhenItContainsAmoun
         makeWord("POSTENENTGELTE", 275, 38, 145),
     };
 
-    const auto result = DefaultStatementParser::parse({}, ocr, "", nullptr, {}, {}, "2025-04-01", 1);
+    const auto result = DefaultStatementParser::parse({}, ocr, "", nullptr, pageCropImageBytes, "2025-04-01", 1);
 
     ASSERT_EQ(result.transactions.size(), 1U);
     const auto& tx = result.transactions.front();
@@ -68,6 +70,7 @@ TEST(DefaultStatementParserTests, PreservesSecondMetadataLineWhenItContainsAmoun
 TEST(DefaultStatementParserTests, PreservesLeftStartingSecondMetadataLineWhenAmountIsRecognized)
 {
     api::tesseract::ExtractResult ocr;
+    const std::vector<uint8_t> pageCropImageBytes;
     ocr.words = {
         makeWord("Lastschrift", 10, 10, 90),
         makeWord("01.04", 200, 10, 45),
@@ -77,7 +80,7 @@ TEST(DefaultStatementParserTests, PreservesLeftStartingSecondMetadataLineWhenAmo
         makeWord("Dauerauftrag", 10, 38, 95),
     };
 
-    const auto result = DefaultStatementParser::parse({}, ocr, "", nullptr, {}, {}, "2025-04-01", 1);
+    const auto result = DefaultStatementParser::parse({}, ocr, "", nullptr, pageCropImageBytes, "2025-04-01", 1);
 
     ASSERT_EQ(result.transactions.size(), 1U);
     const auto& tx = result.transactions.front();
@@ -88,6 +91,7 @@ TEST(DefaultStatementParserTests, PreservesLeftStartingSecondMetadataLineWhenAmo
 TEST(DefaultStatementParserTests, PreservesLeftStartingReferenceLineBelowMainRow)
 {
     api::tesseract::ExtractResult ocr;
+    const std::vector<uint8_t> pageCropImageBytes;
     ocr.words = {
         makeWord("SERVICE-INVOICE", 10, 10, 140),
         makeWord("01.04", 205, 10, 45),
@@ -98,7 +102,7 @@ TEST(DefaultStatementParserTests, PreservesLeftStartingReferenceLineBelowMainRow
         makeWord("OVERVIEW", 10, 52, 90),
     };
 
-    const auto result = DefaultStatementParser::parse({}, ocr, "", nullptr, {}, {}, "2025-04-01", 1);
+    const auto result = DefaultStatementParser::parse({}, ocr, "", nullptr, pageCropImageBytes, "2025-04-01", 1);
 
     ASSERT_EQ(result.transactions.size(), 1U);
     const auto& tx = result.transactions.front();
@@ -109,6 +113,7 @@ TEST(DefaultStatementParserTests, PreservesLeftStartingReferenceLineBelowMainRow
 TEST(DefaultStatementParserTests, PreservesInvoiceReferenceLineBelowMainRow)
 {
     api::tesseract::ExtractResult ocr;
+    const std::vector<uint8_t> pageCropImageBytes;
     ocr.words = {
         makeWord("SERVICE_PROVIDER_SAMPLE_0001", 10, 10, 230),
         makeWord("01.06", 205, 10, 45),
@@ -118,7 +123,7 @@ TEST(DefaultStatementParserTests, PreservesInvoiceReferenceLineBelowMainRow)
         makeWord("NOTPROVIDED", 160, 38, 110),
     };
 
-    const auto result = DefaultStatementParser::parse({}, ocr, "", nullptr, {}, {}, "2025-06-01", 1);
+    const auto result = DefaultStatementParser::parse({}, ocr, "", nullptr, pageCropImageBytes, "2025-06-01", 1);
 
     ASSERT_EQ(result.transactions.size(), 1U);
     const auto& tx = result.transactions.front();

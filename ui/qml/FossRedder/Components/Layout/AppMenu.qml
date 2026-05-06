@@ -27,7 +27,6 @@ MenuBar {
 
     function clearBookingStateForSection(section) {
         if (!root.navigation || section === root.navBooking) return
-        root.navigation.setBookingViewValue(root.navStatements)
     }
 
     function navigateToSection(section) {

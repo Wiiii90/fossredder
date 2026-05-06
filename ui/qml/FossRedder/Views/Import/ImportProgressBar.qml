@@ -22,7 +22,9 @@ Controls.Panel {
         objectName: "importProgressBar"
         Layout.fillWidth: true
         visible: true
-        value: root.hasImportController ? root.importController.progress : 0
+        value: root.hasImportController && root.importController && typeof root.importController.progress === "number"
+            ? root.importController.progress
+            : 0
     }
 
     Label {

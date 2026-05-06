@@ -83,6 +83,68 @@ Item {
         return Constants.Analysis.colorForKey(k, root.theme.analysis.palette, root.theme.chartFallback)
     }
 
+    function splitControlsWidth() {
+        return root.theme.analysis && root.theme.analysis.layout && typeof root.theme.analysis.layout.splitControlsWidth === "number"
+                ? root.theme.analysis.layout.splitControlsWidth
+                : 180
+    }
+
+    function spacingSmall() {
+        return typeof root.theme.spacingSmall === "number" ? root.theme.spacingSmall : 6
+    }
+
+    function spacingMedium() {
+        return typeof root.theme.spacingMedium === "number" ? root.theme.spacingMedium : 10
+    }
+
+    function chartPlotMinimumHeight() {
+        return typeof root.theme.chartPlotMinimumHeight === "number" ? root.theme.chartPlotMinimumHeight : 180
+    }
+
+    function chartPlotPreferredHeight() {
+        return typeof root.theme.chartPlotPreferredHeight === "number" ? root.theme.chartPlotPreferredHeight : 260
+    }
+
+    function chartLegendHeight() {
+        return typeof root.theme.chartLegendHeight === "number" ? root.theme.chartLegendHeight : 80
+    }
+
+    function chartLegendMarkerSize() {
+        return typeof root.theme.chartLegendMarkerSize === "number" ? root.theme.chartLegendMarkerSize : 12
+    }
+
+    function chartValueLabelWidth() {
+        return typeof root.theme.chartValueLabelWidth === "number" ? root.theme.chartValueLabelWidth : 70
+    }
+
+    function chartPercentLabelWidth() {
+        return typeof root.theme.chartPercentLabelWidth === "number" ? root.theme.chartPercentLabelWidth : 58
+    }
+
+    function tablePropertyColumnWidth() {
+        return root.theme.analysis && root.theme.analysis.table && typeof root.theme.analysis.table.propertyColumnWidth === "number"
+                ? root.theme.analysis.table.propertyColumnWidth
+                : 180
+    }
+
+    function tableAmountColumnWidth() {
+        return root.theme.analysis && root.theme.analysis.table && typeof root.theme.analysis.table.amountColumnWidth === "number"
+                ? root.theme.analysis.table.amountColumnWidth
+                : 120
+    }
+
+    function tableTotalColumnWidth() {
+        return root.theme.analysis && root.theme.analysis.table && typeof root.theme.analysis.table.totalColumnWidth === "number"
+                ? root.theme.analysis.table.totalColumnWidth
+                : 140
+    }
+
+    function tableRowHeight() {
+        return root.theme.analysis && root.theme.analysis.table && typeof root.theme.analysis.table.rowHeight === "number"
+                ? root.theme.analysis.table.rowHeight
+                : 30
+    }
+
     function rebuild() {
         let newHist = []
         let newProps = []
@@ -158,19 +220,20 @@ Item {
     }
 
     ColumnLayout {
-        anchors.fill: parent
-        spacing: root.theme.spacingSmall
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        spacing: root.spacingSmall()
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: root.theme.spacingMedium
+            spacing: root.spacingMedium()
 
             Item {
                 id: pieArea
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.minimumHeight: root.theme.chartPlotMinimumHeight
-                Layout.preferredHeight: root.theme.chartPlotPreferredHeight
+                Layout.minimumHeight: root.chartPlotMinimumHeight()
+                Layout.preferredHeight: root.chartPlotPreferredHeight()
                 visible: (function() {
                     try {
                         return root.currentPlotType() === Constants.Analysis.chartTypes.pie
@@ -179,15 +242,15 @@ Item {
                     }
                 })()
             
-                RowLayout { anchors.fill: parent; spacing: root.theme.spacing
-                    Column { id: pieLegendCol; Layout.preferredWidth: root.theme.analysis.layout.splitControlsWidth; Layout.fillHeight: true; spacing: root.theme.spacingSmall
-                        Label { text: qsTr('Legend'); font.bold: false; color: root.theme.chartText }
+                RowLayout { Layout.fillWidth: true; Layout.fillHeight: true; spacing: root.spacingSmall()
+                    Column { id: pieLegendCol; Layout.preferredWidth: root.splitControlsWidth(); Layout.fillHeight: true; spacing: root.spacingSmall()
+                        Label { text: qsTr('Legend'); font.bold: false; color: root.theme.chartText || root.theme.textPrimary }
                         Repeater { model: (root.session && root.session.lastAnalysisResult) ? root.session.lastAnalysisResult.table : []
-                            delegate: RowLayout { id: pieLegendRow; required property var modelData; required property int index; spacing: root.theme.spacingSmall; Layout.preferredHeight: 20
-                Rectangle { Layout.preferredWidth: root.theme.chartLegendMarkerSize; Layout.preferredHeight: root.theme.chartLegendMarkerSize; color: root.colorForKey(pieLegendRow.modelData && pieLegendRow.modelData.length>0 ? pieLegendRow.modelData[0] : String(pieLegendRow.index)) }
+                            delegate: RowLayout { id: pieLegendRow; required property var modelData; required property int index; spacing: root.spacingSmall(); Layout.preferredHeight: 20
+                Rectangle { Layout.preferredWidth: root.chartLegendMarkerSize(); Layout.preferredHeight: root.chartLegendMarkerSize(); color: root.colorForKey(pieLegendRow.modelData && pieLegendRow.modelData.length>0 ? pieLegendRow.modelData[0] : String(pieLegendRow.index)) }
                                 Label { text: (pieLegendRow.modelData && pieLegendRow.modelData.length>0) ? pieLegendRow.modelData[0] : ''; horizontalAlignment: Text.AlignLeft; Layout.preferredWidth: 120 }
-                                Label { text: (function(){ const v = (pieLegendRow.modelData && pieLegendRow.modelData.length>1) ? parseFloat(pieLegendRow.modelData[1])||0 : 0; return ' ' + v.toFixed(2); })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: root.theme.chartValueLabelWidth }
-                                Label { text: (function(){ const v = (pieLegendRow.modelData && pieLegendRow.modelData.length>1) ? parseFloat(pieLegendRow.modelData[1])||0 : 0; return (root.histLegendTotal>0) ? (' ' + ((parseFloat(pieLegendRow.modelData[1]) / root.histLegendTotal * 100).toFixed(1) + Constants.Analysis.text.percentSuffix)) : '' })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: root.theme.chartPercentLabelWidth }
+                                Label { text: (function(){ const v = (pieLegendRow.modelData && pieLegendRow.modelData.length>1) ? parseFloat(pieLegendRow.modelData[1])||0 : 0; return ' ' + v.toFixed(2); })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: root.chartValueLabelWidth() }
+                                Label { text: (function(){ const v = (pieLegendRow.modelData && pieLegendRow.modelData.length>1) ? parseFloat(pieLegendRow.modelData[1])||0 : 0; return (root.histLegendTotal>0) ? (' ' + ((parseFloat(pieLegendRow.modelData[1]) / root.histLegendTotal * 100).toFixed(1) + Constants.Analysis.text.percentSuffix)) : '' })(); horizontalAlignment: Text.AlignRight; Layout.preferredWidth: root.chartPercentLabelWidth() }
                             }
                         }
                     }
@@ -197,7 +260,7 @@ Item {
                         theme: root.theme
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.minimumHeight: root.theme.chartPlotMinimumHeight
+                Layout.minimumHeight: root.chartPlotMinimumHeight()
                         onLegendFilterChangedByUser: root.persistExportState()
                     }
                 }
@@ -210,8 +273,8 @@ Item {
                 splitProgress: 0.0
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.minimumHeight: root.theme.chartPlotMinimumHeight
-                Layout.preferredHeight: root.theme.chartPlotPreferredHeight
+                Layout.minimumHeight: root.chartPlotMinimumHeight()
+                Layout.preferredHeight: root.chartPlotPreferredHeight()
                 visible: (function() {
                     try {
                         return root.currentPlotType() === Constants.Analysis.chartTypes.histogram
@@ -224,12 +287,12 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: root.theme.spacingMedium
+            spacing: root.spacingMedium()
             Item { Layout.fillWidth: true }
             RowLayout {
-                spacing: root.theme.spacingSmall
+                spacing: root.spacingSmall()
                 visible: root.currentPlotType() === Constants.Analysis.chartTypes.histogram
-                Label { text: qsTr('Split by property') }
+                Label { text: qsTr('Split by property'); color: root.theme.chartText || root.theme.textPrimary }
                 Switch {
                     id: splitSwitch
                     objectName: "analysisHistogramSplitSwitch"
@@ -246,7 +309,7 @@ Item {
         Flickable {
             id: histLegendFlick
             Layout.fillWidth: true
-            Layout.preferredHeight: root.theme.chartLegendHeight
+            Layout.preferredHeight: root.chartLegendHeight()
             clip: true
             contentWidth: histLegendFlow.implicitWidth
             contentHeight: histLegendFlow.implicitHeight
@@ -255,7 +318,7 @@ Item {
             Flow {
                 id: histLegendFlow
                 width: parent.width
-                spacing: root.theme.spacingMedium
+                spacing: root.spacingMedium()
                 flow: Flow.LeftToRight
 
                 Label { text: qsTr('Legend'); font.bold: false }
@@ -263,8 +326,8 @@ Item {
                     id: histLegendRepeater
                     model: root.histLegendModel
                     delegate: RowLayout { id: histLegendRow; required property var modelData;
-                        spacing: root.theme.spacingSmall
-                        Rectangle { Layout.preferredWidth: root.theme.chartLegendMarkerSize; Layout.preferredHeight: root.theme.chartLegendMarkerSize; color: root.colorForKey(histLegendRow.modelData && histLegendRow.modelData.name ? histLegendRow.modelData.name : histLegendRow.modelData) }
+                        spacing: root.spacingSmall()
+                        Rectangle { Layout.preferredWidth: root.chartLegendMarkerSize(); Layout.preferredHeight: root.chartLegendMarkerSize(); color: root.colorForKey(histLegendRow.modelData && histLegendRow.modelData.name ? histLegendRow.modelData.name : histLegendRow.modelData) }
                         Label { text: (histLegendRow.modelData && histLegendRow.modelData.name) ? histLegendRow.modelData.name : ''; font.pixelSize: root.theme.fontSize }
                     Label { text: (histLegendRow.modelData && histLegendRow.modelData.value) ? (' ' + parseFloat(histLegendRow.modelData.value).toFixed(2)) : (' ' + Constants.Analysis.text.defaultLegendValue); font.pixelSize: root.theme.fontSize }
                     Label { text: (histLegendRow.modelData && histLegendRow.modelData.value && root.histLegendTotal>0) ? (' ' + ((parseFloat(histLegendRow.modelData.value) / root.histLegendTotal * 100).toFixed(1) + Constants.Analysis.text.percentSuffix)) : '' ; font.pixelSize: root.theme.fontSize }

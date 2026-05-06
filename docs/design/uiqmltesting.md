@@ -1,4 +1,4 @@
-# Testing
+# UI QML Testing
 
 ## Import
 
@@ -38,6 +38,7 @@
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | ACT-V-001 | Container mount | QML | App context and theme available | Open ActorView | `ActorForm` is filled with app context and theme |
+| ACT-V-002 | Toolbar create shortcut | QML/Interaction | Actor section active and edit mode available | Click the toolbar actor create action | Actor form switches to create mode and clears selection |
 
 ### ActorForm
 
@@ -47,10 +48,11 @@
 | ACT-002 | Read actor state | QML/Interaction | Selected actor with name, type, description | Open form in edit mode | Fields reflect selected actor state |
 | ACT-003 | Update actor | QML/Interaction | Selected actor with modified fields | Change name or aliases and click Update | `saveActor(current.id, ...)` is called and saved state is refreshed |
 | ACT-004 | Delete actor | QML/Interaction | Selected actor with valid id | Click Delete | `deleteActor(id)` is called and selection advances deterministically |
-| ACT-005 | Alias add | QML/Interaction | Create or edit mode with alias input available | Activate add alias button | Alias is trimmed, added once, input is cleared |
-| ACT-006 | Alias delete | QML/Interaction | At least one alias exists | Activate remove alias button | Alias is removed and index updates deterministically |
+| ACT-005 | Alias add | QML/Interaction | Create or edit mode with alias input available | Activate `+` alias button | Alias is trimmed, added once, input is cleared |
+| ACT-006 | Alias delete | QML/Interaction | At least one alias exists | Activate `-` alias button | Alias is removed and index updates deterministically |
 | ACT-007 | Contract selection | QML/Interaction | Selected actor with contract rows | Toggle contract checkboxes | Selected contract ids are updated in the form state |
 | ACT-008 | Actor navigation | QML/Interaction | Actor rows available | Click Prev or Next | Selected actor id moves to adjacent actor |
+| ACT-009 | Create-mode shortcut button | QML/Interaction | Edit mode with a selected actor | Click bottom-bar `+` button | Selection clears and form switches to create mode |
 
 ## Property
 
@@ -59,6 +61,7 @@
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | PROP-V-001 | Container mount | QML | App context and theme available | Open PropertyView | `PropertyForm` is filled with app context and theme |
+| PROP-V-002 | Toolbar create shortcut | QML/Interaction | Property section active and edit mode available | Click the toolbar property create action | Property form switches to create mode and clears selection |
 
 ### PropertyForm
 
@@ -68,10 +71,11 @@
 | PROP-002 | Read property state | QML/Interaction | Selected property with name and aliases | Open form in edit mode | Fields reflect selected property state |
 | PROP-003 | Update property | QML/Interaction | Selected property with modified fields | Change name or aliases and click Update | `saveProperty(current.id, ...)` is called and saved state is refreshed |
 | PROP-004 | Delete property | QML/Interaction | Selected property with valid id | Click Delete | `deleteProperty(id)` is called and selection advances deterministically |
-| PROP-005 | Alias add | QML/Interaction | Create or edit mode with alias input available | Activate add alias button | Alias is trimmed, added once, input is cleared |
-| PROP-006 | Alias delete | QML/Interaction | At least one alias exists | Activate remove alias button | Alias is removed and index updates deterministically |
+| PROP-005 | Alias add | QML/Interaction | Create or edit mode with alias input available | Activate `+` alias button | Alias is trimmed, added once, input is cleared |
+| PROP-006 | Alias delete | QML/Interaction | At least one alias exists | Activate `-` alias button | Alias is removed and index updates deterministically |
 | PROP-007 | Contract selection | QML/Interaction | Selected property with contract rows | Toggle contract checkboxes | Selected contract ids are updated in the form state |
 | PROP-008 | Property navigation | QML/Interaction | Property rows available | Click Prev or Next | Selected property id moves to adjacent property |
+| PROP-009 | Create-mode shortcut button | QML/Interaction | Edit mode with a selected property | Click bottom-bar `+` button | Selection clears and form switches to create mode |
 
 ## Contract
 
@@ -80,6 +84,7 @@
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | CON-V-001 | Container mount | QML | App context and theme available | Open ContractView | `ContractForm` is filled with app context and theme |
+| CON-V-002 | Toolbar create shortcut | QML/Interaction | Contract section active and edit mode available | Click the toolbar contract create action | Contract form switches to create mode and clears selection |
 
 ### ContractForm
 
@@ -89,11 +94,12 @@
 | CON-002 | Read contract state | QML/Interaction | Selected contract with type, actors, properties, aliases | Open form in edit mode | Fields and selection panels reflect selected contract state |
 | CON-003 | Update contract | QML/Interaction | Selected contract with modified fields | Change name, type, selections or aliases and click Update | `saveContract(current.id, ...)` is called and saved state is refreshed |
 | CON-004 | Delete contract | QML/Interaction | Selected contract with valid id | Click Delete | `deleteContract(id)` is called and selection advances deterministically |
-| CON-005 | Alias add | QML/Interaction | Create or edit mode with alias input available | Activate add alias button | Alias is trimmed, added once, input is cleared |
-| CON-006 | Alias delete | QML/Interaction | At least one alias exists | Activate remove alias button | Alias is removed and index updates deterministically |
+| CON-005 | Alias add | QML/Interaction | Create or edit mode with alias input available | Activate `+` alias button | Alias is trimmed, added once, input is cleared |
+| CON-006 | Alias delete | QML/Interaction | At least one alias exists | Activate `-` alias button | Alias is removed and index updates deterministically |
 | CON-007 | Actor selection | QML/Interaction | Actor rows available | Toggle contract actor checkboxes | Selected actor ids are updated in the form state |
 | CON-008 | Property selection | QML/Interaction | Property rows available | Toggle contract property checkboxes | Selected property ids are updated in the form state |
 | CON-009 | Contract navigation | QML/Interaction | Contract rows available | Click Prev or Next | Selected contract id moves to adjacent contract |
+| CON-010 | Create-mode shortcut button | QML/Interaction | Edit mode with a selected contract | Click bottom-bar `+` button | Selection clears and form switches to create mode |
 
 ## Annual
 

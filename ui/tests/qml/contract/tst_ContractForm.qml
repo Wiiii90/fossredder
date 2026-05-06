@@ -143,13 +143,12 @@ TestCase {
             lastDeleteId = ""
         }
 
-        function saveContract(id, name, type, description, actorIds, propertyIds, aliases) {
+        function saveContract(id, name, type, actorIds, propertyIds, aliases) {
             saveCalls += 1
             lastSave = {
                 id: id,
                 name: name,
                 type: type,
-                description: description,
                 actorIds: actorIds,
                 propertyIds: propertyIds,
                 aliases: aliases
@@ -175,8 +174,12 @@ TestCase {
         property int viewAliasGroupSpacing: 6
         property int viewAliasPanelMinHeight: 140
         property int viewAliasPanelPreferredHeight: 180
+        property int viewAliasChipHeight: 24
+        property int viewAliasChipRadius: 3
         property int spacingSmall: 6
         property int spacingLarge: 20
+        property int spacing: 8
+        property int borderWidthThin: 1
         property color textMuted: "#666666"
         property color selectionHighlight: "#dddddd"
         property color surfaceAlt: "#f5f5f5"
@@ -186,6 +189,7 @@ TestCase {
         property int viewSelectionPanelMinHeight: 160
         property int viewSelectionPanelPreferredHeight: 220
         property int viewActionButtonWidth: 120
+        property int viewCompactActionButtonSize: 28
         property int radius: 3
     }
 
@@ -292,7 +296,7 @@ TestCase {
 
         nameField.text = "New Contract"
         typeField.text = "modern"
-        typeField.textEdited("modern")
+        typeField.textEdited()
         updateButton.clicked()
 
         compare(contractController.saveCalls, 1)
@@ -343,6 +347,16 @@ TestCase {
 
         previousButton.clicked()
         compare(session.selectedContractId, "contract-1")
+    }
+
+    function test_createShortcutButtonClearsSelectionAndSwitchesToCreateMode() {
+        var form = createForm({ id: "contract-9", name: "Selected", type: "base", actorIds: [], propertyIds: [], aliases: [] })
+        var createModeButton = findRequired(form, "contractCreateModeButton")
+
+        createModeButton.clicked()
+
+        compare(session.selectedContractId, "")
+        compare(form.isEdit, false)
     }
 
     function test_deleteButtonDeletesCurrentContract() {

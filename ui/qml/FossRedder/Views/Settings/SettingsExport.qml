@@ -108,7 +108,8 @@ Flickable {
         Connections {
             target: root.actions
             function onExportDirectorySelected(path) {
-                if (!path || !root.settingsController) return
+                if (!path || !root.settingsController)
+                    return
                 root.settingsController.exportDefaultDirectory = path
             }
         }

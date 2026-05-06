@@ -101,9 +101,6 @@ Item {
                 sidebarLeft.session.selectedStatementId = ""
         }
 
-        if (sec !== sidebarLeft.sectionBooking && sidebarLeft.navigation && sidebarLeft.navigation.bookingViewValue !== sidebarLeft.navStatements)
-            sidebarLeft.navigation.setBookingViewValue(sidebarLeft.navStatements)
-
         sidebarLeft.resolvedSection = sec;
         sidebarLeft.rememberSection(sec)
     }

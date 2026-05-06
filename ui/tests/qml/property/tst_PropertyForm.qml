@@ -115,13 +115,11 @@ TestCase {
             lastDeleteId = ""
         }
 
-        function saveProperty(id, name, type, description, aliases) {
+        function saveProperty(id, name, aliases) {
             saveCalls += 1
             lastSave = {
                 id: id,
                 name: name,
-                type: type,
-                description: description,
                 aliases: aliases
             }
             return id && id.length > 0 ? id : "property-new"
@@ -140,11 +138,15 @@ TestCase {
 
     property var theme: QtObject {
         property int pageContentMargin: 8
+        property int spacing: 12
         property int viewFormSpacing: 8
         property int formLabelWidth: 120
         property int viewAliasGroupSpacing: 6
         property int viewAliasPanelMinHeight: 140
         property int viewAliasPanelPreferredHeight: 180
+        property int viewAliasChipHeight: 30
+        property int viewAliasChipRadius: 6
+        property int viewCompactActionButtonSize: 40
         property int spacingSmall: 6
         property int spacingLarge: 20
         property color textMuted: "#666666"
@@ -156,6 +158,7 @@ TestCase {
         property int viewSelectionPanelMinHeight: 160
         property int viewSelectionPanelPreferredHeight: 220
         property int viewActionButtonWidth: 120
+        property int borderWidthThin: 1
         property int radius: 3
     }
 
@@ -282,6 +285,16 @@ TestCase {
 
         previousButton.clicked()
         compare(session.selectedPropertyId, "property-1")
+    }
+
+    function test_createShortcutButtonClearsSelectionAndSwitchesToCreateMode() {
+        var form = createForm({ id: "property-9", name: "Selected", aliases: [] })
+        var createModeButton = findRequired(form, "propertyCreateModeButton")
+
+        createModeButton.clicked()
+
+        compare(session.selectedPropertyId, "")
+        compare(form.isEdit, false)
     }
 
     function test_deleteButtonDeletesCurrentProperty() {

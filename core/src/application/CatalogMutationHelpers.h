@@ -6,12 +6,37 @@
 #pragma once
 
 #include "../utils/StableId.h"
+#include "core/utils/Time.h"
 
 #include <algorithm>
 #include <memory>
 #include <string>
 
 namespace core::application::detail {
+
+template <typename Entity>
+concept HasTimestamps = requires(Entity entity) {
+    entity.createdAt;
+    entity.updatedAt;
+};
+
+template <typename Entity>
+void stampCreated(Entity& entity)
+{
+    if constexpr (HasTimestamps<Entity>) {
+        const auto now = core::utils::currentTimestampUtc();
+        if (entity.createdAt.empty()) entity.createdAt = now;
+        if (entity.updatedAt.empty()) entity.updatedAt = entity.createdAt;
+    }
+}
+
+template <typename Entity>
+void stampUpdated(Entity& entity)
+{
+    if constexpr (HasTimestamps<Entity>) {
+        entity.updatedAt = core::utils::currentTimestampUtc();
+    }
+}
 
 template <typename Collection, typename Configure>
 std::string appendEntity(Collection& collection, Configure&& configure)
@@ -20,6 +45,7 @@ std::string appendEntity(Collection& collection, Configure&& configure)
     auto entity = std::make_shared<Entity>();
     entity->id = core::utils::makeStableId();
     configure(*entity);
+    stampCreated(*entity);
     const auto id = entity->id;
     collection.push_back(std::move(entity));
     return id;
@@ -32,6 +58,7 @@ bool updateEntity(Collection& collection, const std::string& id, Update&& update
     for (auto& entity : collection) {
         if (!entity || entity->id != id) continue;
         update(*entity);
+        stampUpdated(*entity);
         return true;
     }
     return false;

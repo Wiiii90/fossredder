@@ -36,11 +36,19 @@ void dedupAliasUsage(std::vector<core::domain::AliasUsage>& v)
     std::vector<core::domain::AliasUsage> out;
     out.reserve(v.size());
     for (const auto& value : v) {
-        if (value.alias.empty()) continue;
-        if (!seen.insert(value.alias).second) continue;
+        if (value.alias.value.empty()) continue;
+        if (!seen.insert(value.alias.value).second) continue;
         out.push_back(value);
     }
     v = std::move(out);
+}
+
+void normalizeAliases(std::vector<core::domain::Alias>& aliases)
+{
+    for (auto& alias : aliases) {
+        if (alias.value.empty()) alias.value = alias.source;
+        if (alias.source.empty()) alias.source = alias.value;
+    }
 }
 
 template<typename T>
@@ -75,20 +83,20 @@ AppState StateProjector::prepareForSave(const AppState& state)
     cloneCollection(out.transactionDrafts, state.transactionDrafts);
     for (const auto& c : out.contracts) {
         if (!c) continue;
-        dedupStrings(c->aliases);
+        normalizeAliases(c->aliases);
         dedupAliasUsage(c->aliasUsage);
         dedupStrings(c->actorIds);
         dedupStrings(c->propertyIds);
     }
     for (const auto& a : out.actors) {
         if (a) {
-            dedupStrings(a->aliases);
+            normalizeAliases(a->aliases);
             dedupAliasUsage(a->aliasUsage);
         }
     }
     for (const auto& p : out.properties) {
         if (p) {
-            dedupStrings(p->aliases);
+            normalizeAliases(p->aliases);
             dedupAliasUsage(p->aliasUsage);
         }
     }

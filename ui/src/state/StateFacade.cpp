@@ -14,7 +14,6 @@ StateFacade::StateFacade(QObject* parent)
     , session_(std::make_unique<SessionStore>(this))
     , selection_(std::make_unique<SessionSelection>(session_->models(), this))
 {
-    QObject::connect(session_.get(), &SessionStore::transactionSumsUpdated, this, &StateFacade::transactionSumsUpdated);
     QObject::connect(selection_.get(), &SessionSelection::selectedActorIdChanged, this, &StateFacade::selectedActorIdChanged);
     QObject::connect(selection_.get(), &SessionSelection::selectedPropertyIdChanged, this, &StateFacade::selectedPropertyIdChanged);
     QObject::connect(selection_.get(), &SessionSelection::selectedContractIdChanged, this, &StateFacade::selectedContractIdChanged);
@@ -364,21 +363,6 @@ TransactionFilter* StateFacade::statementTransactions(const QString& statementId
 TransactionFilter* StateFacade::propertyTransactions(const QString& propertyId)
 {
     return session_->propertyTransactions(propertyId);
-}
-
-QStringList StateFacade::propertyContractTypes(const QString& propertyId) const
-{
-    return session_->propertyContractTypes(propertyId);
-}
-
-QVariantMap StateFacade::propertyTransactionSums(const QString& propertyId, const QString& contractType) const
-{
-    return session_->propertyTransactionSums(propertyId, contractType);
-}
-
-QString StateFacade::propertyName(const QString& id) const
-{
-    return session_->propertyName(id);
 }
 
 void StateFacade::applyDeletionImpact(const DeletionImpact& impact)

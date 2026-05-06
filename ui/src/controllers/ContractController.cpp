@@ -42,64 +42,56 @@ QVariantList ContractController::contracts() const
 
 QString ContractController::addContract(const QString& name,
                                         const QString& type,
-                                        const QString& description,
                                         const QStringList& actorIds,
                                         const QStringList& propertyIds,
                                         const QStringList& aliases)
 {
-    return ui::util::guard::invokeValue<QString>(
-        core_, observability::origins::controller::contract::kAdd, {}, [&]() {
-            return QString::fromStdString(core_->addContract(
-                strings::toStdString(name),
-                strings::toStdString(type),
-                strings::toStdString(description),
-                strings::toStdList(actorIds),
-                strings::toStdList(propertyIds),
-                strings::toStdList(aliases)));
-        });
+    return ui::util::guard::invokeValue<QString>(core_, observability::origins::controller::contract::kAdd, {}, [&]() {
+        return QString::fromStdString(core_->addContract(strings::toStdString(name),
+                                                         strings::toStdString(type),
+                                                         strings::toStdList(actorIds),
+                                                         strings::toStdList(propertyIds),
+                                                         strings::toAliases(aliases)));
+    });
 }
 
 void ContractController::updateContract(const QString& id,
                                         const QString& name,
                                         const QString& type,
-                                        const QString& description,
                                         const QStringList& actorIds,
                                         const QStringList& propertyIds,
                                         const QStringList& aliases)
 {
-    ui::util::guard::invokeVoid(
-        core_, observability::origins::controller::contract::kUpdate, [&]() {
-            core_->updateContract(strings::toStdString(id),
-                                  strings::toStdString(name),
-                                  strings::toStdString(type),
-                                  strings::toStdString(description),
-                                  strings::toStdList(actorIds),
-                                  strings::toStdList(propertyIds),
-                                  strings::toStdList(aliases));
-        });
+    ui::util::guard::invokeVoid(core_, observability::origins::controller::contract::kUpdate, [&]() {
+        core_->updateContract(strings::toStdString(id),
+                              strings::toStdString(name),
+                              strings::toStdString(type),
+                              strings::toStdList(actorIds),
+                              strings::toStdList(propertyIds),
+                              strings::toAliases(aliases));
+    });
 }
 
 QString ContractController::saveContract(const QString& id,
                                          const QString& name,
                                          const QString& type,
-                                         const QString& description,
                                          const QStringList& actorIds,
                                          const QStringList& propertyIds,
                                          const QStringList& aliases)
 {
     if (id.isEmpty()) {
-        return addContract(name, type, description, actorIds, propertyIds, aliases);
+        return addContract(name, type, actorIds, propertyIds, aliases);
     }
 
-    updateContract(id, name, type, description, actorIds, propertyIds, aliases);
+    updateContract(id, name, type, actorIds, propertyIds, aliases);
     return id;
 }
 
 void ContractController::deleteContract(const QString& id)
 {
-    ui::util::guard::invokeVoid(
-        core_, observability::origins::controller::contract::kDelete,
-        [&]() { core_->deleteContract(strings::toStdString(id)); });
+    ui::util::guard::invokeVoid(core_, observability::origins::controller::contract::kDelete, [&]() {
+        core_->deleteContract(strings::toStdString(id));
+    });
 }
 
 } // namespace ui

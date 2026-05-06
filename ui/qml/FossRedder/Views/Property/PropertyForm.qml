@@ -9,6 +9,7 @@ import QtQuick.Layouts 1.3
 import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
 import FossRedder.Views 1.0 as Views
+import FossRedder 1.0 as FossRedder
 pragma ComponentBehavior: Bound
 
 Item {
@@ -77,7 +78,7 @@ Item {
     }
 
     function navigateProperty(delta) {
-        const rows = root.propertyRows()
+        const rows = root.session && root.session.properties ? root.session.properties : []
         if (!root.session || rows.length === 0)
             return
 
@@ -117,7 +118,7 @@ Item {
 
         const aliasValues = root.toStringList(root.aliases)
         const currentId = root.isEdit && root.current && root.current.id ? root.current.id : ""
-        const propertyId = root.propertyController.saveProperty(currentId, nameField.text, "", "", aliasValues)
+        const propertyId = root.propertyController.saveProperty(currentId, nameField.text, aliasValues)
         if (!root.isEdit)
             root.clearFields()
         if (root.session && propertyId && propertyId.length > 0)
@@ -134,7 +135,7 @@ Item {
         if (!root.session)
             return
 
-        const nextId = root.session.deleteNextSelectionId(root.propertyRows(), removedId, 0, "id")
+        const nextId = root.session.deleteNextSelectionId(root.session.propertyRows(), removedId, 0, "id")
         root.session.selectedPropertyId = nextId || ""
     }
 
@@ -152,7 +153,8 @@ Item {
 
     Connections {
         target: root.current
-        function onChanged() { root.syncFields() }
+        function onNameChanged() { root.syncFields() }
+        function onAliasesChanged() { root.syncFields() }
     }
     onIsEditChanged: root.syncFields()
 
@@ -203,7 +205,7 @@ Item {
                 RowLayout {
                     id: aliasControlsRow
                     Layout.fillWidth: true
-                    readonly property real aliasControlSize: propertyAliasInput.implicitHeight
+                    readonly property real aliasControlSize: root.theme.viewCompactActionButtonSize
 
                     Label {
                         text: qsTr("Aliases")
@@ -221,9 +223,13 @@ Item {
 
                     Controls.SecondaryButton {
                         objectName: "propertyAddAliasButton"
-                        text: qsTr("Add")
+                        text: qsTr("+")
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
+                        Layout.minimumWidth: aliasControlsRow.aliasControlSize
+                        Layout.maximumWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
+                        Layout.minimumHeight: aliasControlsRow.aliasControlSize
+                        Layout.maximumHeight: aliasControlsRow.aliasControlSize
                         textColor: root.theme.textMuted
                         enabled: propertyAliasInput.text.trim().length > 0
                         onClicked: root.addAlias(propertyAliasInput.text)
@@ -231,9 +237,13 @@ Item {
 
                     Controls.SecondaryButton {
                         objectName: "propertyRemoveAliasButton"
-                        text: qsTr("Remove")
+                        text: qsTr("-")
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
+                        Layout.minimumWidth: aliasControlsRow.aliasControlSize
+                        Layout.maximumWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
+                        Layout.minimumHeight: aliasControlsRow.aliasControlSize
+                        Layout.maximumHeight: aliasControlsRow.aliasControlSize
                         textColor: root.theme.textMuted
                         enabled: root.aliasIndex >= 0 && root.aliasIndex < root.aliases.length
                         onClicked: root.deleteAlias(root.aliasIndex)
@@ -255,7 +265,8 @@ Item {
 
                     Flickable {
                         id: propertyAliasScroll
-                        anchors.fill: parent
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                         clip: true
                         contentWidth: width
                         contentHeight: propertyAliasFlow.implicitHeight
@@ -276,8 +287,8 @@ Item {
                                     id: propertyAliasChip
                                     required property var modelData
                                     required property int index
-                                    height: 30
-                                    radius: root.theme.radius
+                                    height: root.theme.viewAliasChipHeight
+                                    radius: root.theme.viewAliasChipRadius
                                     color: root.aliasIndex === propertyAliasChip.index ? root.theme.selectionHighlight : root.theme.surfaceAlt
                                     border.width: 1
                                     border.color: root.theme.border
@@ -346,13 +357,30 @@ Item {
                 onClicked: root.submitProperty()
             }
 
-            Controls.DangerButton {
-                objectName: "propertyDeleteButton"
-                visible: root.isEdit
-                text: qsTr("Delete")
-                Layout.preferredWidth: root.theme.viewActionButtonWidth
-                onClicked: root.deleteProperty()
-            }
+                Controls.SecondaryButton {
+                    objectName: "propertyCreateModeButton"
+                    visible: root.isEdit
+                    text: qsTr("+")
+                    Layout.preferredWidth: root.theme.viewCompactActionButtonSize
+                    Layout.minimumWidth: root.theme.viewCompactActionButtonSize
+                    Layout.maximumWidth: root.theme.viewCompactActionButtonSize
+                    textColor: root.theme.textMuted
+                    onClicked: {
+                        if (!root.session)
+                            return
+                    root.session.selectedProperty = null
+                        root.session.selectedPropertyId = ""
+                        root.clearFields()
+                    }
+                }
+
+                Controls.DangerButton {
+                    objectName: "propertyDeleteButton"
+                    visible: root.isEdit
+                    text: qsTr("Delete")
+                    Layout.preferredWidth: root.theme.viewActionButtonWidth
+                    onClicked: root.deleteProperty()
+                }
 
             Controls.SuccessButton {
                 objectName: "propertyUpdateButton"

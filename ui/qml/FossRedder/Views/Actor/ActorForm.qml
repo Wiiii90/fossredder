@@ -9,6 +9,7 @@ import QtQuick.Layouts 1.3
 import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
 import FossRedder.Views 1.0 as Views
+import FossRedder 1.0 as FossRedder
 pragma ComponentBehavior: Bound
 
 Item {
@@ -77,7 +78,7 @@ Item {
     }
 
     function navigateActor(delta) {
-        const rows = root.actorRows()
+        const rows = root.session && root.session.actors ? root.session.actors : []
         if (!root.session || rows.length === 0)
             return
 
@@ -116,8 +117,11 @@ Item {
             root.clearFields()
             return
         }
+        const current = root.current
         const state = root.session
-            ? root.session.basicFormState(root.current.name || "", root.current.aliases || [], [])
+            ? root.session.basicFormState(current && current.name ? current.name : "",
+                                          current && current.aliases ? current.aliases : [],
+                                          [])
             : ({})
         root.applyFormState(state)
     }
@@ -126,7 +130,7 @@ Item {
         if (!root.actorController) return
         const aliasValues = root.toStringList(root.aliases)
         const actorId = root.isEdit && root.current && root.current.id ? root.current.id : ""
-        const id = root.actorController.saveActor(actorId, nameField.text, "", "", aliasValues)
+        const id = root.actorController.saveActor(actorId, nameField.text, aliasValues)
         if (!root.isEdit)
             root.clearFields()
         if (root.session && id && id.length > 0)
@@ -143,7 +147,7 @@ Item {
         if (!root.session)
             return
 
-        const nextId = root.session.deleteNextSelectionId(root.actorRows(), removedId, 0, "id")
+        const nextId = root.session.deleteNextSelectionId(root.session.actorRows(), removedId, 0, "id")
         root.session.selectedActorId = nextId || ""
     }
 
@@ -152,7 +156,8 @@ Item {
 
     Connections {
         target: root.current
-        function onChanged() { root.syncFields() }
+        function onNameChanged() { root.syncFields() }
+        function onAliasesChanged() { root.syncFields() }
     }
 
     ColumnLayout {
@@ -160,24 +165,24 @@ Item {
         anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.viewFormSpacing
 
-        Flickable {
-            id: actorScroll
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            clip: true
-            contentWidth: width
-            contentHeight: actorContent.height
-            boundsBehavior: Flickable.StopAtBounds
+            Flickable {
+                id: actorScroll
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                contentWidth: width
+                contentHeight: actorContent.height
+                boundsBehavior: Flickable.StopAtBounds
 
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded
             }
 
-            ColumnLayout {
-                id: actorContent
-                width: actorScroll.width
-                height: Math.max(implicitHeight, actorScroll.height)
-                spacing: root.theme.viewFormSpacing
+                ColumnLayout {
+                    id: actorContent
+                    width: actorScroll.width
+                    height: Math.max(implicitHeight, actorScroll.height)
+                    spacing: root.theme.viewFormSpacing
 
             RowLayout {
                 Layout.fillWidth: true
@@ -202,7 +207,7 @@ Item {
                 RowLayout {
                     id: aliasControlsRow
                     Layout.fillWidth: true
-                    readonly property real aliasControlSize: actorAliasInput.implicitHeight
+                    readonly property real aliasControlSize: root.theme.viewCompactActionButtonSize
 
                     Label {
                         text: qsTr("Aliases")
@@ -220,9 +225,13 @@ Item {
 
                     Controls.SecondaryButton {
                         objectName: "actorAddAliasButton"
-                        text: qsTr("Add")
+                        text: qsTr("+")
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
+                        Layout.minimumWidth: aliasControlsRow.aliasControlSize
+                        Layout.maximumWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
+                        Layout.minimumHeight: aliasControlsRow.aliasControlSize
+                        Layout.maximumHeight: aliasControlsRow.aliasControlSize
                         textColor: root.theme.textMuted
                         enabled: actorAliasInput.text.trim().length > 0
                         onClicked: root.addAlias(actorAliasInput.text)
@@ -230,13 +239,18 @@ Item {
 
                     Controls.SecondaryButton {
                         objectName: "actorRemoveAliasButton"
-                        text: qsTr("Remove")
+                        text: qsTr("-")
                         Layout.preferredWidth: aliasControlsRow.aliasControlSize
+                        Layout.minimumWidth: aliasControlsRow.aliasControlSize
+                        Layout.maximumWidth: aliasControlsRow.aliasControlSize
                         Layout.preferredHeight: aliasControlsRow.aliasControlSize
+                        Layout.minimumHeight: aliasControlsRow.aliasControlSize
+                        Layout.maximumHeight: aliasControlsRow.aliasControlSize
                         textColor: root.theme.textMuted
                         enabled: root.aliasIndex >= 0 && root.aliasIndex < root.aliases.length
                         onClicked: root.deleteAlias(root.aliasIndex)
                     }
+
                 }
 
                 Controls.Panel {
@@ -254,7 +268,8 @@ Item {
 
                     Flickable {
                         id: actorAliasScroll
-                        anchors.fill: parent
+                        width: parent ? parent.width : 0
+                        height: parent ? parent.height : 0
                         clip: true
                         contentWidth: width
                         contentHeight: actorAliasFlow.implicitHeight
@@ -275,8 +290,8 @@ Item {
                                     id: actorAliasChip
                                     required property var modelData
                                     required property int index
-                                    height: 30
-                                    radius: root.theme.radius
+                                    height: root.theme.viewAliasChipHeight
+                                    radius: root.theme.viewAliasChipRadius
                                     color: root.aliasIndex === actorAliasChip.index ? root.theme.selectionHighlight : root.theme.surfaceAlt
                                     border.width: 1
                                     border.color: root.theme.border
@@ -337,12 +352,29 @@ Item {
             }
 
             Controls.SuccessButton {
-                objectName: "actorSubmitButton"
+                objectName: "actorCreateButton"
                 visible: !root.isEdit
                 text: qsTr("Create")
                 enabled: nameField.text.length > 0
                 Layout.preferredWidth: root.theme.viewActionButtonWidth
                 onClicked: root.submitActor()
+            }
+
+            Controls.SecondaryButton {
+                objectName: "actorCreateModeButton"
+                visible: root.isEdit
+                text: qsTr("+")
+                Layout.preferredWidth: root.theme.viewCompactActionButtonSize
+                Layout.minimumWidth: root.theme.viewCompactActionButtonSize
+                Layout.maximumWidth: root.theme.viewCompactActionButtonSize
+                textColor: root.theme.textMuted
+                onClicked: {
+                    if (!root.session)
+                        return
+                    root.session.selectedActor = null
+                    root.session.selectedActorId = ""
+                    root.clearFields()
+                }
             }
 
             Controls.DangerButton {

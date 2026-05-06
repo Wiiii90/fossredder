@@ -48,6 +48,7 @@ TestCase {
         property color borderStrong: "#888888"
         property color textPrimary: "#000000"
         property color textMuted: "#666666"
+        property color chartText: "#000000"
         property var analysis: QtObject {
             property var table: QtObject {
                 property int propertyColumnWidth: 180

@@ -47,15 +47,29 @@ void StorageManager::rememberLatestPath(const std::string& filePath) {
 }
 
 AppState StorageManager::loadFrom(const std::string& filePath) {
+    const std::string previousPath = currentPath_;
     currentPath_ = filePath;
-    rememberLatestPath(filePath);
 
     if (atomicLoad_) {
-        return atomicLoad_(currentPath_);
+        try {
+            const AppState state = atomicLoad_(currentPath_);
+            rememberLatestPath(filePath);
+            return state;
+        } catch (...) {
+            currentPath_ = previousPath;
+            throw;
+        }
     }
 
-    core::application::AppStateManager mgr(reposForCurrent());
-    return mgr.load();
+    try {
+        core::application::AppStateManager mgr(reposForCurrent());
+        const AppState state = mgr.load();
+        rememberLatestPath(filePath);
+        return state;
+    } catch (...) {
+        currentPath_ = previousPath;
+        throw;
+    }
 }
 
 void StorageManager::save(const AppState& state) {
@@ -64,17 +78,29 @@ void StorageManager::save(const AppState& state) {
 }
 
 void StorageManager::saveAs(const std::string& filePath, const AppState& state) {
+    const std::string previousPath = currentPath_;
     currentPath_ = filePath;
-    rememberLatestPath(filePath);
 
     if (atomicSave_) {
-        DeletionImpact impact = atomicSave_(currentPath_, state);
-        if (onDeletionImpact_ && !impact.empty()) onDeletionImpact_(impact);
-        return;
+        try {
+            DeletionImpact impact = atomicSave_(currentPath_, state);
+            rememberLatestPath(filePath);
+            if (onDeletionImpact_ && !impact.empty()) onDeletionImpact_(impact);
+            return;
+        } catch (...) {
+            currentPath_ = previousPath;
+            throw;
+        }
     }
 
-    core::application::AppStateManager mgr(reposForCurrent());
-    mgr.save(state);
+    try {
+        core::application::AppStateManager mgr(reposForCurrent());
+        mgr.save(state);
+        rememberLatestPath(filePath);
+    } catch (...) {
+        currentPath_ = previousPath;
+        throw;
+    }
 }
 
 void StorageManager::createNew(const std::string& filePath) {
@@ -84,13 +110,14 @@ void StorageManager::createNew(const std::string& filePath) {
         std::filesystem::create_directories(dir);
     }
     currentPath_ = filePath;
-    rememberLatestPath(filePath);
 
     if (atomicLoad_) {
         (void)atomicLoad_(currentPath_);
     } else {
         (void)reposForCurrent();
     }
+
+    rememberLatestPath(filePath);
 }
 
 StorageManager::Repositories StorageManager::reposForCurrent() const {

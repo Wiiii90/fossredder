@@ -40,25 +40,20 @@ public:
 
     /** @brief Create a new property from QML-provided values.
      *  @param name Property name
-     *  @param address Property address
-     *  @param description Property description
      *  @param aliases Optional aliases
      *  @return Identifier of the created property
      */
-    Q_INVOKABLE QString addProperty(const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
+    Q_INVOKABLE QString addProperty(const QString& name, const QStringList& aliases = {});
 
     /** @brief Update an existing property from QML-provided values.
      *  @param id Property identifier
      *  @param name Property name
-     *  @param address Property address
-     *  @param description Property description
      *  @param aliases Optional aliases
      */
-    Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QString& address, const QString& description, const QStringList& aliases = {});
+    Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QStringList& aliases = {});
+
     Q_INVOKABLE QString saveProperty(const QString& id,
                                      const QString& name,
-                                     const QString& address,
-                                     const QString& description,
                                      const QStringList& aliases = {});
 
     /** @brief Delete a property by identifier.

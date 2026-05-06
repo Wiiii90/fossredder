@@ -46,7 +46,8 @@ Controls.Panel {
     }
 
     ColumnLayout {
-        anchors.fill: parent
+        Layout.fillWidth: true
+        Layout.fillHeight: true
         spacing: root.theme.spacingSmall
 
         RowLayout {
@@ -118,8 +119,8 @@ Controls.Panel {
 
             Flickable {
                 id: analysisScroll
-                anchors.fill: parent
-                anchors.margins: root.theme.spacing
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 clip: true
                 contentWidth: width
                 contentHeight: Math.max(analysisList.implicitHeight, analysisScroll.height)
@@ -242,8 +243,8 @@ Controls.Panel {
 
                         ColumnLayout {
                             id: emptyContent
-                            anchors.fill: parent
-                            anchors.margins: root.theme.spacing
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
                             spacing: root.theme.spacingSmall
 
                             Item { Layout.fillHeight: true }

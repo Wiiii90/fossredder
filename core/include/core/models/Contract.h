@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "core/models/Alias.h"
 #include "core/models/AliasUsage.h"
 
 namespace core::domain {
@@ -19,15 +20,11 @@ public:
     std::string id;
     std::string name;
     std::string type;
-    std::string description;
-    std::string startDate;
-    std::string endDate;
-    double basePrice = 0.0;
-    double consumptionPrice = 0.0;
-    double monthlyAdvance = 0.0;
+    std::string createdAt;
+    std::string updatedAt;
     std::vector<std::string> actorIds;
     std::vector<std::string> propertyIds;
-    std::vector<std::string> aliases;
+    std::vector<Alias> aliases;
     std::vector<AliasUsage> aliasUsage;
 };
 

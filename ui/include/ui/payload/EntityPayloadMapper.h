@@ -11,6 +11,7 @@
 #include <memory>
 #include <vector>
 
+#include "core/models/Alias.h"
 #include "core/models/Actor.h"
 #include "core/models/Analysis.h"
 #include "core/models/Annual.h"
@@ -24,15 +25,31 @@
 
 namespace ui::payload::entity {
 
+inline QVariantMap toPayload(const core::domain::Alias& alias)
+{
+    QVariantMap payload;
+    payload[QStringLiteral("value")] = QString::fromStdString(alias.value);
+    payload[QStringLiteral("kind")] = QString::fromStdString(alias.kind);
+    payload[QStringLiteral("source")] = QString::fromStdString(alias.source);
+    payload[QStringLiteral("createdAt")] = QString::fromStdString(alias.createdAt);
+    payload[QStringLiteral("updatedAt")] = QString::fromStdString(alias.updatedAt);
+    return payload;
+}
+
 /** @brief Convert an actor into a QVariantMap payload. */
 inline QVariantMap toPayload(const core::domain::Actor& actor)
 {
     QVariantMap payload;
     payload[ui::payload::keys::common::kId] = QString::fromStdString(actor.id);
     payload[ui::payload::keys::common::kName] = QString::fromStdString(actor.name);
-    payload[ui::payload::keys::common::kType] = QString::fromStdString(actor.type);
-    payload[ui::payload::keys::common::kDescription] = QString::fromStdString(actor.description);
-    payload[ui::payload::keys::actor::kAliases] = ui::payload::mapper::toVariantStringList(actor.aliases);
+    payload[QStringLiteral("createdAt")] = QString::fromStdString(actor.createdAt);
+    payload[QStringLiteral("updatedAt")] = QString::fromStdString(actor.updatedAt);
+    QVariantList aliases;
+    aliases.reserve(static_cast<int>(actor.aliases.size()));
+    for (const auto& alias : actor.aliases) {
+        aliases.push_back(toPayload(alias));
+    }
+    payload[ui::payload::keys::actor::kAliases] = aliases;
     return payload;
 }
 
@@ -42,11 +59,14 @@ inline QVariantMap toPayload(const core::domain::Property& property)
     QVariantMap payload;
     payload[ui::payload::keys::common::kId] = QString::fromStdString(property.id);
     payload[ui::payload::keys::common::kName] = QString::fromStdString(property.name);
-    payload[ui::payload::keys::property::kAddress] = QString::fromStdString(property.address);
-    payload[ui::payload::keys::common::kDescription] = QString::fromStdString(property.description);
-    payload[ui::payload::keys::property::kConsumption] = property.consumption;
-    payload[ui::payload::keys::property::kConsumptionUnit] = QString::fromStdString(property.consumptionUnit);
-    payload[ui::payload::keys::property::kAliases] = ui::payload::mapper::toVariantStringList(property.aliases);
+    payload[QStringLiteral("createdAt")] = QString::fromStdString(property.createdAt);
+    payload[QStringLiteral("updatedAt")] = QString::fromStdString(property.updatedAt);
+    QVariantList aliases;
+    aliases.reserve(static_cast<int>(property.aliases.size()));
+    for (const auto& alias : property.aliases) {
+        aliases.push_back(toPayload(alias));
+    }
+    payload[ui::payload::keys::property::kAliases] = aliases;
     return payload;
 }
 
@@ -57,15 +77,16 @@ inline QVariantMap toPayload(const core::domain::Contract& contract)
     payload[ui::payload::keys::common::kId] = QString::fromStdString(contract.id);
     payload[ui::payload::keys::common::kName] = QString::fromStdString(contract.name);
     payload[ui::payload::keys::common::kType] = QString::fromStdString(contract.type);
-    payload[ui::payload::keys::common::kDescription] = QString::fromStdString(contract.description);
-    payload[ui::payload::keys::contract::kStartDate] = QString::fromStdString(contract.startDate);
-    payload[ui::payload::keys::contract::kEndDate] = QString::fromStdString(contract.endDate);
-    payload[ui::payload::keys::contract::kBasePrice] = contract.basePrice;
-    payload[ui::payload::keys::contract::kConsumptionPrice] = contract.consumptionPrice;
-    payload[ui::payload::keys::contract::kMonthlyAdvance] = contract.monthlyAdvance;
+    payload[QStringLiteral("createdAt")] = QString::fromStdString(contract.createdAt);
+    payload[QStringLiteral("updatedAt")] = QString::fromStdString(contract.updatedAt);
     payload[ui::payload::keys::contract::kActorIds] = ui::payload::mapper::toVariantStringList(contract.actorIds);
     payload[ui::payload::keys::contract::kPropertyIds] = ui::payload::mapper::toVariantStringList(contract.propertyIds);
-    payload[ui::payload::keys::contract::kAliases] = ui::payload::mapper::toVariantStringList(contract.aliases);
+    QVariantList aliases;
+    aliases.reserve(static_cast<int>(contract.aliases.size()));
+    for (const auto& alias : contract.aliases) {
+        aliases.push_back(toPayload(alias));
+    }
+    payload[ui::payload::keys::contract::kAliases] = aliases;
     return payload;
 }
 

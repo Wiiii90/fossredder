@@ -40,6 +40,7 @@ TestCase {
         property int spacingSmall: 6
         property int spacing: 8
         property int spacingMedium: 10
+        property int spacingLarge: 16
         property int radius: 3
         property int borderWidthThin: 1
         property color surfaceAlt: "#f5f5f5"
@@ -49,6 +50,7 @@ TestCase {
         property color borderStrong: "#888888"
         property color textPrimary: "#000000"
         property color textMuted: "#666666"
+        property color chartText: "#000000"
         property color chartFallback: "#77aadd"
         property var analysis: QtObject {
             property var palette: ["#77aadd", "#88ccaa", "#ddaa77", "#cc88aa"]

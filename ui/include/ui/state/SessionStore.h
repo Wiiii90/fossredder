@@ -6,15 +6,13 @@
 #pragma once
 
 #include <QObject>
-#include <QVariantMap>
 #include <qqmlintegration.h>
 
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
+#include "ui/models/TransactionList.h"
 #include "ui/models/TransactionFilter.h"
 #include "ui/state/FilterState.h"
-#include "ui/state/MetricsState.h"
-#include "ui/state/PropertyNameCatalog.h"
 #include "ui/state/SessionModels.h"
 
 namespace ui {
@@ -40,30 +38,16 @@ public:
     TransactionFilter* statementTransactions(const QString& statementId);
     /** @brief Returns a live filter over transactions for a property. */
     TransactionFilter* propertyTransactions(const QString& propertyId);
-    /** @brief Returns the currently observed contract types for a property. */
-    QStringList propertyContractTypes(const QString& propertyId) const;
-    /** @brief Returns cached transaction sums for a property and optional contract type. */
-    QVariantMap propertyTransactionSums(const QString& propertyId, const QString& contractType = QString()) const;
-    /** @brief Resolves a property id to the cached display name. */
-    QString propertyName(const QString& id) const;
-    /** @brief Applies domain deletion effects to session models and derived caches. */
+    /** @brief Applies domain deletion effects to session models. */
     void applyDeletionImpact(const core::domain::DeletionImpact& impact);
     /** @brief Applies an immediate property reassignment for a single transaction. */
     void setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds);
 
-signals:
-    void transactionSumsUpdated(const QString& propertyId);
-
 private:
     void bindModelSignals();
-    void recomputeAllMetrics();
-    void recomputeMetricsForRows(int firstRow, int lastRow);
-    void notifyTransactionSumsForAllProperties();
 
     FilterState filters_;
     SessionModels models_;
-    mutable MetricsState metrics_;
-    PropertyNameCatalog propertyNames_;
 };
 
 }

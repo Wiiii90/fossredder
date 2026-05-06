@@ -10,8 +10,6 @@
 #include <QSet>
 
 #include "ui/state/FilterState.h"
-#include "ui/state/MetricsState.h"
-#include "ui/state/PropertyNameCatalog.h"
 #include "ui/state/SessionModels.h"
 #include "ui/util/StringConversions.h"
 
@@ -33,17 +31,6 @@ std::vector<std::string> toStdStringVector(const QStringList &ids) {
   for (const auto &id : ids)
     values.push_back(strings::toStdString(id));
   return values;
-}
-
-void recomputeMetricsForPropertyIds(
-    const QSet<QString> &propertyIds, SessionModels &models,
-    MetricsState &metrics,
-    const SessionMutationState::TransactionSumsNotifier
-        &notifyTransactionSums) {
-  for (const auto &propertyId : propertyIds) {
-    metrics.recomputeProperty(propertyId, models.transactions(),
-                              models.contracts(), notifyTransactionSums);
-  }
 }
 
 template <typename IdRange, typename Model, typename Cleanup>
@@ -125,8 +112,7 @@ QVariantList SessionMutationState::insertAt(const QVariantList& values, int inde
 }
 
 void SessionMutationState::applyDeletionImpact(
-    const DeletionImpact &impact, SessionModels &models, FilterState &filters,
-    MetricsState &metrics, PropertyNameCatalog &propertyNames) {
+    const DeletionImpact &impact, SessionModels &models, FilterState &filters) {
   removeDeletedIds(impact.deletedTransactionIds, models.transactions(),
                    [](const QString &) {});
 
@@ -135,11 +121,7 @@ void SessionMutationState::applyDeletionImpact(
       [&filters](const QString &id) { filters.removeStatement(id); });
 
   removeDeletedIds(impact.deletedPropertyIds, models.properties(),
-                   [&filters, &metrics, &propertyNames](const QString &id) {
-                     propertyNames.remove(id);
-                     metrics.removePropertyCache(id);
-                     filters.removeProperty(id);
-                   });
+                   [&filters](const QString &id) { filters.removeProperty(id); });
 
   removeDeletedIds(impact.deletedActorIds, models.actors(),
                    [](const QString &) {});
@@ -149,8 +131,7 @@ void SessionMutationState::applyDeletionImpact(
 
 void SessionMutationState::setTransactionPropertyIdsImmediate(
     const QString &transactionId, const QStringList &propertyIds,
-    SessionModels &models, MetricsState &metrics,
-    const TransactionSumsNotifier &notifyTransactionSums) {
+    SessionModels &models) {
   if (transactionId.isEmpty())
     return;
   const int row = models.transactions().findRowById(transactionId);
@@ -173,10 +154,6 @@ void SessionMutationState::setTransactionPropertyIdsImmediate(
   const QModelIndex modelIndex = models.transactions().index(row);
   emit models.transactions().dataChanged(
       modelIndex, modelIndex, {ui::TransactionList::PropertyIdsRole});
-
-  oldSet.unite(newSet);
-  recomputeMetricsForPropertyIds(oldSet, models, metrics,
-                                 notifyTransactionSums);
 }
 
 } // namespace ui

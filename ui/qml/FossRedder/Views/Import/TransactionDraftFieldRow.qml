@@ -33,6 +33,14 @@ Item {
         if (loadedItem && loadedItem.hasOwnProperty("width")) loadedItem.width = loader.width
     }
 
+    function themeSpacingMedium() {
+        return root.theme && root.theme.spacingMedium !== undefined ? root.theme.spacingMedium : 8
+    }
+
+    function themeSpacingSmall() {
+        return root.theme && root.theme.spacingSmall !== undefined ? root.theme.spacingSmall : 6
+    }
+
     function onLoaderWidthChanged(loader) {
         root.syncLoaderWidth(loader)
     }
@@ -43,15 +51,14 @@ Item {
     RowLayout {
         id: row
         anchors.fill: parent
-        anchors.top: parent.top
-        spacing: root.theme.spacingMedium
+        spacing: root.theme && root.theme.spacingMedium !== undefined ? root.theme.spacingMedium : 8
 
         ColumnLayout {
             id: leftColumn
             Layout.fillWidth: true
             Layout.preferredWidth: root.leftWeight
             Layout.alignment: Qt.AlignTop
-            spacing: root.theme.spacingSmall
+            spacing: root.themeSpacingSmall()
 
             Label { text: root.leftLabel; Layout.fillWidth: true }
 
@@ -71,7 +78,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredWidth: root.rightWeight
             Layout.alignment: Qt.AlignTop
-            spacing: root.theme.spacingSmall
+            spacing: root.themeSpacingSmall()
 
             Label { text: root.rightLabel; Layout.fillWidth: true }
 

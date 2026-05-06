@@ -27,6 +27,7 @@ Item {
     property var editTransactionOrderIds: []
     property string savedEditStatementName: ""
     property string savedEditTransactionJson: "{}"
+    property var currentTransactionDraft: (root.emptyTransaction())
 
     readonly property bool isCreateMode: !root.session || !root.session.selectedStatementId || root.session.selectedStatementId.length === 0
 
@@ -99,7 +100,8 @@ Item {
                                                      root.emptyTransaction())
         root.createTransactions = state.drafts || [root.emptyTransaction()]
         root.createTransactionIndex = state.index !== undefined ? state.index : 0
-        return state.draft || root.emptyTransaction()
+        root.currentTransactionDraft = state.draft || root.emptyTransaction()
+        return root.currentTransactionDraft
     }
 
     function setCurrentCreateTransaction(data) {
@@ -112,6 +114,7 @@ Item {
                                                    root.emptyTransaction())
         root.createTransactions = state.drafts || [root.emptyTransaction()]
         root.createTransactionIndex = state.index !== undefined ? state.index : 0
+        root.currentTransactionDraft = state.draft || root.emptyTransaction()
     }
 
     function syncEditState() {
@@ -186,11 +189,13 @@ Item {
         if (!root.session) {
             root.createTransactions = [root.emptyTransaction()]
             root.createTransactionIndex = 0
+            root.currentTransactionDraft = root.emptyTransaction()
             return
         }
         const state = root.session.createDraftListState([], 0, root.emptyTransaction())
         root.createTransactions = state.drafts || [root.emptyTransaction()]
         root.createTransactionIndex = state.index !== undefined ? state.index : 0
+        root.currentTransactionDraft = state.draft || root.emptyTransaction()
     }
 
     function addCreateTransaction() {
@@ -203,6 +208,7 @@ Item {
                                                            root.emptyTransaction())
         root.createTransactions = state.drafts || [root.emptyTransaction()]
         root.createTransactionIndex = state.index !== undefined ? state.index : 0
+        root.currentTransactionDraft = root.createTransactions[root.createTransactionIndex] || root.emptyTransaction()
     }
 
     function addEditTransaction() {
@@ -250,6 +256,7 @@ Item {
                                                      root.emptyTransaction())
             root.createTransactions = state.drafts || [root.emptyTransaction()]
             root.createTransactionIndex = state.index !== undefined ? state.index : 0
+            root.currentTransactionDraft = root.createTransactions[root.createTransactionIndex] || root.emptyTransaction()
             return
         }
 
@@ -281,13 +288,12 @@ Item {
         root.editTransactionData = root.transactionById(reselectionState.id || "")
     }
 
-    function currentCreateInfoText() {
-        if (root.createTransactions.length === 0)
-            return qsTr("No transactions")
-        return qsTr("Transaction %1 / %2").arg(root.createTransactionIndex + 1).arg(root.createTransactions.length)
-    }
+    function transactionInfoText() {
+        if (root.isCreateMode)
+            return root.createTransactions.length === 0
+                ? qsTr("No transactions")
+                : qsTr("Transaction %1 / %2").arg(root.createTransactionIndex + 1).arg(root.createTransactions.length)
 
-    function currentEditInfoText() {
         const state = root.editTransactionState()
         const rows = state.rows || []
         root.editTransactionOrderIds = state.orderIds || []
@@ -390,7 +396,16 @@ Item {
             Layout.fillHeight: true
             theme: root.theme
             statementName: root.isCreateMode ? root.createStatementName : root.editStatementName
-            transactionInfoText: root.isCreateMode ? root.currentCreateInfoText() : root.currentEditInfoText()
+            transactionInfoText: root.isCreateMode
+                                 ? (root.createTransactions.length === 0 ? qsTr("No transactions") : qsTr("Transaction %1 / %2").arg(root.createTransactionIndex + 1).arg(root.createTransactions.length))
+                                 : (function() {
+                                     const state = root.editTransactionState()
+                                     const rows = state.rows || []
+                                     if (rows.length === 0)
+                                         return qsTr("No transactions")
+                                     const idx = state.index !== undefined ? state.index : 0
+                                     return qsTr("Transaction %1 / %2").arg(idx + 1).arg(rows.length)
+                                 })()
             transactionDeleteVisible: true
             transactionDeleteEnabled: root.isCreateMode
                                       ? root.createTransactions.length > 1
@@ -411,7 +426,7 @@ Item {
                 Layout.fillWidth: true
                 theme: root.theme
                 session: root.session
-                transactionData: root.isCreateMode ? root.currentCreateTransaction() : root.editTransactionData
+                transactionData: root.isCreateMode ? root.currentTransactionDraft : root.editTransactionData
                 actorRows: root.actorRows()
                 contractRows: root.contractRows()
                 propertyRows: root.propertyRows()

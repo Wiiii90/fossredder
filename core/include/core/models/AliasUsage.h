@@ -5,12 +5,15 @@
 
 #pragma once
 
+
 #include <string>
+
+#include "core/models/Alias.h"
 
 namespace core::domain {
 
 struct AliasUsage {
-    std::string alias;
+    Alias alias;
     int hitCount = 0;
     std::string lastUsedAt;
     std::string updatedAt;

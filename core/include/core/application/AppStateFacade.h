@@ -13,6 +13,7 @@
 
 #include "core/application/CatalogService.h"
 #include "core/errors/IErrorReporter.h"
+#include "core/models/Alias.h"
 #include "core/models/StatementDraft.h"
 #include "core/models/ImportLog.h"
 #include "core/models/ExportLog.h"
@@ -61,20 +62,20 @@ public:
     const core::domain::AppState& state() const noexcept;
     const std::string& currentPath() const noexcept;
 
-    std::string addActor(const std::string& name, const std::string& type, const std::string& description, const std::vector<std::string>& aliases);
-    void updateActor(const std::string& id, const std::string& name, const std::string& type, const std::string& description, const std::vector<std::string>& aliases);
+    std::string addActor(const std::string& name, const std::vector<core::domain::Alias>& aliases);
+    void updateActor(const std::string& id, const std::string& name, const std::vector<core::domain::Alias>& aliases);
     void deleteActor(const std::string& id);
 
-    std::string addProperty(const std::string& name, const std::string& address, const std::string& description, const std::vector<std::string>& aliases);
-    void updateProperty(const std::string& id, const std::string& name, const std::string& address, const std::string& description, const std::vector<std::string>& aliases);
+    std::string addProperty(const std::string& name, const std::vector<core::domain::Alias>& aliases);
+    void updateProperty(const std::string& id, const std::string& name, const std::vector<core::domain::Alias>& aliases);
     void deleteProperty(const std::string& id);
 
-    std::string addContract(const std::string& name, const std::string& type, const std::string& description,
+    std::string addContract(const std::string& name, const std::string& type,
                             const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds,
-                            const std::vector<std::string>& aliases);
-    void updateContract(const std::string& id, const std::string& name, const std::string& type, const std::string& description,
+                            const std::vector<core::domain::Alias>& aliases);
+    void updateContract(const std::string& id, const std::string& name, const std::string& type,
                         const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds,
-                        const std::vector<std::string>& aliases);
+                        const std::vector<core::domain::Alias>& aliases);
     void deleteContract(const std::string& id);
     std::vector<std::string> contractTypes() const;
 
