@@ -48,7 +48,6 @@ public:
 
     void setStateChangedCallback(StateChanged cb);
     void setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter);
-    void setRepoFactory(core::storage::IStorageManager::RepoFactory factory);
     void setAtomicStoreSave(core::storage::IStorageManager::AtomicStoreSave saveFn);
     void setAtomicStoreLoad(core::storage::IStorageManager::AtomicStoreLoad loadFn);
     void setDeletionImpactCallback(core::storage::IStorageManager::DeletionImpactCallback cb);
@@ -86,7 +85,6 @@ public:
     std::string addTransaction(const std::string& name,
                                const std::string& bookingDate,
                                double amount,
-                               const std::string& description,
                                const std::string& statementId,
                                core::domain::Transaction::Status status,
                                const std::string& actorId,
@@ -96,7 +94,6 @@ public:
                            const std::string& name,
                            const std::string& bookingDate,
                            double amount,
-                           const std::string& description,
                            const std::string& statementId,
                            core::domain::Transaction::Status status,
                            const std::string& actorId,

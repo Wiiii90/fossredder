@@ -95,7 +95,7 @@ Item {
     function effectiveAllocatable() {
         const tx = draftViewRoot.currentTransaction()
         if (!tx) return false
-        if (tx.allocatableManualOverride) return !!tx.allocatable
+        if (tx.allocatableSelected) return !!tx.allocatable
         return draftViewRoot.viewState && draftViewRoot.viewState.effectiveAllocatable !== undefined ? !!draftViewRoot.viewState.effectiveAllocatable : !!tx.allocatable
     }
 

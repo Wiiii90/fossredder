@@ -1,9 +1,9 @@
-#pragma once
-
 /**
  * @file core/include/core/repositories/ITransactionRepository.h
  * @brief Repository interface for core::domain::Transaction persistence operations.
  */
+
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -25,15 +25,15 @@ public:
     virtual void addTransaction(const std::shared_ptr<core::domain::Transaction>& transaction) = 0;
 
     /**
-     * @brief Return all transactions stored in the repository.
-     * @return Vector of shared_ptr to core::domain::Transaction.
+     * @brief Retrieve all stored transactions.
+     * @return All transactions stored in the repository.
      */
     virtual std::vector<std::shared_ptr<core::domain::Transaction>> getTransactions() const = 0;
 
     /**
      * @brief Retrieve a transaction by its identifier.
-     * @param id core::domain::Transaction identifier string.
-     * @return Optional shared_ptr to core::domain::Transaction if found.
+     * @param id Core transaction identifier.
+     * @return The transaction with the requested identifier, if found.
      */
     virtual std::optional<std::shared_ptr<core::domain::Transaction>> getTransactionById(const std::string& id) const = 0;
 
@@ -61,7 +61,9 @@ public:
     virtual void clearTransactions() = 0;
 
     /**
-     * @brief Return transactions associated with a given contract id.
+     * @brief Retrieve transactions associated with a given contract id.
+     * @param contractId Contract identifier.
+     * @return Transactions linked to the given contract id.
      */
     virtual std::vector<std::shared_ptr<core::domain::Transaction>> getTransactionsForContract(const std::string& contractId) const = 0;
 

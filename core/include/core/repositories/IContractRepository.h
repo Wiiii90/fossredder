@@ -1,9 +1,9 @@
-#pragma once
-
 /**
  * @file core/include/core/repositories/IContractRepository.h
  * @brief Repository interface for core::domain::Contract persistence operations.
  */
+
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -25,15 +25,15 @@ public:
     virtual void addContract(const std::shared_ptr<core::domain::Contract>& contract) = 0;
 
     /**
-     * @brief Return all contracts stored in the repository.
-     * @return Vector of shared_ptr to core::domain::Contract.
+     * @brief Retrieve all stored contracts.
+     * @return All contracts stored in the repository.
      */
     virtual std::vector<std::shared_ptr<core::domain::Contract>> getContracts() const = 0;
 
     /**
      * @brief Retrieve a contract by its identifier.
      * @param id core::domain::Contract identifier string.
-     * @return Optional shared_ptr to core::domain::Contract if found.
+     * @return The contract with the requested identifier, if found.
      */
     virtual std::optional<std::shared_ptr<core::domain::Contract>> getContractById(const std::string& id) const = 0;
 
@@ -61,22 +61,30 @@ public:
     virtual void clearContracts() = 0;
 
     /**
-     * @brief Return contracts associated with a given actor id.
+     * @brief Retrieve contracts associated with a given actor id.
+     * @param actorId Actor identifier.
+     * @return Contracts linked to the given actor id.
      */
     virtual std::vector<std::shared_ptr<core::domain::Contract>> getContractsForActor(const std::string& actorId) const = 0;
 
     /**
-     * @brief Return contracts associated with a given property id.
+     * @brief Retrieve contracts associated with a given property id.
+     * @param propertyId Property identifier.
+     * @return Contracts linked to the given property id.
      */
     virtual std::vector<std::shared_ptr<core::domain::Contract>> getContractsForProperty(const std::string& propertyId) const = 0;
 
     /**
-     * @brief Return actor ids linked to a contract.
+     * @brief Retrieve actor ids linked to a contract.
+     * @param contractId Contract identifier.
+     * @return Actor identifiers linked to the contract.
      */
     virtual std::vector<std::string> getActorIdsForContract(const std::string& contractId) const = 0;
 
     /**
-     * @brief Return property ids linked to a contract.
+     * @brief Retrieve property ids linked to a contract.
+     * @param contractId Contract identifier.
+     * @return Property identifiers linked to the contract.
      */
     virtual std::vector<std::string> getPropertyIdsForContract(const std::string& contractId) const = 0;
 };

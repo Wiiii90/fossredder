@@ -17,10 +17,11 @@ class Property {
 public:
     std::string id;
     std::string name;
-    std::string createdAt;
-    std::string updatedAt;
     std::vector<Alias> aliases;
     std::vector<AliasUsage> aliasUsage;
+
+    std::string createdAt;
+    std::string updatedAt;
 };
 
-}
+} // namespace core::domain

@@ -551,7 +551,7 @@ std::string actorSeedText(const DraftLinkSelection& selection,
 {
     if (!selection.actorId.empty()) return displayText;
     const auto actorText = trim(selection.actorText);
-    if (selection.newActorSelected && actorText.empty()) return {};
+    if (selection.actorSelected && actorText.empty()) return {};
     if (!actorText.empty()) return actorText;
     return top ? top->label : std::string{};
 }
@@ -562,7 +562,7 @@ std::string contractSeedText(const DraftLinkSelection& selection,
 {
     if (!selection.contractId.empty()) return displayText;
     const auto type = trim(selection.type);
-    if (selection.newContractSelected && type.empty()) return {};
+    if (selection.contractSelected && type.empty()) return {};
     if (!type.empty()) return type;
     return {};
 }
@@ -1002,7 +1002,7 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
     derived.actorSeedText = actorSeedText(effectiveSelection, derived.actorDisplayText, actorTop);
     derived.contractSeedText = contractSeedText(effectiveSelection, derived.contractDisplayText, contractTop);
     derived.propertySuggestionSummary = propertySuggestionSummary(effectiveSelection.propertySuggestions);
-    derived.effectiveAllocatable = effectiveSelection.allocatableManualOverride
+    derived.effectiveAllocatable = effectiveSelection.allocatableSelected
                                       ? effectiveSelection.allocatable
                                       : (contractIsFullyAllocatable(state, effectiveSelection.contractId) || effectiveSelection.allocatable);
 
@@ -1040,7 +1040,7 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
 
     if (!effectiveSelection.actorId.empty()) {
         derived.actorCurrentIndex = rowIndexById(derived.actorChoices, effectiveSelection.actorId);
-    } else if (effectiveSelection.newActorSelected) {
+    } else if (effectiveSelection.actorSelected) {
         derived.actorCurrentIndex = 0;
     } else if (actorTop && !actorTop->entityId.empty() && actorTop->confidence >= 0.2) {
         derived.actorCurrentIndex = rowIndexById(derived.actorChoices, actorTop->entityId);
@@ -1053,7 +1053,7 @@ DraftDerivedState buildDraftDerivedState(const core::domain::AppState& state,
 
     if (!effectiveSelection.contractId.empty()) {
         derived.contractCurrentIndex = rowIndexById(derived.contractChoices, effectiveSelection.contractId);
-    } else if (effectiveSelection.newContractSelected) {
+    } else if (effectiveSelection.contractSelected) {
         derived.contractCurrentIndex = 0;
     } else if (!scoredContracts.empty() && scoredContracts.front().first >= 900.0) {
         derived.contractCurrentIndex = rowIndexById(derived.contractChoices, scoredContracts.front().second.id);

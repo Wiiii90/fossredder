@@ -25,13 +25,11 @@ public:
                 std::string bookingDate,
                 std::string valuta,
                 double amount,
-                std::string description = {},
                 bool allocatable = false)
         : name(std::move(name)),
           bookingDate(std::move(bookingDate)),
           valuta(std::move(valuta)),
           amount(amount),
-          description(std::move(description)),
           allocatable(allocatable) {}
 
     std::string id;
@@ -43,10 +41,11 @@ public:
     std::string contractId;
     std::string actorId;
     std::string statementId;
-    std::string description;
     bool allocatable = false;
     std::vector<std::string> propertyIds;
+    std::string createdAt;
+    std::string updatedAt;
 };
 
-}
+} // namespace core::domain
 

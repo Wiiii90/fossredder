@@ -1,9 +1,9 @@
-#pragma once
-
 /**
  * @file core/include/core/repositories/IPropertyRepository.h
  * @brief Repository interface for core::domain::Property persistence operations.
  */
+
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -25,15 +25,15 @@ public:
     virtual void addProperty(const std::shared_ptr<core::domain::Property>& property) = 0;
 
     /**
-     * @brief Return all properties stored in the repository.
-     * @return Vector of shared_ptr to core::domain::Property.
+     * @brief Retrieve all stored properties.
+     * @return All properties stored in the repository.
      */
     virtual std::vector<std::shared_ptr<core::domain::Property>> getProperties() const = 0;
 
     /**
      * @brief Retrieve a property by its identifier.
-     * @param id core::domain::Property identifier string.
-     * @return Optional shared_ptr to core::domain::Property if found.
+     * @param id Core property identifier.
+     * @return The property with the requested identifier, if found.
      */
     virtual std::optional<std::shared_ptr<core::domain::Property>> getPropertyById(const std::string& id) const = 0;
 

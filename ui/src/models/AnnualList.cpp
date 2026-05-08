@@ -22,7 +22,6 @@ QVariant AnnualList::data(const QModelIndex& index, int role) const {
     case IdRole: return QString::fromStdString(a->id);
     case NameRole: return QString::fromStdString(a->name);
     case YearRole: return a->year;
-    case VerificationRole: return static_cast<int>(a->verificationState);
     default: return {};
     }
 }
@@ -32,7 +31,6 @@ QHash<int, QByteArray> AnnualList::roleNames() const {
     roles[IdRole] = ui::payload::keys::common::kId.toUtf8();
     roles[NameRole] = ui::payload::keys::annual::kName.toUtf8();
     roles[YearRole] = ui::payload::keys::annual::kYear.toUtf8();
-    roles[VerificationRole] = ui::payload::keys::annual::kVerificationState.toUtf8();
     return roles;
 }
 

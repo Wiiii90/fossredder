@@ -19,14 +19,12 @@ struct TransactionDraft {
     QString valuta;
     double amount = 0.0;
 
-    QString description;
-
     QString actorText;
     QString propertyText;
     QString actorId;
-    bool newActorSelected = false;
+    bool actorSelected = false;
     QString contractId;
-    bool newContractSelected = false;
+    bool contractSelected = false;
 
     QString metadata;
     QString proofImageData;
@@ -36,7 +34,7 @@ struct TransactionDraft {
     ImportDraftSuggestions suggestions;
 
     bool allocatable = false;
-    bool allocatableManualOverride = false;
+    bool allocatableSelected = false;
 
     // Default to Unverified so new transactions require user verification
     int status = static_cast<int>(core::domain::Transaction::Status::Unverified);

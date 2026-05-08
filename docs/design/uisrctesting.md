@@ -84,6 +84,10 @@ The core idea is that list model tests should verify list semantics and row mapp
 
 For the QML views, prefer a fake app context or fake controller facade when the test only needs to observe command calls and selected-id updates. Use the real app context only when the interaction depends on shared selection state or model refresh behavior.
 
+Navigation between items in the sidebar, create-mode toggles, and the bottom-bar buttons are QML-layer behaviors. They belong in QML tests because they verify wiring between controls, session selection, and controller calls rather than list-model or controller translation alone.
+
+The controller and list-model tables should stay focused on data translation and command forwarding. They should not be stretched to cover visible navigation flows unless the underlying logic is purely source-layer state handling.
+
 ## Test Matrix
 
 ### Legend
@@ -143,18 +147,6 @@ For the QML views, prefer a fake app context or fake controller facade when the 
 | ACT-L-I-002 | Selection row survives updates | Actor list updated after edit | Refresh model with same id present | `findRowById()` still resolves the actor |
 | ACT-L-I-003 | Deleted actor disappears | Actor removed in core | Refresh model from facade | Row count decreases and id lookup fails |
 
-### 2.4 View interaction ideas
-
-| ID | Scenario | Setup | Action | Expected |
-|---|---|---|---|---|
-| ACT-V-I-001 | Sidebar actor selection updates the form | Actor sidebar and form bound to same app context | Click a different actor row in the sidebar | `selectedActorId` changes and the form reloads the new actor |
-| ACT-V-I-002 | Prev button navigates to previous actor | Actor form opened with multiple actors | Click the previous button in the bottom bar | `selectedActorId` changes to the previous row |
-| ACT-V-I-003 | Next navigation wraps or advances deterministically | Actor form opened with multiple actors | Trigger next navigation from the form controls | The selection moves to the expected actor id |
-| ACT-V-I-004 | Create mode clears selection and switches to a new actor | Actor form in edit mode | Click the create-mode toggle button | `selectedActorId` becomes empty and the form switches to create mode |
-| ACT-V-I-005 | Delete removes current actor and advances selection | Current actor selected | Click delete in the bottom bar | Controller delete is called and selection advances to the next available actor |
-| ACT-V-I-006 | Alias add button appends a trimmed alias | Alias text entered in the form | Click the alias add button | Alias list grows and the input is cleared |
-| ACT-V-I-007 | Alias remove button deletes the selected alias | Alias chip selected | Click the alias remove button | Alias list shrinks and the alias index updates |
-
 ---
 
 ## 3. PropertyList
@@ -189,19 +181,6 @@ For the QML views, prefer a fake app context or fake controller facade when the 
 | PROP-L-I-001 | Rebuild from facade state | Facade provides property collection | Call `setProperties()` from state sync | Model mirrors state deterministically |
 | PROP-L-I-002 | Selection row survives updates | Property list updated after edit | Refresh model with same id present | `findRowById()` still resolves the property |
 | PROP-L-I-003 | Deleted property disappears | Property removed in core | Refresh model from facade | Row count decreases and id lookup fails |
-
-### 3.4 View interaction ideas
-
-| ID | Scenario | Setup | Action | Expected |
-|---|---|---|---|---|
-| PROP-V-I-001 | Sidebar property selection updates the form | Property sidebar and form bound to same app context | Click a different property row in the sidebar | `selectedPropertyId` changes and the form reloads the new property |
-| PROP-V-I-002 | Prev button navigates to previous property | Property form opened with multiple properties | Click the previous button in the bottom bar | `selectedPropertyId` changes to the previous row |
-| PROP-V-I-003 | Next navigation advances to the next property | Property form opened with multiple properties | Trigger next navigation from the form controls | The selection moves to the expected property id |
-| PROP-V-I-004 | Create mode clears selection and switches to a new property | Property form in edit mode | Click the create-mode toggle button | `selectedPropertyId` becomes empty and the form switches to create mode |
-| PROP-V-I-005 | Delete removes current property and advances selection | Current property selected | Click delete in the bottom bar | Controller delete is called and selection advances to the next available property |
-| PROP-V-I-006 | Alias add button appends a trimmed alias | Alias text entered in the form | Click the alias add button | Alias list grows and the input is cleared |
-| PROP-V-I-007 | Alias remove button deletes the selected alias | Alias chip selected | Click the alias remove button | Alias list shrinks and the alias index updates |
-| PROP-V-I-008 | Contract selection panel updates linked contract ids | Property form with contract panel visible | Toggle a contract in the selection panel | `selectedContractIds` updates and can be saved with the property |
 
 ---
 
@@ -241,21 +220,6 @@ For the QML views, prefer a fake app context or fake controller facade when the 
 | CON-L-I-001 | Rebuild from facade state | Facade provides contract collection | Call `setContracts()` from state sync | Model mirrors state deterministically |
 | CON-L-I-002 | Selection row survives updates | Contract list updated after edit | Refresh model with same id present | `findRowById()` still resolves the contract |
 | CON-L-I-003 | Deleted contract disappears | Contract removed in core | Refresh model from facade | Row count decreases and id lookup fails |
-
-### 4.4 View interaction ideas
-
-| ID | Scenario | Setup | Action | Expected |
-|---|---|---|---|---|
-| CON-V-I-001 | Sidebar contract selection updates the form | Contract sidebar and form bound to same app context | Click a different contract row in the sidebar | `selectedContractId` changes and the form reloads the new contract |
-| CON-V-I-002 | Prev button navigates to previous contract | Contract form opened with multiple contracts | Click the previous button in the bottom bar | `selectedContractId` changes to the previous row |
-| CON-V-I-003 | Next navigation advances to the next contract | Contract form opened with multiple contracts | Trigger next navigation from the form controls | The selection moves to the expected contract id |
-| CON-V-I-004 | Create mode clears selection and switches to a new contract | Contract form in edit mode | Click the create-mode toggle button | `selectedContractId` becomes empty and the form switches to create mode |
-| CON-V-I-005 | Delete removes current contract and advances selection | Current contract selected | Click delete in the bottom bar | Controller delete is called and selection advances to the next available contract |
-| CON-V-I-006 | Alias add button appends a trimmed alias | Alias text entered in the form | Click the alias add button | Alias list grows and the input is cleared |
-| CON-V-I-007 | Alias remove button deletes the selected alias | Alias chip selected | Click the alias remove button | Alias list shrinks and the alias index updates |
-| CON-V-I-008 | Contract type panel updates the selected type | Contract type editor visible | Edit the type field | `contractType` changes and is persisted on save |
-| CON-V-I-009 | Actor FK panel updates selected actor ids | Actor selection panel visible | Toggle actor rows in the selection panel | `selectedActorIds` updates and is passed to the controller on save |
-| CON-V-I-010 | Property FK panel updates selected property ids | Property selection panel visible | Toggle property rows in the selection panel | `selectedPropertyIds` updates and is passed to the controller on save |
 
 ---
 
@@ -394,42 +358,46 @@ Recommended mock boundary for controller tests:
 
 ## 9. QML view interaction tests
 
+The navigation and button behaviors for Actor, Property, and Contract belong in the QML test layer, because they are user-facing composition behavior rather than source-layer data translation. The existing `ui/tests/qml` suite already covers this style of testing, so the matrix below should be mirrored there rather than moved into the controller/list-model unit tables.
+
+If a behavior is driven by `selectedActorId`, `selectedPropertyId`, `selectedContractId`, or by button clicks in the form/footer/sidebar, it should be tested in the QML layer. If a behavior only converts inputs into ids or payloads, it should stay in the controller or list-model layer.
+
 ### 9.1 ActorView
 | ID | Scenario | Setup | Action | Expected |
 |---|---|---|---|---|
-| ACT-V-001 | Sidebar click changes selected actor | Actor sidebar and form bound to same app context | Click a different actor row in the sidebar | `selectedActorId` changes and the form reloads the new actor |
-| ACT-V-002 | Prev button selects previous actor | Actor form opened with multiple actors | Click the previous button in the bottom bar | `selectedActorId` changes to the previous row |
-| ACT-V-003 | Next navigation selects next actor | Actor form opened with multiple actors | Trigger next navigation from the form controls | The selection moves to the next actor id |
-| ACT-V-004 | Create-mode toggle clears actor selection | Actor form in edit mode | Click the create-mode toggle button | `selectedActorId` becomes empty and the form switches to create mode |
-| ACT-V-005 | Delete advances actor selection | Current actor selected | Click delete in the bottom bar | Controller delete is called and selection advances to the next available actor |
-| ACT-V-006 | Alias add appends trimmed value | Alias text entered in the form | Click the alias add button | Alias list grows and the input is cleared |
-| ACT-V-007 | Alias remove deletes selected alias | Alias chip selected | Click the alias remove button | Alias list shrinks and the alias index updates |
+| ACT-Q-001 | Sidebar click changes selected actor | Actor sidebar and form bound to same app context | Click a different actor row in the sidebar | `selectedActorId` changes and the form reloads the new actor |
+| ACT-Q-002 | Prev button selects previous actor | Actor form opened with multiple actors | Click the previous button in the bottom bar | `selectedActorId` changes to the previous row |
+| ACT-Q-003 | Next navigation selects next actor | Actor form opened with multiple actors | Trigger next navigation from the form controls | The selection moves to the next actor id |
+| ACT-Q-004 | Create-mode toggle clears actor selection | Actor form in edit mode | Click the create-mode toggle button | `selectedActorId` becomes empty and the form switches to create mode |
+| ACT-Q-005 | Delete advances actor selection | Current actor selected | Click delete in the bottom bar | Controller delete is called and selection advances to the next available actor |
+| ACT-Q-006 | Alias add appends trimmed value | Alias text entered in the form | Click the alias add button | Alias list grows and the input is cleared |
+| ACT-Q-007 | Alias remove deletes selected alias | Alias chip selected | Click the alias remove button | Alias list shrinks and the alias index updates |
 
 ### 9.2 PropertyView
 | ID | Scenario | Setup | Action | Expected |
 |---|---|---|---|---|
-| PROP-V-001 | Sidebar click changes selected property | Property sidebar and form bound to same app context | Click a different property row in the sidebar | `selectedPropertyId` changes and the form reloads the new property |
-| PROP-V-002 | Prev button selects previous property | Property form opened with multiple properties | Click the previous button in the bottom bar | `selectedPropertyId` changes to the previous row |
-| PROP-V-003 | Next navigation selects next property | Property form opened with multiple properties | Trigger next navigation from the form controls | The selection moves to the next property id |
-| PROP-V-004 | Create-mode toggle clears property selection | Property form in edit mode | Click the create-mode toggle button | `selectedPropertyId` becomes empty and the form switches to create mode |
-| PROP-V-005 | Delete advances property selection | Current property selected | Click delete in the bottom bar | Controller delete is called and selection advances to the next available property |
-| PROP-V-006 | Alias add appends trimmed value | Alias text entered in the form | Click the alias add button | Alias list grows and the input is cleared |
-| PROP-V-007 | Alias remove deletes selected alias | Alias chip selected | Click the alias remove button | Alias list shrinks and the alias index updates |
-| PROP-V-008 | Contract selection panel updates selected contract ids | Property form with contract panel visible | Toggle a contract in the selection panel | `selectedContractIds` updates and can be saved with the property |
+| PROP-Q-001 | Sidebar click changes selected property | Property sidebar and form bound to same app context | Click a different property row in the sidebar | `selectedPropertyId` changes and the form reloads the new property |
+| PROP-Q-002 | Prev button selects previous property | Property form opened with multiple properties | Click the previous button in the bottom bar | `selectedPropertyId` changes to the previous row |
+| PROP-Q-003 | Next navigation selects next property | Property form opened with multiple properties | Trigger next navigation from the form controls | The selection moves to the next property id |
+| PROP-Q-004 | Create-mode toggle clears property selection | Property form in edit mode | Click the create-mode toggle button | `selectedPropertyId` becomes empty and the form switches to create mode |
+| PROP-Q-005 | Delete advances property selection | Current property selected | Click delete in the bottom bar | Controller delete is called and selection advances to the next available property |
+| PROP-Q-006 | Alias add appends trimmed value | Alias text entered in the form | Click the alias add button | Alias list grows and the input is cleared |
+| PROP-Q-007 | Alias remove deletes selected alias | Alias chip selected | Click the alias remove button | Alias list shrinks and the alias index updates |
+| PROP-Q-008 | Contract selection panel updates linked contract ids | Property form with contract panel visible | Toggle a contract in the selection panel | `selectedContractIds` updates and can be saved with the property |
 
 ### 9.3 ContractView
 | ID | Scenario | Setup | Action | Expected |
 |---|---|---|---|---|
-| CON-V-001 | Sidebar click changes selected contract | Contract sidebar and form bound to same app context | Click a different contract row in the sidebar | `selectedContractId` changes and the form reloads the new contract |
-| CON-V-002 | Prev button selects previous contract | Contract form opened with multiple contracts | Click the previous button in the bottom bar | `selectedContractId` changes to the previous row |
-| CON-V-003 | Next navigation selects next contract | Contract form opened with multiple contracts | Trigger next navigation from the form controls | The selection moves to the next contract id |
-| CON-V-004 | Create-mode toggle clears contract selection | Contract form in edit mode | Click the create-mode toggle button | `selectedContractId` becomes empty and the form switches to create mode |
-| CON-V-005 | Delete advances contract selection | Current contract selected | Click delete in the bottom bar | Controller delete is called and selection advances to the next available contract |
-| CON-V-006 | Alias add appends trimmed value | Alias text entered in the form | Click the alias add button | Alias list grows and the input is cleared |
-| CON-V-007 | Alias remove deletes selected alias | Alias chip selected | Click the alias remove button | Alias list shrinks and the alias index updates |
-| CON-V-008 | Contract type edit is included in the payload | Contract type editor visible | Edit the type field and save | `contractType` changes and is persisted on save |
-| CON-V-009 | Actor FK panel updates selected actor ids | Actor selection panel visible | Toggle actor rows in the selection panel | `selectedActorIds` updates and is passed to the controller on save |
-| CON-V-010 | Property FK panel updates selected property ids | Property selection panel visible | Toggle property rows in the selection panel | `selectedPropertyIds` updates and is passed to the controller on save |
+| CON-Q-001 | Sidebar click changes selected contract | Contract sidebar and form bound to same app context | Click a different contract row in the sidebar | `selectedContractId` changes and the form reloads the new contract |
+| CON-Q-002 | Prev button selects previous contract | Contract form opened with multiple contracts | Click the previous button in the bottom bar | `selectedContractId` changes to the previous row |
+| CON-Q-003 | Next navigation selects next contract | Contract form opened with multiple contracts | Trigger next navigation from the form controls | The selection moves to the next contract id |
+| CON-Q-004 | Create-mode toggle clears contract selection | Contract form in edit mode | Click the create-mode toggle button | `selectedContractId` becomes empty and the form switches to create mode |
+| CON-Q-005 | Delete advances contract selection | Current contract selected | Click delete in the bottom bar | Controller delete is called and selection advances to the next available contract |
+| CON-Q-006 | Alias add appends trimmed value | Alias text entered in the form | Click the alias add button | Alias list grows and the input is cleared |
+| CON-Q-007 | Alias remove deletes selected alias | Alias chip selected | Click the alias remove button | Alias list shrinks and the alias index updates |
+| CON-Q-008 | Contract type panel updates the selected type | Contract type editor visible | Edit the type field | `contractType` changes and is persisted on save |
+| CON-Q-009 | Actor FK panel updates selected actor ids | Actor selection panel visible | Toggle actor rows in the selection panel | `selectedActorIds` updates and is passed to the controller on save |
+| CON-Q-010 | Property FK panel updates selected property ids | Property selection panel visible | Toggle property rows in the selection panel | `selectedPropertyIds` updates and is passed to the controller on save |
 
 ## 10. Mocking guidance
 

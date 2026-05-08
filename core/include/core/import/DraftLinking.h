@@ -64,17 +64,16 @@ struct DraftTextSignals {
  */
 struct DraftLinkSelection {
     std::string name;
-    std::string description;
     std::string metadata;
     std::string actorText;
     std::string propertyText;
     std::string actorId;
-    bool newActorSelected = false;
+    bool actorSelected = false;
     std::string contractId;
-    bool newContractSelected = false;
+    bool contractSelected = false;
     std::string type;
     bool allocatable = false;
-    bool allocatableManualOverride = false;
+    bool allocatableSelected = false;
     std::vector<std::string> propertyIds;
     DraftSuggestionBucket actorSuggestions;
     DraftSuggestionBucket propertySuggestions;

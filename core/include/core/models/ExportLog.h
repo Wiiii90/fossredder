@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace core::domain {
 
@@ -12,6 +13,8 @@ public:
     std::string status;
     std::string message;
     std::string payload;
+    std::vector<std::string> annualIds;
+    std::vector<std::string> analysisIds;
 };
 
 } // namespace core::domain

@@ -144,7 +144,6 @@ class TransactionSelection : public QObject {
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QString bookingDate READ bookingDate NOTIFY changed)
     Q_PROPERTY(double amount READ amount NOTIFY changed)
-    Q_PROPERTY(QString description READ description NOTIFY changed)
     Q_PROPERTY(QString statementId READ statementId NOTIFY changed)
     Q_PROPERTY(QString actorId READ actorId NOTIFY changed)
     Q_PROPERTY(QStringList propertyIds READ propertyIds NOTIFY changed)
@@ -158,7 +157,6 @@ public:
              QString name,
              QString bookingDate,
              double amount,
-             QString description,
              QString statementId,
              QString actorId,
              QStringList propertyIds,
@@ -168,7 +166,6 @@ public:
     QString name() const { return name_; }
     QString bookingDate() const { return bookingDate_; }
     double amount() const { return amount_; }
-    QString description() const { return description_; }
     QString statementId() const { return statementId_; }
     QString actorId() const { return actorId_; }
     QStringList propertyIds() const { return propertyIds_; }
@@ -188,7 +185,6 @@ private:
     QString name_;
     QString bookingDate_;
     double amount_ = 0.0;
-    QString description_;
     QString statementId_;
     QString actorId_;
     QStringList propertyIds_;

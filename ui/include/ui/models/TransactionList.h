@@ -28,7 +28,6 @@ public:
         BookingDateRole,
         ValutaRole,
         AmountRole,
-        DescriptionRole,
         StatusRole,
         ActorIdRole,
         MetadataRole,

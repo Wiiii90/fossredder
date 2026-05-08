@@ -1,3 +1,8 @@
+/**
+ * @file persistence/src/repositories/SqliteTransactionRepository.cpp
+ * @brief Implements the SQLite-backed transaction repository.
+ */
+
 #include "persistence/repositories/SqliteTransactionRepository.h"
 #include "persistence/StmtGuard.h"
 #include "core/models/Transaction.h"
@@ -34,8 +39,8 @@ SqliteTransactionRepository::~SqliteTransactionRepository() = default;
 namespace {
 
 constexpr auto kSelectTx =
-    "SELECT id, name, booking_date, amount, description, statement_id,"
-    " status, actor_id, allocatable, contract_id, valuta FROM transactions";
+    "SELECT id, name, booking_date, amount, statement_id,"
+    " status, actor_id, allocatable, contract_id, valuta, created_at, updated_at FROM transactions";
 
 void bindNullableText(persistence::StmtGuard& stmt, int column, const std::string& value) {
     if (value.empty()) {
@@ -59,13 +64,14 @@ std::shared_ptr<Transaction> readTx(persistence::StmtGuard& s, sqlite3* db) {
     t->name        = s.columnText(1);
     t->bookingDate = s.columnText(2);
     t->amount      = s.columnDouble(3);
-    t->description = s.columnText(4);
-    t->statementId = s.columnText(5);
-    t->status      = static_cast<Transaction::Status>(s.columnInt(6));
-    t->actorId     = s.columnText(7);
-    t->allocatable = (s.columnInt(8) != 0);
-    t->contractId  = s.columnText(9);
-    t->valuta      = s.columnText(10);
+    t->statementId = s.columnText(4);
+    t->status      = static_cast<Transaction::Status>(s.columnInt(5));
+    t->actorId     = s.columnText(6);
+    t->allocatable = (s.columnInt(7) != 0);
+    t->contractId  = s.columnText(8);
+    t->valuta      = s.columnText(9);
+    t->createdAt   = s.columnText(10);
+    t->updatedAt   = s.columnText(11);
     loadTxProperties(db, *t);
     return t;
 }
@@ -93,21 +99,22 @@ void SqliteTransactionRepository::addTransaction(const std::shared_ptr<Transacti
     if (!transaction || transaction->id.empty()) return;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
         "INSERT OR IGNORE INTO transactions"
-        " (id, name, booking_date, amount, description, statement_id,"
-        "  status, actor_id, allocatable, contract_id, valuta)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        " (id, name, booking_date, amount, statement_id,"
+        "  status, actor_id, allocatable, contract_id, valuta, created_at, updated_at)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
     if (!stmt) return;
     stmt.bindText  (1, transaction->id);
     stmt.bindText  (2, transaction->name);
     stmt.bindText  (3, transaction->bookingDate);
     stmt.bindDouble(4, transaction->amount);
-    stmt.bindText  (5, transaction->description);
-    bindNullableText(stmt, 6, transaction->statementId);
-    stmt.bindInt   (7, static_cast<int>(transaction->status));
-    bindNullableText(stmt, 8, transaction->actorId);
-    stmt.bindInt   (9, transaction->allocatable ? 1 : 0);
-    bindNullableText(stmt, 10, transaction->contractId);
-    stmt.bindText  (11, transaction->valuta);
+    bindNullableText(stmt, 5, transaction->statementId);
+    stmt.bindInt   (6, static_cast<int>(transaction->status));
+    bindNullableText(stmt, 7, transaction->actorId);
+    stmt.bindInt   (8, transaction->allocatable ? 1 : 0);
+    bindNullableText(stmt, 9, transaction->contractId);
+    stmt.bindText  (10, transaction->valuta);
+    stmt.bindText  (11, transaction->createdAt);
+    stmt.bindText  (12, transaction->updatedAt);
     if (stmt.step() == SQLITE_DONE)
         insertTxProperties(pimpl_->db->handle(), *transaction);
 }
@@ -143,21 +150,22 @@ void SqliteTransactionRepository::removeTransaction(const std::string& id) {
 void SqliteTransactionRepository::updateTransaction(const std::shared_ptr<Transaction>& transaction) {
     if (!transaction || transaction->id.empty()) return;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "UPDATE transactions SET name=?, booking_date=?, amount=?, description=?,"
-        " statement_id=?, status=?, actor_id=?, allocatable=?, contract_id=?, valuta=?"
+        "UPDATE transactions SET name=?, booking_date=?, amount=?,"
+        " statement_id=?, status=?, actor_id=?, allocatable=?, contract_id=?, valuta=?, created_at=?, updated_at=?"
         " WHERE id=?;");
     if (!stmt) return;
     stmt.bindText  (1, transaction->name);
     stmt.bindText  (2, transaction->bookingDate);
     stmt.bindDouble(3, transaction->amount);
-    stmt.bindText  (4, transaction->description);
-    bindNullableText(stmt, 5, transaction->statementId);
-    stmt.bindInt   (6, static_cast<int>(transaction->status));
-    bindNullableText(stmt, 7, transaction->actorId);
-    stmt.bindInt   (8, transaction->allocatable ? 1 : 0);
-    bindNullableText(stmt, 9, transaction->contractId);
-    stmt.bindText  (10, transaction->valuta);
-    stmt.bindText  (11, transaction->id);
+    bindNullableText(stmt, 4, transaction->statementId);
+    stmt.bindInt   (5, static_cast<int>(transaction->status));
+    bindNullableText(stmt, 6, transaction->actorId);
+    stmt.bindInt   (7, transaction->allocatable ? 1 : 0);
+    bindNullableText(stmt, 8, transaction->contractId);
+    stmt.bindText  (9, transaction->valuta);
+    stmt.bindText  (10, transaction->createdAt);
+    stmt.bindText  (11, transaction->updatedAt);
+    stmt.bindText  (12, transaction->id);
     stmt.step();
     deleteTxProperties(pimpl_->db->handle(), transaction->id);
     insertTxProperties(pimpl_->db->handle(), *transaction);
@@ -167,12 +175,12 @@ void SqliteTransactionRepository::upsertTransaction(const std::shared_ptr<Transa
     if (!transaction || transaction->id.empty()) return;
 
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "INSERT INTO transactions (id, name, booking_date, amount, description, statement_id, status, actor_id, allocatable, contract_id, valuta) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+        "INSERT INTO transactions (id, name, booking_date, amount, statement_id, status, actor_id, allocatable, contract_id, valuta, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
         "ON CONFLICT(id) DO UPDATE SET "
-        "name = excluded.name, booking_date = excluded.booking_date, amount = excluded.amount, description = excluded.description, "
+        "name = excluded.name, booking_date = excluded.booking_date, amount = excluded.amount, "
         "statement_id = excluded.statement_id, status = excluded.status, actor_id = excluded.actor_id, allocatable = excluded.allocatable, "
-        "contract_id = excluded.contract_id, valuta = excluded.valuta;"
+        "contract_id = excluded.contract_id, valuta = excluded.valuta, created_at = excluded.created_at, updated_at = excluded.updated_at;"
     );
     if (!stmt) {
         return;
@@ -182,13 +190,14 @@ void SqliteTransactionRepository::upsertTransaction(const std::shared_ptr<Transa
     stmt.bindText  (2, transaction->name);
     stmt.bindText  (3, transaction->bookingDate);
     stmt.bindDouble(4, transaction->amount);
-    stmt.bindText  (5, transaction->description);
-    bindNullableText(stmt, 6, transaction->statementId);
-    stmt.bindInt   (7, static_cast<int>(transaction->status));
-    bindNullableText(stmt, 8, transaction->actorId);
-    stmt.bindInt   (9, transaction->allocatable ? 1 : 0);
-    bindNullableText(stmt, 10, transaction->contractId);
-    stmt.bindText  (11, transaction->valuta);
+    bindNullableText(stmt, 5, transaction->statementId);
+    stmt.bindInt   (6, static_cast<int>(transaction->status));
+    bindNullableText(stmt, 7, transaction->actorId);
+    stmt.bindInt   (8, transaction->allocatable ? 1 : 0);
+    bindNullableText(stmt, 9, transaction->contractId);
+    stmt.bindText  (10, transaction->valuta);
+    stmt.bindText  (11, transaction->createdAt);
+    stmt.bindText  (12, transaction->updatedAt);
 
     stmt.step();
 

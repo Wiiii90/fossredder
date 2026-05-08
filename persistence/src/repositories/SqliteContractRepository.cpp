@@ -1,8 +1,12 @@
+/**
+ * @file persistence/src/repositories/SqliteContractRepository.cpp
+ * @brief Implements the SQLite-backed contract repository.
+ */
+
 #include "persistence/repositories/SqliteContractRepository.h"
 #include "persistence/StmtGuard.h"
 #include "core/models/Contract.h"
 #include "persistence/SqliteDb.h"
-#include "core/utils/Time.h"
 #include <sqlite3.h>
 #include <algorithm>
 #include <unordered_map>

@@ -142,28 +142,26 @@ TransactionSelection::TransactionSelection(QObject* parent)
 
 void TransactionSelection::clear()
 {
-    set({}, {}, {}, 0.0, {}, {}, {}, {}, false);
+    set({}, {}, {}, 0.0, {}, {}, {}, false);
 }
 
 void TransactionSelection::set(QString id,
                                QString name,
                                QString bookingDate,
                                double amount,
-                               QString description,
                                QString statementId,
                                QString actorId,
                                QStringList propertyIds,
                                bool allocatable)
 {
-    if (std::tie(id_, name_, bookingDate_, amount_, description_, statementId_, actorId_, propertyIds_, allocatable_)
-        == std::tie(id, name, bookingDate, amount, description, statementId, actorId, propertyIds, allocatable)) {
+    if (std::tie(id_, name_, bookingDate_, amount_, statementId_, actorId_, propertyIds_, allocatable_)
+        == std::tie(id, name, bookingDate, amount, statementId, actorId, propertyIds, allocatable)) {
         return;
     }
     id_ = std::move(id);
     name_ = std::move(name);
     bookingDate_ = std::move(bookingDate);
     amount_ = amount;
-    description_ = std::move(description);
     statementId_ = std::move(statementId);
     actorId_ = std::move(actorId);
     propertyIds_ = std::move(propertyIds);
@@ -322,12 +320,11 @@ void SelectionState::refreshSelectedTransaction()
         for (const auto& propertyId : transaction.propertyIds) propertyIds.push_back(QString::fromStdString(propertyId));
         selection.set(QString::fromStdString(transaction.id),
                       QString::fromStdString(transaction.name),
-                      QString::fromStdString(transaction.bookingDate),
-                      transaction.amount,
-                      QString::fromStdString(transaction.description),
-                      QString::fromStdString(transaction.statementId),
-                      QString::fromStdString(transaction.actorId),
-                      propertyIds,
+                      QString::fromStdString(transaction.bookingDate), // Keep this line
+                      transaction.amount, // Keep this line
+                      QString::fromStdString(transaction.statementId), // Keep this line
+                      QString::fromStdString(transaction.actorId), // Keep this line
+                      propertyIds, // Keep this line
                       transaction.allocatable);
     });
 }

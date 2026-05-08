@@ -43,7 +43,7 @@ Controls.Panel {
             onTextEdited: if (root.txRoot && root.txRoot.draft) {
                 root.txRoot.draft.transactions.setActorText(root.txRoot.draft.currentIndex, text)
                 root.txRoot.draft.transactions.setActorId(root.txRoot.draft.currentIndex, "")
-                root.txRoot.draft.transactions.setNewActorSelected(root.txRoot.draft.currentIndex, true)
+                root.txRoot.draft.transactions.setActorSelected(root.txRoot.draft.currentIndex, true)
             }
 
             onAccepted: {
@@ -53,13 +53,13 @@ Controls.Panel {
                 if (row && row.id !== undefined) root.draftController.selectCurrentActorChoice(root.txRoot.draft, row)
                 else if (root.txRoot.draft) {
                     root.txRoot.draft.transactions.setActorText(root.txRoot.draft.currentIndex, text)
-                    root.txRoot.draft.transactions.setNewActorSelected(root.txRoot.draft.currentIndex, true)
+                    root.txRoot.draft.transactions.setActorSelected(root.txRoot.draft.currentIndex, true)
                 }
             }
         }
 
         Label {
-            text: root.txRoot && root.txRoot.draft && root.txRoot.draft.current ? (root.txRoot.draft.current.newActorSelected && (!root.txRoot.draft.current.actorText || root.txRoot.draft.current.actorText.length === 0)
+            text: root.txRoot && root.txRoot.draft && root.txRoot.draft.current ? (root.txRoot.draft.current.actorSelected && (!root.txRoot.draft.current.actorText || root.txRoot.draft.current.actorText.length === 0)
                 ? qsTr("New Actor")
                 : (root.txRoot.actorTopSuggestion().label
                     ? qsTr("Confidence: %1% — %2").arg(root.txRoot.suggestionConfidencePercent(root.txRoot.actorTopSuggestion())).arg(root.txRoot.actorTopSuggestion().label)

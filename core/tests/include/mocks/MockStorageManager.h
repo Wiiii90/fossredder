@@ -10,7 +10,6 @@ using core::domain::AppState;
 
 class MockStorageManager : public core::storage::IStorageManager {
 public:
-    MOCK_METHOD(void, setRepoFactory, (RepoFactory), (override));
     MOCK_METHOD(void, setAtomicStoreSave, (AtomicStoreSave), (override));
     MOCK_METHOD(void, setAtomicStoreLoad, (AtomicStoreLoad), (override));
     MOCK_METHOD(void, setDeletionImpactCallback, (DeletionImpactCallback), (override));

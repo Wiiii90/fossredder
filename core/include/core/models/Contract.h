@@ -20,13 +20,14 @@ public:
     std::string id;
     std::string name;
     std::string type;
-    std::string createdAt;
-    std::string updatedAt;
     std::vector<std::string> actorIds;
     std::vector<std::string> propertyIds;
     std::vector<Alias> aliases;
     std::vector<AliasUsage> aliasUsage;
+
+    std::string createdAt;
+    std::string updatedAt;
 };
 
-}
+} // namespace core::domain
 

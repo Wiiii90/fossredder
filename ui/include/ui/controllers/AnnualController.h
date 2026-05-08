@@ -48,7 +48,7 @@ public:
      */
     Q_INVOKABLE QString addAnnual(const QString& name,
                                   int year,
-                                  const QStringList& assignedAnalysisIds = {});
+                                  const QStringList& analysisIds = {});
 
     /** @brief Update an existing annual aggregate.
      *  @param id Annual identifier
@@ -58,7 +58,7 @@ public:
     Q_INVOKABLE void updateAnnual(const QString& id,
                                   const QString& name,
                                   int year,
-                                  const QStringList& assignedAnalysisIds = {});
+                                  const QStringList& analysisIds = {});
 
     /** @brief Create or update an annual aggregate based on identifier presence.
      *  @param id Annual identifier (empty to create)
@@ -69,7 +69,7 @@ public:
     Q_INVOKABLE QString saveAnnual(const QString& id,
                                    const QString& name,
                                    int year,
-                                   const QStringList& assignedAnalysisIds = {});
+                                   const QStringList& analysisIds = {});
 
     /** @brief Delete an annual aggregate by identifier.
      *  @param id Annual identifier

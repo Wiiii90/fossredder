@@ -22,7 +22,6 @@ const QVector<int>& transactionRoles()
         TransactionList::BookingDateRole,
         TransactionList::ValutaRole,
         TransactionList::AmountRole,
-        TransactionList::DescriptionRole,
         TransactionList::StatusRole,
         TransactionList::ActorIdRole,
         TransactionList::MetadataRole,
@@ -67,7 +66,6 @@ void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& tr
     map[payload::keys::transaction::kBookingDate] = QString::fromStdString(transaction.bookingDate);
     map[payload::keys::transaction::kValuta] = QString::fromStdString(transaction.valuta);
     map[payload::keys::common::kAmount] = transaction.amount;
-    map[payload::keys::common::kDescription] = QString::fromStdString(transaction.description);
     map[payload::keys::common::kStatus] = static_cast<int>(transaction.status);
     map[payload::keys::transaction::kActorId] = QString::fromStdString(transaction.actorId);
     map[payload::keys::common::kMetadata] = QString();
@@ -92,7 +90,6 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case BookingDateRole: return QString::fromStdString(t.bookingDate);
     case ValutaRole: return QString::fromStdString(t.valuta);
     case AmountRole: return t.amount;
-    case DescriptionRole: return QString::fromStdString(t.description);
     case StatusRole: return static_cast<int>(t.status);
     case ActorIdRole: return QString::fromStdString(t.actorId);
     case MetadataRole: return QString();
@@ -112,7 +109,6 @@ QHash<int, QByteArray> TransactionList::roleNames() const
     roles[BookingDateRole] = payload::keys::transaction::kBookingDate.toUtf8();
     roles[ValutaRole] = payload::keys::transaction::kValuta.toUtf8();
     roles[AmountRole] = payload::keys::common::kAmount.toUtf8();
-    roles[DescriptionRole] = payload::keys::common::kDescription.toUtf8();
     roles[StatusRole] = payload::keys::common::kStatus.toUtf8();
     roles[ActorIdRole] = payload::keys::transaction::kActorId.toUtf8();
     roles[MetadataRole] = payload::keys::common::kMetadata.toUtf8();

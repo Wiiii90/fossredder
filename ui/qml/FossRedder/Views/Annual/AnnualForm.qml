@@ -22,8 +22,7 @@ Item {
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
     property string annualNameText: ""
     property string yearText: ""
-    property var transactionIds: []
-    property var assignedAnalysisIds: []
+    property var analysisIds: []
     property var assignedAnalysisRows: []
     property int annualWorkspaceIndex: 0
     property var annualVerificationIssues: ({ missingFromYear: 0, mixedInAnnual: 0, duplicateCount: 0, missingLive: 0 })
@@ -31,7 +30,7 @@ Item {
     property var annualTransactions: []
     property string savedAnnualNameText: ""
     property string savedYearText: ""
-    property var savedAssignedAnalysisIds: []
+    property var savedAnalysisIds: []
     Accessible.ignored: root.appContext ? root.appContext.isDebugBuild : false
     anchors.fill: parent
 
@@ -61,7 +60,7 @@ Item {
     function captureSavedState() {
         root.savedAnnualNameText = String(root.annualNameText || "")
         root.savedYearText = String(root.yearText || "")
-        root.savedAssignedAnalysisIds = root.assignedAnalysisIds ? root.assignedAnalysisIds.slice() : []
+        root.savedAnalysisIds = root.analysisIds ? root.analysisIds.slice() : []
     }
 
     function hasChanges() {
@@ -69,14 +68,13 @@ Item {
             return root.canSubmit()
         return root.savedAnnualNameText !== String(root.annualNameText || "")
                 || root.savedYearText !== String(root.yearText || "")
-                || root.normalizedList(root.savedAssignedAnalysisIds) !== root.normalizedList(root.assignedAnalysisIds)
+                || root.normalizedList(root.savedAnalysisIds) !== root.normalizedList(root.analysisIds)
     }
 
     function clearFields() {
         root.annualNameText = ""
         root.yearText = ""
-        root.transactionIds = []
-        root.assignedAnalysisIds = []
+        root.analysisIds = []
         root.assignedAnalysisRows = []
         root.annualWorkspaceIndex = 0
         root.annualVerificationIssues = ({ missingFromYear: 0, mixedInAnnual: 0, duplicateCount: 0, missingLive: 0 })
@@ -114,7 +112,7 @@ Item {
     }
 
     function rebuildAnnualDerivedState() {
-        const ids = root.assignedAnalysisIds || []
+        const ids = root.analysisIds || []
         const analyses = root.analysisRows() || []
         const snapshotById = ({})
         const duplicateCounter = ({})
@@ -208,7 +206,6 @@ Item {
                 issues.missingFromYear += 1
         }
 
-        root.transactionIds = txIds
         root.annualVerificationIssues = issues
         root.annualStatusMetrics = metrics
         root.annualTransactions = rows
@@ -251,7 +248,7 @@ Item {
 
     function availableAnalysisRows() {
         const rows = root.analysisRows() || []
-        const selectedIds = root.assignedAnalysisIds || []
+        const selectedIds = root.analysisIds || []
         const out = []
 
         for (let i = 0; i < rows.length; ++i) {
@@ -285,9 +282,8 @@ Item {
         const payload = root.annualController.annual(root.current.id)
         root.annualNameText = payload && payload.name !== undefined ? String(payload.name) : ""
         root.yearText = payload && payload.year !== undefined ? String(payload.year) : ""
-        root.transactionIds = payload && payload.transactionIds ? payload.transactionIds : []
-        root.assignedAnalysisIds = payload && payload.assignedAnalysisIds ? payload.assignedAnalysisIds : []
-        root.assignedAnalysisRows = root.resolveAssignedAnalyses(root.analysisRows(), root.assignedAnalysisIds)
+        root.analysisIds = payload && payload.analysisIds ? payload.analysisIds : []
+        root.assignedAnalysisRows = root.resolveAssignedAnalyses(root.analysisRows(), root.analysisIds)
         root.rebuildAnnualDerivedState()
         root.captureSavedState()
     }
@@ -318,7 +314,7 @@ Item {
         const annualId = root.annualController.saveAnnual(currentId,
                                                           root.annualNameText,
                                                           year,
-                                                          root.assignedAnalysisIds || [])
+                                                          root.analysisIds || [])
 
         if (!annualId || annualId.length === 0)
             return
@@ -418,10 +414,10 @@ Item {
                         theme: root.theme
                         allAnalysisRows: root.availableAnalysisRows()
                         analysisRows: root.assignedAnalysisRows
-                        selectedAnalysisIds: root.assignedAnalysisIds
+                        selectedAnalysisIds: root.analysisIds
                         onSelectionChanged: function(ids) {
-                            root.assignedAnalysisIds = ids || []
-                            root.assignedAnalysisRows = root.resolveAssignedAnalyses(root.analysisRows(), root.assignedAnalysisIds)
+                            root.analysisIds = ids || []
+                            root.assignedAnalysisRows = root.resolveAssignedAnalyses(root.analysisRows(), root.analysisIds)
                             root.rebuildAnnualDerivedState()
                         }
                     }
@@ -437,8 +433,8 @@ Item {
                 Views.AnnualVerificationPanel {
                     Layout.fillWidth: true
                     theme: root.theme
-                    assignedAnalysisCount: root.assignedAnalysisIds ? root.assignedAnalysisIds.length : 0
-                    transactionCount: root.transactionIds ? root.transactionIds.length : 0
+                    assignedAnalysisCount: root.analysisIds ? root.analysisIds.length : 0
+                    transactionCount: root.annualTransactions ? root.annualTransactions.length : 0
                     issues: root.annualVerificationIssues
                     statusMetrics: root.annualStatusMetrics
                 }

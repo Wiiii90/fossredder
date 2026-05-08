@@ -87,8 +87,7 @@ namespace annual {
 inline const auto kName = QStringLiteral("name");
 inline const auto kYear = QStringLiteral("year");
 inline const auto kVerificationState = QStringLiteral("verificationState");
-inline const auto kTransactionIds = QStringLiteral("transactionIds");
-inline const auto kAssignedAnalysisIds = QStringLiteral("assignedAnalysisIds");
+inline const auto kAnalysisIds = QStringLiteral("analysisIds");
 }
 
 namespace fileSystem {
@@ -108,12 +107,12 @@ inline const auto kStatementId = QStringLiteral("statementId");
 
 namespace draft {
 inline const auto kActorText = QStringLiteral("actorText");
-inline const auto kNewActorSelected = QStringLiteral("newActorSelected");
-inline const auto kNewContractSelected = QStringLiteral("newContractSelected");
+inline const auto kActorSelected = QStringLiteral("actorSelected");
+inline const auto kContractSelected = QStringLiteral("contractSelected");
 inline const auto kActorSuggestions = QStringLiteral("actorSuggestions");
 inline const auto kPropertySuggestions = QStringLiteral("propertySuggestions");
 inline const auto kContractSuggestions = QStringLiteral("contractSuggestions");
-inline const auto kAllocatableManualOverride = QStringLiteral("allocatableManualOverride");
+inline const auto kAllocatableSelected = QStringLiteral("allocatableSelected");
 }
 
 namespace language {

@@ -1,8 +1,12 @@
+/**
+ * @file persistence/src/repositories/SqlitePropertyRepository.cpp
+ * @brief Implements the SQLite-backed property repository.
+ */
+
 #include "persistence/repositories/SqlitePropertyRepository.h"
 #include "persistence/StmtGuard.h"
 #include "core/models/Property.h"
 #include "persistence/SqliteDb.h"
-#include "core/utils/Time.h"
 #include <sqlite3.h>
 #include <algorithm>
 #include <unordered_map>
@@ -47,7 +51,9 @@ core::domain::AliasUsage makeAliasUsage(const std::string& alias,
 
 std::vector<core::domain::AliasUsage> collectAliasUsage(const Property& property)
 {
-    if (!property.aliasUsage.empty()) return property.aliasUsage;
+    if (!property.aliasUsage.empty()) {
+        return property.aliasUsage;
+    }
 
     std::vector<core::domain::AliasUsage> out;
     out.reserve(property.aliases.size());

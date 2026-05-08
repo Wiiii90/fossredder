@@ -1,9 +1,9 @@
-#pragma once
-
 /**
  * @file core/include/core/repositories/IStatementRepository.h
  * @brief Repository interface for core::domain::Statement persistence operations.
  */
+
+#pragma once
 
 #include <memory>
 #include <optional>
@@ -25,15 +25,15 @@ public:
     virtual void addStatement(const std::shared_ptr<core::domain::Statement>& statement) = 0;
 
     /**
-     * @brief Return all statements stored in the repository.
-     * @return Vector of shared_ptr to core::domain::Statement.
+     * @brief Retrieve all stored statements.
+     * @return A vector of shared pointers to all statements stored in the repository.
      */
     virtual std::vector<std::shared_ptr<core::domain::Statement>> getStatements() const = 0;
 
     /**
      * @brief Retrieve a statement by its identifier.
-     * @param id core::domain::Statement identifier string.
-     * @return Optional shared_ptr to core::domain::Statement if found.
+     * @param id Core statement identifier.
+     * @return A shared pointer to the statement with the requested identifier, if found.
      */
     virtual std::optional<std::shared_ptr<core::domain::Statement>> getStatementById(const std::string& id) const = 0;
 

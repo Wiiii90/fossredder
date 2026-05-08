@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "core/models/AppState.h"
-#include "persistence/AppStateStoreResult.h"
+#include "core/models/DeletionImpact.h"
 
 class SqliteDb;
 
@@ -23,7 +23,7 @@ public:
     /** @brief Loads the complete persisted application state from the database. */
     core::domain::AppState load();
     /** @brief Saves the complete application state and reports deletion impact details. */
-    AppStateStoreResult save(const core::domain::AppState& state);
+    core::domain::DeletionImpact save(const core::domain::AppState& state);
 
 private:
     std::shared_ptr<SqliteDb> db_;

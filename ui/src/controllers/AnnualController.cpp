@@ -41,7 +41,7 @@ QVariantList AnnualController::annuals() const
 
 QString AnnualController::addAnnual(const QString& name,
                                     int year,
-                                    const QStringList& assignedAnalysisIds)
+                                    const QStringList& analysisIds)
 {
     return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::annual::kAdd, {},
@@ -49,14 +49,14 @@ QString AnnualController::addAnnual(const QString& name,
             return QString::fromStdString(
                 core_->addAnnual(strings::toStdString(name),
                                  year,
-                                 strings::toStdList(assignedAnalysisIds)));
+                                 strings::toStdList(analysisIds)));
         });
 }
 
 void AnnualController::updateAnnual(const QString& id,
                                     const QString& name,
                                     int year,
-                                    const QStringList& assignedAnalysisIds)
+                                    const QStringList& analysisIds)
 {
     ui::util::guard::invokeVoid(
         core_, observability::origins::controller::annual::kUpdate,
@@ -64,20 +64,20 @@ void AnnualController::updateAnnual(const QString& id,
             core_->updateAnnual(strings::toStdString(id),
                                 strings::toStdString(name),
                                 year,
-                                strings::toStdList(assignedAnalysisIds));
+                                strings::toStdList(analysisIds));
         });
 }
 
 QString AnnualController::saveAnnual(const QString& id,
                                      const QString& name,
                                      int year,
-                                     const QStringList& assignedAnalysisIds)
+                                     const QStringList& analysisIds)
 {
     if (id.isEmpty()) {
-        return addAnnual(name, year, assignedAnalysisIds);
+        return addAnnual(name, year, analysisIds);
     }
 
-    updateAnnual(id, name, year, assignedAnalysisIds);
+    updateAnnual(id, name, year, analysisIds);
     return id;
 }
 

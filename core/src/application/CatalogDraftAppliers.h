@@ -88,11 +88,11 @@ inline void applyAnalysisDraft(Analysis& analysis, const AnalysisInput& input)
 inline void applyAnnualDraft(Annual& annual,
                              const std::string& name,
                              int year,
-                             const std::vector<std::string>& assignedAnalysisIds)
+                             const std::vector<std::string>& analysisIds)
 {
     annual.name = name;
     annual.year = year;
-    annual.assignedAnalysisIds = assignedAnalysisIds;
+    annual.analysisIds = analysisIds;
 }
 
 inline void applyTransactionDraft(Transaction& tx, const TransactionInput& input)
@@ -100,7 +100,6 @@ inline void applyTransactionDraft(Transaction& tx, const TransactionInput& input
     tx.name = input.name;
     tx.bookingDate = input.bookingDate;
     tx.amount = input.amount;
-    tx.description = input.description;
     tx.statementId = input.statementId;
     tx.status = input.status;
     tx.actorId = input.actorId;

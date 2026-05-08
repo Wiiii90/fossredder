@@ -14,22 +14,17 @@
 
 #include "core/models/AppState.h"
 #include "core/models/DeletionImpact.h"
-#include "core/storage/RepositoryBundle.h"
 
 namespace core::storage {
 
 class IStorageManager {
 public:
-    using Repositories = RepositoryBundle;
-
-    using RepoFactory = std::function<Repositories(const std::string& dbPath)>;
     using AtomicStoreSave = std::function<core::domain::DeletionImpact(const std::string& dbPath, const core::domain::AppState& state)>;
     using AtomicStoreLoad = std::function<core::domain::AppState(const std::string& dbPath)>;
     using DeletionImpactCallback = std::function<void(const core::domain::DeletionImpact&)>;
 
     virtual ~IStorageManager() = default;
 
-    virtual void setRepoFactory(RepoFactory factory) = 0;
     virtual void setAtomicStoreSave(AtomicStoreSave saveFn) = 0;
     virtual void setAtomicStoreLoad(AtomicStoreLoad loadFn) = 0;
     virtual void setDeletionImpactCallback(DeletionImpactCallback cb) = 0;

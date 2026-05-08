@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -23,14 +24,12 @@ public:
     std::string valuta;
     double amount = 0.0;
 
-    std::string description;
-
     std::string actorText;
     std::string propertyText;
     std::string actorId;
-    bool newActorSelected = false;
+    bool actorSelected = false;
     std::string contractId;
-    bool newContractSelected = false;
+    bool contractSelected = false;
 
     std::string metadata;
     std::vector<uint8_t> proofImageData;
@@ -38,11 +37,13 @@ public:
     std::string type;
 
     bool allocatable = false;
-    bool allocatableManualOverride = false;
+    bool allocatableSelected = false;
 
     Transaction::Status status = Transaction::Status::Unverified;
 
     std::vector<std::string> propertyIds;
+    std::string createdAt;
+    std::string updatedAt;
 };
 
 } // namespace core::domain

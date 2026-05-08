@@ -34,17 +34,16 @@ core::importing::DraftLinkSelection toCoreSelection(const TransactionDraft& draf
 {
     core::importing::DraftLinkSelection out;
     out.name = ui::strings::toStdString(draft.name);
-    out.description = ui::strings::toStdString(draft.description);
     out.metadata = ui::strings::toStdString(draft.metadata);
     out.actorText = ui::strings::toStdString(draft.actorText);
     out.propertyText = ui::strings::toStdString(draft.propertyText);
     out.actorId = ui::strings::toStdString(draft.actorId);
-    out.newActorSelected = draft.newActorSelected;
+    out.actorSelected = draft.actorSelected;
     out.contractId = ui::strings::toStdString(draft.contractId);
-    out.newContractSelected = draft.newContractSelected;
+    out.contractSelected = draft.contractSelected;
     out.type = ui::strings::toStdString(draft.type);
     out.allocatable = draft.allocatable;
-    out.allocatableManualOverride = draft.allocatableManualOverride;
+    out.allocatableSelected = draft.allocatableSelected;
     out.propertyIds = ui::strings::toStdList(draft.propertyIds);
     out.actorSuggestions = toCoreBucket(draft.suggestions.actor);
     out.propertySuggestions = toCoreBucket(draft.suggestions.property);

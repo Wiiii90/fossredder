@@ -112,7 +112,6 @@ inline QVariantMap toPayload(const core::domain::Transaction& transaction)
     payload[ui::payload::keys::transaction::kContractId] = QString::fromStdString(transaction.contractId);
     payload[ui::payload::keys::transaction::kActorId] = QString::fromStdString(transaction.actorId);
     payload[ui::payload::keys::statement::kStatementId] = QString::fromStdString(transaction.statementId);
-    payload[ui::payload::keys::common::kDescription] = QString::fromStdString(transaction.description);
     payload[ui::payload::keys::transaction::kAllocatable] = transaction.allocatable;
     payload[ui::payload::keys::transaction::kPropertyIds] = ui::payload::mapper::toVariantStringList(transaction.propertyIds);
     return payload;
@@ -125,9 +124,7 @@ inline QVariantMap toPayload(const core::domain::Annual& annual)
     payload[ui::payload::keys::common::kId] = QString::fromStdString(annual.id);
     payload[ui::payload::keys::annual::kName] = QString::fromStdString(annual.name);
     payload[ui::payload::keys::annual::kYear] = annual.year;
-    payload[ui::payload::keys::annual::kVerificationState] = static_cast<int>(annual.verificationState);
-    payload[ui::payload::keys::annual::kTransactionIds] = ui::payload::mapper::toVariantStringList(annual.transactionIds);
-    payload[ui::payload::keys::annual::kAssignedAnalysisIds] = ui::payload::mapper::toVariantStringList(annual.assignedAnalysisIds);
+    payload[ui::payload::keys::annual::kAnalysisIds] = ui::payload::mapper::toVariantStringList(annual.analysisIds);
     return payload;
 }
 

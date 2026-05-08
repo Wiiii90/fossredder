@@ -496,9 +496,7 @@ QVariantList buildAnnualRows(const SessionStore& session)
         row.insert(ui::payload::keys::common::kId, QString::fromStdString(annual->id));
         row.insert(ui::payload::keys::annual::kName, QString::fromStdString(annual->name));
         row.insert(ui::payload::keys::annual::kYear, annual->year);
-        row.insert(ui::payload::keys::annual::kVerificationState, static_cast<int>(annual->verificationState));
-        row.insert(ui::payload::keys::annual::kTransactionIds, payload::mapper::toVariantStringList(annual->transactionIds));
-        row.insert(ui::payload::keys::annual::kAssignedAnalysisIds, payload::mapper::toVariantStringList(annual->assignedAnalysisIds));
+        row.insert(ui::payload::keys::annual::kAnalysisIds, payload::mapper::toVariantStringList(annual->analysisIds));
         row.insert(ui::payload::keys::common::kDisplay,
                    annual->name.empty() ? QString::number(annual->year)
                                         : QString::fromStdString(annual->name));

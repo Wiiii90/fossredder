@@ -127,6 +127,11 @@ void SessionMutationState::applyDeletionImpact(
                    [](const QString &) {});
   removeDeletedIds(impact.deletedContractIds, models.contracts(),
                    [](const QString &) {});
+
+  removeDeletedIds(impact.deletedAnalysisIds, models.analyses(),
+                   [](const QString &) {});
+  removeDeletedIds(impact.deletedAnnualIds, models.annuals(),
+                   [](const QString &) {});
 }
 
 void SessionMutationState::setTransactionPropertyIdsImmediate(

@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -18,28 +17,10 @@ public:
     std::string id;
     std::string name;
     int year = 0;
-    std::vector<std::string> transactionIds;
-    std::vector<std::string> assignedAnalysisIds;
+    std::vector<std::string> analysisIds;
 
-    enum class VerificationState : int {
-        Draft = 0,
-        Verified = 1,
-        Locked = 2
-    };
-
-    VerificationState verificationState = VerificationState::Draft;
     std::string createdAt;
     std::string updatedAt;
-    int schemaVersion = 1;
-
-    void assignAnalysis(const std::string& analysisId) {
-        for (const auto& a : assignedAnalysisIds) if (a == analysisId) return;
-        assignedAnalysisIds.push_back(analysisId);
-    }
-
-    void unassignAnalysis(const std::string& analysisId) {
-        assignedAnalysisIds.erase(std::remove(assignedAnalysisIds.begin(), assignedAnalysisIds.end(), analysisId), assignedAnalysisIds.end());
-    }
 };
 
 }

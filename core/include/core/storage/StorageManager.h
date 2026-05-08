@@ -24,15 +24,12 @@ namespace core::storage {
 
 class StorageManager : public IStorageManager {
 public:
-    using Repositories = IStorageManager::Repositories;
-    using RepoFactory = IStorageManager::RepoFactory;
     using AtomicStoreSave = IStorageManager::AtomicStoreSave;
     using AtomicStoreLoad = IStorageManager::AtomicStoreLoad;
     using DeletionImpactCallback = IStorageManager::DeletionImpactCallback;
 
     explicit StorageManager(std::shared_ptr<IRegistry> registry = nullptr);
 
-    void setRepoFactory(RepoFactory factory) override;
     void setAtomicStoreSave(AtomicStoreSave saveFn) override;
     void setAtomicStoreLoad(AtomicStoreLoad loadFn) override;
     void setDeletionImpactCallback(DeletionImpactCallback cb) override;
@@ -46,13 +43,10 @@ public:
 private:
     std::shared_ptr<IRegistry> registry_;
     std::string currentPath_;
-    RepoFactory repoFactory_;
     AtomicStoreSave atomicSave_;
     AtomicStoreLoad atomicLoad_;
     DeletionImpactCallback onDeletionImpact_;
-
     void rememberLatestPath(const std::string& filePath);
-    Repositories reposForCurrent() const;
 };
 
 }

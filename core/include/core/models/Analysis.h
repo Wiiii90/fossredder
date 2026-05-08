@@ -8,8 +8,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "core/constants/CoreDefaults.h"
-
 namespace core::domain {
 
 class Analysis {
@@ -28,7 +26,6 @@ public:
     std::unordered_map<std::string, double> adjustments;
     std::string createdAt;
     std::string updatedAt;
-    int schemaVersion = core::constants::analysis::kSchemaVersion;
 };
 
 }

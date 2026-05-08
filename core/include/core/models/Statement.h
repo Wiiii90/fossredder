@@ -6,6 +6,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace core::domain {
 
@@ -15,7 +16,10 @@ public:
 
     std::string id;
     std::string name;
+    std::vector<std::string> transactionIds;
+    std::string createdAt;
+    std::string updatedAt;
 };
 
-}
+} // namespace core::domain
 

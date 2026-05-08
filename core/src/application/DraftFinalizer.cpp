@@ -54,7 +54,6 @@ std::string DraftFinalizer::finalize(core::domain::AppState& state, const core::
         transaction->name       = item.name;
         transaction->bookingDate = item.bookingDate;
         transaction->amount     = item.amount;
-        transaction->description = item.description;
         transaction->statementId = statement->id;
         transaction->status     = item.status;
         transaction->actorId    = item.actorId;

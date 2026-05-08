@@ -48,7 +48,6 @@ public:
      *  @param name Transaction name
      *  @param bookingDate Booking date string
      *  @param amount Transaction amount
-     *  @param description Transaction description
      *  @param statementId Associated statement identifier
      *  @param status Raw status integer
      *  @param actorId Optional actor identifier
@@ -59,7 +58,6 @@ public:
     Q_INVOKABLE QString addTransaction(const QString& name,
                                        const QString& bookingDate,
                                        double amount,
-                                       const QString& description,
                                        const QString& statementId,
                                        int status = static_cast<int>(core::domain::Transaction::Status::Neutral),
                                        const QString& actorId = QString(),
@@ -71,7 +69,6 @@ public:
      *  @param name Transaction name
      *  @param bookingDate Booking date string
      *  @param amount Transaction amount
-     *  @param description Transaction description
      *  @param statementId Associated statement identifier
      *  @param status Raw status integer
      *  @param actorId Optional actor identifier
@@ -82,7 +79,6 @@ public:
                                        const QString& name,
                                        const QString& bookingDate,
                                        double amount,
-                                       const QString& description,
                                        const QString& statementId,
                                        int status,
                                        const QString& actorId,

@@ -12,11 +12,6 @@
 #include "core/application/StateHydrator.h"
 #include "core/application/StateProjector.h"
 
-#include "core/models/AppState.h"
-#include "core/models/Actor.h"
-#include "core/models/Analysis.h"
-#include "core/models/Annual.h"
-#include "core/models/Contract.h"
 #include "core/repositories/IActorRepository.h"
 #include "core/repositories/IAnalysisRepository.h"
 #include "core/repositories/IAnnualRepository.h"
@@ -29,14 +24,6 @@
 #include "core/repositories/ITransactionRepository.h"
 #include "core/repositories/ITransactionDraftRepository.h"
 #include "core/storage/RepositoryBundle.h"
-
-#include "core/models/Property.h"
-#include "core/models/ImportLog.h"
-#include "core/models/ExportLog.h"
-#include "core/models/Statement.h"
-#include "core/models/StatementDraft.h"
-#include "core/models/Transaction.h"
-#include "core/models/TransactionDraft.h"
 
 namespace core::application {
 
@@ -56,6 +43,19 @@ template <typename RepoPtr, typename Collection, typename UpsertFn>
 void upsertCollection(const RepoPtr& repo, const Collection& items, UpsertFn&& upsert)
 {
     if (!repo) return;
+    for (const auto& item : items) {
+        if (!item) continue;
+        upsert(*repo, item);
+    }
+}
+
+/** @brief Replaces all items in a repository with the provided collection. */
+template <typename RepoPtr, typename Collection, typename ClearFn, typename UpsertFn>
+void replaceCollection(const RepoPtr& repo, const Collection& items, ClearFn&& clear, UpsertFn&& upsert)
+{
+    if (!repo) return;
+
+    clear(*repo);
     for (const auto& item : items) {
         if (!item) continue;
         upsert(*repo, item);
@@ -122,42 +122,22 @@ void AppStateManager::save(const AppState& state) {
     upsertCollection(impl_->repos.transactions, projected.transactions, [](auto& repo, const auto& transaction) { repo.upsertTransaction(transaction); });
     upsertCollection(impl_->repos.analyses, projected.analyses, [](auto& repo, const auto& analysis) { repo.upsertAnalysis(analysis); });
     upsertCollection(impl_->repos.annuals, projected.annuals, [](auto& repo, const auto& annual) { repo.upsertAnnual(annual); });
-    if (impl_->repos.importLogs) {
-        impl_->repos.importLogs->clearImportLogs();
-        for (const auto& item : projected.importLogs) {
-            if (!item) continue;
-            impl_->repos.importLogs->upsertImportLog(item);
-        }
-    }
-    if (impl_->repos.exportLogs) {
-        impl_->repos.exportLogs->clearExportLogs();
-        for (const auto& item : projected.exportLogs) {
-            if (!item) continue;
-            impl_->repos.exportLogs->upsertExportLog(item);
-        }
-    }
-
-    if (impl_->repos.statementDrafts) {
-        impl_->repos.statementDrafts->clearStatementDrafts();
-        for (const auto& item : projected.statementDrafts) {
-            if (!item) continue;
-            impl_->repos.statementDrafts->upsertStatementDraft(item);
-        }
-    }
-
-    if (impl_->repos.transactionDrafts) {
-        std::vector<std::shared_ptr<core::domain::TransactionDraft>> transactionDrafts;
-        transactionDrafts.reserve(projected.transactionDrafts.size());
-        for (const auto& item : projected.transactionDrafts) {
-            if (!item) continue;
-            transactionDrafts.push_back(item);
-        }
-
-        impl_->repos.transactionDrafts->clearTransactionDrafts();
-        for (const auto& draft : transactionDrafts) {
-            impl_->repos.transactionDrafts->upsertTransactionDraft(draft);
-        }
-    }
+    replaceCollection(impl_->repos.importLogs,
+                      projected.importLogs,
+                      [](auto& repo) { repo.clearImportLogs(); },
+                      [](auto& repo, const auto& item) { repo.upsertImportLog(item); });
+    replaceCollection(impl_->repos.exportLogs,
+                      projected.exportLogs,
+                      [](auto& repo) { repo.clearExportLogs(); },
+                      [](auto& repo, const auto& item) { repo.upsertExportLog(item); });
+    replaceCollection(impl_->repos.statementDrafts,
+                      projected.statementDrafts,
+                      [](auto& repo) { repo.clearStatementDrafts(); },
+                      [](auto& repo, const auto& item) { repo.upsertStatementDraft(item); });
+    replaceCollection(impl_->repos.transactionDrafts,
+                      projected.transactionDrafts,
+                      [](auto& repo) { repo.clearTransactionDrafts(); },
+                      [](auto& repo, const auto& item) { repo.upsertTransactionDraft(item); });
 }
 
 void AppStateManager::setStrictValidation(bool enabled) noexcept

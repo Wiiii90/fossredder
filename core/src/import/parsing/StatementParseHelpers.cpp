@@ -808,7 +808,6 @@ void appendTransactionsFromBlocks(const std::vector<TransactionBlock>& blocks,
         tx.bookingDate = parsed.bookingDate;
         tx.valuta = parsed.valuta;
         tx.amount = parsed.amount;
-        tx.description = parsed.description;
         const auto blockMetadata = fullBlockMetadata(block);
         tx.metadata = !blockMetadata.empty() ? blockMetadata : parsed.metadata;
 

@@ -13,16 +13,10 @@
 #include <stdexcept>
 #include <utility>
 
-#include "core/application/AppStateManager.h"
-
 namespace core::storage {
 
 StorageManager::StorageManager(std::shared_ptr<IRegistry> registry)
     : registry_(std::move(registry)) {
-}
-
-void StorageManager::setRepoFactory(RepoFactory factory) {
-    repoFactory_ = std::move(factory);
 }
 
 void StorageManager::setAtomicStoreSave(AtomicStoreSave saveFn) {
@@ -50,20 +44,12 @@ AppState StorageManager::loadFrom(const std::string& filePath) {
     const std::string previousPath = currentPath_;
     currentPath_ = filePath;
 
-    if (atomicLoad_) {
-        try {
-            const AppState state = atomicLoad_(currentPath_);
-            rememberLatestPath(filePath);
-            return state;
-        } catch (...) {
-            currentPath_ = previousPath;
-            throw;
-        }
-    }
-
     try {
-        core::application::AppStateManager mgr(reposForCurrent());
-        const AppState state = mgr.load();
+        if (!atomicLoad_) {
+            throw std::runtime_error("Atomic store load callback not configured");
+        }
+
+        const AppState state = atomicLoad_(currentPath_);
         rememberLatestPath(filePath);
         return state;
     } catch (...) {
@@ -81,22 +67,14 @@ void StorageManager::saveAs(const std::string& filePath, const AppState& state) 
     const std::string previousPath = currentPath_;
     currentPath_ = filePath;
 
-    if (atomicSave_) {
-        try {
-            DeletionImpact impact = atomicSave_(currentPath_, state);
-            rememberLatestPath(filePath);
-            if (onDeletionImpact_ && !impact.empty()) onDeletionImpact_(impact);
-            return;
-        } catch (...) {
-            currentPath_ = previousPath;
-            throw;
-        }
-    }
-
     try {
-        core::application::AppStateManager mgr(reposForCurrent());
-        mgr.save(state);
+        if (!atomicSave_) {
+            throw std::runtime_error("Atomic store save callback not configured");
+        }
+
+        DeletionImpact impact = atomicSave_(currentPath_, state);
         rememberLatestPath(filePath);
+        if (onDeletionImpact_ && !impact.empty()) onDeletionImpact_(impact);
     } catch (...) {
         currentPath_ = previousPath;
         throw;
@@ -113,17 +91,9 @@ void StorageManager::createNew(const std::string& filePath) {
 
     if (atomicLoad_) {
         (void)atomicLoad_(currentPath_);
-    } else {
-        (void)reposForCurrent();
     }
 
     rememberLatestPath(filePath);
-}
-
-StorageManager::Repositories StorageManager::reposForCurrent() const {
-    if (!repoFactory_) throw std::runtime_error("RepoFactory not configured");
-    if (currentPath_.empty()) throw std::runtime_error("No file opened");
-    return repoFactory_(currentPath_);
 }
 
 }

@@ -36,7 +36,6 @@ struct TransactionInput {
     std::string name;
     std::string bookingDate;
     double amount = 0.0;
-    std::string description;
     std::string statementId;
     core::domain::Transaction::Status status = core::domain::Transaction::Status::Neutral;
     std::string actorId;
@@ -85,12 +84,12 @@ public:
     std::string addAnnual(core::domain::AppState& state,
                           const std::string& name,
                           int year,
-                          const std::vector<std::string>& assignedAnalysisIds = {}) const;
+                          const std::vector<std::string>& analysisIds = {}) const;
     bool updateAnnual(core::domain::AppState& state,
                       const std::string& id,
                       const std::string& name,
                       int year,
-                      const std::vector<std::string>& assignedAnalysisIds = {}) const;
+                      const std::vector<std::string>& analysisIds = {}) const;
     bool deleteAnnual(core::domain::AppState& state, const std::string& id) const;
 };
 

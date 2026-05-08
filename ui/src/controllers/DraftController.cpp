@@ -67,7 +67,6 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
     const auto& drafts = draft->transactions()->drafts();
     input.id = ui::strings::toStdString(draft->draftId());
     input.name = ui::strings::toStdString(draft->name());
-    input.currentTransactionIndex = draft->currentIndex();
     input.transactions.reserve(drafts.size());
 
     const auto appState = matchingStateForDraft(draft, core);
@@ -77,8 +76,6 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
         transaction.bookingDate = ui::strings::toStdString(draftTransaction.bookingDate);
         transaction.valuta = ui::strings::toStdString(draftTransaction.valuta);
         transaction.amount = draftTransaction.amount;
-        transaction.description = ui::strings::toStdString(draftTransaction.description);
-        transaction.metadata = ui::strings::toStdString(draftTransaction.metadata);
         if (!draftTransaction.proofImageData.isEmpty()) {
             const QByteArray imageBytes = QByteArray::fromBase64(draftTransaction.proofImageData.toLatin1());
             if (!imageBytes.isEmpty()) {
@@ -88,7 +85,7 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
         transaction.status = static_cast<core::domain::Transaction::Status>(draftTransaction.status);
 
         QString actorId = draftTransaction.actorId;
-        if (actorId.isEmpty() && (!draftTransaction.actorText.trimmed().isEmpty() || draftTransaction.newActorSelected)) {
+        if (actorId.isEmpty() && (!draftTransaction.actorText.trimmed().isEmpty() || draftTransaction.actorSelected)) {
             actorId = QString::fromStdString(core::importing::resolveActorId(appState, ui::strings::toStdString(draftTransaction.actorText)));
             if (actorId.isEmpty()) {
                 const QString actorName = draftTransaction.actorText.trimmed();
@@ -100,7 +97,7 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
         }
 
         QString contractId = draftTransaction.contractId;
-        if (contractId.isEmpty() && draftTransaction.newContractSelected) {
+        if (contractId.isEmpty() && draftTransaction.contractSelected) {
             const QString contractType = draftTransaction.type.trimmed();
             if (!contractType.isEmpty()) {
                 std::vector<std::string> actorIds;
@@ -118,7 +115,7 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
 
         transaction.actorId = ui::strings::toStdString(actorId);
         transaction.contractId = ui::strings::toStdString(contractId);
-        transaction.allocatable = draftTransaction.allocatableManualOverride
+        transaction.allocatable = draftTransaction.allocatableSelected
             ? draftTransaction.allocatable
             : (core::importing::contractIsFullyAllocatable(appState, ui::strings::toStdString(contractId)) || draftTransaction.allocatable);
         transaction.propertyIds = ui::strings::toStdList(draftTransaction.propertyIds);
@@ -148,10 +145,10 @@ void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
             if (!actorRow.synthetic && !actorRow.id.empty()) {
                 const QString actorId = QString::fromStdString(actorRow.id);
                 const QString actorText = ui::importing::choiceDisplayText(actorRow);
-                changed = changed || current->actorId != actorId || current->actorText != actorText || current->newActorSelected;
+                changed = changed || current->actorId != actorId || current->actorText != actorText || current->actorSelected;
                 draft->transactions()->setActorId(index, actorId);
                 draft->transactions()->setActorText(index, actorText);
-                draft->transactions()->setNewActorSelected(index, false);
+                draft->transactions()->setActorSelected(index, false);
             }
         } else if (!derived.actorSeedText.empty()) {
             const QString actorText = QString::fromStdString(derived.actorSeedText);
@@ -165,7 +162,7 @@ void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
             const auto& contractRow = derived.contractChoices[static_cast<std::size_t>(derived.contractCurrentIndex)];
             if (!contractRow.synthetic && !contractRow.id.empty()) {
                 const QString contractId = QString::fromStdString(contractRow.id);
-                changed = changed || current->contractId != contractId || current->newContractSelected;
+                changed = changed || current->contractId != contractId || current->contractSelected;
                 draft->transactions()->setContractId(index, contractId);
                 if (!contractRow.type.empty()) {
                     const QString type = QString::fromStdString(contractRow.type);
@@ -174,27 +171,27 @@ void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
                 }
                 if (!contractRow.actorIds.empty()) {
                     const QString actorId = QString::fromStdString(contractRow.actorIds.front());
-                    changed = changed || current->actorId != actorId || current->newActorSelected;
+                    changed = changed || current->actorId != actorId || current->actorSelected;
                     draft->transactions()->setActorId(index, actorId);
                     if (const auto* actorRow = ui::importing::findChoiceRowById(derived.actorChoices, contractRow.actorIds.front())) {
                         const QString actorText = ui::importing::choiceDisplayText(*actorRow);
                         changed = changed || current->actorText != actorText;
                         draft->transactions()->setActorText(index, actorText);
                     }
-                    draft->transactions()->setNewActorSelected(index, false);
+                    draft->transactions()->setActorSelected(index, false);
                 }
                 if (!contractRow.propertyIds.empty()) {
                     const auto propertyIds = ui::payload::mapper::toQStringList(contractRow.propertyIds);
                     changed = changed || current->propertyIds != propertyIds;
                     draft->transactions()->setProperties(index, propertyIds);
                 }
-                draft->transactions()->setNewContractSelected(index, false);
+                draft->transactions()->setContractSelected(index, true);
             }
         } else if (!derived.contractSeedText.empty()) {
             const QString type = QString::fromStdString(derived.contractSeedText);
             changed = changed || current->type != type;
             draft->transactions()->setType(index, type);
-        } else if (!current->newContractSelected) {
+        } else if (!current->contractSelected) {
             changed = changed || !current->type.isEmpty();
             draft->transactions()->setType(index, QString());
         }
@@ -206,7 +203,7 @@ void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
         draft->transactions()->setProperties(index, propertyIds);
     }
 
-    if (!current->allocatableManualOverride) {
+    if (!current->allocatableSelected) {
         changed = changed || current->allocatable != derived.effectiveAllocatable;
         draft->transactions()->setAllocatable(index, derived.effectiveAllocatable);
     }
@@ -289,11 +286,11 @@ void DraftController::selectCurrentActorChoice(StatementDraft* draft, const QVar
     if (row.value(QStringLiteral("synthetic")).toBool()) {
         draft->transactions()->setActorId(draft->currentIndex(), QString());
         draft->transactions()->setActorText(draft->currentIndex(), QString());
-        draft->transactions()->setNewActorSelected(draft->currentIndex(), true);
+        draft->transactions()->setActorSelected(draft->currentIndex(), true);
     } else {
         draft->transactions()->setActorId(draft->currentIndex(), row.value(QStringLiteral("id")).toString());
         draft->transactions()->setActorText(draft->currentIndex(), importing::rowDisplayText(row));
-        draft->transactions()->setNewActorSelected(draft->currentIndex(), false);
+        draft->transactions()->setActorSelected(draft->currentIndex(), false);
     }
 }
 
@@ -304,7 +301,7 @@ void DraftController::selectCurrentContractChoice(StatementDraft* draft, const Q
     if (row.value(QStringLiteral("synthetic")).toBool()) {
         draft->transactions()->setContractId(draft->currentIndex(), QString());
         draft->transactions()->setType(draft->currentIndex(), QString());
-        draft->transactions()->setNewContractSelected(draft->currentIndex(), true);
+        draft->transactions()->setContractSelected(draft->currentIndex(), true);
     } else {
         draft->transactions()->setContractId(draft->currentIndex(), row.value(QStringLiteral("id")).toString());
         const QString type = row.value(QStringLiteral("type")).toString();
@@ -316,7 +313,7 @@ void DraftController::selectCurrentContractChoice(StatementDraft* draft, const Q
         const auto propertyIds = row.value(QStringLiteral("propertyIds")).toStringList();
         if (!propertyIds.isEmpty()) draft->transactions()->setProperties(draft->currentIndex(), propertyIds);
 
-        draft->transactions()->setNewContractSelected(draft->currentIndex(), false);
+        draft->transactions()->setContractSelected(draft->currentIndex(), false);
     }
 }
 

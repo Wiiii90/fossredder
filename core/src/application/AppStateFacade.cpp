@@ -76,11 +76,6 @@ void AppStateFacade::setStateChangedCallback(StateChanged cb)
     session_->setStateChangedCallback(std::move(cb));
 }
 
-void AppStateFacade::setRepoFactory(core::storage::IStorageManager::RepoFactory factory)
-{
-    session_->setRepoFactory(std::move(factory));
-}
-
 void AppStateFacade::setAtomicStoreSave(core::storage::IStorageManager::AtomicStoreSave saveFn)
 {
     session_->setAtomicStoreSave(std::move(saveFn));
@@ -204,48 +199,44 @@ void AppStateFacade::deleteStatement(const std::string& id)
 std::string AppStateFacade::addTransaction(const std::string& name,
                                            const std::string& bookingDate,
                                            double amount,
-                                           const std::string& description,
                                            const std::string& statementId,
                                            Transaction::Status status,
                                            const std::string& actorId,
                                            bool allocatable,
                                            const std::vector<std::string>& propertyIds)
 {
-    return commitCreated(*this, catalog_.addTransaction(mutableState(), {
-        name,
-        bookingDate,
-        amount,
-        description,
-        statementId,
-        status,
-        actorId,
-        allocatable,
-        propertyIds
-    }));
+    TransactionInput input;
+    input.name = name;
+    input.bookingDate = bookingDate;
+    input.amount = amount;
+    input.statementId = statementId;
+    input.status = status;
+    input.actorId = actorId;
+    input.allocatable = allocatable;
+    input.propertyIds = propertyIds;
+    return commitCreated(*this, catalog_.addTransaction(mutableState(), input));
 }
 
 void AppStateFacade::updateTransaction(const std::string& id,
                                        const std::string& name,
                                        const std::string& bookingDate,
                                        double amount,
-                                       const std::string& description,
                                        const std::string& statementId,
                                        Transaction::Status status,
                                        const std::string& actorId,
                                        bool allocatable,
                                        const std::vector<std::string>& propertyIds)
 {
-    commitIfChanged(*this, catalog_.updateTransaction(mutableState(), id, {
-        name,
-        bookingDate,
-        amount,
-        description,
-        statementId,
-        status,
-        actorId,
-        allocatable,
-        propertyIds
-    }));
+    TransactionInput input;
+    input.name = name;
+    input.bookingDate = bookingDate;
+    input.amount = amount;
+    input.statementId = statementId;
+    input.status = status;
+    input.actorId = actorId;
+    input.allocatable = allocatable;
+    input.propertyIds = propertyIds;
+    commitIfChanged(*this, catalog_.updateTransaction(mutableState(), id, input));
 }
 
 void AppStateFacade::deleteTransaction(const std::string& id)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace core::domain {
 
@@ -14,6 +15,7 @@ public:
     std::string message;
     bool draftAttached = false;
     std::string draftId;
+    std::vector<std::string> statementDraftIds;
     std::string statementId;
 };
 

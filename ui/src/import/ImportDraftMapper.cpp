@@ -28,7 +28,7 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
             if (!actorRow.synthetic && !actorRow.id.empty()) {
                 draft.actorId = QString::fromStdString(actorRow.id);
                 draft.actorText = ui::importing::choiceDisplayText(actorRow);
-                draft.newActorSelected = false;
+                draft.actorSelected = false;
             }
         } else if (draft.actorText.isEmpty() && !derived.actorSeedText.empty()) {
             draft.actorText = QString::fromStdString(derived.actorSeedText);
@@ -48,13 +48,12 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
                     draft.actorId = QString::fromStdString(contractRow.actorIds.front());
                     if (const auto* actorRow = ui::importing::findChoiceRowById(derived.actorChoices, contractRow.actorIds.front())) {
                         draft.actorText = ui::importing::choiceDisplayText(*actorRow);
-                        draft.newActorSelected = false;
                     }
                 }
                 if (draft.propertyIds.isEmpty() && !contractRow.propertyIds.empty()) {
                     draft.propertyIds = ui::importing::toQStringList(contractRow.propertyIds);
                 }
-                draft.newContractSelected = false;
+                draft.contractSelected = false;
             }
         } else if (draft.type.isEmpty() && !derived.contractSeedText.empty()) {
             draft.type = QString::fromStdString(derived.contractSeedText);
@@ -65,11 +64,11 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
         draft.propertyIds = ui::importing::toQStringList(derived.autoPropertyIds);
     }
 
-    if (draft.contractId.isEmpty() && !draft.newContractSelected) {
+    if (draft.contractId.isEmpty() && !draft.contractSelected) {
         draft.type.clear();
     }
 
-    if (!draft.allocatableManualOverride) {
+    if (!draft.allocatableSelected) {
         draft.allocatable = derived.effectiveAllocatable;
     }
 }
@@ -92,7 +91,8 @@ std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppSta
         draft.bookingDate = QString::fromStdString(tx.bookingDate);
         draft.valuta = QString::fromStdString(tx.valuta);
         draft.amount = tx.amount;
-        draft.description = QString::fromStdString(tx.description);
+    draft.actorId = QString::fromStdString(tx.actorId);
+    draft.propertyIds = ui::importing::toQStringList(tx.propertyIds);
         draft.actorText = QString::fromStdString(draftSignals.actorText);
         draft.propertyText = QString::fromStdString(draftSignals.propertyText);
         draft.type = QString::fromStdString(draftSignals.typeText);

@@ -139,12 +139,6 @@ int main(int argc, char* argv[]) {
     core::application::AppStateFacade appStateFacade(std::move(smPtr));
 
     appStateFacade.setErrorReporter(errorReporter);
-    appStateFacade.setRepoFactory([&](const std::string& dbPath) {
-        ensureParentDirectoryExists(std::filesystem::path(dbPath), "app::main::setRepoFactory::create_directories");
-        auto db = createSqliteDb(dbPath);
-        return createSqliteRepositoryBundle(db, errorReporter);
-    });
-
     appStateFacade.setAtomicStoreLoad([](const std::string& dbPath) {
         auto db = createSqliteDb(dbPath);
         AppStateStore store(db);
@@ -153,8 +147,7 @@ int main(int argc, char* argv[]) {
     appStateFacade.setAtomicStoreSave([](const std::string& dbPath, const AppState& state) {
         auto db = createSqliteDb(dbPath);
         AppStateStore store(db);
-        auto res = store.save(state);
-        return res.impact;
+        return store.save(state);
     });
 
     try {

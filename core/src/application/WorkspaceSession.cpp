@@ -34,11 +34,6 @@ void WorkspaceSession::setErrorReporter(std::shared_ptr<core::errors::IErrorRepo
     errorReporter_ = std::move(reporter);
 }
 
-void WorkspaceSession::setRepoFactory(core::storage::IStorageManager::RepoFactory factory)
-{
-    storageManager_->setRepoFactory(std::move(factory));
-}
-
 void WorkspaceSession::setAtomicStoreSave(core::storage::IStorageManager::AtomicStoreSave saveFn)
 {
     storageManager_->setAtomicStoreSave(std::move(saveFn));

@@ -455,7 +455,7 @@ bool ImportController::restoreDraftFromState(const core::domain::AppState& snaps
                              snapshot,
                              txDrafts,
                              restoredDraftId,
-                             persistedStatementDraft->currentTransactionIndex,
+                              0,
                              this);
 }
 
@@ -651,7 +651,6 @@ bool ImportController::saveImportedDraft(
     name = QFileInfo(sourceFile).baseName();
   }
   draft.name = strings::toStdString(name);
-  draft.currentTransactionIndex = 0;
   draft.transactions = transactions;
   statementDraftStore_(draft);
   return true;

@@ -56,7 +56,7 @@ Controls.Panel {
                 anchors.fill: parent
                 onClicked: if (root.txRoot && root.txRoot.draft) {
                     root.txRoot.draft.transactions.setAllocatable(root.txRoot.draft.currentIndex, !root.txRoot.effectiveAllocatable())
-                    root.txRoot.draft.transactions.setAllocatableManualOverride(root.txRoot.draft.currentIndex, true)
+                    root.txRoot.draft.transactions.setAllocatableSelected(root.txRoot.draft.currentIndex, true)
                     if (root.txRoot.draft.refresh) root.txRoot.draft.refresh()
                 }
             }
