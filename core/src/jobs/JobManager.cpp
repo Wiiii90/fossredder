@@ -39,7 +39,7 @@ void applyEventToSnapshot(JobSnapshot& snapshot, const JobEvent& event)
 JobManager::JobManager() = default;
 
 JobId JobManager::makeJobId() {
-    return utils::makeUniqId();
+    return core::utils::makeUniqId();
 }
 
 JobId JobManager::submitImportStatement(const ImportStatementJobSpec& spec) {

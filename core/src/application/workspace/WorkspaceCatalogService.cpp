@@ -172,7 +172,7 @@ std::vector<std::string> WorkspaceCatalogService::contractTypes(const WorkspaceS
 
     for (const auto& contract : state.contracts) {
         if (!contract) continue;
-        const std::string type = ::utils::trim(contract->type);
+        const std::string type = ::core::utils::trim(contract->type);
         if (type.empty()) continue;
         if (!seen.insert(type).second) continue;
         values.push_back(type);

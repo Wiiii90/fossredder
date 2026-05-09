@@ -7,6 +7,7 @@
 
 #include <QByteArray>
 
+#include "core/application/import/draft/IImportMatcherService.h"
 #include "core/application/workspace/WorkspaceFacade.h"
 #include "core/application/import/transaction/AmountParser.h"
 #include "core/domain/values/Alias.h"
@@ -44,7 +45,7 @@ const ui::TransactionDraft* currentDraft(ui::StatementDraft* draft)
 
 core::domain::WorkspaceState matchingStateForDraft(const ui::StatementDraft* draft,
                                              const core::application::WorkspaceFacade* core,
-                                             const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService)
+                                             const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService)
 {
     const auto liveState = core ? core->state() : core::domain::WorkspaceState{};
     if (!draft) {
@@ -58,7 +59,7 @@ core::domain::WorkspaceState matchingStateForDraft(const ui::StatementDraft* dra
 
 core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
                                                     core::application::WorkspaceFacade* core,
-                                                    const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService)
+                                                    const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService)
 {
     core::domain::StatementDraft input;
     if (!draft || !core) {
@@ -129,7 +130,7 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
 
 void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
                                      core::application::WorkspaceFacade* core,
-                                     const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService)
+                                     const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService)
 {
     const auto* current = currentDraft(draft);
     if (!draft || !current) {
@@ -220,7 +221,7 @@ void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
 namespace ui {
 
 DraftController::DraftController(core::application::WorkspaceFacade* core,
-                                 std::shared_ptr<core::ports::services::IImportMatcherService> matcherService,
+                                 std::shared_ptr<core::application::importing::draft::IImportMatcherService> matcherService,
                                  QObject* parent)
     : QObject(parent), core_(core), matcherService_(std::move(matcherService))
 {

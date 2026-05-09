@@ -35,12 +35,12 @@ struct DefaultTransactionParser {
                                                      std::vector<std::string>* debugOut = nullptr);
 };
 
-} // namespace core::application::importing::transaction
+}
 
 namespace core {
 using DefaultTransactionParser = application::importing::transaction::DefaultTransactionParser;
-} // namespace core
+}
 
 namespace core::parser {
 using DefaultTransactionParser = core::application::importing::transaction::DefaultTransactionParser;
-} // namespace core::parser
+}

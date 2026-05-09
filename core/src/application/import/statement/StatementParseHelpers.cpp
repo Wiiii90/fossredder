@@ -3,12 +3,12 @@
  * @brief Implements helper types and routines shared by statement parsing stages.
  */
 
-#include "StatementParseHelpers.h"
+#include "core/application/import/statement/StatementParseHelpers.h"
 
-#include "../transaction/AmountParser.h"
+#include "core/application/import/transaction/AmountParser.h"
 #include "core/errors/ErrorReporterRegistry.h"
-#include "../transaction/DefaultTransactionParser.h"
-#include "../internal/ParserHelpers.h"
+#include "core/application/import/transaction/DefaultTransactionParser.h"
+#include "core/application/import/internal/ParserHelpers.h"
 #include "../../../utils/UniqId.h"
 
 #include <algorithm>
@@ -43,7 +43,7 @@ std::string fullBlockMetadata(const TransactionBlock& block)
 {
     std::vector<std::string> parts;
     auto append = [&](const std::string& text) {
-        const auto value = utils::trim(utils::collapseWhitespace(text));
+        const auto value = core::utils::trim(core::utils::collapseWhitespace(text));
         if (value.empty()) return;
         if (std::find(parts.begin(), parts.end(), value) != parts.end()) return;
         parts.push_back(value);
@@ -137,7 +137,7 @@ bool looksLikeMetadataIdentifier(const std::string& value) noexcept
 bool looksLikeStandaloneMetadataLine(const std::string& value) noexcept
 {
     try {
-        const auto trimmed = utils::trim(value);
+        const auto trimmed = core::utils::trim(value);
         if (trimmed.empty()) return false;
         if (looksLikeMetadataIdentifier(trimmed)) return true;
 
@@ -161,7 +161,7 @@ bool isCurrencyToken(const std::string& token) noexcept
 bool looksLikePureAmountColumnTail(const OcrLine& line) noexcept
 {
     try {
-        const auto tokens = utils::splitWhitespace(line.text);
+        const auto tokens = core::utils::splitWhitespace(line.text);
         if (tokens.empty()) return false;
 
         bool sawAmount = false;
@@ -199,7 +199,7 @@ OcrLine rawToOcrLine(const RawLine& line) {
 
 bool isLikelyTransactionMainRowGeom(const RawLine& line, const ColumnModel& cols) {
     if (!cols.hasValuta() || (!cols.hasDebit() && !cols.hasCredit())) return false;
-    const auto tokens = utils::splitWhitespace(line.text);
+    const auto tokens = core::utils::splitWhitespace(line.text);
     if (tokens.size() != line.wordSpans.size() || tokens.size() < 3) return false;
 
     const int band = core::parser::helpers::parserConfig.tokenNearBandForMainRow;
@@ -295,7 +295,7 @@ std::optional<std::string> findFallbackBookingDate(const std::vector<OcrLine>& l
 std::optional<std::string> findBookingDateInHeader(const std::string& line) noexcept
 {
     try {
-        const auto trimmed = utils::trim(line);
+        const auto trimmed = core::utils::trim(line);
         const auto normalized = helpers::normalizeAlnumLower(trimmed);
         if (normalized.find("buchungsdat") == std::string::npos && normalized.find("buchungsdatum") == std::string::npos) return std::nullopt;
 
@@ -324,7 +324,7 @@ bool detectEarlyEmptyPage(const std::vector<OcrLine>& lines, std::string& outDeb
             if (text.empty()) continue;
             if (core::parser::heuristics::isPostTransactionFootnote(text)) ++footLike;
 
-            const auto tokens = utils::splitWhitespace(text);
+            const auto tokens = core::utils::splitWhitespace(text);
             for (const auto& token : tokens) {
                 if (helpers::findAmountTokenIndices(OcrLine{0, 0, 0, 0, {}, token}, -1, 0).empty()) continue;
                 ++amountLikeCount;
@@ -557,7 +557,7 @@ void appendDetailLine(TransactionBlock& cur,
         }
 
         if (cols.valutaX >= 0) {
-            const auto tokens = utils::splitWhitespace(line.text);
+            const auto tokens = core::utils::splitWhitespace(line.text);
             if (tokens.size() == line.wordSpans.size()) {
                 size_t cut = tokens.size();
                 for (size_t i = 0; i < tokens.size(); ++i) {
@@ -572,9 +572,9 @@ void appendDetailLine(TransactionBlock& cur,
                 const auto rawLine = toRawLineLite(line);
                 const auto leftPart = helpers::toOcrLineFromRawWords(rawLine, 0, cut);
                 const auto rightPart = helpers::toOcrLineFromRawWords(rawLine, cut, tokens.size());
-                const auto fullText = utils::trim(line.text);
-                const auto leftText = utils::trim(leftPart.text);
-                const auto rightText = utils::trim(rightPart.text);
+                const auto fullText = core::utils::trim(line.text);
+                const auto leftText = core::utils::trim(leftPart.text);
+                const auto rightText = core::utils::trim(rightPart.text);
 
                 bool keepWholeLine = leftText.empty() || looksLikeMetadataIdentifier(fullText);
                 if (!keepWholeLine && !rightText.empty()) {
@@ -697,14 +697,14 @@ static void appendBlockDebug(const TransactionBlock& block,
 static void applyCellAmountOverride(core::domain::TransactionDraft& tx,
                                     const TransactionBlock& block,
                                     const ColumnModel& cols,
-                                    const api::tesseract::ExtractResult& ocr,
+                                    const core::ports::text_recognition::tesseract::ExtractResult& ocr,
                                     DefaultStatementParser::ParseResult& out)
 {
     try {
         if (ocr.tables.empty() || ocr.tables[0].cells.empty()) return;
 
         const auto& table = ocr.tables[0];
-        auto overlapsLine = [&](const api::tesseract::Cell& cell) -> bool {
+        auto overlapsLine = [&](const core::ports::text_recognition::tesseract::Cell& cell) -> bool {
             const int cellTop = cell.bbox.y;
             const int cellBottom = cell.bbox.y + cell.bbox.height;
             return !(cellTop > block.main.left.line.maxY || cellBottom < block.main.left.line.minY);
@@ -741,7 +741,7 @@ static void applyCellAmountOverride(core::domain::TransactionDraft& tx,
 static void attachProofCrop(core::domain::TransactionDraft& tx,
                             const TransactionBlock& block,
                             int txIndex,
-                            const std::shared_ptr<core::ports::services::IOpenCvService>& opencv,
+                            const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
                             const std::string& pageCropImagePath,
                             const std::vector<uint8_t>& pageCropImageBytes,
                             DefaultStatementParser::ParseResult& out)
@@ -765,12 +765,12 @@ static void attachProofCrop(core::domain::TransactionDraft& tx,
         for (const auto& line : block.detailLines) accBounds(line);
         if (minX == std::numeric_limits<int>::max()) return;
 
-        api::opencv::CropRequest request;
+        core::ports::image_processing::opencv::CropRequest request;
         if (!pageCropImagePath.empty()) request.imagePath = std::filesystem::path(pageCropImagePath);
         request.imageBytes = pageCropImageBytes;
-        request.uniqIdPrefix = std::string(utils::makeUniqId());
+        request.uniqIdPrefix = std::string(core::utils::makeUniqId());
         request.filePrefix = std::string("opencv_proof_tx") + std::to_string(txIndex);
-        request.outputFormat = api::opencv::CropRequest::OutputFormat::Jpg;
+        request.outputFormat = core::ports::image_processing::opencv::CropRequest::OutputFormat::Jpg;
         request.jpegQuality = 92;
         request.bbox.x = 0;
         request.bbox.y = std::max(0, minY - 20);
@@ -794,8 +794,8 @@ static void attachProofCrop(core::domain::TransactionDraft& tx,
 
 void appendTransactionsFromBlocks(const std::vector<TransactionBlock>& blocks,
                                   const ColumnModel& cols,
-                                  const api::tesseract::ExtractResult& ocr,
-                                  const std::shared_ptr<core::ports::services::IOpenCvService>& opencv,
+                                  const core::ports::text_recognition::tesseract::ExtractResult& ocr,
+                                  const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
                                   const std::string& pageCropImagePath,
                                   const std::vector<uint8_t>& pageCropImageBytes,
                                   int& txIndex,

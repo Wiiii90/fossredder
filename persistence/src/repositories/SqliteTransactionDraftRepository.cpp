@@ -67,7 +67,7 @@ void removeTransactionDraftProperties(sqlite3* db, const std::string& id)
     stmt.step();
 }
 
-void upsertTransactionDraftProperties(sqlite3* db, const core::domain::TransactionDraft& draft)
+void upsertTransactionDraftProperties(sqlite3* db, const core::application::importing::draft::TransactionDraft& draft)
 {
     persistence::StmtGuard stmt(
         db,
@@ -91,7 +91,7 @@ void upsertTransactionDraftProperties(sqlite3* db, const core::domain::Transacti
 }
 
 void writeTransactionDraft(sqlite3* db,
-                           const std::shared_ptr<core::domain::TransactionDraft>& draft,
+                           const std::shared_ptr<core::application::importing::draft::TransactionDraft>& draft,
                            const char* sql,
                            bool autoPosition)
 {
@@ -140,9 +140,9 @@ void writeTransactionDraft(sqlite3* db,
     upsertTransactionDraftProperties(db, *draft);
 }
 
-std::shared_ptr<core::domain::TransactionDraft> readDraftRow(sqlite3* db, persistence::StmtGuard& stmt)
+std::shared_ptr<core::application::importing::draft::TransactionDraft> readDraftRow(sqlite3* db, persistence::StmtGuard& stmt)
 {
-    auto draft = std::make_shared<core::domain::TransactionDraft>();
+    auto draft = std::make_shared<core::application::importing::draft::TransactionDraft>();
     draft->id = stmt.columnText(0);
     draft->statementDraftId = stmt.columnText(1);
     draft->position = stmt.columnInt(2);
@@ -208,7 +208,7 @@ SqliteTransactionDraftRepository::SqliteTransactionDraftRepository(std::shared_p
 
 SqliteTransactionDraftRepository::~SqliteTransactionDraftRepository() = default;
 
-void SqliteTransactionDraftRepository::addTransactionDraft(const std::shared_ptr<core::domain::TransactionDraft>& draft)
+void SqliteTransactionDraftRepository::addTransactionDraft(const std::shared_ptr<core::application::importing::draft::TransactionDraft>& draft)
 {
     const auto db = pimpl_->db->handle();
     writeTransactionDraft(
@@ -218,9 +218,9 @@ void SqliteTransactionDraftRepository::addTransactionDraft(const std::shared_ptr
         true);
 }
 
-std::vector<std::shared_ptr<core::domain::TransactionDraft>> SqliteTransactionDraftRepository::getTransactionDrafts() const
+std::vector<std::shared_ptr<core::application::importing::draft::TransactionDraft>> SqliteTransactionDraftRepository::getTransactionDrafts() const
 {
-    std::vector<std::shared_ptr<core::domain::TransactionDraft>> drafts;
+    std::vector<std::shared_ptr<core::application::importing::draft::TransactionDraft>> drafts;
     const auto db = pimpl_->db->handle();
 
     persistence::StmtGuard stmt(
@@ -237,7 +237,7 @@ std::vector<std::shared_ptr<core::domain::TransactionDraft>> SqliteTransactionDr
     return drafts;
 }
 
-std::optional<std::shared_ptr<core::domain::TransactionDraft>> SqliteTransactionDraftRepository::getTransactionDraftById(const std::string& id) const
+std::optional<std::shared_ptr<core::application::importing::draft::TransactionDraft>> SqliteTransactionDraftRepository::getTransactionDraftById(const std::string& id) const
 {
     const auto db = pimpl_->db->handle();
     persistence::StmtGuard stmt(
@@ -268,7 +268,7 @@ void SqliteTransactionDraftRepository::removeTransactionDraft(const std::string&
     stmt.step();
 }
 
-void SqliteTransactionDraftRepository::updateTransactionDraft(const std::shared_ptr<core::domain::TransactionDraft>& draft)
+void SqliteTransactionDraftRepository::updateTransactionDraft(const std::shared_ptr<core::application::importing::draft::TransactionDraft>& draft)
 {
     const auto db = pimpl_->db->handle();
     writeTransactionDraft(
@@ -278,7 +278,7 @@ void SqliteTransactionDraftRepository::updateTransactionDraft(const std::shared_
         false);
 }
 
-void SqliteTransactionDraftRepository::upsertTransactionDraft(const std::shared_ptr<core::domain::TransactionDraft>& draft)
+void SqliteTransactionDraftRepository::upsertTransactionDraft(const std::shared_ptr<core::application::importing::draft::TransactionDraft>& draft)
 {
     const auto db = pimpl_->db->handle();
     writeTransactionDraft(

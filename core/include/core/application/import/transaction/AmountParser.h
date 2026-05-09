@@ -17,10 +17,10 @@ namespace core::application::importing::transaction {
  */
 std::optional<double> parseAmountString(const std::string& s);
 
-} // namespace core::application::importing::transaction
+}
 
 namespace core {
 namespace parser {
 using application::importing::transaction::parseAmountString;
-} // namespace parser
-} // namespace core
+}
+}

@@ -11,7 +11,7 @@
 #include "core/application/import/internal/ParserDateUtils.h"
 #include "core/application/import/internal/ParserHeuristics.h"
 
-#include "api/tesseract/TesseractResult.h"
+#include "core/ports/text-recognition/TesseractResult.h"
 #include "../../../utils/Util.h"
 
 #include <initializer_list>
@@ -115,7 +115,7 @@ struct RawLineLite {
  * @param words OCR words to convert.
  * @return Constructed OCR lines.
  */
-std::vector<core::application::importing::transaction::internal::OcrLine> buildOcrLinesFromWords(const std::vector<api::tesseract::Word>& words);
+std::vector<core::application::importing::transaction::internal::OcrLine> buildOcrLinesFromWords(const std::vector<core::ports::text_recognition::tesseract::Word>& words);
 
 /**
  * @brief Stores the inferred column positions for an OCR page.
@@ -167,7 +167,7 @@ core::application::importing::transaction::internal::TransactionMainRow splitMai
  */
 core::application::importing::transaction::internal::TransactionMainRow splitMainRowFromOcrLine(const core::application::importing::transaction::internal::OcrLine& src, int valutaX, int debitX, int creditX) noexcept;
 
-} // namespace core::application::importing::internal
+}
 
 namespace core {
 namespace parser {
@@ -175,5 +175,5 @@ namespace helpers = application::importing::internal;
 using OcrLine = application::importing::transaction::internal::OcrLine;
 using TransactionMainRow = application::importing::transaction::internal::TransactionMainRow;
 using TransactionBlock = application::importing::transaction::internal::TransactionBlock;
-} // namespace parser
-} // namespace core
+}
+}

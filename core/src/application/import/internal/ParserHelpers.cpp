@@ -1,4 +1,9 @@
-#include "ParserHelpers.h"
+/**
+ * @file core/src/application/import/internal/ParserHelpers.cpp
+ * @brief Implements low-level OCR helper routines for statement parsing.
+ */
+
+#include "core/application/import/internal/ParserHelpers.h"
 #include "../../../utils/Util.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include <sstream>
@@ -6,16 +11,13 @@
 namespace core::application::importing::internal {
 using core::application::importing::transaction::internal::OcrLine;
 using core::application::importing::transaction::internal::TransactionMainRow;
-// define global config instance
 ParserConfig parserConfig;
-// Central constants for amount and date detection
 namespace {
     static const std::regex g_amountRegex(R"(^\(?-?\d{1,3}(?:[\.,]\d{3})*[\.,]\d{1,2}-?$)");
     static const std::regex g_amountFallbackRegex(R"(^\(?-?\d+[\.,]\d{2}\)?$)");
     static constexpr std::string_view g_narrowNoBreakSpaceUtf8 = "\xE2\x80\xAF";
     static constexpr std::string_view g_thinSpaceUtf8 = "\xE2\x80\x89";
 
-    // require word boundaries so we don't match short-date inside larger numeric tokens (e.g. 17.072,66)
     bool tokenLooksLikeAmount(const std::string& token) noexcept {
         try {
             return std::regex_match(token, g_amountRegex) || std::regex_match(token, g_amountFallbackRegex);
@@ -35,7 +37,7 @@ namespace {
 std::vector<size_t> findAmountTokenIndices(const core::parser::OcrLine& line, int valutaX, int bandPx) noexcept {
     std::vector<size_t> out;
     try {
-        const auto toks = utils::splitWhitespace(line.text);
+        const auto toks = core::utils::splitWhitespace(line.text);
         for (size_t i = 0; i < toks.size(); ++i) {
             try {
                 if (!tokenLooksLikeAmount(toks[i])) continue;
@@ -55,14 +57,14 @@ std::vector<size_t> findAmountTokenIndices(const core::parser::OcrLine& line, in
 std::string normalizeAlnumLower(const std::string& s) noexcept {
     std::string o;
     o.reserve(s.size());
-    for (unsigned char c : utils::lowerAscii(s)) {
+    for (unsigned char c : core::utils::lowerAscii(s)) {
         if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) o.push_back(static_cast<char>(c));
     }
     return o;
 }
 
 std::optional<int> findTokenCenterX(const core::parser::OcrLine& line, const std::string& tokenLower) noexcept {
-    const auto toks = utils::splitWhitespace(line.text);
+    const auto toks = core::utils::splitWhitespace(line.text);
     if (toks.size() != line.wordSpans.size()) return std::nullopt;
 
     const auto want = normalizeAlnumLower(tokenLower);
@@ -83,7 +85,7 @@ std::optional<int> findTokenCenterX(const core::parser::OcrLine& line, const std
 }
 
 std::optional<int> findPhraseCenterX(const core::parser::OcrLine& line, std::initializer_list<const char*> phraseLower) noexcept {
-    const auto toks = utils::splitWhitespace(line.text);
+    const auto toks = core::utils::splitWhitespace(line.text);
     if (toks.size() != line.wordSpans.size()) return std::nullopt;
 
     std::string want;
@@ -109,7 +111,7 @@ std::optional<int> findPhraseCenterX(const core::parser::OcrLine& line, std::ini
 
 bool hasTokenNearX(const core::parser::OcrLine& line, int x, int bandPx) noexcept {
     if (x < 0) return false;
-    const auto toks = utils::splitWhitespace(line.text);
+    const auto toks = core::utils::splitWhitespace(line.text);
     if (toks.size() != line.wordSpans.size() || toks.empty()) return false;
 
     for (size_t i = 0; i < toks.size(); ++i) {
@@ -132,7 +134,7 @@ bool hasAmountLikeTokenInLine(const core::parser::OcrLine& line, int valutaX) no
 
 bool hasLeftDescriptiveText(const core::parser::OcrLine& line, int valutaX) noexcept {
     try {
-        const auto toks = utils::splitWhitespace(line.text);
+        const auto toks = core::utils::splitWhitespace(line.text);
         if (toks.empty()) return false;
         for (size_t i = 0; i < toks.size() && i < line.wordSpans.size(); ++i) {
             const auto& sp = line.wordSpans[i];
@@ -141,7 +143,6 @@ bool hasLeftDescriptiveText(const core::parser::OcrLine& line, int valutaX) noex
                 for (unsigned char c : toks[i]) if (std::isalpha(c)) return true;
             }
         }
-        // fallback: first token contains letters
         for (unsigned char c : toks[0]) if (std::isalpha(c)) return true;
     }
     catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::helpers::hasLeftDescriptiveText", std::current_exception()); }
@@ -164,9 +165,8 @@ bool isLooseTransactionLine(const core::parser::OcrLine& line, int valutaX) noex
         std::smatch md;
         if (!std::regex_search(line.text, md, std::regex(R"((\d{2}\.\s*\d{2}))"))) return false;
         const size_t datePos = static_cast<size_t>(md.position(0));
-        const auto toks = utils::splitWhitespace(line.text);
+        const auto toks = core::utils::splitWhitespace(line.text);
         bool foundAmountAfterDate = false;
-        // use consolidated finder to check for any amount tokens (no valuta constraint here)
         auto amtIdxs = findAmountTokenIndices(line, -1, 0);
         for (auto i : amtIdxs) {
             if (i >= toks.size()) continue;
@@ -181,22 +181,19 @@ bool isLooseTransactionLine(const core::parser::OcrLine& line, int valutaX) noex
     return false;
 }
 
-// Improved implementation: try multiple token combination strategies to handle split/truncated amounts
 std::optional<double> findAndParseAmountInLine(const core::parser::OcrLine& line, int valutaX, std::vector<std::string>* debugOut) noexcept {
     try {
         int band = (valutaX >= 0) ? parserConfig.amountNearValutaBandPx : 0;
         auto idxs = findAmountTokenIndices(line, valutaX, band);
         if (idxs.empty()) {
-            // fallback: consider any amount-like token
             idxs = findAmountTokenIndices(line, -1, 0);
         }
-        const auto toks = utils::splitWhitespace(line.text);
+        const auto toks = core::utils::splitWhitespace(line.text);
         auto tryParse = [&](const std::string& s)->std::optional<double> {
             try {
                 if (s.empty()) return std::nullopt;
                 if (debugOut) debugOut->push_back(std::string("candidate.try\t") + s);
 
-                // skip short date tokens like '25.04' which could be mistaken for amounts
                 try {
                     if (core::parser::helpers::containsShortDate(s)) {
                         if (debugOut) debugOut->push_back(std::string("candidate.skip.shortDate\t") + s);
@@ -204,11 +201,9 @@ std::optional<double> findAndParseAmountInLine(const core::parser::OcrLine& line
                     }
                 } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::helpers::findAndParseAmountInLine::containsShortDate", std::current_exception()); }
 
-                // First try: explicit normalization targeted at common European format
                 try {
                     std::string norm = s;
-                    // trim
-                    norm = utils::trim(norm);
+                    norm = core::utils::trim(norm);
                     bool negative = false;
                     if (!norm.empty() && norm.front() == '(' && norm.back() == ')') { negative = true; norm = norm.substr(1, norm.size() - 2); }
                     if (!norm.empty() && norm.front() == '-') { negative = true; norm = norm.substr(1); }
@@ -217,20 +212,16 @@ std::optional<double> findAndParseAmountInLine(const core::parser::OcrLine& line
                     eraseAll(norm, g_narrowNoBreakSpaceUtf8);
                     eraseAll(norm, g_thinSpaceUtf8);
 
-                    // remove spaces and thousand separators (dots and thin spaces)
                     std::string tmp;
                     tmp.reserve(norm.size());
                     for (unsigned char c : norm) {
-                        if (c == '.' || c == ' ') continue; // drop thousand separators
+                        if (c == '.' || c == ' ') continue;
                         tmp.push_back(static_cast<char>(c));
                     }
-                    // replace comma with dot for decimal
                     std::replace(tmp.begin(), tmp.end(), ',', '.');
 
-                    // guard: don't consider pure integer-looking results that came from dates (e.g. 2504)
                     try {
                         if (!tmp.empty()) {
-                            // if original looked like a date (two digits dot two digits) we already skipped; now try stod
                             double v = std::stod(tmp);
                             if (negative) v = -v;
                             if (debugOut) debugOut->push_back(std::string("candidate.ok.norm\t") + tmp + std::string(" -> ") + std::to_string(v));
@@ -239,10 +230,8 @@ std::optional<double> findAndParseAmountInLine(const core::parser::OcrLine& line
                     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::helpers::findAndParseAmountInLine::stod", std::current_exception()); }
                 } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::helpers::findAndParseAmountInLine::normalize", std::current_exception()); }
 
-                // fallback: try library parser on original
                 if (auto v = ::core::parser::parseAmountString(s)) { if (debugOut) debugOut->push_back(std::string("candidate.ok\t") + s + std::string(" -> ") + std::to_string(*v)); return v; }
 
-                // also try removing spaces and feeding to library
                 std::string nosp = s; nosp.erase(std::remove(nosp.begin(), nosp.end(), ' '), nosp.end());
                 if (!nosp.empty()) { if (debugOut) debugOut->push_back(std::string("candidate.try.nosp\t") + nosp); if (auto v2 = ::core::parser::parseAmountString(nosp)) { if (debugOut) debugOut->push_back(std::string("candidate.ok.nosp\t") + nosp + std::string(" -> ") + std::to_string(*v2)); return v2; } }
             } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::helpers::findAndParseAmountInLine::tryParse", std::current_exception()); }
@@ -253,14 +242,11 @@ std::optional<double> findAndParseAmountInLine(const core::parser::OcrLine& line
 
         for (auto i : idxs) {
             if (i >= toks.size()) continue;
-            // try single token
             if (auto r = tryParse(toks[i])) return r;
-            // try previous + current
             if (i > 0) {
                 if (auto r = tryParse(toks[i-1] + toks[i])) return r;
                 if (auto r2 = tryParse(toks[i-1] + " " + toks[i])) return r2;
             }
-            // try current + next (up to 2 next tokens) to handle splits like "10,0" "0-"
             for (int len = 1; len <= 2; ++len) {
                 std::string joined;
                 for (int k = 0; k <= len; ++k) {
@@ -273,23 +259,19 @@ std::optional<double> findAndParseAmountInLine(const core::parser::OcrLine& line
                     if (auto r = tryParse(joined)) return r;
                 }
             }
-            // try joining up to two tokens before and after (three-token window)
             if (i + 2 < toks.size()) {
                 std::string three = toks[i] + toks[i+1] + toks[i+2];
                 if (auto r = tryParse(three)) return r;
             }
         }
-        // As a last resort, try to run parseAmountString on whole line
         if (debugOut) debugOut->push_back(std::string("candidate.try.whole\t") + line.text);
         if (auto v = ::core::parser::parseAmountString(line.text)) { if (debugOut) debugOut->push_back(std::string("candidate.ok.whole\t") + line.text + std::string(" -> ") + std::to_string(*v)); return v; }
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::helpers::findAndParseAmountInLine", std::current_exception()); }
     return std::nullopt;
 }
 
-// Build OcrLine vector from tesseract words (reuse logic from DefaultStatementParser)
-std::vector<core::parser::OcrLine> buildOcrLinesFromWords(const std::vector<api::tesseract::Word>& words) {
-    // reuse the same logic as DefaultStatementParser::buildOcrLines but produce OcrLine
-    struct W { const api::tesseract::Word* w; int cy; int top; int bottom; int left; };
+std::vector<core::parser::OcrLine> buildOcrLinesFromWords(const std::vector<core::ports::text_recognition::tesseract::Word>& words) {
+    struct W { const core::ports::text_recognition::tesseract::Word* w; int cy; int top; int bottom; int left; };
     std::vector<W> ws; ws.reserve(words.size());
     for (const auto& w : words) {
         bool anyNonSpace = false;
@@ -302,7 +284,7 @@ std::vector<core::parser::OcrLine> buildOcrLinesFromWords(const std::vector<api:
     int avgH = 0; for (const auto& ww : ws) avgH += (ww.bottom - ww.top);
     avgH = ws.empty() ? 10 : std::max(1, avgH / static_cast<int>(ws.size()));
     const int minOverlap = std::max(2, avgH / 3);
-    struct LineAcc { int cy = 0; int minX = std::numeric_limits<int>::max(); int maxX = std::numeric_limits<int>::min(); int minY = std::numeric_limits<int>::max(); int maxY = std::numeric_limits<int>::min(); std::vector<const api::tesseract::Word*> words; };
+    struct LineAcc { int cy = 0; int minX = std::numeric_limits<int>::max(); int maxX = std::numeric_limits<int>::min(); int minY = std::numeric_limits<int>::max(); int maxY = std::numeric_limits<int>::min(); std::vector<const core::ports::text_recognition::tesseract::Word*> words; };
     std::vector<LineAcc> acc; acc.reserve(std::max<size_t>(8, words.size() / 8));
     for (const auto& ww : ws) {
         const auto& w = *ww.w;
@@ -321,7 +303,7 @@ std::vector<core::parser::OcrLine> buildOcrLinesFromWords(const std::vector<api:
     }
     std::vector<core::parser::OcrLine> out; out.reserve(acc.size());
     for (auto& la : acc) {
-        std::sort(la.words.begin(), la.words.end(), [](const api::tesseract::Word* a, const api::tesseract::Word* b) { if (a->bbox.x != b->bbox.x) return a->bbox.x < b->bbox.x; return a->bbox.y < b->bbox.y; });
+        std::sort(la.words.begin(), la.words.end(), [](const core::ports::text_recognition::tesseract::Word* a, const core::ports::text_recognition::tesseract::Word* b) { if (a->bbox.x != b->bbox.x) return a->bbox.x < b->bbox.x; return a->bbox.y < b->bbox.y; });
         core::parser::OcrLine ol; ol.minY = la.minY; ol.maxY = la.maxY; ol.wordSpans.reserve(la.words.size());
         if (!la.words.empty()) { ol.minX = la.words.front()->bbox.x; ol.maxX = la.words.front()->bbox.x + la.words.front()->bbox.width; }
         else { ol.minX = 0; ol.maxX = 0; }
@@ -330,7 +312,7 @@ std::vector<core::parser::OcrLine> buildOcrLinesFromWords(const std::vector<api:
             const int left = w->bbox.x; const int right = w->bbox.x + w->bbox.width; ol.wordSpans.emplace_back(left, right); ol.minX = std::min(ol.minX, left); ol.maxX = std::max(ol.maxX, right);
             if (!txt.empty()) txt.push_back(' '); txt += w->text;
         }
-        ol.text = utils::trim(std::move(txt)); out.push_back(std::move(ol));
+        ol.text = core::utils::trim(std::move(txt)); out.push_back(std::move(ol));
     }
     return out;
 }
@@ -380,16 +362,16 @@ core::parser::OcrLine toOcrLineFromRawWords(const RawLineLite& src, size_t i0, s
     for (size_t i = i0; i < i1; ++i) {
         const auto& sp = src.wordSpans[i]; out.minX = std::min(out.minX, sp.first); out.maxX = std::max(out.maxX, sp.second); out.wordSpans.push_back(sp);
     }
-    const auto toks = utils::splitWhitespace(src.text);
+    const auto toks = core::utils::splitWhitespace(src.text);
     std::string txt;
     for (size_t i = i0; i < i1 && i < toks.size(); ++i) { if (!txt.empty()) txt.push_back(' '); txt += toks[i]; }
-    out.text = utils::trim(std::move(txt));
+    out.text = core::utils::trim(std::move(txt));
     return out;
 }
 
 core::parser::TransactionMainRow splitMainRowFromRaw(const RawLineLite& src, int valutaX, int debitX, int creditX) noexcept {
     core::parser::TransactionMainRow row;
-    const auto toks = utils::splitWhitespace(src.text);
+    const auto toks = core::utils::splitWhitespace(src.text);
     if (toks.size() != src.wordSpans.size() || toks.empty()) {
         row.left.line.text = src.text;
         row.left.line.minX = src.minX; row.left.line.maxX = src.maxX; row.left.line.minY = src.minY; row.left.line.maxY = src.maxY; row.left.line.wordSpans = src.wordSpans;
@@ -426,4 +408,4 @@ core::parser::TransactionMainRow splitMainRowFromOcrLine(const core::parser::Ocr
     return splitMainRowFromRaw(rl, valutaX, debitX, creditX);
 }
 
-} // namespace core::application::importing::internal
+}

@@ -20,7 +20,7 @@
 #include "core/application/import/ImportLog.h"
 #include "core/application/import/draft/StatementDraft.h"
 #include "core/ports/presenters/IImportPresenter.h"
-#include "core/ports/services/IImportMatcherService.h"
+#include "core/application/import/draft/IImportMatcherService.h"
 #include "ui/import/ImportJobBridge.h"
 #include "ui/import/ImportState.h"
 #include "ui/models/ImportRunList.h"
@@ -61,7 +61,7 @@ public:
     explicit ImportController(JobSystemFactory jobSystemFactory,
                               std::shared_ptr<core::errors::IErrorReporter> errorReporter,
                               std::shared_ptr<core::ports::presenters::IImportPresenter> importPresenter = {},
-                              std::shared_ptr<core::ports::services::IImportMatcherService> importMatcherService = {},
+                              std::shared_ptr<core::application::importing::draft::IImportMatcherService> importMatcherService = {},
                               QObject* parent = nullptr);
 
     /** @brief Provide a snapshot callback used when creating UI drafts from import results.
@@ -148,7 +148,7 @@ private:
     std::unique_ptr<importing::ImportJobBridge> jobBridge_;
     std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
     std::shared_ptr<core::ports::presenters::IImportPresenter> importPresenter_;
-    std::shared_ptr<core::ports::services::IImportMatcherService> importMatcherService_;
+    std::shared_ptr<core::application::importing::draft::IImportMatcherService> importMatcherService_;
 
     void startNextQueuedImport();
     void startImportForFile(const QString& path);

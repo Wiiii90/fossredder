@@ -29,4 +29,4 @@ struct ParserConfig {
  */
 extern ParserConfig parserConfig;
 
-} // namespace core::application::importing::internal
+}

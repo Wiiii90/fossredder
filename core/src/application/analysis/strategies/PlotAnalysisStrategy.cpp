@@ -40,7 +40,7 @@ struct PlotConfig {
 
 std::string normalizeValue(const std::string& value)
 {
-    std::string normalized = utils::trim(value);
+    std::string normalized = core::utils::trim(value);
     if (normalized.empty()) return {};
     for (auto& ch : normalized)
         ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
@@ -132,7 +132,7 @@ std::vector<std::shared_ptr<Transaction>> collectMatchedTransactions(const core:
 
 std::string extractYearMonth(const std::string& bookingDate)
 {
-    const std::string value = utils::trim(bookingDate);
+    const std::string value = core::utils::trim(bookingDate);
     if (value.empty()) return {};
 
     if (value.size() >= 7
@@ -155,7 +155,7 @@ std::string extractYearMonth(const std::string& bookingDate)
         std::istringstream stream(value);
         std::string token;
         while (std::getline(stream, token, '.')) {
-            parts.push_back(utils::trim(token));
+            parts.push_back(core::utils::trim(token));
         }
 
         if (parts.size() == 3) {

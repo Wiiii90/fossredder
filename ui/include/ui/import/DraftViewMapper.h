@@ -20,7 +20,7 @@ namespace ui {
 struct TransactionDraft;
 }
 
-namespace core_importing = core::application::importing;
+namespace core_importing = core::application::importing::draft;
 
 namespace ui::importing {
 

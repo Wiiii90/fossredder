@@ -40,10 +40,10 @@ bool isTransactionsSectionHeader(const std::string& line);
  */
 bool isDebitCreditHeaderLine(const std::string& line);
 
-} // namespace core::application::importing::internal
+}
 
 namespace core {
 namespace parser {
 namespace heuristics = application::importing::internal;
-} // namespace parser
-} // namespace core
+}
+}

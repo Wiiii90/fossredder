@@ -18,7 +18,7 @@ void ImportState::clearDraftObject()
     draft_ = nullptr;
 }
 
-void ImportState::setMatcherService(std::shared_ptr<core::ports::services::IImportMatcherService> matcherService)
+void ImportState::setMatcherService(std::shared_ptr<core::application::importing::draft::IImportMatcherService> matcherService)
 {
     matcherService_ = std::move(matcherService);
 }
@@ -200,7 +200,7 @@ bool ImportState::populateDraft(const QString& now,
                                 const core::domain::WorkspaceState& state,
                                 const std::vector<core::domain::TransactionDraft>& transactions,
                                 const std::map<std::string, std::vector<uint8_t>>& artifacts,
-                                const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService,
+                                const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService,
                                 const QString& draftId,
                                 int currentTransactionIndex,
                                 QObject* parent)
@@ -226,7 +226,7 @@ bool ImportState::populateDraft(const QString& now,
 bool ImportState::restoreDraft(const std::shared_ptr<core::domain::Statement>& statement,
                                const core::domain::WorkspaceState& state,
                                const std::vector<core::domain::TransactionDraft>& transactions,
-                               const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService,
+                               const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService,
                                const QString& draftId,
                                int currentTransactionIndex,
                                QObject* parent)

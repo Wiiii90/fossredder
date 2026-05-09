@@ -3,7 +3,7 @@
  * @brief Implements private helpers for short/full date detection in parser text.
  */
 
-#include "ParserDateUtils.h"
+#include "core/application/import/internal/ParserDateUtils.h"
 
 #include "core/errors/ErrorReporterRegistry.h"
 
@@ -14,7 +14,7 @@ namespace {
 const std::regex gShortDateRegex(R"(\b\d{2}\.\s*\d{2}\b)");
 const std::regex gFullDateRegex(R"((\d{2}\.\d{2}\.\d{4}))");
 
-} // namespace
+}
 
 namespace core::application::importing::internal {
 
@@ -43,4 +43,4 @@ std::optional<std::string> findFirstFullDate(const std::string& text) noexcept
     return std::nullopt;
 }
 
-} // namespace core::application::importing::internal
+}

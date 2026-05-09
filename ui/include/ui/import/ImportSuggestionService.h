@@ -7,7 +7,7 @@
 
 #include <memory>
 
-#include "core/ports/services/IImportMatcherService.h"
+#include "core/application/import/draft/IImportMatcherService.h"
 #include "ui/models/ImportSuggestion.h"
 
 namespace ui::importing {
@@ -15,6 +15,6 @@ namespace ui::importing {
 /**
  * @brief Builds ranked suggestions for a single imported transaction.
  */
-ImportDraftSuggestions buildImportSuggestions(const core::ports::services::ImportMatcherPresentation& coreSuggestions);
+ImportDraftSuggestions buildImportSuggestions(const core::application::importing::draft::ImportMatcherPresentation& coreSuggestions);
 
 } // namespace ui::importing

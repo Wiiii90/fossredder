@@ -13,6 +13,9 @@
 
 namespace core::utils {
 
+/**
+ * @brief Returns the current UTC timestamp in ISO-8601 format.
+ */
 inline std::string currentTimestampUtc()
 {
     using clock = std::chrono::system_clock;
@@ -31,4 +34,4 @@ inline std::string currentTimestampUtc()
     return out.str();
 }
 
-} // namespace core::utils
+}

@@ -194,7 +194,7 @@ core::domain::WorkspaceState withFallbackState(core::domain::WorkspaceState prim
 DraftDerivedState buildDraftDerivedState(const core::domain::WorkspaceState& state,
                                          const DraftLinkSelection& selection);
 
-} // namespace core::application::importing::draft
+}
 
 namespace core {
 namespace importing = application::importing;

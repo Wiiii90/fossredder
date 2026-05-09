@@ -114,7 +114,7 @@ ImportController::ImportController(
     JobSystemFactory jobSystemFactory,
     std::shared_ptr<core::errors::IErrorReporter> errorReporter,
     std::shared_ptr<core::ports::presenters::IImportPresenter> importPresenter,
-    std::shared_ptr<core::ports::services::IImportMatcherService> importMatcherService,
+    std::shared_ptr<core::application::importing::draft::IImportMatcherService> importMatcherService,
     QObject *parent)
     : QObject(parent), runs_(std::make_unique<ImportRunList>(this)),
       jobSystemFactory_(std::move(jobSystemFactory)),

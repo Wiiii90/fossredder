@@ -28,4 +28,4 @@ struct ImportRequest {
     core::jobs::SlotLimiter* ocrLimiter = nullptr;
 };
 
-} // namespace core::application::importing
+}

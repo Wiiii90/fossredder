@@ -6,15 +6,15 @@
 #include "core/pch.h"
 
 #include "ImportStatementStrategy.h"
-#include "api/poppler/PopplerRequest.h"
-#include "api/poppler/PopplerResult.h"
-#include "core/ports/services/IPopplerService.h"
-#include "api/opencv/OpenCvRequest.h"
-#include "api/opencv/OpenCvResult.h"
-#include "core/ports/services/IOpenCvService.h"
-#include "api/tesseract/TesseractRequest.h"
-#include "api/tesseract/TesseractResult.h"
-#include "core/ports/services/ITesseractService.h"
+#include "core/ports/pdf-rendering/PopplerRequest.h"
+#include "core/ports/pdf-rendering/PopplerResult.h"
+#include "core/ports/pdf-rendering/IPdfRenderer.h"
+#include "core/ports/image-processing/OpenCvRequest.h"
+#include "core/ports/image-processing/OpenCvResult.h"
+#include "core/ports/image-processing/IImageProcessor.h"
+#include "core/ports/text-recognition/TesseractRequest.h"
+#include "core/ports/text-recognition/TesseractResult.h"
+#include "core/ports/text-recognition/ITextRecognizer.h"
 #include "core/constants/import.h"
 #include "core/errors/ErrorReporting.h"
 #include "core/application/import/IImportStatement.h"
@@ -31,12 +31,15 @@ using core::application::importing::internal::PageWork;
 using core::application::importing::internal::finalizeParsedPages;
 
 namespace core::application::importing {
+namespace poppler = core::ports::pdf_rendering::poppler;
+namespace opencv = core::ports::image_processing::opencv;
+namespace tesseract = core::ports::text_recognition::tesseract;
 
 class DefaultImportStatementStrategy : public IImportStatementStrategy {
 public:
-    DefaultImportStatementStrategy(std::shared_ptr<core::ports::services::IPopplerService> poppler,
-        std::shared_ptr<core::ports::services::IOpenCvService> opencv,
-        std::shared_ptr<core::ports::services::ITesseractService> tesseract,
+    DefaultImportStatementStrategy(std::shared_ptr<core::ports::pdf_rendering::IPdfRenderer> poppler,
+        std::shared_ptr<core::ports::image_processing::IImageProcessor> opencv,
+        std::shared_ptr<core::ports::text_recognition::ITextRecognizer> tesseract,
         std::shared_ptr<core::errors::IErrorReporter> errorReporter)
         : poppler_(std::move(poppler))
         , opencv_(std::move(opencv))
@@ -127,17 +130,17 @@ public:
     }
 
 private:
-    std::shared_ptr<core::ports::services::IPopplerService> poppler_;
-    std::shared_ptr<core::ports::services::IOpenCvService> opencv_;
-    std::shared_ptr<core::ports::services::ITesseractService> tesseract_;
+    std::shared_ptr<core::ports::pdf_rendering::IPdfRenderer> poppler_;
+    std::shared_ptr<core::ports::image_processing::IImageProcessor> opencv_;
+    std::shared_ptr<core::ports::text_recognition::ITextRecognizer> tesseract_;
     std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
 };
 
-std::unique_ptr<IImportStatementStrategy> createDefaultImportStrategy(std::shared_ptr<core::ports::services::IPopplerService> poppler,
-    std::shared_ptr<core::ports::services::IOpenCvService> opencv,
-    std::shared_ptr<core::ports::services::ITesseractService> tesseract,
+std::unique_ptr<IImportStatementStrategy> createDefaultImportStrategy(std::shared_ptr<core::ports::pdf_rendering::IPdfRenderer> poppler,
+    std::shared_ptr<core::ports::image_processing::IImageProcessor> opencv,
+    std::shared_ptr<core::ports::text_recognition::ITextRecognizer> tesseract,
     std::shared_ptr<core::errors::IErrorReporter> errorReporter) {
     return std::make_unique<DefaultImportStatementStrategy>(std::move(poppler), std::move(opencv), std::move(tesseract), std::move(errorReporter));
 }
 
-} // namespace core::application::importing
+}

@@ -22,8 +22,8 @@ public:
     std::vector<TransactionDraft> transactions;
 };
 
-} // namespace core::application::importing::draft
+}
 
 namespace core::domain {
 using StatementDraft = core::application::importing::draft::StatementDraft;
-} // namespace core::domain
+}

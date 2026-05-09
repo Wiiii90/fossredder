@@ -18,7 +18,7 @@ namespace {
 
 void applyInitialDerivedSelections(const core::domain::WorkspaceState& state, ui::TransactionDraft& draft)
 {
-    const auto derived = core::application::importing::buildDraftDerivedState(state, ui::importing::toCoreSelection(draft));
+    const auto derived = core::application::importing::draft::buildDraftDerivedState(state, ui::importing::toCoreSelection(draft));
 
     if (draft.actorId.isEmpty()) {
         if (derived.actorCurrentIndex > 0
@@ -78,14 +78,14 @@ namespace ui::importing {
 
 std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::WorkspaceState& state,
                                                       const std::vector<core::domain::TransactionDraft>& transactions,
-                                                      const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService)
+                                                      const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService)
 {
     std::vector<TransactionDraft> drafts;
 
     drafts.reserve(transactions.size());
     for (std::size_t i = 0; i < transactions.size(); ++i) {
         const auto& tx = transactions[i];
-        const auto draftSignals = core::application::importing::buildDraftTextSignals(state, tx);
+        const auto draftSignals = core::application::importing::draft::buildDraftTextSignals(state, tx);
         TransactionDraft draft;
         draft.name = QStringLiteral("Transaction %1").arg(static_cast<int>(i + 1));
         draft.bookingDate = QString::fromStdString(tx.bookingDate);
@@ -115,7 +115,7 @@ StatementDraft* createStatementDraft(const QString& sourceFile,
                                       const std::shared_ptr<core::domain::Statement>& statement,
                                       const core::domain::WorkspaceState& state,
                                       const std::vector<core::domain::TransactionDraft>& transactions,
-                                      const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService,
+                                      const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService,
                                       const QString& draftId,
                                       int currentTransactionIndex,
                                       QObject* parent)

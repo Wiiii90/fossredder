@@ -8,6 +8,7 @@
 #include "core/application/export/ExportTypes.h"
 
 #include <filesystem>
+#include <memory>
 
 namespace core::application::exporting {
 
@@ -32,5 +33,11 @@ public:
                         const std::filesystem::path& outputArchive,
                         PackageFormat format) const = 0;
 };
+
+/**
+ * @brief Creates the configured archive adapter for export packaging.
+ * @return A concrete archive adapter implementation.
+ */
+std::unique_ptr<IArchive> createArchiveAdapter();
 
 } // namespace core::application::exporting

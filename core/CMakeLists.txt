@@ -13,7 +13,6 @@ set(CORE_PUBLIC_HEADERS
     include/core/application/export/ExportService.h
     include/core/application/export/ExportTypes.h
     include/core/application/export/IArchive.h
-    include/core/application/export/IArchivePackager.h
     include/core/application/export/XlsxExporter.h
     include/core/application/import/IImportStatement.h
     include/core/application/import/ImportLog.h
@@ -23,16 +22,6 @@ set(CORE_PUBLIC_HEADERS
     include/core/application/import/draft/DraftMatcher.h
     include/core/application/import/draft/StatementDraft.h
     include/core/application/import/draft/TransactionDraft.h
-    include/core/application/import/internal/ParserConfig.h
-    include/core/application/import/internal/ParserDateUtils.h
-    include/core/application/import/internal/ParserHelpers.h
-    include/core/application/import/internal/ParserHeuristics.h
-    include/core/application/import/statement/DefaultStatementParser.h
-    include/core/application/import/statement/StatementParseHelpers.h
-    include/core/application/import/statement/StatementParserTypes.h
-    include/core/application/import/transaction/AmountParser.h
-    include/core/application/import/transaction/DefaultTransactionParser.h
-    include/core/application/import/transaction/TransactionParserTypes.h
     include/core/application/storage/DeletionImpact.h
     include/core/application/storage/RepositoryBundle.h
     include/core/application/storage/StorageManager.h
@@ -97,13 +86,22 @@ set(CORE_PUBLIC_HEADERS
     include/core/ports/repositories/IStatementRepository.h
     include/core/ports/repositories/ITransactionDraftRepository.h
     include/core/ports/repositories/ITransactionRepository.h
-    include/core/ports/services/IOpenCvService.h
-    include/core/ports/services/IImportMatcherService.h
-    include/core/ports/services/IPopplerService.h
-    include/core/ports/services/ITesseractService.h
+    include/core/ports/image-processing/IImageProcessor.h
+    include/core/ports/image-processing/OpenCvRequest.h
+    include/core/ports/image-processing/OpenCvResult.h
+    include/core/ports/image-processing/OpenCvTypes.h
+    include/core/ports/pdf-rendering/IPdfRenderer.h
+    include/core/ports/pdf-rendering/PopplerRequest.h
+    include/core/ports/pdf-rendering/PopplerResult.h
+    include/core/ports/pdf-rendering/PopplerTypes.h
+    include/core/ports/text-recognition/ITextRecognizer.h
+    include/core/ports/text-recognition/TesseractRequest.h
+    include/core/ports/text-recognition/TesseractResult.h
+    include/core/ports/text-recognition/TesseractTypes.h
     include/core/ports/storage/IRegistry.h
     include/core/ports/storage/IStorageManager.h
     include/core/utils/Time.h
+    include/core/application/import/draft/IImportMatcherService.h
 )
 
 set(CORE_PRIVATE_HEADERS
@@ -119,21 +117,10 @@ set(CORE_PRIVATE_HEADERS
     src/application/import/ImportPipelineHelpers.h
     src/application/import/ImportStatementStrategy.h
     src/application/import/ImportStrategySupport.h
-    src/application/import/internal/ParserConfig.h
-    src/application/import/internal/ParserDateUtils.h
-    src/application/import/internal/ParserHelpers.h
-    src/application/import/internal/ParserHeuristics.h
-    src/application/import/statement/DefaultStatementParser.h
-    src/application/import/statement/StatementParseHelpers.h
-    src/application/import/statement/StatementParserTypes.h
-    src/application/import/transaction/AmountParser.h
-    src/application/import/transaction/DefaultTransactionParser.h
-    src/application/import/transaction/ParserTypes.h
     src/application/workspace/CatalogDraftAppliers.h
     src/application/workspace/CatalogMutationHelpers.h
     src/jobs/JobManager.h
     src/utils/StableId.h
-    src/utils/Time.h
     src/utils/UniqId.h
     src/utils/Util.h
 )
@@ -205,7 +192,6 @@ find_package(xlnt CONFIG QUIET)
 find_package(OpenCV REQUIRED)
 find_package(libzip CONFIG REQUIRED)
 
-target_link_libraries(fossredder_core PUBLIC FossRedder::Api)
 target_link_libraries(fossredder_core PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(fossredder_core PRIVATE ${OpenCV_LIBS})
 target_link_libraries(fossredder_core PRIVATE libzip::zip)

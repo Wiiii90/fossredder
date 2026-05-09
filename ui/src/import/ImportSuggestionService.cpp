@@ -9,7 +9,7 @@ namespace ui::importing {
 
 namespace {
 
-ImportSuggestion toUiSuggestion(const core::application::importing::DraftSuggestionCandidate& suggestion)
+ImportSuggestion toUiSuggestion(const core::application::importing::draft::DraftSuggestionCandidate& suggestion)
 {
     ImportSuggestion out;
     out.entityId = QString::fromStdString(suggestion.entityId);
@@ -27,7 +27,7 @@ ImportSuggestion toUiSuggestion(const core::application::importing::DraftSuggest
     return out;
 }
 
-ImportSuggestionBucket toUiBucket(const core::application::importing::DraftSuggestionBucket& bucket)
+ImportSuggestionBucket toUiBucket(const core::application::importing::draft::DraftSuggestionBucket& bucket)
 {
     ImportSuggestionBucket out;
     out.sourceText = QString::fromStdString(bucket.sourceText);
@@ -40,7 +40,7 @@ ImportSuggestionBucket toUiBucket(const core::application::importing::DraftSugge
 
 } // namespace
 
-ImportDraftSuggestions buildImportSuggestions(const core::ports::services::ImportMatcherPresentation& coreSuggestions)
+ImportDraftSuggestions buildImportSuggestions(const core::application::importing::draft::ImportMatcherPresentation& coreSuggestions)
 {
     ImportDraftSuggestions suggestions;
     suggestions.actor = toUiBucket(coreSuggestions.actor);

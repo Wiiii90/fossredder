@@ -43,9 +43,10 @@ target_link_libraries(fossredder PRIVATE
     FossRedder::Core
     FossRedder::Debug
     FossRedder::Persistence
-    FossRedder::OpenCvService
-    FossRedder::PopplerService
-    FossRedder::TesseractService
+    FossRedder::InfraImageProcessing
+    FossRedder::InfraArchive
+    FossRedder::InfraPdfRendering
+    FossRedder::InfraTextRecognition
     FossRedder::Ui
 )
 

@@ -24,13 +24,10 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 set(QT_QML_GENERATE_QMLLS_INI ON)
 
 # Module layout.
-add_subdirectory(api)
 add_subdirectory(core)
 add_subdirectory(debug)
+add_subdirectory(infra)
 add_subdirectory(persistence)
-add_subdirectory(services/poppler)
-add_subdirectory(services/opencv)
-add_subdirectory(services/tesseract)
 add_subdirectory(ui)
 add_subdirectory(app)
 

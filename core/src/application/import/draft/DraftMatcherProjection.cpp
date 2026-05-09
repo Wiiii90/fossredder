@@ -468,7 +468,7 @@ DraftSuggestionBucket buildSuggestionBucket(const EntityRange& entities,
     return bucket;
 }
 
-} // namespace
+}
 
 DraftDerivedState buildDraftDerivedState(const core::domain::WorkspaceState& state,
                                          const DraftLinkSelection& selection)
@@ -630,4 +630,4 @@ DraftImportSuggestions buildImportSuggestions(const core::domain::WorkspaceState
     return suggestions;
 }
 
-} // namespace core::application::importing::draft
+}

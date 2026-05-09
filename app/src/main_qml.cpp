@@ -6,12 +6,9 @@
 #ifdef USE_QML
 #include "MainWindow.h"
 #include "ui/bootstrap/AppContext.h"
-#include "api/opencv/IOpenCvAdapter.h"
-#include "api/opencv/IOpenCvService.h"
-#include "api/poppler/IPopplerAdapter.h"
-#include "api/poppler/IPopplerService.h"
-#include "api/tesseract/ITesseractAdapter.h"
-#include "api/tesseract/ITesseractService.h"
+#include "core/ports/image-processing/IImageProcessor.h"
+#include "core/ports/pdf-rendering/IPdfRenderer.h"
+#include "core/ports/text-recognition/ITextRecognizer.h"
 #include "core/application/analysis/RunAnalysis.h"
 #include "core/application/workspace/WorkspaceFacade.h"
 #include "core/errors/ErrorReporterRegistry.h"
@@ -28,7 +25,7 @@
 #include "core/ports/presenters/IExportPresenter.h"
 #include "core/ports/presenters/IImportPresenter.h"
 #include "core/ports/presenters/IWorkspacePresenter.h"
-#include "core/ports/services/IImportMatcherService.h"
+#include "core/application/import/draft/IImportMatcherService.h"
 #include "debug/DebugDefaults.h"
 
 using core::domain::WorkspaceState;
@@ -68,31 +65,12 @@ using core::domain::DeletionImpact;
 #include <memory>
 #include <utility>
 
-std::shared_ptr<api::poppler::IPopplerAdapter>
-createPopplerAdapter(std::shared_ptr<IDebugger> dbg);
-std::shared_ptr<api::opencv::IOpenCvAdapter>
-createOpenCvAdapter(std::shared_ptr<IDebugger> dbg);
-std::shared_ptr<api::tesseract::ITesseractAdapter>
-createTesseractAdapter(std::shared_ptr<IDebugger> dbg);
-
-namespace api {
-namespace poppler {
-std::shared_ptr<IPopplerService>
-createPopplerService(std::shared_ptr<IPopplerAdapter> adapter);
-}
-} // namespace api
-namespace api {
-namespace opencv {
-std::shared_ptr<IOpenCvService>
-createOpenCvService(std::shared_ptr<IOpenCvAdapter> adapter);
-}
-} // namespace api
-namespace api {
-namespace tesseract {
-std::shared_ptr<ITesseractService>
-createTesseractService(std::shared_ptr<ITesseractAdapter> adapter);
-}
-} // namespace api
+std::shared_ptr<core::ports::pdf_rendering::IPdfRenderer>
+createPdfRendererAdapter(std::shared_ptr<IDebugger> dbg);
+std::shared_ptr<core::ports::image_processing::IImageProcessor>
+createImageProcessorAdapter(std::shared_ptr<IDebugger> dbg);
+std::shared_ptr<core::ports::text_recognition::ITextRecognizer>
+createTextRecognizerAdapter(std::shared_ptr<IDebugger> dbg);
 
 namespace {
 
@@ -214,44 +192,44 @@ struct ImportPresenterAdapter final : core::ports::presenters::IImportPresenter 
   }
 };
 
-struct ImportMatcherServiceAdapter final : core::ports::services::IImportMatcherService {
-  core::ports::services::ImportMatcherPresentation buildImportSuggestions(
+struct ImportMatcherServiceAdapter final : core::application::importing::draft::IImportMatcherService {
+  core::application::importing::draft::ImportMatcherPresentation buildImportSuggestions(
       const core::domain::WorkspaceState& state,
       const core::domain::TransactionDraft& transaction) const override {
-    return core::application::importing::buildImportSuggestions(state, transaction);
+    return core::application::importing::draft::buildImportSuggestions(state, transaction);
   }
 
-  core::application::importing::DraftTextSignals buildDraftTextSignals(
+  core::application::importing::draft::DraftTextSignals buildDraftTextSignals(
       const core::domain::WorkspaceState& state,
       const core::domain::TransactionDraft& transaction) const override {
-    return core::application::importing::buildDraftTextSignals(state, transaction);
+    return core::application::importing::draft::buildDraftTextSignals(state, transaction);
   }
 
-  core::application::importing::DraftDerivedState buildDraftDerivedState(
+  core::application::importing::draft::DraftDerivedState buildDraftDerivedState(
       const core::domain::WorkspaceState& state,
-      const core::application::importing::DraftLinkSelection& selection) const override {
-    return core::application::importing::buildDraftDerivedState(state, selection);
+      const core::application::importing::draft::DraftLinkSelection& selection) const override {
+    return core::application::importing::draft::buildDraftDerivedState(state, selection);
   }
 
   std::string resolveActorId(const core::domain::WorkspaceState& state, const std::string& text) const override {
-    return core::application::importing::resolveActorId(state, text);
+    return core::application::importing::draft::resolveActorId(state, text);
   }
 
   std::string resolveContractId(const core::domain::WorkspaceState& state, const std::string& text) const override {
-    return core::application::importing::resolveContractId(state, text);
+    return core::application::importing::draft::resolveContractId(state, text);
   }
 
   bool contractIsFullyAllocatable(const core::domain::WorkspaceState& state, const std::string& contractId) const override {
-    return core::application::importing::contractIsFullyAllocatable(state, contractId);
+    return core::application::importing::draft::contractIsFullyAllocatable(state, contractId);
   }
 
   core::domain::WorkspaceState withFallbackState(core::domain::WorkspaceState primary,
                                                  const core::domain::WorkspaceState& fallback) const override {
-    return core::application::importing::withFallbackState(std::move(primary), fallback);
+    return core::application::importing::draft::withFallbackState(std::move(primary), fallback);
   }
 
   std::vector<std::string> referenceAliasesFromMetadata(const std::string& metadata) const override {
-    return core::application::importing::referenceAliasesFromMetadata(metadata);
+    return core::application::importing::draft::referenceAliasesFromMetadata(metadata);
   }
 };
 
@@ -280,6 +258,7 @@ UiControllers setupUiControllers(
   ui.contract = new ui::ContractController(&appStateFacade, &w);
   ui.statement = new ui::StatementController(&appStateFacade, &w);
   ui.transaction = new ui::TransactionController(&appStateFacade, &w);
+  auto importMatcherService = std::make_shared<ImportMatcherServiceAdapter>();
   ui.draft = new ui::DraftController(&appStateFacade, importMatcherService, &w);
   ui.analysisController = new ui::AnalysisController(
       &appStateFacade, exportSnapshotProvider, ui.analysisService, analysisPresenter, &w);
@@ -344,20 +323,19 @@ UiControllers setupUiControllers(
   auto importJobSystemFactory = [dbg = std::make_shared<FileDebugger>(
                                    "", std::string(debug::defaults::kImportProcessName)),
                                  &errorReporter]() {
-    auto popplerAdapter = createPopplerAdapter(dbg);
-    auto opencvAdapter = createOpenCvAdapter(dbg);
-    auto tesseractAdapter = createTesseractAdapter(dbg);
+    auto popplerAdapter = createPdfRendererAdapter(dbg);
+    auto opencvAdapter = createImageProcessorAdapter(dbg);
+    auto tesseractAdapter = createTextRecognizerAdapter(dbg);
 
-    auto poppler = api::poppler::createPopplerService(popplerAdapter);
-    auto opencv = api::opencv::createOpenCvService(opencvAdapter);
-    auto tesseract = api::tesseract::createTesseractService(tesseractAdapter);
+    auto poppler = popplerAdapter;
+    auto opencv = opencvAdapter;
+    auto tesseract = tesseractAdapter;
 
     auto importSvc = core::application::importing::createImportStatement(poppler, opencv, tesseract, errorReporter);
     return std::make_shared<core::jobs::JobSystem>(importSvc);
   };
 
   auto importPresenter = std::make_shared<ImportPresenterAdapter>();
-  auto importMatcherService = std::make_shared<ImportMatcherServiceAdapter>();
 
   const auto importSnapshotProvider = [&appStateFacade, &w]() {
     const auto liveState = appStateFacade.state();
@@ -515,3 +493,4 @@ int startQmlApp(QApplication &app, core::application::WorkspaceFacade &appStateF
 }
 
 #endif
+

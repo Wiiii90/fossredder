@@ -9,7 +9,7 @@
 #include "ui/payload/PayloadMapper.h"
 #include "ui/util/StringConversions.h"
 
-namespace core_importing = core::application::importing;
+namespace core_importing = core::application::importing::draft;
 
 namespace ui::importing {
 
@@ -194,4 +194,3 @@ const core_importing::DraftChoiceRow* findChoiceRowById(const std::vector<core_i
 }
 
 } // namespace ui::importing
-

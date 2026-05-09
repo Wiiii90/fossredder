@@ -51,10 +51,10 @@ struct HeaderAnalysis {
     int pageMaxY = -1;
 };
 
-} // namespace core::application::importing::statement::internal
+}
 
 namespace core {
 namespace parser {
 namespace detail = application::importing::statement::internal;
-} // namespace parser
-} // namespace core
+}
+}

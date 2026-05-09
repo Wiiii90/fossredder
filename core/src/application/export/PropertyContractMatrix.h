@@ -39,14 +39,14 @@ inline std::string resolveContractType(const std::string& contractId,
                                        const core::domain::AppState& state,
                                        const char* missingTypeOrigin)
 {
-    const std::string trimmedContractId = utils::trim(contractId);
+    const std::string trimmedContractId = core::utils::trim(contractId);
     if (trimmedContractId.empty()) {
         return std::string(core::constants::exportFlow::labels::kUnassigned);
     }
 
     const auto indexedType = idToType.find(trimmedContractId);
     if (indexedType != idToType.end()) {
-        const std::string trimmedType = utils::trim(indexedType->second);
+        const std::string trimmedType = core::utils::trim(indexedType->second);
         if (!trimmedType.empty()) {
             return trimmedType;
         }
@@ -56,11 +56,11 @@ inline std::string resolveContractType(const std::string& contractId,
         if (!contract) {
             continue;
         }
-        if (utils::trim(contract->id) != trimmedContractId) {
+        if (core::utils::trim(contract->id) != trimmedContractId) {
             continue;
         }
 
-        const std::string trimmedType = utils::trim(contract->type);
+        const std::string trimmedType = core::utils::trim(contract->type);
         if (!trimmedType.empty()) {
             return trimmedType;
         }

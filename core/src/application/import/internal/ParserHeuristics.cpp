@@ -3,14 +3,14 @@
  * @brief Implements lightweight text heuristics for statement parsing.
  */
 
-#include "ParserHeuristics.h"
+#include "core/application/import/internal/ParserHeuristics.h"
 #include "../../../utils/Util.h"
 
 #include <array>
 #include <vector>
 
-using utils::lowerAscii;
-using utils::trim;
+using core::utils::lowerAscii;
+using core::utils::trim;
 
 namespace core::application::importing::internal {
 
@@ -20,7 +20,7 @@ std::string normalizeAlphaNumeric(const std::string& value)
 {
     std::string normalized;
     normalized.reserve(value.size());
-    for (unsigned char c : utils::lowerAscii(value)) {
+    for (unsigned char c : core::utils::lowerAscii(value)) {
         if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) normalized.push_back(static_cast<char>(c));
     }
     return normalized;
@@ -49,7 +49,7 @@ bool looksLikeAmountToken(const std::string& token)
 
 bool containsAmountToken(const std::string& value)
 {
-    const auto tokens = utils::splitWhitespace(value);
+    const auto tokens = core::utils::splitWhitespace(value);
     return std::any_of(tokens.begin(), tokens.end(), [](const std::string& token) {
         return looksLikeAmountToken(token);
     });
@@ -61,7 +61,7 @@ bool isHeaderNoiseLine(const std::string& line) {
     const auto l = lowerAscii(line);
     if (l.size() <= 2) return true;
 
-    const auto toks = utils::splitWhitespace(l);
+    const auto toks = core::utils::splitWhitespace(l);
     if (toks.empty()) return false;
 
     std::vector<std::string> normalizedTokens;
@@ -140,4 +140,4 @@ bool isDebitCreditHeaderLine(const std::string& line) {
     return (n.find("zuihrenlasten") != std::string::npos) && (n.find("zuihrengunsten") != std::string::npos);
 }
 
-} // namespace core::application::importing::internal
+}

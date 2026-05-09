@@ -70,5 +70,4 @@ core::domain::WorkspaceState withFallbackState(core::domain::WorkspaceState prim
     return primary;
 }
 
-} // namespace core::application::importing::draft
-
+}

@@ -9,4 +9,4 @@
 
 namespace core::application::importing {
 using ImportResult = core::ports::presenters::ImportPresentation;
-} // namespace core::application::importing
+}

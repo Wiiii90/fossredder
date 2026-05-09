@@ -43,5 +43,4 @@ DraftTextSignals buildDraftTextSignals(const core::domain::WorkspaceState& state
     return signals;
 }
 
-} // namespace core::application::importing::draft
-
+}

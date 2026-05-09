@@ -35,20 +35,20 @@ public:
      * @brief Insert a new statement draft.
      * @param draft Statement draft to add.
      */
-    void addStatementDraft(const std::shared_ptr<core::domain::StatementDraft>& draft) override;
+    void addStatementDraft(const std::shared_ptr<core::application::importing::draft::StatementDraft>& draft) override;
 
     /**
      * @brief Retrieve all statement drafts.
      * @return All stored statement drafts.
      */
-    std::vector<std::shared_ptr<core::domain::StatementDraft>> getStatementDrafts() const override;
+    std::vector<std::shared_ptr<core::application::importing::draft::StatementDraft>> getStatementDrafts() const override;
 
     /**
      * @brief Retrieve a statement draft by identifier.
      * @param id Statement draft identifier.
      * @return Statement draft with the requested identifier, if found.
      */
-    std::optional<std::shared_ptr<core::domain::StatementDraft>> getStatementDraftById(const std::string& id) const override;
+    std::optional<std::shared_ptr<core::application::importing::draft::StatementDraft>> getStatementDraftById(const std::string& id) const override;
 
     /**
      * @brief Remove a statement draft by identifier.
@@ -60,13 +60,13 @@ public:
      * @brief Update an existing statement draft.
      * @param draft Statement draft to update.
      */
-    void updateStatementDraft(const std::shared_ptr<core::domain::StatementDraft>& draft) override;
+    void updateStatementDraft(const std::shared_ptr<core::application::importing::draft::StatementDraft>& draft) override;
 
     /**
      * @brief Insert or update a statement draft.
      * @param draft Statement draft to upsert.
      */
-    void upsertStatementDraft(const std::shared_ptr<core::domain::StatementDraft>& draft) override;
+    void upsertStatementDraft(const std::shared_ptr<core::application::importing::draft::StatementDraft>& draft) override;
 
     /**
      * @brief Remove all statement drafts.

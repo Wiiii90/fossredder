@@ -25,8 +25,8 @@ public:
     static std::string finalize(core::domain::WorkspaceState& state, const StatementDraft& draft);
 };
 
-} // namespace core::application::importing::draft
+}
 
 namespace core::application {
 using DraftFinalizer = importing::draft::DraftFinalizer;
-} // namespace core::application
+}

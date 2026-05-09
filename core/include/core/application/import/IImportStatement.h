@@ -11,10 +11,14 @@
 
 #include <memory>
 
-namespace core::ports::services {
-class IPopplerService;
-class IOpenCvService;
-class ITesseractService;
+namespace core::ports::pdf_rendering {
+class IPdfRenderer;
+}
+namespace core::ports::image_processing {
+class IImageProcessor;
+}
+namespace core::ports::text_recognition {
+class ITextRecognizer;
 }
 
 namespace core::application::importing {
@@ -39,15 +43,15 @@ public:
 
 /**
  * @brief Creates the default statement import service over the configured adapters.
- * @param poppler Poppler adapter.
- * @param openCv OpenCV adapter.
- * @param tesseract Tesseract adapter.
+ * @param poppler PDF rendering adapter.
+ * @param openCv Image processing adapter.
+ * @param tesseract Text recognition adapter.
  * @param errorReporter Optional error reporter.
  * @return Shared import service instance.
  */
-std::shared_ptr<IImportStatement> createImportStatement(std::shared_ptr<core::ports::services::IPopplerService> poppler,
-                                                        std::shared_ptr<core::ports::services::IOpenCvService> openCv,
-                                                        std::shared_ptr<core::ports::services::ITesseractService> tesseract,
+std::shared_ptr<IImportStatement> createImportStatement(std::shared_ptr<core::ports::pdf_rendering::IPdfRenderer> poppler,
+                                                        std::shared_ptr<core::ports::image_processing::IImageProcessor> openCv,
+                                                        std::shared_ptr<core::ports::text_recognition::ITextRecognizer> tesseract,
                                                         std::shared_ptr<core::errors::IErrorReporter> errorReporter = nullptr);
 
-} // namespace core::application::importing
+}

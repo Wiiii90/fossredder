@@ -50,7 +50,7 @@ struct TransactionBlock {
     std::vector<OcrLine> detailLines;
 };
 
-} // namespace core::application::importing::transaction::internal
+}
 
 namespace core {
 namespace parser {
@@ -58,5 +58,5 @@ using OcrCell = application::importing::transaction::internal::OcrCell;
 using OcrLine = application::importing::transaction::internal::OcrLine;
 using TransactionBlock = application::importing::transaction::internal::TransactionBlock;
 using TransactionMainRow = application::importing::transaction::internal::TransactionMainRow;
-} // namespace parser
-} // namespace core
+}
+}

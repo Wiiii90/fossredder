@@ -15,7 +15,7 @@
 #include "ui/models/StatementDraft.h"
 
 namespace core::application { class WorkspaceFacade; }
-namespace core::ports::services { class IImportMatcherService; }
+namespace core::application::importing::draft { class IImportMatcherService; }
 
 namespace ui {
 
@@ -32,7 +32,7 @@ public:
      *  @param parent QObject parent
      */
     explicit DraftController(core::application::WorkspaceFacade* core,
-                             std::shared_ptr<core::ports::services::IImportMatcherService> matcherService = {},
+                             std::shared_ptr<core::application::importing::draft::IImportMatcherService> matcherService = {},
                              QObject* parent = nullptr);
 
     /** @brief Finalize the current statement draft into persistent core entities.
@@ -88,7 +88,7 @@ public:
 
 private:
     core::application::WorkspaceFacade* core_ = nullptr;
-    std::shared_ptr<core::ports::services::IImportMatcherService> matcherService_;
+    std::shared_ptr<core::application::importing::draft::IImportMatcherService> matcherService_;
 };
 
 } // namespace ui

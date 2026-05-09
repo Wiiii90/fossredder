@@ -8,6 +8,7 @@
 #include "core/application/analysis/RunAnalysis.h"
 #include "core/constants/analysis.h"
 #include "core/constants/export.h"
+#include "core/application/export/IArchive.h"
 
 #include <fstream>
 #include <sstream>
@@ -19,8 +20,6 @@
 #include <vector>
 #include <iterator>
 #include <cmath>
-
-#include <zip.h>
 
 #include <xlnt/xlnt.hpp>
 
@@ -523,47 +522,6 @@ bool writeImageFromResult(const std::filesystem::path& outputPath,
     return cv::imwrite(outputPath.string(), image);
 }
 
-bool createZipArchive(const std::filesystem::path& sourceDir,
-                      const std::filesystem::path& outputArchive)
-{
-    int errorCode = 0;
-    zip_t* archive = zip_open(outputArchive.string().c_str(), ZIP_CREATE | ZIP_TRUNCATE, &errorCode);
-    if (!archive) return false;
-
-    bool success = true;
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(sourceDir)) {
-        if (!entry.is_regular_file()) continue;
-
-        const std::filesystem::path absolutePath = entry.path();
-        std::filesystem::path relativePath;
-        try {
-            relativePath = std::filesystem::relative(absolutePath, sourceDir);
-        } catch (...) {
-            relativePath = absolutePath.filename();
-        }
-
-        zip_source_t* source = zip_source_file(archive, absolutePath.string().c_str(), 0, 0);
-        if (!source) {
-            success = false;
-            break;
-        }
-
-        const std::string zipPath = relativePath.generic_string();
-        if (zip_file_add(archive, zipPath.c_str(), source, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8) < 0) {
-            zip_source_free(source);
-            success = false;
-            break;
-        }
-    }
-
-    if (!success) {
-        zip_discard(archive);
-        return false;
-    }
-
-    return zip_close(archive) == 0 && std::filesystem::exists(outputArchive);
-}
-
 std::unordered_map<std::string, std::string> annualFolderNames(const core::domain::AppState& state)
 {
     std::unordered_map<std::string, std::string> folderByAnnualId;
@@ -681,7 +639,8 @@ ExportResult AnalysisExportService::exportAnalyses(const ExportRequest& request)
 
         if (request.packageFormat == PackageFormat::Zip) {
             const std::filesystem::path archivePath = baseOutput.string() + std::string(core::constants::exportFlow::packaging::kZipExtension);
-            if (!createZipArchive(baseOutput, archivePath)) {
+            const auto archiveAdapter = createArchiveAdapter();
+            if (!archiveAdapter || !archiveAdapter->create(baseOutput, archivePath, request.packageFormat)) {
                 result.status = ExportStatus::ArchiveFailed;
                 result.errorCode = std::string(core::constants::exportFlow::errors::kArchiveFailed);
                 result.message = std::string(core::constants::exportFlow::messages::kArchiveFailed);

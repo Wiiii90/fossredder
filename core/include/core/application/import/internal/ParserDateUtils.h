@@ -29,10 +29,10 @@ bool containsShortDate(const std::string& text) noexcept;
  */
 std::optional<std::string> findFirstFullDate(const std::string& text) noexcept;
 
-} // namespace core::application::importing::internal
+}
 
 namespace core {
 namespace parser {
 namespace helpers = application::importing::internal;
-} // namespace parser
-} // namespace core
+}
+}

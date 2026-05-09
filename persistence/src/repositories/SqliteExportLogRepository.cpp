@@ -72,7 +72,7 @@ void saveIds(sqlite3* db,
 }
 
 void writeExportLog(sqlite3* db,
-                    const std::shared_ptr<core::domain::ExportLog>& log,
+                    const std::shared_ptr<core::application::exporting::ExportLog>& log,
                     const char* sql)
 {
     if (!db || !log) {
@@ -123,7 +123,7 @@ SqliteExportLogRepository::SqliteExportLogRepository(std::shared_ptr<SqliteDb> d
 
 SqliteExportLogRepository::~SqliteExportLogRepository() = default;
 
-void SqliteExportLogRepository::addExportLog(const std::shared_ptr<core::domain::ExportLog>& log)
+void SqliteExportLogRepository::addExportLog(const std::shared_ptr<core::application::exporting::ExportLog>& log)
 {
     const auto db = pimpl_->db->handle();
     writeExportLog(
@@ -140,9 +140,9 @@ void SqliteExportLogRepository::addExportLog(const std::shared_ptr<core::domain:
     }
 }
 
-std::vector<std::shared_ptr<core::domain::ExportLog>> SqliteExportLogRepository::getExportLogs() const
+std::vector<std::shared_ptr<core::application::exporting::ExportLog>> SqliteExportLogRepository::getExportLogs() const
 {
-    std::vector<std::shared_ptr<core::domain::ExportLog>> logs;
+    std::vector<std::shared_ptr<core::application::exporting::ExportLog>> logs;
     const auto db = pimpl_->db->handle();
     persistence::StmtGuard stmt(
         db,
@@ -152,7 +152,7 @@ std::vector<std::shared_ptr<core::domain::ExportLog>> SqliteExportLogRepository:
     }
 
     while (stmt.step() == SQLITE_ROW) {
-        auto log = std::make_shared<core::domain::ExportLog>();
+        auto log = std::make_shared<core::application::exporting::ExportLog>();
         log->id = stmt.columnText(0);
         log->time = stmt.columnText(1);
         log->targetPath = stmt.columnText(2);
@@ -167,7 +167,7 @@ std::vector<std::shared_ptr<core::domain::ExportLog>> SqliteExportLogRepository:
     return logs;
 }
 
-std::optional<std::shared_ptr<core::domain::ExportLog>> SqliteExportLogRepository::getExportLogById(const std::string& id) const
+std::optional<std::shared_ptr<core::application::exporting::ExportLog>> SqliteExportLogRepository::getExportLogById(const std::string& id) const
 {
     const auto db = pimpl_->db->handle();
     persistence::StmtGuard stmt(
@@ -182,7 +182,7 @@ std::optional<std::shared_ptr<core::domain::ExportLog>> SqliteExportLogRepositor
         return std::nullopt;
     }
 
-    auto log = std::make_shared<core::domain::ExportLog>();
+    auto log = std::make_shared<core::application::exporting::ExportLog>();
     log->id = stmt.columnText(0);
     log->time = stmt.columnText(1);
     log->targetPath = stmt.columnText(2);
@@ -204,7 +204,7 @@ void SqliteExportLogRepository::removeExportLog(const std::string& id)
     stmt.step();
 }
 
-void SqliteExportLogRepository::updateExportLog(const std::shared_ptr<core::domain::ExportLog>& log)
+void SqliteExportLogRepository::updateExportLog(const std::shared_ptr<core::application::exporting::ExportLog>& log)
 {
     const auto db = pimpl_->db->handle();
     writeExportLog(
@@ -221,7 +221,7 @@ void SqliteExportLogRepository::updateExportLog(const std::shared_ptr<core::doma
     }
 }
 
-void SqliteExportLogRepository::upsertExportLog(const std::shared_ptr<core::domain::ExportLog>& log)
+void SqliteExportLogRepository::upsertExportLog(const std::shared_ptr<core::application::exporting::ExportLog>& log)
 {
     const auto db = pimpl_->db->handle();
     writeExportLog(

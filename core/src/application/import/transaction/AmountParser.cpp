@@ -3,9 +3,9 @@
  * @brief Implements private helpers for parsing OCR amount strings.
  */
 
-#include "AmountParser.h"
+#include "core/application/import/transaction/AmountParser.h"
 
-#include "../internal/ParserDateUtils.h"
+#include "core/application/import/internal/ParserDateUtils.h"
 #include "core/errors/ErrorReporterRegistry.h"
 
 #include <algorithm>
@@ -133,7 +133,7 @@ std::optional<double> parseAmountInternal(const std::string& line)
     return std::nullopt;
 }
 
-} // namespace
+}
 
 namespace core::application::importing::transaction {
 
@@ -142,4 +142,4 @@ std::optional<double> parseAmountString(const std::string& line)
     return parseAmountInternal(line);
 }
 
-} // namespace core::application::importing::transaction
+}

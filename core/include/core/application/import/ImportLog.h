@@ -27,8 +27,8 @@ public:
     std::string statementId;
 };
 
-} // namespace core::application::importing
+}
 
 namespace core::domain {
 using ImportLog = core::application::importing::ImportLog;
-} // namespace core::domain
+}

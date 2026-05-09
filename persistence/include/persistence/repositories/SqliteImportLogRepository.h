@@ -35,20 +35,20 @@ public:
      * @brief Insert a new import log entry.
      * @param log Import log to add.
      */
-    void addImportLog(const std::shared_ptr<core::domain::ImportLog>& log) override;
+    void addImportLog(const std::shared_ptr<core::application::importing::ImportLog>& log) override;
 
     /**
      * @brief Retrieve all import log entries.
      * @return All stored import logs.
      */
-    std::vector<std::shared_ptr<core::domain::ImportLog>> getImportLogs() const override;
+    std::vector<std::shared_ptr<core::application::importing::ImportLog>> getImportLogs() const override;
 
     /**
      * @brief Retrieve an import log entry by identifier.
      * @param id Import log identifier.
      * @return Import log with the requested identifier, if found.
      */
-    std::optional<std::shared_ptr<core::domain::ImportLog>> getImportLogById(const std::string& id) const override;
+    std::optional<std::shared_ptr<core::application::importing::ImportLog>> getImportLogById(const std::string& id) const override;
 
     /**
      * @brief Remove an import log entry by identifier.
@@ -60,13 +60,13 @@ public:
      * @brief Update an existing import log entry.
      * @param log Import log to update.
      */
-    void updateImportLog(const std::shared_ptr<core::domain::ImportLog>& log) override;
+    void updateImportLog(const std::shared_ptr<core::application::importing::ImportLog>& log) override;
 
     /**
      * @brief Insert or update an import log entry.
      * @param log Import log to upsert.
      */
-    void upsertImportLog(const std::shared_ptr<core::domain::ImportLog>& log) override;
+    void upsertImportLog(const std::shared_ptr<core::application::importing::ImportLog>& log) override;
 
     /**
      * @brief Remove all import log entries.

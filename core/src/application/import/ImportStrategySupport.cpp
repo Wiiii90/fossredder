@@ -52,36 +52,36 @@ internal::ProgressReporter makeProgressReporter(const ImportRequest& req,
     };
 }
 
-api::poppler::RenderRequest makeRenderRequest(const ImportRequest& req)
+core::ports::pdf_rendering::poppler::RenderRequest makeRenderRequest(const ImportRequest& req)
 {
-    api::poppler::RenderRequest request;
+    core::ports::pdf_rendering::poppler::RenderRequest request;
     request.pdfPath = std::filesystem::path(req.sourcePath);
     request.dpi = core::constants::importing::kRenderDpi;
     request.outputDir = std::filesystem::path();
-    request.uniqIdPrefix = utils::makeUniqId();
+    request.uniqIdPrefix = core::utils::makeUniqId();
     request.filePrefix = std::string(core::constants::importing::kPopplerRenderPrefix);
     request.cancelFlag = req.cancelFlag;
     return request;
 }
 
-api::poppler::ExtractRequest makeExtractRequest(const api::poppler::RenderRequest& renderRequest,
+core::ports::pdf_rendering::poppler::ExtractRequest makeExtractRequest(const core::ports::pdf_rendering::poppler::RenderRequest& renderRequest,
                                                 const ImportRequest& req)
 {
-    api::poppler::ExtractRequest request;
+    core::ports::pdf_rendering::poppler::ExtractRequest request;
     request.pdfPath = renderRequest.pdfPath;
     request.dpi = renderRequest.dpi;
     request.outputDir = std::filesystem::path();
-    request.uniqIdPrefix = utils::makeUniqId();
+    request.uniqIdPrefix = core::utils::makeUniqId();
     request.filePrefix = std::string(core::constants::importing::kPopplerExtractPrefix);
     request.cancelFlag = req.cancelFlag;
     return request;
 }
 
 std::vector<internal::PageWork> collectPageWork(const ImportRequest& req,
-                                              const api::poppler::RenderResult& renderResult,
-                                              const api::poppler::ExtractResult& extractResult,
-                                              const std::shared_ptr<core::ports::services::IOpenCvService>& opencv,
-                                              const std::shared_ptr<core::ports::services::ITesseractService>& tesseract,
+                                              const core::ports::pdf_rendering::poppler::RenderResult& renderResult,
+                                              const core::ports::pdf_rendering::poppler::ExtractResult& extractResult,
+                                              const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
+                                              const std::shared_ptr<core::ports::text_recognition::ITextRecognizer>& tesseract,
                                               SchedulerResources& resources,
                                               const internal::ProgressReporter& report,
                                               core::errors::IErrorReporter* errorReporter,
@@ -180,4 +180,4 @@ void attachMetricsArtifact(ImportResult& out,
     }
 }
 
-} // namespace core::application::importing
+}

@@ -1,16 +1,21 @@
-#include "DefaultTransactionParser.h"
+/**
+ * @file core/src/application/import/transaction/DefaultTransactionParser.cpp
+ * @brief Implements transaction parsing and amount resolution logic.
+ */
+
+#include "core/application/import/transaction/DefaultTransactionParser.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "../../../utils/Util.h"
-#include "../internal/ParserHelpers.h"
-#include "../internal/ParserDateUtils.h"
+#include "core/application/import/internal/ParserHelpers.h"
+#include "core/application/import/internal/ParserDateUtils.h"
 
 #include <algorithm>
 #include <regex>
 #include <string>
 
-using utils::collapseWhitespace;
-using utils::splitWhitespace;
-using utils::trim;
+using core::utils::collapseWhitespace;
+using core::utils::splitWhitespace;
+using core::utils::trim;
 
 namespace core::application::importing::transaction {
 using internal::OcrLine;
@@ -44,7 +49,6 @@ std::optional<std::string> parseValutaToken(const std::string& line) {
 
     if (std::regex_search(line, m, reJoined)) return m.str(1);
 
-    // Handle split OCR tokens like "17." and "02" (line text seen as "17. 02")
     {
         std::smatch md;
         if (std::regex_search(line, md, reSplit)) {
@@ -61,15 +65,14 @@ std::optional<std::string> parseValutaToken(const std::string& line) {
     return std::nullopt;
 }
 
-} // anonymous namespace
+}
 
-// helper to compute right edge from OcrLine
 int textRightEdge(const OcrLine& l) {
-    if (!l.wordSpans.empty()) return utils::rightEdgeFromWordSpans(l.wordSpans);
+    if (!l.wordSpans.empty()) return core::utils::rightEdgeFromWordSpans(l.wordSpans);
     return l.maxX;
 }
 
-DefaultTransactionParser DefaultTransactionParser::parseTransaction(const TransactionBlock& block, std::vector<std::string>* debugOut /*=nullptr*/) {
+DefaultTransactionParser DefaultTransactionParser::parseTransaction(const TransactionBlock& block, std::vector<std::string>* debugOut) {
     DefaultTransactionParser tx;
     tx.bookingDate = block.bookingDateGroup;
 
@@ -80,10 +83,9 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
     bool sourceDebit = false;
     bool sourceCredit = false;
 
-    // Determine amounts from credit/debit tokens with robust sign heuristics
     auto tokenIndicatesNegative = [&](const std::string &txt)->bool{
         std::string s = txt;
-        try { s = utils::trim(s); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultTransactionParser::parseTransaction::trim", std::current_exception()); }
+        try { s = core::utils::trim(s); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultTransactionParser::parseTransaction::trim", std::current_exception()); }
         if (s.empty()) return false;
         if (s.front() == '(' && s.back() == ')') return true;
         if (s.front() == '-') return true;
@@ -103,7 +105,6 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
 
     if (!block.main.credit.empty()) {
         creditExplicitNeg = tokenIndicatesNegative(block.main.credit.line.text);
-        // Prefer robust helper that works on OcrLine tokens
         if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.credit.line, -1, debugOut)) {
             creditVal = v;
             if (debugOut) debugOut->push_back(std::string("initial.credit.helperUsed\t") + block.main.credit.line.text + std::string(" -> ") + std::to_string(*creditVal));
@@ -123,9 +124,8 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
         }
     }
 
-    // Fallback: if neither side parsed or parsed values look suspiciously small, try a more robust scan
     try {
-        const double suspiciousThreshold = 1.0; // amounts smaller than this considered suspect for fallback
+        const double suspiciousThreshold = 1.0;
         bool needFallback = (!creditVal && !debitVal);
         if (!needFallback) {
             if (creditVal && std::abs(*creditVal) < suspiciousThreshold) needFallback = true;
@@ -133,7 +133,6 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
         }
         if (needFallback) {
             if (debugOut) debugOut->push_back(std::string("fallback.scan.start\tcreditVal=") + (creditVal?"1":"0") + std::string(" debitVal=") + (debitVal?"1":"0"));
-            // scan main line cells and detail lines for amount-like tokens
             if (!block.main.credit.empty()) {
                 if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.credit.line, -1, debugOut)) { creditVal = v; if (debugOut) debugOut->push_back(std::string("fallback.credit.helper\t") + block.main.credit.line.text + std::string(" -> ") + std::to_string(*v)); }
             }
@@ -141,10 +140,8 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
                 if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.debit.line, -1, debugOut)) { debitVal = v; if (debugOut) debugOut->push_back(std::string("fallback.debit.helper\t") + block.main.debit.line.text + std::string(" -> ") + std::to_string(*v)); }
             }
             if (!creditVal && !debitVal) {
-                // scan left and detail lines
                 if (!block.main.left.empty()) {
                     if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.left.line, -1, debugOut)) {
-                        // ambiguous which column; assume credit unless signage indicates debit
                         creditVal = v;
                         if (debugOut) debugOut->push_back(std::string("fallback.left.helper\t") + block.main.left.line.text + std::string(" -> ") + std::to_string(*v));
                     }
@@ -157,7 +154,6 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
         }
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultTransactionParser::parseTransaction::fallbackScan", std::current_exception()); }
 
-    // If both parsed, resolve using explicit markers or magnitude
     if (creditVal && debitVal) {
         if (creditExplicitNeg && !debitExplicitNeg) {
             tx.amount = *creditVal;
@@ -166,16 +162,13 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
             tx.amount = *debitVal;
             if (debugOut) debugOut->push_back(std::string("resolve.both\tchoose.debitNeg->") + std::to_string(tx.amount));
         } else {
-            // prefer larger absolute amount as likely the real amount
             if (std::abs(*debitVal) >= std::abs(*creditVal)) tx.amount = *debitVal; else tx.amount = *creditVal;
             if (debugOut) debugOut->push_back(std::string("resolve.both\tchoose.larger->") + std::to_string(tx.amount));
         }
     } else if (creditVal) {
-        // only credit parsed -> use as-is
         tx.amount = *creditVal;
         if (debugOut) debugOut->push_back(std::string("resolve.credit->") + std::to_string(tx.amount));
     } else if (debitVal) {
-        // only debit parsed -> decide sign by relative horizontal position if possible
         bool treatAsCredit = false;
         if (!block.main.credit.empty()) {
             try {
@@ -185,18 +178,17 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
             } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultTransactionParser::parseTransaction::debitVsCreditCenter", std::current_exception()); }
         }
         if (tokenIndicatesNegative(block.main.debit.line.text)) {
-            tx.amount = *debitVal; // keep explicit sign
+            tx.amount = *debitVal;
             if (debugOut) debugOut->push_back(std::string("resolve.debitExpNeg->") + std::to_string(tx.amount));
         } else if (treatAsCredit) {
-            tx.amount = *debitVal; // treat as positive credit
+            tx.amount = *debitVal;
             if (debugOut) debugOut->push_back(std::string("resolve.debit.treatAsCredit->") + std::to_string(tx.amount));
         } else {
-            tx.amount = -std::abs(*debitVal); // default: debit -> negative
+            tx.amount = -std::abs(*debitVal);
             if (debugOut) debugOut->push_back(std::string("resolve.debit.defaultNegative->") + std::to_string(tx.amount));
         }
     }
 
-    // If still zero, try to combine split tokens (debit+credit or credit+debit)
     if (tx.amount == 0.0 && !block.main.debit.empty() && !block.main.credit.empty()) {
         auto tryCombineParse = [&](const std::string& a, const std::string& b)->std::optional<double> {
             try {
@@ -207,7 +199,6 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
             return std::nullopt;
         };
         if (auto p = tryCombineParse(block.main.debit.line.text, block.main.credit.line.text)) {
-            // debit+credit combined: assume belongs to debit column unless credit clearly right of debit
             bool creditRightOfDebit = false;
             try { creditRightOfDebit = centerXOf(block.main.credit.line) > centerXOf(block.main.debit.line); } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultTransactionParser::parseTransaction::combineCenter", std::current_exception()); }
             if (creditRightOfDebit) tx.amount = *p; else tx.amount = -std::abs(*p);
@@ -218,7 +209,6 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
         }
     }
 
-    // Enforce explicit negative markers: if any token shows '-' or parentheses, make amount negative
     try {
         auto hasNegMarker = [&](const std::string &t)->bool{
             if (t.empty()) return false;
@@ -231,10 +221,8 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
         }
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultTransactionParser::parseTransaction::negMarker", std::current_exception()); }
 
-    // Enforce column semantics: debit column -> negative, credit column -> positive
     try {
         if (sourceDebit && sourceCredit) {
-            // ambiguous: do not change sign
         } else if (sourceDebit) {
             if (tx.amount > 0.0) tx.amount = -std::abs(tx.amount);
         } else if (sourceCredit) {
@@ -302,4 +290,4 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
     return tx;
 }
 
-} // namespace core::application::importing::transaction
+}

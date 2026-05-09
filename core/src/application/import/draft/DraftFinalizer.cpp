@@ -2,6 +2,7 @@
  * @file core/src/application/import/draft/DraftFinalizer.cpp
  * @brief Materializes imported draft statements into domain entities.
  */
+
 #include "core/application/import/draft/DraftFinalizer.h"
 
 #include "core/constants/app_state.h"
@@ -43,7 +44,7 @@ std::string DraftFinalizer::finalize(core::domain::WorkspaceState& state, const 
 
     auto statement = std::make_shared<Statement>();
     statement->id = core::utils::makeStableId();
-    statement->name = ::utils::trim(draft.name).empty()
+    statement->name = ::core::utils::trim(draft.name).empty()
         ? std::string(core::constants::appState::kDefaultImportedStatementName)
         : draft.name;
     state.statements.push_back(statement);
@@ -62,11 +63,11 @@ std::string DraftFinalizer::finalize(core::domain::WorkspaceState& state, const 
         transaction->propertyIds = item.propertyIds;
         transaction->valuta.clear();
 
-        const std::string normalizedContractId = ::utils::trim(item.contractId);
+        const std::string normalizedContractId = ::core::utils::trim(item.contractId);
         if (!normalizedContractId.empty()) {
             transaction->contractId = normalizedContractId;
         } else {
-            const std::string normalizedType = ::utils::trim(item.type);
+            const std::string normalizedType = ::core::utils::trim(item.type);
             if (!normalizedType.empty()) {
                 constexpr auto prefix = core::constants::appState::kGeneratedContractPrefix;
                 auto contract = std::make_shared<Contract>();
@@ -83,6 +84,6 @@ std::string DraftFinalizer::finalize(core::domain::WorkspaceState& state, const 
     }
 
     return statement->id;
-} // namespace core::application::importing::draft
+}
 
 }

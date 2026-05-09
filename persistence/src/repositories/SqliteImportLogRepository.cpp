@@ -72,7 +72,7 @@ void saveStatementDraftIds(sqlite3* db, const std::string& importLogId, const st
 }
 
 void writeImportLog(sqlite3* db,
-                    const std::shared_ptr<core::domain::ImportLog>& log,
+                    const std::shared_ptr<core::application::importing::ImportLog>& log,
                     const char* sql)
 {
     if (!db || !log) {
@@ -126,7 +126,7 @@ SqliteImportLogRepository::SqliteImportLogRepository(std::shared_ptr<SqliteDb> d
 
 SqliteImportLogRepository::~SqliteImportLogRepository() = default;
 
-void SqliteImportLogRepository::addImportLog(const std::shared_ptr<core::domain::ImportLog>& log)
+void SqliteImportLogRepository::addImportLog(const std::shared_ptr<core::application::importing::ImportLog>& log)
 {
     const auto db = pimpl_->db->handle();
     writeImportLog(
@@ -138,9 +138,9 @@ void SqliteImportLogRepository::addImportLog(const std::shared_ptr<core::domain:
     }
 }
 
-std::vector<std::shared_ptr<core::domain::ImportLog>> SqliteImportLogRepository::getImportLogs() const
+std::vector<std::shared_ptr<core::application::importing::ImportLog>> SqliteImportLogRepository::getImportLogs() const
 {
-    std::vector<std::shared_ptr<core::domain::ImportLog>> logs;
+    std::vector<std::shared_ptr<core::application::importing::ImportLog>> logs;
     const auto db = pimpl_->db->handle();
     persistence::StmtGuard stmt(
         db,
@@ -150,7 +150,7 @@ std::vector<std::shared_ptr<core::domain::ImportLog>> SqliteImportLogRepository:
     }
 
     while (stmt.step() == SQLITE_ROW) {
-        auto log = std::make_shared<core::domain::ImportLog>();
+        auto log = std::make_shared<core::application::importing::ImportLog>();
         log->id = stmt.columnText(0);
         log->time = stmt.columnText(1);
         log->type = stmt.columnText(2);
@@ -167,7 +167,7 @@ std::vector<std::shared_ptr<core::domain::ImportLog>> SqliteImportLogRepository:
     return logs;
 }
 
-std::optional<std::shared_ptr<core::domain::ImportLog>> SqliteImportLogRepository::getImportLogById(const std::string& id) const
+std::optional<std::shared_ptr<core::application::importing::ImportLog>> SqliteImportLogRepository::getImportLogById(const std::string& id) const
 {
     const auto db = pimpl_->db->handle();
     persistence::StmtGuard stmt(
@@ -182,7 +182,7 @@ std::optional<std::shared_ptr<core::domain::ImportLog>> SqliteImportLogRepositor
         return std::nullopt;
     }
 
-    auto log = std::make_shared<core::domain::ImportLog>();
+    auto log = std::make_shared<core::application::importing::ImportLog>();
     log->id = stmt.columnText(0);
     log->time = stmt.columnText(1);
     log->type = stmt.columnText(2);
@@ -206,7 +206,7 @@ void SqliteImportLogRepository::removeImportLog(const std::string& id)
     stmt.step();
 }
 
-void SqliteImportLogRepository::updateImportLog(const std::shared_ptr<core::domain::ImportLog>& log)
+void SqliteImportLogRepository::updateImportLog(const std::shared_ptr<core::application::importing::ImportLog>& log)
 {
     writeImportLog(
         pimpl_->db->handle(),
@@ -217,7 +217,7 @@ void SqliteImportLogRepository::updateImportLog(const std::shared_ptr<core::doma
     }
 }
 
-void SqliteImportLogRepository::upsertImportLog(const std::shared_ptr<core::domain::ImportLog>& log)
+void SqliteImportLogRepository::upsertImportLog(const std::shared_ptr<core::application::importing::ImportLog>& log)
 {
     writeImportLog(
         pimpl_->db->handle(),

@@ -15,6 +15,8 @@
 #include <sstream>
 
 namespace core::application::importing::internal {
+namespace poppler = core::ports::pdf_rendering::poppler;
+namespace tesseract = core::ports::text_recognition::tesseract;
 
 namespace {
 
@@ -34,14 +36,14 @@ void safeReleaseLimiter(core::jobs::SlotLimiter* ocrLimiter,
     }
 }
 
-api::tesseract::ExtractResult extractWithLimiter(const std::shared_ptr<core::ports::services::ITesseractService>& tesseract,
-                                                 const api::tesseract::ExtractRequest& request,
+core::ports::text_recognition::tesseract::ExtractResult extractWithLimiter(const std::shared_ptr<core::ports::text_recognition::ITextRecognizer>& tesseractService,
+                                                 const tesseract::ExtractRequest& request,
                                                  core::jobs::SlotLimiter* ocrLimiter,
                                                  double& accumulatedOcrSec)
 {
     if (ocrLimiter) ocrLimiter->acquire();
     const auto ocrStart = std::chrono::steady_clock::now();
-    auto result = tesseract->extract(request);
+    auto result = tesseractService->extract(request);
     accumulatedOcrSec += std::chrono::duration<double>(std::chrono::steady_clock::now() - ocrStart).count();
     if (ocrLimiter) ocrLimiter->release();
     return result;
@@ -59,7 +61,7 @@ std::string makeParserLogArtifactKey(size_t pageIndex)
 
 void storeTsvArtifact(ImportResult& out,
                       size_t pageIndex,
-                      const api::tesseract::ExtractResult& extractResult,
+                      const tesseract::ExtractResult& extractResult,
                       std::mutex& artifactsMutex,
                       core::errors::IErrorReporter* errorReporter)
 {
@@ -93,10 +95,10 @@ std::vector<uint8_t> readImportBytes(const std::filesystem::path& path, core::er
 PageWork processImportPage(size_t pageIndex,
                            size_t totalPages,
                            const ImportRequest& req,
-                           const api::poppler::RenderResult& renderRes,
-                           const api::poppler::ExtractResult& extractRes,
-                           const std::shared_ptr<core::ports::services::IOpenCvService>& opencv,
-                           const std::shared_ptr<core::ports::services::ITesseractService>& tesseract,
+                           const poppler::RenderResult& renderRes,
+                           const poppler::ExtractResult& extractRes,
+                           const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
+                           const std::shared_ptr<core::ports::text_recognition::ITextRecognizer>& tesseract,
                            core::jobs::SlotLimiter* ocrLimiter,
                            const ProgressReporter& report,
                            std::atomic<size_t>& doneUnits,
@@ -202,7 +204,7 @@ PageWork processImportPage(size_t pageIndex,
 
 FinalizeStats finalizeParsedPages(const ImportRequest& req,
                                   const std::vector<PageWork>& pages,
-                                  const std::shared_ptr<core::ports::services::IOpenCvService>& opencv,
+                                  const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
                                   ImportResult& out,
                                   std::vector<core::application::importing::draft::TransactionDraft>& all,
                                   std::string& carriedBookingDate,
@@ -270,6 +272,6 @@ FinalizeStats finalizeParsedPages(const ImportRequest& req,
     }
 
     return stats;
-} // namespace core::application::importing::internal
+}
 
 }

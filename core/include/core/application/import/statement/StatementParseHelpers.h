@@ -9,9 +9,9 @@
 #include "core/application/import/transaction/TransactionParserTypes.h"
 #include "core/application/import/statement/StatementParserTypes.h"
 #include "core/application/import/internal/ParserHelpers.h"
-#include "api/opencv/OpenCvRequest.h"
-#include "core/ports/services/IOpenCvService.h"
-#include "api/tesseract/TesseractResult.h"
+#include "core/ports/image-processing/OpenCvRequest.h"
+#include "core/ports/image-processing/IImageProcessor.h"
+#include "core/ports/text-recognition/TesseractResult.h"
 #include "core/application/import/draft/TransactionDraft.h"
 
 #include <filesystem>
@@ -181,7 +181,7 @@ void appendPageSummary(const std::vector<core::application::importing::statement
  * @param blocks Parsed transaction blocks.
  * @param cols Current column model.
  * @param ocr OCR result for the page.
- * @param opencv OpenCV service used for artifact generation.
+ * @param opencv Image processing adapter used for artifact generation.
  * @param pageCropImagePath File path to the cropped page image.
  * @param pageCropImageBytes Raw bytes of the cropped page image.
  * @param txIndex Running transaction index counter.
@@ -189,11 +189,11 @@ void appendPageSummary(const std::vector<core::application::importing::statement
  */
 void appendTransactionsFromBlocks(const std::vector<core::application::importing::transaction::internal::TransactionBlock>& blocks,
                                   const core::application::importing::statement::internal::ColumnModel& cols,
-                                  const api::tesseract::ExtractResult& ocr,
-                                  const std::shared_ptr<core::ports::services::IOpenCvService>& opencv,
+                                  const core::ports::text_recognition::tesseract::ExtractResult& ocr,
+                                  const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
                                   const std::string& pageCropImagePath,
                                   const std::vector<uint8_t>& pageCropImageBytes,
                                   int& txIndex,
                                   DefaultStatementParser::ParseResult& out);
 
-} // namespace core::application::importing::statement::internal
+}

@@ -13,7 +13,7 @@
 #include "core/domain/entities/Property.h"
 #include "core/application/import/draft/TransactionDraft.h"
 #include "core/application/import/draft/DraftMatcher.h"
-#include "core/ports/services/IImportMatcherService.h"
+#include "core/application/import/draft/IImportMatcherService.h"
 #include "ui/import/ImportSuggestionService.h"
 
 using core::domain::Actor;
@@ -50,11 +50,11 @@ std::shared_ptr<Contract> makeContract(const std::string& id, const std::string&
     return contract;
 }
 
-struct MatcherServiceAdapter final : core::ports::services::IImportMatcherService {
-    core::ports::services::ImportMatcherPresentation buildImportSuggestions(const core::domain::WorkspaceState& state,
-                                                                            const core::domain::TransactionDraft& transaction) const override
+struct MatcherServiceAdapter final : core::application::importing::draft::IImportMatcherService {
+    core::application::importing::draft::ImportMatcherPresentation buildImportSuggestions(const core::domain::WorkspaceState& state,
+                                                                                           const core::domain::TransactionDraft& transaction) const override
     {
-        return core::application::importing::buildImportSuggestions(state, transaction);
+        return core::application::importing::draft::buildImportSuggestions(state, transaction);
     }
 };
 

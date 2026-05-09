@@ -35,20 +35,20 @@ public:
      * @brief Insert a new export log entry.
      * @param log Export log to add.
      */
-    void addExportLog(const std::shared_ptr<core::domain::ExportLog>& log) override;
+    void addExportLog(const std::shared_ptr<core::application::exporting::ExportLog>& log) override;
 
     /**
      * @brief Retrieve all export log entries.
      * @return All stored export logs.
      */
-    std::vector<std::shared_ptr<core::domain::ExportLog>> getExportLogs() const override;
+    std::vector<std::shared_ptr<core::application::exporting::ExportLog>> getExportLogs() const override;
 
     /**
      * @brief Retrieve an export log entry by identifier.
      * @param id Export log identifier.
      * @return Export log with the requested identifier, if found.
      */
-    std::optional<std::shared_ptr<core::domain::ExportLog>> getExportLogById(const std::string& id) const override;
+    std::optional<std::shared_ptr<core::application::exporting::ExportLog>> getExportLogById(const std::string& id) const override;
 
     /**
      * @brief Remove an export log entry by identifier.
@@ -60,13 +60,13 @@ public:
      * @brief Update an existing export log entry.
      * @param log Export log to update.
      */
-    void updateExportLog(const std::shared_ptr<core::domain::ExportLog>& log) override;
+    void updateExportLog(const std::shared_ptr<core::application::exporting::ExportLog>& log) override;
 
     /**
      * @brief Insert or update an export log entry.
      * @param log Export log to upsert.
      */
-    void upsertExportLog(const std::shared_ptr<core::domain::ExportLog>& log) override;
+    void upsertExportLog(const std::shared_ptr<core::application::exporting::ExportLog>& log) override;
 
     /**
      * @brief Remove all export log entries.

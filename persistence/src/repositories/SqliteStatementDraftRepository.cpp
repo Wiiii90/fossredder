@@ -69,7 +69,7 @@ void saveStatementDraftTransactionIds(sqlite3* db, const std::string& statementD
 }
 
 void writeStatementDraft(sqlite3* db,
-                         const std::shared_ptr<core::domain::StatementDraft>& draft,
+                         const std::shared_ptr<core::application::importing::draft::StatementDraft>& draft,
                          const char* sql)
 {
     if (!db || !draft) {
@@ -118,7 +118,7 @@ SqliteStatementDraftRepository::SqliteStatementDraftRepository(std::shared_ptr<S
 
 SqliteStatementDraftRepository::~SqliteStatementDraftRepository() = default;
 
-void SqliteStatementDraftRepository::addStatementDraft(const std::shared_ptr<core::domain::StatementDraft>& draft)
+void SqliteStatementDraftRepository::addStatementDraft(const std::shared_ptr<core::application::importing::draft::StatementDraft>& draft)
 {
     const auto db = pimpl_->db->handle();
     writeStatementDraft(
@@ -130,16 +130,16 @@ void SqliteStatementDraftRepository::addStatementDraft(const std::shared_ptr<cor
     }
 }
 
-std::vector<std::shared_ptr<core::domain::StatementDraft>> SqliteStatementDraftRepository::getStatementDrafts() const
+std::vector<std::shared_ptr<core::application::importing::draft::StatementDraft>> SqliteStatementDraftRepository::getStatementDrafts() const
 {
-    std::vector<std::shared_ptr<core::domain::StatementDraft>> drafts;
+    std::vector<std::shared_ptr<core::application::importing::draft::StatementDraft>> drafts;
     persistence::StmtGuard stmt(pimpl_->db->handle(), "SELECT id, name, created_at, updated_at FROM statement_drafts ORDER BY id;");
     if (!stmt) {
         return drafts;
     }
 
     while (stmt.step() == SQLITE_ROW) {
-        auto draft = std::make_shared<core::domain::StatementDraft>();
+        auto draft = std::make_shared<core::application::importing::draft::StatementDraft>();
         draft->id = stmt.columnText(0);
         draft->name = stmt.columnText(1);
         draft->createdAt = stmt.columnText(2);
@@ -151,7 +151,7 @@ std::vector<std::shared_ptr<core::domain::StatementDraft>> SqliteStatementDraftR
     return drafts;
 }
 
-std::optional<std::shared_ptr<core::domain::StatementDraft>> SqliteStatementDraftRepository::getStatementDraftById(const std::string& id) const
+std::optional<std::shared_ptr<core::application::importing::draft::StatementDraft>> SqliteStatementDraftRepository::getStatementDraftById(const std::string& id) const
 {
     persistence::StmtGuard stmt(pimpl_->db->handle(), "SELECT id, name, created_at, updated_at FROM statement_drafts WHERE id = ? LIMIT 1;");
     if (!stmt) {
@@ -163,7 +163,7 @@ std::optional<std::shared_ptr<core::domain::StatementDraft>> SqliteStatementDraf
         return std::nullopt;
     }
 
-    auto draft = std::make_shared<core::domain::StatementDraft>();
+    auto draft = std::make_shared<core::application::importing::draft::StatementDraft>();
     draft->id = stmt.columnText(0);
     draft->name = stmt.columnText(1);
     draft->createdAt = stmt.columnText(2);
@@ -182,7 +182,7 @@ void SqliteStatementDraftRepository::removeStatementDraft(const std::string& id)
     stmt.step();
 }
 
-void SqliteStatementDraftRepository::updateStatementDraft(const std::shared_ptr<core::domain::StatementDraft>& draft)
+void SqliteStatementDraftRepository::updateStatementDraft(const std::shared_ptr<core::application::importing::draft::StatementDraft>& draft)
 {
     const auto db = pimpl_->db->handle();
     writeStatementDraft(
@@ -194,7 +194,7 @@ void SqliteStatementDraftRepository::updateStatementDraft(const std::shared_ptr<
     }
 }
 
-void SqliteStatementDraftRepository::upsertStatementDraft(const std::shared_ptr<core::domain::StatementDraft>& draft)
+void SqliteStatementDraftRepository::upsertStatementDraft(const std::shared_ptr<core::application::importing::draft::StatementDraft>& draft)
 {
     const auto db = pimpl_->db->handle();
     writeStatementDraft(
