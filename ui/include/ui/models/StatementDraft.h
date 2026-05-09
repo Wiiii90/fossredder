@@ -9,7 +9,7 @@
 #include <QString>
 #include <qqmlintegration.h>
 
-#include "core/models/AppState.h"
+#include "core/application/workspace/WorkspaceState.h"
 #include "ui/models/TransactionDraftList.h"
 
 namespace ui {
@@ -44,7 +44,7 @@ public:
     TransactionDraftList* transactions() noexcept { return &transactions_; }
 
     QVariantMap current() const;
-    const core::domain::AppState& catalogState() const noexcept { return catalogState_; }
+    const core::domain::WorkspaceState& catalogState() const noexcept { return catalogState_; }
     bool hasCatalogState() const noexcept { return hasCatalogState_; }
 
     Q_INVOKABLE bool hasCurrent() const;
@@ -53,7 +53,7 @@ public:
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void removeTransaction(int index);
 
-    void setCatalogState(const core::domain::AppState& state);
+    void setCatalogState(const core::domain::WorkspaceState& state);
     void setDrafts(std::vector<TransactionDraft> drafts);
 
 signals:
@@ -65,7 +65,7 @@ private:
 
     int currentIndex_ = 0;
     TransactionDraftList transactions_;
-    core::domain::AppState catalogState_;
+    core::domain::WorkspaceState catalogState_;
     bool hasCatalogState_ = false;
 };
 

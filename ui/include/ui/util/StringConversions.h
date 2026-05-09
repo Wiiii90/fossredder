@@ -9,7 +9,7 @@
 #include <QString>
 #include <QStringList>
 
-#include "core/models/Alias.h"
+#include "core/domain/values/Alias.h"
 
 #include <string>
 #include <vector>

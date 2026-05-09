@@ -11,7 +11,7 @@
 #include <QVariantMap>
 #include <qqmlintegration.h>
 
-namespace core::application { class AppStateFacade; }
+namespace core::application { class WorkspaceFacade; }
 
 namespace ui {
 
@@ -24,7 +24,7 @@ class StatementController : public QObject {
     QML_UNCREATABLE("StatementController is provided by the application context")
 public:
     /** @brief Create a statement controller bound to the application facade. */
-    explicit StatementController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+    explicit StatementController(core::application::WorkspaceFacade* core, QObject* parent = nullptr);
 
     /** @brief Return a single statement by identifier.
      *  @param id Statement identifier
@@ -55,7 +55,7 @@ public:
     Q_INVOKABLE void deleteStatement(const QString& id);
 
 private:
-    core::application::AppStateFacade* core_ = nullptr;
+    core::application::WorkspaceFacade* core_ = nullptr;
 };
 
 } // namespace ui

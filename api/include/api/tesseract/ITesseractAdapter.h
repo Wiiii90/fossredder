@@ -1,7 +1,7 @@
 #pragma once
 
 #include "api/tesseract/TesseractRequest.h"
-#include "api/tesseract/TesseractResponse.h"
+#include "api/tesseract/TesseractResult.h"
 #include <memory>
 #include <vector>
 

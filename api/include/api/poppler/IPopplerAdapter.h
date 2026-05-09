@@ -1,7 +1,7 @@
 #pragma once
 
 #include "api/poppler/PopplerRequest.h"
-#include "api/poppler/PopplerResponse.h"
+#include "api/poppler/PopplerResult.h"
 #include <memory>
 
 namespace api::poppler {

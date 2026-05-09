@@ -9,14 +9,14 @@
 #include <functional>
 #include <utility>
 
-#include "core/application/AppStateFacade.h"
+#include "core/application/workspace/WorkspaceFacade.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 
 namespace ui::util::guard {
 
 /** @brief Ensure that a required application facade pointer is available. */
-inline bool ensureCore(const core::application::AppStateFacade* core, const char* origin)
+inline bool ensureCore(const core::application::WorkspaceFacade* core, const char* origin)
 {
     if (core) {
         return true;
@@ -25,7 +25,7 @@ inline bool ensureCore(const core::application::AppStateFacade* core, const char
     core::errors::report(core::errors::ErrorSeverity::Warning,
                          core::errors::codes::GenericError,
                          origin,
-                         "AppStateFacade is null");
+                         "WorkspaceFacade is null");
     return false;
 }
 

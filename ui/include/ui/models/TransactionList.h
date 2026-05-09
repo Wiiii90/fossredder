@@ -10,7 +10,7 @@
 #include <QVariant>
 #include <qqmlintegration.h>
 
-#include "core/models/Transaction.h"
+#include "core/domain/entities/Transaction.h"
 #include "ui/models/RowListModel.h"
 
 namespace ui {

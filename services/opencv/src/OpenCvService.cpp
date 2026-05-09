@@ -2,8 +2,9 @@
 #include "api/opencv/IOpenCvService.h"
 #include "api/opencv/IOpenCvAdapter.h"
 #include "api/opencv/OpenCvRequest.h"
-#include "api/opencv/OpenCvResponse.h"
+#include "api/opencv/OpenCvResult.h"
 #include <memory>
+#include <utility>
 
 class OpenCvServiceImpl : public api::opencv::IOpenCvService {
 public:

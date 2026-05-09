@@ -2,8 +2,9 @@
 #include "api/tesseract/ITesseractService.h"
 #include "api/tesseract/ITesseractAdapter.h"
 #include "api/tesseract/TesseractRequest.h"
-#include "api/tesseract/TesseractResponse.h"
+#include "api/tesseract/TesseractResult.h"
 #include <memory>
+#include <utility>
 
 class TesseractServiceImpl : public api::tesseract::ITesseractService {
 public:

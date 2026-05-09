@@ -6,13 +6,13 @@
 #pragma once
 
 #include "core/errors/IErrorReporter.h"
-#include "core/repositories/ITransactionRepository.h"
+#include "core/ports/repositories/ITransactionRepository.h"
 #include <memory>
 #include <string>
 
 class SqliteDb;
 
-class SqliteTransactionRepository : public ITransactionRepository {
+class SqliteTransactionRepository : public core::ports::repositories::ITransactionRepository {
 public:
     /**
      * @brief Create a transaction repository for the database at the given path.

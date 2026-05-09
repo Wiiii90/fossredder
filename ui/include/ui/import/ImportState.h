@@ -15,8 +15,9 @@
 #include <QString>
 #include <QStringList>
 
-#include "core/models/AppState.h"
-#include "core/models/TransactionDraft.h"
+#include "core/application/workspace/WorkspaceState.h"
+#include "core/application/import/draft/TransactionDraft.h"
+#include "core/ports/services/IImportMatcherService.h"
 #include "ui/models/StatementDraft.h"
 
 namespace core::domain { class Statement; }
@@ -57,18 +58,21 @@ public:
     void recordFinished(const QString& now);
     bool populateDraft(const QString& now,
                        const std::shared_ptr<core::domain::Statement>& statement,
-                        const core::domain::AppState& state,
+                        const core::domain::WorkspaceState& state,
                        const std::vector<core::domain::TransactionDraft>& transactions,
                        const std::map<std::string, std::vector<uint8_t>>& artifacts,
+                       const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService,
                        const QString& draftId,
                        int currentTransactionIndex,
                        QObject* parent);
     bool restoreDraft(const std::shared_ptr<core::domain::Statement>& statement,
-                      const core::domain::AppState& state,
+                      const core::domain::WorkspaceState& state,
                       const std::vector<core::domain::TransactionDraft>& transactions,
+                      const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService,
                       const QString& draftId,
                       int currentTransactionIndex,
                       QObject* parent);
+    void setMatcherService(std::shared_ptr<core::ports::services::IImportMatcherService> matcherService);
     void updateProgress(double progress, const QString& phase, const QRegularExpression& pagePattern);
 
 private:
@@ -91,6 +95,7 @@ private:
     bool canceled_ = false;
     bool cancelClearsQueue_ = false;
     QString currentImportFile_;
+    std::shared_ptr<core::ports::services::IImportMatcherService> matcherService_;
 };
 
 }

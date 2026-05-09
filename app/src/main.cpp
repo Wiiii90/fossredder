@@ -4,9 +4,9 @@
  */
 
 #include "Environment.h"
-#include "core/models/AppState.h"
+#include "core/application/workspace/WorkspaceState.h"
 
-using core::domain::AppState;
+using core::domain::WorkspaceState;
 #include <QApplication>
 #include <QByteArray>
 #include <QMessageBox>
@@ -15,9 +15,11 @@ using core::domain::AppState;
 
 #include "persistence/Factory.h"
 #include "persistence/AppStateStore.h"
-#include "core/constants/CoreDefaults.h"
-#include "core/application/AppStateFacade.h"
-#include "core/storage/StorageManager.h"
+#include "core/constants/app.h"
+#include "core/constants/preferences.h"
+#include "core/constants/runtime.h"
+#include "core/application/workspace/WorkspaceFacade.h"
+#include "core/application/storage/StorageManager.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "debug/ErrorReporter.h"
@@ -80,7 +82,7 @@ static void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, 
  *
  * Implemented in `main_qml.cpp`. Only available when built with USE_QML.
  */
-extern int startQmlApp(QApplication& app, core::application::AppStateFacade& appStateFacade);
+extern int startQmlApp(QApplication& app, core::application::WorkspaceFacade& appStateFacade);
 #endif
 
 int main(int argc, char* argv[]) {
@@ -136,7 +138,7 @@ int main(int argc, char* argv[]) {
     core::storage::StorageManager sm(registry);
 
     auto smPtr = std::make_unique<core::storage::StorageManager>(std::move(sm));
-    core::application::AppStateFacade appStateFacade(std::move(smPtr));
+    core::application::WorkspaceFacade appStateFacade(std::move(smPtr));
 
     appStateFacade.setErrorReporter(errorReporter);
     appStateFacade.setAtomicStoreLoad([](const std::string& dbPath) {
@@ -144,7 +146,7 @@ int main(int argc, char* argv[]) {
         AppStateStore store(db);
         return store.load();
     });
-    appStateFacade.setAtomicStoreSave([](const std::string& dbPath, const AppState& state) {
+    appStateFacade.setAtomicStoreSave([](const std::string& dbPath, const WorkspaceState& state) {
         auto db = createSqliteDb(dbPath);
         AppStateStore store(db);
         return store.save(state);

@@ -5,14 +5,14 @@
 
 #pragma once
 
-#include "core/repositories/IImportLogRepository.h"
+#include "core/ports/repositories/IImportLogRepository.h"
 
 #include <memory>
 #include <string>
 
 class SqliteDb;
 
-class SqliteImportLogRepository : public IImportLogRepository {
+class SqliteImportLogRepository : public core::ports::repositories::IImportLogRepository {
 public:
     /**
      * @brief Create an import log repository for the database at the given path.

@@ -7,9 +7,11 @@
 
 #include <functional>
 #include <QObject>
+#include <QString>
 #include <qqmlintegration.h>
 
-namespace core::application { class AppStateFacade; }
+namespace core::application { class WorkspaceFacade; }
+namespace core::ports::presenters { class IWorkspacePresenter; }
 
 namespace ui {
 
@@ -24,9 +26,14 @@ class StorageController : public QObject {
 public:
     /** @brief Creates a controller that delegates storage operations to the core application facade.
      *  @param core Core application facade pointer
+     *  @param workspacePresenter Presenter used to normalize workspace presentation data
      *  @param parent QObject parent
      */
-    explicit StorageController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+    explicit StorageController(core::application::WorkspaceFacade* core,
+                               std::shared_ptr<core::ports::presenters::IWorkspacePresenter> workspacePresenter = {},
+                               QObject* parent = nullptr);
+
+    Q_PROPERTY(QString currentPath READ currentPath NOTIFY currentPathChanged)
 
 public slots:
     /** @brief Create a new file at the requested path.
@@ -47,12 +54,16 @@ public slots:
      */
     void saveFileAs(const QString& path);
 
+    QString currentPath() const;
+
 signals:
     void operationFailed(const QString& operation, const QString& error);
     void operationSucceeded(const QString& operation);
+    void currentPathChanged();
 
 private:
-    core::application::AppStateFacade* core_ = nullptr;
+    core::application::WorkspaceFacade* core_ = nullptr;
+    std::shared_ptr<core::ports::presenters::IWorkspacePresenter> workspacePresenter_;
     bool runCoreOperation(const char* context, const std::function<void()>& action);
     void finishOperation(bool success, const QString& failureText, const QString& operation);
 };

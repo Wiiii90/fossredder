@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-#include "core/application/AppStateFacade.h"
+#include "core/application/workspace/WorkspaceFacade.h"
 #include "ui/observability/Origins.h"
 #include "ui/payload/EntityPayloadMapper.h"
 #include "ui/util/CoreFacadeGuard.h"
@@ -15,7 +15,7 @@
 
 namespace ui {
 
-ContractController::ContractController(core::application::AppStateFacade* core,
+ContractController::ContractController(core::application::WorkspaceFacade* core,
                                        QObject* parent)
     : QObject(parent)
     , core_(core)

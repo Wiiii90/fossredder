@@ -1,7 +1,7 @@
 #include "poppler/pch.h"
 #include "api/poppler/IPopplerAdapter.h"
 #include "api/poppler/PopplerRequest.h"
-#include "api/poppler/PopplerResponse.h"
+#include "api/poppler/PopplerResult.h"
 #include "poppler/PopplerEngine.h"
 #include "debug/IDebugger.h"
 #include <nlohmann/json.hpp>

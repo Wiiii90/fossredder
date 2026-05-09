@@ -5,13 +5,13 @@
 
 #pragma once
 
-#include "core/repositories/IContractRepository.h"
+#include "core/ports/repositories/IContractRepository.h"
 #include <memory>
 #include <string>
 
 class SqliteDb;
 
-class SqliteContractRepository : public IContractRepository {
+class SqliteContractRepository : public core::ports::repositories::IContractRepository {
 public:
     /**
      * @brief Create a contract repository for the database at the given path.

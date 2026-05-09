@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include "core/models/AppState.h"
-#include "core/models/TransactionDraft.h"
+#include <memory>
+
+#include "core/ports/services/IImportMatcherService.h"
 #include "ui/models/ImportSuggestion.h"
 
 namespace ui::importing {
@@ -14,7 +15,6 @@ namespace ui::importing {
 /**
  * @brief Builds ranked suggestions for a single imported transaction.
  */
-ImportDraftSuggestions buildImportSuggestions(const core::domain::AppState& state,
-                                              const core::domain::TransactionDraft& transaction);
+ImportDraftSuggestions buildImportSuggestions(const core::ports::services::ImportMatcherPresentation& coreSuggestions);
 
 } // namespace ui::importing

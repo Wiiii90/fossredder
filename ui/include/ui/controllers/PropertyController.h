@@ -12,7 +12,7 @@
 #include <QVariantMap>
 #include <qqmlintegration.h>
 
-namespace core::application { class AppStateFacade; }
+namespace core::application { class WorkspaceFacade; }
 
 namespace ui {
 
@@ -25,7 +25,7 @@ class PropertyController : public QObject {
     QML_UNCREATABLE("PropertyController is provided by the application context")
 public:
     /** @brief Create a property controller bound to the application facade. */
-    explicit PropertyController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+    explicit PropertyController(core::application::WorkspaceFacade* core, QObject* parent = nullptr);
 
     /** @brief Return a single property by identifier.
      *  @param id Property identifier
@@ -62,7 +62,7 @@ public:
     Q_INVOKABLE void deleteProperty(const QString& id);
 
 private:
-    core::application::AppStateFacade* core_ = nullptr;
+    core::application::WorkspaceFacade* core_ = nullptr;
 };
 
 } // namespace ui

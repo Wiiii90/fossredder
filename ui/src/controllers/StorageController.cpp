@@ -32,12 +32,15 @@ void StorageController::finishOperation(bool success,
     }
 
     emit operationSucceeded(operation);
+    emit currentPathChanged();
 }
 
-StorageController::StorageController(core::application::AppStateFacade* core,
+StorageController::StorageController(core::application::WorkspaceFacade* core,
+                                     std::shared_ptr<core::ports::presenters::IWorkspacePresenter> workspacePresenter,
                                      QObject* parent)
     : QObject(parent)
     , core_(core)
+    , workspacePresenter_(std::move(workspacePresenter))
 {
 }
 
@@ -75,6 +78,17 @@ void StorageController::saveFileAs(const QString& path)
         [&]() { core_->saveFileAs(strings::toEncodedPath(path)); });
     finishOperation(success, ui::text::controllerErrors::storageSaveAsFailed(),
                   ui::config::operationKeys::kSaveFileAs);
+}
+
+QString StorageController::currentPath() const
+{
+    if (!core_) {
+        return {};
+    }
+
+    const auto workspace = workspacePresenter_ ? workspacePresenter_->present(core_->presentWorkspace())
+                                               : core_->presentWorkspace();
+    return QString::fromStdString(workspace.currentPath);
 }
 
 } // namespace ui

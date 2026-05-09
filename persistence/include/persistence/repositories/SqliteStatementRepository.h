@@ -6,13 +6,13 @@
 #pragma once
 
 #include "core/errors/IErrorReporter.h"
-#include "core/repositories/IStatementRepository.h"
+#include "core/ports/repositories/IStatementRepository.h"
 #include <memory>
 #include <string>
 
 class SqliteDb;
 
-class SqliteStatementRepository : public IStatementRepository {
+class SqliteStatementRepository : public core::ports::repositories::IStatementRepository {
 public:
     /**
      * @brief Create a statement repository for the database at the given path.

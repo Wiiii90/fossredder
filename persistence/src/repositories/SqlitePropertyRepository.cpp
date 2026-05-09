@@ -5,7 +5,7 @@
 
 #include "persistence/repositories/SqlitePropertyRepository.h"
 #include "persistence/StmtGuard.h"
-#include "core/models/Property.h"
+#include "core/domain/entities/Property.h"
 #include "persistence/SqliteDb.h"
 #include <sqlite3.h>
 #include <algorithm>
@@ -247,5 +247,4 @@ void SqlitePropertyRepository::clearProperties() {
     sqlite3_exec(pimpl_->db->handle(), "DELETE FROM property_aliases; DELETE FROM properties;", nullptr, nullptr, &err);
     if (err) sqlite3_free(err);
 }
-
 

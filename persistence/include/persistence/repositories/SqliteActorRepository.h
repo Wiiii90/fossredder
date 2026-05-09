@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "core/repositories/IActorRepository.h"
+#include "core/ports/repositories/IActorRepository.h"
 #include "persistence/ISqlConnectionProvider.h"
 
 #include <memory>
@@ -13,7 +13,7 @@
 
 class SqliteDb;
 
-class SqliteActorRepository : public IActorRepository, public ISqlConnectionProvider {
+class SqliteActorRepository : public core::ports::repositories::IActorRepository, public ISqlConnectionProvider {
 public:
     /**
      * @brief Create an actor repository for the database at the given path.

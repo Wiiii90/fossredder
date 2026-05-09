@@ -7,7 +7,9 @@
 
 #include <QSettings>
 
-#include "core/constants/CoreDefaults.h"
+#include "core/constants/import.h"
+#include "core/constants/localization.h"
+#include "core/constants/preferences.h"
 
 namespace ui {
 

@@ -5,7 +5,7 @@
 
 #include "persistence/repositories/SqliteAnnualRepository.h"
 #include "persistence/StmtGuard.h"
-#include "core/models/Annual.h"
+#include "core/domain/entities/Annual.h"
 #include "persistence/SqliteDb.h"
 #include <sqlite3.h>
 #include <stdexcept>

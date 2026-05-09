@@ -11,7 +11,7 @@
 #include "ui/state/SessionMutationState.h"
 #include "ui/state/SessionStore.h"
 
-#include "core/application/AnalysisRequestComposer.h"
+#include "core/application/analysis/ComposeAnalysisRequest.h"
 
 #include <QStringList>
 #include <QVariantMap>
@@ -474,7 +474,7 @@ QVariantList buildAnalysisRows(const SessionStore& session)
         row.insert(ui::payload::keys::analysis::kConfig, QString::fromStdString(analysis->configJson));
         row.insert(ui::payload::keys::analysis::kFilter, QString::fromStdString(analysis->filterSpec));
         row.insert(ui::payload::keys::analysis::kAdjustments,
-                   QString::fromStdString(core::application::AnalysisRequestComposer::serializeAdjustments(analysis->adjustments)));
+                   QString::fromStdString(core::application::analysis::ComposeAnalysisRequest::serializeAdjustments(analysis->adjustments)));
         row.insert(ui::payload::keys::analysis::kExportFormat, QString::fromStdString(analysis->exportFormat));
         row.insert(ui::payload::keys::analysis::kIncludeCalcAdjustments, analysis->includeCalcAdjustments);
         row.insert(ui::payload::keys::analysis::kExportState, QString::fromStdString(analysis->exportStateJson));
@@ -538,5 +538,4 @@ QVariantList buildStatementTransactionRows(const SessionStore& session, const QS
 }
 
 } // namespace ui
-
 

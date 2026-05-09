@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "core/models/AnalysisResult.h"
+#include "core/application/analysis/RunAnalysisResult.h"
 
 namespace ui::analysis::input {
 

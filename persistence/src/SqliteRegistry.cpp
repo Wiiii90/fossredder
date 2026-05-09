@@ -3,7 +3,7 @@
  * @brief Implements the SQLite-backed latest-path registry factory.
  */
 
-#include "core/storage/IRegistry.h"
+#include "core/ports/storage/IRegistry.h"
 
 #include <optional>
 #include <sqlite3.h>
@@ -12,7 +12,7 @@
 
 namespace {
 
-class SqliteRegistry final : public core::storage::IRegistry {
+class SqliteRegistry final : public core::ports::storage::IRegistry {
 public:
     explicit SqliteRegistry(const std::string& dbPath)
         : db_(openDatabase(dbPath))
@@ -97,7 +97,7 @@ private:
 
 } // namespace
 
-std::shared_ptr<core::storage::IRegistry> createSqliteRegistry(const std::string& dbPath)
+std::shared_ptr<core::ports::storage::IRegistry> createSqliteRegistry(const std::string& dbPath)
 {
     return std::make_shared<SqliteRegistry>(dbPath);
 }

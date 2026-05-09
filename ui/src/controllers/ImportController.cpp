@@ -18,12 +18,13 @@
 #include <stdexcept>
 #include <string>
 
-#include "core/constants/CoreDefaults.h"
+#include "core/constants/import.h"
 #include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobSystem.h"
 #include "core/jobs/JobTypes.h"
-#include "core/models/Statement.h"
-#include "core/models/ImportLog.h"
+#include "core/domain/entities/Statement.h"
+#include "core/application/import/ImportLog.h"
+#include "core/application/workspace/WorkspaceState.h"
 #include "ui/config/Defaults.h"
 #include "ui/import/ImportDraftMapper.h"
 #include "ui/import/ImportRunStore.h"
@@ -112,12 +113,17 @@ core::jobs::ImportStatementJobSpec buildImportSpec(const QString& path,
 ImportController::ImportController(
     JobSystemFactory jobSystemFactory,
     std::shared_ptr<core::errors::IErrorReporter> errorReporter,
+    std::shared_ptr<core::ports::presenters::IImportPresenter> importPresenter,
+    std::shared_ptr<core::ports::services::IImportMatcherService> importMatcherService,
     QObject *parent)
     : QObject(parent), runs_(std::make_unique<ImportRunList>(this)),
       jobSystemFactory_(std::move(jobSystemFactory)),
-      errorReporter_(std::move(errorReporter)) {
+      errorReporter_(std::move(errorReporter)),
+      importPresenter_(std::move(importPresenter)),
+      importMatcherService_(std::move(importMatcherService)) {
   if (!errorReporter_)
     throw std::invalid_argument("ImportController requires an error reporter");
+  state_.setMatcherService(importMatcherService_);
 }
 
 void ImportController::setStateSnapshotProvider(StateSnapshotProvider provider) {
@@ -220,7 +226,7 @@ void ImportController::removeRunAt(int index)
   emit stateChanged();
 }
 
-void ImportController::restoreRunsFromSnapshot(const core::domain::AppState& snapshot)
+void ImportController::restoreRunsFromSnapshot(const core::domain::WorkspaceState& snapshot)
 {
   std::vector<ImportRunRow> rows;
   rows.reserve(snapshot.importLogs.size());
@@ -406,7 +412,7 @@ bool ImportController::openPersistedDraft(const QString& logId) {
   return restored;
 }
 
-bool ImportController::restoreDraftFromState(const core::domain::AppState& snapshot) {
+bool ImportController::restoreDraftFromState(const core::domain::WorkspaceState& snapshot) {
   if (snapshot.statementDrafts.empty()) {
     return false;
   }
@@ -454,6 +460,7 @@ bool ImportController::restoreDraftFromState(const core::domain::AppState& snaps
   return state_.restoreDraft(statement,
                              snapshot,
                              txDrafts,
+                             importMatcherService_,
                              restoredDraftId,
                               0,
                              this);
@@ -575,20 +582,19 @@ bool ImportController::populateDraftFromResult(const QString &now) {
     return false;
   }
 
-  auto imported = jobBridge_->statementResult();
-  if (!imported) {
+  const auto imported = jobBridge_->present();
+  const auto presented = importPresenter_ ? importPresenter_->present(imported) : imported;
+  if (!presented.data) {
     handleImportFailed(now, ui::text::controllerErrors::importFailed(),
                        "Import failed: missing statement result");
     return false;
   }
 
-  const auto importedTransactions = jobBridge_->statementTransactions();
-  const auto artifacts = jobBridge_->takeArtifacts();
-  const auto snapshot = stateSnapshotProvider_ ? stateSnapshotProvider_() : core::domain::AppState{};
+  const auto snapshot = stateSnapshotProvider_ ? stateSnapshotProvider_() : core::domain::WorkspaceState{};
   const QString draftId = activeRunDraftId_.isEmpty() ? activeRunLogId_ : activeRunDraftId_;
   const bool hadVisibleDraft = state_.draft() != nullptr;
 
-  if (!saveImportedDraft(draftId, imported, importedTransactions)) {
+  if (!saveImportedDraft(draftId, presented.data, presented.transactions)) {
     handleImportFailed(now, ui::text::controllerErrors::importFailed(),
                        "Import failed: unable to persist draft state");
     return false;
@@ -597,10 +603,11 @@ bool ImportController::populateDraftFromResult(const QString &now) {
   if (hadVisibleDraft) {
     state_.recordFinished(now);
   } else if (!state_.populateDraft(now,
-                                   imported,
+                                   presented.data,
                                    snapshot,
-                                   importedTransactions,
-                                   artifacts,
+                                   presented.transactions,
+                                   presented.artifacts,
+                                   importMatcherService_,
                                    draftId,
                                    0,
                                    this)) {

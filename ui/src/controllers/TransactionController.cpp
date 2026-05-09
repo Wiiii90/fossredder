@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-#include "core/application/AppStateFacade.h"
+#include "core/application/workspace/WorkspaceFacade.h"
 #include "ui/observability/Origins.h"
 #include "ui/payload/EntityPayloadMapper.h"
 #include "ui/state/StateFacadeProjection.h"
@@ -34,7 +34,7 @@ Transaction::Status toTransactionStatus(int status)
 
 }
 
-TransactionController::TransactionController(core::application::AppStateFacade* core,
+TransactionController::TransactionController(core::application::WorkspaceFacade* core,
                                              QObject* parent)
     : QObject(parent)
     , core_(core)

@@ -5,14 +5,14 @@
 
 #pragma once
 
-#include "core/repositories/IStatementDraftRepository.h"
+#include "core/ports/repositories/IStatementDraftRepository.h"
 
 #include <memory>
 #include <string>
 
 class SqliteDb;
 
-class SqliteStatementDraftRepository : public IStatementDraftRepository {
+class SqliteStatementDraftRepository : public core::ports::repositories::IStatementDraftRepository {
 public:
     /**
      * @brief Create a statement draft repository for the database at the given path.

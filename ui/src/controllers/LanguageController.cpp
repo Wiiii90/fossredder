@@ -12,7 +12,8 @@
 #include <QQmlEngine>
 #include <QSettings>
 
-#include "core/constants/CoreDefaults.h"
+#include "core/constants/localization.h"
+#include "core/constants/preferences.h"
 #include "ui/config/Defaults.h"
 #include "ui/payload/PayloadKeys.h"
 #include "ui/text/Text.h"

@@ -5,8 +5,11 @@
 
 #include "core/jobs/JobSystem.h"
 
-#include "core/constants/CoreDefaults.h"
-#include "core/import/IImportStatement.h"
+#include "core/constants/import.h"
+#include "core/constants/jobs.h"
+#include "core/application/import/ImportRequest.h"
+#include "core/application/import/IImportStatement.h"
+#include "core/application/import/ImportResult.h"
 #include "JobManager.h"
 #include "core/jobs/Scheduler.h"
 
@@ -34,7 +37,7 @@ namespace core::jobs {
 
 class JobSystem::Impl {
 public:
-    Impl(std::shared_ptr<core::importing::IImportStatement> importService, std::size_t workers)
+    Impl(std::shared_ptr<core::application::importing::IImportStatement> importService, std::size_t workers)
         : importService(std::move(importService))
         , manager()
         , scheduler(resolveWorkerCount(workers), core::constants::jobs::kQueueCapacity)
@@ -42,13 +45,13 @@ public:
     {
     }
 
-    std::shared_ptr<core::importing::IImportStatement> importService;
+    std::shared_ptr<core::application::importing::IImportStatement> importService;
     JobManager manager;
     Scheduler scheduler;
     SlotLimiter ocrLimiter;
 };
 
-JobSystem::JobSystem(std::shared_ptr<core::importing::IImportStatement> importService, std::size_t workers)
+JobSystem::JobSystem(std::shared_ptr<core::application::importing::IImportStatement> importService, std::size_t workers)
     : impl_(std::make_unique<Impl>(std::move(importService), workers)) {
 }
 
@@ -58,8 +61,9 @@ JobSystem::JobSystem(JobSystem&&) noexcept = default;
 
 JobSystem& JobSystem::operator=(JobSystem&&) noexcept = default;
 
-JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec) {
-    JobId id = impl_->manager.submitImportStatement(spec);
+JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec)
+{
+    const JobId id = impl_->manager.submitImportStatement(spec);
 
     impl_->scheduler.enqueue([this, id, spec]() {
         impl_->manager.start(id);
@@ -69,38 +73,40 @@ JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec) {
                 impl_->manager.fail(id, std::string(core::constants::jobs::messages::kImportServiceUnavailable));
                 return;
             }
+
             if (spec.sourcePath.empty() || !std::filesystem::exists(spec.sourcePath)) {
                 impl_->manager.fail(id, std::string(core::constants::importing::kErrorSourceMissing));
                 return;
             }
+
             if (spec.runRoot.empty()) {
                 impl_->manager.fail(id, std::string(core::constants::importing::kErrorRunRootMissing));
                 return;
             }
 
-            auto cancel = impl_->manager.cancelFlag(id);
-            auto progressCb = [this, id](double p, const std::string& msg) {
-                JobEvent ev;
-                ev.jobId = id;
-                ev.kind = JobKind::ImportStatement;
-                ev.state = JobState::Running;
-                ev.stage = JobStage::None;
-                ev.progress = p;
-                ev.message = msg;
-                impl_->manager.publish(ev);
+            const auto cancel = impl_->manager.cancelFlag(id);
+            auto progressCallback = [this, id](double progress, const std::string& message) {
+                JobEvent event;
+                event.jobId = id;
+                event.kind = JobKind::ImportStatement;
+                event.state = JobState::Running;
+                event.stage = JobStage::None;
+                event.progress = progress;
+                event.message = message;
+                impl_->manager.publish(event);
             };
 
-            ImportRequest req;
-            req.sourcePath = spec.sourcePath;
-            req.runRoot = spec.runRoot;
-            req.runIdPrefix = spec.runIdPrefix;
-            req.jobId = id;
-            req.progressCallback = std::move(progressCb);
-            req.cancelFlag = cancel;
-            req.scheduler = &impl_->scheduler;
-            req.ocrLimiter = &impl_->ocrLimiter;
+            core::application::importing::ImportRequest importRequest{};
+            importRequest.sourcePath = spec.sourcePath;
+            importRequest.runRoot = spec.runRoot;
+            importRequest.runIdPrefix = spec.runIdPrefix;
+            importRequest.jobId = id;
+            importRequest.progressCallback = std::move(progressCallback);
+            importRequest.cancelFlag = cancel;
+            importRequest.scheduler = &impl_->scheduler;
+            importRequest.ocrLimiter = &impl_->ocrLimiter;
 
-            auto result = impl_->importService->importStatement(req);
+            const auto result = impl_->importService->importStatement(importRequest);
             if (!result.data) {
                 impl_->manager.fail(id, std::string(core::constants::importing::kErrorExtractionFailed));
                 return;

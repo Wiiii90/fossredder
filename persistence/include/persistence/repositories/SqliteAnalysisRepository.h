@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "core/repositories/IAnalysisRepository.h"
+#include "core/ports/repositories/IAnalysisRepository.h"
 #include "persistence/ISqlConnectionProvider.h"
 
 #include <memory>
@@ -13,7 +13,7 @@
 
 class SqliteDb;
 
-class SqliteAnalysisRepository : public IAnalysisRepository, public ISqlConnectionProvider {
+class SqliteAnalysisRepository : public core::ports::repositories::IAnalysisRepository, public ISqlConnectionProvider {
 public:
     /**
      * @brief Create an analysis repository for the database at the given path.

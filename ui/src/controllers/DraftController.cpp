@@ -7,10 +7,9 @@
 
 #include <QByteArray>
 
-#include "core/application/AppStateFacade.h"
-#include "core/import/parsing/AmountParser.h"
-#include "core/import/DraftLinking.h"
-#include "core/models/Alias.h"
+#include "core/application/workspace/WorkspaceFacade.h"
+#include "core/application/import/transaction/AmountParser.h"
+#include "core/domain/values/Alias.h"
 #include "ui/payload/PayloadMapper.h"
 #include "ui/import/DraftViewMapper.h"
 #include "ui/models/StatementDraft.h"
@@ -43,21 +42,23 @@ const ui::TransactionDraft* currentDraft(ui::StatementDraft* draft)
     return &drafts[static_cast<std::size_t>(index)];
 }
 
-core::domain::AppState matchingStateForDraft(const ui::StatementDraft* draft,
-                                             const core::application::AppStateFacade* core)
+core::domain::WorkspaceState matchingStateForDraft(const ui::StatementDraft* draft,
+                                             const core::application::WorkspaceFacade* core,
+                                             const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService)
 {
-    const auto liveState = core ? core->state() : core::domain::AppState{};
+    const auto liveState = core ? core->state() : core::domain::WorkspaceState{};
     if (!draft) {
         return liveState;
     }
 
-    return core::importing::withFallbackState(
-        draft->hasCatalogState() ? draft->catalogState() : core::domain::AppState{},
+    return matcherService->withFallbackState(
+        draft->hasCatalogState() ? draft->catalogState() : core::domain::WorkspaceState{},
         liveState);
 }
 
 core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
-                                                    core::application::AppStateFacade* core)
+                                                    core::application::WorkspaceFacade* core,
+                                                    const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService)
 {
     core::domain::StatementDraft input;
     if (!draft || !core) {
@@ -69,7 +70,7 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
     input.name = ui::strings::toStdString(draft->name());
     input.transactions.reserve(drafts.size());
 
-    const auto appState = matchingStateForDraft(draft, core);
+    const auto appState = matchingStateForDraft(draft, core, matcherService);
     for (const auto& draftTransaction : drafts) {
         core::domain::TransactionDraft transaction;
         transaction.name = ui::strings::toStdString(draftTransaction.name);
@@ -86,7 +87,7 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
 
         QString actorId = draftTransaction.actorId;
         if (actorId.isEmpty() && (!draftTransaction.actorText.trimmed().isEmpty() || draftTransaction.actorSelected)) {
-            actorId = QString::fromStdString(core::importing::resolveActorId(appState, ui::strings::toStdString(draftTransaction.actorText)));
+            actorId = QString::fromStdString(matcherService->resolveActorId(appState, ui::strings::toStdString(draftTransaction.actorText)));
             if (actorId.isEmpty()) {
                 const QString actorName = draftTransaction.actorText.trimmed();
                 if (!actorName.isEmpty()) {
@@ -106,7 +107,7 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
                 }
                 std::vector<std::string> propertyIds = ui::strings::toStdList(draftTransaction.propertyIds);
                 std::vector<core::domain::Alias> aliases;
-                for (const auto& value : core::importing::referenceAliasesFromMetadata(ui::strings::toStdString(draftTransaction.metadata))) {
+                for (const auto& value : matcherService->referenceAliasesFromMetadata(ui::strings::toStdString(draftTransaction.metadata))) {
                     aliases.push_back(core::domain::Alias{value, {}, value, {}, {}});
                 }
                 contractId = QString::fromStdString(core->addContract(std::string{}, ui::strings::toStdString(contractType), actorIds, propertyIds, aliases));
@@ -117,7 +118,7 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
         transaction.contractId = ui::strings::toStdString(contractId);
         transaction.allocatable = draftTransaction.allocatableSelected
             ? draftTransaction.allocatable
-            : (core::importing::contractIsFullyAllocatable(appState, ui::strings::toStdString(contractId)) || draftTransaction.allocatable);
+            : (matcherService->contractIsFullyAllocatable(appState, ui::strings::toStdString(contractId)) || draftTransaction.allocatable);
         transaction.propertyIds = ui::strings::toStdList(draftTransaction.propertyIds);
         transaction.type = ui::strings::toStdString(draftTransaction.type);
         input.transactions.push_back(std::move(transaction));
@@ -127,15 +128,16 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
 }
 
 void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
-                                     core::application::AppStateFacade* core)
+                                     core::application::WorkspaceFacade* core,
+                                     const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService)
 {
     const auto* current = currentDraft(draft);
     if (!draft || !current) {
         return;
     }
 
-    const auto appState = matchingStateForDraft(draft, core);
-    const auto derived = core::importing::buildDraftDerivedState(appState, ui::importing::toCoreSelection(*current));
+    const auto appState = matchingStateForDraft(draft, core, matcherService);
+    const auto derived = matcherService->buildDraftDerivedState(appState, ui::importing::toCoreSelection(*current));
     const auto index = draft->currentIndex();
     bool changed = false;
 
@@ -217,8 +219,10 @@ void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
 
 namespace ui {
 
-DraftController::DraftController(core::application::AppStateFacade* core, QObject* parent)
-    : QObject(parent), core_(core)
+DraftController::DraftController(core::application::WorkspaceFacade* core,
+                                 std::shared_ptr<core::ports::services::IImportMatcherService> matcherService,
+                                 QObject* parent)
+    : QObject(parent), core_(core), matcherService_(std::move(matcherService))
 {
 }
 
@@ -228,7 +232,7 @@ QString DraftController::finalizeStatementDraft(StatementDraft* draft)
 
     return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::draft::kFinalize, {}, [&]() {
-            const auto input = buildFinalizationInput(draft, core_);
+            const auto input = buildFinalizationInput(draft, core_, matcherService_);
             if (input.transactions.empty()) return QString{};
             return QString::fromStdString(core_->finalizeStatementDraft(input));
         });
@@ -238,7 +242,7 @@ void DraftController::persistStatementDraft(StatementDraft* draft)
 {
     ui::util::guard::invokeVoid(core_, observability::origins::controller::draft::kFinalize, [&]() {
         if (!draft) return;
-        auto input = buildFinalizationInput(draft, core_);
+        auto input = buildFinalizationInput(draft, core_, matcherService_);
         if (input.transactions.empty()) return;
         core_->saveStatementDraft(input);
     });
@@ -257,8 +261,8 @@ QVariantMap DraftController::currentTransactionViewState(StatementDraft* draft) 
         core_, observability::origins::controller::draft::kFinalize, {}, [&]() {
             const auto* current = currentDraft(draft);
             if (!current) return QVariantMap{};
-            return ui::importing::toViewState(core::importing::buildDraftDerivedState(
-                matchingStateForDraft(draft, core_),
+            return ui::importing::toViewState(matcherService_->buildDraftDerivedState(
+                matchingStateForDraft(draft, core_, matcherService_),
                 ui::importing::toCoreSelection(*current)));
         });
 }
@@ -267,7 +271,7 @@ QVariantMap DraftController::findChoiceRowByText(const QVariantList& rows, const
 {
     for (const auto& item : rows) {
         const QVariantMap row = item.toMap();
-        if (!row.isEmpty() && importing::rowMatchesText(row, text)) return row;
+        if (!row.isEmpty() && ui::importing::rowMatchesText(row, text)) return row;
     }
     return {};
 }
@@ -275,7 +279,7 @@ QVariantMap DraftController::findChoiceRowByText(const QVariantList& rows, const
 void DraftController::syncCurrentTransactionDraft(StatementDraft* draft)
 {
     ui::util::guard::invokeVoid(core_, observability::origins::controller::draft::kFinalize, [&]() {
-            syncCurrentTransactionDraftImpl(draft, core_);
+            syncCurrentTransactionDraftImpl(draft, core_, matcherService_);
     });
 }
 
@@ -347,4 +351,3 @@ void DraftController::updateCurrentAmount(StatementDraft* draft, const QString& 
 }
 
 } // namespace ui
-

@@ -18,6 +18,11 @@ void ImportState::clearDraftObject()
     draft_ = nullptr;
 }
 
+void ImportState::setMatcherService(std::shared_ptr<core::ports::services::IImportMatcherService> matcherService)
+{
+    matcherService_ = std::move(matcherService);
+}
+
 bool ImportState::setSelectedFile(const QString& path)
 {
     if (selectedFile_ == path) return false;
@@ -192,9 +197,10 @@ void ImportState::recordFailed(const QString& now, const QString& errorMessage)
 
 bool ImportState::populateDraft(const QString& now,
                                 const std::shared_ptr<core::domain::Statement>& statement,
-                                const core::domain::AppState& state,
+                                const core::domain::WorkspaceState& state,
                                 const std::vector<core::domain::TransactionDraft>& transactions,
                                 const std::map<std::string, std::vector<uint8_t>>& artifacts,
+                                const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService,
                                 const QString& draftId,
                                 int currentTransactionIndex,
                                 QObject* parent)
@@ -205,14 +211,22 @@ bool ImportState::populateDraft(const QString& now,
     storeArtifacts(artifacts);
 
     clearDraftObject();
-    draft_ = createStatementDraft(currentImportFile_, statement, state, transactions, draftId, currentTransactionIndex, parent);
+    draft_ = createStatementDraft(currentImportFile_,
+                                  statement,
+                                  state,
+                                  transactions,
+                                  matcherService ? matcherService : matcherService_,
+                                  draftId,
+                                  currentTransactionIndex,
+                                  parent);
     recordFinished(now);
     return true;
 }
 
 bool ImportState::restoreDraft(const std::shared_ptr<core::domain::Statement>& statement,
-                               const core::domain::AppState& state,
+                               const core::domain::WorkspaceState& state,
                                const std::vector<core::domain::TransactionDraft>& transactions,
+                               const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService,
                                const QString& draftId,
                                int currentTransactionIndex,
                                QObject* parent)
@@ -224,6 +238,7 @@ bool ImportState::restoreDraft(const std::shared_ptr<core::domain::Statement>& s
                                   statement,
                                   state,
                                   transactions,
+                                  matcherService ? matcherService : matcherService_,
                                   draftId,
                                   currentTransactionIndex,
                                   parent);

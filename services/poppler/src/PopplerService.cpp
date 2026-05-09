@@ -2,6 +2,7 @@
 #include "api/poppler/IPopplerAdapter.h"
 #include "api/poppler/IPopplerService.h"
 #include <memory>
+#include <utility>
 
 class PopplerServiceImpl : public api::poppler::IPopplerService {
 public:

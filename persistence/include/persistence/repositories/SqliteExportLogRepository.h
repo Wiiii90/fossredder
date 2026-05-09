@@ -5,14 +5,14 @@
 
 #pragma once
 
-#include "core/repositories/IExportLogRepository.h"
+#include "core/ports/repositories/IExportLogRepository.h"
 
 #include <memory>
 #include <string>
 
 class SqliteDb;
 
-class SqliteExportLogRepository : public IExportLogRepository {
+class SqliteExportLogRepository : public core::ports::repositories::IExportLogRepository {
 public:
     /**
      * @brief Create an export log repository for the database at the given path.

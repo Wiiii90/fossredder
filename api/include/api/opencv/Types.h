@@ -1,38 +1,13 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <filesystem>
+#include "core/ports/services/OpenCvTypes.h"
 
 namespace api::opencv {
 
-struct Rect {
-    int x = 0;
-    int y = 0;
-    int width = 0;
-    int height = 0;
-};
+using Rect = core::ports::services::opencv::Rect;
+using Word = core::ports::services::opencv::Word;
+using Cell = core::ports::services::opencv::Cell;
+using Table = core::ports::services::opencv::Table;
 
-struct Word {
-    Rect bbox;
-    std::string text;
-    int confidence = 0;
-};
+} // namespace api::opencv
 
-struct Cell {
-    Rect bbox;
-    int row = -1;
-    int col = -1;
-    std::string text;
-    int confidence = 0;
-};
-
-struct Table {
-    Rect bbox;
-    int rows = 0;
-    int cols = 0;
-    std::vector<Cell> cells;
-    std::vector<Word> words;
-};
-
-}

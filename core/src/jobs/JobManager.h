@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "core/constants/CoreDefaults.h"
+#include "core/constants/jobs.h"
 #include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobTypes.h"
-#include "core/models/TransactionDraft.h"
+#include "core/application/import/draft/TransactionDraft.h"
 
 #include <atomic>
 #include <deque>

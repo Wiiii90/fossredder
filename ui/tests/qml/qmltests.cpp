@@ -9,7 +9,7 @@
 #include <QQuickStyle>
 #include <QString>
 
-#include "core/constants/CoreDefaults.h"
+#include "core/constants/runtime.h"
 #include "ui/bootstrap/QmlRuntime.h"
 
 class UiQmlTestSetup : public QObject {

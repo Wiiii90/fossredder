@@ -13,8 +13,8 @@
 #include <QString>
 #include <QStringList>
 
-#include "core/models/DeletionImpact.h"
-#include "core/models/Transaction.h"
+#include "core/application/storage/DeletionImpact.h"
+#include "core/domain/entities/Transaction.h"
 
 namespace ui {
 

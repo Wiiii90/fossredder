@@ -7,8 +7,8 @@
 
 #include <memory>
 
-#include "core/models/AppState.h"
-#include "core/models/DeletionImpact.h"
+#include "core/application/workspace/AppState.h"
+#include "core/application/storage/DeletionImpact.h"
 
 class SqliteDb;
 

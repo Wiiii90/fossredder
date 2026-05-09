@@ -8,8 +8,7 @@
 #include <QByteArray>
 #include <QFileInfo>
 
-#include "core/import/DraftLinking.h"
-#include "core/models/Statement.h"
+#include "core/domain/entities/Statement.h"
 #include "ui/import/ImportSuggestionService.h"
 #include "ui/import/DraftViewMapper.h"
 #include "ui/models/StatementDraft.h"
@@ -17,9 +16,9 @@
 
 namespace {
 
-void applyInitialDerivedSelections(const core::domain::AppState& state, ui::TransactionDraft& draft)
+void applyInitialDerivedSelections(const core::domain::WorkspaceState& state, ui::TransactionDraft& draft)
 {
-    const auto derived = core::importing::buildDraftDerivedState(state, ui::importing::toCoreSelection(draft));
+    const auto derived = core::application::importing::buildDraftDerivedState(state, ui::importing::toCoreSelection(draft));
 
     if (draft.actorId.isEmpty()) {
         if (derived.actorCurrentIndex > 0
@@ -77,15 +76,16 @@ void applyInitialDerivedSelections(const core::domain::AppState& state, ui::Tran
 
 namespace ui::importing {
 
-std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppState& state,
-                                                      const std::vector<core::domain::TransactionDraft>& transactions)
+std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::WorkspaceState& state,
+                                                      const std::vector<core::domain::TransactionDraft>& transactions,
+                                                      const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService)
 {
     std::vector<TransactionDraft> drafts;
 
     drafts.reserve(transactions.size());
     for (std::size_t i = 0; i < transactions.size(); ++i) {
         const auto& tx = transactions[i];
-        const auto draftSignals = core::importing::buildDraftTextSignals(state, tx);
+        const auto draftSignals = core::application::importing::buildDraftTextSignals(state, tx);
         TransactionDraft draft;
         draft.name = QStringLiteral("Transaction %1").arg(static_cast<int>(i + 1));
         draft.bookingDate = QString::fromStdString(tx.bookingDate);
@@ -102,6 +102,9 @@ std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppSta
                                    static_cast<int>(tx.proofImageData.size()));
             draft.proofImageData = QString::fromLatin1(bytes.toBase64());
         }
+        if (matcherService) {
+            draft.suggestions = buildImportSuggestions(matcherService->buildImportSuggestions(state, tx));
+        }
         drafts.push_back(std::move(draft));
     }
 
@@ -110,8 +113,9 @@ std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::AppSta
 
 StatementDraft* createStatementDraft(const QString& sourceFile,
                                       const std::shared_ptr<core::domain::Statement>& statement,
-                                      const core::domain::AppState& state,
+                                      const core::domain::WorkspaceState& state,
                                       const std::vector<core::domain::TransactionDraft>& transactions,
+                                      const std::shared_ptr<core::ports::services::IImportMatcherService>& matcherService,
                                       const QString& draftId,
                                       int currentTransactionIndex,
                                       QObject* parent)
@@ -123,9 +127,8 @@ StatementDraft* createStatementDraft(const QString& sourceFile,
                        : QFileInfo(sourceFile).baseName());
     draft->setCatalogState(state);
 
-    auto drafts = mapTransactionsToDrafts(state, transactions);
+    auto drafts = mapTransactionsToDrafts(state, transactions, matcherService);
     for (std::size_t i = 0; i < drafts.size() && i < transactions.size(); ++i) {
-        drafts[i].suggestions = buildImportSuggestions(state, transactions[i]);
         applyInitialDerivedSelections(state, drafts[i]);
     }
 

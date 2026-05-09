@@ -9,7 +9,7 @@
 #include <QStringList>
 
 #include "ui/models/ImportSuggestion.h"
-#include "core/models/Transaction.h"
+#include "core/domain/entities/Transaction.h"
 
 namespace ui {
 

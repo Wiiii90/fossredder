@@ -10,7 +10,8 @@
 
 #include <QString>
 
-#include "core/models/AppState.h"
+#include "core/application/workspace/WorkspaceState.h"
+#include "core/ports/presenters/IExportPresenter.h"
 #include "ui/bootstrap/QmlContracts.h"
 
 namespace ui::exporting {
@@ -24,12 +25,7 @@ struct ExportRequest {
   QString payload;
 };
 
-/** @brief Represents the outcome of an export execution. */
-struct ExportResult {
-  bool success = false;
-  QString errorCode;
-  QString message;
-};
+using ExportResult = core::ports::presenters::ExportPresentation;
 
 /**
  * @brief Executes exports against a captured application state snapshot.
@@ -37,13 +33,13 @@ struct ExportResult {
 class ExportRunner {
 public:
   using ExecuteExportFn = std::function<ExportResult(
-      std::shared_ptr<const core::domain::AppState>, const ExportRequest &)>;
+      std::shared_ptr<const core::domain::WorkspaceState>, const ExportRequest &)>;
 
   explicit ExportRunner(ExecuteExportFn execute = {});
 
-  ExportResult run(std::shared_ptr<const core::domain::AppState> state,
+  ExportResult run(std::shared_ptr<const core::domain::WorkspaceState> state,
                    const ExportRequest &request) const;
-  ExportResult run(const core::domain::AppState &state,
+  ExportResult run(const core::domain::WorkspaceState &state,
                    const ExportRequest &request) const;
 
   ExecuteExportFn execute_;

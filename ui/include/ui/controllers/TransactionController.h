@@ -12,9 +12,9 @@
 #include <QVariantMap>
 #include <qqmlintegration.h>
 
-#include "core/models/Transaction.h"
+#include "core/domain/entities/Transaction.h"
 
-namespace core::application { class AppStateFacade; }
+namespace core::application { class WorkspaceFacade; }
 
 namespace ui {
 
@@ -29,7 +29,7 @@ public:
     ~TransactionController() override = default;
 
     /** @brief Create a transaction controller bound to the application facade. */
-    explicit TransactionController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+    explicit TransactionController(core::application::WorkspaceFacade* core, QObject* parent = nullptr);
 
     /** @brief Return a single transaction by identifier.
      *  @param id Transaction identifier
@@ -91,7 +91,7 @@ public:
     Q_INVOKABLE void deleteTransaction(const QString& id);
 
 private:
-    core::application::AppStateFacade* core_ = nullptr;
+    core::application::WorkspaceFacade* core_ = nullptr;
 };
 
 } // namespace ui

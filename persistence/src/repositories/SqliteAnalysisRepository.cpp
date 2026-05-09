@@ -5,7 +5,7 @@
 
 #include "persistence/repositories/SqliteAnalysisRepository.h"
 #include "persistence/StmtGuard.h"
-#include "core/models/Analysis.h"
+#include "core/domain/entities/Analysis.h"
 #include "persistence/SqliteDb.h"
 #include <sqlite3.h>
 #include <stdexcept>

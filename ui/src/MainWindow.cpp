@@ -20,7 +20,7 @@
 #include <qqml.h>
 #include <string>
 
-#include "core/constants/CoreDefaults.h"
+#include "core/constants/app.h"
 #include "ui/actions/Actions.h"
 #include "ui/bootstrap/AppContext.h"
 #include "ui/bootstrap/QmlContracts.h"

@@ -9,7 +9,7 @@
 #include <QDir>
 #include <QStandardPaths>
 
-#include "core/constants/CoreDefaults.h"
+#include "core/constants/import.h"
 
 namespace {
 

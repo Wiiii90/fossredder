@@ -115,4 +115,16 @@ std::map<std::string, std::vector<uint8_t>> ImportJobBridge::takeArtifacts() {
   return jobSystem_->takeStatementArtifacts(strings::toStdString(currentJobId_));
 }
 
+core::ports::presenters::ImportPresentation ImportJobBridge::present() const
+{
+  core::ports::presenters::ImportPresentation result;
+  result.data = statementResult();
+  result.transactions = statementTransactions();
+  result.artifacts = currentJobId_.isEmpty()
+                         ? std::map<std::string, std::vector<uint8_t>>{}
+                         : jobSystem_ ? jobSystem_->takeStatementArtifacts(strings::toStdString(currentJobId_))
+                                      : std::map<std::string, std::vector<uint8_t>>{};
+  return result;
+}
+
 } // namespace ui::importing

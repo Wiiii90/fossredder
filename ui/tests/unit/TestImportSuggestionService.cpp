@@ -7,11 +7,13 @@
 
 #include <memory>
 
-#include "core/models/Actor.h"
-#include "core/models/AppState.h"
-#include "core/models/Contract.h"
-#include "core/models/Property.h"
-#include "core/models/TransactionDraft.h"
+#include "core/domain/entities/Actor.h"
+#include "core/application/workspace/AppState.h"
+#include "core/domain/entities/Contract.h"
+#include "core/domain/entities/Property.h"
+#include "core/application/import/draft/TransactionDraft.h"
+#include "core/application/import/draft/DraftMatcher.h"
+#include "core/ports/services/IImportMatcherService.h"
 #include "ui/import/ImportSuggestionService.h"
 
 using core::domain::Actor;
@@ -48,6 +50,14 @@ std::shared_ptr<Contract> makeContract(const std::string& id, const std::string&
     return contract;
 }
 
+struct MatcherServiceAdapter final : core::ports::services::IImportMatcherService {
+    core::ports::services::ImportMatcherPresentation buildImportSuggestions(const core::domain::WorkspaceState& state,
+                                                                            const core::domain::TransactionDraft& transaction) const override
+    {
+        return core::application::importing::buildImportSuggestions(state, transaction);
+    }
+};
+
 } // namespace
 
 TEST(ImportSuggestionServiceTests, SuggestsActorPropertyAndContractFromTransactionText)
@@ -62,7 +72,9 @@ TEST(ImportSuggestionServiceTests, SuggestsActorPropertyAndContractFromTransacti
     tx.metadata = "E.ON Energie GmbH Musterstraße 1";
     tx.description = "Gas";
 
-    const auto suggestions = ui::importing::buildImportSuggestions(state, tx);
+    const MatcherServiceAdapter matcher;
+    const auto coreSuggestions = matcher.buildImportSuggestions(state, tx);
+    const auto suggestions = ui::importing::buildImportSuggestions(coreSuggestions);
 
     ASSERT_FALSE(suggestions.actor.candidates.empty());
     ASSERT_FALSE(suggestions.property.candidates.empty());

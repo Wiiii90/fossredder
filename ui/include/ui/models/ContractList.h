@@ -7,7 +7,7 @@
 
 #include <qqmlintegration.h>
 
-#include "core/models/Contract.h"
+#include "core/domain/entities/Contract.h"
 #include "ui/models/IndexedListModel.h"
 
 namespace ui {

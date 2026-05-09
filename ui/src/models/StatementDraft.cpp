@@ -52,7 +52,7 @@ QVariantMap StatementDraft::current() const
     return transactions_.get(currentIndex_);
 }
 
-void StatementDraft::setCatalogState(const core::domain::AppState& state)
+void StatementDraft::setCatalogState(const core::domain::WorkspaceState& state)
 {
     catalogState_ = state;
     hasCatalogState_ = true;

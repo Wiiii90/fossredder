@@ -27,7 +27,7 @@ StateFacade::StateFacade(QObject* parent)
 SessionStore* StateFacade::session() noexcept { return session_.get(); }
 SessionSelection* StateFacade::selection() noexcept { return selection_.get(); }
 
-void StateFacade::loadFromState(const AppState& state)
+void StateFacade::loadFromState(const WorkspaceState& state)
 {
     session_->loadFromState(state);
     selection_->loadFromState();

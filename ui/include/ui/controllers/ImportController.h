@@ -16,9 +16,11 @@
 #include "core/errors/IErrorReporter.h"
 #include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobTypes.h"
-#include "core/models/AppState.h"
-#include "core/models/ImportLog.h"
-#include "core/models/StatementDraft.h"
+#include "core/application/workspace/WorkspaceState.h"
+#include "core/application/import/ImportLog.h"
+#include "core/application/import/draft/StatementDraft.h"
+#include "core/ports/presenters/IImportPresenter.h"
+#include "core/ports/services/IImportMatcherService.h"
 #include "ui/import/ImportJobBridge.h"
 #include "ui/import/ImportState.h"
 #include "ui/models/ImportRunList.h"
@@ -52,12 +54,14 @@ class ImportController : public QObject {
 
 public:
     using JobSystemFactory = std::function<std::shared_ptr<core::jobs::JobSystem>()>;
-    using StateSnapshotProvider = std::function<core::domain::AppState()>;
+    using StateSnapshotProvider = std::function<core::domain::WorkspaceState()>;
     using ImportLogsStore = std::function<void(const std::vector<core::domain::ImportLog>&)>;
     using StatementDraftStore = std::function<void(const core::domain::StatementDraft&)>;
 
     explicit ImportController(JobSystemFactory jobSystemFactory,
                               std::shared_ptr<core::errors::IErrorReporter> errorReporter,
+                              std::shared_ptr<core::ports::presenters::IImportPresenter> importPresenter = {},
+                              std::shared_ptr<core::ports::services::IImportMatcherService> importMatcherService = {},
                               QObject* parent = nullptr);
 
     /** @brief Provide a snapshot callback used when creating UI drafts from import results.
@@ -143,14 +147,16 @@ private:
     ImportLogsStore importLogsStore_;
     std::unique_ptr<importing::ImportJobBridge> jobBridge_;
     std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
+    std::shared_ptr<core::ports::presenters::IImportPresenter> importPresenter_;
+    std::shared_ptr<core::ports::services::IImportMatcherService> importMatcherService_;
 
     void startNextQueuedImport();
     void startImportForFile(const QString& path);
     void reportException(const char* origin, std::exception_ptr exception) const;
-    bool restoreDraftFromState(const core::domain::AppState& snapshot);
+    bool restoreDraftFromState(const core::domain::WorkspaceState& snapshot);
     QStringList draftStackIds() const;
     int activeDraftStackIndex() const;
-    void restoreRunsFromSnapshot(const core::domain::AppState& snapshot);
+    void restoreRunsFromSnapshot(const core::domain::WorkspaceState& snapshot);
     void persistRuns();
     QString resolveDraftContextLogId() const;
     ImportRunRow upsertRunById(const QString& logId,

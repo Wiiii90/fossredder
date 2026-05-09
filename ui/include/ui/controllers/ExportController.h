@@ -14,7 +14,8 @@
 #include <functional>
 #include <memory>
 
-#include "core/models/ExportLog.h"
+#include "core/application/export/ExportLog.h"
+#include "core/ports/presenters/IExportPresenter.h"
 #include "ui/models/ExportRunList.h"
 
 #include "ui/bootstrap/QmlContracts.h"
@@ -46,12 +47,13 @@ public:
     };
     Q_ENUM(Mode)
 
-    using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::AppState>()>;
+    using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::WorkspaceState>()>;
     using ExportLogsStore = std::function<void(const std::vector<core::domain::ExportLog>&)>;
 
     /** @brief Create an export controller backed by a snapshot provider and export runner. */
     explicit ExportController(StateSnapshotProvider stateSnapshotProvider,
                               std::shared_ptr<ui::exporting::ExportRunner> runner,
+                              std::shared_ptr<core::ports::presenters::IExportPresenter> exportPresenter = {},
                               QObject* parent = nullptr);
 
     void setExportLogsStore(ExportLogsStore store);
@@ -115,11 +117,12 @@ private:
                                const QString& message,
                                const QString& payload);
     void finishExport(bool success);
-    std::shared_ptr<const core::domain::AppState> stateSnapshot() const;
+    std::shared_ptr<const core::domain::WorkspaceState> stateSnapshot() const;
 
     StateSnapshotProvider stateSnapshotProvider_;
     ExportLogsStore exportLogsStore_;
     std::shared_ptr<ui::exporting::ExportRunner> runner_;
+    std::shared_ptr<core::ports::presenters::IExportPresenter> exportPresenter_;
     std::unique_ptr<ExportRunList> runs_;
     QFuture<ui::exporting::ExportResult> exportFuture_;
     QFutureWatcher<ui::exporting::ExportResult> exportWatcher_;

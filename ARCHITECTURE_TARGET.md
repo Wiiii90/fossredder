@@ -1,819 +1,673 @@
-# FOSSredder Clean Architecture Target
+# FossRedder Architecture Target
 
-## Purpose of this document
+## Purpose
 
-This file defines the **target architecture** for the current codebase and is intended to be used as a **GPT refactoring guide**.
+This document defines the target architecture for FossRedder. It is meant as a
+concrete refactoring guide for this repository, not as a generic Clean
+Architecture sketch.
 
-It should be concrete enough that an automated coding agent can:
-- move files
-- rename files
-- update namespaces
-- update include paths
-- record what is already done
-- record what is still open
+The goal is:
 
-Short-term breakage is acceptable during the refactor.
-Long-term architectural consistency is the goal.
+- keep business and application rules in `core`
+- keep technical engines and frameworks outside `core`
+- remove the `api` layer
+- rename technical `services` to `infrastructure`
+- keep `import` and `export` workflows in `core/application`
+- extract only the technical PDF, OCR, image, and archive engines in the
+  first infrastructure slice
 
----
+## Architectural Decision
 
-## Hard decisions
+### `api` will be removed
 
-### 1. No `contracts` tree
-There will be **no** `contracts` folder.
+The old `api` package was an attempt to let `core` and technical services share
+contracts without seeing each other. That creates a third owner for application
+contracts. The target architecture does not keep that layer.
 
-### 2. No duplicated feature tree under multiple roots
-There will be **no** second `analysis/import/export/...` feature tree under another top-level grouping such as `contracts`.
+Target:
 
-### 3. `core/models` is only for enterprise business rules
-`core/models` must contain only:
-- domain entities
-- value objects
+- service ports live in `core/ports/services`
+- adapter implementations live outside `core`
+- `api` is removed after compatibility includes are gone
 
-### 4. `core/application` is only for application business rules
-`core/application` must contain:
-- use cases
-- workflow orchestration
-- request/result/impact/state types that belong to those use cases
+### `services` will become `infrastructure`
 
-It must **not** contain controllers, presenters, repository implementations, or framework adapters.
+The current `services/poppler`, `services/opencv`, and `services/tesseract`
+folders are not domain services. They are technical adapter implementations.
 
-### 5. Ports are explicit
-All interfaces that application code depends on must live in:
-- `core/ports/*`
+Target:
 
-### 6. Adapters stay outside core
-These remain outside `core`:
-- `ui`
-- `persistence`
-- `services`
-- `debug`
-- `app`
+- `services/poppler -> infrastructure/poppler`
+- `services/opencv -> infrastructure/opencv`
+- `services/tesseract -> infrastructure/tesseract`
+- `services/archive -> infrastructure/archive`
+- no `infrastructure/import` or `infrastructure/export` target in the first
+  slice
 
----
+This rename is about semantics, not just folders. The new module names should
+say what they do:
 
-## Layer model for this codebase
+- `infrastructure/poppler` renders or extracts PDF pages
+- `infrastructure/opencv` manipulates images and masks
+- `infrastructure/tesseract` performs OCR
+- `infrastructure/archive` packs files into archives
+- `import` and `export` workflows stay in `core/application`
 
-## 1. Enterprise business rules
-Folders:
-- `core/models/domain`
-- `core/models/valueobjects`
+### Domain services stay in `core`
 
-Contains:
-- business entities
-- value objects
-- no workflow DTOs
-- no request/result types
-- no persistence impact types
-- no workspace orchestration state
+A DDD domain service represents a domain rule that does not naturally belong on
+one entity or value object. Examples:
 
-Namespace target:
-- `core::domain`
+- matching a transaction draft to actors, contracts, and properties
+- deciding which contract aliases are relevant
+- deriving domain-level import suggestions
 
-## 2. Application business rules
-Folder:
-- `core/application`
+These concepts may stay in `core/domain` or `core/application` as policies or
+use cases. If the implementation needs technical dependencies such as
+Levenshtein, fuzzy search indexes, OCR engine metadata, or installed parser
+templates, those details move behind ports and into `infrastructure` in a later
+slice.
 
-Contains:
-- use cases
-- workflow state
-- workflow requests
-- workflow results
-- orchestration services
-- application-level impact/result models
+This means:
 
-Namespace target:
-- `core::application`
+- the import use case stays in `core/application/import`
+- the export use case stays in `core/application/export`
+- the archive writer is a port plus infrastructure implementation
+- template catalogs, fuzzy matchers, and package installers are later slices
 
-## 3. Ports
-Folder:
-- `core/ports`
+## Dependency Rule
 
-Contains only interfaces / boundaries:
-- repository ports
-- storage ports
-- external service ports
-- presenter ports when needed
-
-Namespace target:
-- `core::ports::*`
-
-## 4. Interface adapters
-Folders:
-- `ui`
-- `persistence`
-- `services`
-- `debug`
-
-These implement or consume ports.
-
-## 5. Frameworks and drivers
-Folders:
-- `app`
-- Qt / QML
-- SQLite
-- Poppler
-- OpenCV
-- Tesseract
-- filesystem / OS runtime
-
----
-
-## Target folder structure
+Allowed direction:
 
 ```text
-core/
-  models/
-    domain/
-      Actor.h
-      Analysis.h
-      Annual.h
-      Contract.h
-      Property.h
-      Statement.h
-      Transaction.h
-    valueobjects/
-      Alias.h
-      AliasUsage.h
+app
+  -> ui
+  -> persistence
+  -> infrastructure
+  -> debug
+  -> core
 
-  application/
-    workspace/
-      WorkspaceState.h
-      WorkspaceFacade.h
-      WorkspaceSession.h
-      CatalogService.h
-      StateHydrator.h
-      StateProjector.h
-    analysis/
-      RunAnalysis.h
-      RunAnalysisRequest.h
-      RunAnalysisResult.h
-      ComposeAnalysisRequest.h
-      PropertyMetricsService.h
-    import/
-      ImportStatement.h
-      ImportStatementRequest.h
-      ImportStatementResult.h
-      FinalizeDraft.h
-      FinalizeDraftRequest.h
-      FinalizeDraftResult.h
-      StatementDraft.h
-      TransactionDraft.h
-      ImportLog.h
-      DraftLinkingService.h
-    export/
-      ExportData.h
-      ExportDataRequest.h
-      ExportDataResult.h
-      ExportAnalyses.h
-      ExportLog.h
-    storage/
-      SaveWorkspace.h
-      SaveWorkspaceRequest.h
-      SaveWorkspaceResult.h
-      OpenWorkspace.h
-      OpenWorkspaceRequest.h
-      OpenWorkspaceResult.h
-      WorkspaceStorageService.h
-      DeletionImpact.h
-
-  ports/
-    repositories/
-      IActorRepository.h
-      IAnalysisRepository.h
-      IAnnualRepository.h
-      IContractRepository.h
-      IExportLogRepository.h
-      IImportLogRepository.h
-      IPropertyRepository.h
-      IStatementDraftRepository.h
-      IStatementRepository.h
-      ITransactionDraftRepository.h
-      ITransactionRepository.h
-    storage/
-      IRegistry.h
-      IWorkspaceStore.h
-    services/
-      IPopplerService.h
-      IOpenCvService.h
-      ITesseractService.h
-    presenters/
-      IWorkspacePresenter.h
-      IImportPresenter.h
-      IExportPresenter.h
-      IAnalysisPresenter.h
-
-  jobs/
-    JobSystem.h
-    Scheduler.h
-    JobTypes.h
-    ImportJobSpec.h
-
-  errors/
-    ErrorCodes.h
-    ErrorEvent.h
-    ErrorEventFactory.h
-    ErrorReporterRegistry.h
-    ErrorReporting.h
-    IErrorReporter.h
+persistence      -> core
+infrastructure   -> core
+ui               -> core
+debug            -> core
+core             -> standard library and small pure libraries only
 ```
 
-Adapters outside core:
+Forbidden:
+
+- `core -> ui`
+- `core -> persistence`
+- `core -> infrastructure`
+- `core -> api`
+- `core -> Qt`
+- `core -> SQLite`
+- `core -> Poppler`
+- `core -> OpenCV`
+- `core -> Tesseract`
+- `core -> xlnt`
+- `core -> libzip`
+
+## SOLID And DDD Fit
+
+### Single Responsibility Principle
+
+Use cases in `core/application` orchestrate one workflow. Technical IO,
+rendering, OCR, and archive writing are not application responsibilities and
+should be moved to infrastructure adapters.
+
+Examples:
+
+- `ImportStatement` orchestrates import.
+- `IPopplerService` renders or extracts PDF data.
+- `ITesseractService` performs OCR.
+- `IArchivePackager` creates archives.
+
+### Open/Closed Principle
+
+New OCR engines, PDF renderers, image processors, or archive packagers should
+be added by implementing ports, not by changing core use cases.
+
+Examples:
+
+- install another OCR package by adding an infrastructure implementation
+- add another archive implementation behind the archive port
+- add another PDF or OCR adapter behind a port
+
+### Dependency Inversion Principle
+
+`core` owns the interfaces it needs. Infrastructure implements them.
+
+This is why ports belong in `core/ports`, not in `api`.
+
+### DDD Boundary
+
+Domain language belongs in `core/domain`:
+
+- Actor
+- Property
+- Contract
+- Statement
+- Transaction
+- Analysis
+- Annual
+- Alias
+- matching policies
+
+Technical language belongs in infrastructure:
+
+- PDF rendering
+- image masking
+- OCR extraction
+- ZIP packaging
+
+
+## Target Repository Layout
 
 ```text
-ui/
-  controllers/
-  state/
-  models/
-  analysis/
-  import/
-  export/
-  bootstrap/
-  dialogs/
-  payload/
-  observability/
-  window/
-  util/
+app/
+  CMakeLists.txt
+  src/
+    main.cpp
+    main_qml.cpp
+    Environment.cpp
+    Environment.h
+
+core/
+  CMakeLists.txt
+  include/core/
+    application/
+      analysis/
+      export/
+      import/
+        draft/
+        internal/
+        statement/
+        transaction/
+      storage/
+      workspace/
+    constants/
+    domain/
+      entities/
+      policies/
+      values/
+    errors/
+    jobs/
+    ports/
+      export/
+      import/
+      presenters/
+      repositories/
+      services/
+      storage/
+    utils/
+    pch.h
+  src/
+    application/
+      analysis/
+      export/
+      import/
+      storage/
+      workspace/
+    domain/
+    errors/
+    jobs/
+    utils/
+  tests/
+
+infrastructure/
+  CMakeLists.txt
+  archive/
+    include/infrastructure/archive/
+    src/
+    tests/
+  opencv/
+    include/infrastructure/opencv/
+    src/
+    tests/
+  poppler/
+    include/infrastructure/poppler/
+    src/
+    tests/
+  tesseract/
+    include/infrastructure/tesseract/
+    src/
+    tests/
 
 persistence/
-  store/
-  repositories/
-  sqlite/
+  CMakeLists.txt
+  include/persistence/
+    repositories/
+  src/
+    repositories/
+  tests/
 
-services/
-  poppler/
-  opencv/
-  tesseract/
+ui/
+  CMakeLists.txt
+  include/ui/
+    analysis/
+    bootstrap/
+    controllers/
+    dialogs/
+    export/
+    import/
+    models/
+    observability/
+    payload/
+    state/
+    text/
+    util/
+    window/
+  qml/
+  src/
+  tests/
 
 debug/
-  reporters/
-  runtime/
+  CMakeLists.txt
+  include/debug/
+  src/
 
-app/
-  composition/
-  startup/
+docs/
+installer/
+ci/
+cmake/
 ```
 
-Notes:
-- The current repository does not yet match this split.
-- The names above are the long-term target, not a requirement to rename everything in one step.
+Removed target layout:
 
-### Concrete tree check used for this document
+```text
+api/
+services/
+```
 
-This target was mirrored against the current repository structure, including concrete `.h` and `.cpp` files in these areas:
-- `core/include/core/application/*`
-- `core/src/application/*`
-- `core/include/core/storage/*`
-- `core/src/storage/*`
-- `core/include/core/import/*`
-- `core/src/import/*`
-- `core/include/core/export/*`
-- `core/src/export/*`
-- `core/include/core/repositories/*`
-- `core/include/core/models/*`
-- `core/include/core/analysis/*`
-- `core/src/analysis/*`
-- `ui/include/ui/*`
-- `ui/src/*`
-- `persistence/include/persistence/*`
-- `persistence/src/*`
-- `services/opencv/*`
-- `services/poppler/*`
-- `services/tesseract/*`
-- `api/include/api/*`
-- `debug/include/debug/*`
-- `debug/src/*`
-- `app/src/*`
+## Target CMake Targets
 
-This means the mappings below are not abstract examples; they are based on the current codebase layout.
+```text
+FossRedder::Core
+FossRedder::Persistence
+FossRedder::InfrastructureArchive
+FossRedder::InfrastructureOpenCv
+FossRedder::InfrastructurePoppler
+FossRedder::InfrastructureTesseract
+FossRedder::Debug
+FossRedder::Ui
+fossredder
+```
 
----
+Optional simplification:
 
-## How current concrete folders map to the target
+```text
+FossRedder::Infrastructure
+```
 
-## `core/models`
-Current problem:
-- contains domain entities
-- contains value objects
-- contains workflow DTOs
-- contains workspace/application state
-- contains storage result types
+This single target may replace the smaller infrastructure targets if separate
+build/test boundaries are not useful. Even then, infrastructure code stays
+outside `core`.
 
-Target:
-- only `domain` and `valueobjects`
+Removed target:
 
-## `core/application`
-Current problem:
-- valid application logic exists here
-- but file naming is inconsistent
-- some files are really workspace use cases
-- some are analysis use cases
-- some are import use cases
+```text
+FossRedder::Api
+```
 
-Target:
-- remains the application business rules layer
-- split by workflow responsibility inside `core/application`
+## Use Case Split
 
-## `core/storage`
-Current problem:
-- mixes interfaces and implementation
-- contains both boundary abstractions and concrete orchestration
+### Import
 
-Target:
-- interfaces move to `core/ports/storage`
-- concrete orchestration moves to `core/application/storage`
+Keep the import workflow in `core/application/import`.
 
-## `core/repositories`
-Current state:
-- already a good home for repository abstractions
+Responsibilities:
 
-Target:
-- move to `core/ports/repositories`
+- coordinate page rendering, masking, OCR, and parsing
+- compose an import request into page work
+- produce import results and logs
+- decide what to do with the parsed drafts
 
-## `core/import`
-Current state:
-- mixed layer
-- contains a use-case interface (`IImportStatement`)
-- contains parsing internals and pipeline strategy code
+Technical substeps:
 
-Target:
-- application-facing request/result/use-case types move to `core/application/import`
-- parser and algorithm internals may remain in `core/import` or be renamed later to `core/importing/internal`
-- port interfaces move to `core/ports/services` or `core/application/import` only when they are actual use-case boundaries
+- render PDF pages
+- mask images
+- run OCR
+- load statement templates, if needed, through a later slice
+- fuzzy-match text and metadata, if needed, through a later slice
 
-## `core/export`
-Current state:
-- mixed layer
-- contains request/result plus orchestration and exporter implementations
+For the first target slice, only the PDF, image, and OCR engines are extracted
+to `infrastructure`. Template catalogs, OCR package installation, and fuzzy
+matching remain core concerns until the later slice that needs them.
 
-Target:
-- request/result/use-case types move to `core/application/export`
-- exporter strategy and writer logic may remain in `core/export` temporarily, but long-term should be placed according to whether they are application logic or adapters
+### Export
 
-## `api`
-Current state:
-- contains interfaces to external libraries plus request/response/types
+Keep the export workflow in `core/application/export`.
 
-Target:
-- service interfaces move into `core/ports/services`
-- external library-specific request/response/types may remain in `api` only if you intentionally keep `api` as a technology boundary package
-- otherwise those types move into `services/*` or `core/application/import` depending on who owns them logically
+Responsibilities:
 
-## `ui`
-Current state:
-- controllers, state facades, view models, payload mappers
+- coordinate export requests
+- select export formats
+- gather analysis/workspace data
+- produce export results and logs
 
-Target:
-- remains interface adapters
-- this is the controller/presenter layer in practice
-- it must not move into `core`
+Technical substeps:
 
-## `persistence`
-Current state:
-- repository implementations and SQLite store logic
+- package archive files
+- encode assets or export attachments, if needed, through a later slice
 
-Target:
-- remains outbound adapter layer
-- implements `core/ports/repositories` and `core/ports/storage`
+For the first target slice, only archive packaging is extracted to
+`infrastructure`. Workbook and CSV writers remain in core or a later slice.
 
-## `services`
-Current state:
-- adapters for Poppler / OpenCV / Tesseract implementations
+## Core Target Shape
 
-Target:
-- remains outbound adapter layer
-- implements `core/ports/services`
+### Domain
 
-## `debug`
-Current state:
-- debug reporters and runtime tracing helpers
+Keep in `core/include/core/domain`:
 
-Target:
-- remains adapter/tooling layer outside core
-- may implement error reporting or diagnostic ports where needed
+- `entities/Actor.h`
+- `entities/Analysis.h`
+- `entities/Annual.h`
+- `entities/Contract.h`
+- `entities/Property.h`
+- `entities/Statement.h`
+- `entities/Transaction.h`
+- `values/Alias.h`
+- `values/AliasUsage.h`
+- `policies/DraftMatchingPolicy.h`
 
----
+Domain code may use standard library types and pure value objects. It must not
+know about OCR, image processing, PDF engines, databases, Qt, or filesystems
+unless a value object explicitly represents a domain concept.
 
-## Concrete old -> new header mapping
+### Application
 
-## Domain and value objects
-- `core/include/core/models/Actor.h -> core/include/core/models/domain/Actor.h`
-- `core/include/core/models/Analysis.h -> core/include/core/models/domain/Analysis.h`
-- `core/include/core/models/Annual.h -> core/include/core/models/domain/Annual.h`
-- `core/include/core/models/Contract.h -> core/include/core/models/domain/Contract.h`
-- `core/include/core/models/Property.h -> core/include/core/models/domain/Property.h`
-- `core/include/core/models/Statement.h -> core/include/core/models/domain/Statement.h`
-- `core/include/core/models/Transaction.h -> core/include/core/models/domain/Transaction.h`
-- `core/include/core/models/Alias.h -> core/include/core/models/valueobjects/Alias.h`
-- `core/include/core/models/AliasUsage.h -> core/include/core/models/valueobjects/AliasUsage.h`
+Keep in `core/include/core/application`:
 
-## Workspace / application state
-- `core/include/core/models/AppState.h -> core/include/core/application/workspace/WorkspaceState.h`
-- `core/include/core/models/DeletionImpact.h -> core/include/core/application/storage/DeletionImpact.h`
-- `core/include/core/application/AppStateFacade.h -> core/include/core/application/workspace/WorkspaceFacade.h`
-- `core/include/core/application/WorkspaceSession.h -> core/include/core/application/workspace/WorkspaceSession.h`
-- `core/include/core/application/CatalogService.h -> core/include/core/application/workspace/CatalogService.h`
-- `core/include/core/application/StateHydrator.h -> core/include/core/application/workspace/StateHydrator.h`
-- `core/include/core/application/StateProjector.h -> core/include/core/application/workspace/StateProjector.h`
-- `core/include/core/application/AppStateManager.h -> core/include/core/application/workspace/WorkspacePersistenceProjector.h`
+- workspace/session orchestration
+- import use cases and parser workflow models
+- analysis use cases
+- export use cases
+- storage orchestration over repository/storage ports
+- request/result types
 
-## Analysis application types
-- `core/include/core/models/AnalysisResult.h -> core/include/core/application/analysis/RunAnalysisResult.h`
-- `core/include/core/application/AnalysisService.h -> core/include/core/application/analysis/RunAnalysis.h`
-- `core/include/core/application/AnalysisRequestComposer.h -> core/include/core/application/analysis/ComposeAnalysisRequest.h`
-- `core/include/core/application/PropertyMetricsService.h -> core/include/core/application/analysis/PropertyMetricsService.h`
+Application code may depend on `core/domain` and `core/ports`.
 
-## Import application types
-- `core/include/core/import/ImportRequest.h -> core/include/core/application/import/ImportStatementRequest.h`
-- `core/include/core/import/ImportResult.h -> core/include/core/application/import/ImportStatementResult.h`
-- `core/include/core/import/IImportStatement.h -> core/include/core/application/import/ImportStatement.h`
-- `core/include/core/models/StatementDraft.h -> core/include/core/application/import/StatementDraft.h`
-- `core/include/core/models/TransactionDraft.h -> core/include/core/application/import/TransactionDraft.h`
-- `core/include/core/models/ImportLog.h -> core/include/core/application/import/ImportLog.h`
-- `core/include/core/application/DraftFinalizer.h -> core/include/core/application/import/FinalizeDraft.h`
-- `core/include/core/import/DraftLinking.h -> core/include/core/application/import/DraftLinkingService.h`
+### Ports
 
-## Export application types
-- `core/include/core/export/ExportRequest.h -> core/include/core/application/export/ExportDataRequest.h`
-- `core/include/core/export/ExportResult.h -> core/include/core/application/export/ExportDataResult.h`
-- `core/include/core/export/ExportService.h -> core/include/core/application/export/ExportData.h`
-- `core/include/core/export/AnalysisExportService.h -> core/include/core/application/export/ExportAnalyses.h`
-- `core/include/core/models/ExportLog.h -> core/include/core/application/export/ExportLog.h`
+Keep in `core/include/core/ports`:
 
-## Storage ports and orchestration
-- `core/include/core/storage/IStorageManager.h -> core/include/core/ports/storage/IWorkspaceStore.h`
-- `core/include/core/storage/IRegistry.h -> core/include/core/ports/storage/IRegistry.h`
-- `core/include/core/storage/StorageManager.h -> core/include/core/application/storage/WorkspaceStorageService.h`
-- `core/include/core/storage/RepositoryBundle.h -> core/include/core/application/storage/RepositoryBundle.h`
+- `repositories/*`
+- `storage/*`
+- `presenters/*`
+- `services/IOpenCvService.h`
+- `services/IPopplerService.h`
+- `services/ITesseractService.h`
+- `services/OpenCv*.h`
+- `services/Poppler*.h`
+- `services/Tesseract*.h`
+- `export/IArchivePackager.h`
 
-## Repository ports
-- `core/include/core/repositories/IActorRepository.h -> core/include/core/ports/repositories/IActorRepository.h`
-- `core/include/core/repositories/IAnalysisRepository.h -> core/include/core/ports/repositories/IAnalysisRepository.h`
-- `core/include/core/repositories/IAnnualRepository.h -> core/include/core/ports/repositories/IAnnualRepository.h`
-- `core/include/core/repositories/IContractRepository.h -> core/include/core/ports/repositories/IContractRepository.h`
-- `core/include/core/repositories/IExportLogRepository.h -> core/include/core/ports/repositories/IExportLogRepository.h`
-- `core/include/core/repositories/IImportLogRepository.h -> core/include/core/ports/repositories/IImportLogRepository.h`
-- `core/include/core/repositories/IPropertyRepository.h -> core/include/core/ports/repositories/IPropertyRepository.h`
-- `core/include/core/repositories/IStatementDraftRepository.h -> core/include/core/ports/repositories/IStatementDraftRepository.h`
-- `core/include/core/repositories/IStatementRepository.h -> core/include/core/ports/repositories/IStatementRepository.h`
-- `core/include/core/repositories/ITransactionDraftRepository.h -> core/include/core/ports/repositories/ITransactionDraftRepository.h`
-- `core/include/core/repositories/ITransactionRepository.h -> core/include/core/ports/repositories/ITransactionRepository.h`
+Add as needed in later slices:
 
-## External service ports
-- `api/include/api/poppler/IPopplerService.h -> core/include/core/ports/services/IPopplerService.h`
-- `api/include/api/opencv/IOpenCvService.h -> core/include/core/ports/services/IOpenCvService.h`
-- `api/include/api/tesseract/ITesseractService.h -> core/include/core/ports/services/ITesseractService.h`
+- `import/IImportTemplateCatalog.h`
+- `import/IStatementParserTemplate.h`
+- `import/IOcrPackageInstaller.h`
+- `import/ITextMatcher.h`
+- `export/IXlsxWorkbookWriter.h`
+- `export/ICsvWriter.h`
+- `export/IExportArtifactWriter.h`
 
-## Jobs
-- `core/include/core/jobs/ImportJobSpec.h -> core/include/core/jobs/ImportJobSpec.h`
-- `core/include/core/jobs/JobTypes.h -> core/include/core/jobs/JobTypes.h`
-- `core/include/core/jobs/JobSystem.h -> core/include/core/jobs/JobSystem.h`
-- `core/include/core/jobs/Scheduler.h -> core/include/core/jobs/Scheduler.h`
-- `core/src/jobs/JobManager.h -> core/include/core/jobs/JobManager.h`
+### Suggested Concrete Ports
 
-## Errors
-- `core/include/core/errors/ErrorCodes.h -> core/include/core/errors/ErrorCodes.h`
-- `core/include/core/errors/ErrorEvent.h -> core/include/core/errors/ErrorEvent.h`
-- `core/include/core/errors/IErrorReporter.h -> core/include/core/errors/IErrorReporter.h`
+Use these when extracting the remaining technical steps:
 
----
+- `core/ports/export/IArchivePackager.h`
+- `core/ports/services/IOpenCvService.h`
+- `core/ports/services/IPopplerService.h`
+- `core/ports/services/ITesseractService.h`
 
-## Concrete old -> new source mapping (.cpp / helper files)
+Later slices may add:
 
-## Workspace / storage sources
-- `core/src/application/AppStateFacade.cpp -> core/src/application/workspace/WorkspaceFacade.cpp`
-- `core/src/application/AppStateManager.cpp -> core/src/application/workspace/WorkspacePersistenceProjector.cpp`
-- `core/src/application/CatalogService.cpp -> core/src/application/workspace/CatalogService.cpp`
-- `core/src/application/CatalogDraftAppliers.h -> core/src/application/workspace/CatalogDraftAppliers.h`
-- `core/src/application/CatalogMutationHelpers.h -> core/src/application/workspace/CatalogMutationHelpers.h`
-- `core/src/application/StateHydrator.cpp -> core/src/application/workspace/StateHydrator.cpp`
-- `core/src/application/StateProjector.cpp -> core/src/application/workspace/StateProjector.cpp`
-- `core/src/application/WorkspaceSession.cpp -> core/src/application/workspace/WorkspaceSession.cpp`
-- `core/src/storage/StorageManager.cpp -> core/src/application/storage/WorkspaceStorageService.cpp`
+- `core/ports/import/IImportTemplateCatalog.h`
+- `core/ports/import/IImportTemplateInstaller.h`
+- `core/ports/import/IStatementTemplateParser.h`
+- `core/ports/import/ITextMatcher.h`
+- `core/ports/export/IXlsxWorkbookWriter.h`
+- `core/ports/export/ICsvWriter.h`
+- `core/ports/export/IExportArtifactWriter.h`
 
-## Analysis sources
-- `core/src/application/AnalysisService.cpp -> core/src/application/analysis/RunAnalysis.cpp`
-- `core/src/application/AnalysisRequestComposer.cpp -> core/src/application/analysis/ComposeAnalysisRequest.cpp`
-- `core/src/application/PropertyMetricsService.cpp -> core/src/application/analysis/PropertyMetricsService.cpp`
-- `core/src/analysis/AnalysisEngine.cpp -> core/src/application/analysis/AnalysisEngine.cpp`
-- `core/src/analysis/TransactionCollector.cpp -> core/src/application/analysis/TransactionCollector.cpp`
-- `core/src/analysis/OutputTypeResolver.cpp -> core/src/application/analysis/OutputTypeResolver.cpp`
-- `core/src/analysis/Filter.cpp -> core/src/application/analysis/Filter.cpp`
-- `core/src/analysis/FilteredTransactions.h -> core/src/application/analysis/FilteredTransactions.h`
-- `core/src/analysis/strategies/CalcAnalysisStrategy.cpp -> core/src/application/analysis/strategies/CalcAnalysisStrategy.cpp`
-- `core/src/analysis/strategies/PlotAnalysisStrategy.cpp -> core/src/application/analysis/strategies/PlotAnalysisStrategy.cpp`
-- `core/src/analysis/strategies/TabAnalysisStrategy.cpp -> core/src/application/analysis/strategies/TabAnalysisStrategy.cpp`
+## Infrastructure Target Shape
 
-## Import sources
-- `core/src/application/DraftFinalizer.cpp -> core/src/application/import/FinalizeDraft.cpp`
-- `core/src/import/ImportStatement.cpp -> core/src/application/import/ImportStatement.cpp`
-- `core/src/import/DefaultImportStatementStrategy.cpp -> core/src/application/import/DefaultImportStatementStrategy.cpp`
-- `core/src/import/DraftLinking.cpp -> core/src/application/import/DraftLinkingService.cpp`
-- `core/src/import/ImportPipelineHelpers.cpp -> core/src/application/import/ImportPipelineHelpers.cpp`
-- `core/src/import/ImportStrategySupport.cpp -> core/src/application/import/ImportStrategySupport.cpp`
-- `core/src/import/ImportStatementStrategy.h -> core/src/application/import/ImportStatementStrategy.h`
-- `core/src/import/ImportPageRequests.h -> core/src/application/import/ImportPageRequests.h`
-- `core/src/import/parsing/* -> core/src/application/import/parsing/*`
+### PDF, OCR, Image Processing
 
-## Export sources
-- `core/src/export/ExportService.cpp -> core/src/application/export/ExportData.cpp`
-- `core/src/export/AnalysisExportService.cpp -> core/src/application/export/ExportAnalyses.cpp`
-- `core/src/export/CsvExporter.cpp -> core/src/application/export/CsvExporter.cpp`
-- `core/src/export/XlsxExporter.cpp -> core/src/application/export/XlsxExporter.cpp`
-- `core/src/export/PropertyContractMatrix.h -> core/src/application/export/PropertyContractMatrix.h`
+Move current technical adapters:
 
-## Jobs and errors sources
-- `core/src/jobs/JobManager.cpp -> core/src/jobs/JobManager.cpp`
-- `core/src/jobs/JobSystem.cpp -> core/src/jobs/JobSystem.cpp`
-- `core/src/jobs/Scheduler.cpp -> core/src/jobs/Scheduler.cpp`
-- `core/src/errors/ErrorReporterRegistry.cpp -> core/src/errors/ErrorReporterRegistry.cpp`
+- `services/poppler/* -> infrastructure/poppler/*`
+- `services/opencv/* -> infrastructure/opencv/*`
+- `services/tesseract/* -> infrastructure/tesseract/*`
 
-## Adapter sources that should stay outside core
+These modules implement:
 
-### UI adapters
-- `ui/src/controllers/ActorController.cpp -> ui/src/controllers/ActorController.cpp`
-- `ui/src/controllers/AnalysisController.cpp -> ui/src/controllers/AnalysisController.cpp`
-- `ui/src/controllers/AnnualController.cpp -> ui/src/controllers/AnnualController.cpp`
-- `ui/src/controllers/ContractController.cpp -> ui/src/controllers/ContractController.cpp`
-- `ui/src/controllers/DraftController.cpp -> ui/src/controllers/DraftController.cpp`
-- `ui/src/controllers/ExportController.cpp -> ui/src/controllers/ExportController.cpp`
-- `ui/src/controllers/FileSystemController.cpp -> ui/src/controllers/FileSystemController.cpp`
-- `ui/src/controllers/ImportController.cpp -> ui/src/controllers/ImportController.cpp`
-- `ui/src/controllers/LanguageController.cpp -> ui/src/controllers/LanguageController.cpp`
-- `ui/src/controllers/PropertyController.cpp -> ui/src/controllers/PropertyController.cpp`
-- `ui/src/controllers/SettingsController.cpp -> ui/src/controllers/SettingsController.cpp`
-- `ui/src/controllers/StatementController.cpp -> ui/src/controllers/StatementController.cpp`
-- `ui/src/controllers/StorageController.cpp -> ui/src/controllers/StorageController.cpp`
-- `ui/src/controllers/TransactionController.cpp -> ui/src/controllers/TransactionController.cpp`
-- `ui/src/state/StateFacade.cpp -> ui/src/state/StateFacade.cpp`
-- `ui/src/state/StateFacadeProjection.cpp -> ui/src/state/StateFacadeProjection.cpp`
-- `ui/src/state/SessionMutationState.cpp -> ui/src/state/SessionMutationState.cpp`
-- `ui/src/analysis/AnalysisInputMapper.cpp -> ui/src/analysis/AnalysisInputMapper.cpp`
-- `ui/src/analysis/AnalysisPayloadMapper.cpp -> ui/src/analysis/AnalysisPayloadMapper.cpp`
-- `ui/src/import/DraftViewMapper.cpp -> ui/src/import/DraftViewMapper.cpp`
-- `ui/src/import/ImportDraftMapper.cpp -> ui/src/import/ImportDraftMapper.cpp`
-- `ui/src/import/ImportJobBridge.cpp -> ui/src/import/ImportJobBridge.cpp`
-- `ui/src/import/ImportRunStore.cpp -> ui/src/import/ImportRunStore.cpp`
-- `ui/src/import/ImportState.cpp -> ui/src/import/ImportState.cpp`
-- `ui/src/import/ImportSuggestionService.cpp -> ui/src/import/ImportSuggestionService.cpp`
-- `ui/src/export/AppStateSnapshot.cpp -> ui/src/export/AppStateSnapshot.cpp`
-- `ui/src/export/ExportRunner.cpp -> ui/src/export/ExportRunner.cpp`
+- `core::ports::services::IPopplerService`
+- `core::ports::services::IOpenCvService`
+- `core::ports::services::ITesseractService`
 
-### Persistence adapters
-- `persistence/src/AppStateStore.cpp -> persistence/src/store/AppStateStore.cpp`
-- `persistence/src/Factory.cpp -> persistence/src/store/Factory.cpp`
-- `persistence/src/SqliteDb.cpp -> persistence/src/sqlite/SqliteDb.cpp`
-- `persistence/src/SqliteRegistry.cpp -> persistence/src/sqlite/SqliteRegistry.cpp`
-- `persistence/src/SqliteSchema.cpp -> persistence/src/sqlite/SqliteSchema.cpp`
-- `persistence/src/SqliteTransaction.cpp -> persistence/src/sqlite/SqliteTransaction.cpp`
-- `persistence/src/repositories/SqliteActorRepository.cpp -> persistence/src/repositories/SqliteActorRepository.cpp`
-- `persistence/src/repositories/SqliteAnalysisRepository.cpp -> persistence/src/repositories/SqliteAnalysisRepository.cpp`
-- `persistence/src/repositories/SqliteAnnualRepository.cpp -> persistence/src/repositories/SqliteAnnualRepository.cpp`
-- `persistence/src/repositories/SqliteConfigRepository.cpp -> persistence/src/repositories/SqliteConfigRepository.cpp`
-- `persistence/src/repositories/SqliteContractRepository.cpp -> persistence/src/repositories/SqliteContractRepository.cpp`
-- `persistence/src/repositories/SqliteExportLogRepository.cpp -> persistence/src/repositories/SqliteExportLogRepository.cpp`
-- `persistence/src/repositories/SqliteImportLogRepository.cpp -> persistence/src/repositories/SqliteImportLogRepository.cpp`
-- `persistence/src/repositories/SqlitePropertyRepository.cpp -> persistence/src/repositories/SqlitePropertyRepository.cpp`
-- `persistence/src/repositories/SqliteStatementDraftRepository.cpp -> persistence/src/repositories/SqliteStatementDraftRepository.cpp`
-- `persistence/src/repositories/SqliteStatementRepository.cpp -> persistence/src/repositories/SqliteStatementRepository.cpp`
-- `persistence/src/repositories/SqliteTransactionDraftRepository.cpp -> persistence/src/repositories/SqliteTransactionDraftRepository.cpp`
-- `persistence/src/repositories/SqliteTransactionRepository.cpp -> persistence/src/repositories/SqliteTransactionRepository.cpp`
+Suggested target names:
 
-### External service adapters
-- `services/poppler/src/PopplerAdapter.cpp -> services/poppler/src/PopplerAdapter.cpp`
-- `services/poppler/src/PopplerEngine.cpp -> services/poppler/src/PopplerEngine.cpp`
-- `services/poppler/src/PopplerService.cpp -> services/poppler/src/PopplerService.cpp`
-- `services/opencv/src/OpenCvAdapter.cpp -> services/opencv/src/OpenCvAdapter.cpp`
-- `services/opencv/src/OpenCvService.cpp -> services/opencv/src/OpenCvService.cpp`
-- `services/opencv/src/CropEngine.cpp -> services/opencv/src/CropEngine.cpp`
-- `services/opencv/src/DenoiseEngine.cpp -> services/opencv/src/DenoiseEngine.cpp`
-- `services/opencv/src/DetectEngine.cpp -> services/opencv/src/DetectEngine.cpp`
-- `services/opencv/src/MaskEngine.cpp -> services/opencv/src/MaskEngine.cpp`
-- `services/tesseract/src/TesseractAdapter.cpp -> services/tesseract/src/TesseractAdapter.cpp`
-- `services/tesseract/src/TesseractEngine.cpp -> services/tesseract/src/TesseractEngine.cpp`
-- `services/tesseract/src/TesseractService.cpp -> services/tesseract/src/TesseractService.cpp`
+- `FossRedder::InfrastructurePoppler`
+- `FossRedder::InfrastructureOpenCv`
+- `FossRedder::InfrastructureTesseract`
 
-### Debug adapters
-- `debug/src/ErrorReporter.cpp -> debug/src/reporters/ErrorReporter.cpp`
-- `debug/src/FileDebugger.cpp -> debug/src/runtime/FileDebugger.cpp`
-- `debug/src/RunManager.cpp -> debug/src/runtime/RunManager.cpp`
-- `debug/src/SpdlogDebugger.cpp -> debug/src/reporters/SpdlogDebugger.cpp`
+### Archive
 
-### App composition root
-- `app/src/main.cpp -> app/src/startup/main.cpp`
-- `app/src/main_qml.cpp -> app/src/startup/main_qml.cpp`
-- `app/src/Environment.cpp -> app/src/composition/Environment.cpp`
-- `app/src/Environment.h -> app/include/app/composition/Environment.h`
+Move archive packaging out of `core`:
 
----
+- ZIP packaging using `libzip`
+- concrete archive filesystem work
+- export attachment packaging
 
-## Consistent naming rules
+Target infrastructure files:
 
-Every application use case must use the same language:
-- `<UseCase>.h`
-- `<UseCase>Request.h`
-- `<UseCase>Result.h`
+```text
+infrastructure/archive/
+  include/infrastructure/archive/ZipArchivePackager.h
+  src/ZipArchivePackager.cpp
+  tests/
+```
+
+Core keeps the export use case and the archive port. Infrastructure owns the
+archive layout, filesystem work, and zip library integration.
+
+Suggested target names:
+
+- `FossRedder::InfrastructureArchive`
+
+## Debug Layer
+
+`debug` remains outside `core`.
+
+Target role:
+
+- implement diagnostic/reporting adapters
+- provide runtime tracing tools
+- implement or consume `core/errors/IErrorReporter`
+
+Target structure:
+
+```text
+debug/
+  include/debug/
+    ErrorReporter.h
+    FileDebugger.h
+    IDebugger.h
+    RunManager.h
+    SpdlogDebugger.h
+  src/
+    ErrorReporter.cpp
+    FileDebugger.cpp
+    RunManager.cpp
+    SpdlogDebugger.cpp
+```
+
+Debug may depend on `core`. `core` must not depend on `debug`.
+
+## Test Matrix
+
+Testing should follow the same module boundaries.
+
+### `core`
+
+Test:
+
+- domain policies
+- application use cases
+- request/result mapping
+- composition logic that is still pure enough to keep in core
+
+Location:
+
+- `core/tests`
+
+### `infrastructure`
+
+Test:
+
+- OCR adapter behavior
+- PDF adapter behavior
+- archive writer behavior
+- filesystem packaging behavior
+- adapter boundary error handling
+
+Location:
+
+- `infrastructure/*/tests`
+- specifically `infrastructure/archive/tests`
+
+### `persistence`
+
+Test:
+
+- repository mappings
+- SQLite schema behavior
+- registry persistence
+
+Location:
+
+- `persistence/tests`
+
+### `ui`
+
+Test:
+
+- controllers
+- mappers
+- state projections
+- QML behavior where useful
+
+Location:
+
+- `ui/tests`
+
+### `debug`
+
+Test:
+
+- report formatting
+- reporter wiring
+- runtime helper behavior
+
+Location:
+
+- `debug/tests` if needed
+
+## Persistence Layer
+
+`persistence` remains separate from generic infrastructure because it is already
+a cohesive adapter module with SQLite repository implementations.
+
+Target role:
+
+- implement `core/ports/repositories`
+- implement `core/ports/storage`
+- own SQLite schema and transactions
+
+`persistence` may depend on SQLite and `nlohmann_json`. `core` should not depend
+on SQLite.
+
+## UI Layer
+
+`ui` remains the inbound adapter layer.
+
+Target role:
+
+- controllers collect UI input
+- mappers translate UI payloads to application requests
+- models expose UI-friendly state
+- QML and Qt live here
+
+UI may depend on `core`, `debug`, and Qt. `core` must not depend on UI or Qt.
+
+## App Composition Root
+
+`app` wires the final object graph:
+
+- UI controllers
+- persistence repositories
+- infrastructure adapters
+- debug reporters
+- core use cases and facades
+
+The app target is the correct place to choose:
+
+- which OCR engine is active
+- where Tesseract packages are installed
+- which archive packager is registered
+- which PDF renderer and image adapter implementations are active
+
+## Migration Plan
+
+1. Finish replacing `api/*` usage in `core` with `core/ports/*`.
+2. Remove `FossRedder::Api` from `core/CMakeLists.txt`.
+3. Replace remaining `api` includes in `app`, `services`, and tests with
+   `core/ports/*` or infrastructure headers.
+4. Rename `services` to `infrastructure` in folders, namespaces, targets, and
+   CMake aliases.
+5. Move archive packaging out of `core/application/export` into
+   `infrastructure/archive`.
+6. Add `infrastructure/archive/tests` and keep archive behavior covered there.
+7. Keep `import` and `export` workflows in `core/application` for now.
+8. Defer template catalogs, fuzzy matching, and workbook or CSV writer
+   extraction until the slice that actually needs them.
+9. Delete `api/` and `FossRedder::Api`.
+10. Run preset-based target builds after each step.
+
+If a step is large, do it in this order:
+
+1. add the port
+2. add the infrastructure implementation
+3. switch one call site
+4. update tests
+5. remove the old compatibility include
+
+## Build Guidance
+
+Prefer presets and narrow targets.
 
 Examples:
-- `RunAnalysis.h`
-- `RunAnalysisRequest.h`
-- `RunAnalysisResult.h`
 
-- `ImportStatement.h`
-- `ImportStatementRequest.h`
-- `ImportStatementResult.h`
+```powershell
+cmake --preset <preset-name>
+cmake --build --preset <build-preset-name> --target fossredder_core
+cmake --build --preset <build-preset-name> --target fossredder_opencv_service
+```
 
-- `ExportData.h`
-- `ExportDataRequest.h`
-- `ExportDataResult.h`
+Avoid full app builds unless the changed boundary requires end-to-end linking.
 
-- `FinalizeDraft.h`
-- `FinalizeDraftRequest.h`
-- `FinalizeDraftResult.h`
+## Current Transitional State
 
-- `SaveWorkspace.h`
-- `SaveWorkspaceRequest.h`
-- `SaveWorkspaceResult.h`
+- Some service DTOs already exist in `core/ports/services`.
+- Some `api/*` headers are compatibility wrappers.
+- `core` still has some includes that should be moved from `api/*` to
+  `core/ports/*`.
+- `services` still exists on disk and in CMake.
+- archive packaging still lives partly in `core`.
 
-The current mixed naming is a problem and should be removed.
-
----
-
-## Where controllers, presenters, and gateways belong
-
-## Controllers
-Controllers are outside core.
-
-Current concrete place:
-- `ui/include/ui/controllers/*`
-- `ui/src/controllers/*`
-
-These are inbound adapters.
-
-They should:
-- gather UI input
-- build request objects
-- call application use cases
-
-They should not own business rules.
-
-## Presenters
-Presenter implementations are outside core.
-
-If output boundary interfaces are needed, only the interfaces belong in core:
-- `core/ports/presenters/*`
-
-Concrete presenter implementations belong in:
-- `ui/*`
-
-In the current codebase, a lot of presenter-like work is spread across:
-- `ui/state/*`
-- `ui/analysis/*`
-- `ui/import/*`
-- `ui/export/*`
-- `ui/payload/*`
-
-## Gateways
-Gateway interfaces belong in:
-- `core/ports/repositories`
-- `core/ports/storage`
-- `core/ports/services`
-
-Concrete gateway implementations belong outside core:
-- `persistence/*`
-- `services/*`
-
----
-
-## How ui / persistence / debug / services / api attach to ports
-
-## UI
-UI consumes `core/application` use cases and optionally `core/ports/presenters`.
-
-UI must not implement business rules.
-
-Concrete current attachment points that stay in UI:
-- `ui/controllers/*`
-- `ui/state/*`
-- `ui/models/*`
-- `ui/analysis/*`
-- `ui/import/*`
-- `ui/export/*`
-
-## Persistence
-Persistence implements:
-- `core/ports/repositories/*`
-- `core/ports/storage/*`
-
-Examples from current codebase:
-- `persistence/src/repositories/SqliteActorRepository.cpp`
-- `persistence/src/AppStateStore.cpp`
-- `persistence/src/SqliteRegistry.cpp`
-
-## Services
-Services implement:
-- `core/ports/services/*`
-
-Examples:
-- `services/poppler/src/PopplerService.cpp`
-- `services/opencv/src/OpenCvService.cpp`
-- `services/tesseract/src/TesseractService.cpp`
-
-## API
-Current `api` is effectively a ports package plus technology DTOs.
-
-Long-term target:
-- pure service interfaces move into `core/ports/services`
-- technology-specific request/response types stay where they are only if you explicitly keep a technical anti-corruption layer
-
-## Debug
-`debug` stays outside core.
-
-It may plug into:
-- `core/errors/IErrorReporter`
-- logging or tracing infrastructure
-
-It is tooling / adapter code, not enterprise or application business rules.
-
-## App
-`app` remains the composition root.
-
-Concrete current entry points:
-- `app/src/main.cpp`
-- `app/src/main_qml.cpp`
-- `app/src/Environment.cpp`
-
-This layer wires:
-- UI
-- persistence
-- services
-- debug
-- application services
-
----
-
-## Namespace target
-
-- `core::domain` for domain entities and value objects
-- `core::application` for use cases and application workflow state
-- `core::ports::repositories` for repository ports
-- `core::ports::storage` for storage ports
-- `core::ports::services` for external service ports
-- `core::ports::presenters` for output boundary interfaces
-
-Namespace changes are expected as part of the refactor.
-
----
-
-## GPT refactor workflow
-
-When a GPT agent edits this project, it should use this order:
-1. Move headers to their target folders.
-2. Move `.cpp` files to their target folders.
-3. Update include paths.
-4. Update namespaces.
-5. Update forward declarations.
-6. Update CMakeLists and project references.
-7. Build.
-8. Record progress in the section below.
-
----
-
-## Progress tracking
-
-Instruction for GPT agents:
-- When you complete a move or rename, replace `None yet.` with concrete bullet points.
-- Record exact files, not vague summaries.
-- Keep this section append-only except when moving an item from `In progress` to `Completed`.
-
-### Completed
-- None yet.
-
-### In progress
-- None yet.
-
-### Open
-- Split `core/models` into `domain` and `valueobjects`.
-- Move workspace state out of `core/models`.
-- Create `core/ports` and relocate interfaces.
-- Normalize use-case naming to `UseCase / Request / Result`.
-- Reattach adapters to the new ports.
-- Update namespaces.
-- Update includes and build files.
-
----
-
-## Final summary
-
-The target is a strict clean-architecture layout:
-- `core/models` for enterprise business rules only
-- `core/application` for application business rules only
-- `core/ports` for all interfaces used by the application layer
-- `ui`, `persistence`, `services`, `debug` as adapters
-- `app` as composition root and framework shell
-
-This removes the current confusion between:
-- domain models vs workflow state
-- ports vs implementations
-- use cases vs adapters
-- controller/presenter/gateway roles
+This state is temporary. The target architecture removes `api` and treats
+technical engines as infrastructure adapters while keeping import and export
+as application workflows for now.

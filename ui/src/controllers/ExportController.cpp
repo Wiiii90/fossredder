@@ -26,11 +26,13 @@ namespace ui {
 ExportController::ExportController(
     StateSnapshotProvider stateSnapshotProvider,
     std::shared_ptr<ui::exporting::ExportRunner> runner,
+    std::shared_ptr<core::ports::presenters::IExportPresenter> exportPresenter,
     QObject* parent)
     : QObject(parent)
     , stateSnapshotProvider_(std::move(stateSnapshotProvider))
     , runner_(runner ? std::move(runner)
                      : std::make_shared<ui::exporting::ExportRunner>())
+    , exportPresenter_(std::move(exportPresenter))
     , runs_(std::make_unique<ExportRunList>(this))
 {
     connect(&exportWatcher_,
@@ -109,10 +111,10 @@ void ExportController::finishExport(bool success)
     emit exportFinished(success);
 }
 
-std::shared_ptr<const AppState> ExportController::stateSnapshot() const
+std::shared_ptr<const WorkspaceState> ExportController::stateSnapshot() const
 {
     return stateSnapshotProvider_ ? stateSnapshotProvider_()
-                                  : std::shared_ptr<const AppState>{};
+                                  : std::shared_ptr<const WorkspaceState>{};
 }
 
 QString ExportController::generateLogId() const
@@ -386,15 +388,16 @@ void ExportController::onExportFinished() {
   bool success = false;
   try {
     const auto result = exportFuture_.result();
-    success = result.success;
+    const auto presented = exportPresenter_ ? exportPresenter_->present(result) : result;
+    success = presented.success;
     if (!success) {
-      lastError_ = result.message.isEmpty()
+      lastError_ = presented.message.empty()
                        ? ui::text::controllerErrors::exportFailed()
-                       : result.message;
+                       : QString::fromStdString(presented.message);
       core::errors::report(
           core::errors::ErrorSeverity::Warning,
-          result.errorCode.isEmpty() ? core::errors::codes::GenericError
-                                     : result.errorCode.toUtf8().constData(),
+          presented.errorCode.empty() ? core::errors::codes::GenericError
+                                      : presented.errorCode.c_str(),
           observability::origins::controller::exportFlow::kFinish,
           strings::toStdString(lastError_));
       observability::reportFlow(

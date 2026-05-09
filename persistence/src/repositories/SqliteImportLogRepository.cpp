@@ -5,7 +5,7 @@
 
 #include "persistence/repositories/SqliteImportLogRepository.h"
 
-#include "core/models/ImportLog.h"
+#include "core/application/import/ImportLog.h"
 #include "persistence/SqliteDb.h"
 #include "persistence/StmtGuard.h"
 #include "persistence/Uuid.h"

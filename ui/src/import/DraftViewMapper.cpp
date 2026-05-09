@@ -9,20 +9,22 @@
 #include "ui/payload/PayloadMapper.h"
 #include "ui/util/StringConversions.h"
 
+namespace core_importing = core::application::importing;
+
 namespace ui::importing {
 
-core::importing::DraftSuggestionCandidate toCoreCandidate(const ImportSuggestion& suggestion)
+core_importing::DraftSuggestionCandidate toCoreCandidate(const ImportSuggestion& suggestion)
 {
-    core::importing::DraftSuggestionCandidate out;
+    core_importing::DraftSuggestionCandidate out;
     out.entityId = ui::strings::toStdString(suggestion.entityId);
     out.label = ui::strings::toStdString(suggestion.label);
     out.confidence = suggestion.confidence;
     return out;
 }
 
-core::importing::DraftSuggestionBucket toCoreBucket(const ImportSuggestionBucket& bucket)
+core_importing::DraftSuggestionBucket toCoreBucket(const ImportSuggestionBucket& bucket)
 {
-    core::importing::DraftSuggestionBucket out;
+    core_importing::DraftSuggestionBucket out;
     out.candidates.reserve(bucket.candidates.size());
     for (const auto& suggestion : bucket.candidates) {
         out.candidates.push_back(toCoreCandidate(suggestion));
@@ -30,9 +32,9 @@ core::importing::DraftSuggestionBucket toCoreBucket(const ImportSuggestionBucket
     return out;
 }
 
-core::importing::DraftLinkSelection toCoreSelection(const TransactionDraft& draft)
+core_importing::DraftLinkSelection toCoreSelection(const TransactionDraft& draft)
 {
-    core::importing::DraftLinkSelection out;
+    core_importing::DraftLinkSelection out;
     out.name = ui::strings::toStdString(draft.name);
     out.metadata = ui::strings::toStdString(draft.metadata);
     out.actorText = ui::strings::toStdString(draft.actorText);
@@ -56,7 +58,7 @@ QStringList toQStringList(const std::vector<std::string>& values)
     return payload::mapper::toQStringList(values);
 }
 
-QVariantMap toVariantMap(const core::importing::DraftSuggestionCandidate& suggestion)
+QVariantMap toVariantMap(const core_importing::DraftSuggestionCandidate& suggestion)
 {
     QVariantMap map;
     map.insert(QStringLiteral("entityId"), QString::fromStdString(suggestion.entityId));
@@ -65,7 +67,7 @@ QVariantMap toVariantMap(const core::importing::DraftSuggestionCandidate& sugges
     return map;
 }
 
-QVariantMap toVariantMap(const core::importing::DraftChoiceRow& row)
+QVariantMap toVariantMap(const core_importing::DraftChoiceRow& row)
 {
     QVariantMap map;
     map.insert(QStringLiteral("id"), QString::fromStdString(row.id));
@@ -81,7 +83,7 @@ QVariantMap toVariantMap(const core::importing::DraftChoiceRow& row)
     return map;
 }
 
-QVariantList toVariantList(const std::vector<core::importing::DraftChoiceRow>& rows)
+QVariantList toVariantList(const std::vector<core_importing::DraftChoiceRow>& rows)
 {
     QVariantList out;
     out.reserve(static_cast<int>(rows.size()));
@@ -91,7 +93,7 @@ QVariantList toVariantList(const std::vector<core::importing::DraftChoiceRow>& r
     return out;
 }
 
-QVariantMap toViewState(const core::importing::DraftDerivedState& derived)
+QVariantMap toViewState(const core_importing::DraftDerivedState& derived)
 {
     QVariantMap map;
     map.insert(QStringLiteral("proofSource"), QString::fromStdString(derived.proofSource));
@@ -133,7 +135,7 @@ QString rowDisplayText(const QVariantMap& row)
     return row.value(QStringLiteral("id")).toString();
 }
 
-QString choiceDisplayText(const core::importing::DraftChoiceRow& row)
+QString choiceDisplayText(const core_importing::DraftChoiceRow& row)
 {
     if (!row.display.empty()) {
         return QString::fromStdString(row.display);
@@ -149,8 +151,13 @@ QString choiceDisplayText(const core::importing::DraftChoiceRow& row)
 
 bool rowMatchesText(const QVariantMap& row, const QString& text)
 {
+    const auto normalizedText = text.trimmed().simplified();
+    if (normalizedText.isEmpty()) {
+        return false;
+    }
+
     const auto match = [&](const QString& value) {
-        return core::importing::matchesDraftText(ui::strings::toStdString(value), ui::strings::toStdString(text));
+        return value.trimmed().simplified().compare(normalizedText, Qt::CaseInsensitive) == 0;
     };
 
     if (match(row.value(QStringLiteral("name")).toString())) {
@@ -171,8 +178,8 @@ bool rowMatchesText(const QVariantMap& row, const QString& text)
     return false;
 }
 
-const core::importing::DraftChoiceRow* findChoiceRowById(const std::vector<core::importing::DraftChoiceRow>& rows,
-                                                         const std::string& id)
+const core_importing::DraftChoiceRow* findChoiceRowById(const std::vector<core_importing::DraftChoiceRow>& rows,
+                                                        const std::string& id)
 {
     if (id.empty()) {
         return nullptr;
@@ -187,5 +194,4 @@ const core::importing::DraftChoiceRow* findChoiceRowById(const std::vector<core:
 }
 
 } // namespace ui::importing
-
 

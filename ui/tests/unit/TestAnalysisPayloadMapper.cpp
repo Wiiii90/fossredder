@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 
-#include "core/models/AnalysisResult.h"
+#include "core/application/analysis/RunAnalysisResult.h"
 #include "ui/analysis/AnalysisPayloadMapper.h"
 #include "ui/payload/PayloadKeys.h"
 #include "ui/payload/PayloadMapper.h"
@@ -64,5 +64,4 @@ TEST(AnalysisPayloadMapperTests, ToPayloadMapsNestedAnalysisResultFields)
 }
 
 } // namespace
-
 

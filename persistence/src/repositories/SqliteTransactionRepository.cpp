@@ -5,7 +5,7 @@
 
 #include "persistence/repositories/SqliteTransactionRepository.h"
 #include "persistence/StmtGuard.h"
-#include "core/models/Transaction.h"
+#include "core/domain/entities/Transaction.h"
 #include "persistence/SqliteDb.h"
 #include "persistence/SqliteTransaction.h"
 #include <sqlite3.h>

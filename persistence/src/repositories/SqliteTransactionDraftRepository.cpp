@@ -5,7 +5,7 @@
 
 #include "persistence/repositories/SqliteTransactionDraftRepository.h"
 
-#include "core/models/TransactionDraft.h"
+#include "core/application/import/draft/TransactionDraft.h"
 #include "persistence/SqliteDb.h"
 #include "persistence/StmtGuard.h"
 #include "persistence/Uuid.h"
@@ -300,16 +300,5 @@ void SqliteTransactionDraftRepository::clearTransactionDrafts()
     persistence::StmtGuard deleteDrafts(db, "DELETE FROM transaction_drafts;");
     if (deleteDrafts) {
         deleteDrafts.step();
-    }
-}
-
-void ITransactionDraftRepository::saveTransactionDrafts(const std::vector<std::shared_ptr<core::domain::TransactionDraft>>& drafts)
-{
-    clearTransactionDrafts();
-    for (const auto& draft : drafts) {
-        if (!draft) {
-            continue;
-        }
-        upsertTransactionDraft(draft);
     }
 }

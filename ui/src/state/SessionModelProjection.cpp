@@ -7,7 +7,7 @@
 
 #include <utility>
 
-#include "ui/state/AppStateClone.h"
+#include "ui/state/WorkspaceClone.h"
 #include "ui/state/SessionModels.h"
 
 namespace ui {
@@ -24,9 +24,9 @@ QHash<QString, QString> buildContractTypeIndex(const ContractList& contracts)
     return contractTypes;
 }
 
-void projectSessionModelsFromState(SessionModels& models, const core::domain::AppState& state)
+void projectSessionModelsFromState(SessionModels& models, const core::domain::WorkspaceState& state)
 {
-    core::domain::AppState clone = cloneAppState(state);
+    core::domain::WorkspaceState clone = cloneWorkspaceState(state);
 
     models.actors().setActors(std::move(clone.actors));
     models.properties().setProperties(std::move(clone.properties));

@@ -12,8 +12,8 @@
 
 #include <memory>
 
-#include "core/models/AppState.h"
-#include "core/models/DeletionImpact.h"
+#include "core/application/workspace/WorkspaceState.h"
+#include "core/application/storage/DeletionImpact.h"
 #include "ui/models/ActorList.h"
 #include "ui/models/AnalysisList.h"
 #include "ui/models/AnnualList.h"
@@ -80,7 +80,7 @@ public:
     AnnualList* annuals() noexcept;
 
     /** @brief Loads the UI session from the supplied application state snapshot. */
-    void loadFromState(const core::domain::AppState& state);
+    void loadFromState(const core::domain::WorkspaceState& state);
 
     QString selectedActorId() const;
     QString selectedPropertyId() const;

@@ -16,7 +16,8 @@
 
 #include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobTypes.h"
-#include "core/models/TransactionDraft.h"
+#include "core/application/import/draft/TransactionDraft.h"
+#include "core/ports/presenters/IImportPresenter.h"
 
 namespace core::domain { class Statement; }
 namespace ui { class ImportController; }
@@ -47,6 +48,7 @@ public:
     std::shared_ptr<core::domain::Statement> statementResult() const;
     std::vector<core::domain::TransactionDraft> statementTransactions() const;
     std::map<std::string, std::vector<uint8_t>> takeArtifacts();
+    core::ports::presenters::ImportPresentation present() const;
 
 private:
     std::shared_ptr<core::jobs::JobSystem> jobSystem_;

@@ -5,13 +5,11 @@
 
 #include "ui/import/ImportSuggestionService.h"
 
-#include "core/import/DraftLinking.h"
-
 namespace ui::importing {
 
 namespace {
 
-ImportSuggestion toUiSuggestion(const core::importing::DraftSuggestionCandidate& suggestion)
+ImportSuggestion toUiSuggestion(const core::application::importing::DraftSuggestionCandidate& suggestion)
 {
     ImportSuggestion out;
     out.entityId = QString::fromStdString(suggestion.entityId);
@@ -29,7 +27,7 @@ ImportSuggestion toUiSuggestion(const core::importing::DraftSuggestionCandidate&
     return out;
 }
 
-ImportSuggestionBucket toUiBucket(const core::importing::DraftSuggestionBucket& bucket)
+ImportSuggestionBucket toUiBucket(const core::application::importing::DraftSuggestionBucket& bucket)
 {
     ImportSuggestionBucket out;
     out.sourceText = QString::fromStdString(bucket.sourceText);
@@ -42,10 +40,8 @@ ImportSuggestionBucket toUiBucket(const core::importing::DraftSuggestionBucket& 
 
 } // namespace
 
-ImportDraftSuggestions buildImportSuggestions(const core::domain::AppState& state,
-                                              const core::domain::TransactionDraft& transaction)
+ImportDraftSuggestions buildImportSuggestions(const core::ports::services::ImportMatcherPresentation& coreSuggestions)
 {
-    const auto coreSuggestions = core::importing::buildImportSuggestions(state, transaction);
     ImportDraftSuggestions suggestions;
     suggestions.actor = toUiBucket(coreSuggestions.actor);
     suggestions.property = toUiBucket(coreSuggestions.property);

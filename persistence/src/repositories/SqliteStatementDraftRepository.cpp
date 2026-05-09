@@ -5,7 +5,7 @@
 
 #include "persistence/repositories/SqliteStatementDraftRepository.h"
 
-#include "core/models/StatementDraft.h"
+#include "core/application/import/draft/StatementDraft.h"
 #include "persistence/SqliteDb.h"
 #include "persistence/StmtGuard.h"
 #include "persistence/Uuid.h"
@@ -213,26 +213,4 @@ void SqliteStatementDraftRepository::clearStatementDrafts()
         return;
     }
     stmt.step();
-}
-
-void IStatementDraftRepository::saveStatementDraft(const std::shared_ptr<core::domain::StatementDraft>& draft)
-{
-    clearStatementDrafts();
-    if (draft) {
-        upsertStatementDraft(draft);
-    }
-}
-
-std::optional<std::shared_ptr<core::domain::StatementDraft>> IStatementDraftRepository::getStatementDraft() const
-{
-    const auto drafts = getStatementDrafts();
-    if (drafts.empty()) {
-        return std::nullopt;
-    }
-    return drafts.front();
-}
-
-void IStatementDraftRepository::clearStatementDraft()
-{
-    clearStatementDrafts();
 }

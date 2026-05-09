@@ -1,18 +1,13 @@
 #pragma once
 
-#include "api/tesseract/TesseractRequest.h"
-#include "api/tesseract/TesseractResponse.h"
+#include "api/tesseract/ITesseractAdapter.h"
+#include "core/ports/services/ITesseractService.h"
 #include <memory>
 
 namespace api::tesseract {
 
-class ITesseractService {
-public:
-    virtual ~ITesseractService() = default;
+using ITesseractService = core::ports::services::ITesseractService;
 
-    virtual ExtractResult extract(const ExtractRequest& req) = 0;
-};
+std::shared_ptr<ITesseractService> createTesseractService(std::shared_ptr<ITesseractAdapter> adapter);
 
-std::shared_ptr<ITesseractService> createTesseractService(std::shared_ptr<class ITesseractAdapter> adapter);
-
-}
+} // namespace api::tesseract

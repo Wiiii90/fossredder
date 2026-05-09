@@ -5,7 +5,7 @@
 
 #include "persistence/repositories/SqliteActorRepository.h"
 #include "persistence/StmtGuard.h"
-#include "core/models/Actor.h"
+#include "core/domain/entities/Actor.h"
 #include "persistence/SqliteDb.h"
 #include <sqlite3.h>
 #include <algorithm>

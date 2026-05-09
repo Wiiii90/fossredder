@@ -5,8 +5,8 @@
 
 #include "ui/models/AnalysisList.h"
 
-#include "core/application/AnalysisRequestComposer.h"
-#include "core/constants/CoreDefaults.h"
+#include "core/application/analysis/ComposeAnalysisRequest.h"
+#include "core/constants/json.h"
 #include "ui/observability/Origins.h"
 #include "ui/payload/PayloadKeys.h"
 #include "ui/util/StringConversions.h"
@@ -23,7 +23,7 @@ namespace ui {
 QString AnalysisList::serializeAdjustmentsJson(const Analysis &analysis) {
   try {
     return QString::fromStdString(
-        core::application::AnalysisRequestComposer::serializeAdjustments(analysis.adjustments));
+        core::application::analysis::ComposeAnalysisRequest::serializeAdjustments(analysis.adjustments));
   } catch (...) {
     core::errors::reportException(
         core::errors::ErrorSeverity::Warning,
@@ -164,7 +164,7 @@ void AnalysisList::setAdjustmentsById(const QString &id, const QString &adjustme
 
   a->adjustments.clear();
   try {
-    const auto parsed = core::application::AnalysisRequestComposer::parseAdjustmentsJson(adjustmentsJson.toStdString());
+    const auto parsed = core::application::analysis::ComposeAnalysisRequest::parseAdjustmentsJson(adjustmentsJson.toStdString());
     if (!parsed.valid) {
       core::errors::report(
           core::errors::ErrorSeverity::Warning,

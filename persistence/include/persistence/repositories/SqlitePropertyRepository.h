@@ -6,13 +6,13 @@
 #pragma once
 
 #include "core/errors/IErrorReporter.h"
-#include "core/repositories/IPropertyRepository.h"
+#include "core/ports/repositories/IPropertyRepository.h"
 #include <memory>
 #include <string>
 
 class SqliteDb;
 
-class SqlitePropertyRepository : public IPropertyRepository {
+class SqlitePropertyRepository : public core::ports::repositories::IPropertyRepository {
 public:
     /**
      * @brief Create a property repository for the database at the given path.

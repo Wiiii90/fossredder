@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "core/repositories/IAnnualRepository.h"
+#include "core/ports/repositories/IAnnualRepository.h"
 #include "persistence/ISqlConnectionProvider.h"
 
 #include <memory>
@@ -13,7 +13,7 @@
 
 class SqliteDb;
 
-class SqliteAnnualRepository : public IAnnualRepository, public ISqlConnectionProvider {
+class SqliteAnnualRepository : public core::ports::repositories::IAnnualRepository, public ISqlConnectionProvider {
 public:
     /**
      * @brief Create an annual repository for the database at the given path.

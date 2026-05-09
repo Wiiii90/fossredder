@@ -23,7 +23,7 @@ set(UI_SOURCES
     src/controllers/StorageController.cpp
     src/controllers/TransactionController.cpp
     src/dialogs/FileDialogs.cpp
-    src/export/AppStateSnapshot.cpp
+    src/export/WorkspaceSnapshot.cpp
     src/export/ExportRunner.cpp
     src/import/DraftViewMapper.cpp
     src/import/ImportDraftMapper.cpp
@@ -84,7 +84,7 @@ set(UI_HEADERS
     include/ui/controllers/StorageController.h
     include/ui/controllers/TransactionController.h
     include/ui/dialogs/FileDialogs.h
-    include/ui/export/AppStateSnapshot.h
+    include/ui/export/WorkspaceSnapshot.h
     include/ui/export/ExportRunner.h
     include/ui/import/DraftViewMapper.h
     include/ui/import/ImportDraftMapper.h
@@ -114,7 +114,7 @@ set(UI_HEADERS
     include/ui/payload/PayloadMapper.h
     include/ui/state/FilterState.h
     include/ui/state/NavigationState.h
-    include/ui/state/AppStateClone.h
+    include/ui/state/WorkspaceClone.h
     include/ui/state/SessionSelection.h
     include/ui/state/SelectionState.h
     include/ui/state/SelectionStateSync.h

@@ -11,14 +11,14 @@
 #include <memory>
 #include <vector>
 
-#include "core/models/Alias.h"
-#include "core/models/Actor.h"
-#include "core/models/Analysis.h"
-#include "core/models/Annual.h"
-#include "core/models/Contract.h"
-#include "core/models/Property.h"
-#include "core/models/Statement.h"
-#include "core/models/Transaction.h"
+#include "core/domain/values/Alias.h"
+#include "core/domain/entities/Actor.h"
+#include "core/domain/entities/Analysis.h"
+#include "core/domain/entities/Annual.h"
+#include "core/domain/entities/Contract.h"
+#include "core/domain/entities/Property.h"
+#include "core/domain/entities/Statement.h"
+#include "core/domain/entities/Transaction.h"
 
 #include "ui/payload/PayloadKeys.h"
 #include "ui/payload/PayloadMapper.h"

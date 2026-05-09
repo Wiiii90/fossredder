@@ -12,7 +12,7 @@
 #include <QVariantMap>
 #include <qqmlintegration.h>
 
-namespace core::application { class AppStateFacade; }
+namespace core::application { class WorkspaceFacade; }
 
 namespace ui {
 
@@ -28,7 +28,7 @@ public:
      *  @param core Core application facade pointer
      *  @param parent QObject parent
      */
-    explicit AnnualController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+    explicit AnnualController(core::application::WorkspaceFacade* core, QObject* parent = nullptr);
 
     /** @brief Return a single annual aggregate by identifier.
      *  @param id Annual identifier
@@ -77,7 +77,7 @@ public:
     Q_INVOKABLE void deleteAnnual(const QString& id);
 
 private:
-    core::application::AppStateFacade* core_ = nullptr;
+    core::application::WorkspaceFacade* core_ = nullptr;
 };
 
 } // namespace ui

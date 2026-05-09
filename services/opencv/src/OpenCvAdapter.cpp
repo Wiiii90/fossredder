@@ -1,7 +1,7 @@
 #include "opencv/pch.h"
 #include "api/opencv/IOpenCvAdapter.h"
 #include "api/opencv/OpenCvRequest.h"
-#include "api/opencv/OpenCvResponse.h"
+#include "api/opencv/OpenCvResult.h"
 #include "opencv/DenoiseEngine.h"
 #include "opencv/MaskEngine.h"
 #include "opencv/DetectEngine.h"

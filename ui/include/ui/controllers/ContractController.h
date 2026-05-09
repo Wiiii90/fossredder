@@ -12,7 +12,7 @@
 #include <QVariantMap>
 #include <qqmlintegration.h>
 
-namespace core::application { class AppStateFacade; }
+namespace core::application { class WorkspaceFacade; }
 
 namespace ui {
 
@@ -28,7 +28,7 @@ public:
      *  @param core Core application facade pointer
      *  @param parent QObject parent
      */
-    explicit ContractController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+    explicit ContractController(core::application::WorkspaceFacade* core, QObject* parent = nullptr);
 
     /** @brief Return a single contract by identifier.
      *  @param id Contract identifier
@@ -83,7 +83,7 @@ public:
     Q_INVOKABLE void deleteContract(const QString& id);
 
 private:
-    core::application::AppStateFacade* core_ = nullptr;
+    core::application::WorkspaceFacade* core_ = nullptr;
 };
 
 } // namespace ui

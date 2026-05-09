@@ -12,7 +12,7 @@
 #include <QVariantMap>
 #include <qqmlintegration.h>
 
-namespace core::application { class AppStateFacade; }
+namespace core::application { class WorkspaceFacade; }
 
 namespace ui {
 
@@ -28,7 +28,7 @@ public:
      *  @param core Core application facade pointer
      *  @param parent QObject parent
      */
-    explicit ActorController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+    explicit ActorController(core::application::WorkspaceFacade* core, QObject* parent = nullptr);
 
     /** @brief Return a single actor by identifier. */
     Q_INVOKABLE QVariantMap actor(const QString& id) const;
@@ -49,7 +49,7 @@ public:
     Q_INVOKABLE void deleteActor(const QString& id);
 
 private:
-    core::application::AppStateFacade* core_ = nullptr;
+    core::application::WorkspaceFacade* core_ = nullptr;
 };
 
 } // namespace ui

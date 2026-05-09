@@ -15,8 +15,10 @@
 #include <QStringList>
 #include <qqmlintegration.h>
 
-namespace core::application { class AppStateFacade; class AnalysisService; }
-namespace core::domain { struct AppState; }
+namespace core::application { class WorkspaceFacade; }
+namespace core::application::analysis { class RunAnalysis; }
+namespace core::domain { struct WorkspaceState; }
+namespace core::ports::presenters { class IAnalysisPresenter; }
 
 namespace ui {
 
@@ -28,12 +30,13 @@ class AnalysisController : public QObject {
     QML_NAMED_ELEMENT(AnalysisController)
     QML_UNCREATABLE("AnalysisController is provided by the application context")
 public:
-    using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::AppState>()>;
+    using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::WorkspaceState>()>;
 
     /** @brief Create an analysis controller with access to the facade and analysis service. */
-    explicit AnalysisController(core::application::AppStateFacade* core,
+    explicit AnalysisController(core::application::WorkspaceFacade* core,
                                 StateSnapshotProvider stateSnapshotProvider,
-                                std::shared_ptr<core::application::AnalysisService> analysisService,
+                                std::shared_ptr<core::application::analysis::RunAnalysis> analysisService,
+                                std::shared_ptr<core::ports::presenters::IAnalysisPresenter> analysisPresenter = {},
                                 QObject* parent = nullptr);
 
     /** @brief Return a single analysis by identifier.
@@ -143,11 +146,12 @@ public:
     Q_INVOKABLE QStringList contractTypes() const;
 
 private:
-    std::shared_ptr<const core::domain::AppState> stateSnapshot() const;
+    std::shared_ptr<const core::domain::WorkspaceState> stateSnapshot() const;
 
-    core::application::AppStateFacade* core_ = nullptr;
+    core::application::WorkspaceFacade* core_ = nullptr;
     StateSnapshotProvider stateSnapshotProvider_;
-    std::shared_ptr<core::application::AnalysisService> analysisService_;
+    std::shared_ptr<core::application::analysis::RunAnalysis> analysisService_;
+    std::shared_ptr<core::ports::presenters::IAnalysisPresenter> analysisPresenter_;
 };
 
 } // namespace ui

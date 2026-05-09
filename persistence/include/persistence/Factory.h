@@ -8,7 +8,7 @@
 #include <memory>
 #include <string>
 
-namespace core::storage {
+namespace core::ports::storage {
 class IRegistry;
 }
 
@@ -26,5 +26,5 @@ std::shared_ptr<SqliteDb> createSqliteDb(const std::string& dbPath);
  * @param dbPath SQLite database path.
  * @return Shared registry implementation.
  */
-std::shared_ptr<core::storage::IRegistry> createSqliteRegistry(const std::string& dbPath);
+std::shared_ptr<core::ports::storage::IRegistry> createSqliteRegistry(const std::string& dbPath);
 

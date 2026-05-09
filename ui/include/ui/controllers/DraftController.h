@@ -10,10 +10,12 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <qqmlintegration.h>
+#include <memory>
 
 #include "ui/models/StatementDraft.h"
 
-namespace core::application { class AppStateFacade; }
+namespace core::application { class WorkspaceFacade; }
+namespace core::ports::services { class IImportMatcherService; }
 
 namespace ui {
 
@@ -29,7 +31,9 @@ public:
      *  @param core Core application facade pointer
      *  @param parent QObject parent
      */
-    explicit DraftController(core::application::AppStateFacade* core, QObject* parent = nullptr);
+    explicit DraftController(core::application::WorkspaceFacade* core,
+                             std::shared_ptr<core::ports::services::IImportMatcherService> matcherService = {},
+                             QObject* parent = nullptr);
 
     /** @brief Finalize the current statement draft into persistent core entities.
      *  @param draft Pointer to the UI StatementDraft
@@ -83,7 +87,8 @@ public:
     Q_INVOKABLE void updateCurrentAmount(StatementDraft* draft, const QString& text);
 
 private:
-    core::application::AppStateFacade* core_ = nullptr;
+    core::application::WorkspaceFacade* core_ = nullptr;
+    std::shared_ptr<core::ports::services::IImportMatcherService> matcherService_;
 };
 
 } // namespace ui

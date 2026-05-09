@@ -8,7 +8,7 @@
 #include <string>
 
 #include "ui/config/Defaults.h"
-#include "ui/export/AppStateSnapshot.h"
+#include "ui/export/WorkspaceSnapshot.h"
 #include "ui/observability/Origins.h"
 #include "ui/observability/Trace.h"
 #include "ui/text/Text.h"
@@ -18,7 +18,7 @@ namespace ui::exporting {
 ExportRunner::ExportRunner(ExecuteExportFn execute)
     : execute_(std::move(execute)) {}
 
-ExportResult ExportRunner::run(std::shared_ptr<const AppState> state,
+ExportResult ExportRunner::run(std::shared_ptr<const WorkspaceState> state,
                                const ExportRequest &request) const {
   if (!execute_) {
     const QString message = ui::text::exportRunner::runnerUnavailable();
@@ -29,8 +29,11 @@ ExportResult ExportRunner::run(std::shared_ptr<const AppState> state,
         message.toStdString());
     return {
         false,
-        QString::fromLatin1(ui::config::errorCodes::kExportRunnerUnavailable),
-        message};
+        core::application::exporting::ExportStatus::InternalError,
+        static_cast<core::application::exporting::ExportFormat>(request.format),
+        request.path.toStdString(),
+        QString::fromLatin1(ui::config::errorCodes::kExportRunnerUnavailable).toStdString(),
+        message.toStdString()};
   }
 
   if (!state) {
@@ -42,16 +45,19 @@ ExportResult ExportRunner::run(std::shared_ptr<const AppState> state,
         message.toStdString());
     return {
         false,
-        QString::fromLatin1(ui::config::errorCodes::kExportRunnerUnavailable),
-        message};
+        core::application::exporting::ExportStatus::InternalError,
+        static_cast<core::application::exporting::ExportFormat>(request.format),
+        request.path.toStdString(),
+        QString::fromLatin1(ui::config::errorCodes::kExportRunnerUnavailable).toStdString(),
+        message.toStdString()};
   }
 
   return execute_(std::move(state), request);
 }
 
-ExportResult ExportRunner::run(const AppState &state,
+ExportResult ExportRunner::run(const WorkspaceState &state,
                                const ExportRequest &request) const {
-  return run(createSnapshot(state), request);
+  return run(createWorkspaceSnapshot(state), request);
 }
 
 } // namespace ui::exporting

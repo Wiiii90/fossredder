@@ -13,15 +13,15 @@
 #include <chrono>
 #include <mutex>
 
-#include "core/models/Actor.h"
-#include "core/models/Analysis.h"
-#include "core/models/AnalysisResult.h"
-#include "core/models/Annual.h"
-#include "core/models/AppState.h"
-#include "core/models/Contract.h"
-#include "core/models/Property.h"
-#include "core/models/Statement.h"
-#include "core/models/Transaction.h"
+#include "core/domain/entities/Actor.h"
+#include "core/domain/entities/Analysis.h"
+#include "core/application/analysis/RunAnalysisResult.h"
+#include "core/domain/entities/Annual.h"
+#include "core/application/workspace/AppState.h"
+#include "core/domain/entities/Contract.h"
+#include "core/domain/entities/Property.h"
+#include "core/domain/entities/Statement.h"
+#include "core/domain/entities/Transaction.h"
 
 using core::domain::Actor;
 using core::domain::Analysis;

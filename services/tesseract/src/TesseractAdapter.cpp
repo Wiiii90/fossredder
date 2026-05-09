@@ -1,7 +1,7 @@
 #include "tesseract/pch.h"
 #include "api/tesseract/ITesseractAdapter.h"
 #include "api/tesseract/TesseractRequest.h"
-#include "api/tesseract/TesseractResponse.h"
+#include "api/tesseract/TesseractResult.h"
 #include "api/tesseract/Types.h"
 #include "tesseract/TesseractEngine.h"
 #include "debug/IDebugger.h"

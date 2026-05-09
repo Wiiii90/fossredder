@@ -1,7 +1,7 @@
 #pragma once
 
 #include "api/opencv/OpenCvRequest.h"
-#include "api/opencv/OpenCvResponse.h"
+#include "api/opencv/OpenCvResult.h"
 #include <memory>
 
 namespace api::opencv {
@@ -17,4 +17,3 @@ public:
 };
 
 }
-

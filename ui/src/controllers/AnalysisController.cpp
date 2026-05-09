@@ -9,18 +9,18 @@
 
 #include <QSet>
 
-#include "core/application/AnalysisRequestComposer.h"
+#include "core/application/analysis/ComposeAnalysisRequest.h"
 
-#include "core/application/AnalysisService.h"
-#include "core/application/AppStateFacade.h"
-#include "core/analysis/Filter.h"
+#include "core/application/analysis/RunAnalysis.h"
+#include "core/application/workspace/WorkspaceFacade.h"
+#include "core/application/analysis/Filter.h"
 #include "core/errors/ErrorCodes.h"
-#include "core/models/AppState.h"
-#include "core/models/Actor.h"
-#include "core/models/Contract.h"
-#include "core/models/Property.h"
-#include "core/models/Statement.h"
-#include "core/models/Transaction.h"
+#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/entities/Actor.h"
+#include "core/domain/entities/Contract.h"
+#include "core/domain/entities/Property.h"
+#include "core/domain/entities/Statement.h"
+#include "core/domain/entities/Transaction.h"
 #include "ui/analysis/AnalysisInputMapper.h"
 #include "ui/analysis/AnalysisPayloadMapper.h"
 #include "ui/observability/Origins.h"
@@ -63,14 +63,16 @@ QVariantMap findAnalysisPayload(const std::vector<std::shared_ptr<core::domain::
 } // namespace
 
 AnalysisController::AnalysisController(
-    core::application::AppStateFacade* core,
+    core::application::WorkspaceFacade* core,
     StateSnapshotProvider stateSnapshotProvider,
-    std::shared_ptr<core::application::AnalysisService> analysisService,
+    std::shared_ptr<core::application::analysis::RunAnalysis> analysisService,
+    std::shared_ptr<core::ports::presenters::IAnalysisPresenter> analysisPresenter,
     QObject* parent)
     : QObject(parent)
     , core_(core)
     , stateSnapshotProvider_(std::move(stateSnapshotProvider))
     , analysisService_(std::move(analysisService))
+    , analysisPresenter_(std::move(analysisPresenter))
 {
 }
 
@@ -150,7 +152,7 @@ QString AnalysisController::analysisConfigJson(const QString& type,
                                               const QStringList& contractTypes,
                                               double taxPercent) const
 {
-    return QString::fromStdString(core::application::AnalysisRequestComposer::buildConfigJson(
+    return QString::fromStdString(core::application::analysis::ComposeAnalysisRequest::buildConfigJson(
         strings::toStdString(type),
         strings::toStdString(plotType),
         strings::toStdString(plotMeasure),
@@ -167,7 +169,7 @@ QString AnalysisController::analysisFilterSpec(const QString& dateMode,
                                                const QStringList& contractTypes,
                                                const QString& allocatableMode) const
 {
-    return QString::fromStdString(core::application::AnalysisRequestComposer::buildFilterSpec(
+    return QString::fromStdString(core::application::analysis::ComposeAnalysisRequest::buildFilterSpec(
         strings::toStdString(dateMode),
         strings::toStdString(year),
         strings::toStdString(dateFrom),
@@ -181,7 +183,7 @@ QString AnalysisController::analysisAdjustmentsJson(const QVariantList& transact
                                                     const QVariantList& selectedTransactionIds,
                                                     double taxPercent) const
 {
-    return QString::fromStdString(core::application::AnalysisRequestComposer::buildTaxAdjustmentsJson(
+    return QString::fromStdString(core::application::analysis::ComposeAnalysisRequest::buildTaxAdjustmentsJson(
         ui::analysis::input::toCoreTransactions(transactions),
         ui::analysis::input::toSelectedTransactionIds(selectedTransactionIds),
         taxPercent));
@@ -207,10 +209,11 @@ QVariantMap AnalysisController::computeAnalysis(const QString& analysisId,
             *snapshot,
             strings::toStdString(analysisId),
             strings::toStdString(filterSpec));
-        if (!result.found) {
+        const auto presented = analysisPresenter_ ? analysisPresenter_->present(result) : result;
+        if (!presented.found) {
             return out;
         }
-        return ui::analysis::toPayload(result);
+        return ui::analysis::toPayload(presented);
     } catch (...) {
         ui::util::guard::reportException(
             observability::origins::controller::analysis::kCompute);
@@ -326,10 +329,10 @@ QVariantMap AnalysisController::previewTransactions(const QString& filterSpec) c
     return out;
 }
 
-std::shared_ptr<const AppState> AnalysisController::stateSnapshot() const
+std::shared_ptr<const core::domain::WorkspaceState> AnalysisController::stateSnapshot() const
 {
     return stateSnapshotProvider_ ? stateSnapshotProvider_()
-                                  : std::shared_ptr<const AppState>{};
+                                  : std::shared_ptr<const core::domain::WorkspaceState>{};
 }
 
 } // namespace ui

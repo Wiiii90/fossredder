@@ -5,7 +5,7 @@
 
 #include "persistence/repositories/SqliteStatementRepository.h"
 #include "persistence/StmtGuard.h"
-#include "core/models/Statement.h"
+#include "core/domain/entities/Statement.h"
 #include "persistence/SqliteDb.h"
 #include <sqlite3.h>
 #include <stdexcept>
