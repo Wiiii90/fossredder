@@ -10,7 +10,7 @@
 #include <filesystem>
 
 namespace opencv {
-namespace ports = core::ports::image_processing::opencv;
+namespace ports = core::ports::image_processing;
 
 namespace {
 cv::Mat applyDenoise(const cv::Mat& img, ports::DenoiseRequest::Method method) {

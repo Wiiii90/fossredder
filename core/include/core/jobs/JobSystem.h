@@ -90,7 +90,7 @@ public:
      * @param id Job identifier.
      * @return Imported transaction drafts.
      */
-    std::vector<core::domain::TransactionDraft> statementTransactions(const JobId& id) const;
+    std::vector<core::application::importing::draft::TransactionDraft> statementTransactions(const JobId& id) const;
 
     /**
      * @brief Retrieve and clear job artifacts.

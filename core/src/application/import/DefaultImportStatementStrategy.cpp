@@ -6,14 +6,14 @@
 #include "core/pch.h"
 
 #include "ImportStatementStrategy.h"
-#include "core/ports/pdf-rendering/PopplerRequest.h"
-#include "core/ports/pdf-rendering/PopplerResult.h"
+#include "core/ports/pdf-rendering/PdfRenderingRequest.h"
+#include "core/ports/pdf-rendering/PdfRenderingResult.h"
 #include "core/ports/pdf-rendering/IPdfRenderer.h"
-#include "core/ports/image-processing/OpenCvRequest.h"
-#include "core/ports/image-processing/OpenCvResult.h"
+#include "core/ports/image-processing/ImageProcessingRequest.h"
+#include "core/ports/image-processing/ImageProcessingResult.h"
 #include "core/ports/image-processing/IImageProcessor.h"
-#include "core/ports/text-recognition/TesseractRequest.h"
-#include "core/ports/text-recognition/TesseractResult.h"
+#include "core/ports/text-recognition/TextRecognitionRequest.h"
+#include "core/ports/text-recognition/TextRecognitionResult.h"
 #include "core/ports/text-recognition/ITextRecognizer.h"
 #include "core/constants/import.h"
 #include "core/errors/ErrorReporting.h"
@@ -31,9 +31,9 @@ using core::application::importing::internal::PageWork;
 using core::application::importing::internal::finalizeParsedPages;
 
 namespace core::application::importing {
-namespace poppler = core::ports::pdf_rendering::poppler;
-namespace opencv = core::ports::image_processing::opencv;
-namespace tesseract = core::ports::text_recognition::tesseract;
+namespace poppler = core::ports::pdf_rendering;
+namespace opencv = core::ports::image_processing;
+namespace tesseract = core::ports::text_recognition;
 
 class DefaultImportStatementStrategy : public IImportStatementStrategy {
 public:
@@ -61,7 +61,6 @@ public:
 
         report(core::constants::importing::kProgressPreparing, std::string(core::constants::importing::kProgressPreparingMessage));
 
-        Statement stmt;
         std::vector<core::application::importing::draft::TransactionDraft> all;
 
         const auto renderRequest = core::application::importing::makeRenderRequest(req);
@@ -119,7 +118,7 @@ public:
         timings.finalizeSec = std::chrono::duration<double>(core::application::importing::ImportClock::now() - finalizeStart).count();
 
         if (!all.empty()) {
-            out.data = std::make_shared<Statement>(std::move(stmt));
+            out.data = std::make_shared<Statement>();
             out.transactions = std::move(all);
         }
 

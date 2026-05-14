@@ -29,38 +29,31 @@ struct AliasStats {
     std::string updatedAt;
 };
 
-std::string aliasValue(const core::domain::AliasUsage& usage)
+core::domain::Alias makeAlias(const std::string& alias,
+                              int hitCount,
+                              const std::string& createdAt,
+                              const std::string& updatedAt,
+                              const std::string& lastUsedAt)
 {
-    return usage.alias.value;
+    core::domain::Alias value;
+    value.setValue(alias);
+    value.setSource(alias);
+    value.setHitCount(hitCount);
+    value.setCreatedAt(createdAt);
+    value.setUpdatedAt(updatedAt);
+    value.setLastUsedAt(lastUsedAt);
+    return value;
 }
 
-core::domain::AliasUsage makeAliasUsage(const std::string& alias,
-                                       int hitCount,
-                                       const std::string& createdAt,
-                                       const std::string& updatedAt,
-                                       const std::string& lastUsedAt)
+std::vector<core::domain::Alias> collectAliases(const core::domain::Actor& actor)
 {
-    core::domain::AliasUsage usage;
-    usage.alias.value = alias;
-    usage.alias.source = alias;
-    usage.alias.createdAt = createdAt;
-    usage.alias.updatedAt = updatedAt;
-    usage.hitCount = hitCount;
-    usage.createdAt = createdAt;
-    usage.updatedAt = updatedAt;
-    usage.lastUsedAt = lastUsedAt;
-    return usage;
-}
-
-std::vector<core::domain::AliasUsage> collectAliasUsage(const core::domain::Actor& actor)
-{
-    if (!actor.aliasUsage.empty()) return actor.aliasUsage;
-
-    std::vector<core::domain::AliasUsage> out;
-    out.reserve(actor.aliases.size());
-    for (const auto& alias : actor.aliases) {
-        if (alias.value.empty()) continue;
-        out.push_back(makeAliasUsage(alias.value, 1, alias.createdAt, alias.updatedAt, {}));
+    std::vector<core::domain::Alias> out;
+    out.reserve(actor.aliases().size());
+    for (const auto& alias : actor.aliases()) {
+        if (alias.value().empty()) continue;
+        auto value = alias;
+        if (value.hitCount() < 1) value.setHitCount(1);
+        out.push_back(std::move(value));
     }
     return out;
 }
@@ -89,20 +82,16 @@ void loadActorAliases(sqlite3* db, core::domain::Actor& actor)
     persistence::StmtGuard stmt(db, "SELECT alias, hit_count, created_at, updated_at, last_used_at FROM actor_aliases WHERE actor_id = ? ORDER BY hit_count DESC, last_used_at DESC, alias ASC;");
     if (!stmt) return;
 
-    stmt.bindText(1, actor.id);
+    stmt.bindText(1, actor.id());
+    std::vector<core::domain::Alias> aliases;
     while (stmt.step() == SQLITE_ROW) {
-        core::domain::AliasUsage usage;
-        usage.alias.value = stmt.columnText(0);
-        usage.alias.source = usage.alias.value;
-        usage.alias.createdAt = stmt.columnText(2);
-        usage.alias.updatedAt = stmt.columnText(3);
-        usage.hitCount = stmt.columnInt(1);
-        usage.createdAt = stmt.columnText(2);
-        usage.updatedAt = stmt.columnText(3);
-        usage.lastUsedAt = stmt.columnText(4);
-        actor.aliases.push_back(usage.alias);
-        actor.aliasUsage.push_back(std::move(usage));
+        aliases.push_back(makeAlias(stmt.columnText(0),
+                                    stmt.columnInt(1),
+                                    stmt.columnText(2),
+                                    stmt.columnText(3),
+                                    stmt.columnText(4)));
     }
+    actor.setAliases(std::move(aliases));
 }
 
 void deleteActorAliases(sqlite3* db, const std::string& actorId)
@@ -118,26 +107,26 @@ void replaceActorAliases(sqlite3* db,
                          const core::domain::Actor& actor,
                          const std::unordered_map<std::string, AliasStats>& existing)
 {
-    if (actor.id.empty()) return;
+    if (actor.id().empty()) return;
 
-    deleteActorAliases(db, actor.id);
+    deleteActorAliases(db, actor.id());
 
     persistence::StmtGuard stmt(db,
         "INSERT INTO actor_aliases (actor_id, alias, hit_count, created_at, updated_at, last_used_at) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP), COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP), COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP));");
     if (!stmt) return;
 
     std::unordered_set<std::string> seen;
-    for (const auto& usage : collectAliasUsage(actor)) {
-        if (usage.alias.value.empty() || !seen.insert(usage.alias.value).second) continue;
+    for (const auto& alias : collectAliases(actor)) {
+        if (alias.value().empty() || !seen.insert(alias.value()).second) continue;
 
-        const auto it = existing.find(usage.alias.value);
-        const int hitCount = it == existing.end() ? std::max(1, usage.hitCount) : std::max(1, it->second.hitCount);
-        const std::string createdAt = it == existing.end() || it->second.createdAt.empty() ? usage.createdAt : it->second.createdAt;
-        const std::string updatedAt = it == existing.end() || it->second.updatedAt.empty() ? usage.updatedAt : it->second.updatedAt;
-        const std::string lastUsedAt = it == existing.end() || it->second.lastUsedAt.empty() ? usage.lastUsedAt : it->second.lastUsedAt;
+        const auto it = existing.find(alias.value());
+        const int hitCount = it == existing.end() ? std::max(1, alias.hitCount()) : std::max(1, it->second.hitCount);
+        const std::string createdAt = it == existing.end() || it->second.createdAt.empty() ? alias.createdAt() : it->second.createdAt;
+        const std::string updatedAt = it == existing.end() || it->second.updatedAt.empty() ? alias.updatedAt() : it->second.updatedAt;
+        const std::string lastUsedAt = it == existing.end() || it->second.lastUsedAt.empty() ? alias.lastUsedAt() : it->second.lastUsedAt;
         stmt.reset();
-        stmt.bindText(1, actor.id);
-        stmt.bindText(2, usage.alias.value);
+        stmt.bindText(1, actor.id());
+        stmt.bindText(2, alias.value());
         stmt.bindInt(3, hitCount);
         stmt.bindText(4, createdAt);
         stmt.bindText(5, updatedAt);
@@ -167,7 +156,7 @@ SqliteActorRepository::~SqliteActorRepository() = default;
 
 void SqliteActorRepository::addActor(const std::shared_ptr<Actor>& actor)
 {
-    if (!actor || actor->id.empty()) {
+    if (!actor || actor->id().empty()) {
         return;
     }
 
@@ -177,10 +166,10 @@ void SqliteActorRepository::addActor(const std::shared_ptr<Actor>& actor)
         return;
     }
 
-    stmt.bindText(1, actor->id);
-    stmt.bindText(2, actor->name);
-    stmt.bindText(3, actor->createdAt);
-    stmt.bindText(4, actor->updatedAt);
+    stmt.bindText(1, actor->id());
+    stmt.bindText(2, actor->name());
+    stmt.bindText(3, actor->createdAt());
+    stmt.bindText(4, actor->updatedAt());
     if (stmt.step() == SQLITE_DONE) {
         replaceActorAliases(pimpl_->db->handle(), *actor, {});
     }
@@ -197,11 +186,10 @@ std::vector<std::shared_ptr<Actor>> SqliteActorRepository::getActors() const
 
     while (stmt.step() == SQLITE_ROW) {
         auto a = std::make_shared<Actor>();
-        a->id = stmt.columnText(0);
-        a->name = stmt.columnText(1);
-        a->createdAt = stmt.columnText(2);
-        a->updatedAt = stmt.columnText(3);
-        a->aliasUsage.clear();
+        a->setId(stmt.columnText(0));
+        a->rename(stmt.columnText(1));
+        a->setCreatedAt(stmt.columnText(2));
+        a->setUpdatedAt(stmt.columnText(3));
         loadActorAliases(pimpl_->db->handle(), *a);
         out.push_back(std::move(a));
     }
@@ -226,11 +214,10 @@ std::optional<std::shared_ptr<Actor>> SqliteActorRepository::getActorById(const 
     }
 
     auto a = std::make_shared<Actor>();
-    a->id = stmt.columnText(0);
-    a->name = stmt.columnText(1);
-    a->createdAt = stmt.columnText(2);
-    a->updatedAt = stmt.columnText(3);
-    a->aliasUsage.clear();
+    a->setId(stmt.columnText(0));
+    a->rename(stmt.columnText(1));
+    a->setCreatedAt(stmt.columnText(2));
+    a->setUpdatedAt(stmt.columnText(3));
     loadActorAliases(pimpl_->db->handle(), *a);
     return a;
 }
@@ -252,21 +239,21 @@ void SqliteActorRepository::removeActor(const std::string& id)
 
 void SqliteActorRepository::updateActor(const std::shared_ptr<Actor>& actor)
 {
-    if (!actor || actor->id.empty()) {
+    if (!actor || actor->id().empty()) {
         return;
     }
 
-    const auto existing = loadActorAliasStats(pimpl_->db->handle(), actor->id);
+    const auto existing = loadActorAliasStats(pimpl_->db->handle(), actor->id());
     persistence::StmtGuard stmt(pimpl_->db->handle(),
         "UPDATE actors SET name = ?, created_at = COALESCE(NULLIF(created_at, ''), ?), updated_at = ? WHERE id = ?;");
     if (!stmt) {
         return;
     }
 
-    stmt.bindText(1, actor->name);
-    stmt.bindText(2, actor->createdAt);
-    stmt.bindText(3, actor->updatedAt);
-    stmt.bindText(4, actor->id);
+    stmt.bindText(1, actor->name());
+    stmt.bindText(2, actor->createdAt());
+    stmt.bindText(3, actor->updatedAt());
+    stmt.bindText(4, actor->id());
     if (stmt.step() == SQLITE_DONE) {
         replaceActorAliases(pimpl_->db->handle(), *actor, existing);
     }
@@ -274,7 +261,7 @@ void SqliteActorRepository::updateActor(const std::shared_ptr<Actor>& actor)
 
 void SqliteActorRepository::upsertActor(const std::shared_ptr<Actor>& actor)
 {
-    if (!actor || actor->id.empty()) {
+    if (!actor || actor->id().empty()) {
         return;
     }
 

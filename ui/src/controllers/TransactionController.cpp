@@ -7,9 +7,11 @@
 
 #include <algorithm>
 
-#include "core/application/workspace/WorkspaceFacade.h"
+#include "core/ports/workspace/IWorkspaceReader.h"
+#include "core/ports/workspace/IWorkspaceWriter.h"
+#include "core/ports/workspace/WorkspaceCommands.h"
 #include "ui/observability/Origins.h"
-#include "ui/payload/EntityPayloadMapper.h"
+#include "ui/payload/PayloadMapper.h"
 #include "ui/state/StateFacadeProjection.h"
 #include "ui/util/CoreFacadeGuard.h"
 #include "ui/util/StringConversions.h"
@@ -34,29 +36,72 @@ Transaction::Status toTransactionStatus(int status)
 
 }
 
-TransactionController::TransactionController(core::application::WorkspaceFacade* core,
+TransactionController::TransactionController(core::ports::workspace::IWorkspaceWriter* core,
                                              QObject* parent)
     : QObject(parent)
     , core_(core)
+    , reader_(dynamic_cast<core::ports::workspace::IWorkspaceReader*>(core))
 {
 }
 
 QVariantMap TransactionController::transaction(const QString& id) const
 {
-    if (!core_) {
+    if (!reader_) {
         return {};
     }
 
-    const auto& items = core_->state().transactions;
+    const auto items = reader_->workspaceSnapshot().transactions;
     const auto it = std::find_if(items.begin(), items.end(), [&](const auto& item) {
-        return item && QString::fromStdString(item->id) == id;
+        return QString::fromStdString(item.id) == id;
     });
-    return it != items.end() && *it ? ui::payload::entity::toPayload(**it) : QVariantMap{};
+    if (it == items.end()) {
+        return {};
+    }
+
+    QVariantMap payload;
+    payload[QStringLiteral("id")] = QString::fromStdString(it->id);
+    payload[QStringLiteral("name")] = QString::fromStdString(it->name);
+    payload[QStringLiteral("bookingDate")] = QString::fromStdString(it->bookingDate);
+    payload[QStringLiteral("valuta")] = QString::fromStdString(it->valuta);
+    payload[QStringLiteral("amount")] = it->amount;
+    payload[QStringLiteral("status")] = static_cast<int>(it->status);
+    payload[QStringLiteral("contractId")] = QString::fromStdString(it->contractId);
+    payload[QStringLiteral("actorId")] = QString::fromStdString(it->actorId);
+    payload[QStringLiteral("statementId")] = QString::fromStdString(it->statementId);
+    payload[QStringLiteral("allocatable")] = it->allocatable;
+    payload[QStringLiteral("propertyIds")] = ui::payload::mapper::toVariantStringList(it->propertyIds);
+    payload[QStringLiteral("createdAt")] = QString::fromStdString(it->createdAt);
+    payload[QStringLiteral("updatedAt")] = QString::fromStdString(it->updatedAt);
+    return payload;
 }
 
 QVariantList TransactionController::transactions() const
 {
-    return core_ ? ui::payload::entity::toPayloadList(core_->state().transactions) : QVariantList{};
+    if (!reader_) {
+        return {};
+    }
+
+    QVariantList out;
+    const auto items = reader_->workspaceSnapshot().transactions;
+    out.reserve(static_cast<int>(items.size()));
+    for (const auto& item : items) {
+        QVariantMap payload;
+        payload[QStringLiteral("id")] = QString::fromStdString(item.id);
+        payload[QStringLiteral("name")] = QString::fromStdString(item.name);
+        payload[QStringLiteral("bookingDate")] = QString::fromStdString(item.bookingDate);
+        payload[QStringLiteral("valuta")] = QString::fromStdString(item.valuta);
+        payload[QStringLiteral("amount")] = item.amount;
+        payload[QStringLiteral("status")] = static_cast<int>(item.status);
+        payload[QStringLiteral("contractId")] = QString::fromStdString(item.contractId);
+        payload[QStringLiteral("actorId")] = QString::fromStdString(item.actorId);
+        payload[QStringLiteral("statementId")] = QString::fromStdString(item.statementId);
+        payload[QStringLiteral("allocatable")] = item.allocatable;
+        payload[QStringLiteral("propertyIds")] = ui::payload::mapper::toVariantStringList(item.propertyIds);
+        payload[QStringLiteral("createdAt")] = QString::fromStdString(item.createdAt);
+        payload[QStringLiteral("updatedAt")] = QString::fromStdString(item.updatedAt);
+        out.push_back(std::move(payload));
+    }
+    return out;
 }
 
 QVariantList TransactionController::addTransactions(const QString& statementId,
@@ -76,15 +121,16 @@ QVariantList TransactionController::addTransactions(const QString& statementId,
                     continue;
                 }
 
-                const std::string createdId = core_->addTransaction(
-                    strings::toStdString(draft.value(QStringLiteral("name")).toString()),
-                    strings::toStdString(draft.value(QStringLiteral("bookingDate")).toString()),
-                    draft.value(QStringLiteral("amount")).toDouble(),
-                    strings::toStdString(statementId),
-                    toTransactionStatus(draft.value(QStringLiteral("status")).toInt()),
-                    strings::toStdString(draft.value(QStringLiteral("actorId")).toString()),
-                    draft.value(QStringLiteral("allocatable")).toBool(),
-                    strings::toStdList(draft.value(QStringLiteral("propertyIds")).toStringList()));
+                core::ports::workspace::TransactionCommand command;
+                command.name = strings::toStdString(draft.value(QStringLiteral("name")).toString());
+                command.bookingDate = strings::toStdString(draft.value(QStringLiteral("bookingDate")).toString());
+                command.amount = draft.value(QStringLiteral("amount")).toDouble();
+                command.statementId = strings::toStdString(statementId);
+                command.status = toTransactionStatus(draft.value(QStringLiteral("status")).toInt());
+                command.actorId = strings::toStdString(draft.value(QStringLiteral("actorId")).toString());
+                command.allocatable = draft.value(QStringLiteral("allocatable")).toBool();
+                command.propertyIds = strings::toStdList(draft.value(QStringLiteral("propertyIds")).toStringList());
+                const std::string createdId = core_->addTransaction(command);
 
                 if (!createdId.empty()) {
                     createdIds.push_back(QString::fromStdString(createdId));
@@ -105,15 +151,16 @@ QString TransactionController::addTransaction(const QString& name,
 {
   return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::transaction::kAdd, {}, [&]() {
-            return QString::fromStdString(core_->addTransaction(
-                strings::toStdString(name),
-                strings::toStdString(bookingDate),
-                amount,
-                strings::toStdString(statementId),
-                toTransactionStatus(status),
-                strings::toStdString(actorId),
-                allocatable,
-                strings::toStdList(propertyIds)));
+            core::ports::workspace::TransactionCommand command;
+            command.name = strings::toStdString(name);
+            command.bookingDate = strings::toStdString(bookingDate);
+            command.amount = amount;
+            command.statementId = strings::toStdString(statementId);
+            command.status = toTransactionStatus(status);
+            command.actorId = strings::toStdString(actorId);
+            command.allocatable = allocatable;
+            command.propertyIds = strings::toStdList(propertyIds);
+            return QString::fromStdString(core_->addTransaction(command));
         });
 }
 
@@ -129,15 +176,17 @@ void TransactionController::updateTransaction(const QString& id,
 {
   ui::util::guard::invokeVoid(
         core_, observability::origins::controller::transaction::kUpdate, [&]() {
-            core_->updateTransaction(strings::toStdString(id),
-                                     strings::toStdString(name),
-                                     strings::toStdString(bookingDate),
-                                     amount,
-                                     strings::toStdString(statementId),
-                                     toTransactionStatus(status),
-                                     strings::toStdString(actorId),
-                                     allocatable,
-                                     strings::toStdList(propertyIds));
+            core::ports::workspace::TransactionCommand command;
+            command.id = strings::toStdString(id);
+            command.name = strings::toStdString(name);
+            command.bookingDate = strings::toStdString(bookingDate);
+            command.amount = amount;
+            command.statementId = strings::toStdString(statementId);
+            command.status = toTransactionStatus(status);
+            command.actorId = strings::toStdString(actorId);
+            command.allocatable = allocatable;
+            command.propertyIds = strings::toStdList(propertyIds);
+            core_->updateTransaction(command);
         });
 }
 

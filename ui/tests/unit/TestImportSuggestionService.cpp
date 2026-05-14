@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "core/domain/entities/Actor.h"
-#include "core/application/workspace/AppState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/domain/entities/Contract.h"
 #include "core/domain/entities/Property.h"
 #include "core/application/import/draft/TransactionDraft.h"
@@ -17,7 +17,7 @@
 #include "ui/import/ImportSuggestionService.h"
 
 using core::domain::Actor;
-using core::domain::AppState;
+using core::domain::catalog::WorkspaceCatalog;
 using core::domain::Contract;
 using core::domain::Property;
 
@@ -51,8 +51,8 @@ std::shared_ptr<Contract> makeContract(const std::string& id, const std::string&
 }
 
 struct MatcherServiceAdapter final : core::application::importing::draft::IImportMatcherService {
-    core::application::importing::draft::ImportMatcherPresentation buildImportSuggestions(const core::domain::WorkspaceState& state,
-                                                                                           const core::domain::TransactionDraft& transaction) const override
+    core::application::importing::draft::ImportMatcherPresentation buildImportSuggestions(const core::domain::catalog::WorkspaceCatalog& state,
+                                                                                           const core::application::importing::draft::TransactionDraft& transaction) const override
     {
         return core::application::importing::draft::buildImportSuggestions(state, transaction);
     }
@@ -62,12 +62,12 @@ struct MatcherServiceAdapter final : core::application::importing::draft::IImpor
 
 TEST(ImportSuggestionServiceTests, SuggestsActorPropertyAndContractFromTransactionText)
 {
-    AppState state;
+    WorkspaceCatalog state;
     state.actors.push_back(makeActor("actor-eon", "EON", "E.ON Energie"));
     state.properties.push_back(makeProperty("property-main", "Musterstraße 1", "Musterstr. 1"));
     state.contracts.push_back(makeContract("contract-gas", "Gasvertrag", "gas"));
 
-    core::domain::TransactionDraft tx;
+    core::application::importing::draft::TransactionDraft tx;
     tx.name = "EON Abschlag";
     tx.metadata = "E.ON Energie GmbH Musterstraße 1";
     tx.description = "Gas";

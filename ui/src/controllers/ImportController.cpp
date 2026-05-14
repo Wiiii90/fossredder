@@ -12,100 +12,97 @@
 #include <QRegularExpression>
 #include <QUuid>
 
-#include <exception>
 #include <algorithm>
+#include <exception>
 #include <map>
 #include <stdexcept>
 #include <string>
 
+#include "core/application/import/ImportLog.h"
 #include "core/constants/import.h"
+#include "core/domain/entities/Statement.h"
 #include "core/jobs/ImportJobSpec.h"
 #include "core/jobs/JobSystem.h"
 #include "core/jobs/JobTypes.h"
-#include "core/domain/entities/Statement.h"
-#include "core/application/import/ImportLog.h"
-#include "core/application/workspace/WorkspaceState.h"
 #include "ui/config/Defaults.h"
 #include "ui/import/ImportDraftMapper.h"
 #include "ui/import/ImportRunStore.h"
 #include "ui/observability/Origins.h"
 #include "ui/observability/Trace.h"
-#include "ui/util/StringConversions.h"
 #include "ui/text/Text.h"
+#include "ui/util/StringConversions.h"
 
 namespace ui {
 
 namespace {
 
 /** @brief Returns an ISO timestamp for import run bookkeeping. */
-QString currentTimestamp()
-{
-    return QDateTime::currentDateTime().toString(QStringLiteral("dd.MM.yyyy HH:mm:ss"));
+QString currentTimestamp() {
+  return QDateTime::currentDateTime().toString(
+      QStringLiteral("dd.MM.yyyy HH:mm:ss"));
 }
 
-QString generateLogId()
-{
-    return QUuid::createUuid().toString(QUuid::WithoutBraces);
+QString generateLogId() {
+  return QUuid::createUuid().toString(QUuid::WithoutBraces);
 }
 
-ImportRunRow toRunRow(const std::shared_ptr<core::domain::ImportLog>& log)
-{
-    ImportRunRow row;
-    if (!log) return row;
-    row.logId = QString::fromStdString(log->id);
-    row.time = QString::fromStdString(log->time);
-    row.type = QString::fromStdString(log->type);
-    row.file = QString::fromStdString(log->file);
-    row.status = QString::fromStdString(log->status);
-    row.message = QString::fromStdString(log->message);
-    row.draftAttached = log->draftAttached;
-    row.draftId = QString::fromStdString(log->draftId);
-    row.statementId = QString::fromStdString(log->statementId);
+ImportRunRow
+toRunRow(const std::shared_ptr<core::application::importing::ImportLog> &log) {
+  ImportRunRow row;
+  if (!log)
     return row;
+  row.logId = QString::fromStdString(log->id);
+  row.time = QString::fromStdString(log->time);
+  row.type = QString::fromStdString(log->type);
+  row.file = QString::fromStdString(log->file);
+  row.status = QString::fromStdString(log->status);
+  row.message = QString::fromStdString(log->message);
+  row.draftAttached = log->draftAttached;
+  row.draftId = QString::fromStdString(log->draftId);
+  row.statementId = QString::fromStdString(log->statementId);
+  return row;
 }
 
-core::domain::ImportLog toImportLog(const ImportRunRow& row)
-{
-    core::domain::ImportLog log;
-    log.id = strings::toStdString(row.logId);
-    log.time = strings::toStdString(row.time);
-    log.type = strings::toStdString(row.type);
-    log.file = strings::toStdString(row.file);
-    log.status = strings::toStdString(row.status);
-    log.message = strings::toStdString(row.message);
-    log.draftAttached = row.draftAttached;
-    log.draftId = strings::toStdString(row.draftId);
-    log.statementId = strings::toStdString(row.statementId);
-    return log;
+core::application::importing::ImportLog toImportLog(const ImportRunRow &row) {
+  core::application::importing::ImportLog log;
+  log.id = strings::toStdString(row.logId);
+  log.time = strings::toStdString(row.time);
+  log.type = strings::toStdString(row.type);
+  log.file = strings::toStdString(row.file);
+  log.status = strings::toStdString(row.status);
+  log.message = strings::toStdString(row.message);
+  log.draftAttached = row.draftAttached;
+  log.draftId = strings::toStdString(row.draftId);
+  log.statementId = strings::toStdString(row.statementId);
+  return log;
 }
 
 /** @brief Clamps import progress values to the configured UI range. */
-double clampProgress(double progress)
-{
-    if (progress < ui::config::importProgress::kMinimum)
-        return ui::config::importProgress::kMinimum;
-    if (progress > ui::config::importProgress::kMaximum)
-        return ui::config::importProgress::kMaximum;
-    return progress;
+double clampProgress(double progress) {
+  if (progress < ui::config::importProgress::kMinimum)
+    return ui::config::importProgress::kMinimum;
+  if (progress > ui::config::importProgress::kMaximum)
+    return ui::config::importProgress::kMaximum;
+  return progress;
 }
 
-/** @brief Builds the import job specification and prepares a fresh import run folder. */
-core::jobs::ImportStatementJobSpec buildImportSpec(const QString& path,
-                                                   QString& runRoot)
-{
-    importing::cleanupOldImportRuns(core::constants::importing::runs::kKeepCount);
+/** @brief Builds the import job specification and prepares a fresh import run
+ * folder. */
+core::jobs::ImportStatementJobSpec buildImportSpec(const QString &path,
+                                                   QString &runRoot) {
+  importing::cleanupOldImportRuns(core::constants::importing::runs::kKeepCount);
 
-    const auto runInfo = importing::createImportRunInfo();
-    runRoot = runInfo.runRoot;
+  const auto runInfo = importing::createImportRunInfo();
+  runRoot = runInfo.runRoot;
 
-    core::jobs::ImportStatementJobSpec spec;
-    spec.sourcePath = strings::toEncodedPath(path);
-    spec.runRoot = strings::toEncodedPath(runInfo.runRoot);
+  core::jobs::ImportStatementJobSpec spec;
+  spec.sourcePath = strings::toEncodedPath(path);
+  spec.runRoot = strings::toEncodedPath(runInfo.runRoot);
 
-    const QByteArray runIdNative = runInfo.runIdPrefix.toUtf8();
-    spec.runIdPrefix = {runIdNative.constData(),
-                        static_cast<size_t>(runIdNative.size())};
-    return spec;
+  const QByteArray runIdNative = runInfo.runIdPrefix.toUtf8();
+  spec.runIdPrefix = {runIdNative.constData(),
+                      static_cast<size_t>(runIdNative.size())};
+  return spec;
 }
 
 } // namespace
@@ -114,7 +111,8 @@ ImportController::ImportController(
     JobSystemFactory jobSystemFactory,
     std::shared_ptr<core::errors::IErrorReporter> errorReporter,
     std::shared_ptr<core::ports::presenters::IImportPresenter> importPresenter,
-    std::shared_ptr<core::application::importing::draft::IImportMatcherService> importMatcherService,
+    std::shared_ptr<core::application::importing::draft::IImportMatcherService>
+        importMatcherService,
     QObject *parent)
     : QObject(parent), runs_(std::make_unique<ImportRunList>(this)),
       jobSystemFactory_(std::move(jobSystemFactory)),
@@ -126,7 +124,8 @@ ImportController::ImportController(
   state_.setMatcherService(importMatcherService_);
 }
 
-void ImportController::setStateSnapshotProvider(StateSnapshotProvider provider) {
+void ImportController::setStateSnapshotProvider(
+    StateSnapshotProvider provider) {
   stateSnapshotProvider_ = std::move(provider);
   if (stateSnapshotProvider_) {
     const auto snapshot = stateSnapshotProvider_();
@@ -135,42 +134,38 @@ void ImportController::setStateSnapshotProvider(StateSnapshotProvider provider) 
   }
 }
 
-void ImportController::setStatementDraftStore(StatementDraftStore store)
-{
+void ImportController::setStatementDraftStore(StatementDraftStore store) {
   statementDraftStore_ = std::move(store);
 }
 
-void ImportController::activateRunAt(int index)
-{
+void ImportController::activateRunAt(int index) {
   const auto row = runs_->at(index);
-  if (row.logId.isEmpty() || !row.draftAttached) return;
+  if (row.logId.isEmpty() || !row.draftAttached)
+    return;
   activeDraftLogId_ = !row.draftId.isEmpty() ? row.draftId : row.logId;
 }
 
-bool ImportController::openPrevDraft()
-{
+bool ImportController::openPrevDraft() {
   const auto index = activeDraftStackIndex();
   const auto ids = draftStackIds();
-  if (index <= 0 || index >= ids.size()) return false;
+  if (index <= 0 || index >= ids.size())
+    return false;
   return openPersistedDraft(ids.at(index - 1));
 }
 
-bool ImportController::openNextDraft()
-{
+bool ImportController::openNextDraft() {
   const auto index = activeDraftStackIndex();
   const auto ids = draftStackIds();
-  if (index < 0 || index >= ids.size() - 1) return false;
+  if (index < 0 || index >= ids.size() - 1)
+    return false;
   return openPersistedDraft(ids.at(index + 1));
 }
 
-void ImportController::setImportLogsStore(ImportLogsStore store)
-{
+void ImportController::setImportLogsStore(ImportLogsStore store) {
   importLogsStore_ = std::move(store);
 }
 
-QString ImportController::selectedFile() const {
-  return state_.selectedFile();
-}
+QString ImportController::selectedFile() const { return state_.selectedFile(); }
 
 QStringList ImportController::queuedFiles() const {
   return state_.queuedFiles();
@@ -180,43 +175,34 @@ StatementDraft *ImportController::draft() const noexcept {
   return state_.draft();
 }
 
-bool ImportController::hasPrevDraft() const
-{
+bool ImportController::hasPrevDraft() const {
   const auto index = activeDraftStackIndex();
   return index > 0;
 }
 
-bool ImportController::hasNextDraft() const
-{
+bool ImportController::hasNextDraft() const {
   const auto index = activeDraftStackIndex();
   const auto ids = draftStackIds();
   return index >= 0 && index < ids.size() - 1;
 }
 
-ImportRunList *ImportController::runs() noexcept {
-  return runs_.get();
-}
+ImportRunList *ImportController::runs() noexcept { return runs_.get(); }
 
-void ImportController::addRunNote(const QString& status, const QString& message, bool draftAttached,
-                                  const QString& statementId) {
+void ImportController::addRunNote(const QString &status, const QString &message,
+                                  bool draftAttached,
+                                  const QString &statementId) {
   if (draftAttached || !activeDraftLogId_.isEmpty() || !statementId.isEmpty()) {
     upsertActiveDraftRun(status, message, draftAttached, statementId);
   } else {
-    runs_->addRun(currentTimestamp(),
-                  ui::text::importRuns::typeStatement(),
-                  state_.currentRunFile(),
-                  status,
-                  message,
-                  false,
-                  statementId,
+    runs_->addRun(currentTimestamp(), ui::text::importRuns::typeStatement(),
+                  state_.currentRunFile(), status, message, false, statementId,
                   generateLogId());
   }
   persistRuns();
   emit stateChanged();
 }
 
-void ImportController::removeRunAt(int index)
-{
+void ImportController::removeRunAt(int index) {
   const auto row = runs_->at(index);
   if (row.logId == activeDraftLogId_) {
     activeDraftLogId_.clear();
@@ -226,30 +212,35 @@ void ImportController::removeRunAt(int index)
   emit stateChanged();
 }
 
-void ImportController::restoreRunsFromSnapshot(const core::domain::WorkspaceState& snapshot)
-{
+void ImportController::restoreRunsFromSnapshot(
+    const core::application::workspace::WorkspaceSessionState &snapshot) {
   std::vector<ImportRunRow> rows;
-  rows.reserve(snapshot.importLogs.size());
+  rows.reserve(snapshot.workflow.importLogs.size());
   activeDraftLogId_.clear();
 
-  for (const auto& item : snapshot.importLogs) {
-    if (!item) continue;
+  for (const auto &item : snapshot.workflow.importLogs) {
+    if (!item)
+      continue;
     auto row = toRunRow(item);
-    if (row.logId.isEmpty()) row.logId = generateLogId();
-    if (row.draftAttached && row.draftId.isEmpty()) row.draftId = row.logId;
-    if (row.draftAttached && activeDraftLogId_.isEmpty()) activeDraftLogId_ = row.logId;
+    if (row.logId.isEmpty())
+      row.logId = generateLogId();
+    if (row.draftAttached && row.draftId.isEmpty())
+      row.draftId = row.logId;
+    if (row.draftAttached && activeDraftLogId_.isEmpty())
+      activeDraftLogId_ = row.logId;
     rows.push_back(std::move(row));
   }
   runs_->setRuns(std::move(rows));
 }
 
-void ImportController::persistRuns()
-{
-  if (!importLogsStore_) return;
+void ImportController::persistRuns() {
+  if (!importLogsStore_)
+    return;
   auto items = runs_->snapshot();
   bool normalized = false;
-  for (auto& row : items) {
-    if (!row.logId.isEmpty()) continue;
+  for (auto &row : items) {
+    if (!row.logId.isEmpty())
+      continue;
     row.logId = generateLogId();
     runs_->upsertRun(row);
     normalized = true;
@@ -257,55 +248,55 @@ void ImportController::persistRuns()
   if (normalized) {
     items = runs_->snapshot();
   }
-  std::vector<core::domain::ImportLog> logs;
+  std::vector<core::application::importing::ImportLog> logs;
   logs.reserve(items.size());
-  for (const auto& row : items) {
+  for (const auto &row : items) {
     logs.push_back(toImportLog(row));
   }
   importLogsStore_(logs);
 }
 
-QString ImportController::resolveDraftContextLogId() const
-{
-  if (!activeDraftLogId_.isEmpty()) return activeDraftLogId_;
-  if (state_.draft() && !state_.draft()->draftId().isEmpty()) return state_.draft()->draftId();
+QString ImportController::resolveDraftContextLogId() const {
+  if (!activeDraftLogId_.isEmpty())
+    return activeDraftLogId_;
+  if (state_.draft() && !state_.draft()->draftId().isEmpty())
+    return state_.draft()->draftId();
   return {};
 }
 
-QStringList ImportController::draftStackIds() const
-{
+QStringList ImportController::draftStackIds() const {
   QStringList ids;
   const auto rows = runs_->snapshot();
-  for (const auto& row : rows) {
-    if (!row.draftAttached) continue;
+  for (const auto &row : rows) {
+    if (!row.draftAttached)
+      continue;
     const QString id = !row.draftId.isEmpty() ? row.draftId : row.logId;
-    if (id.isEmpty() || ids.contains(id)) continue;
+    if (id.isEmpty() || ids.contains(id))
+      continue;
     ids.push_back(id);
   }
   return ids;
 }
 
-int ImportController::activeDraftStackIndex() const
-{
+int ImportController::activeDraftStackIndex() const {
   const auto ids = draftStackIds();
-  if (ids.isEmpty()) return -1;
+  if (ids.isEmpty())
+    return -1;
 
   QString activeId = resolveDraftContextLogId();
-  if (activeId.isEmpty() && state_.draft() && !state_.draft()->draftId().isEmpty()) {
+  if (activeId.isEmpty() && state_.draft() &&
+      !state_.draft()->draftId().isEmpty()) {
     activeId = state_.draft()->draftId();
   }
 
-  if (activeId.isEmpty()) return -1;
+  if (activeId.isEmpty())
+    return -1;
   return ids.indexOf(activeId);
 }
 
-ImportRunRow ImportController::upsertRunById(const QString& logId,
-                                             const QString& status,
-                                             const QString& message,
-                                             bool draftAttached,
-                                             const QString& draftId,
-                                             const QString& statementId)
-{
+ImportRunRow ImportController::upsertRunById(
+    const QString &logId, const QString &status, const QString &message,
+    bool draftAttached, const QString &draftId, const QString &statementId) {
   ImportRunRow row;
   row.logId = logId.isEmpty() ? generateLogId() : logId;
   const int existingIndex = runs_->findByLogId(row.logId);
@@ -325,12 +316,13 @@ ImportRunRow ImportController::upsertRunById(const QString& logId,
   return row;
 }
 
-ImportRunRow ImportController::upsertActiveDraftRun(const QString& status, const QString& message,
-                                                    bool draftAttached, const QString& statementId)
-{
+ImportRunRow ImportController::upsertActiveDraftRun(
+    const QString &status, const QString &message, bool draftAttached,
+    const QString &statementId) {
   const QString logId = resolveDraftContextLogId();
   const QString draftId = draftAttached ? logId : QString();
-  auto row = upsertRunById(logId, status, message, draftAttached, draftId, statementId);
+  auto row = upsertRunById(logId, status, message, draftAttached, draftId,
+                           statementId);
 
   if (draftAttached) {
     activeDraftLogId_ = row.logId;
@@ -350,7 +342,8 @@ bool ImportController::ensureJobBridge() {
   if (!jobSystem)
     return false;
 
-  jobBridge_ = std::make_unique<importing::ImportJobBridge>(std::move(jobSystem));
+  jobBridge_ =
+      std::make_unique<importing::ImportJobBridge>(std::move(jobSystem));
   jobBridge_->setExceptionReporter(
       [this](const char *origin, std::exception_ptr exception) {
         reportException(origin, exception);
@@ -384,20 +377,23 @@ bool ImportController::hasPersistedDraft() const {
   if (!stateSnapshotProvider_)
     return false;
   const auto snapshot = stateSnapshotProvider_();
-  return !snapshot.statementDrafts.empty() && !snapshot.transactionDrafts.empty();
+  return !snapshot.workflow.statementDrafts.empty() &&
+         !snapshot.workflow.transactionDrafts.empty();
 }
 
-bool ImportController::openPersistedDraft(const QString& logId) {
+bool ImportController::openPersistedDraft(const QString &logId) {
   if (!stateSnapshotProvider_)
     return false;
 
   QString requestedLogId = !logId.isEmpty() ? logId : activeDraftLogId_;
   if (requestedLogId.isEmpty()) {
     const auto rows = runs_->snapshot();
-    for (const auto& row : rows) {
-      if (!row.draftAttached) continue;
+    for (const auto &row : rows) {
+      if (!row.draftAttached)
+        continue;
       requestedLogId = !row.draftId.isEmpty() ? row.draftId : row.logId;
-      if (!requestedLogId.isEmpty()) break;
+      if (!requestedLogId.isEmpty())
+        break;
     }
   }
   if (!requestedLogId.isEmpty()) {
@@ -412,15 +408,17 @@ bool ImportController::openPersistedDraft(const QString& logId) {
   return restored;
 }
 
-bool ImportController::restoreDraftFromState(const core::domain::WorkspaceState& snapshot) {
-  if (snapshot.statementDrafts.empty()) {
+bool ImportController::restoreDraftFromState(
+    const core::application::workspace::WorkspaceSessionState &snapshot) {
+  if (snapshot.workflow.statementDrafts.empty()) {
     return false;
   }
 
-  std::shared_ptr<core::domain::StatementDraft> persistedStatementDraft;
+  std::shared_ptr<core::application::importing::draft::StatementDraft>
+      persistedStatementDraft;
   const QString requestedDraftId = resolveDraftContextLogId();
   if (!requestedDraftId.isEmpty()) {
-    for (const auto& draft : snapshot.statementDrafts) {
+    for (const auto &draft : snapshot.workflow.statementDrafts) {
       if (draft && QString::fromStdString(draft->id) == requestedDraftId) {
         persistedStatementDraft = draft;
         break;
@@ -428,20 +426,21 @@ bool ImportController::restoreDraftFromState(const core::domain::WorkspaceState&
     }
   }
   if (!persistedStatementDraft) {
-    persistedStatementDraft = snapshot.statementDrafts.front();
+    persistedStatementDraft = snapshot.workflow.statementDrafts.front();
   }
   if (!persistedStatementDraft) {
     return false;
   }
 
-  const QString restoredDraftId = QString::fromStdString(persistedStatementDraft->id);
+  const QString restoredDraftId =
+      QString::fromStdString(persistedStatementDraft->id);
   if (!restoredDraftId.isEmpty()) {
     activeDraftLogId_ = restoredDraftId;
   }
 
-  std::vector<core::domain::TransactionDraft> txDrafts;
-  txDrafts.reserve(snapshot.transactionDrafts.size());
-  for (const auto& tx : snapshot.transactionDrafts) {
+  std::vector<core::application::importing::draft::TransactionDraft> txDrafts;
+  txDrafts.reserve(snapshot.workflow.transactionDrafts.size());
+  for (const auto &tx : snapshot.workflow.transactionDrafts) {
     if (!tx)
       continue;
     if (!persistedStatementDraft->id.empty() &&
@@ -450,20 +449,16 @@ bool ImportController::restoreDraftFromState(const core::domain::WorkspaceState&
     txDrafts.push_back(*tx);
   }
 
-  std::sort(txDrafts.begin(), txDrafts.end(), [](const auto& lhs, const auto& rhs) {
-    return lhs.position < rhs.position;
-  });
+  std::sort(txDrafts.begin(), txDrafts.end(),
+            [](const auto &lhs, const auto &rhs) {
+              return lhs.position < rhs.position;
+            });
 
   auto statement = std::make_shared<core::domain::Statement>();
-  statement->name = persistedStatementDraft->name;
+  statement->rename(persistedStatementDraft->name);
 
-  return state_.restoreDraft(statement,
-                             snapshot,
-                             txDrafts,
-                             importMatcherService_,
-                             restoredDraftId,
-                              0,
-                             this);
+  return state_.restoreDraft(statement, snapshot.catalog, txDrafts,
+                             importMatcherService_, restoredDraftId, 0, this);
 }
 
 void ImportController::rejectImportStart(const QString &errorMessage,
@@ -483,12 +478,13 @@ void ImportController::requestImportCancellation(bool clearQueue,
   if (!state_.isRunning())
     return;
 
-  const auto queuedBeforeCancel = clearQueue ? state_.queuedFiles() : QStringList{};
+  const auto queuedBeforeCancel =
+      clearQueue ? state_.queuedFiles() : QStringList{};
 
   state_.beginCancel(clearQueue);
 
   if (clearQueue && !queuedBeforeCancel.isEmpty()) {
-    for (const auto& queuedPath : queuedBeforeCancel) {
+    for (const auto &queuedPath : queuedBeforeCancel) {
       ImportRunRow row;
       row.logId = generateLogId();
       row.time = currentTimestamp();
@@ -514,7 +510,7 @@ void ImportController::requestImportCancellation(bool clearQueue,
   emit stateChanged();
 }
 
-void ImportController::handleJobEvent(const core::jobs::JobEvent& event) {
+void ImportController::handleJobEvent(const core::jobs::JobEvent &event) {
   const double progress = clampProgress(event.progress);
   const QString phase = QString::fromStdString(event.message);
   const auto eventState = event.state;
@@ -536,10 +532,8 @@ void ImportController::handleJobEvent(const core::jobs::JobEvent& event) {
 void ImportController::handleImportCanceled(const QString &now) {
   state_.recordCanceled(now);
   if (!activeRunTerminalHandled_) {
-    upsertRunById(activeRunLogId_,
-                  ui::text::importRuns::statusCanceled(),
-                  ui::text::importPhases::canceled(),
-                  false);
+    upsertRunById(activeRunLogId_, ui::text::importRuns::statusCanceled(),
+                  ui::text::importPhases::canceled(), false);
     activeRunTerminalHandled_ = true;
   }
   persistRuns();
@@ -559,10 +553,8 @@ void ImportController::handleImportFailed(const QString &now,
                                           const char *traceMessage) {
   state_.recordFailed(now, errorMessage);
   if (!activeRunTerminalHandled_) {
-    upsertRunById(activeRunLogId_,
-                  ui::text::importRuns::statusFailed(),
-                  errorMessage,
-                  false);
+    upsertRunById(activeRunLogId_, ui::text::importRuns::statusFailed(),
+                  errorMessage, false);
     activeRunTerminalHandled_ = true;
   }
   persistRuns();
@@ -583,15 +575,19 @@ bool ImportController::populateDraftFromResult(const QString &now) {
   }
 
   const auto imported = jobBridge_->present();
-  const auto presented = importPresenter_ ? importPresenter_->present(imported) : imported;
+  const auto presented =
+      importPresenter_ ? importPresenter_->present(imported) : imported;
   if (!presented.data) {
     handleImportFailed(now, ui::text::controllerErrors::importFailed(),
                        "Import failed: missing statement result");
     return false;
   }
 
-  const auto snapshot = stateSnapshotProvider_ ? stateSnapshotProvider_() : core::domain::WorkspaceState{};
-  const QString draftId = activeRunDraftId_.isEmpty() ? activeRunLogId_ : activeRunDraftId_;
+  const auto snapshot = stateSnapshotProvider_
+                            ? stateSnapshotProvider_()
+                            : core::application::workspace::WorkspaceSessionState{};
+  const QString draftId =
+      activeRunDraftId_.isEmpty() ? activeRunLogId_ : activeRunDraftId_;
   const bool hadVisibleDraft = state_.draft() != nullptr;
 
   if (!saveImportedDraft(draftId, presented.data, presented.transactions)) {
@@ -602,24 +598,16 @@ bool ImportController::populateDraftFromResult(const QString &now) {
 
   if (hadVisibleDraft) {
     state_.recordFinished(now);
-  } else if (!state_.populateDraft(now,
-                                   presented.data,
-                                   snapshot,
-                                   presented.transactions,
-                                   presented.artifacts,
-                                   importMatcherService_,
-                                   draftId,
-                                   0,
-                                   this)) {
-      handleImportFailed(now, ui::text::controllerErrors::importFailed(),
-                         "Import failed: unable to create statement draft");
-      return false;
+  } else if (!state_.populateDraft(now, presented.data, snapshot.catalog,
+                                   presented.transactions, presented.artifacts,
+                                   importMatcherService_, draftId, 0, this)) {
+    handleImportFailed(now, ui::text::controllerErrors::importFailed(),
+                       "Import failed: unable to create statement draft");
+    return false;
   }
 
-  upsertRunById(activeRunLogId_,
-                ui::text::importRuns::statusDraft(),
-                QStringLiteral("Draft ready for manual review."),
-                true,
+  upsertRunById(activeRunLogId_, ui::text::importRuns::statusDraft(),
+                QStringLiteral("Draft ready for manual review."), true,
                 draftId);
   if (!hadVisibleDraft) {
     activeDraftLogId_ = activeRunLogId_;
@@ -642,17 +630,17 @@ bool ImportController::populateDraftFromResult(const QString &now) {
 }
 
 bool ImportController::saveImportedDraft(
-    const QString& draftId,
-    const std::shared_ptr<core::domain::Statement>& statement,
-    const std::vector<core::domain::TransactionDraft>& transactions) const
-{
+    const QString &draftId,
+    const std::shared_ptr<core::domain::Statement> &statement,
+    const std::vector<core::application::importing::draft::TransactionDraft>
+        &transactions) const {
   if (!statementDraftStore_ || !statement || draftId.isEmpty()) {
     return false;
   }
 
-  core::domain::StatementDraft draft;
+  core::application::importing::draft::StatementDraft draft;
   draft.id = strings::toStdString(draftId);
-  QString name = QString::fromStdString(statement->name);
+  QString name = QString::fromStdString(statement->name());
   if (name.trimmed().isEmpty()) {
     const auto sourceFile = state_.currentRunFile();
     name = QFileInfo(sourceFile).baseName();
@@ -701,9 +689,8 @@ void ImportController::startImportForFile(const QString &path) {
   if (state_.isRunning())
     return;
   if (!ensureJobBridge() || !jobBridge_ || !jobBridge_->isAvailable()) {
-    rejectImportStart(
-        ui::text::controllerErrors::importControllerUnavailable(),
-        "Import start rejected: controller unavailable");
+    rejectImportStart(ui::text::controllerErrors::importControllerUnavailable(),
+                      "Import start rejected: controller unavailable");
     return;
   }
   if (path.trimmed().isEmpty()) {
@@ -719,10 +706,8 @@ void ImportController::startImportForFile(const QString &path) {
   activeRunLogId_ = generateLogId();
   activeRunDraftId_ = activeRunLogId_;
   activeRunTerminalHandled_ = false;
-  upsertRunById(activeRunLogId_,
-                ui::text::importRuns::statusRunning(),
-                ui::text::importPhases::starting(),
-                false);
+  upsertRunById(activeRunLogId_, ui::text::importRuns::statusRunning(),
+                ui::text::importPhases::starting(), false);
   persistRuns();
   emit stateChanged();
 
@@ -753,8 +738,9 @@ void ImportController::updateProgress(double p, const QString &phase) {
 }
 
 void ImportController::onJobTerminal(core::jobs::JobState state,
-                                     const QString& message) {
-  if ((!state_.isRunning() && !state_.cancelRequested()) || activeRunTerminalHandled_) {
+                                     const QString &message) {
+  if ((!state_.isRunning() && !state_.cancelRequested()) ||
+      activeRunTerminalHandled_) {
     return;
   }
 

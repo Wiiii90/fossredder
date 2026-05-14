@@ -15,7 +15,7 @@
 #include <QString>
 #include <QStringList>
 
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/application/import/draft/TransactionDraft.h"
 #include "core/application/import/draft/IImportMatcherService.h"
 #include "ui/models/StatementDraft.h"
@@ -58,16 +58,16 @@ public:
     void recordFinished(const QString& now);
     bool populateDraft(const QString& now,
                        const std::shared_ptr<core::domain::Statement>& statement,
-                        const core::domain::WorkspaceState& state,
-                       const std::vector<core::domain::TransactionDraft>& transactions,
+                        const core::domain::catalog::WorkspaceCatalog& state,
+                       const std::vector<core::application::importing::draft::TransactionDraft>& transactions,
                        const std::map<std::string, std::vector<uint8_t>>& artifacts,
                        const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService,
                        const QString& draftId,
                        int currentTransactionIndex,
                        QObject* parent);
     bool restoreDraft(const std::shared_ptr<core::domain::Statement>& statement,
-                      const core::domain::WorkspaceState& state,
-                      const std::vector<core::domain::TransactionDraft>& transactions,
+                      const core::domain::catalog::WorkspaceCatalog& state,
+                      const std::vector<core::application::importing::draft::TransactionDraft>& transactions,
                       const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService,
                       const QString& draftId,
                       int currentTransactionIndex,

@@ -31,35 +31,31 @@ struct AliasStats {
     std::string updatedAt;
 };
 
-core::domain::AliasUsage makeAliasUsage(const std::string& alias,
-                                       int hitCount,
-                                       const std::string& createdAt,
-                                       const std::string& updatedAt,
-                                       const std::string& lastUsedAt)
+core::domain::Alias makeAlias(const std::string& alias,
+                              int hitCount,
+                              const std::string& createdAt,
+                              const std::string& updatedAt,
+                              const std::string& lastUsedAt)
 {
-    core::domain::AliasUsage usage;
-    usage.alias.value = alias;
-    usage.alias.source = alias;
-    usage.alias.createdAt = createdAt;
-    usage.alias.updatedAt = updatedAt;
-    usage.hitCount = hitCount;
-    usage.createdAt = createdAt;
-    usage.updatedAt = updatedAt;
-    usage.lastUsedAt = lastUsedAt;
-    return usage;
+    core::domain::Alias value;
+    value.setValue(alias);
+    value.setSource(alias);
+    value.setHitCount(hitCount);
+    value.setCreatedAt(createdAt);
+    value.setUpdatedAt(updatedAt);
+    value.setLastUsedAt(lastUsedAt);
+    return value;
 }
 
-std::vector<core::domain::AliasUsage> collectAliasUsage(const Property& property)
+std::vector<core::domain::Alias> collectAliases(const Property& property)
 {
-    if (!property.aliasUsage.empty()) {
-        return property.aliasUsage;
-    }
-
-    std::vector<core::domain::AliasUsage> out;
-    out.reserve(property.aliases.size());
-    for (const auto& alias : property.aliases) {
-        if (alias.value.empty()) continue;
-        out.push_back(makeAliasUsage(alias.value, 1, alias.createdAt, alias.updatedAt, {}));
+    std::vector<core::domain::Alias> out;
+    out.reserve(property.aliases().size());
+    for (const auto& alias : property.aliases()) {
+        if (alias.value().empty()) continue;
+        auto value = alias;
+        if (value.hitCount() < 1) value.setHitCount(1);
+        out.push_back(std::move(value));
     }
     return out;
 }
@@ -88,20 +84,16 @@ void loadPropertyAliases(sqlite3* db, Property& property)
     persistence::StmtGuard stmt(db, "SELECT alias, hit_count, created_at, updated_at, last_used_at FROM property_aliases WHERE property_id = ? ORDER BY hit_count DESC, last_used_at DESC, alias ASC;");
     if (!stmt) return;
 
-    stmt.bindText(1, property.id);
+    stmt.bindText(1, property.id());
+    std::vector<core::domain::Alias> aliases;
     while (stmt.step() == SQLITE_ROW) {
-        core::domain::AliasUsage usage;
-        usage.alias.value = stmt.columnText(0);
-        usage.alias.source = usage.alias.value;
-        usage.alias.createdAt = stmt.columnText(2);
-        usage.alias.updatedAt = stmt.columnText(3);
-        usage.hitCount = stmt.columnInt(1);
-        usage.createdAt = stmt.columnText(2);
-        usage.updatedAt = stmt.columnText(3);
-        usage.lastUsedAt = stmt.columnText(4);
-        property.aliases.push_back(usage.alias);
-        property.aliasUsage.push_back(std::move(usage));
+        aliases.push_back(makeAlias(stmt.columnText(0),
+                                    stmt.columnInt(1),
+                                    stmt.columnText(2),
+                                    stmt.columnText(3),
+                                    stmt.columnText(4)));
     }
+    property.setAliases(std::move(aliases));
 }
 
 void deletePropertyAliases(sqlite3* db, const std::string& propertyId)
@@ -117,26 +109,26 @@ void replacePropertyAliases(sqlite3* db,
                             const Property& property,
                             const std::unordered_map<std::string, AliasStats>& existing)
 {
-    if (property.id.empty()) return;
+    if (property.id().empty()) return;
 
-    deletePropertyAliases(db, property.id);
+    deletePropertyAliases(db, property.id());
 
     persistence::StmtGuard stmt(db,
         "INSERT INTO property_aliases (property_id, alias, hit_count, created_at, updated_at, last_used_at) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP), COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP), COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP));");
     if (!stmt) return;
 
     std::unordered_set<std::string> seen;
-    for (const auto& usage : collectAliasUsage(property)) {
-        if (usage.alias.value.empty() || !seen.insert(usage.alias.value).second) continue;
+    for (const auto& alias : collectAliases(property)) {
+        if (alias.value().empty() || !seen.insert(alias.value()).second) continue;
 
-        const auto it = existing.find(usage.alias.value);
-        const int hitCount = it == existing.end() ? std::max(1, usage.hitCount) : std::max(1, it->second.hitCount);
-        const std::string createdAt = it == existing.end() || it->second.createdAt.empty() ? usage.createdAt : it->second.createdAt;
-        const std::string updatedAt = it == existing.end() || it->second.updatedAt.empty() ? usage.updatedAt : it->second.updatedAt;
-        const std::string lastUsedAt = it == existing.end() || it->second.lastUsedAt.empty() ? usage.lastUsedAt : it->second.lastUsedAt;
+        const auto it = existing.find(alias.value());
+        const int hitCount = it == existing.end() ? std::max(1, alias.hitCount()) : std::max(1, it->second.hitCount);
+        const std::string createdAt = it == existing.end() || it->second.createdAt.empty() ? alias.createdAt() : it->second.createdAt;
+        const std::string updatedAt = it == existing.end() || it->second.updatedAt.empty() ? alias.updatedAt() : it->second.updatedAt;
+        const std::string lastUsedAt = it == existing.end() || it->second.lastUsedAt.empty() ? alias.lastUsedAt() : it->second.lastUsedAt;
         stmt.reset();
-        stmt.bindText(1, property.id);
-        stmt.bindText(2, usage.alias.value);
+        stmt.bindText(1, property.id());
+        stmt.bindText(2, alias.value());
         stmt.bindInt(3, hitCount);
         stmt.bindText(4, createdAt);
         stmt.bindText(5, updatedAt);
@@ -171,19 +163,20 @@ namespace {
 
 std::shared_ptr<Property> readProperty(persistence::StmtGuard& s) {
     auto p = std::make_shared<Property>();
-    p->id = s.columnText(0); p->name = s.columnText(1);
+    p->setId(s.columnText(0));
+    p->rename(s.columnText(1));
     return p;
 }
 
 } // namespace
 
 void SqlitePropertyRepository::addProperty(const std::shared_ptr<Property>& property) {
-    if (!property || property->id.empty()) return;
+    if (!property || property->id().empty()) return;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
         "INSERT OR IGNORE INTO properties (id, name, created_at, updated_at) VALUES (?, ?, ?, ?);");
     if (!stmt) return;
-    stmt.bindText  (1, property->id);    stmt.bindText  (2, property->name);
-    stmt.bindText(3, property->createdAt); stmt.bindText(4, property->updatedAt);
+    stmt.bindText  (1, property->id());    stmt.bindText  (2, property->name());
+    stmt.bindText(3, property->createdAt()); stmt.bindText(4, property->updatedAt());
     if (stmt.step() == SQLITE_DONE) replacePropertyAliases(pimpl_->db->handle(), *property, {});
 }
 
@@ -194,8 +187,8 @@ std::vector<std::shared_ptr<Property>> SqlitePropertyRepository::getProperties()
     if (!stmt) return out;
     while (stmt.step() == SQLITE_ROW) {
         auto property = readProperty(stmt);
-        property->createdAt = stmt.columnText(2);
-        property->updatedAt = stmt.columnText(3);
+        property->setCreatedAt(stmt.columnText(2));
+        property->setUpdatedAt(stmt.columnText(3));
         loadPropertyAliases(pimpl_->db->handle(), *property);
         out.push_back(std::move(property));
     }
@@ -210,8 +203,8 @@ std::optional<std::shared_ptr<Property>> SqlitePropertyRepository::getPropertyBy
     stmt.bindText(1, id);
     if (stmt.step() != SQLITE_ROW) return std::nullopt;
     auto property = readProperty(stmt);
-    property->createdAt = stmt.columnText(2);
-    property->updatedAt = stmt.columnText(3);
+    property->setCreatedAt(stmt.columnText(2));
+    property->setUpdatedAt(stmt.columnText(3));
     loadPropertyAliases(pimpl_->db->handle(), *property);
     return property;
 }
@@ -224,20 +217,20 @@ void SqlitePropertyRepository::removeProperty(const std::string& id) {
 }
 
 void SqlitePropertyRepository::updateProperty(const std::shared_ptr<Property>& property) {
-    if (!property || property->id.empty()) return;
-    const auto existing = loadPropertyAliasStats(pimpl_->db->handle(), property->id);
+    if (!property || property->id().empty()) return;
+    const auto existing = loadPropertyAliasStats(pimpl_->db->handle(), property->id());
     persistence::StmtGuard stmt(pimpl_->db->handle(),
         "UPDATE properties SET name = ?, created_at = COALESCE(NULLIF(created_at, ''), ?), updated_at = ? WHERE id = ?;");
     if (!stmt) return;
-    stmt.bindText(1, property->name);
-    stmt.bindText(2, property->createdAt);
-    stmt.bindText(3, property->updatedAt);
-    stmt.bindText(4, property->id);
+    stmt.bindText(1, property->name());
+    stmt.bindText(2, property->createdAt());
+    stmt.bindText(3, property->updatedAt());
+    stmt.bindText(4, property->id());
     if (stmt.step() == SQLITE_DONE) replacePropertyAliases(pimpl_->db->handle(), *property, existing);
 }
 
 void SqlitePropertyRepository::upsertProperty(const std::shared_ptr<Property>& property) {
-    if (!property || property->id.empty()) return;
+    if (!property || property->id().empty()) return;
     updateProperty(property);
     if (sqlite3_changes(pimpl_->db->handle()) == 0) addProperty(property);
 }

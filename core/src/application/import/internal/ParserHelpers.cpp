@@ -270,8 +270,8 @@ std::optional<double> findAndParseAmountInLine(const core::parser::OcrLine& line
     return std::nullopt;
 }
 
-std::vector<core::parser::OcrLine> buildOcrLinesFromWords(const std::vector<core::ports::text_recognition::tesseract::Word>& words) {
-    struct W { const core::ports::text_recognition::tesseract::Word* w; int cy; int top; int bottom; int left; };
+std::vector<core::parser::OcrLine> buildOcrLinesFromWords(const std::vector<core::ports::text_recognition::Word>& words) {
+    struct W { const core::ports::text_recognition::Word* w; int cy; int top; int bottom; int left; };
     std::vector<W> ws; ws.reserve(words.size());
     for (const auto& w : words) {
         bool anyNonSpace = false;
@@ -284,7 +284,7 @@ std::vector<core::parser::OcrLine> buildOcrLinesFromWords(const std::vector<core
     int avgH = 0; for (const auto& ww : ws) avgH += (ww.bottom - ww.top);
     avgH = ws.empty() ? 10 : std::max(1, avgH / static_cast<int>(ws.size()));
     const int minOverlap = std::max(2, avgH / 3);
-    struct LineAcc { int cy = 0; int minX = std::numeric_limits<int>::max(); int maxX = std::numeric_limits<int>::min(); int minY = std::numeric_limits<int>::max(); int maxY = std::numeric_limits<int>::min(); std::vector<const core::ports::text_recognition::tesseract::Word*> words; };
+    struct LineAcc { int cy = 0; int minX = std::numeric_limits<int>::max(); int maxX = std::numeric_limits<int>::min(); int minY = std::numeric_limits<int>::max(); int maxY = std::numeric_limits<int>::min(); std::vector<const core::ports::text_recognition::Word*> words; };
     std::vector<LineAcc> acc; acc.reserve(std::max<size_t>(8, words.size() / 8));
     for (const auto& ww : ws) {
         const auto& w = *ww.w;
@@ -303,7 +303,7 @@ std::vector<core::parser::OcrLine> buildOcrLinesFromWords(const std::vector<core
     }
     std::vector<core::parser::OcrLine> out; out.reserve(acc.size());
     for (auto& la : acc) {
-        std::sort(la.words.begin(), la.words.end(), [](const core::ports::text_recognition::tesseract::Word* a, const core::ports::text_recognition::tesseract::Word* b) { if (a->bbox.x != b->bbox.x) return a->bbox.x < b->bbox.x; return a->bbox.y < b->bbox.y; });
+        std::sort(la.words.begin(), la.words.end(), [](const core::ports::text_recognition::Word* a, const core::ports::text_recognition::Word* b) { if (a->bbox.x != b->bbox.x) return a->bbox.x < b->bbox.x; return a->bbox.y < b->bbox.y; });
         core::parser::OcrLine ol; ol.minY = la.minY; ol.maxY = la.maxY; ol.wordSpans.reserve(la.words.size());
         if (!la.words.empty()) { ol.minX = la.words.front()->bbox.x; ol.maxX = la.words.front()->bbox.x + la.words.front()->bbox.width; }
         else { ol.minX = 0; ol.maxX = 0; }
@@ -336,8 +336,6 @@ ColumnGuess inferColumnModelFromLines(const std::vector<core::parser::OcrLine>& 
     return out;
 }
 
-using detail::RawLineLite;
-
 std::vector<RawLineLite> groupMergeLinesRaw(const std::vector<RawLineLite>& lines, int maxGapPx) {
     if (lines.size() <= 1) return lines;
     std::vector<RawLineLite> merged; merged.reserve(lines.size());
@@ -352,8 +350,8 @@ std::vector<RawLineLite> groupMergeLinesRaw(const std::vector<RawLineLite>& line
     merged.push_back(std::move(cur)); return merged;
 }
 
-core::parser::OcrLine toOcrLineFromRawWords(const RawLineLite& src, size_t i0, size_t i1) noexcept {
-    core::parser::OcrLine out;
+core::application::importing::transaction::internal::OcrLine toOcrLineFromRawWords(const RawLineLite& src, size_t i0, size_t i1) noexcept {
+    core::application::importing::transaction::internal::OcrLine out;
     if (i0 >= i1 || i0 >= src.wordSpans.size()) return out;
     i1 = std::min(i1, src.wordSpans.size());
     out.minY = src.minY; out.maxY = src.maxY;
@@ -369,8 +367,8 @@ core::parser::OcrLine toOcrLineFromRawWords(const RawLineLite& src, size_t i0, s
     return out;
 }
 
-core::parser::TransactionMainRow splitMainRowFromRaw(const RawLineLite& src, int valutaX, int debitX, int creditX) noexcept {
-    core::parser::TransactionMainRow row;
+core::application::importing::transaction::internal::TransactionMainRow splitMainRowFromRaw(const RawLineLite& src, int valutaX, int debitX, int creditX) noexcept {
+    core::application::importing::transaction::internal::TransactionMainRow row;
     const auto toks = core::utils::splitWhitespace(src.text);
     if (toks.size() != src.wordSpans.size() || toks.empty()) {
         row.left.line.text = src.text;
@@ -403,7 +401,7 @@ core::parser::TransactionMainRow splitMainRowFromRaw(const RawLineLite& src, int
     return row;
 }
 
-core::parser::TransactionMainRow splitMainRowFromOcrLine(const core::parser::OcrLine& src, int valutaX, int debitX, int creditX) noexcept {
+core::application::importing::transaction::internal::TransactionMainRow splitMainRowFromOcrLine(const core::application::importing::transaction::internal::OcrLine& src, int valutaX, int debitX, int creditX) noexcept {
     RawLineLite rl; rl.minX = src.minX; rl.maxX = src.maxX; rl.minY = src.minY; rl.maxY = src.maxY; rl.wordSpans = src.wordSpans; rl.text = src.text;
     return splitMainRowFromRaw(rl, valutaX, debitX, creditX);
 }

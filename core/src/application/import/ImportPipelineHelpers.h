@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "core/ports/image-processing/OpenCvResult.h"
-#include "core/ports/pdf-rendering/PopplerResult.h"
-#include "core/ports/text-recognition/TesseractResult.h"
+#include "core/ports/image-processing/ImageProcessingResult.h"
+#include "core/ports/pdf-rendering/PdfRenderingResult.h"
+#include "core/ports/text-recognition/TextRecognitionResult.h"
 #include "core/errors/IErrorReporter.h"
 #include "core/application/import/ImportRequest.h"
 #include "core/application/import/ImportResult.h"
@@ -30,8 +30,8 @@ using ProgressReporter = std::function<void(double, const std::string&)>;
 
 struct PageWork {
     bool hasTable = false;
-    core::ports::image_processing::opencv::Table table;
-    core::ports::text_recognition::tesseract::ExtractResult ocr;
+    core::ports::image_processing::Table table;
+    core::ports::text_recognition::ExtractResult ocr;
     std::vector<uint8_t> cropBytes;
     size_t pageIndex = 0;
     double totalSec = 0.0;
@@ -53,10 +53,10 @@ std::vector<uint8_t> readImportBytes(const std::filesystem::path& path, core::er
 PageWork processImportPage(size_t pageIndex,
                            size_t totalPages,
                            const ImportRequest& req,
-                           const core::ports::pdf_rendering::poppler::RenderResult& renderRes,
-                           const core::ports::pdf_rendering::poppler::ExtractResult& extractRes,
+                           const core::ports::pdf_rendering::RenderResult& renderRes,
+                           const core::ports::pdf_rendering::ExtractResult& extractRes,
                            const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
-                           const std::shared_ptr<core::ports::text_recognition::ITextRecognizer>& tesseract,
+                                              const std::shared_ptr<core::ports::text_recognition::ITextRecognizer>& tesseract,
                            core::jobs::SlotLimiter* ocrLimiter,
                            const ProgressReporter& report,
                            std::atomic<size_t>& doneUnits,

@@ -26,8 +26,8 @@ std::vector<std::string> referenceAliasesFromMetadata(const std::string& metadat
     return policy::referenceAliasesFromMetadata(metadata);
 }
 
-DraftTextSignals buildDraftTextSignals(const core::domain::WorkspaceState& state,
-                                       const core::domain::TransactionDraft& transaction)
+DraftTextSignals buildDraftTextSignals(const core::domain::catalog::WorkspaceCatalog& state,
+                                       const core::application::importing::draft::TransactionDraft& transaction)
 {
     DraftTextSignals signals;
     const auto metadataText = policy::metadataSignalText(transaction.metadata);

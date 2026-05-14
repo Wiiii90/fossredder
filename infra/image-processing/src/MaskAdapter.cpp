@@ -12,7 +12,7 @@
 #include <sstream>
 
 namespace opencv {
-namespace ports = core::ports::image_processing::opencv;
+namespace ports = core::ports::image_processing;
 
 cv::Mat MaskAdapter::makeLineMask(const cv::Mat& grayIn, bool horizontal) {
     if (grayIn.empty()) return grayIn;

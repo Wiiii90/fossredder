@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "core/application/analysis/RunAnalysisResult.h"
+#include "core/application/analysis/AnalysisRequest.h"
 
 namespace ui::analysis::input {
 
@@ -26,5 +26,13 @@ std::vector<core::domain::AnalysisTransaction> toCoreTransactions(const QVariant
  *  @return Vector of trimmed std::string identifiers
  */
 std::vector<std::string> toSelectedTransactionIds(const QVariantList& selectedTransactionIds);
+
+/** @brief Build the core analysis request DTO from UI inputs.
+ *  @param analysisId Analysis identifier
+ *  @param filterSpecification Filter specification string
+ *  @return Core analysis request DTO
+ */
+core::application::analysis::AnalysisRequest toAnalysisRequest(const QString& analysisId,
+                                                               const QString& filterSpecification);
 
 } // namespace ui::analysis::input

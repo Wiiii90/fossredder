@@ -5,8 +5,8 @@
 
 #include "image-processing/pch.h"
 #include "core/ports/image-processing/IImageProcessor.h"
-#include "core/ports/image-processing/OpenCvRequest.h"
-#include "core/ports/image-processing/OpenCvResult.h"
+#include "core/ports/image-processing/ImageProcessingRequest.h"
+#include "core/ports/image-processing/ImageProcessingResult.h"
 #include "image-processing/DenoiseAdapter.h"
 #include "image-processing/MaskAdapter.h"
 #include "image-processing/DetectAdapter.h"
@@ -20,18 +20,18 @@ class OpenCvImageProcessorAdapter : public core::ports::image_processing::IImage
 public:
     OpenCvImageProcessorAdapter(std::shared_ptr<IDebugger> dbg = nullptr) : debugger(std::move(dbg)) {}
 
-    core::ports::image_processing::opencv::DenoiseResult denoise(const core::ports::image_processing::opencv::DenoiseRequest& req) const override {
+    core::ports::image_processing::DenoiseResult denoise(const core::ports::image_processing::DenoiseRequest& req) const override {
         if (req.cancelFlag && req.cancelFlag->load()) return {};
         return opencv::DenoiseAdapter::denoise(req, debugger);
     }
 
-    core::ports::image_processing::opencv::MaskResult mask(const core::ports::image_processing::opencv::MaskRequest& req) const override {
+    core::ports::image_processing::MaskResult mask(const core::ports::image_processing::MaskRequest& req) const override {
         if (req.cancelFlag && req.cancelFlag->load()) return {};
         return opencv::MaskAdapter::mask(req, debugger);
     }
 
-    core::ports::image_processing::opencv::DetectResult detect(const core::ports::image_processing::opencv::DetectRequest& req) const override {
-        core::ports::image_processing::opencv::DetectResult res;
+    core::ports::image_processing::DetectResult detect(const core::ports::image_processing::DetectRequest& req) const override {
+        core::ports::image_processing::DetectResult res;
         try {
             if (req.cancelFlag && req.cancelFlag->load()) return res;
             cv::Mat img;
@@ -49,13 +49,13 @@ public:
             }
             if (img.empty()) return res;
 
-            if (req.kind == core::ports::image_processing::opencv::DetectRequest::DetectKind::TextBlocks) {
+            if (req.kind == core::ports::image_processing::DetectRequest::DetectKind::TextBlocks) {
                 auto blocks = opencv::DetectAdapter::detectTextBlocks(img, debugger);
                 if (!blocks.empty()) {
                     res.detected = true;
                     res.textBlocks.reserve(blocks.size());
                     for (const auto &b : blocks) {
-                        core::ports::image_processing::opencv::Rect r;
+                        core::ports::image_processing::Rect r;
                         r.x = b.x; r.y = b.y; r.width = b.width; r.height = b.height;
                         res.textBlocks.push_back(r);
                     }
@@ -74,8 +74,8 @@ public:
         return res;
     }
 
-    core::ports::image_processing::opencv::CropResult crop(const core::ports::image_processing::opencv::CropRequest& req) const override {
-        core::ports::image_processing::opencv::CropResult res;
+    core::ports::image_processing::CropResult crop(const core::ports::image_processing::CropRequest& req) const override {
+        core::ports::image_processing::CropResult res;
         if (req.cancelFlag && req.cancelFlag->load()) return res;
         try {
             cv::Mat img;
@@ -90,7 +90,7 @@ public:
             }
             if (img.empty()) return res;
 
-            std::vector<core::ports::image_processing::opencv::Rect> rects; rects.push_back(req.bbox);
+            std::vector<core::ports::image_processing::Rect> rects; rects.push_back(req.bbox);
             std::string prefix;
             if (!req.uniqIdPrefix.empty()) {
                 prefix = req.uniqIdPrefix;

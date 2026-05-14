@@ -46,7 +46,7 @@ void removeDeletedIds(const IdRange &ids, Model &model, Cleanup &&cleanup) {
 
 void assignTransactionPropertyIds(Transaction &transaction,
                                   const QStringList &propertyIds) {
-  transaction.propertyIds = toStdStringVector(propertyIds);
+  transaction.setPropertyIds(toStdStringVector(propertyIds));
 }
 
 } // namespace
@@ -148,7 +148,7 @@ void SessionMutationState::setTransactionPropertyIdsImmediate(
   if (!current)
     return;
 
-  QSet<QString> oldSet = toQStringSet(current->propertyIds);
+  QSet<QString> oldSet = toQStringSet(current->propertyIds());
   const QSet<QString> newSet(propertyIds.begin(), propertyIds.end());
 
   if (oldSet == newSet)

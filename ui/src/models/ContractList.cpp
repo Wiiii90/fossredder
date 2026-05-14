@@ -24,15 +24,15 @@ QVariant ContractList::data(const QModelIndex &index, int role) const {
 
   switch (role) {
   case IdRole:
-    return QString::fromStdString(c->id);
+    return QString::fromStdString(c->id());
   case NameRole:
-    return QString::fromStdString(c->name);
+    return QString::fromStdString(c->name());
   case TypeRole:
-    return QString::fromStdString(c->type);
+    return QString::fromStdString(c->type());
   case ActorIdsRole:
-    return payload::mapper::toQStringList(c->actorIds);
+    return payload::mapper::toQStringList(c->actorIds());
   case PropertyIdsRole:
-    return payload::mapper::toQStringList(c->propertyIds);
+    return payload::mapper::toQStringList(c->propertyIds());
   default:
     return {};
   }
@@ -42,11 +42,11 @@ QVariantMap ContractList::get(int index) const {
   QVariantMap m;
   const auto &c = itemAtRow(index);
   if (!c) return m;
-  m[ui::payload::keys::common::kId] = QString::fromStdString(c->id);
-  m[ui::payload::keys::common::kName] = QString::fromStdString(c->name);
-  m[ui::payload::keys::common::kType] = QString::fromStdString(c->type);
-  m[ui::payload::keys::contract::kActorIds] = payload::mapper::toQStringList(c->actorIds);
-  m[ui::payload::keys::transaction::kPropertyIds] = payload::mapper::toQStringList(c->propertyIds);
+  m[ui::payload::keys::common::kId] = QString::fromStdString(c->id());
+  m[ui::payload::keys::common::kName] = QString::fromStdString(c->name());
+  m[ui::payload::keys::common::kType] = QString::fromStdString(c->type());
+  m[ui::payload::keys::contract::kActorIds] = payload::mapper::toQStringList(c->actorIds());
+  m[ui::payload::keys::transaction::kPropertyIds] = payload::mapper::toQStringList(c->propertyIds());
   return m;
 }
 
@@ -63,8 +63,8 @@ QHash<int, QByteArray> ContractList::roleNames() const {
 
 int ContractList::addContract(const QString &name, const QString &type) {
   auto c = std::make_shared<Contract>();
-  c->name = strings::toStdString(name);
-  c->type = strings::toStdString(type);
+  c->rename(strings::toStdString(name));
+  c->setType(strings::toStdString(type));
   return appendItem(std::move(c));
 }
 

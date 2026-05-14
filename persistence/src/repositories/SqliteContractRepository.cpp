@@ -36,33 +36,31 @@ struct AliasStats {
     std::string updatedAt;
 };
 
-core::domain::AliasUsage makeAliasUsage(const std::string& alias,
-                                       int hitCount,
-                                       const std::string& createdAt,
-                                       const std::string& updatedAt,
-                                       const std::string& lastUsedAt)
+core::domain::Alias makeAlias(const std::string& alias,
+                              int hitCount,
+                              const std::string& createdAt,
+                              const std::string& updatedAt,
+                              const std::string& lastUsedAt)
 {
-    core::domain::AliasUsage usage;
-    usage.alias.value = alias;
-    usage.alias.source = alias;
-    usage.alias.createdAt = createdAt;
-    usage.alias.updatedAt = updatedAt;
-    usage.hitCount = hitCount;
-    usage.createdAt = createdAt;
-    usage.updatedAt = updatedAt;
-    usage.lastUsedAt = lastUsedAt;
-    return usage;
+    core::domain::Alias value;
+    value.setValue(alias);
+    value.setSource(alias);
+    value.setHitCount(hitCount);
+    value.setCreatedAt(createdAt);
+    value.setUpdatedAt(updatedAt);
+    value.setLastUsedAt(lastUsedAt);
+    return value;
 }
 
-std::vector<core::domain::AliasUsage> collectAliasUsage(const Contract& contract)
+std::vector<core::domain::Alias> collectAliases(const Contract& contract)
 {
-    if (!contract.aliasUsage.empty()) return contract.aliasUsage;
-
-    std::vector<core::domain::AliasUsage> out;
-    out.reserve(contract.aliases.size());
-    for (const auto& alias : contract.aliases) {
-        if (alias.value.empty()) continue;
-        out.push_back(makeAliasUsage(alias.value, 1, alias.createdAt, alias.updatedAt, {}));
+    std::vector<core::domain::Alias> out;
+    out.reserve(contract.aliases().size());
+    for (const auto& alias : contract.aliases()) {
+        if (alias.value().empty()) continue;
+        auto value = alias;
+        if (value.hitCount() < 1) value.setHitCount(1);
+        out.push_back(std::move(value));
     }
     return out;
 }
@@ -86,20 +84,16 @@ std::unordered_map<std::string, AliasStats> loadContractAliasStats(sqlite3* db, 
 void loadContractAliases(sqlite3* db, Contract& contract) {
     persistence::StmtGuard stmt(db, "SELECT alias, hit_count, created_at, updated_at, last_used_at FROM contract_aliases WHERE contract_id = ? ORDER BY hit_count DESC, last_used_at DESC, alias ASC;");
     if (!stmt) return;
-    stmt.bindText(1, contract.id);
+    stmt.bindText(1, contract.id());
+    std::vector<core::domain::Alias> aliases;
     while (stmt.step() == SQLITE_ROW) {
-        core::domain::AliasUsage usage;
-        usage.alias.value = stmt.columnText(0);
-        usage.alias.source = usage.alias.value;
-        usage.alias.createdAt = stmt.columnText(2);
-        usage.alias.updatedAt = stmt.columnText(3);
-        usage.hitCount = stmt.columnInt(1);
-        usage.createdAt = stmt.columnText(2);
-        usage.updatedAt = stmt.columnText(3);
-        usage.lastUsedAt = stmt.columnText(4);
-        contract.aliases.push_back(usage.alias);
-        contract.aliasUsage.push_back(std::move(usage));
+        aliases.push_back(makeAlias(stmt.columnText(0),
+                                    stmt.columnInt(1),
+                                    stmt.columnText(2),
+                                    stmt.columnText(3),
+                                    stmt.columnText(4)));
     }
+    contract.setAliases(std::move(aliases));
 }
 
 void deleteContractAliases(sqlite3* db, const std::string& contractId) {
@@ -110,24 +104,24 @@ void deleteContractAliases(sqlite3* db, const std::string& contractId) {
 }
 
 void replaceContractAliases(sqlite3* db, const Contract& contract, const std::unordered_map<std::string, AliasStats>& existing) {
-    if (contract.id.empty()) return;
-    deleteContractAliases(db, contract.id);
+    if (contract.id().empty()) return;
+    deleteContractAliases(db, contract.id());
 
     persistence::StmtGuard stmt(db,
         "INSERT INTO contract_aliases (contract_id, alias, hit_count, created_at, updated_at, last_used_at) VALUES (?, ?, ?, COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP), COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP), COALESCE(NULLIF(?, ''), CURRENT_TIMESTAMP));");
     if (!stmt) return;
 
     std::unordered_set<std::string> seen;
-    for (const auto& usage : collectAliasUsage(contract)) {
-        if (usage.alias.value.empty() || !seen.insert(usage.alias.value).second) continue;
-        const auto it = existing.find(usage.alias.value);
-        const int hitCount = it == existing.end() ? std::max(1, usage.hitCount) : std::max(1, it->second.hitCount);
-        const std::string createdAt = it == existing.end() || it->second.createdAt.empty() ? usage.createdAt : it->second.createdAt;
-        const std::string updatedAt = it == existing.end() || it->second.updatedAt.empty() ? usage.updatedAt : it->second.updatedAt;
-        const std::string lastUsedAt = it == existing.end() || it->second.lastUsedAt.empty() ? usage.lastUsedAt : it->second.lastUsedAt;
+    for (const auto& alias : collectAliases(contract)) {
+        if (alias.value().empty() || !seen.insert(alias.value()).second) continue;
+        const auto it = existing.find(alias.value());
+        const int hitCount = it == existing.end() ? std::max(1, alias.hitCount()) : std::max(1, it->second.hitCount);
+        const std::string createdAt = it == existing.end() || it->second.createdAt.empty() ? alias.createdAt() : it->second.createdAt;
+        const std::string updatedAt = it == existing.end() || it->second.updatedAt.empty() ? alias.updatedAt() : it->second.updatedAt;
+        const std::string lastUsedAt = it == existing.end() || it->second.lastUsedAt.empty() ? alias.lastUsedAt() : it->second.lastUsedAt;
         stmt.reset();
-        stmt.bindText(1, contract.id);
-        stmt.bindText(2, usage.alias.value);
+        stmt.bindText(1, contract.id());
+        stmt.bindText(2, alias.value());
         stmt.bindInt(3, hitCount);
         stmt.bindText(4, createdAt);
         stmt.bindText(5, updatedAt);
@@ -140,7 +134,7 @@ void insertContractRelations(sqlite3* db, const std::string& contractId, const C
     {
         persistence::StmtGuard s(db,
             "INSERT OR IGNORE INTO contract_actors (contract_id, actor_id) VALUES (?, ?);");
-        if (s) for (const auto& id : c.actorIds) {
+        if (s) for (const auto& id : c.actorIds()) {
             if (id.empty()) continue;
             s.reset(); s.bindText(1, contractId); s.bindText(2, id); s.step();
         }
@@ -148,7 +142,7 @@ void insertContractRelations(sqlite3* db, const std::string& contractId, const C
     {
         persistence::StmtGuard s(db,
             "INSERT OR IGNORE INTO contract_properties (contract_id, property_id) VALUES (?, ?);");
-        if (s) for (const auto& id : c.propertyIds) {
+        if (s) for (const auto& id : c.propertyIds()) {
             if (id.empty()) continue;
             s.reset(); s.bindText(1, contractId); s.bindText(2, id); s.step();
         }
@@ -168,7 +162,9 @@ constexpr auto kSelectContract =
 
 std::shared_ptr<Contract> readContractRow(persistence::StmtGuard& s) {
     auto c = std::make_shared<Contract>();
-    c->id = s.columnText(0); c->name = s.columnText(1); c->type = s.columnText(2);
+    c->setId(s.columnText(0));
+    c->rename(s.columnText(1));
+    c->setType(s.columnText(2));
     return c;
 }
 
@@ -176,29 +172,29 @@ void loadContractRelations(sqlite3* db, Contract& c) {
     {
         persistence::StmtGuard s(db,
             "SELECT actor_id FROM contract_actors WHERE contract_id = ?;");
-        if (s) { s.bindText(1, c.id); while (s.step() == SQLITE_ROW) c.actorIds.push_back(s.columnText(0)); }
+        if (s) { s.bindText(1, c.id()); while (s.step() == SQLITE_ROW) c.addActorId(s.columnText(0)); }
     }
     {
         persistence::StmtGuard s(db,
             "SELECT property_id FROM contract_properties WHERE contract_id = ?;");
-        if (s) { s.bindText(1, c.id); while (s.step() == SQLITE_ROW) c.propertyIds.push_back(s.columnText(0)); }
+        if (s) { s.bindText(1, c.id()); while (s.step() == SQLITE_ROW) c.addPropertyId(s.columnText(0)); }
     }
 }
 
 } // namespace
 
 void SqliteContractRepository::addContract(const std::shared_ptr<Contract>& contract) {
-    if (!contract || contract->id.empty()) return;
+    if (!contract || contract->id().empty()) return;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
         "INSERT OR IGNORE INTO contracts (id, name, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?);");
     if (!stmt) return;
-    stmt.bindText(1, contract->id);    stmt.bindText(2, contract->name);
-    stmt.bindText(3, contract->type);
-    stmt.bindText(4, contract->createdAt);
-    stmt.bindText(5, contract->updatedAt);
+    stmt.bindText(1, contract->id());    stmt.bindText(2, contract->name());
+    stmt.bindText(3, contract->type());
+    stmt.bindText(4, contract->createdAt());
+    stmt.bindText(5, contract->updatedAt());
     if (stmt.step() == SQLITE_DONE) {
         replaceContractAliases(pimpl_->db->handle(), *contract, {});
-        insertContractRelations(pimpl_->db->handle(), contract->id, *contract);
+        insertContractRelations(pimpl_->db->handle(), contract->id(), *contract);
     }
 }
 
@@ -209,8 +205,8 @@ std::vector<std::shared_ptr<Contract>> SqliteContractRepository::getContracts() 
     if (!stmt) return out;
     while (stmt.step() == SQLITE_ROW) {
         auto c = readContractRow(stmt);
-        c->createdAt = stmt.columnText(3);
-        c->updatedAt = stmt.columnText(4);
+        c->setCreatedAt(stmt.columnText(3));
+        c->setUpdatedAt(stmt.columnText(4));
         loadContractAliases(pimpl_->db->handle(), *c);
         loadContractRelations(pimpl_->db->handle(), *c);
         out.push_back(std::move(c));
@@ -225,8 +221,8 @@ std::optional<std::shared_ptr<Contract>> SqliteContractRepository::getContractBy
     stmt.bindText(1, id);
     if (stmt.step() != SQLITE_ROW) return std::nullopt;
     auto c = readContractRow(stmt);
-    c->createdAt = stmt.columnText(3);
-    c->updatedAt = stmt.columnText(4);
+    c->setCreatedAt(stmt.columnText(3));
+    c->setUpdatedAt(stmt.columnText(4));
     loadContractAliases(pimpl_->db->handle(), *c);
     loadContractRelations(pimpl_->db->handle(), *c);
     return c;
@@ -240,24 +236,24 @@ void SqliteContractRepository::removeContract(const std::string& id) {
 }
 
 void SqliteContractRepository::updateContract(const std::shared_ptr<Contract>& contract) {
-    if (!contract || contract->id.empty()) return;
-    const auto existing = loadContractAliasStats(pimpl_->db->handle(), contract->id);
+    if (!contract || contract->id().empty()) return;
+    const auto existing = loadContractAliasStats(pimpl_->db->handle(), contract->id());
     persistence::StmtGuard stmt(pimpl_->db->handle(),
         "UPDATE contracts SET name = ?, type = ?, created_at = COALESCE(NULLIF(created_at, ''), ?), updated_at = ? WHERE id = ?;");
     if (!stmt) return;
-    stmt.bindText(1, contract->name);
-    stmt.bindText(2, contract->type);
-    stmt.bindText(3, contract->createdAt);
-    stmt.bindText(4, contract->updatedAt);
-    stmt.bindText(5, contract->id);
+    stmt.bindText(1, contract->name());
+    stmt.bindText(2, contract->type());
+    stmt.bindText(3, contract->createdAt());
+    stmt.bindText(4, contract->updatedAt());
+    stmt.bindText(5, contract->id());
     if (stmt.step() != SQLITE_DONE) return;
-    deleteContractRelations(pimpl_->db->handle(), contract->id);
-    insertContractRelations(pimpl_->db->handle(), contract->id, *contract);
+    deleteContractRelations(pimpl_->db->handle(), contract->id());
+    insertContractRelations(pimpl_->db->handle(), contract->id(), *contract);
     replaceContractAliases(pimpl_->db->handle(), *contract, existing);
 }
 
 void SqliteContractRepository::upsertContract(const std::shared_ptr<Contract>& contract) {
-    if (!contract || contract->id.empty()) return;
+    if (!contract || contract->id().empty()) return;
     updateContract(contract);
     if (sqlite3_changes(pimpl_->db->handle()) == 0) addContract(contract);
 }

@@ -7,7 +7,6 @@
 #include "archive/ZipArchiveAdapter.h"
 
 #include <filesystem>
-#include <memory>
 
 #include <zip.h>
 
@@ -69,13 +68,3 @@ bool ZipArchiveAdapter::create(const std::filesystem::path& sourceDirectory,
 }
 
 } // namespace infra::archive
-
-namespace core::application::exporting {
-
-std::unique_ptr<IArchive> createArchiveAdapter()
-{
-    return std::make_unique<infra::archive::ZipArchiveAdapter>();
-}
-
-} // namespace core::application::exporting
-

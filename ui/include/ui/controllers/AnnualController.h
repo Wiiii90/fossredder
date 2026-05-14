@@ -12,7 +12,8 @@
 #include <QVariantMap>
 #include <qqmlintegration.h>
 
-namespace core::application { class WorkspaceFacade; }
+#include "core/ports/workspace/IWorkspaceReader.h"
+#include "core/ports/workspace/IWorkspaceWriter.h"
 
 namespace ui {
 
@@ -28,7 +29,7 @@ public:
      *  @param core Core application facade pointer
      *  @param parent QObject parent
      */
-    explicit AnnualController(core::application::WorkspaceFacade* core, QObject* parent = nullptr);
+    explicit AnnualController(core::ports::workspace::IWorkspaceWriter* core, QObject* parent = nullptr);
 
     /** @brief Return a single annual aggregate by identifier.
      *  @param id Annual identifier
@@ -77,7 +78,8 @@ public:
     Q_INVOKABLE void deleteAnnual(const QString& id);
 
 private:
-    core::application::WorkspaceFacade* core_ = nullptr;
+    core::ports::workspace::IWorkspaceWriter* core_ = nullptr;
+    core::ports::workspace::IWorkspaceReader* reader_ = nullptr;
 };
 
 } // namespace ui

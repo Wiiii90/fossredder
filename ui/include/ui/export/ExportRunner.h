@@ -10,7 +10,7 @@
 
 #include <QString>
 
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/ports/presenters/IExportPresenter.h"
 #include "ui/bootstrap/QmlContracts.h"
 
@@ -33,13 +33,13 @@ using ExportResult = core::ports::presenters::ExportPresentation;
 class ExportRunner {
 public:
   using ExecuteExportFn = std::function<ExportResult(
-      std::shared_ptr<const core::domain::WorkspaceState>, const ExportRequest &)>;
+      std::shared_ptr<const core::domain::catalog::WorkspaceCatalog>, const ExportRequest &)>;
 
   explicit ExportRunner(ExecuteExportFn execute = {});
 
-  ExportResult run(std::shared_ptr<const core::domain::WorkspaceState> state,
+  ExportResult run(std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> state,
                    const ExportRequest &request) const;
-  ExportResult run(const core::domain::WorkspaceState &state,
+  ExportResult run(const core::domain::catalog::WorkspaceCatalog &state,
                    const ExportRequest &request) const;
 
   ExecuteExportFn execute_;

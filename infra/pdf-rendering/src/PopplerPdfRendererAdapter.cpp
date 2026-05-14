@@ -5,8 +5,8 @@
 
 #include "pdf-rendering/pch.h"
 #include "core/ports/pdf-rendering/IPdfRenderer.h"
-#include "core/ports/pdf-rendering/PopplerRequest.h"
-#include "core/ports/pdf-rendering/PopplerResult.h"
+#include "core/ports/pdf-rendering/PdfRenderingRequest.h"
+#include "core/ports/pdf-rendering/PdfRenderingResult.h"
 #include "pdf-rendering/PopplerCore.h"
 #include "debug/IDebugger.h"
 #include <nlohmann/json.hpp>
@@ -29,8 +29,8 @@ class PopplerPdfRendererAdapter : public core::ports::pdf_rendering::IPdfRendere
         }
     }
 
-    core::ports::pdf_rendering::poppler::RenderResult render(const core::ports::pdf_rendering::poppler::RenderRequest& req) override {
-        core::ports::pdf_rendering::poppler::RenderResult out;
+    core::ports::pdf_rendering::RenderResult render(const core::ports::pdf_rendering::RenderRequest& req) override {
+        core::ports::pdf_rendering::RenderResult out;
         try {
             writeDebugTextSafe("poppler/log", std::string("render:start ") + req.pdfPath.string());
 
@@ -58,8 +58,8 @@ class PopplerPdfRendererAdapter : public core::ports::pdf_rendering::IPdfRendere
         return out;
     }
 
-    core::ports::pdf_rendering::poppler::ExtractResult extract(const core::ports::pdf_rendering::poppler::ExtractRequest& req) override {
-        core::ports::pdf_rendering::poppler::ExtractResult out;
+    core::ports::pdf_rendering::ExtractResult extract(const core::ports::pdf_rendering::ExtractRequest& req) override {
+        core::ports::pdf_rendering::ExtractResult out;
         try {
             writeDebugTextSafe("poppler/log", std::string("extract:start ") + req.pdfPath.string());
             auto t0 = std::chrono::steady_clock::now();

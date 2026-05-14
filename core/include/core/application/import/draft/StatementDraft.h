@@ -23,7 +23,3 @@ public:
 };
 
 }
-
-namespace core::domain {
-using StatementDraft = core::application::importing::draft::StatementDraft;
-}

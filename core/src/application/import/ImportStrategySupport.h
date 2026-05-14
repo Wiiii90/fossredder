@@ -8,8 +8,8 @@
 #include "ImportPipelineHelpers.h"
 
 #include "core/ports/image-processing/IImageProcessor.h"
-#include "core/ports/pdf-rendering/PopplerRequest.h"
-#include "core/ports/pdf-rendering/PopplerResult.h"
+#include "core/ports/pdf-rendering/PdfRenderingRequest.h"
+#include "core/ports/pdf-rendering/PdfRenderingResult.h"
 #include "core/ports/text-recognition/ITextRecognizer.h"
 #include "core/errors/IErrorReporter.h"
 #include "core/jobs/Scheduler.h"
@@ -47,13 +47,13 @@ void ensureDirectoryExists(const std::filesystem::path& path,
 internal::ProgressReporter makeProgressReporter(const ImportRequest& req,
                                                 core::errors::IErrorReporter* errorReporter);
 
-core::ports::pdf_rendering::poppler::RenderRequest makeRenderRequest(const ImportRequest& req);
-core::ports::pdf_rendering::poppler::ExtractRequest makeExtractRequest(const core::ports::pdf_rendering::poppler::RenderRequest& renderRequest,
+core::ports::pdf_rendering::RenderRequest makeRenderRequest(const ImportRequest& req);
+core::ports::pdf_rendering::ExtractRequest makeExtractRequest(const core::ports::pdf_rendering::RenderRequest& renderRequest,
                                                 const ImportRequest& req);
 
 std::vector<internal::PageWork> collectPageWork(const ImportRequest& req,
-                                              const core::ports::pdf_rendering::poppler::RenderResult& renderResult,
-                                              const core::ports::pdf_rendering::poppler::ExtractResult& extractResult,
+                                              const core::ports::pdf_rendering::RenderResult& renderResult,
+                                              const core::ports::pdf_rendering::ExtractResult& extractResult,
                                               const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
                                               const std::shared_ptr<core::ports::text_recognition::ITextRecognizer>& tesseract,
                                               SchedulerResources& resources,

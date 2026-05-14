@@ -12,9 +12,10 @@
 #include <qqmlintegration.h>
 #include <memory>
 
+#include "core/ports/workspace/IWorkspaceReader.h"
+#include "core/ports/workspace/IWorkspaceWriter.h"
 #include "ui/models/StatementDraft.h"
 
-namespace core::application { class WorkspaceFacade; }
 namespace core::application::importing::draft { class IImportMatcherService; }
 
 namespace ui {
@@ -31,7 +32,7 @@ public:
      *  @param core Core application facade pointer
      *  @param parent QObject parent
      */
-    explicit DraftController(core::application::WorkspaceFacade* core,
+    explicit DraftController(core::ports::workspace::IWorkspaceWriter* core,
                              std::shared_ptr<core::application::importing::draft::IImportMatcherService> matcherService = {},
                              QObject* parent = nullptr);
 
@@ -87,7 +88,8 @@ public:
     Q_INVOKABLE void updateCurrentAmount(StatementDraft* draft, const QString& text);
 
 private:
-    core::application::WorkspaceFacade* core_ = nullptr;
+    core::ports::workspace::IWorkspaceWriter* core_ = nullptr;
+    core::ports::workspace::IWorkspaceReader* reader_ = nullptr;
     std::shared_ptr<core::application::importing::draft::IImportMatcherService> matcherService_;
 };
 

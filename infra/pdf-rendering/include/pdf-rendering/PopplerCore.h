@@ -10,7 +10,7 @@
 #include <memory>
 #include <filesystem>
 #include <atomic>
-#include "core/ports/pdf-rendering/PopplerTypes.h"
+#include "core/ports/pdf-rendering/PdfRenderingTypes.h"
 
 class IDebugger;
 
@@ -27,7 +27,7 @@ public:
      * @param cancelFlag Optional cancellation flag for early exit.
      * @return The extracted page metadata.
      */
-    static std::vector<core::ports::pdf_rendering::poppler::RenderedPage> renderDocument(const std::string& path,
+    static std::vector<core::ports::pdf_rendering::RenderedPage> renderDocument(const std::string& path,
                                                                  double dpi,
                                                                  const std::filesystem::path& outputDir = std::filesystem::path(),
                                                                  const std::string& uniqIdPrefix = "",
@@ -46,7 +46,7 @@ public:
      * @param cancelFlag Optional cancellation flag for early exit.
      * @return The extracted page metadata.
      */
-    static std::vector<core::ports::pdf_rendering::poppler::RenderedPage> extractDocumentMeta(const std::string& path,
+    static std::vector<core::ports::pdf_rendering::RenderedPage> extractDocumentMeta(const std::string& path,
                                                                       double dpi,
                                                                       const std::filesystem::path& outputDir = std::filesystem::path(),
                                                                       const std::string& uniqIdPrefix = "",

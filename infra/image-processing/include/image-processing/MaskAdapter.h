@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "core/ports/image-processing/OpenCvRequest.h"
-#include "core/ports/image-processing/OpenCvResult.h"
+#include "core/ports/image-processing/ImageProcessingRequest.h"
+#include "core/ports/image-processing/ImageProcessingResult.h"
 #include <memory>
 #include <opencv2/opencv.hpp>
 
@@ -14,7 +14,7 @@ class IDebugger;
 
 namespace opencv {
 
-namespace ports = core::ports::image_processing::opencv;
+namespace ports = core::ports::image_processing;
 
 class MaskAdapter {
 public:

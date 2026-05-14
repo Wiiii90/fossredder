@@ -6,7 +6,7 @@
 #include "text-recognition/pch.h"
 #include "text-recognition/TesseractCore.h"
 #include "debug/IDebugger.h"
-#include "core/ports/text-recognition/TesseractTypes.h"
+#include "core/ports/text-recognition/TextRecognitionTypes.h"
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
 #include <sstream>
@@ -17,7 +17,7 @@
 #include <system_error>
 
 using namespace std;
-namespace ports = core::ports::text_recognition::tesseract;
+namespace ports = core::ports::text_recognition;
 
 static Pix* pixFromBytes(const std::vector<uint8_t>& data) {
     if (data.empty()) return nullptr;
@@ -74,25 +74,25 @@ static std::string resolveTessdataPath(const std::string& provided) {
     return std::string();
 }
 
-static tesseract::OcrEngineMode toTesseractOem(ports::OcrEngineMode mode) {
+static tesseract::OcrEngineMode toTesseractOem(ports::EngineMode mode) {
     switch (mode) {
-    case ports::OcrEngineMode::LegacyOnly:
+    case ports::EngineMode::LegacyOnly:
         return tesseract::OEM_TESSERACT_ONLY;
-    case ports::OcrEngineMode::LstmOnly:
+    case ports::EngineMode::LstmOnly:
         return tesseract::OEM_LSTM_ONLY;
-    case ports::OcrEngineMode::LegacyAndLstm:
+    case ports::EngineMode::LegacyAndLstm:
         return tesseract::OEM_TESSERACT_LSTM_COMBINED;
-    case ports::OcrEngineMode::Default:
+    case ports::EngineMode::Default:
     default:
         return tesseract::OEM_DEFAULT;
     }
 }
 
-static std::string resolveLanguage(const ports::RecognitionSettings& recognition) {
+static std::string resolveLanguage(const ports::Settings& recognition) {
     return recognition.language.empty() ? std::string("deu") : recognition.language;
 }
 
-static void configureForStatements(tesseract::TessBaseAPI& ocr, const ports::RecognitionSettings& recognition) {
+static void configureForStatements(tesseract::TessBaseAPI& ocr, const ports::Settings& recognition) {
     ocr.SetVariable("preserve_interword_spaces", recognition.preserveInterwordSpaces ? "1" : "0");
 
     if (!recognition.charWhitelist.empty()) {
@@ -110,7 +110,7 @@ static void applyPsm(tesseract::TessBaseAPI& ocr, int psm) {
 
 static ports::Text recognizeTextFromBytes(const std::vector<uint8_t>& data,
                                                    const std::string& tessdataPath,
-                                                   const ports::RecognitionSettings& recognition,
+                                                   const ports::Settings& recognition,
                                                    std::shared_ptr<IDebugger> dbg) {
     ports::Text out;
     tesseract::TessBaseAPI ocr;
@@ -139,7 +139,7 @@ static ports::Text recognizeTextFromBytes(const std::vector<uint8_t>& data,
 
 static vector<ports::Word> getWordsFromBytes(const std::vector<uint8_t>& data,
                                                       const std::string& tessdataPath,
-                                                      const ports::RecognitionSettings& recognition,
+                                                      const ports::Settings& recognition,
                                                       std::shared_ptr<IDebugger> dbg) {
     std::vector<ports::Word> out;
     Pix* pix = pixFromBytes(data);
@@ -208,7 +208,7 @@ static vector<ports::Word> getWordsFromBytes(const std::vector<uint8_t>& data,
 std::pair<ports::Text, std::vector<ports::Word>> TesseractCore::extractFromBytes(
     const std::vector<uint8_t>& data,
     const std::string& tessdataPath,
-    const ports::RecognitionSettings& recognition,
+    const ports::Settings& recognition,
     std::shared_ptr<IDebugger> dbg) {
     auto t = recognizeTextFromBytes(data, tessdataPath, recognition, dbg);
     auto w = getWordsFromBytes(data, tessdataPath, recognition, dbg);

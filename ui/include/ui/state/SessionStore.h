@@ -8,7 +8,7 @@
 #include <QObject>
 #include <qqmlintegration.h>
 
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/application/storage/DeletionImpact.h"
 #include "ui/models/TransactionList.h"
 #include "ui/models/TransactionFilter.h"
@@ -33,7 +33,7 @@ public:
     const SessionModels& models() const noexcept { return models_; }
 
     /** @brief Replaces all UI model data from a domain application state snapshot. */
-    void loadFromState(const core::domain::WorkspaceState& state);
+    void loadFromState(const core::domain::catalog::WorkspaceCatalog& state);
     /** @brief Returns a live filter over transactions for a statement. */
     TransactionFilter* statementTransactions(const QString& statementId);
     /** @brief Returns a live filter over transactions for a property. */

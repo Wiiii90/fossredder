@@ -5,34 +5,40 @@
 
 #ifdef USE_QML
 #include "MainWindow.h"
-#include "ui/bootstrap/AppContext.h"
-#include "core/ports/image-processing/IImageProcessor.h"
-#include "core/ports/pdf-rendering/IPdfRenderer.h"
-#include "core/ports/text-recognition/ITextRecognizer.h"
-#include "core/application/analysis/RunAnalysis.h"
-#include "core/application/workspace/WorkspaceFacade.h"
-#include "core/errors/ErrorReporterRegistry.h"
-#include "core/application/export/ExportService.h"
+#include "core/application/analysis/AnalysisService.h"
+#include "core/application/export/ExportLog.h"
 #include "core/application/export/ExportRequest.h"
 #include "core/application/export/ExportResult.h"
+#include "core/application/export/ExportService.h"
 #include "core/application/import/IImportStatement.h"
 #include "core/application/import/draft/DraftMatcher.h"
-#include "core/jobs/JobSystem.h"
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/application/import/draft/IImportMatcherService.h"
 #include "core/application/storage/DeletionImpact.h"
-#include "core/application/export/ExportLog.h"
+#include "core/application/workspace/WorkspaceSessionState.h"
+#include "core/application/workspace/WorkspaceFacade.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
+#include "core/errors/ErrorReporterRegistry.h"
+#include "core/jobs/JobSystem.h"
+#include "core/ports/archive/IArchive.h"
+#include "core/ports/image-processing/IImageProcessor.h"
+#include "core/ports/pdf-rendering/IPdfRenderer.h"
+#include "core/ports/analysis-image-renderer/IAnalysisImageRenderer.h"
+#include "core/ports/xlsx-writer/IXlsxWriter.h"
 #include "core/ports/presenters/IAnalysisPresenter.h"
 #include "core/ports/presenters/IExportPresenter.h"
 #include "core/ports/presenters/IImportPresenter.h"
 #include "core/ports/presenters/IWorkspacePresenter.h"
-#include "core/application/import/draft/IImportMatcherService.h"
+#include "core/ports/text-recognition/ITextRecognizer.h"
+#include "core/ports/workspace/WorkspaceCommands.h"
 #include "debug/DebugDefaults.h"
+#include "analysis-image-renderer/OpenCvAnalysisImageRendererAdapter.h"
+#include "xlsx-writer/XlntTableWriterAdapter.h"
+#include "ui/bootstrap/AppContext.h"
 
-using core::domain::WorkspaceState;
 using core::domain::DeletionImpact;
+#include "archive/ZipArchiveAdapter.h"
 #include "debug/ErrorReporter.h"
 #include "debug/FileDebugger.h"
-#include "ui/observability/ErrorCodes.h"
 #include "ui/bootstrap/QmlContracts.h"
 #include "ui/controllers/ActorController.h"
 #include "ui/controllers/AnalysisController.h"
@@ -47,19 +53,20 @@ using core::domain::DeletionImpact;
 #include "ui/controllers/StatementController.h"
 #include "ui/controllers/StorageController.h"
 #include "ui/controllers/TransactionController.h"
-#include "ui/export/WorkspaceSnapshot.h"
 #include "ui/export/ExportRunner.h"
+#include "ui/export/WorkspaceSnapshot.h"
+#include "ui/observability/ErrorCodes.h"
 #include "ui/observability/Origins.h"
 #include "ui/observability/Trace.h"
-#include "ui/state/WorkspaceClone.h"
 #include "ui/state/StateFacade.h"
+#include "ui/state/WorkspaceClone.h"
 #include <QApplication>
-#include <QList>
-#include <QQmlEngine>
-#include <QQmlError>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QList>
+#include <QQmlEngine>
+#include <QQmlError>
 
 #include <exception>
 #include <memory>
@@ -73,6 +80,64 @@ std::shared_ptr<core::ports::text_recognition::ITextRecognizer>
 createTextRecognizerAdapter(std::shared_ptr<IDebugger> dbg);
 
 namespace {
+
+core::ports::workspace::StatementDraftSnapshot toStatementDraftSnapshot(
+    const core::application::importing::draft::StatementDraft &draft) {
+  core::ports::workspace::StatementDraftSnapshot snapshot;
+  snapshot.id = draft.id;
+  snapshot.name = draft.name;
+  snapshot.transactionIds = draft.transactionIds;
+  snapshot.createdAt = draft.createdAt;
+  snapshot.updatedAt = draft.updatedAt;
+  snapshot.transactions.reserve(draft.transactions.size());
+  for (const auto &tx : draft.transactions) {
+    core::ports::workspace::TransactionDraftSnapshot txSnapshot;
+    txSnapshot.id = tx.id;
+    txSnapshot.statementDraftId = tx.statementDraftId;
+    txSnapshot.name = tx.name;
+    txSnapshot.bookingDate = tx.bookingDate;
+    txSnapshot.valuta = tx.valuta;
+    txSnapshot.amount = tx.amount;
+    txSnapshot.actorId = tx.actorId;
+    txSnapshot.contractId = tx.contractId;
+    txSnapshot.propertyIds = tx.propertyIds;
+    txSnapshot.status = static_cast<int>(tx.status);
+    txSnapshot.allocatable = tx.allocatable;
+    txSnapshot.position = tx.position;
+    txSnapshot.metadata = tx.metadata;
+    snapshot.transactions.push_back(std::move(txSnapshot));
+  }
+  return snapshot;
+}
+
+core::ports::workspace::ImportLogsCommand toImportLogsCommand(
+    const std::vector<core::application::importing::ImportLog> &logs) {
+  core::ports::workspace::ImportLogsCommand command;
+  command.logs.reserve(logs.size());
+  for (const auto &log : logs) {
+    command.logs.push_back({log.id,       log.time,
+                            log.type,     log.file,
+                            log.status,   log.message,
+                            log.draftAttached,
+                            log.draftId,  log.statementDraftIds,
+                            log.statementId});
+  }
+  return command;
+}
+
+core::ports::workspace::ExportLogsCommand toExportLogsCommand(
+    const std::vector<core::application::exporting::ExportLog> &logs) {
+  core::ports::workspace::ExportLogsCommand command;
+  command.logs.reserve(logs.size());
+  for (const auto &log : logs) {
+    command.logs.push_back({log.id,      log.time,
+                            log.targetPath,
+                            log.status,  log.message,
+                            log.payload, log.annualIds,
+                            log.analysisIds});
+  }
+  return command;
+}
 
 core::application::exporting::ExportFormat
 toCoreExportFormat(ui::qml::contracts::ExportFormat format) {
@@ -94,8 +159,13 @@ toCoreExportFormat(ui::qml::contracts::ExportFormat format) {
 }
 
 ui::exporting::ExportResult
-executeExport(std::shared_ptr<const WorkspaceState> snapshot,
+executeExport(std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> snapshot,
               const ui::exporting::ExportRequest &request) {
+  std::shared_ptr<core::ports::archive::IArchive> archiveAdapter;
+  std::shared_ptr<core::ports::xlsx_writer::IXlsxWriter> xlsxWriter =
+      std::make_shared<infra::xlsx_writer::XlntTableWriterAdapter>();
+  std::shared_ptr<core::ports::analysis_image_renderer::IAnalysisImageRenderer> imageRenderer =
+      std::make_shared<infra::analysis_image_renderer::OpenCvAnalysisImageRendererAdapter>();
   core::application::exporting::ExportRequest exportRequest;
   exportRequest.outputPath = request.path.toStdString();
   exportRequest.includeFormulas = request.includeFormulas;
@@ -104,36 +174,59 @@ executeExport(std::shared_ptr<const WorkspaceState> snapshot,
   exportRequest.format = toCoreExportFormat(request.format);
 
   QJsonParseError parseError;
-  const QJsonDocument payloadDoc = QJsonDocument::fromJson(request.payload.toUtf8(), &parseError);
+  const QJsonDocument payloadDoc =
+      QJsonDocument::fromJson(request.payload.toUtf8(), &parseError);
   if (parseError.error == QJsonParseError::NoError && payloadDoc.isObject()) {
     const QJsonObject payloadObj = payloadDoc.object();
-    const int packageIndex = payloadObj.value(QStringLiteral("packageFormatIndex")).toInt(0);
+    const int packageIndex =
+        payloadObj.value(QStringLiteral("packageFormatIndex")).toInt(0);
     switch (packageIndex) {
     case 1:
-      exportRequest.packageFormat = core::application::exporting::PackageFormat::Zip;
+      exportRequest.packageFormat =
+          core::application::exporting::PackageFormat::Zip;
+      archiveAdapter = std::make_shared<infra::archive::ZipArchiveAdapter>();
       break;
     default:
-      exportRequest.packageFormat = core::application::exporting::PackageFormat::None;
+      exportRequest.packageFormat =
+          core::application::exporting::PackageFormat::None;
       break;
     }
 
-    const QJsonArray items = payloadObj.value(QStringLiteral("items")).toArray();
-    for (const QJsonValue& value : items) {
-      if (!value.isObject()) continue;
+    const QJsonArray items =
+        payloadObj.value(QStringLiteral("items")).toArray();
+    for (const QJsonValue &value : items) {
+      if (!value.isObject())
+        continue;
       const QJsonObject item = value.toObject();
-      if (item.value(QStringLiteral("objectType")).toString().compare(QStringLiteral("Analysis"), Qt::CaseInsensitive) != 0) continue;
+      if (item.value(QStringLiteral("objectType"))
+              .toString()
+              .compare(QStringLiteral("Analysis"), Qt::CaseInsensitive) != 0)
+        continue;
 
-      const QString exportType = item.value(QStringLiteral("exportType")).toString();
+      const QString exportType =
+          item.value(QStringLiteral("exportType")).toString();
       core::application::exporting::AnalysisExportItem analysisItem;
-      analysisItem.annualId = item.value(QStringLiteral("annualId")).toString().toStdString();
-      analysisItem.analysisId = item.value(QStringLiteral("objectId")).toString().toStdString();
-      analysisItem.name = item.value(QStringLiteral("objectName")).toString().toStdString();
+      analysisItem.annualId =
+          item.value(QStringLiteral("annualId")).toString().toStdString();
+      analysisItem.analysisId =
+          item.value(QStringLiteral("objectId")).toString().toStdString();
+      analysisItem.name =
+          item.value(QStringLiteral("objectName")).toString().toStdString();
 
       const QString normalized = exportType.trimmed().toLower();
-      if (normalized == QStringLiteral("xlsx")) analysisItem.format = core::application::exporting::AnalysisExportFormat::Xlsx;
-      else if (normalized == QStringLiteral("jpg") || normalized == QStringLiteral("jpeg")) analysisItem.format = core::application::exporting::AnalysisExportFormat::Jpg;
-      else if (normalized == QStringLiteral("png")) analysisItem.format = core::application::exporting::AnalysisExportFormat::Png;
-      else analysisItem.format = core::application::exporting::AnalysisExportFormat::Csv;
+      if (normalized == QStringLiteral("xlsx"))
+        analysisItem.format =
+            core::application::exporting::AnalysisExportFormat::Xlsx;
+      else if (normalized == QStringLiteral("jpg") ||
+               normalized == QStringLiteral("jpeg"))
+        analysisItem.format =
+            core::application::exporting::AnalysisExportFormat::Jpg;
+      else if (normalized == QStringLiteral("png"))
+        analysisItem.format =
+            core::application::exporting::AnalysisExportFormat::Png;
+      else
+        analysisItem.format =
+            core::application::exporting::AnalysisExportFormat::Csv;
 
       if (!analysisItem.analysisId.empty()) {
         exportRequest.analysisItems.push_back(std::move(analysisItem));
@@ -141,7 +234,8 @@ executeExport(std::shared_ptr<const WorkspaceState> snapshot,
     }
   }
 
-  core::application::exporting::ExportService exporter;
+  core::application::exporting::ExportService exporter(
+      std::move(archiveAdapter), std::move(xlsxWriter), std::move(imageRenderer));
   const auto result = exporter.exportData(exportRequest);
   return result;
 }
@@ -159,11 +253,14 @@ struct UiControllers {
   ui::ExportController *exportCtrl = nullptr;
   ui::ImportController *import = nullptr;
   ui::LanguageController *language = nullptr;
-  std::shared_ptr<core::application::analysis::RunAnalysis> analysisService;
+  std::shared_ptr<core::application::analysis::AnalysisService> analysisService;
 };
 
-struct WorkspacePresenterAdapter final : core::ports::presenters::IWorkspacePresenter {
-  core::ports::presenters::WorkspacePresentation present(const core::ports::presenters::WorkspacePresentation& result) const override {
+struct WorkspacePresenterAdapter final
+    : core::ports::presenters::IWorkspacePresenter {
+  core::ports::presenters::WorkspacePresentation
+  present(const core::ports::presenters::WorkspacePresentation &result)
+      const override {
     auto out = result;
     if (!out.hasCurrentPath) {
       out.currentPath.clear();
@@ -174,62 +271,88 @@ struct WorkspacePresenterAdapter final : core::ports::presenters::IWorkspacePres
   }
 };
 
-struct AnalysisPresenterAdapter final : core::ports::presenters::IAnalysisPresenter {
-  core::ports::presenters::AnalysisPresentation present(const core::ports::presenters::AnalysisPresentation& result) const override {
+struct AnalysisPresenterAdapter final
+    : core::ports::presenters::IAnalysisPresenter {
+  core::ports::presenters::AnalysisPresentation
+  present(const core::ports::presenters::AnalysisPresentation &result)
+      const override {
     return result;
   }
 };
 
-struct ExportPresenterAdapter final : core::ports::presenters::IExportPresenter {
-  core::ports::presenters::ExportPresentation present(const core::ports::presenters::ExportPresentation& result) const override {
+struct ExportPresenterAdapter final
+    : core::ports::presenters::IExportPresenter {
+  core::ports::presenters::ExportPresentation
+  present(const core::ports::presenters::ExportPresentation &result)
+      const override {
     return result;
   }
 };
 
-struct ImportPresenterAdapter final : core::ports::presenters::IImportPresenter {
-  core::ports::presenters::ImportPresentation present(const core::ports::presenters::ImportPresentation& result) const override {
+struct ImportPresenterAdapter final
+    : core::ports::presenters::IImportPresenter {
+  core::ports::presenters::ImportPresentation
+  present(const core::ports::presenters::ImportPresentation &result)
+      const override {
     return result;
   }
 };
 
-struct ImportMatcherServiceAdapter final : core::application::importing::draft::IImportMatcherService {
-  core::application::importing::draft::ImportMatcherPresentation buildImportSuggestions(
-      const core::domain::WorkspaceState& state,
-      const core::domain::TransactionDraft& transaction) const override {
-    return core::application::importing::draft::buildImportSuggestions(state, transaction);
+struct ImportMatcherServiceAdapter final
+    : core::application::importing::draft::IImportMatcherService {
+  core::application::importing::draft::ImportMatcherPresentation
+  buildImportSuggestions(
+      const core::domain::catalog::WorkspaceCatalog &state,
+      const core::application::importing::draft::TransactionDraft &transaction)
+      const override {
+    return core::application::importing::draft::buildImportSuggestions(
+        state, transaction);
   }
 
   core::application::importing::draft::DraftTextSignals buildDraftTextSignals(
-      const core::domain::WorkspaceState& state,
-      const core::domain::TransactionDraft& transaction) const override {
-    return core::application::importing::draft::buildDraftTextSignals(state, transaction);
+      const core::domain::catalog::WorkspaceCatalog &state,
+      const core::application::importing::draft::TransactionDraft &transaction)
+      const override {
+    return core::application::importing::draft::buildDraftTextSignals(
+        state, transaction);
   }
 
   core::application::importing::draft::DraftDerivedState buildDraftDerivedState(
-      const core::domain::WorkspaceState& state,
-      const core::application::importing::draft::DraftLinkSelection& selection) const override {
-    return core::application::importing::draft::buildDraftDerivedState(state, selection);
+      const core::domain::catalog::WorkspaceCatalog &state,
+      const core::application::importing::draft::DraftLinkSelection &selection)
+      const override {
+    return core::application::importing::draft::buildDraftDerivedState(
+        state, selection);
   }
 
-  std::string resolveActorId(const core::domain::WorkspaceState& state, const std::string& text) const override {
+  std::string resolveActorId(const core::domain::catalog::WorkspaceCatalog &state,
+                             const std::string &text) const override {
     return core::application::importing::draft::resolveActorId(state, text);
   }
 
-  std::string resolveContractId(const core::domain::WorkspaceState& state, const std::string& text) const override {
+  std::string resolveContractId(const core::domain::catalog::WorkspaceCatalog &state,
+                                const std::string &text) const override {
     return core::application::importing::draft::resolveContractId(state, text);
   }
 
-  bool contractIsFullyAllocatable(const core::domain::WorkspaceState& state, const std::string& contractId) const override {
-    return core::application::importing::draft::contractIsFullyAllocatable(state, contractId);
+  bool
+  contractIsFullyAllocatable(const core::domain::catalog::WorkspaceCatalog &state,
+                             const std::string &contractId) const override {
+    return core::application::importing::draft::contractIsFullyAllocatable(
+        state, contractId);
   }
 
-  core::domain::WorkspaceState withFallbackState(core::domain::WorkspaceState primary,
-                                                 const core::domain::WorkspaceState& fallback) const override {
-    return core::application::importing::draft::withFallbackState(std::move(primary), fallback);
+  core::domain::catalog::WorkspaceCatalog withFallbackState(
+      core::domain::catalog::WorkspaceCatalog primary,
+      const core::domain::catalog::WorkspaceCatalog &fallback) const override {
+    return core::application::importing::draft::withFallbackState(
+        std::move(primary), fallback);
   }
 
-  std::vector<std::string> referenceAliasesFromMetadata(const std::string& metadata) const override {
-    return core::application::importing::draft::referenceAliasesFromMetadata(metadata);
+  std::vector<std::string>
+  referenceAliasesFromMetadata(const std::string &metadata) const override {
+    return core::application::importing::draft::referenceAliasesFromMetadata(
+        metadata);
   }
 };
 
@@ -240,17 +363,23 @@ UiControllers setupUiControllers(
   UiControllers ui;
 
   auto workspacePresenter = std::make_shared<WorkspacePresenterAdapter>();
-  ui.storage = new ui::StorageController(&appStateFacade, workspacePresenter, &w);
+  ui.storage =
+      new ui::StorageController(&appStateFacade, workspacePresenter, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kStorageController,
                           ui.storage);
   if (auto *appContext = w.appContext())
     appContext->setStorageController(ui.storage);
 
-  const auto exportSnapshotProvider = [&appStateFacade]() {
-    return ui::exporting::createWorkspaceSnapshot(appStateFacade.state());
+  const auto analysisSnapshotProvider = [&appStateFacade]() {
+    return std::make_shared<const core::domain::catalog::WorkspaceCatalog>(appStateFacade.catalogState());
   };
 
-  ui.analysisService = std::make_shared<core::application::analysis::RunAnalysis>();
+  const auto exportSnapshotProvider = [&appStateFacade]() {
+    return std::make_shared<const core::application::workspace::WorkspaceSessionState>(appStateFacade.state());
+  };
+
+  ui.analysisService =
+      std::make_shared<core::application::analysis::AnalysisService>();
   auto analysisPresenter = std::make_shared<AnalysisPresenterAdapter>();
   ui.annual = new ui::AnnualController(&appStateFacade, &w);
   ui.actor = new ui::ActorController(&appStateFacade, &w);
@@ -260,8 +389,9 @@ UiControllers setupUiControllers(
   ui.transaction = new ui::TransactionController(&appStateFacade, &w);
   auto importMatcherService = std::make_shared<ImportMatcherServiceAdapter>();
   ui.draft = new ui::DraftController(&appStateFacade, importMatcherService, &w);
-  ui.analysisController = new ui::AnalysisController(
-      &appStateFacade, exportSnapshotProvider, ui.analysisService, analysisPresenter, &w);
+   ui.analysisController =
+       new ui::AnalysisController(&appStateFacade, analysisSnapshotProvider,
+                                  ui.analysisService, analysisPresenter, &w);
   w.setQmlContextProperty(ui::qml::contracts::context::kAnnualController,
                           ui.annual);
   if (auto *appContext = w.appContext())
@@ -298,11 +428,13 @@ UiControllers setupUiControllers(
   auto exportRunner =
       std::make_shared<ui::exporting::ExportRunner>(executeExport);
   auto exportPresenter = std::make_shared<ExportPresenterAdapter>();
-  ui.exportCtrl =
-      new ui::ExportController(exportSnapshotProvider, exportRunner, exportPresenter, &w);
-  ui.exportCtrl->setExportLogsStore([&appStateFacade](const std::vector<core::domain::ExportLog>& logs) {
-    appStateFacade.setExportLogs(logs);
-  });
+  ui.exportCtrl = new ui::ExportController(exportSnapshotProvider, exportRunner,
+                                           exportPresenter, &w);
+  ui.exportCtrl->setExportLogsStore(
+      [&appStateFacade](
+          const std::vector<core::application::exporting::ExportLog> &logs) {
+        appStateFacade.setExportLogs(toExportLogsCommand(logs));
+      });
   w.setQmlContextProperty(ui::qml::contracts::context::kExportController,
                           ui.exportCtrl);
   if (auto *appContext = w.appContext())
@@ -320,57 +452,77 @@ UiControllers setupUiControllers(
   if (auto *appContext = w.appContext())
     appContext->setSettingsController(settingsController);
 
-  auto importJobSystemFactory = [dbg = std::make_shared<FileDebugger>(
-                                   "", std::string(debug::defaults::kImportProcessName)),
-                                 &errorReporter]() {
-    auto popplerAdapter = createPdfRendererAdapter(dbg);
-    auto opencvAdapter = createImageProcessorAdapter(dbg);
-    auto tesseractAdapter = createTextRecognizerAdapter(dbg);
+  auto importJobSystemFactory =
+      [dbg = std::make_shared<FileDebugger>(
+           "", std::string(debug::defaults::kImportProcessName)),
+       &errorReporter]() {
+        auto popplerAdapter = createPdfRendererAdapter(dbg);
+        auto opencvAdapter = createImageProcessorAdapter(dbg);
+        auto tesseractAdapter = createTextRecognizerAdapter(dbg);
 
-    auto poppler = popplerAdapter;
-    auto opencv = opencvAdapter;
-    auto tesseract = tesseractAdapter;
+        auto poppler = popplerAdapter;
+        auto opencv = opencvAdapter;
+        auto tesseract = tesseractAdapter;
 
-    auto importSvc = core::application::importing::createImportStatement(poppler, opencv, tesseract, errorReporter);
-    return std::make_shared<core::jobs::JobSystem>(importSvc);
-  };
+        auto importSvc = core::application::importing::createImportStatement(
+            poppler, opencv, tesseract, errorReporter);
+        return std::make_shared<core::jobs::JobSystem>(importSvc);
+      };
 
   auto importPresenter = std::make_shared<ImportPresenterAdapter>();
 
   const auto importSnapshotProvider = [&appStateFacade, &w]() {
     const auto liveState = appStateFacade.state();
     if (auto *session = w.dataSession()) {
-      WorkspaceState snapshot;
-      snapshot.actors = ui::cloneStateItems(session->actors()->actors());
-      snapshot.properties = ui::cloneStateItems(session->properties()->properties());
-      snapshot.contracts = ui::cloneStateItems(session->contracts()->contracts());
-      snapshot.statements = ui::cloneStateItems(session->statements()->statements());
-      snapshot.transactions = ui::cloneStateItems(session->transactions()->transactions());
-      snapshot.analyses = ui::cloneStateItems(session->analyses()->analyses());
-      snapshot.annuals = ui::cloneStateItems(session->annuals()->annuals());
-      snapshot.statementDrafts = liveState.statementDrafts;
-      snapshot.transactionDrafts = liveState.transactionDrafts;
-      snapshot.importLogs = liveState.importLogs;
-      if (snapshot.actors.empty()) snapshot.actors = liveState.actors;
-      if (snapshot.properties.empty()) snapshot.properties = liveState.properties;
-      if (snapshot.contracts.empty()) snapshot.contracts = liveState.contracts;
-      if (snapshot.statements.empty()) snapshot.statements = liveState.statements;
-      if (snapshot.transactions.empty()) snapshot.transactions = liveState.transactions;
-      if (snapshot.analyses.empty()) snapshot.analyses = liveState.analyses;
-      if (snapshot.annuals.empty()) snapshot.annuals = liveState.annuals;
+      core::application::workspace::WorkspaceSessionState snapshot;
+      snapshot.catalog.setActors(
+          ui::cloneStateItems(session->actors()->actors()));
+      snapshot.catalog.setProperties(
+          ui::cloneStateItems(session->properties()->properties()));
+      snapshot.catalog.setContracts(
+          ui::cloneStateItems(session->contracts()->contracts()));
+      snapshot.catalog.setStatements(
+          ui::cloneStateItems(session->statements()->statements()));
+      snapshot.catalog.setTransactions(
+          ui::cloneStateItems(session->transactions()->transactions()));
+      snapshot.catalog.setAnalyses(
+          ui::cloneStateItems(session->analyses()->analyses()));
+      snapshot.catalog.setAnnuals(
+          ui::cloneStateItems(session->annuals()->annuals()));
+      if (snapshot.catalog.actors().empty())
+        snapshot.catalog.setActors(liveState.catalog.actors());
+      if (snapshot.catalog.properties().empty())
+        snapshot.catalog.setProperties(liveState.catalog.properties());
+      if (snapshot.catalog.contracts().empty())
+        snapshot.catalog.setContracts(liveState.catalog.contracts());
+      if (snapshot.catalog.statements().empty())
+        snapshot.catalog.setStatements(liveState.catalog.statements());
+      if (snapshot.catalog.transactions().empty())
+        snapshot.catalog.setTransactions(liveState.catalog.transactions());
+      if (snapshot.catalog.analyses().empty())
+        snapshot.catalog.setAnalyses(liveState.catalog.analyses());
+      if (snapshot.catalog.annuals().empty())
+        snapshot.catalog.setAnnuals(liveState.catalog.annuals());
+      snapshot.workflow = liveState.workflow;
       return snapshot;
     }
     return liveState;
   };
 
-  ui.import = new ui::ImportController(importJobSystemFactory, errorReporter, importPresenter, importMatcherService, &w);
+  ui.import =
+      new ui::ImportController(importJobSystemFactory, errorReporter,
+                               importPresenter, importMatcherService, &w);
   ui.import->setStateSnapshotProvider(importSnapshotProvider);
-  ui.import->setImportLogsStore([&appStateFacade](const std::vector<core::domain::ImportLog>& logs) {
-    appStateFacade.setImportLogs(logs);
-  });
-  ui.import->setStatementDraftStore([&appStateFacade](const core::domain::StatementDraft& draft) {
-    appStateFacade.saveStatementDraft(draft);
-  });
+  ui.import->setImportLogsStore(
+      [&appStateFacade](
+          const std::vector<core::application::importing::ImportLog> &logs) {
+        appStateFacade.setImportLogs(toImportLogsCommand(logs));
+      });
+  ui.import->setStatementDraftStore(
+      [&appStateFacade](
+          const core::application::importing::draft::StatementDraft &draft) {
+        appStateFacade.saveStatementDraft({toStatementDraftSnapshot(draft)});
+      });
   w.setQmlContextProperty(ui::qml::contracts::context::kImportController,
                           ui.import);
   if (auto *appContext = w.appContext())
@@ -383,14 +535,15 @@ void wireAppStateToSession(
     MainWindow &w, core::application::WorkspaceFacade &appStateFacade,
     const std::shared_ptr<core::errors::IErrorReporter> &errorReporter) {
   if (w.dataSession()) {
-    w.dataSession()->loadFromState(appStateFacade.state());
+    w.dataSession()->loadFromState(appStateFacade.catalogState());
   }
 
-  appStateFacade.setStateChangedCallback([&](const WorkspaceState &st) {
-    if (w.dataSession()) {
-      w.dataSession()->loadFromState(st);
-    }
-  });
+  appStateFacade.setStateChangedCallback(
+      [&](const core::application::workspace::WorkspaceSessionState &document) {
+        if (w.dataSession()) {
+          w.dataSession()->loadFromState(document.catalog);
+        }
+      });
 
   appStateFacade.setDeletionImpactCallback([&](const DeletionImpact &impact) {
     try {
@@ -416,8 +569,9 @@ void wireFileSignals(MainWindow &w, ui::StorageController *storage) {
                    [storage](const QString &path) { storage->openFile(path); });
   QObject::connect(&w, &MainWindow::saveFileRequested, storage,
                    [storage]() { storage->saveFile(); });
-  QObject::connect(&w, &MainWindow::saveFileAsRequested, storage,
-                   [storage](const QString &path) { storage->saveFileAs(path); });
+  QObject::connect(
+      &w, &MainWindow::saveFileAsRequested, storage,
+      [storage](const QString &path) { storage->saveFileAs(path); });
   QObject::connect(storage, &ui::StorageController::operationSucceeded, &w,
                    &MainWindow::handleStorageOperationSucceeded);
   QObject::connect(storage, &ui::StorageController::operationFailed, &w,
@@ -460,7 +614,8 @@ void wireQmlWarnings(
  * application state.
  * @return Return value from `QApplication::exec()`.
  */
-int startQmlApp(QApplication &app, core::application::WorkspaceFacade &appStateFacade) {
+int startQmlApp(QApplication &app,
+                core::application::WorkspaceFacade &appStateFacade) {
   MainWindow w;
 
   auto errorReporter = core::errors::globalErrorReporter();
@@ -493,4 +648,3 @@ int startQmlApp(QApplication &app, core::application::WorkspaceFacade &appStateF
 }
 
 #endif
-

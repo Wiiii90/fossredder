@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "core/ports/text-recognition/TesseractRequest.h"
-#include "core/ports/text-recognition/TesseractTypes.h"
+#include "core/ports/text-recognition/TextRecognitionRequest.h"
+#include "core/ports/text-recognition/TextRecognitionTypes.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -23,9 +23,9 @@ public:
      * @param debugger Optional debugger used for trace output.
      * @return A pair containing recognized text and the extracted word list.
      */
-    static std::pair<core::ports::text_recognition::tesseract::Text, std::vector<core::ports::text_recognition::tesseract::Word>> extractFromBytes(
+    static std::pair<core::ports::text_recognition::Text, std::vector<core::ports::text_recognition::Word>> extractFromBytes(
         const std::vector<uint8_t>& data,
         const std::string& tessdataPath,
-        const core::ports::text_recognition::tesseract::RecognitionSettings& recognition,
+        const core::ports::text_recognition::Settings& recognition,
         std::shared_ptr<IDebugger> debugger = nullptr);
 };

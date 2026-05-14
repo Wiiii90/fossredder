@@ -27,7 +27,7 @@
 #include "core/domain/entities/Actor.h"
 #include "core/domain/entities/Analysis.h"
 #include "core/domain/entities/Annual.h"
-#include "core/application/workspace/AppState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/domain/entities/Contract.h"
 #include "core/application/storage/DeletionImpact.h"
 #include "core/application/import/ImportLog.h"
@@ -37,18 +37,12 @@
 #include "core/domain/entities/Property.h"
 #include "core/domain/entities/Statement.h"
 #include "core/domain/entities/Transaction.h"
-#include "core/application/analysis/RunAnalysisResult.h"
-#include "core/application/workspace/AppState.h"
-#include "core/application/workspace/DeletionImpact.h"
-#include "core/application/import/ImportLog.h"
-#include "core/application/export/ExportLog.h"
-#include "core/application/import/draft/StatementDraft.h"
-#include "core/application/import/draft/TransactionDraft.h"
+#include "core/application/analysis/AnalysisResult.h"
 
 using core::domain::Actor;
 using core::domain::Analysis;
 using core::domain::Annual;
-using core::domain::AppState;
+using core::domain::catalog::WorkspaceCatalog;
 using core::domain::Contract;
 using core::domain::DeletionImpact;
 using core::domain::Property;
@@ -56,7 +50,7 @@ using core::domain::Statement;
 using core::domain::Transaction;
 using core::domain::AnalysisResult;
 using core::domain::AnalysisTransaction;
-using core::domain::ImportLog;
-using core::domain::ExportLog;
-using core::domain::StatementDraft;
-using core::domain::TransactionDraft;
+using core::application::importing::ImportLog;
+using core::application::exporting::ExportLog;
+using core::application::importing::draft::StatementDraft;
+using core::application::importing::draft::TransactionDraft;

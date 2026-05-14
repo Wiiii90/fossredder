@@ -19,23 +19,23 @@ QHash<QString, QString> buildContractTypeIndex(const ContractList& contracts)
     contractTypes.reserve(static_cast<int>(rows.size()));
     for (const auto& contract : rows) {
         if (!contract) continue;
-        contractTypes.insert(QString::fromStdString(contract->id), QString::fromStdString(contract->type));
+        contractTypes.insert(QString::fromStdString(contract->id()), QString::fromStdString(contract->type()));
     }
     return contractTypes;
 }
 
-void projectSessionModelsFromState(SessionModels& models, const core::domain::WorkspaceState& state)
+void projectSessionModelsFromState(SessionModels& models, const core::domain::catalog::WorkspaceCatalog& state)
 {
-    core::domain::WorkspaceState clone = cloneWorkspaceState(state);
+    core::domain::catalog::WorkspaceCatalog clone = cloneWorkspaceState(state);
 
-    models.actors().setActors(std::move(clone.actors));
-    models.properties().setProperties(std::move(clone.properties));
-    models.contracts().setContracts(std::move(clone.contracts));
+    models.actors().setActors(std::move(clone.actors()));
+    models.properties().setProperties(std::move(clone.properties()));
+    models.contracts().setContracts(std::move(clone.contracts()));
     models.transactions().setContractTypes(buildContractTypeIndex(models.contracts()), false);
-    models.statements().setStatements(std::move(clone.statements));
-    models.transactions().setTransactions(std::move(clone.transactions));
-    models.analyses().setAnalyses(std::move(clone.analyses));
-    models.annuals().setAnnuals(std::move(clone.annuals));
+    models.statements().setStatements(std::move(clone.statements()));
+    models.transactions().setTransactions(std::move(clone.transactions()));
+    models.analyses().setAnalyses(std::move(clone.analyses()));
+    models.annuals().setAnnuals(std::move(clone.annuals()));
 }
 
 void refreshSessionModelContractTypes(SessionModels& models)

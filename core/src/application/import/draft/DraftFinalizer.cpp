@@ -6,10 +6,10 @@
 #include "core/application/import/draft/DraftFinalizer.h"
 
 #include "core/constants/app_state.h"
-#include "core/application/workspace/WorkspaceState.h"
 #include "core/domain/entities/Contract.h"
 #include "core/domain/entities/Statement.h"
 #include "core/domain/entities/Transaction.h"
+#include "core/domain/policies/TransactionPolicy.h"
 #include "../../../utils/StableId.h"
 #include "../../../utils/Util.h"
 
@@ -23,7 +23,7 @@ int nextGeneratedContractIndex(const std::vector<std::shared_ptr<Contract>>& con
     constexpr auto prefix = core::constants::appState::kGeneratedContractPrefix;
     for (const auto& contractPtr : contracts) {
         if (!contractPtr) continue;
-        const std::string& contractName = contractPtr->name;
+        const std::string& contractName = contractPtr->name();
         if (contractName.size() <= prefix.size() || contractName.rfind(prefix.data(), 0) != 0) continue;
         const std::string rest = contractName.substr(prefix.size());
         int idx = 0;
@@ -38,52 +38,72 @@ int nextGeneratedContractIndex(const std::vector<std::shared_ptr<Contract>>& con
 
 namespace core::application::importing::draft {
 
-std::string DraftFinalizer::finalize(core::domain::WorkspaceState& state, const core::domain::StatementDraft& draft)
+std::string DraftFinalizer::finalize(core::domain::catalog::WorkspaceCatalog& state, const core::application::importing::draft::StatementDraft& draft)
 {
     if (draft.transactions.empty()) return {};
 
+    auto contracts = state.contracts();
+    auto transactions = state.transactions();
+    auto statements = state.statements();
+
     auto statement = std::make_shared<Statement>();
-    statement->id = core::utils::makeStableId();
-    statement->name = ::core::utils::trim(draft.name).empty()
+    statement->setId(core::utils::makeStableId());
+    statement->rename(::core::utils::trim(draft.name).empty()
         ? std::string(core::constants::appState::kDefaultImportedStatementName)
-        : draft.name;
-    state.statements.push_back(statement);
+        : draft.name);
+
+    std::size_t addedTransactions = 0;
 
     for (const auto& item : draft.transactions) {
         auto transaction = std::make_shared<Transaction>();
-        transaction->id        = core::utils::makeStableId();
-        transaction->name       = item.name;
-        transaction->bookingDate = item.bookingDate;
-        transaction->amount     = item.amount;
-        transaction->statementId = statement->id;
-        transaction->status     = item.status;
-        transaction->actorId    = item.actorId;
-        transaction->contractId = item.contractId;
-        transaction->allocatable = item.allocatable;
-        transaction->propertyIds = item.propertyIds;
-        transaction->valuta.clear();
+        transaction->setId(core::utils::makeStableId());
+        transaction->setName(item.name);
+        transaction->setBookingDate(item.bookingDate);
+        transaction->setAmount(item.amount);
+        transaction->setStatementId(statement->id());
+        transaction->setStatus(item.status);
+        transaction->setActorId(item.actorId);
+        transaction->setContractId(item.contractId);
+        transaction->setAllocatable(item.allocatable);
+        transaction->setPropertyIds(item.propertyIds);
+        if (!core::domain::policies::transaction::canFinalizeFromDraft(transaction->bookingDate(),
+                                                                       transaction->amount(),
+                                                                       transaction->statementId())) {
+            continue;
+        }
+        transaction->clearValuta();
 
-        const std::string normalizedContractId = ::core::utils::trim(item.contractId);
+        const std::string normalizedContractId = core::domain::policies::transaction::trimCopy(item.contractId);
         if (!normalizedContractId.empty()) {
-            transaction->contractId = normalizedContractId;
+            transaction->setContractId(normalizedContractId);
         } else {
-            const std::string normalizedType = ::core::utils::trim(item.type);
+            const std::string normalizedType = core::domain::policies::transaction::trimCopy(item.type);
             if (!normalizedType.empty()) {
                 constexpr auto prefix = core::constants::appState::kGeneratedContractPrefix;
                 auto contract = std::make_shared<Contract>();
-                contract->id = core::utils::makeStableId();
-                contract->name = std::string(prefix) + std::to_string(nextGeneratedContractIndex(state.contracts));
-                contract->type = normalizedType;
-                contract->propertyIds = item.propertyIds;
-                state.contracts.push_back(contract);
-                transaction->contractId = contract->id;
+                contract->setId(core::utils::makeStableId());
+                contract->rename(std::string(prefix) + std::to_string(nextGeneratedContractIndex(contracts)));
+                contract->setType(normalizedType);
+                contract->setPropertyIds(item.propertyIds);
+                contracts.push_back(contract);
+                transaction->setContractId(contract->id());
             }
         }
 
-        state.transactions.push_back(transaction);
+        transactions.push_back(transaction);
+        statement->addTransaction(transaction->id());
+        ++addedTransactions;
     }
 
-    return statement->id;
+    if (addedTransactions == 0) {
+        return {};
+    }
+
+    statements.push_back(statement);
+    state.setContracts(std::move(contracts));
+    state.setTransactions(std::move(transactions));
+    state.setStatements(std::move(statements));
+    return statement->id();
 }
 
 }

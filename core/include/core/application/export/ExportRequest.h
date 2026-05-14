@@ -6,7 +6,7 @@
 #pragma once
 
 #include "core/application/export/ExportTypes.h"
-#include "core/application/workspace/AppState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 
 #include <memory>
 #include <string>
@@ -34,7 +34,7 @@ struct ExportRequest {
     std::string locale;
     PackageFormat packageFormat = PackageFormat::None;
     std::vector<AnalysisExportItem> analysisItems;
-    std::shared_ptr<const core::domain::AppState> stateSnapshot;
+    std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> stateSnapshot;
 };
 
 } // namespace core::application::exporting

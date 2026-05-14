@@ -15,7 +15,7 @@ namespace ui::analysis {
 
 namespace {
 
-QVariantMap toMetricsMap(const core::application::analysis::RunAnalysisResult& result)
+QVariantMap toMetricsMap(const core::application::analysis::AnalysisResult& result)
 {
     QVariantMap metrics;
     for (const auto& [key, value] : result.metrics) {
@@ -24,7 +24,7 @@ QVariantMap toMetricsMap(const core::application::analysis::RunAnalysisResult& r
     return metrics;
 }
 
-QVariantList toTableList(const core::application::analysis::RunAnalysisResult& result)
+QVariantList toTableList(const core::application::analysis::AnalysisResult& result)
 {
     QVariantList table;
     for (const auto& row : result.table) {
@@ -37,7 +37,7 @@ QVariantList toTableList(const core::application::analysis::RunAnalysisResult& r
     return table;
 }
 
-QVariantList toArtifactList(const core::application::analysis::RunAnalysisResult& result)
+QVariantList toArtifactList(const core::application::analysis::AnalysisResult& result)
 {
     QVariantList artifacts;
     for (const auto& artifact : result.artifacts) {
@@ -46,7 +46,7 @@ QVariantList toArtifactList(const core::application::analysis::RunAnalysisResult
     return artifacts;
 }
 
-QVariantList toTransactionList(const core::application::analysis::RunAnalysisResult& result)
+QVariantList toTransactionList(const core::application::analysis::AnalysisResult& result)
 {
     QVariantList transactions;
     for (const auto& transaction : result.transactions) {
@@ -75,7 +75,7 @@ QVariantList toTransactionList(const core::application::analysis::RunAnalysisRes
 
 } // namespace
 
-QVariantMap toPayload(const core::application::analysis::RunAnalysisResult& result)
+QVariantMap toPayload(const core::application::analysis::AnalysisResult& result)
 {
     QVariantMap payload;
     payload[ui::payload::keys::analysis::kMetrics] = toMetricsMap(result);

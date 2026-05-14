@@ -11,7 +11,7 @@
 #include "core/application/import/internal/ParserDateUtils.h"
 #include "core/application/import/internal/ParserHeuristics.h"
 
-#include "core/ports/text-recognition/TesseractResult.h"
+#include "core/ports/text-recognition/TextRecognitionResult.h"
 #include "../../../utils/Util.h"
 
 #include <initializer_list>
@@ -22,7 +22,6 @@
 #include <vector>
 
 namespace core::application::importing::internal {
-namespace detail = core::application::importing::internal;
 
 /**
  * @brief Finds the indices of amount-like tokens in an OCR line.
@@ -115,7 +114,7 @@ struct RawLineLite {
  * @param words OCR words to convert.
  * @return Constructed OCR lines.
  */
-std::vector<core::application::importing::transaction::internal::OcrLine> buildOcrLinesFromWords(const std::vector<core::ports::text_recognition::tesseract::Word>& words);
+std::vector<core::application::importing::transaction::internal::OcrLine> buildOcrLinesFromWords(const std::vector<core::ports::text_recognition::Word>& words);
 
 /**
  * @brief Stores the inferred column positions for an OCR page.
@@ -169,11 +168,4 @@ core::application::importing::transaction::internal::TransactionMainRow splitMai
 
 }
 
-namespace core {
-namespace parser {
-namespace helpers = application::importing::internal;
-using OcrLine = application::importing::transaction::internal::OcrLine;
-using TransactionMainRow = application::importing::transaction::internal::TransactionMainRow;
-using TransactionBlock = application::importing::transaction::internal::TransactionBlock;
-}
-}
+// Intentionally no legacy core::parser aliases here; parser sources now use the current namespaces directly.

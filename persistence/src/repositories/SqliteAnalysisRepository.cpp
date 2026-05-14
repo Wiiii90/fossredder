@@ -35,19 +35,23 @@ SqliteAnalysisRepository::~SqliteAnalysisRepository() = default;
 std::shared_ptr<Analysis> readAnalysis(persistence::StmtGuard& s)
 {
     auto a = std::make_shared<Analysis>();
-    a->id = s.columnText(0); a->name = s.columnText(1); a->type = s.columnText(2);
-    a->configJson = s.columnText(3); a->filterSpec = s.columnText(4);
-    a->exportFormat = s.columnText(5);
-    a->includeCalcAdjustments = s.columnInt(6) != 0;
-    a->exportStateJson = s.columnText(7);
-    a->snapshotTransactionsJson = s.columnText(8);
-    a->createdAt = s.columnText(9); a->updatedAt = s.columnText(10);
+    a->setId(s.columnText(0));
+    a->rename(s.columnText(1));
+    a->setType(s.columnText(2));
+    a->setConfigJson(s.columnText(3));
+    a->setFilterSpec(s.columnText(4));
+    a->setExportFormat(s.columnText(5));
+    a->setIncludeCalculationAdjustments(s.columnInt(6) != 0);
+    a->setExportStateJson(s.columnText(7));
+    a->setSnapshotTransactionsJson(s.columnText(8));
+    a->setCreatedAt(s.columnText(9));
+    a->setUpdatedAt(s.columnText(10));
     return a;
 }
 
 void SqliteAnalysisRepository::addAnalysis(const std::shared_ptr<Analysis>& analysis)
 {
-    if (!analysis || analysis->id.empty()) {
+    if (!analysis || analysis->id().empty()) {
         return;
     }
 
@@ -58,17 +62,17 @@ void SqliteAnalysisRepository::addAnalysis(const std::shared_ptr<Analysis>& anal
         return;
     }
 
-    stmt.bindText(1, analysis->id);
-    stmt.bindText(2, analysis->name);
-    stmt.bindText(3, analysis->type);
-    stmt.bindText(4, analysis->configJson);
-    stmt.bindText(5, analysis->filterSpec);
-    stmt.bindText(6, analysis->exportFormat);
-    stmt.bindInt(7, analysis->includeCalcAdjustments ? 1 : 0);
-    stmt.bindText(8, analysis->exportStateJson);
-    stmt.bindText(9, analysis->snapshotTransactionsJson);
-    stmt.bindText(10, analysis->createdAt);
-    stmt.bindText(11, analysis->updatedAt);
+    stmt.bindText(1, analysis->id());
+    stmt.bindText(2, analysis->name());
+    stmt.bindText(3, analysis->type());
+    stmt.bindText(4, analysis->configJson());
+    stmt.bindText(5, analysis->filterSpec());
+    stmt.bindText(6, analysis->exportFormat());
+    stmt.bindInt(7, analysis->includeCalculationAdjustments() ? 1 : 0);
+    stmt.bindText(8, analysis->exportStateJson());
+    stmt.bindText(9, analysis->snapshotTransactionsJson());
+    stmt.bindText(10, analysis->createdAt());
+    stmt.bindText(11, analysis->updatedAt());
     stmt.step();
 }
 
@@ -116,7 +120,7 @@ void SqliteAnalysisRepository::removeAnalysis(const std::string& id)
 
 void SqliteAnalysisRepository::updateAnalysis(const std::shared_ptr<Analysis>& analysis)
 {
-    if (!analysis || analysis->id.empty()) {
+    if (!analysis || analysis->id().empty()) {
         return;
     }
 
@@ -127,23 +131,23 @@ void SqliteAnalysisRepository::updateAnalysis(const std::shared_ptr<Analysis>& a
         return;
     }
 
-    stmt.bindText(1, analysis->name);
-    stmt.bindText(2, analysis->type);
-    stmt.bindText(3, analysis->configJson);
-    stmt.bindText(4, analysis->filterSpec);
-    stmt.bindText(5, analysis->exportFormat);
-    stmt.bindInt(6, analysis->includeCalcAdjustments ? 1 : 0);
-    stmt.bindText(7, analysis->exportStateJson);
-    stmt.bindText(8, analysis->snapshotTransactionsJson);
-    stmt.bindText(9, analysis->createdAt);
-    stmt.bindText(10, analysis->updatedAt);
-    stmt.bindText(11, analysis->id);
+    stmt.bindText(1, analysis->name());
+    stmt.bindText(2, analysis->type());
+    stmt.bindText(3, analysis->configJson());
+    stmt.bindText(4, analysis->filterSpec());
+    stmt.bindText(5, analysis->exportFormat());
+    stmt.bindInt(6, analysis->includeCalculationAdjustments() ? 1 : 0);
+    stmt.bindText(7, analysis->exportStateJson());
+    stmt.bindText(8, analysis->snapshotTransactionsJson());
+    stmt.bindText(9, analysis->createdAt());
+    stmt.bindText(10, analysis->updatedAt());
+    stmt.bindText(11, analysis->id());
     stmt.step();
 }
 
 void SqliteAnalysisRepository::upsertAnalysis(const std::shared_ptr<Analysis>& analysis)
 {
-    if (!analysis || analysis->id.empty()) {
+    if (!analysis || analysis->id().empty()) {
         return;
     }
 

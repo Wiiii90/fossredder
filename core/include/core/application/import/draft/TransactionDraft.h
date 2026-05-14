@@ -47,7 +47,3 @@ public:
 };
 
 }
-
-namespace core::domain {
-using TransactionDraft = core::application::importing::draft::TransactionDraft;
-}

@@ -28,20 +28,13 @@ bool appendUnique(std::vector<std::string>& values, const std::string& value)
 }
 
 template <typename TEntity>
-std::vector<core::domain::AliasUsage> aliasUsages(const TEntity& entity)
+std::vector<core::domain::Alias> aliasUsages(const TEntity& entity)
 {
-    if (!entity.aliasUsage.empty()) return entity.aliasUsage;
-
-    std::vector<core::domain::AliasUsage> out;
-    out.reserve(entity.aliases.size());
-    for (const auto& alias : entity.aliases) {
-        if (alias.value.empty()) continue;
-        core::domain::AliasUsage usage;
-        usage.alias = alias;
-        usage.hitCount = 1;
-        usage.createdAt = alias.createdAt;
-        usage.updatedAt = alias.updatedAt;
-        out.push_back(std::move(usage));
+    std::vector<core::domain::Alias> out;
+    out.reserve(entity.aliases().size());
+    for (const auto& alias : entity.aliases()) {
+        if (alias.value().empty()) continue;
+        out.push_back(alias);
     }
     return out;
 }
@@ -58,23 +51,23 @@ int confidencePercent(const DraftSuggestionCandidate* suggestion)
 
 std::string actorDisplay(const core::domain::Actor& actor)
 {
-    return actor.name;
+    return actor.name();
 }
 
 std::string propertyDisplay(const core::domain::Property& property)
 {
-    return property.name;
+    return property.name();
 }
 
 DraftChoiceRow actorRow(const std::shared_ptr<core::domain::Actor>& actor)
 {
     DraftChoiceRow row;
     if (!actor) return row;
-    row.id = actor->id;
-    row.name = actor->name;
+    row.id = actor->id();
+    row.name = actor->name();
     row.display = actorDisplay(*actor);
-    for (const auto& alias : actor->aliases) {
-        row.aliases.push_back(alias.value);
+    for (const auto& alias : actor->aliases()) {
+        row.aliases.push_back(alias.value());
     }
     return row;
 }
@@ -83,11 +76,11 @@ DraftChoiceRow propertyRow(const std::shared_ptr<core::domain::Property>& proper
 {
     DraftChoiceRow row;
     if (!property) return row;
-    row.id = property->id;
-    row.name = property->name;
+    row.id = property->id();
+    row.name = property->name();
     row.display = propertyDisplay(*property);
-    for (const auto& alias : property->aliases) {
-        row.aliases.push_back(alias.value);
+    for (const auto& alias : property->aliases()) {
+        row.aliases.push_back(alias.value());
     }
     return row;
 }
@@ -96,45 +89,45 @@ DraftChoiceRow contractRow(const std::shared_ptr<core::domain::Contract>& contra
 {
     DraftChoiceRow row;
     if (!contract) return row;
-    row.id = contract->id;
-    row.name = contract->name;
-    row.display = contract->name;
-    row.type = contract->type;
-    for (const auto& alias : contract->aliases) {
-        row.aliases.push_back(alias.value);
+    row.id = contract->id();
+    row.name = contract->name();
+    row.display = contract->name();
+    row.type = contract->type();
+    for (const auto& alias : contract->aliases()) {
+        row.aliases.push_back(alias.value());
     }
-    row.actorIds = contract->actorIds;
-    row.propertyIds = contract->propertyIds;
+    row.actorIds = contract->actorIds();
+    row.propertyIds = contract->propertyIds();
     return row;
 }
 
-std::vector<DraftChoiceRow> actorRows(const core::domain::WorkspaceState& state)
+std::vector<DraftChoiceRow> actorRows(const core::domain::catalog::WorkspaceCatalog& state)
 {
     std::vector<DraftChoiceRow> rows;
-    rows.reserve(state.actors.size());
-    for (const auto& actor : state.actors) {
+    rows.reserve(state.actors().size());
+    for (const auto& actor : state.actors()) {
         auto row = actorRow(actor);
         if (!row.id.empty()) rows.push_back(std::move(row));
     }
     return rows;
 }
 
-std::vector<DraftChoiceRow> propertyRows(const core::domain::WorkspaceState& state)
+std::vector<DraftChoiceRow> propertyRows(const core::domain::catalog::WorkspaceCatalog& state)
 {
     std::vector<DraftChoiceRow> rows;
-    rows.reserve(state.properties.size());
-    for (const auto& property : state.properties) {
+    rows.reserve(state.properties().size());
+    for (const auto& property : state.properties()) {
         auto row = propertyRow(property);
         if (!row.id.empty()) rows.push_back(std::move(row));
     }
     return rows;
 }
 
-std::vector<DraftChoiceRow> contractRows(const core::domain::WorkspaceState& state)
+std::vector<DraftChoiceRow> contractRows(const core::domain::catalog::WorkspaceCatalog& state)
 {
     std::vector<DraftChoiceRow> rows;
-    rows.reserve(state.contracts.size());
-    for (const auto& contract : state.contracts) {
+    rows.reserve(state.contracts().size());
+    for (const auto& contract : state.contracts()) {
         auto row = contractRow(contract);
         if (!row.id.empty()) rows.push_back(std::move(row));
     }
@@ -369,7 +362,7 @@ DraftSuggestionBucket buildSuggestionBucket(const EntityRange& entities,
 
         DraftSuggestionCandidate suggestion;
         suggestion.entityType = entityType;
-        suggestion.entityId = entity->id;
+        suggestion.entityId = entity->id();
         suggestion.label = labelFn(*entity);
         suggestion.sourceText = sourceText;
 
@@ -387,7 +380,7 @@ DraftSuggestionBucket buildSuggestionBucket(const EntityRange& entities,
         double strongestUsageFactor = 0.0;
         for (const auto& usage : usages) {
             strongestUsageFactor = std::max(strongestUsageFactor,
-                                            policy::aliasHitWeight(usage.hitCount) * 0.65 + policy::aliasRecencyWeight(usage.lastUsedAt) * 0.35);
+                                            policy::aliasHitWeight(usage.hitCount()) * 0.65 + policy::aliasRecencyWeight(usage.lastUsedAt()) * 0.35);
         }
         if (strongestUsageFactor <= 0.0) strongestUsageFactor = 0.15;
 
@@ -398,12 +391,12 @@ DraftSuggestionBucket buildSuggestionBucket(const EntityRange& entities,
         score += policy::tokenOverlapScore(sourceLeadTokens, candidateTokens) * 18.0;
 
         for (const auto& usage : usages) {
-            const std::string alias = usage.alias.value;
+            const std::string alias = usage.value();
             const auto aliasNorm = policy::normalizeText(alias);
             if (aliasNorm.empty()) continue;
 
-            const double hitWeight = policy::aliasHitWeight(usage.hitCount);
-            const double recentWeight = policy::aliasRecencyWeight(usage.lastUsedAt);
+            const double hitWeight = policy::aliasHitWeight(usage.hitCount());
+            const double recentWeight = policy::aliasRecencyWeight(usage.lastUsedAt());
             const double usageFactor = 1.0 + hitWeight + recentWeight * 0.75;
 
             if (normalizeDraftText(sourceText).find(aliasNorm) != std::string::npos) {
@@ -411,8 +404,8 @@ DraftSuggestionBucket buildSuggestionBucket(const EntityRange& entities,
                 matchedAliases.push_back(alias);
                 aliasScore += hitWeight;
                 recencyScore += recentWeight;
-                bestHitCount = std::max(bestHitCount, usage.hitCount);
-                if (!usage.lastUsedAt.empty() && (bestLastUsedAt.empty() || usage.lastUsedAt > bestLastUsedAt)) bestLastUsedAt = usage.lastUsedAt;
+                bestHitCount = std::max(bestHitCount, usage.hitCount());
+                if (!usage.lastUsedAt().empty() && (bestLastUsedAt.empty() || usage.lastUsedAt() > bestLastUsedAt)) bestLastUsedAt = usage.lastUsedAt();
                 continue;
             }
 
@@ -423,8 +416,8 @@ DraftSuggestionBucket buildSuggestionBucket(const EntityRange& entities,
                 matchedAliases.push_back(alias);
                 aliasScore += hitWeight * 0.5;
                 recencyScore += recentWeight * 0.5;
-                bestHitCount = std::max(bestHitCount, usage.hitCount);
-                if (!usage.lastUsedAt.empty() && (bestLastUsedAt.empty() || usage.lastUsedAt > bestLastUsedAt)) bestLastUsedAt = usage.lastUsedAt;
+                bestHitCount = std::max(bestHitCount, usage.hitCount());
+                if (!usage.lastUsedAt().empty() && (bestLastUsedAt.empty() || usage.lastUsedAt() > bestLastUsedAt)) bestLastUsedAt = usage.lastUsedAt();
             }
         }
 
@@ -470,7 +463,7 @@ DraftSuggestionBucket buildSuggestionBucket(const EntityRange& entities,
 
 }
 
-DraftDerivedState buildDraftDerivedState(const core::domain::WorkspaceState& state,
+DraftDerivedState buildDraftDerivedState(const core::domain::catalog::WorkspaceCatalog& state,
                                          const DraftLinkSelection& selection)
 {
     auto effectiveSelection = selection;
@@ -585,8 +578,8 @@ DraftDerivedState buildDraftDerivedState(const core::domain::WorkspaceState& sta
     return derived;
 }
 
-DraftImportSuggestions buildImportSuggestions(const core::domain::WorkspaceState& state,
-                                              const core::domain::TransactionDraft& transaction)
+DraftImportSuggestions buildImportSuggestions(const core::domain::catalog::WorkspaceCatalog& state,
+                                              const core::application::importing::draft::TransactionDraft& transaction)
 {
     const auto signals = buildDraftTextSignals(state, transaction);
 
@@ -595,35 +588,35 @@ DraftImportSuggestions buildImportSuggestions(const core::domain::WorkspaceState
     const auto contractSourceText = signals.sharedText;
 
     DraftImportSuggestions suggestions;
-    suggestions.actor = buildSuggestionBucket(state.actors,
+    suggestions.actor = buildSuggestionBucket(state.actors(),
                                               "actor",
                                               [](const core::domain::Actor& actor) {
-                                                  return actor.name;
+                                                  return actor.name();
                                               },
                                               [](const core::domain::Actor& actor) {
-                                                  return actor.name;
+                                                  return actor.name();
                                               },
                                               actorSourceText);
 
-    suggestions.property = buildSuggestionBucket(state.properties,
+    suggestions.property = buildSuggestionBucket(state.properties(),
                                                  "property",
                                                  [](const core::domain::Property& property) {
-                                                     return property.name;
+                                                     return property.name();
                                                  },
                                                  [](const core::domain::Property& property) {
-                                                     return property.name;
+                                                     return property.name();
                                                  },
                                                  propertySourceText);
 
-    suggestions.contract = buildSuggestionBucket(state.contracts,
+    suggestions.contract = buildSuggestionBucket(state.contracts(),
                                                  "contract",
                                                  [](const core::domain::Contract& contract) {
-                                                     if (contract.name.empty()) return contract.type;
-                                                     if (contract.type.empty()) return contract.name;
-                                                     return contract.type + " — " + contract.name;
+                                                     if (contract.name().empty()) return contract.type();
+                                                     if (contract.type().empty()) return contract.name();
+                                                     return contract.type() + " — " + contract.name();
                                                  },
                                                  [](const core::domain::Contract& contract) {
-                                                     return contract.type.empty() ? contract.name : contract.type + " " + contract.name;
+                                                     return contract.type().empty() ? contract.name() : contract.type() + " " + contract.name();
                                                  },
                                                  contractSourceText);
 

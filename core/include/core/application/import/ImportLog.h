@@ -28,7 +28,3 @@ public:
 };
 
 }
-
-namespace core::domain {
-using ImportLog = core::application::importing::ImportLog;
-}

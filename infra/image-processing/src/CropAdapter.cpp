@@ -12,7 +12,7 @@
 #include <sstream>
 
 namespace opencv {
-namespace ports = core::ports::image_processing::opencv;
+namespace ports = core::ports::image_processing;
 
 std::vector<std::filesystem::path> CropAdapter::cropImages(const std::string& imagePath,
                                                          const std::vector<ports::Rect>& rects,

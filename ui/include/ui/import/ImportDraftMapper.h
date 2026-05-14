@@ -10,7 +10,7 @@
 
 #include <QString>
 
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/application/import/draft/TransactionDraft.h"
 #include "core/application/import/draft/IImportMatcherService.h"
 
@@ -25,15 +25,15 @@ struct TransactionDraft;
 namespace ui::importing {
 
 /** @brief Convert imported transactions into editable UI transaction drafts. */
-std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::WorkspaceState& state,
-                                                      const std::vector<core::domain::TransactionDraft>& transactions,
+std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::catalog::WorkspaceCatalog& state,
+                                                      const std::vector<core::application::importing::draft::TransactionDraft>& transactions,
                                                       const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService = {});
 
 /** @brief Create a statement draft model for an imported statement and its transactions. */
 StatementDraft* createStatementDraft(const QString& sourceFile,
                                      const std::shared_ptr<core::domain::Statement>& statement,
-                                     const core::domain::WorkspaceState& state,
-                                     const std::vector<core::domain::TransactionDraft>& transactions,
+                                     const core::domain::catalog::WorkspaceCatalog& state,
+                                     const std::vector<core::application::importing::draft::TransactionDraft>& transactions,
                                      const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService,
                                      const QString& draftId,
                                      int currentTransactionIndex,

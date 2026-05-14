@@ -7,7 +7,7 @@
 
 #include <QVariantMap>
 
-#include "core/application/analysis/RunAnalysisResult.h"
+#include "core/application/analysis/AnalysisResult.h"
 
 namespace ui::analysis {
 
@@ -16,6 +16,6 @@ namespace ui::analysis {
  * @param result AnalysisResult from core domain.
  * @return QVariantMap containing keys defined in ui::payload::keys::analysis.
  */
-QVariantMap toPayload(const core::application::analysis::RunAnalysisResult& result);
+QVariantMap toPayload(const core::application::analysis::AnalysisResult& result);
 
 } // namespace ui::analysis

@@ -6,6 +6,7 @@
 #include "core/application/export/CsvExporter.h"
 
 #include "PropertyContractMatrix.h"
+#include "core/constants/localization.h"
 #include "core/constants/export.h"
 
 #include <fstream>
@@ -66,7 +67,7 @@ ExportResult CsvExporter::exportData(const ExportRequest& request) const
                                                             "core::exporting::CsvExporter::exportData");
 
     char decimalSeparator = '.';
-    if (!request.locale.empty() && request.locale.rfind("de", 0) == 0) {
+    if (request.locale.starts_with(core::constants::localization::languages::kGerman)) {
         decimalSeparator = ',';
     }
     constexpr char separator = ';';

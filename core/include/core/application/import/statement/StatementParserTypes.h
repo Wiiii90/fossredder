@@ -52,9 +52,3 @@ struct HeaderAnalysis {
 };
 
 }
-
-namespace core {
-namespace parser {
-namespace detail = application::importing::statement::internal;
-}
-}

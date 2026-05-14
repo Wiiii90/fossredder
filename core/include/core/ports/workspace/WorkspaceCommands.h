@@ -1,0 +1,89 @@
+/**
+ * @file core/include/core/ports/workspace/WorkspaceCommands.h
+ * @brief Write-side boundary command models for workspace operations.
+ */
+
+#pragma once
+
+#include <string>
+#include <vector>
+
+#include "core/domain/entities/Transaction.h"
+#include "core/ports/workspace/WorkspaceSnapshot.h"
+
+namespace core::ports::workspace {
+
+struct ActorCommand {
+    std::string id;
+    std::string name;
+    std::vector<AliasSnapshot> aliases;
+};
+
+struct PropertyCommand {
+    std::string id;
+    std::string name;
+    std::vector<AliasSnapshot> aliases;
+};
+
+struct ContractCommand {
+    std::string id;
+    std::string name;
+    std::string type;
+    std::vector<std::string> actorIds;
+    std::vector<std::string> propertyIds;
+    std::vector<AliasSnapshot> aliases;
+};
+
+struct StatementCommand {
+    std::string id;
+    std::string name;
+};
+
+struct TransactionCommand {
+    std::string id;
+    std::string name;
+    std::string bookingDate;
+    double amount = 0.0;
+    std::string statementId;
+    core::domain::Transaction::Status status = core::domain::Transaction::Status::Neutral;
+    std::string actorId;
+    bool allocatable = false;
+    std::vector<std::string> propertyIds;
+};
+
+struct AnalysisCommand {
+    std::string id;
+    std::string name;
+    std::string type;
+    std::string configJson;
+    std::string filterSpec;
+    std::string exportFormat;
+    bool includeCalculationAdjustments = true;
+    std::string exportStateJson;
+    std::string snapshotTransactionsJson;
+};
+
+struct AnnualCommand {
+    std::string id;
+    std::string name;
+    int year = 0;
+    std::vector<std::string> assignedAnalysisIds;
+};
+
+struct StatementDraftCommand {
+    StatementDraftSnapshot draft;
+};
+
+struct FinalizeStatementDraftCommand {
+    StatementDraftSnapshot draft;
+};
+
+struct ImportLogsCommand {
+    std::vector<ImportLogSnapshot> logs;
+};
+
+struct ExportLogsCommand {
+    std::vector<ExportLogSnapshot> logs;
+};
+
+} // namespace core::ports::workspace

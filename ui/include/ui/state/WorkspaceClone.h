@@ -11,7 +11,7 @@
 #include "core/domain/entities/Actor.h"
 #include "core/domain/entities/Analysis.h"
 #include "core/domain/entities/Annual.h"
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/domain/entities/Contract.h"
 #include "core/domain/entities/Property.h"
 #include "core/domain/entities/Statement.h"
@@ -26,21 +26,21 @@ std::vector<std::shared_ptr<T>> cloneStateItems(const std::vector<std::shared_pt
     clones.reserve(items.size());
     for (const auto& item : items) {
         if (!item) continue;
-        clones.push_back(std::make_shared<T>(*item));
+        clones.push_back(item);
     }
     return clones;
 }
 
-inline core::domain::WorkspaceState cloneWorkspaceState(const core::domain::WorkspaceState& state)
+inline core::domain::catalog::WorkspaceCatalog cloneWorkspaceState(const core::domain::catalog::WorkspaceCatalog& state)
 {
-    core::domain::WorkspaceState clone;
-    clone.actors = cloneStateItems(state.actors);
-    clone.properties = cloneStateItems(state.properties);
-    clone.contracts = cloneStateItems(state.contracts);
-    clone.statements = cloneStateItems(state.statements);
-    clone.transactions = cloneStateItems(state.transactions);
-    clone.analyses = cloneStateItems(state.analyses);
-    clone.annuals = cloneStateItems(state.annuals);
+    core::domain::catalog::WorkspaceCatalog clone;
+    clone.setActors(cloneStateItems(state.actors()));
+    clone.setProperties(cloneStateItems(state.properties()));
+    clone.setContracts(cloneStateItems(state.contracts()));
+    clone.setStatements(cloneStateItems(state.statements()));
+    clone.setTransactions(cloneStateItems(state.transactions()));
+    clone.setAnalyses(cloneStateItems(state.analyses()));
+    clone.setAnnuals(cloneStateItems(state.annuals()));
     return clone;
 }
 

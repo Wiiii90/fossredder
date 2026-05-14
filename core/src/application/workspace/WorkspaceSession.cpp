@@ -1,6 +1,6 @@
 /**
- * @file core/src/application/WorkspaceSession.cpp
- * @brief Implements the mutable workspace session that owns in-memory app state.
+ * @file core/src/application/workspace/WorkspaceSession.cpp
+ * @brief Implements the mutable workspace session that owns in-memory workspace state.
  */
 
 #include "core/application/workspace/WorkspaceSession.h"
@@ -10,8 +10,7 @@
 namespace core::application {
 
 WorkspaceSession::WorkspaceSession(std::unique_ptr<core::ports::storage::IStorageManager> storageManager)
-    : storageManager_(std::move(storageManager))
-{
+    : storageManager_(std::move(storageManager)) {
     if (!storageManager_) {
         throw std::invalid_argument("WorkspaceSession requires a storage manager");
     }
@@ -19,33 +18,27 @@ WorkspaceSession::WorkspaceSession(std::unique_ptr<core::ports::storage::IStorag
     setDeletionImpactCallback({});
 }
 
-const std::string& WorkspaceSession::currentPath() const noexcept
-{
+const std::string& WorkspaceSession::currentPath() const noexcept {
     return storageManager_->currentPath();
 }
 
-void WorkspaceSession::setStateChangedCallback(StateChanged cb)
-{
+void WorkspaceSession::setStateChangedCallback(StateChanged cb) {
     onStateChanged_ = std::move(cb);
 }
 
-void WorkspaceSession::setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter)
-{
+void WorkspaceSession::setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter) {
     errorReporter_ = std::move(reporter);
 }
 
-void WorkspaceSession::setAtomicStoreSave(core::ports::storage::IStorageManager::AtomicStoreSave saveFn)
-{
+void WorkspaceSession::setAtomicStoreSave(core::ports::storage::IStorageManager::AtomicStoreSave saveFn) {
     storageManager_->setAtomicStoreSave(std::move(saveFn));
 }
 
-void WorkspaceSession::setAtomicStoreLoad(core::ports::storage::IStorageManager::AtomicStoreLoad loadFn)
-{
+void WorkspaceSession::setAtomicStoreLoad(core::ports::storage::IStorageManager::AtomicStoreLoad loadFn) {
     storageManager_->setAtomicStoreLoad(std::move(loadFn));
 }
 
-void WorkspaceSession::setDeletionImpactCallback(core::ports::storage::IStorageManager::DeletionImpactCallback cb)
-{
+void WorkspaceSession::setDeletionImpactCallback(core::ports::storage::IStorageManager::DeletionImpactCallback cb) {
     onDeletionImpact_ = std::move(cb);
     storageManager_->setDeletionImpactCallback([this](const DeletionImpact& impact) {
         try {
@@ -60,36 +53,33 @@ void WorkspaceSession::setDeletionImpactCallback(core::ports::storage::IStorageM
     });
 }
 
-void WorkspaceSession::openLatest()
-{
+void WorkspaceSession::openLatest() {
     const auto path = storageManager_->loadLatestPath();
     if (!path) {
         return;
     }
 
     try {
-        state_ = storageManager_->loadFrom(*path);
+        document_ = storageManager_->loadFrom(*path);
         notifyState();
     } catch (...) {
         reportException(core::errors::ErrorSeverity::Error,
                         "WorkspaceSession::openLatest",
                         std::current_exception());
-        state_ = WorkspaceState{};
+        document_ = {};
         notifyState();
     }
 }
 
-void WorkspaceSession::newFile(const std::string& path)
-{
+void WorkspaceSession::newFile(const std::string& path) {
     storageManager_->createNew(path);
-        state_ = WorkspaceState{};
+    document_ = {};
     notifyState();
 }
 
-void WorkspaceSession::openFile(const std::string& path)
-{
+void WorkspaceSession::openFile(const std::string& path) {
     try {
-        state_ = storageManager_->loadFrom(path);
+        document_ = storageManager_->loadFrom(path);
         notifyState();
     } catch (...) {
         reportException(core::errors::ErrorSeverity::Error,
@@ -99,22 +89,19 @@ void WorkspaceSession::openFile(const std::string& path)
     }
 }
 
-void WorkspaceSession::saveFile()
-{
-    storageManager_->save(state_);
+void WorkspaceSession::saveFile() {
+    storageManager_->save(document_);
 }
 
-void WorkspaceSession::saveFileAs(const std::string& path)
-{
-    storageManager_->saveAs(path, state_);
+void WorkspaceSession::saveFileAs(const std::string& path) {
+    storageManager_->saveAs(path, document_);
 }
 
-void WorkspaceSession::commit()
-{
+void WorkspaceSession::commit() {
     try {
         const std::string& path = storageManager_->currentPath();
         if (!path.empty()) {
-            storageManager_->save(state_);
+            storageManager_->save(document_);
         }
     } catch (...) {
         reportException(core::errors::ErrorSeverity::Error,
@@ -125,11 +112,10 @@ void WorkspaceSession::commit()
     notifyState();
 }
 
-void WorkspaceSession::notifyState()
-{
+void WorkspaceSession::notifyState() {
     try {
         if (onStateChanged_) {
-            onStateChanged_(state_);
+            onStateChanged_(document_);
         }
     } catch (...) {
         reportException(core::errors::ErrorSeverity::Error,
@@ -140,8 +126,7 @@ void WorkspaceSession::notifyState()
 
 void WorkspaceSession::reportException(core::errors::ErrorSeverity severity,
                                        const char* origin,
-                                       std::exception_ptr exception) const
-{
+                                       std::exception_ptr exception) const {
     if (!errorReporter_) {
         return;
     }

@@ -6,8 +6,9 @@
 #pragma once
 
 #include "core/errors/IErrorReporter.h"
-#include "core/application/workspace/WorkspaceState.h"
 #include "core/application/storage/DeletionImpact.h"
+#include "core/application/workspace/WorkspaceSessionState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/ports/storage/IStorageManager.h"
 
 #include <functional>
@@ -21,7 +22,7 @@ namespace core::application {
  */
 class WorkspaceSession {
 public:
-    using StateChanged = std::function<void(const core::domain::WorkspaceState&)>;
+    using StateChanged = std::function<void(const core::application::workspace::WorkspaceSessionState&)>;
 
     /**
      * @brief Creates a session over an existing storage manager.
@@ -29,8 +30,10 @@ public:
      */
     explicit WorkspaceSession(std::unique_ptr<core::ports::storage::IStorageManager> storageManager);
 
-    const core::domain::WorkspaceState& state() const noexcept { return state_; }
-    core::domain::WorkspaceState& mutableState() noexcept { return state_; }
+    const core::application::workspace::WorkspaceSessionState& state() const noexcept { return document_; }
+    core::application::workspace::WorkspaceSessionState& mutableState() noexcept { return document_; }
+    const core::domain::catalog::WorkspaceCatalog& catalogState() const noexcept { return document_.catalog; }
+    core::domain::catalog::WorkspaceCatalog& mutableCatalogState() noexcept { return document_.catalog; }
     const std::string& currentPath() const noexcept;
 
     void setStateChangedCallback(StateChanged cb);
@@ -53,7 +56,7 @@ private:
                          std::exception_ptr exception) const;
 
     std::unique_ptr<core::ports::storage::IStorageManager> storageManager_;
-    core::domain::WorkspaceState state_;
+    core::application::workspace::WorkspaceSessionState document_;
     StateChanged onStateChanged_;
     std::shared_ptr<core::errors::IErrorReporter> errorReporter_;
     core::ports::storage::IStorageManager::DeletionImpactCallback onDeletionImpact_;

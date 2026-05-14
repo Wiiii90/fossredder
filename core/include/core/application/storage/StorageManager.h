@@ -1,13 +1,9 @@
-#pragma once
-
 /**
  * @file core/include/core/application/storage/StorageManager.h
  * @brief Storage manager: repository factory, atomic save/load and registry handling.
- *
- * Responsible for locating the latest storage file, delegating load/save
- * operations to either atomic callbacks or AppStateManager-backed repositories,
- * and for updating an injected registry abstraction (latest path).
  */
+
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -15,7 +11,7 @@
 #include <string>
 #include <utility>
 
-#include "core/application/workspace/AppState.h"
+#include "core/application/workspace/WorkspaceSessionState.h"
 #include "core/application/storage/DeletionImpact.h"
 #include "core/ports/storage/IRegistry.h"
 #include "core/ports/storage/IStorageManager.h"
@@ -25,21 +21,25 @@ namespace core::storage {
 using IRegistry = core::ports::storage::IRegistry;
 using IStorageManager = core::ports::storage::IStorageManager;
 
+/**
+ * @brief Persists workspace session state through atomic store callbacks and latest-path registry access.
+ */
 class StorageManager : public IStorageManager {
 public:
     using AtomicStoreSave = IStorageManager::AtomicStoreSave;
     using AtomicStoreLoad = IStorageManager::AtomicStoreLoad;
     using DeletionImpactCallback = IStorageManager::DeletionImpactCallback;
 
+    /** @brief Creates a storage manager with an optional latest-path registry backend. */
     explicit StorageManager(std::shared_ptr<IRegistry> registry = nullptr);
 
     void setAtomicStoreSave(AtomicStoreSave saveFn) override;
     void setAtomicStoreLoad(AtomicStoreLoad loadFn) override;
     void setDeletionImpactCallback(DeletionImpactCallback cb) override;
     std::optional<std::string> loadLatestPath() const override;
-    core::domain::AppState loadFrom(const std::string& filePath) override;
-    void save(const core::domain::AppState& state) override;
-    void saveAs(const std::string& filePath, const core::domain::AppState& state) override;
+    core::application::workspace::WorkspaceSessionState loadFrom(const std::string& filePath) override;
+    void save(const core::application::workspace::WorkspaceSessionState& document) override;
+    void saveAs(const std::string& filePath, const core::application::workspace::WorkspaceSessionState& document) override;
     void createNew(const std::string& filePath) override;
     const std::string& currentPath() const noexcept override { return currentPath_; }
 
@@ -52,4 +52,4 @@ private:
     void rememberLatestPath(const std::string& filePath);
 };
 
-}
+} // namespace core::storage

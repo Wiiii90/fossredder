@@ -9,9 +9,9 @@
 
 namespace ui::exporting {
 
-std::shared_ptr<const WorkspaceState> createWorkspaceSnapshot(const WorkspaceState& state)
+std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> createWorkspaceSnapshot(const core::domain::catalog::WorkspaceCatalog& state)
 {
-    return std::make_shared<WorkspaceState>(ui::cloneWorkspaceState(state));
+    return std::make_shared<core::domain::catalog::WorkspaceCatalog>(ui::cloneWorkspaceState(state));
 }
 
 }

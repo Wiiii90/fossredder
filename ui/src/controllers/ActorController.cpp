@@ -7,36 +7,86 @@
 
 #include <algorithm>
 
-#include "core/application/workspace/WorkspaceFacade.h"
+#include "core/ports/workspace/IWorkspaceReader.h"
+#include "core/ports/workspace/IWorkspaceWriter.h"
+#include "core/ports/workspace/WorkspaceCommands.h"
 #include "ui/observability/Origins.h"
-#include "ui/payload/EntityPayloadMapper.h"
 #include "ui/util/CoreFacadeGuard.h"
 #include "ui/util/StringConversions.h"
 
 namespace ui {
 
-ActorController::ActorController(core::application::WorkspaceFacade* core, QObject* parent)
+ActorController::ActorController(core::ports::workspace::IWorkspaceWriter* core, QObject* parent)
     : QObject(parent)
     , core_(core)
+    , reader_(dynamic_cast<core::ports::workspace::IWorkspaceReader*>(core))
 {
 }
 
 QVariantMap ActorController::actor(const QString& id) const
 {
-    if (!core_) {
+    if (!reader_) {
         return {};
     }
 
-    const auto& items = core_->state().actors;
+    const auto items = reader_->workspaceSnapshot().actors;
     const auto it = std::find_if(items.begin(), items.end(), [&](const auto& item) {
-        return item && QString::fromStdString(item->id) == id;
+        return QString::fromStdString(item.id) == id;
     });
-    return it != items.end() && *it ? ui::payload::entity::toPayload(**it) : QVariantMap{};
+    if (it == items.end()) {
+        return {};
+    }
+
+    QVariantMap payload;
+    payload[QStringLiteral("id")] = QString::fromStdString(it->id);
+    payload[QStringLiteral("name")] = QString::fromStdString(it->name);
+    QVariantList aliases;
+    aliases.reserve(static_cast<int>(it->aliases.size()));
+    for (const auto& alias : it->aliases) {
+        QVariantMap aliasPayload;
+        aliasPayload[QStringLiteral("value")] = QString::fromStdString(alias.value);
+        aliasPayload[QStringLiteral("kind")] = QString::fromStdString(alias.kind);
+        aliasPayload[QStringLiteral("source")] = QString::fromStdString(alias.source);
+        aliasPayload[QStringLiteral("createdAt")] = QString::fromStdString(alias.createdAt);
+        aliasPayload[QStringLiteral("updatedAt")] = QString::fromStdString(alias.updatedAt);
+        aliases.push_back(std::move(aliasPayload));
+    }
+    payload[QStringLiteral("aliases")] = aliases;
+    payload[QStringLiteral("createdAt")] = QString::fromStdString(it->createdAt);
+    payload[QStringLiteral("updatedAt")] = QString::fromStdString(it->updatedAt);
+    return payload;
 }
 
 QVariantList ActorController::actors() const
 {
-    return core_ ? ui::payload::entity::toPayloadList(core_->state().actors) : QVariantList{};
+    if (!reader_) {
+        return {};
+    }
+
+    QVariantList out;
+    const auto items = reader_->workspaceSnapshot().actors;
+    out.reserve(static_cast<int>(items.size()));
+    for (const auto& item : items) {
+        QVariantMap payload;
+        payload[QStringLiteral("id")] = QString::fromStdString(item.id);
+        payload[QStringLiteral("name")] = QString::fromStdString(item.name);
+        QVariantList aliases;
+        aliases.reserve(static_cast<int>(item.aliases.size()));
+        for (const auto& alias : item.aliases) {
+            QVariantMap aliasPayload;
+            aliasPayload[QStringLiteral("value")] = QString::fromStdString(alias.value);
+            aliasPayload[QStringLiteral("kind")] = QString::fromStdString(alias.kind);
+            aliasPayload[QStringLiteral("source")] = QString::fromStdString(alias.source);
+            aliasPayload[QStringLiteral("createdAt")] = QString::fromStdString(alias.createdAt);
+            aliasPayload[QStringLiteral("updatedAt")] = QString::fromStdString(alias.updatedAt);
+            aliases.push_back(std::move(aliasPayload));
+        }
+        payload[QStringLiteral("aliases")] = aliases;
+        payload[QStringLiteral("createdAt")] = QString::fromStdString(item.createdAt);
+        payload[QStringLiteral("updatedAt")] = QString::fromStdString(item.updatedAt);
+        out.push_back(std::move(payload));
+    }
+    return out;
 }
 
 QString ActorController::addActor(const QString& name,
@@ -44,9 +94,12 @@ QString ActorController::addActor(const QString& name,
 {
     return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::controller::actor::kAdd, {}, [&]() {
-            return QString::fromStdString(core_->addActor(
-                strings::toStdString(name),
-                strings::toAliases(aliases)));
+            core::ports::workspace::ActorCommand command;
+            command.name = strings::toStdString(name);
+            for (const auto& alias : strings::toAliases(aliases)) {
+            command.aliases.push_back({alias.value(), alias.kind(), alias.source(), alias.hitCount(), alias.lastUsedAt(), alias.createdAt(), alias.updatedAt()});
+            }
+            return QString::fromStdString(core_->addActor(command));
         });
 }
 
@@ -56,9 +109,13 @@ void ActorController::updateActor(const QString& id,
 {
     ui::util::guard::invokeVoid(
         core_, observability::origins::controller::actor::kUpdate, [&]() {
-            core_->updateActor(strings::toStdString(id),
-                               strings::toStdString(name),
-                               strings::toAliases(aliases));
+            core::ports::workspace::ActorCommand command;
+            command.id = strings::toStdString(id);
+            command.name = strings::toStdString(name);
+            for (const auto& alias : strings::toAliases(aliases)) {
+            command.aliases.push_back({alias.value(), alias.kind(), alias.source(), alias.hitCount(), alias.lastUsedAt(), alias.createdAt(), alias.updatedAt()});
+            }
+            core_->updateActor(command);
         });
 }
 

@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "core/ports/image-processing/OpenCvResult.h"
+#include "core/ports/image-processing/ImageProcessingResult.h"
 #include "core/ports/image-processing/IImageProcessor.h"
-#include "core/ports/text-recognition/TesseractResult.h"
+#include "core/ports/text-recognition/TextRecognitionResult.h"
 #include "core/application/import/draft/TransactionDraft.h"
 
 #include <filesystem>
@@ -42,8 +42,8 @@ public:
      * @param initialTransactionIndex Initial transaction counter value.
      * @return Parse result containing generated drafts, artifacts, and parser metadata.
      */
-    static ParseResult parse(const core::ports::image_processing::opencv::Table& table,
-                             const core::ports::text_recognition::tesseract::ExtractResult& ocr,
+    static ParseResult parse(const core::ports::image_processing::Table& table,
+                             const core::ports::text_recognition::ExtractResult& ocr,
                              const std::string& pageCropImagePath,
                              std::shared_ptr<core::ports::image_processing::IImageProcessor> opencv,
                              const std::vector<uint8_t>& pageCropImageBytes,
@@ -51,8 +51,4 @@ public:
                              int initialTransactionIndex = 1);
 };
 
-}
-
-namespace core {
-using DefaultStatementParser = application::importing::statement::DefaultStatementParser;
 }

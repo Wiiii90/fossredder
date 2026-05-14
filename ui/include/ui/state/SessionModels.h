@@ -7,7 +7,7 @@
 
 #include <memory>
 
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "ui/models/ActorList.h"
 #include "ui/models/AnalysisList.h"
 #include "ui/models/AnnualList.h"
@@ -40,7 +40,7 @@ public:
     const AnalysisList& analyses() const noexcept { return *analyses_; }
     const AnnualList& annuals() const noexcept { return *annuals_; }
 
-    void loadFromState(const core::domain::WorkspaceState& state);
+    void loadFromState(const core::domain::catalog::WorkspaceCatalog& state);
     void refreshContractTypes();
 
 private:

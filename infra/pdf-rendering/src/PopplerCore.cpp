@@ -17,7 +17,7 @@
 #include <opencv2/imgproc.hpp>
 
 using json = nlohmann::json;
-namespace ports = core::ports::pdf_rendering::poppler;
+namespace ports = core::ports::pdf_rendering;
 
 static void safeWriteText(const std::shared_ptr<IDebugger>& debugger, const std::string& path, const std::string& text) {
     if (!debugger || !debugger->enabled()) return;

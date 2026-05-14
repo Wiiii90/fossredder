@@ -7,10 +7,10 @@
 
 #include <memory>
 
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 
 namespace ui::exporting {
 
-std::shared_ptr<const core::domain::WorkspaceState> createWorkspaceSnapshot(const core::domain::WorkspaceState& state);
+std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> createWorkspaceSnapshot(const core::domain::catalog::WorkspaceCatalog& state);
 
 }

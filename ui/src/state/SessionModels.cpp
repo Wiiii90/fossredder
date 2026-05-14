@@ -20,7 +20,7 @@ SessionModels::SessionModels(QObject* objectParent)
 {
 }
 
-void SessionModels::loadFromState(const WorkspaceState& state)
+void SessionModels::loadFromState(const core::domain::catalog::WorkspaceCatalog& state)
 {
     projectSessionModelsFromState(*this, state);
 }

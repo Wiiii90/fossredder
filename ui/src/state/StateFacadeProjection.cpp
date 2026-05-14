@@ -11,12 +11,28 @@
 #include "ui/state/SessionMutationState.h"
 #include "ui/state/SessionStore.h"
 
-#include "core/application/analysis/ComposeAnalysisRequest.h"
+#include "core/constants/json.h"
 
 #include <QStringList>
 #include <QVariantMap>
 
 namespace ui {
+
+namespace {
+
+QString serializeAdjustmentsJson(const core::domain::Analysis& analysis)
+{
+    QStringList entries;
+    entries.reserve(static_cast<int>(analysis.adjustments().size()));
+    for (const auto& [id, amount] : analysis.adjustments()) {
+        entries.push_back(QString::fromLatin1("\"%1\":%2")
+                              .arg(QString::fromStdString(id),
+                                   QString::number(amount, 'g', 16)));
+    }
+    return QString::fromLatin1("{%1}").arg(entries.join(QStringLiteral(",")));
+}
+
+} // namespace
 
 QVariantList buildStatementTransactionIds(const SessionStore& session, const QString& statementId)
 {
@@ -25,8 +41,8 @@ QVariantList buildStatementTransactionIds(const SessionStore& session, const QSt
 
     for (const auto& transaction : session.models().transactions().transactions()) {
         if (!transaction) continue;
-        if (QString::fromStdString(transaction->statementId) == statementId) {
-            out.push_back(QString::fromStdString(transaction->id));
+        if (QString::fromStdString(transaction->statementId()) == statementId) {
+            out.push_back(QString::fromStdString(transaction->id()));
         }
     }
     return out;
@@ -396,15 +412,15 @@ QVariantList buildActorRows(const SessionStore& session)
         if (!actor) continue;
 
         QVariantMap row;
-        row.insert(ui::payload::keys::common::kId, QString::fromStdString(actor->id));
-        row.insert(ui::payload::keys::common::kName, QString::fromStdString(actor->name));
-        row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(actor->name));
+        row.insert(ui::payload::keys::common::kId, QString::fromStdString(actor->id()));
+        row.insert(ui::payload::keys::common::kName, QString::fromStdString(actor->name()));
+        row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(actor->name()));
         QVariantList aliases;
-        aliases.reserve(static_cast<int>(actor->aliases.size()));
-        for (const auto& alias : actor->aliases) {
+        aliases.reserve(static_cast<int>(actor->aliases().size()));
+        for (const auto& alias : actor->aliases()) {
             QVariantMap aliasMap;
-            aliasMap.insert(QStringLiteral("value"), QString::fromStdString(alias.value));
-            aliasMap.insert(QStringLiteral("kind"), QString::fromStdString(alias.kind));
+            aliasMap.insert(QStringLiteral("value"), QString::fromStdString(alias.value()));
+            aliasMap.insert(QStringLiteral("kind"), QString::fromStdString(alias.kind()));
             aliases.push_back(aliasMap);
         }
         row.insert(ui::payload::keys::actor::kAliases, aliases);
@@ -420,15 +436,15 @@ QVariantList buildPropertyRows(const SessionStore& session)
         if (!property) continue;
 
         QVariantMap row;
-        row.insert(ui::payload::keys::common::kId, QString::fromStdString(property->id));
-        row.insert(ui::payload::keys::common::kName, QString::fromStdString(property->name));
-        row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(property->name));
+        row.insert(ui::payload::keys::common::kId, QString::fromStdString(property->id()));
+        row.insert(ui::payload::keys::common::kName, QString::fromStdString(property->name()));
+        row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(property->name()));
         QVariantList aliases;
-        aliases.reserve(static_cast<int>(property->aliases.size()));
-        for (const auto& alias : property->aliases) {
+        aliases.reserve(static_cast<int>(property->aliases().size()));
+        for (const auto& alias : property->aliases()) {
             QVariantMap aliasMap;
-            aliasMap.insert(QStringLiteral("value"), QString::fromStdString(alias.value));
-            aliasMap.insert(QStringLiteral("kind"), QString::fromStdString(alias.kind));
+            aliasMap.insert(QStringLiteral("value"), QString::fromStdString(alias.value()));
+            aliasMap.insert(QStringLiteral("kind"), QString::fromStdString(alias.kind()));
             aliases.push_back(aliasMap);
         }
         row.insert(ui::payload::keys::property::kAliases, aliases);
@@ -444,18 +460,18 @@ QVariantList buildContractRows(const SessionStore& session)
         if (!contract) continue;
 
         QVariantMap row;
-        row.insert(ui::payload::keys::common::kId, QString::fromStdString(contract->id));
-        row.insert(ui::payload::keys::common::kName, QString::fromStdString(contract->name));
-        row.insert(ui::payload::keys::common::kType, QString::fromStdString(contract->type));
-        row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(contract->name));
+        row.insert(ui::payload::keys::common::kId, QString::fromStdString(contract->id()));
+        row.insert(ui::payload::keys::common::kName, QString::fromStdString(contract->name()));
+        row.insert(ui::payload::keys::common::kType, QString::fromStdString(contract->type()));
+        row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(contract->name()));
         std::vector<std::string> aliases;
-        aliases.reserve(contract->aliases.size());
-        for (const auto& alias : contract->aliases) {
-            aliases.push_back(alias.value);
+        aliases.reserve(contract->aliases().size());
+        for (const auto& alias : contract->aliases()) {
+            aliases.push_back(alias.value());
         }
         row.insert(ui::payload::keys::contract::kAliases, payload::mapper::toVariantStringList(aliases));
-        row.insert(ui::payload::keys::contract::kActorIds, payload::mapper::toQStringList(contract->actorIds));
-        row.insert(ui::payload::keys::contract::kPropertyIds, payload::mapper::toQStringList(contract->propertyIds));
+        row.insert(ui::payload::keys::contract::kActorIds, payload::mapper::toQStringList(contract->actorIds()));
+        row.insert(ui::payload::keys::contract::kPropertyIds, payload::mapper::toQStringList(contract->propertyIds()));
         out.push_back(row);
     }
     return out;
@@ -468,19 +484,19 @@ QVariantList buildAnalysisRows(const SessionStore& session)
         if (!analysis) continue;
 
         QVariantMap row;
-        row.insert(ui::payload::keys::common::kId, QString::fromStdString(analysis->id));
-        row.insert(ui::payload::keys::common::kName, QString::fromStdString(analysis->name));
-        row.insert(ui::payload::keys::common::kType, QString::fromStdString(analysis->type));
-        row.insert(ui::payload::keys::analysis::kConfig, QString::fromStdString(analysis->configJson));
-        row.insert(ui::payload::keys::analysis::kFilter, QString::fromStdString(analysis->filterSpec));
+        row.insert(ui::payload::keys::common::kId, QString::fromStdString(analysis->id()));
+        row.insert(ui::payload::keys::common::kName, QString::fromStdString(analysis->name()));
+        row.insert(ui::payload::keys::common::kType, QString::fromStdString(analysis->type()));
+        row.insert(ui::payload::keys::analysis::kConfig, QString::fromStdString(analysis->configJson()));
+        row.insert(ui::payload::keys::analysis::kFilter, QString::fromStdString(analysis->filterSpec()));
         row.insert(ui::payload::keys::analysis::kAdjustments,
-                   QString::fromStdString(core::application::analysis::ComposeAnalysisRequest::serializeAdjustments(analysis->adjustments)));
-        row.insert(ui::payload::keys::analysis::kExportFormat, QString::fromStdString(analysis->exportFormat));
-        row.insert(ui::payload::keys::analysis::kIncludeCalcAdjustments, analysis->includeCalcAdjustments);
-        row.insert(ui::payload::keys::analysis::kExportState, QString::fromStdString(analysis->exportStateJson));
-        row.insert(ui::payload::keys::analysis::kSnapshotTransactions, QString::fromStdString(analysis->snapshotTransactionsJson));
-        row.insert(ui::payload::keys::analysis::kCreatedAt, QString::fromStdString(analysis->createdAt));
-        row.insert(ui::payload::keys::analysis::kUpdatedAt, QString::fromStdString(analysis->updatedAt));
+                   serializeAdjustmentsJson(*analysis));
+        row.insert(ui::payload::keys::analysis::kExportFormat, QString::fromStdString(analysis->exportFormat()));
+        row.insert(ui::payload::keys::analysis::kIncludeCalcAdjustments, analysis->includeCalculationAdjustments());
+        row.insert(ui::payload::keys::analysis::kExportState, QString::fromStdString(analysis->exportStateJson()));
+        row.insert(ui::payload::keys::analysis::kSnapshotTransactions, QString::fromStdString(analysis->snapshotTransactionsJson()));
+        row.insert(ui::payload::keys::analysis::kCreatedAt, QString::fromStdString(analysis->createdAt()));
+        row.insert(ui::payload::keys::analysis::kUpdatedAt, QString::fromStdString(analysis->updatedAt()));
         out.push_back(row);
     }
     return out;
@@ -493,13 +509,13 @@ QVariantList buildAnnualRows(const SessionStore& session)
         if (!annual) continue;
 
         QVariantMap row;
-        row.insert(ui::payload::keys::common::kId, QString::fromStdString(annual->id));
-        row.insert(ui::payload::keys::annual::kName, QString::fromStdString(annual->name));
-        row.insert(ui::payload::keys::annual::kYear, annual->year);
-        row.insert(ui::payload::keys::annual::kAnalysisIds, payload::mapper::toVariantStringList(annual->analysisIds));
+        row.insert(ui::payload::keys::common::kId, QString::fromStdString(annual->id()));
+        row.insert(ui::payload::keys::annual::kName, QString::fromStdString(annual->name()));
+        row.insert(ui::payload::keys::annual::kYear, annual->year());
+        row.insert(ui::payload::keys::annual::kAnalysisIds, payload::mapper::toVariantStringList(annual->analysisIds()));
         row.insert(ui::payload::keys::common::kDisplay,
-                   annual->name.empty() ? QString::number(annual->year)
-                                        : QString::fromStdString(annual->name));
+                   annual->name().empty() ? QString::number(annual->year())
+                                          : QString::fromStdString(annual->name()));
         out.push_back(row);
     }
     return out;
@@ -512,8 +528,8 @@ QVariantList buildStatementRows(const SessionStore& session)
         if (!statement) continue;
 
         QVariantMap row;
-        row.insert(ui::payload::keys::common::kId, QString::fromStdString(statement->id));
-        row.insert(ui::payload::keys::common::kName, QString::fromStdString(statement->name));
+        row.insert(ui::payload::keys::common::kId, QString::fromStdString(statement->id()));
+        row.insert(ui::payload::keys::common::kName, QString::fromStdString(statement->name()));
         out.push_back(row);
     }
     return out;
@@ -526,12 +542,12 @@ QVariantList buildStatementTransactionRows(const SessionStore& session, const QS
 
     for (const auto& transaction : session.models().transactions().transactions()) {
         if (!transaction) continue;
-        if (QString::fromStdString(transaction->statementId) != statementId) continue;
+        if (QString::fromStdString(transaction->statementId()) != statementId) continue;
 
         QVariantMap row;
-        row.insert(ui::payload::keys::common::kId, QString::fromStdString(transaction->id));
-        row.insert(ui::payload::keys::common::kName, QString::fromStdString(transaction->name));
-        row.insert(ui::payload::keys::transaction::kBookingDate, QString::fromStdString(transaction->bookingDate));
+        row.insert(ui::payload::keys::common::kId, QString::fromStdString(transaction->id()));
+        row.insert(ui::payload::keys::common::kName, QString::fromStdString(transaction->name()));
+        row.insert(ui::payload::keys::transaction::kBookingDate, QString::fromStdString(transaction->bookingDate()));
         out.push_back(row);
     }
     return out;

@@ -1,3 +1,8 @@
+/**
+ * @file core/include/core/application/storage/RepositoryBundle.h
+ * @brief Aggregates repository ports required by workspace state persistence.
+ */
+
 #pragma once
 
 #include <memory>
@@ -16,6 +21,9 @@
 
 namespace core::storage {
 
+/**
+ * @brief Groups repository implementations consumed by `WorkspaceStateManager`.
+ */
 struct RepositoryBundle {
     std::shared_ptr<core::ports::repositories::IActorRepository> actors;
     std::shared_ptr<core::ports::repositories::IPropertyRepository> properties;
@@ -30,4 +38,4 @@ struct RepositoryBundle {
     std::shared_ptr<core::ports::repositories::IExportLogRepository> exportLogs;
 };
 
-}
+} // namespace core::storage

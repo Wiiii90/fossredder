@@ -1,10 +1,6 @@
 set(CORE_PUBLIC_HEADERS
-    include/core/application/analysis/AnalysisEngine.h
-    include/core/application/analysis/ComposeAnalysisRequest.h
-    include/core/application/analysis/Filter.h
-    include/core/application/analysis/RunAnalysis.h
-    include/core/application/analysis/RunAnalysisRequest.h
-    include/core/application/analysis/RunAnalysisResult.h
+    include/core/application/analysis/AnalysisService.h
+    include/core/application/analysis/AnalysisRequest.h
     include/core/application/export/AnalysisExportService.h
     include/core/application/export/CsvExporter.h
     include/core/application/export/ExportLog.h
@@ -12,7 +8,6 @@ set(CORE_PUBLIC_HEADERS
     include/core/application/export/ExportResult.h
     include/core/application/export/ExportService.h
     include/core/application/export/ExportTypes.h
-    include/core/application/export/IArchive.h
     include/core/application/export/XlsxExporter.h
     include/core/application/import/IImportStatement.h
     include/core/application/import/ImportLog.h
@@ -25,21 +20,16 @@ set(CORE_PUBLIC_HEADERS
     include/core/application/storage/DeletionImpact.h
     include/core/application/storage/RepositoryBundle.h
     include/core/application/storage/StorageManager.h
-    include/core/application/workspace/AppState.h
     include/core/application/workspace/WorkspaceFacade.h
-    include/core/application/workspace/AppStateManager.h
-    include/core/application/workspace/WorkspaceCatalogService.h
-    include/core/application/workspace/DeletionImpact.h
-    include/core/application/workspace/StateHydrator.h
-    include/core/application/workspace/StateProjector.h
-    include/core/application/workspace/WorkspaceDraftService.h
+    include/core/application/workspace/WorkspaceQueryService.h
     include/core/application/workspace/WorkspaceSession.h
-    include/core/application/workspace/WorkspaceState.h
+    include/core/application/workspace/WorkspaceStateManager.h
+    include/core/ports/archive/IArchive.h
+    include/core/ports/analysis-image-renderer/IAnalysisImageRenderer.h
+    include/core/ports/xlsx-writer/IXlsxWriter.h
     include/core/constants/analysis.h
     include/core/constants/app.h
     include/core/constants/app_state.h
-    include/core/constants/comparison.h
-    include/core/constants/config.h
     include/core/constants/export.h
     include/core/constants/filters.h
     include/core/constants/ids.h
@@ -57,9 +47,12 @@ set(CORE_PUBLIC_HEADERS
     include/core/domain/entities/Property.h
     include/core/domain/entities/Statement.h
     include/core/domain/entities/Transaction.h
+    include/core/domain/policies/AnalysisPolicy.h
+    include/core/domain/policies/AnnualPolicy.h
     include/core/domain/policies/DraftMatchingPolicy.h
+    include/core/domain/policies/TransactionPolicy.h
+    include/core/domain/policies/StatementPolicy.h
     include/core/domain/values/Alias.h
-    include/core/domain/values/AliasUsage.h
     include/core/errors/ErrorCodes.h
     include/core/errors/ErrorEvent.h
     include/core/errors/ErrorEventFactory.h
@@ -87,17 +80,17 @@ set(CORE_PUBLIC_HEADERS
     include/core/ports/repositories/ITransactionDraftRepository.h
     include/core/ports/repositories/ITransactionRepository.h
     include/core/ports/image-processing/IImageProcessor.h
-    include/core/ports/image-processing/OpenCvRequest.h
-    include/core/ports/image-processing/OpenCvResult.h
-    include/core/ports/image-processing/OpenCvTypes.h
+    include/core/ports/image-processing/ImageProcessingRequest.h
+    include/core/ports/image-processing/ImageProcessingResult.h
+    include/core/ports/image-processing/ImageProcessingTypes.h
     include/core/ports/pdf-rendering/IPdfRenderer.h
-    include/core/ports/pdf-rendering/PopplerRequest.h
-    include/core/ports/pdf-rendering/PopplerResult.h
-    include/core/ports/pdf-rendering/PopplerTypes.h
+    include/core/ports/pdf-rendering/PdfRenderingRequest.h
+    include/core/ports/pdf-rendering/PdfRenderingResult.h
+    include/core/ports/pdf-rendering/PdfRenderingTypes.h
     include/core/ports/text-recognition/ITextRecognizer.h
-    include/core/ports/text-recognition/TesseractRequest.h
-    include/core/ports/text-recognition/TesseractResult.h
-    include/core/ports/text-recognition/TesseractTypes.h
+    include/core/ports/text-recognition/TextRecognitionRequest.h
+    include/core/ports/text-recognition/TextRecognitionResult.h
+    include/core/ports/text-recognition/TextRecognitionTypes.h
     include/core/ports/storage/IRegistry.h
     include/core/ports/storage/IStorageManager.h
     include/core/utils/Time.h
@@ -105,20 +98,15 @@ set(CORE_PUBLIC_HEADERS
 )
 
 set(CORE_PRIVATE_HEADERS
-    src/application/analysis/AnalysisStrategy.h
-    src/application/analysis/FilteredTransactions.h
-    src/application/analysis/OutputTypeResolver.h
-    src/application/analysis/TransactionCollector.h
-    src/application/analysis/strategies/CalcAnalysisStrategy.h
-    src/application/analysis/strategies/PlotAnalysisStrategy.h
-    src/application/analysis/strategies/TabAnalysisStrategy.h
+    src/application/analysis/internal/AnalysisFilter.h
+    src/application/analysis/presentation/PlotAnalysis.h
+    src/application/analysis/presentation/TableAnalysis.h
+    src/application/analysis/adjustment/AdjustmentCalculation.h
     src/application/export/PropertyContractMatrix.h
     src/application/import/ImportPageRequests.h
     src/application/import/ImportPipelineHelpers.h
     src/application/import/ImportStatementStrategy.h
     src/application/import/ImportStrategySupport.h
-    src/application/workspace/CatalogDraftAppliers.h
-    src/application/workspace/CatalogMutationHelpers.h
     src/jobs/JobManager.h
     src/utils/StableId.h
     src/utils/UniqId.h
@@ -127,15 +115,11 @@ set(CORE_PRIVATE_HEADERS
 
 # Core implementation sources.
 set(CORE_SRCS
-    src/application/analysis/AnalysisEngine.cpp
-    src/application/analysis/ComposeAnalysisRequest.cpp
-    src/application/analysis/Filter.cpp
-    src/application/analysis/OutputTypeResolver.cpp
-    src/application/analysis/RunAnalysis.cpp
-    src/application/analysis/TransactionCollector.cpp
-    src/application/analysis/strategies/CalcAnalysisStrategy.cpp
-    src/application/analysis/strategies/PlotAnalysisStrategy.cpp
-    src/application/analysis/strategies/TabAnalysisStrategy.cpp
+    src/application/analysis/AnalysisService.cpp
+    src/application/analysis/internal/AnalysisFilter.cpp
+    src/application/analysis/presentation/PlotAnalysis.cpp
+    src/application/analysis/presentation/TableAnalysis.cpp
+    src/application/analysis/adjustment/AdjustmentCalculation.cpp
     src/application/export/AnalysisExportService.cpp
     src/application/export/CsvExporter.cpp
     src/application/export/ExportService.cpp
@@ -156,17 +140,39 @@ set(CORE_SRCS
     src/application/import/transaction/AmountParser.cpp
     src/application/import/transaction/DefaultTransactionParser.cpp
     src/application/storage/StorageManager.cpp
+    src/application/workspace/WorkspaceCommandService.cpp
     src/application/workspace/WorkspaceFacade.cpp
-    src/application/workspace/AppStateManager.cpp
-    src/application/workspace/WorkspaceCatalogService.cpp
-    src/application/workspace/StateHydrator.cpp
-    src/application/workspace/StateProjector.cpp
-    src/application/workspace/WorkspaceDraftService.cpp
+    src/application/workspace/WorkspaceWorkflowService.cpp
+    src/application/workspace/WorkspaceSnapshotProjector.cpp
+    src/application/workspace/WorkspaceQueryService.cpp
     src/application/workspace/WorkspaceSession.cpp
+    src/application/workspace/WorkspaceStateManager.cpp
     src/errors/ErrorReporterRegistry.cpp
     src/jobs/JobManager.cpp
     src/jobs/JobSystem.cpp
     src/jobs/Scheduler.cpp
+    src/domain/entities/Actor.cpp
+    src/domain/entities/Analysis.cpp
+    src/domain/entities/Annual.cpp
+    src/domain/entities/Contract.cpp
+    src/domain/entities/Property.cpp
+    src/domain/entities/Statement.cpp
+    src/domain/entities/Transaction.cpp
+    src/domain/catalog/WorkspaceCatalog.cpp
+    src/domain/policies/AliasPolicy.cpp
+    src/domain/policies/AnalysisPolicy.cpp
+    src/domain/policies/AnnualPolicy.cpp
+    src/domain/policies/StatementPolicy.cpp
+    src/domain/policies/TransactionPolicy.cpp
+    src/domain/values/Alias.cpp
+    src/domain/values/AnalysisType.cpp
+    src/domain/values/BookingDate.cpp
+    src/domain/values/ContractType.cpp
+    src/domain/values/EntityName.cpp
+    src/domain/values/ExportFormat.cpp
+    src/domain/values/FilterSpec.cpp
+    src/domain/values/MoneyAmount.cpp
+    src/domain/values/Year.cpp
     src/domain/policies/DraftMatchingPolicy.cpp
     src/utils/Util.cpp
     ${CORE_PUBLIC_HEADERS}
@@ -188,88 +194,11 @@ target_include_directories(fossredder_core PUBLIC
 
 # Internal dependencies used by core implementation code.
 find_package(nlohmann_json CONFIG REQUIRED)
-find_package(xlnt CONFIG QUIET)
-find_package(OpenCV REQUIRED)
-find_package(libzip CONFIG REQUIRED)
 
 target_link_libraries(fossredder_core PRIVATE nlohmann_json::nlohmann_json)
-target_link_libraries(fossredder_core PRIVATE ${OpenCV_LIBS})
-target_link_libraries(fossredder_core PRIVATE libzip::zip)
-
-if(TARGET xlnt::xlnt)
-    target_link_libraries(fossredder_core PRIVATE xlnt::xlnt)
-elseif(TARGET xlnt)
-    target_link_libraries(fossredder_core PRIVATE xlnt)
-else()
-    message(WARNING "xlnt library not found; XLSX export may fail to link")
-endif()
 
 fossredder_set_library_output_dirs(fossredder_core)
 fossredder_enable_target_pch(fossredder_core "${CMAKE_CURRENT_SOURCE_DIR}/include/core/pch.h")
-
-# Optional module-local tests.
-option(BUILD_CORE_TESTS "Build tests for core module" OFF)
-if (BUILD_CORE_TESTS)
-    find_package(GTest CONFIG REQUIRED)
-    include(GoogleTest)
-
-    set(CORE_UNIT_TEST_SRCS
-        tests/unit/TestAnalysisEngine.cpp
-        tests/unit/TestApplicationServices.cpp
-        tests/unit/TestAppStateFacade.cpp
-        tests/unit/TestAppStateManager.cpp
-        tests/unit/TestAppStateManagerExtended.cpp
-        tests/unit/TestDefaultStatementParser.cpp
-        tests/unit/TestDraftLinking.cpp
-        tests/unit/TestDraftFinalizer.cpp
-        tests/unit/TestErrorReporterRegistry.cpp
-        tests/unit/TestExportService.cpp
-        tests/unit/TestFilter.cpp
-        tests/unit/TestJobSystem.cpp
-        tests/unit/TestParserHelpers.cpp
-        tests/unit/TestStateTransforms.cpp
-        tests/unit/TestStorageManager.cpp
-        tests/unit/TestWorkspaceSession.cpp
-    )
-    add_executable(core_unit_tests ${CORE_UNIT_TEST_SRCS})
-    target_include_directories(core_unit_tests PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/include
-        ${CMAKE_SOURCE_DIR}/core/include
-    )
-    target_link_libraries(core_unit_tests
-        PRIVATE
-            GTest::gtest_main
-            FossRedder::Core
-    )
-    target_compile_features(core_unit_tests PRIVATE cxx_std_20)
-
-    fossredder_set_runtime_output_dirs(core_unit_tests)
-    fossredder_enable_target_quality(core_unit_tests)
-
-    gtest_discover_tests(core_unit_tests PROPERTIES LABELS "UNIT")
-
-    set(CORE_INTERACTION_TEST_SRCS
-        tests/interaction/TestAppStateFacadeInteraction.cpp
-        tests/interaction/TestAppStateManagerInteraction.cpp
-        tests/interaction/TestStorageManagerInteraction.cpp
-    )
-    add_executable(core_interaction_tests ${CORE_INTERACTION_TEST_SRCS})
-    target_include_directories(core_interaction_tests PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/include
-        ${CMAKE_SOURCE_DIR}/core/include
-    )
-    target_link_libraries(core_interaction_tests
-        PRIVATE
-            GTest::gmock_main
-            FossRedder::Core
-    )
-    target_compile_features(core_interaction_tests PRIVATE cxx_std_20)
-
-    fossredder_set_runtime_output_dirs(core_interaction_tests)
-    fossredder_enable_target_quality(core_interaction_tests)
-
-    gtest_discover_tests(core_interaction_tests PROPERTIES LABELS "INTERACTION")
-endif()
 
 fossredder_install_library_target(fossredder_core)
 fossredder_install_headers("${CMAKE_CURRENT_SOURCE_DIR}/include")

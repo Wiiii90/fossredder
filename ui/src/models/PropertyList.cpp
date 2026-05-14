@@ -23,9 +23,9 @@ QVariant PropertyList::data(const QModelIndex &index, int role) const {
 
   switch (role) {
   case IdRole:
-    return QString::fromStdString(p->id);
+    return QString::fromStdString(p->id());
   case NameRole:
-    return QString::fromStdString(p->name);
+    return QString::fromStdString(p->name());
   default:
     return {};
   }
@@ -40,7 +40,7 @@ QHash<int, QByteArray> PropertyList::roleNames() const {
 
 int PropertyList::addProperty(const QString &name) {
   auto p = std::make_shared<Property>();
-  p->name = strings::toStdString(name);
+  p->rename(strings::toStdString(name));
   return appendItem(std::move(p));
 }
 

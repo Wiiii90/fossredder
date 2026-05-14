@@ -8,9 +8,11 @@
 #include <QByteArray>
 
 #include "core/application/import/draft/IImportMatcherService.h"
-#include "core/application/workspace/WorkspaceFacade.h"
 #include "core/application/import/transaction/AmountParser.h"
 #include "core/domain/values/Alias.h"
+#include "core/ports/workspace/IWorkspaceReader.h"
+#include "core/ports/workspace/IWorkspaceWriter.h"
+#include "core/ports/workspace/WorkspaceCommands.h"
 #include "ui/payload/PayloadMapper.h"
 #include "ui/import/DraftViewMapper.h"
 #include "ui/models/StatementDraft.h"
@@ -43,25 +45,153 @@ const ui::TransactionDraft* currentDraft(ui::StatementDraft* draft)
     return &drafts[static_cast<std::size_t>(index)];
 }
 
-core::domain::WorkspaceState matchingStateForDraft(const ui::StatementDraft* draft,
-                                             const core::application::WorkspaceFacade* core,
-                                             const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService)
+core::domain::catalog::WorkspaceCatalog toWorkspaceState(const core::ports::workspace::WorkspaceSnapshot& snapshot)
 {
-    const auto liveState = core ? core->state() : core::domain::WorkspaceState{};
+    core::domain::catalog::WorkspaceCatalog state;
+
+    core::domain::catalog::WorkspaceCatalog::ActorList actors;
+    actors.reserve(snapshot.actors.size());
+    for (const auto& src : snapshot.actors) {
+        auto entity = std::make_shared<core::domain::Actor>();
+        entity->setId(src.id);
+        entity->rename(src.name);
+        std::vector<core::domain::Alias> aliases;
+        aliases.reserve(src.aliases.size());
+        for (const auto& alias : src.aliases) {
+            aliases.emplace_back(alias.value, alias.kind, alias.source, alias.createdAt, alias.updatedAt);
+        }
+        entity->setAliases(std::move(aliases));
+        entity->setCreatedAt(src.createdAt);
+        entity->setUpdatedAt(src.updatedAt);
+        actors.push_back(std::move(entity));
+    }
+    state.setActors(std::move(actors));
+
+    core::domain::catalog::WorkspaceCatalog::PropertyList properties;
+    properties.reserve(snapshot.properties.size());
+    for (const auto& src : snapshot.properties) {
+        auto entity = std::make_shared<core::domain::Property>();
+        entity->setId(src.id);
+        entity->rename(src.name);
+        std::vector<core::domain::Alias> aliases;
+        aliases.reserve(src.aliases.size());
+        for (const auto& alias : src.aliases) {
+            aliases.emplace_back(alias.value, alias.kind, alias.source, alias.createdAt, alias.updatedAt);
+        }
+        entity->setAliases(std::move(aliases));
+        entity->setCreatedAt(src.createdAt);
+        entity->setUpdatedAt(src.updatedAt);
+        properties.push_back(std::move(entity));
+    }
+    state.setProperties(std::move(properties));
+
+    core::domain::catalog::WorkspaceCatalog::ContractList contracts;
+    contracts.reserve(snapshot.contracts.size());
+    for (const auto& src : snapshot.contracts) {
+        auto entity = std::make_shared<core::domain::Contract>();
+        entity->setId(src.id);
+        entity->rename(src.name);
+        entity->setType(src.type);
+        entity->setActorIds(src.actorIds);
+        entity->setPropertyIds(src.propertyIds);
+        std::vector<core::domain::Alias> aliases;
+        aliases.reserve(src.aliases.size());
+        for (const auto& alias : src.aliases) {
+            aliases.emplace_back(alias.value, alias.kind, alias.source, alias.createdAt, alias.updatedAt);
+        }
+        entity->setAliases(std::move(aliases));
+        entity->setCreatedAt(src.createdAt);
+        entity->setUpdatedAt(src.updatedAt);
+        contracts.push_back(std::move(entity));
+    }
+    state.setContracts(std::move(contracts));
+
+    core::domain::catalog::WorkspaceCatalog::StatementList statements;
+    statements.reserve(snapshot.statements.size());
+    for (const auto& src : snapshot.statements) {
+        auto entity = std::make_shared<core::domain::Statement>();
+        entity->setId(src.id);
+        entity->rename(src.name);
+        entity->setTransactionIds(src.transactionIds);
+        entity->setCreatedAt(src.createdAt);
+        entity->setUpdatedAt(src.updatedAt);
+        statements.push_back(std::move(entity));
+    }
+    state.setStatements(std::move(statements));
+
+    core::domain::catalog::WorkspaceCatalog::TransactionList transactions;
+    transactions.reserve(snapshot.transactions.size());
+    for (const auto& src : snapshot.transactions) {
+        auto entity = std::make_shared<core::domain::Transaction>();
+        entity->setId(src.id);
+        entity->setName(src.name);
+        entity->setBookingDate(src.bookingDate);
+        entity->setValuta(src.valuta);
+        entity->setAmount(src.amount);
+        entity->setStatus(src.status);
+        entity->setContractId(src.contractId);
+        entity->setActorId(src.actorId);
+        entity->setStatementId(src.statementId);
+        entity->setAllocatable(src.allocatable);
+        entity->setPropertyIds(src.propertyIds);
+        entity->setCreatedAt(src.createdAt);
+        entity->setUpdatedAt(src.updatedAt);
+        transactions.push_back(std::move(entity));
+    }
+    state.setTransactions(std::move(transactions));
+
+    return state;
+}
+
+core::ports::workspace::StatementDraftSnapshot toSnapshot(const core::application::importing::draft::StatementDraft& draft)
+{
+    core::ports::workspace::StatementDraftSnapshot snapshot;
+    snapshot.id = draft.id;
+    snapshot.name = draft.name;
+    snapshot.transactionIds = draft.transactionIds;
+    snapshot.createdAt = draft.createdAt;
+    snapshot.updatedAt = draft.updatedAt;
+    snapshot.transactions.reserve(draft.transactions.size());
+    for (const auto& tx : draft.transactions) {
+        core::ports::workspace::TransactionDraftSnapshot txSnapshot;
+        txSnapshot.id = tx.id;
+        txSnapshot.statementDraftId = tx.statementDraftId;
+        txSnapshot.name = tx.name;
+        txSnapshot.bookingDate = tx.bookingDate;
+        txSnapshot.valuta = tx.valuta;
+        txSnapshot.amount = tx.amount;
+        txSnapshot.actorId = tx.actorId;
+        txSnapshot.contractId = tx.contractId;
+        txSnapshot.propertyIds = tx.propertyIds;
+        txSnapshot.status = static_cast<int>(tx.status);
+        txSnapshot.allocatable = tx.allocatable;
+        txSnapshot.position = tx.position;
+        txSnapshot.metadata = tx.metadata;
+        snapshot.transactions.push_back(std::move(txSnapshot));
+    }
+    return snapshot;
+}
+
+core::domain::catalog::WorkspaceCatalog matchingStateForDraft(const ui::StatementDraft* draft,
+                                                              const core::ports::workspace::IWorkspaceWriter* core,
+                                                              const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService)
+{
+    const auto reader = dynamic_cast<const core::ports::workspace::IWorkspaceReader*>(core);
+    const auto liveState = reader ? toWorkspaceState(reader->workspaceSnapshot()) : core::domain::catalog::WorkspaceCatalog{};
     if (!draft) {
         return liveState;
     }
 
     return matcherService->withFallbackState(
-        draft->hasCatalogState() ? draft->catalogState() : core::domain::WorkspaceState{},
+        draft->hasCatalogState() ? draft->catalogState() : core::domain::catalog::WorkspaceCatalog{},
         liveState);
 }
 
-core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
-                                                    core::application::WorkspaceFacade* core,
-                                                    const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService)
+core::application::importing::draft::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
+                                                                            core::ports::workspace::IWorkspaceWriter* core,
+                                                                           const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService)
 {
-    core::domain::StatementDraft input;
+    core::application::importing::draft::StatementDraft input;
     if (!draft || !core) {
         return input;
     }
@@ -73,7 +203,7 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
 
     const auto appState = matchingStateForDraft(draft, core, matcherService);
     for (const auto& draftTransaction : drafts) {
-        core::domain::TransactionDraft transaction;
+        core::application::importing::draft::TransactionDraft transaction;
         transaction.name = ui::strings::toStdString(draftTransaction.name);
         transaction.bookingDate = ui::strings::toStdString(draftTransaction.bookingDate);
         transaction.valuta = ui::strings::toStdString(draftTransaction.valuta);
@@ -92,8 +222,11 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
             if (actorId.isEmpty()) {
                 const QString actorName = draftTransaction.actorText.trimmed();
                 if (!actorName.isEmpty()) {
-                    const std::vector<core::domain::Alias> aliases{makeAlias(actorName)};
-                    actorId = QString::fromStdString(core->addActor(ui::strings::toStdString(actorName), aliases));
+                    core::ports::workspace::ActorCommand command;
+                    command.name = ui::strings::toStdString(actorName);
+                    const auto alias = makeAlias(actorName);
+                    command.aliases.push_back({alias.value(), alias.kind(), alias.source(), alias.hitCount(), alias.lastUsedAt(), alias.createdAt(), alias.updatedAt()});
+                    actorId = QString::fromStdString(core->addActor(command));
                 }
             }
         }
@@ -111,7 +244,15 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
                 for (const auto& value : matcherService->referenceAliasesFromMetadata(ui::strings::toStdString(draftTransaction.metadata))) {
                     aliases.push_back(core::domain::Alias{value, {}, value, {}, {}});
                 }
-                contractId = QString::fromStdString(core->addContract(std::string{}, ui::strings::toStdString(contractType), actorIds, propertyIds, aliases));
+                core::ports::workspace::ContractCommand command;
+                command.name = {};
+                command.type = ui::strings::toStdString(contractType);
+                command.actorIds = std::move(actorIds);
+                command.propertyIds = std::move(propertyIds);
+                for (const auto& alias : aliases) {
+                    command.aliases.push_back({alias.value(), alias.kind(), alias.source(), alias.hitCount(), alias.lastUsedAt(), alias.createdAt(), alias.updatedAt()});
+                }
+                contractId = QString::fromStdString(core->addContract(command));
             }
         }
 
@@ -129,7 +270,7 @@ core::domain::StatementDraft buildFinalizationInput(ui::StatementDraft* draft,
 }
 
 void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
-                                     core::application::WorkspaceFacade* core,
+                                     core::ports::workspace::IWorkspaceWriter* core,
                                      const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService)
 {
     const auto* current = currentDraft(draft);
@@ -220,10 +361,10 @@ void syncCurrentTransactionDraftImpl(ui::StatementDraft* draft,
 
 namespace ui {
 
-DraftController::DraftController(core::application::WorkspaceFacade* core,
+DraftController::DraftController(core::ports::workspace::IWorkspaceWriter* core,
                                  std::shared_ptr<core::application::importing::draft::IImportMatcherService> matcherService,
                                  QObject* parent)
-    : QObject(parent), core_(core), matcherService_(std::move(matcherService))
+    : QObject(parent), core_(core), reader_(dynamic_cast<core::ports::workspace::IWorkspaceReader*>(core)), matcherService_(std::move(matcherService))
 {
 }
 
@@ -235,7 +376,9 @@ QString DraftController::finalizeStatementDraft(StatementDraft* draft)
         core_, observability::origins::controller::draft::kFinalize, {}, [&]() {
             const auto input = buildFinalizationInput(draft, core_, matcherService_);
             if (input.transactions.empty()) return QString{};
-            return QString::fromStdString(core_->finalizeStatementDraft(input));
+            core::ports::workspace::FinalizeStatementDraftCommand command;
+            command.draft = toSnapshot(input);
+            return QString::fromStdString(core_->finalizeStatementDraft(command));
         });
 }
 
@@ -245,7 +388,9 @@ void DraftController::persistStatementDraft(StatementDraft* draft)
         if (!draft) return;
         auto input = buildFinalizationInput(draft, core_, matcherService_);
         if (input.transactions.empty()) return;
-        core_->saveStatementDraft(input);
+        core::ports::workspace::StatementDraftCommand command;
+        command.draft = toSnapshot(input);
+        core_->saveStatementDraft(command);
     });
 }
 
@@ -261,7 +406,7 @@ QVariantMap DraftController::currentTransactionViewState(StatementDraft* draft) 
     return ui::util::guard::invokeValue<QVariantMap>(
         core_, observability::origins::controller::draft::kFinalize, {}, [&]() {
             const auto* current = currentDraft(draft);
-            if (!current) return QVariantMap{};
+            if (!current || !matcherService_) return QVariantMap{};
             return ui::importing::toViewState(matcherService_->buildDraftDerivedState(
                 matchingStateForDraft(draft, core_, matcherService_),
                 ui::importing::toCoreSelection(*current)));

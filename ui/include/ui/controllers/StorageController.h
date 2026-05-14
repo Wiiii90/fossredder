@@ -6,12 +6,19 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <QObject>
 #include <QString>
 #include <qqmlintegration.h>
 
-namespace core::application { class WorkspaceFacade; }
-namespace core::ports::presenters { class IWorkspacePresenter; }
+namespace core { namespace ports { namespace workspace {
+class IWorkspaceReader;
+class IWorkspaceWriter;
+}}}
+
+namespace core { namespace ports { namespace presenters {
+class IWorkspacePresenter;
+}}}
 
 namespace ui {
 
@@ -29,7 +36,7 @@ public:
      *  @param workspacePresenter Presenter used to normalize workspace presentation data
      *  @param parent QObject parent
      */
-    explicit StorageController(core::application::WorkspaceFacade* core,
+    explicit StorageController(core::ports::workspace::IWorkspaceWriter* core,
                                std::shared_ptr<core::ports::presenters::IWorkspacePresenter> workspacePresenter = {},
                                QObject* parent = nullptr);
 
@@ -62,7 +69,8 @@ signals:
     void currentPathChanged();
 
 private:
-    core::application::WorkspaceFacade* core_ = nullptr;
+    core::ports::workspace::IWorkspaceWriter* core_ = nullptr;
+    core::ports::workspace::IWorkspaceReader* reader_ = nullptr;
     std::shared_ptr<core::ports::presenters::IWorkspacePresenter> workspacePresenter_;
     bool runCoreOperation(const char* context, const std::function<void()>& action);
     void finishOperation(bool success, const QString& failureText, const QString& operation);

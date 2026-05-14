@@ -27,35 +27,16 @@
 
 namespace core::application::importing::statement {
 
-using core::parser::DefaultTransactionParser;
-using core::parser::OcrLine;
-using core::parser::TransactionBlock;
-using core::parser::detail::ColumnModel;
-using core::parser::detail::HeaderAnalysis;
-using core::parser::detail::RawLine;
-using core::parser::detail::analyzeHeaderWindow;
-using core::parser::detail::appendDetailLine;
-using core::parser::detail::appendPageSummary;
-using core::parser::detail::appendTransactionsFromBlocks;
-using core::parser::detail::attachOrphansToBlocks;
-using core::parser::detail::detectEarlyEmptyPage;
-using core::parser::detail::findBookingDateInHeader;
-using core::parser::detail::findFallbackBookingDate;
-using core::parser::detail::handleMainRow;
-using core::parser::detail::isLikelyTransactionHeaderLine;
-using core::parser::detail::isLikelyTransactionMainRowGeom;
-using core::parser::detail::rawToOcrLine;
-using core::parser::detail::rescueOrphanBlocks;
-using core::parser::detail::selectiveGroupMergeLinesRaw;
-using core::parser::detail::tryCombinedStart;
-using core::parser::detail::tryVerticalStart;
+namespace helpers = core::application::importing::internal;
+
+using core::application::importing::transaction::DefaultTransactionParser;
 using core::utils::lowerAscii;
 using core::utils::trim;
 
 namespace {
 
 static bool isValutaHeaderLine(const std::string& line) {
-    const auto n = core::parser::helpers::normalizeAlnumLower(line);
+    const auto n = helpers::normalizeAlnumLower(line);
     return n.find("valuta") != std::string::npos;
 }
 
@@ -63,11 +44,11 @@ struct RowModel {
     bool inSection = false;
 };
 
-using core::parser::heuristics::isFooterLine;
-using core::parser::heuristics::isHeaderNoiseLine;
-using core::parser::heuristics::isPostTransactionFootnote;
-using core::parser::heuristics::isTransactionsSectionHeader;
-using core::parser::heuristics::isDebitCreditHeaderLine;
+using helpers::isFooterLine;
+using helpers::isHeaderNoiseLine;
+using helpers::isPostTransactionFootnote;
+using helpers::isTransactionsSectionHeader;
+using helpers::isDebitCreditHeaderLine;
 
 static bool isLikelyTransactionMainRowText(const std::string& line) {
     static const std::regex re(R"((\d{2}\.\s*\d{2})\s+\d{1,3}(?:[\.,]\d{3})*[\.,]\d{1,2}-?(?:\s+.*)?\s*$)");
@@ -76,8 +57,8 @@ static bool isLikelyTransactionMainRowText(const std::string& line) {
 
 }
 
-DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused]] const core::ports::image_processing::opencv::Table& table,
-                                                                  const core::ports::text_recognition::tesseract::ExtractResult& ocr,
+DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused]] const core::ports::image_processing::Table& table,
+                                                                  const core::ports::text_recognition::ExtractResult& ocr,
                                                                   const std::string& pageCropImagePath,
                                                                   std::shared_ptr<core::ports::image_processing::IImageProcessor> opencv,
                                                                   const std::vector<uint8_t>& pageCropImageBytes,
@@ -91,30 +72,32 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
     out.debugLines.push_back(std::string("initialBookingDate\t") + initialBookingDate);
     out.debugLines.push_back(std::string("initialTransactionIndex\t") + std::to_string(initialTransactionIndex));
 
-    const auto ocrLines = core::parser::helpers::buildOcrLinesFromWords(ocr.words);
+    const auto ocrLines = helpers::buildOcrLinesFromWords(ocr.words);
     out.debugLines.push_back(std::string("ocr.words\t") + std::to_string(ocr.words.size()));
     out.debugLines.push_back(std::string("ocr.lines.raw\t") + std::to_string(ocrLines.size()));
 
-    const auto seed = core::parser::helpers::inferColumnModelFromLines(ocrLines);
-    ColumnModel seedCols{ seed.valutaX, seed.debitX, seed.creditX, -1, -1, -1 };
+    const auto seed = helpers::inferColumnModelFromLines(ocrLines);
+    core::application::importing::statement::internal::ColumnModel seedCols{ seed.valutaX, seed.debitX, seed.creditX, -1, -1, -1 };
 
-    std::vector<core::parser::helpers::detail::RawLineLite> rawLite;
+    std::vector<core::application::importing::internal::RawLineLite> rawLite;
     rawLite.reserve(ocrLines.size());
     for (const auto& l : ocrLines) rawLite.push_back({ l.minX, l.maxX, l.minY, l.maxY, l.wordSpans, l.text });
 
-    const auto merged = selectiveGroupMergeLinesRaw(rawLite, 8, { seed.valutaX, seed.debitX, seed.creditX });
-    std::vector<RawLine> lines; lines.reserve(merged.size());
-    for (const auto& ml : merged) lines.push_back(RawLine{0, ml.minX, ml.maxX, ml.minY, ml.maxY, ml.wordSpans, ml.text});
+    const auto merged = core::application::importing::statement::internal::selectiveGroupMergeLinesRaw(rawLite, 8, core::application::importing::internal::ColumnGuess{ seedCols.valutaX, seedCols.debitX, seedCols.creditX });
+    std::vector<core::application::importing::statement::internal::RawLine> lines;
+    lines.reserve(merged.size());
+    for (const auto& ml : merged) lines.push_back(core::application::importing::statement::internal::RawLine{0, ml.minX, ml.maxX, ml.minY, ml.maxY, ml.wordSpans, ml.text});
     out.debugLines.push_back(std::string("ocr.lines\t") + std::to_string(lines.size()));
 
-    std::vector<OcrLine> ocrFromRaw; ocrFromRaw.reserve(lines.size());
-    for (const auto& rl : lines) ocrFromRaw.push_back(rawToOcrLine(rl));
+    std::vector<core::application::importing::transaction::internal::OcrLine> ocrFromRaw;
+    ocrFromRaw.reserve(lines.size());
+    for (const auto& rl : lines) ocrFromRaw.push_back(core::application::importing::statement::internal::rawToOcrLine(rl));
 
     std::vector<std::pair<size_t,std::string>> pageHeaderDates;
     try {
         for (size_t i = 0; i < lines.size(); ++i) {
             try {
-                if (auto bd = findBookingDateInHeader(lines[i].text)) {
+                if (auto bd = core::application::importing::statement::internal::findBookingDateInHeader(lines[i].text)) {
                     pageHeaderDates.emplace_back(i, *bd);
                 }
             } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerOverrideByValutaAnchor", std::current_exception()); }
@@ -128,7 +111,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
 
     {
         std::string dbg;
-        if (detectEarlyEmptyPage(ocrLines, dbg)) {
+        if (core::application::importing::statement::internal::detectEarlyEmptyPage(ocrLines, dbg)) {
             out.debugLines.push_back(dbg);
             out.debugLines.push_back(std::string("page.emptyDetected\tlines=") + std::to_string(12));
             out.lastBookingDate = currentBookingDate;
@@ -138,15 +121,15 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
         if (!dbg.empty()) out.debugLines.push_back(dbg);
     }
 
-    std::vector<TransactionBlock> blocks;
-    TransactionBlock cur;
+    std::vector<core::application::importing::transaction::internal::TransactionBlock> blocks;
+    core::application::importing::transaction::internal::TransactionBlock cur;
     cur.bookingDateGroup = currentBookingDate;
 
     bool inTransactions = !currentBookingDate.empty();
-    ColumnModel cols = seedCols;
+    core::application::importing::statement::internal::ColumnModel cols = seedCols;
     RowModel rows;
 
-    const HeaderAnalysis headerAnalysis = analyzeHeaderWindow(ocrLines, lines, seedCols, out);
+    const core::application::importing::statement::internal::HeaderAnalysis headerAnalysis = core::application::importing::statement::internal::analyzeHeaderWindow(ocrLines, lines, seedCols, out);
     static constexpr size_t headerScanLines = 12;
     int headerBottomY = headerAnalysis.headerBottomY;
     const int headerMarginPx = headerAnalysis.headerMarginPx;
@@ -154,7 +137,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
     const bool headerFound = headerAnalysis.headerFound;
 
     if (currentBookingDate.empty()) {
-        if (auto d = findFallbackBookingDate(ocrLines, 30)) {
+        if (auto d = core::application::importing::statement::internal::findFallbackBookingDate(ocrLines, 30)) {
             currentBookingDate = *d;
             out.debugLines.push_back(std::string("header.fallbackBookingDate\t") + currentBookingDate);
             cur.bookingDateGroup = currentBookingDate;
@@ -164,14 +147,14 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
     const auto flush = [&]() {
          if (cur.main.left.empty() && cur.detailLines.empty()) return;
          blocks.push_back(std::move(cur));
-         cur = TransactionBlock{};
+         cur = core::application::importing::transaction::internal::TransactionBlock{};
          cur.bookingDateGroup = currentBookingDate;
      };
 
     std::string prevLine;
     int txStartLooseCount = 0;
 
-    std::vector<OcrLine> orphanLines;
+    std::vector<core::application::importing::transaction::internal::OcrLine> orphanLines;
 
     for (size_t li = 0; li < lines.size(); ++li) {
         const auto& l = lines[li];
@@ -213,8 +196,8 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
         if (headerBottomY >= 0 && l.maxY <= headerBottomY + headerMarginPx && !inTransactions) {
             try {
                 if (seedCols.valutaX >= 0) {
-                    core::parser::OcrLine anchorOl = rawToOcrLine(l);
-                    if (core::parser::helpers::hasTokenNearX(anchorOl, seedCols.valutaX, core::parser::helpers::parserConfig.tokenNearBandForMainRow) || core::parser::helpers::hasAmountLikeTokenInLine(anchorOl, seedCols.valutaX)) {
+                    auto anchorOl = core::application::importing::statement::internal::rawToOcrLine(l);
+                    if (helpers::hasTokenNearX(anchorOl, seedCols.valutaX, helpers::parserConfig.tokenNearBandForMainRow) || helpers::hasAmountNearValuta(anchorOl, seedCols.valutaX, helpers::parserConfig.amountNearValutaBandPx)) {
                         out.debugLines.push_back(std::string("header.overrideByValutaAnchor\tline=") + std::to_string(li) + "\ttext=" + txt);
                     } else {
                         continue;
@@ -224,10 +207,10 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
 
             bool hasHeaderSignal = false;
             try {
-                if (findBookingDateInHeader(txt).has_value()) hasHeaderSignal = true;
+                if (core::application::importing::statement::internal::findBookingDateInHeader(txt).has_value()) hasHeaderSignal = true;
             } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::txt", std::current_exception()); }
             try {
-                if (findBookingDateInHeader(combined).has_value()) hasHeaderSignal = true;
+                if (core::application::importing::statement::internal::findBookingDateInHeader(combined).has_value()) hasHeaderSignal = true;
             } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::hasHeaderSignal::combined", std::current_exception()); }
             try {
                 if (isValutaHeaderLine(txt)) hasHeaderSignal = true;
@@ -240,7 +223,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
                     std::string combNext = txt;
                     if (li + 1 < lines.size()) combNext = txt + std::string(" ") + lines[li+1].text;
                     try {
-                        if (auto cs = tryCombinedStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX })) {
+                        if (auto cs = core::application::importing::statement::internal::tryCombinedStart(ocrFromRaw, li, core::application::importing::internal::ColumnGuess{ cols.valutaX, cols.debitX, cols.creditX })) {
                             inTransactions = true;
                             out.debugLines.push_back(std::string("tx.start.combined.aboveHeader\tline=") + std::to_string(li) + "\ttext=" + (cs->second ? combNext : combPrev));
                             combinedStarted = true;
@@ -250,10 +233,10 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
                 if (combinedStarted) {
                 } else {
                     try {
-                        core::parser::OcrLine ol = rawToOcrLine(l);
+                    auto ol = core::application::importing::statement::internal::rawToOcrLine(l);
                         bool allowAboveHeader = false;
-                        try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) allowAboveHeader = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::allowAboveHeader::hasAmount", std::current_exception()); }
-                        try { if (!allowAboveHeader && core::parser::helpers::isLooseTransactionLine(ol, cols.valutaX)) allowAboveHeader = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::allowAboveHeader::isLoose", std::current_exception()); }
+                        try { if (helpers::hasAmountNearValuta(ol, cols.valutaX, helpers::parserConfig.amountNearValutaBandPx)) allowAboveHeader = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::allowAboveHeader::hasAmount", std::current_exception()); }
+                        try { if (!allowAboveHeader && helpers::isLooseTransactionLine(ol, cols.valutaX)) allowAboveHeader = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::allowAboveHeader::isLoose", std::current_exception()); }
                         if (allowAboveHeader) {
                             inTransactions = true;
                             ++txStartLooseCount;
@@ -273,12 +256,12 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
             }
         }
 
-        if ((!cols.hasDebit() || !cols.hasCredit()) && isDebitCreditHeaderLine(txt)) {
+        if ((!cols.hasDebit() || !cols.hasCredit()) && core::application::importing::statement::internal::isLikelyTransactionHeaderLine(core::application::importing::statement::internal::rawToOcrLine(l), cols)) {
             if (!cols.hasDebit()) {
-                if (auto dx = core::parser::helpers::findPhraseCenterX(rawToOcrLine(l), {"zu","ihren","lasten"})) cols.debitX = *dx;
+                if (auto dx = helpers::findPhraseCenterX(core::application::importing::statement::internal::rawToOcrLine(l), {"zu","ihren","lasten"})) cols.debitX = *dx;
             }
             if (!cols.hasCredit()) {
-                if (auto cx = core::parser::helpers::findPhraseCenterX(rawToOcrLine(l), {"zu","ihren","gunsten"})) cols.creditX = *cx;
+                if (auto cx = helpers::findPhraseCenterX(core::application::importing::statement::internal::rawToOcrLine(l), {"zu","ihren","gunsten"})) cols.creditX = *cx;
             }
             out.debugLines.push_back(std::string("header.debitcredit\t") + txt + "\tline=" + std::to_string(li));
             out.debugLines.push_back(std::string("cols.debitX\t") + std::to_string(cols.debitX) + "\tcols.creditX\t" + std::to_string(cols.creditX));
@@ -287,10 +270,10 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
             continue;
         }
 
-        if (!rows.inSection && (isTransactionsSectionHeader(txt) || isValutaHeaderLine(txt) || isTransactionsSectionHeader(combined))) {
+        if (!rows.inSection && (helpers::isTransactionsSectionHeader(txt) || isValutaHeaderLine(txt) || helpers::isTransactionsSectionHeader(combined))) {
             rows.inSection = true;
             if (!cols.hasValuta()) {
-                if (auto vx = core::parser::helpers::findTokenCenterX(rawToOcrLine(l), "valuta")) cols.valutaX = *vx;
+                if (auto vx = helpers::findTokenCenterX(core::application::importing::statement::internal::rawToOcrLine(l), "valuta")) cols.valutaX = *vx;
             }
             out.debugLines.push_back(std::string("header.section\t") + combined + "\tline=" + std::to_string(li));
             out.debugLines.push_back(std::string("cols.valutaX\t") + std::to_string(cols.valutaX));
@@ -299,7 +282,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
             continue;
         }
 
-        if (auto bd = findBookingDateInHeader(txt)) {
+        if (auto bd = core::application::importing::statement::internal::findBookingDateInHeader(txt)) {
             currentBookingDate = *bd;
             out.debugLines.push_back(std::string("header.bookingDate\t") + currentBookingDate + "\tline=" + std::to_string(li));
             flush();
@@ -311,16 +294,16 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
 
         bool headerNoiseSkipped = false;
         try {
-            if (!inTransactions && headerFound && core::parser::heuristics::isHeaderNoiseLine(txt)) {
+            if (!inTransactions && headerFound && helpers::isHeaderNoiseLine(txt)) {
                 bool anchoredToValuta = false;
-                try { if (seedCols.valutaX >= 0) { core::parser::OcrLine _ol = rawToOcrLine(l); if (core::parser::helpers::hasTokenNearX(_ol, seedCols.valutaX, core::parser::helpers::parserConfig.tokenNearBandForMainRow) || core::parser::helpers::hasAmountLikeTokenInLine(_ol, seedCols.valutaX)) anchoredToValuta = true; } } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerNoise::anchoredToValuta", std::current_exception()); }
+                try { if (seedCols.valutaX >= 0) { core::application::importing::transaction::internal::OcrLine _ol = core::application::importing::statement::internal::rawToOcrLine(l); if (helpers::hasTokenNearX(_ol, seedCols.valutaX, helpers::parserConfig.tokenNearBandForMainRow) || helpers::hasAmountLikeTokenInLine(_ol, seedCols.valutaX)) anchoredToValuta = true; } } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerNoise::anchoredToValuta", std::current_exception()); }
 
                 bool looksMain = false;
                 try {
-                    core::parser::OcrLine _ol = rawToOcrLine(l);
-                    if (core::parser::helpers::isLooseTransactionLine(_ol, seedCols.valutaX)) looksMain = true;
-                    if (core::parser::helpers::hasAmountLikeTokenInLine(_ol, seedCols.valutaX)) looksMain = true;
-                    if (core::parser::helpers::hasShortDateToken(_ol.text) && core::parser::helpers::hasLeftDescriptiveText(_ol, seedCols.valutaX)) looksMain = true;
+                    core::application::importing::transaction::internal::OcrLine _ol = core::application::importing::statement::internal::rawToOcrLine(l);
+                    if (helpers::isLooseTransactionLine(_ol, seedCols.valutaX)) looksMain = true;
+                    if (helpers::hasAmountLikeTokenInLine(_ol, seedCols.valutaX)) looksMain = true;
+                    if (helpers::hasShortDateToken(_ol.text) && helpers::hasLeftDescriptiveText(_ol, seedCols.valutaX)) looksMain = true;
                 } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::headerNoise::looksMain", std::current_exception()); }
 
                 if (!anchoredToValuta && !looksMain && !isTransactionsSectionHeader(txt) && !isDebitCreditHeaderLine(txt) && !isLikelyTransactionMainRowText(txt)) {
@@ -339,7 +322,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
             bool didVerticalStart = false;
             try {
                 if (canStart && rows.inSection && cols.hasValuta()) {
-                    if (auto vs = tryVerticalStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX })) {
+                if (auto vs = core::application::importing::statement::internal::tryVerticalStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX })) {
                         inTransactions = true; didVerticalStart = true;
                         if (!cur.main.left.empty() || !cur.detailLines.empty()) flush();
                         cur.bookingDateGroup = currentBookingDate;
@@ -365,7 +348,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
                     std::string combNext = txt;
                     if (li + 1 < lines.size()) combNext = txt + std::string(" ") + lines[li+1].text;
                     try {
-                        if (auto cs = tryCombinedStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX })) {
+                        if (auto cs = core::application::importing::statement::internal::tryCombinedStart(ocrFromRaw, li, { cols.valutaX, cols.debitX, cols.creditX })) {
                             inTransactions = true; startedCombined = true;
                             out.debugLines.push_back(std::string("tx.start.combined\tline=") + std::to_string(li) + "\ttext=" + (cs->second ? combNext : combPrev));
                         }
@@ -375,17 +358,17 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
                 } else {
                     bool relaxedStart = false;
                     try {
-                        core::parser::OcrLine ol = rawToOcrLine(l);
+                        core::application::importing::transaction::internal::OcrLine ol = core::application::importing::statement::internal::rawToOcrLine(l);
                         bool hasDate = false;
-                        try { if (core::parser::helpers::hasShortDateToken(ol.text)) hasDate = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::hasShortDate", std::current_exception()); }
+                         try { if (helpers::hasShortDateToken(ol.text)) hasDate = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::hasShortDate", std::current_exception()); }
                         bool hasAmount = false;
-                        try { if (core::parser::helpers::hasAmountLikeTokenInLine(ol, cols.valutaX)) hasAmount = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::hasAmount", std::current_exception()); }
+                         try { if (helpers::hasAmountNearValuta(ol, cols.valutaX, helpers::parserConfig.amountNearValutaBandPx)) hasAmount = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::hasAmount", std::current_exception()); }
                         try {
-                            if (!hasAmount && li > 0) { core::parser::OcrLine prevOl = rawToOcrLine(lines[li-1]); if (core::parser::helpers::hasAmountLikeTokenInLine(prevOl, cols.valutaX)) hasAmount = true; }
-                            if (!hasAmount && li + 1 < lines.size()) { core::parser::OcrLine nextOl = rawToOcrLine(lines[li+1]); if (core::parser::helpers::hasAmountLikeTokenInLine(nextOl, cols.valutaX)) hasAmount = true; }
+                             if (!hasAmount && li > 0) { auto prevOl = core::application::importing::statement::internal::rawToOcrLine(lines[li-1]); if (helpers::hasAmountNearValuta(prevOl, cols.valutaX, helpers::parserConfig.amountNearValutaBandPx)) hasAmount = true; }
+                             if (!hasAmount && li + 1 < lines.size()) { auto nextOl = core::application::importing::statement::internal::rawToOcrLine(lines[li+1]); if (helpers::hasAmountNearValuta(nextOl, cols.valutaX, helpers::parserConfig.amountNearValutaBandPx)) hasAmount = true; }
                         } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::neighborAmount", std::current_exception()); }
                         bool hasLeftDesc = false;
-                        try { if (core::parser::helpers::hasLeftDescriptiveText(ol, cols.valutaX)) hasLeftDesc = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::hasLeftDesc", std::current_exception()); }
+                         try { if (helpers::hasLeftDescriptiveText(ol, cols.valutaX)) hasLeftDesc = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart::hasLeftDesc", std::current_exception()); }
                         if (hasDate && (hasAmount || hasLeftDesc)) relaxedStart = true;
                     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::relaxedStart", std::current_exception()); }
                     if (relaxedStart) {
@@ -396,8 +379,8 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
                     out.debugLines.push_back(std::string("tx.start.forced\tline=") + std::to_string(li) + "\ttext=" + txt);
                     if (!cur.main.left.empty() || !cur.detailLines.empty()) flush();
                     cur.bookingDateGroup = currentBookingDate;
-                    core::parser::helpers::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
-                    cur.main = handleMainRow(rawToOcrLine(l), cg, false, out.debugLines);
+                    core::application::importing::internal::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
+                    cur.main = core::application::importing::statement::internal::handleMainRow(core::application::importing::statement::internal::rawToOcrLine(l), cg, false, out.debugLines);
                     prevLine = txt;
                     continue;
                     }
@@ -406,21 +389,21 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
         }
 
         const bool mainByRegex = isLikelyTransactionMainRowText(txt);
-        ColumnModel effectiveCols = cols.hasValuta() ? cols : seedCols;
-        const bool mainByGeom = (!mainByRegex) && ((li > headerScanLines) || effectiveCols.hasValuta()) && isLikelyTransactionMainRowGeom(l, effectiveCols);
+        core::application::importing::statement::internal::ColumnModel effectiveCols = cols.hasValuta() ? cols : seedCols;
+        const bool mainByGeom = (!mainByRegex) && ((li > headerScanLines) || effectiveCols.hasValuta()) && core::application::importing::statement::internal::isLikelyTransactionMainRowGeom(l, effectiveCols);
 
         if (mainByRegex || mainByGeom) {
             if (!cur.main.left.empty() || !cur.detailLines.empty()) flush();
             cur.bookingDateGroup = currentBookingDate;
-            core::parser::helpers::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
-            cur.main = handleMainRow(rawToOcrLine(l), cg, mainByGeom, out.debugLines);
+            core::application::importing::internal::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
+            cur.main = core::application::importing::statement::internal::handleMainRow(core::application::importing::statement::internal::rawToOcrLine(l), cg, mainByGeom, out.debugLines);
             prevLine = txt;
             continue;
         }
 
         if (!cur.main.left.empty()) {
-            core::parser::helpers::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
-            appendDetailLine(cur, rawToOcrLine(l), cg, &out.debugLines);
+            core::application::importing::internal::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
+            core::application::importing::statement::internal::appendDetailLine(cur, core::application::importing::statement::internal::rawToOcrLine(l), cg, &out.debugLines);
         }
 
         prevLine = txt;
@@ -436,10 +419,10 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
                 try { if (!looksMain && core::parser::helpers::isLooseTransactionLine(ol, cols.valutaX)) looksMain = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::rescue::isLoose", std::current_exception()); }
                 try { if (!looksMain && core::parser::helpers::hasShortDateToken(ol.text) && core::parser::helpers::hasLeftDescriptiveText(ol, cols.valutaX)) looksMain = true; } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::rescue::dateAndLeft", std::current_exception()); }
                 if (looksMain) {
-                    TransactionBlock nb;
+                    core::application::importing::transaction::internal::TransactionBlock nb;
                     nb.bookingDateGroup = currentBookingDate;
-                    core::parser::helpers::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
-                    nb.main = handleMainRow(ol, cg, false, out.debugLines);
+                    core::application::importing::internal::ColumnGuess cg{ cols.valutaX, cols.debitX, cols.creditX };
+                    nb.main = core::application::importing::statement::internal::handleMainRow(ol, cg, false, out.debugLines);
                     blocks.push_back(std::move(nb));
                     out.debugLines.push_back(std::string("tx.start.rescued\ttext=") + ol.text);
                 }
@@ -447,7 +430,7 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
         }
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::rescue", std::current_exception()); }
 
-    attachOrphansToBlocks(blocks,
+    core::application::importing::statement::internal::attachOrphansToBlocks(blocks,
                           orphanLines,
                           core::constants::parser::kAttachOrphanMaxDistance,
                           cols.valutaX,
@@ -455,8 +438,8 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
 
     out.debugLines.push_back(std::string("blocks\t") + std::to_string(blocks.size()));
 
-    appendPageSummary(lines, headerBottomY, blocks, txStartLooseCount, out);
-    appendTransactionsFromBlocks(blocks, cols, ocr, opencv, pageCropImagePath, pageCropImageBytes, txIndex, out);
+    core::application::importing::statement::internal::appendPageSummary(lines, headerBottomY, blocks, txStartLooseCount, out);
+    core::application::importing::statement::internal::appendTransactionsFromBlocks(blocks, cols, ocr, opencv, pageCropImagePath, pageCropImageBytes, txIndex, out);
 
     out.debugLines.push_back(std::string("transactions\t") + std::to_string(out.transactions.size()));
 

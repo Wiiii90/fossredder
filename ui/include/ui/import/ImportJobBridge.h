@@ -46,7 +46,7 @@ public:
     void clearSubscription();
 
     std::shared_ptr<core::domain::Statement> statementResult() const;
-    std::vector<core::domain::TransactionDraft> statementTransactions() const;
+    std::vector<core::application::importing::draft::TransactionDraft> statementTransactions() const;
     std::map<std::string, std::vector<uint8_t>> takeArtifacts();
     core::ports::presenters::ImportPresentation present() const;
 

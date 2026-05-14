@@ -1,6 +1,6 @@
 # Persistence implementation sources.
 set(PERSISTENCE_SRCS
-    src/AppStateStore.cpp
+    src/WorkspaceStateStore.cpp
     src/Factory.cpp
     src/SqliteDb.cpp
     src/SqliteRegistry.cpp
@@ -57,7 +57,7 @@ if (BUILD_PERSISTENCE_TESTS)
     include(GoogleTest)
 
     set(PERSISTENCE_TEST_SRCS
-        tests/unit/TestAppStateStore.cpp
+        tests/unit/TestWorkspaceStateStore.cpp
         tests/unit/TestSqliteRepository.cpp
         tests/unit/TestSqliteRegistry.cpp
     )

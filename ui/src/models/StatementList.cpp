@@ -20,8 +20,8 @@ QVariant StatementList::data(const QModelIndex& index, int role) const
     if (!s) return {};
 
     switch (role) {
-    case IdRole: return QString::fromStdString(s->id);
-    case NameRole: return QString::fromStdString(s->name);
+    case IdRole: return QString::fromStdString(s->id());
+    case NameRole: return QString::fromStdString(s->name());
     default: return {};
     }
 }

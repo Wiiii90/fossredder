@@ -5,31 +5,29 @@
 
 #include "core/application/export/AnalysisExportService.h"
 
-#include "core/application/analysis/RunAnalysis.h"
+#include "core/application/analysis/AnalysisService.h"
 #include "core/constants/analysis.h"
 #include "core/constants/export.h"
-#include "core/application/export/IArchive.h"
+#include "core/constants/filters.h"
+#include "core/ports/archive/IArchive.h"
+#include "core/ports/analysis-image-renderer/IAnalysisImageRenderer.h"
+#include "core/ports/xlsx-writer/IXlsxWriter.h"
 
-#include <fstream>
-#include <sstream>
-#include <iomanip>
-#include <filesystem>
 #include <algorithm>
+#include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <iterator>
+#include <map>
 #include <set>
+#include <sstream>
 #include <unordered_map>
 #include <vector>
-#include <iterator>
-#include <cmath>
-
-#include <xlnt/xlnt.hpp>
-
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/core.hpp>
 
 #include <nlohmann/json.hpp>
 
-#include "core/application/workspace/AppState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 
 namespace {
 
@@ -79,40 +77,6 @@ bool writeCsvTable(const std::filesystem::path& outputPath,
 
     stream.close();
     return !!stream;
-}
-
-bool writePseudoXlsxTable(const std::filesystem::path& outputPath,
-                          const std::vector<std::vector<std::string>>& rows)
-{
-    try {
-        xlnt::workbook workbook;
-        xlnt::worksheet worksheet = workbook.active_sheet();
-        worksheet.title("Analysis");
-
-        for (size_t row = 0; row < rows.size(); ++row) {
-            const auto& columns = rows[row];
-            for (size_t column = 0; column < columns.size(); ++column) {
-                worksheet.cell(static_cast<int>(row + 1), static_cast<int>(column + 1)).value(columns[column]);
-            }
-        }
-
-        workbook.save(outputPath.string());
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-std::string joinedMetrics(const std::map<std::string, double>& metrics)
-{
-    std::ostringstream stream;
-    bool first = true;
-    for (const auto& [key, value] : metrics) {
-        if (!first) stream << " | ";
-        first = false;
-        stream << key << ": " << std::fixed << std::setprecision(2) << value;
-    }
-    return stream.str();
 }
 
 double parseNumber(const std::string& text)
@@ -182,7 +146,7 @@ std::vector<std::vector<std::string>> normalizedRowsForExport(const core::domain
         return rows;
     }
 
-    if (result.type == core::constants::analysis::kTypeCalc) {
+    if (result.type == core::constants::analysis::kTypeCalculation) {
         rows.push_back({"Label", "OriginalAmount", "AdjustedAmount", "TaxPercent", "TaxFactor", "TransactionId"});
         for (const auto& row : result.table) {
             if (row.empty()) continue;
@@ -227,19 +191,19 @@ std::vector<std::vector<std::string>> normalizedRowsForExport(const core::domain
     return rows;
 }
 
-std::unordered_map<std::string, std::string> propertyNameById(const core::domain::AppState& state)
+std::unordered_map<std::string, std::string> propertyNameById(const core::domain::catalog::WorkspaceCatalog& state)
 {
     std::unordered_map<std::string, std::string> out;
-    out.reserve(state.properties.size());
-    for (const auto& property : state.properties) {
-        if (!property || property->id.empty()) continue;
-        out[property->id] = property->name.empty() ? property->id : property->name;
+    out.reserve(state.properties().size());
+    for (const auto& property : state.properties()) {
+        if (!property || property->id().empty()) continue;
+        out[property->id()] = property->name().empty() ? property->id() : property->name();
     }
     return out;
 }
 
 std::vector<std::vector<std::string>> normalizedRowsForExport(const core::domain::AnalysisResult& result,
-                                                              const core::domain::AppState& state)
+                                                              const core::domain::catalog::WorkspaceCatalog& state)
 {
     if (result.type != core::constants::analysis::kTypeTab) {
         return normalizedRowsForExport(result);
@@ -264,7 +228,9 @@ std::vector<std::vector<std::string>> normalizedRowsForExport(const core::domain
     }
 
     std::vector<std::vector<std::string>> rows;
-    rows.push_back({std::string(core::constants::exportFlow::labels::kPropertyHeader), "contract.type", std::string(core::constants::exportFlow::labels::kTotal)});
+    rows.push_back({std::string(core::constants::exportFlow::labels::kPropertyHeader),
+                    std::string(core::constants::filters::kContractType),
+                    std::string(core::constants::exportFlow::labels::kTotal)});
 
     for (const auto& [propertyName, byContract] : amountsByProperty) {
         double total = 0.0;
@@ -284,256 +250,18 @@ std::vector<std::vector<std::string>> normalizedRowsForExport(const core::domain
     return rows;
 }
 
-bool drawPieChartImage(cv::Mat& image, const core::domain::AnalysisResult& result)
-{
-    struct Slice {
-        std::string label;
-        double value = 0.0;
-    };
-
-    std::vector<Slice> slices;
-    for (const auto& row : result.table) {
-        if (row.empty()) continue;
-        const std::string label = row[0];
-        const double value = row.size() > 1 ? std::fabs(parseNumber(row[1])) : 0.0;
-        if (value > 0.0) slices.push_back({label, value});
-    }
-    if (slices.empty()) return false;
-
-    double total = 0.0;
-    for (const auto& slice : slices) total += slice.value;
-    if (total <= 0.0) return false;
-
-    const int width = image.cols;
-    const int height = image.rows;
-    const int legendWidth = std::max(280, width / 3);
-    const int pieAreaWidth = width - legendWidth;
-    const int radiusPx = std::max(120, std::min(pieAreaWidth / 2 - 20, height / 2 - 20));
-    const cv::Point center(pieAreaWidth / 2, height / 2);
-    const cv::Size radius(radiusPx, radiusPx);
-    const std::vector<cv::Scalar> colors = {
-        {66, 133, 244, 255}, {219, 68, 55, 255}, {244, 180, 0, 255}, {15, 157, 88, 255},
-        {171, 71, 188, 255}, {0, 172, 193, 255}, {255, 112, 67, 255}, {158, 158, 158, 255}
-    };
-
-    double startAngle = 0.0;
-    for (size_t i = 0; i < slices.size(); ++i) {
-        const double angle = 360.0 * (slices[i].value / total);
-        const cv::Scalar color = colors[i % colors.size()];
-        cv::ellipse(image, center, radius, 0.0, startAngle, startAngle + angle, color, cv::FILLED, cv::LINE_AA);
-        startAngle += angle;
-    }
-
-    const int legendX = width - legendWidth + 20;
-    int legendY = 40;
-    const int maxLegendRows = std::max(1, (height - 40) / 30);
-    for (size_t i = 0; i < slices.size() && static_cast<int>(i) < maxLegendRows; ++i) {
-        const cv::Scalar color = colors[i % colors.size()];
-        cv::rectangle(image, cv::Point(legendX, legendY - 16), cv::Point(legendX + 20, legendY + 4), color, cv::FILLED, cv::LINE_AA);
-        std::ostringstream label;
-        label << slices[i].label << " (" << std::fixed << std::setprecision(1) << (slices[i].value * 100.0 / total) << "%)";
-        cv::putText(image, label.str(), cv::Point(legendX + 30, legendY), cv::FONT_HERSHEY_SIMPLEX, 0.55, cv::Scalar(50, 50, 50, 255), 1, cv::LINE_AA);
-        legendY += 30;
-    }
-
-    return true;
-}
-
-bool drawHistogramImage(cv::Mat& image, const core::domain::AnalysisResult& result)
-{
-    struct Bucket {
-        std::string label;
-        double value = 0.0;
-    };
-
-    std::vector<Bucket> buckets;
-    for (const auto& row : result.table) {
-        if (row.empty()) continue;
-
-        std::string month = row[0];
-        double total = 0.0;
-        if (row.size() > 1) {
-            nlohmann::json summary;
-            if (tryParseJsonObject(row[1], summary)) {
-                if (summary.contains(core::constants::analysis::resultFields::kMonth)
-                    && summary[core::constants::analysis::resultFields::kMonth].is_string()) {
-                    month = summary[core::constants::analysis::resultFields::kMonth].get<std::string>();
-                }
-                if (summary.contains(core::constants::analysis::resultFields::kTotal)
-                    && summary[core::constants::analysis::resultFields::kTotal].is_number()) {
-                    total = std::fabs(summary[core::constants::analysis::resultFields::kTotal].get<double>());
-                }
-            } else {
-                total = std::fabs(parseNumber(row[1]));
-            }
-        }
-
-        buckets.push_back({month, total});
-    }
-    if (buckets.empty()) return false;
-
-    const int width = image.cols;
-    const int height = image.rows;
-    const int legendWidth = std::max(260, width / 3);
-    const int left = 40;
-    const int right = width - legendWidth - 20;
-    const int top = 20;
-    const int bottom = height - 40;
-    cv::line(image, cv::Point(left, bottom), cv::Point(right, bottom), cv::Scalar(110, 110, 110, 255), 2, cv::LINE_AA);
-    cv::line(image, cv::Point(left, top), cv::Point(left, bottom), cv::Scalar(110, 110, 110, 255), 2, cv::LINE_AA);
-
-    double maxValue = 0.0;
-    for (const auto& bucket : buckets) maxValue = std::max(maxValue, bucket.value);
-    if (maxValue <= 0.0) maxValue = 1.0;
-
-    const int count = static_cast<int>(buckets.size());
-    const int slotWidth = std::max(16, (right - left - 20) / std::max(1, count));
-    const int barWidth = std::max(10, slotWidth - 12);
-    const cv::Scalar barColor(66, 133, 244, 255);
-    for (int i = 0; i < count; ++i) {
-        const auto& bucket = buckets[static_cast<size_t>(i)];
-        const int barHeight = static_cast<int>(((bottom - top - 10) * bucket.value) / maxValue);
-        const int x1 = left + 10 + (i * slotWidth);
-        const int x2 = x1 + barWidth;
-        const int y1 = bottom - barHeight;
-
-        cv::rectangle(image, cv::Point(x1, y1), cv::Point(x2, bottom - 1), barColor, cv::FILLED, cv::LINE_AA);
-
-        if (i % std::max(1, count / 12) == 0) {
-            cv::putText(image, bucket.label, cv::Point(x1, bottom + 16), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(70, 70, 70, 255), 1, cv::LINE_AA);
-        }
-    }
-
-    const int legendX = width - legendWidth + 20;
-    cv::rectangle(image, cv::Point(legendX, 26), cv::Point(legendX + 20, 46), barColor, cv::FILLED, cv::LINE_AA);
-    cv::putText(image, "Total", cv::Point(legendX + 30, 42), cv::FONT_HERSHEY_SIMPLEX, 0.55, cv::Scalar(50, 50, 50, 255), 1, cv::LINE_AA);
-
-    int legendY = 80;
-    const int maxLegendRows = std::max(1, (height - 80) / 24);
-    for (int i = 0; i < count && i < maxLegendRows; ++i) {
-        const auto& bucket = buckets[static_cast<size_t>(i)];
-        std::ostringstream label;
-        label << bucket.label << ": " << std::fixed << std::setprecision(2) << bucket.value;
-        cv::putText(image, label.str(), cv::Point(legendX, legendY), cv::FONT_HERSHEY_SIMPLEX, 0.45, cv::Scalar(60, 60, 60, 255), 1, cv::LINE_AA);
-        legendY += 24;
-    }
-
-    return true;
-}
-
-bool drawTableImage(cv::Mat& image, const std::vector<std::vector<std::string>>& rows)
-{
-    if (rows.empty()) return false;
-
-    int y = 150;
-    const int lineHeight = 30;
-    const int maxRows = 16;
-    for (size_t r = 0; r < rows.size() && static_cast<int>(r) < maxRows; ++r) {
-        std::ostringstream line;
-        for (size_t c = 0; c < rows[r].size(); ++c) {
-            if (c > 0) line << " | ";
-            line << rows[r][c];
-        }
-        cv::putText(image,
-                    line.str(),
-                    cv::Point(50, y),
-                    cv::FONT_HERSHEY_SIMPLEX,
-                    r == 0 ? 0.68 : 0.55,
-                    r == 0 ? cv::Scalar(30, 30, 30, 255) : cv::Scalar(70, 70, 70, 255),
-                    r == 0 ? 2 : 1,
-                    cv::LINE_AA);
-        y += lineHeight;
-    }
-    return true;
-}
-
-bool writeImageFromMetrics(const std::filesystem::path& outputPath,
-                           const std::string& title,
-                           const std::map<std::string, double>& metrics)
-{
-    constexpr int width = 1280;
-    constexpr int height = 720;
-    cv::Mat image(height, width, CV_8UC3, cv::Scalar(250, 250, 250));
-
-    cv::putText(image,
-                title,
-                cv::Point(40, 80),
-                cv::FONT_HERSHEY_SIMPLEX,
-                1.0,
-                cv::Scalar(40, 40, 40),
-                2,
-                cv::LINE_AA);
-
-    const std::string metricsLine = joinedMetrics(metrics);
-    cv::putText(image,
-                metricsLine,
-                cv::Point(40, 140),
-                cv::FONT_HERSHEY_SIMPLEX,
-                0.75,
-                cv::Scalar(60, 60, 60),
-                2,
-                cv::LINE_AA);
-
-    int y = 210;
-    int index = 1;
-    for (const auto& [key, value] : metrics) {
-        std::ostringstream row;
-        row << index++ << ". " << key << " = " << std::fixed << std::setprecision(2) << value;
-        cv::putText(image,
-                    row.str(),
-                    cv::Point(60, y),
-                    cv::FONT_HERSHEY_SIMPLEX,
-                    0.65,
-                    cv::Scalar(90, 90, 90),
-                    2,
-                    cv::LINE_AA);
-        y += 38;
-        if (y > height - 40) break;
-    }
-
-    return cv::imwrite(outputPath.string(), image);
-}
-
-bool writeImageFromResult(const std::filesystem::path& outputPath,
-                          const std::string& title,
-                          const core::domain::AnalysisResult& result)
-{
-    (void)title;
-    constexpr int width = 1280;
-    constexpr int height = 720;
-    const bool asPng = outputPath.has_extension()
-        && outputPath.extension().string() == ".png";
-
-    cv::Mat image;
-    if (asPng) image = cv::Mat(height, width, CV_8UC4, cv::Scalar(0, 0, 0, 0));
-    else image = cv::Mat(height, width, CV_8UC3, cv::Scalar(250, 250, 250));
-
-    bool ok = false;
-    if (result.type == core::constants::analysis::plotTypes::kPie) {
-        ok = drawPieChartImage(image, result);
-    } else if (result.type == core::constants::analysis::plotTypes::kHistogram) {
-        ok = drawHistogramImage(image, result);
-    } else {
-        ok = drawTableImage(image, normalizedRowsForExport(result));
-    }
-
-    if (!ok) return false;
-
-    return cv::imwrite(outputPath.string(), image);
-}
-
-std::unordered_map<std::string, std::string> annualFolderNames(const core::domain::AppState& state)
+std::unordered_map<std::string, std::string> annualFolderNames(const core::domain::catalog::WorkspaceCatalog& state)
 {
     std::unordered_map<std::string, std::string> folderByAnnualId;
     std::set<std::string> usedFolderNames;
 
-    for (const auto& annual : state.annuals) {
-        if (!annual || annual->id.empty()) continue;
+    for (const auto& annual : state.annuals()) {
+        if (!annual || annual->id().empty()) continue;
 
-        const std::string baseName = safeFilePart(!annual->name.empty() ? annual->name : annual->id);
+        const std::string baseName = safeFilePart(!annual->name().empty() ? annual->name() : annual->id());
         std::string candidate = baseName;
         if (usedFolderNames.find(candidate) != usedFolderNames.end()) {
-            std::string suffix = annual->id;
+            std::string suffix = annual->id();
             if (suffix.size() > 8) suffix = suffix.substr(0, 8);
             candidate = baseName + "_" + safeFilePart(suffix);
         }
@@ -544,7 +272,7 @@ std::unordered_map<std::string, std::string> annualFolderNames(const core::domai
         }
 
         usedFolderNames.insert(candidate);
-        folderByAnnualId[annual->id] = candidate;
+        folderByAnnualId[annual->id()] = candidate;
     }
 
     return folderByAnnualId;
@@ -571,6 +299,14 @@ std::filesystem::path outputPathForItem(const std::filesystem::path& baseOutput,
 } // namespace
 
 namespace core::application::exporting {
+
+AnalysisExportService::AnalysisExportService(std::shared_ptr<core::ports::archive::IArchive> archive,
+                                             std::shared_ptr<core::ports::xlsx_writer::IXlsxWriter> xlsxWriter,
+                                             std::shared_ptr<core::ports::analysis_image_renderer::IAnalysisImageRenderer> imageRenderer)
+    : archive_(std::move(archive)),
+      xlsxWriter_(std::move(xlsxWriter)),
+      imageRenderer_(std::move(imageRenderer)) {
+}
 
 ExportResult AnalysisExportService::exportAnalyses(const ExportRequest& request) const
 {
@@ -605,10 +341,10 @@ ExportResult AnalysisExportService::exportAnalyses(const ExportRequest& request)
 
         const auto folderByAnnualId = annualFolderNames(*request.stateSnapshot);
 
-        core::application::analysis::RunAnalysis analysisService;
+        core::application::analysis::AnalysisService analysisService;
         for (size_t i = 0; i < request.analysisItems.size(); ++i) {
             const auto& item = request.analysisItems[i];
-            const auto computed = analysisService.computeAnalysisById(*request.stateSnapshot, item.analysisId);
+            const auto computed = analysisService.runAnalysisById(*request.stateSnapshot, item.analysisId);
             if (!computed.found) continue;
 
             const std::filesystem::path outputFile = outputPathForItem(baseOutput, folderByAnnualId, item);
@@ -621,11 +357,11 @@ ExportResult AnalysisExportService::exportAnalyses(const ExportRequest& request)
                 ok = writeCsvTable(outputFile, tableRows);
                 break;
             case AnalysisExportFormat::Xlsx:
-                ok = writePseudoXlsxTable(outputFile, tableRows);
+                ok = xlsxWriter_ && xlsxWriter_->writeTable(outputFile, tableRows, "Analysis");
                 break;
             case AnalysisExportFormat::Jpg:
             case AnalysisExportFormat::Png:
-                ok = writeImageFromResult(outputFile, computed.type.empty() ? item.analysisId : computed.type, computed);
+                ok = imageRenderer_ && imageRenderer_->writeAnalysisImage(outputFile, computed.type.empty() ? item.analysisId : computed.type, computed);
                 break;
             }
 
@@ -639,8 +375,7 @@ ExportResult AnalysisExportService::exportAnalyses(const ExportRequest& request)
 
         if (request.packageFormat == PackageFormat::Zip) {
             const std::filesystem::path archivePath = baseOutput.string() + std::string(core::constants::exportFlow::packaging::kZipExtension);
-            const auto archiveAdapter = createArchiveAdapter();
-            if (!archiveAdapter || !archiveAdapter->create(baseOutput, archivePath, request.packageFormat)) {
+            if (!archive_ || !archive_->create(baseOutput, archivePath, request.packageFormat)) {
                 result.status = ExportStatus::ArchiveFailed;
                 result.errorCode = std::string(core::constants::exportFlow::errors::kArchiveFailed);
                 result.message = std::string(core::constants::exportFlow::messages::kArchiveFailed);
@@ -660,4 +395,4 @@ ExportResult AnalysisExportService::exportAnalyses(const ExportRequest& request)
     }
 }
 
-} // namespace core::exporting
+} // namespace core::application::exporting

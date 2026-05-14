@@ -9,14 +9,16 @@
 #include <functional>
 #include <utility>
 
-#include "core/application/workspace/WorkspaceFacade.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 
-namespace ui::util::guard {
+namespace ui {
+namespace util {
+namespace guard {
 
 /** @brief Ensure that a required application facade pointer is available. */
-inline bool ensureCore(const core::application::WorkspaceFacade* core, const char* origin)
+template <typename CorePtr>
+inline bool ensureCore(CorePtr core, const char* origin)
 {
     if (core) {
         return true;
@@ -25,7 +27,7 @@ inline bool ensureCore(const core::application::WorkspaceFacade* core, const cha
     core::errors::report(core::errors::ErrorSeverity::Warning,
                          core::errors::codes::GenericError,
                          origin,
-                         "WorkspaceFacade is null");
+                         "Workspace core is null");
     return false;
 }
 
@@ -74,4 +76,6 @@ inline TValue invokeValue(CorePtr core, const char* origin, TValue fallback, Fun
     return fallback;
 }
 
-} // namespace ui::util::guard
+} // namespace guard
+} // namespace util
+} // namespace ui

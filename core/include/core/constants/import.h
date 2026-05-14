@@ -19,8 +19,6 @@ inline constexpr std::size_t kLocalSchedulerWorkers = 4;
 inline constexpr std::size_t kLocalSchedulerQueueCapacity = 128;
 inline constexpr std::size_t kLocalOcrSlots = 2;
 inline constexpr std::size_t kUnitsPerPage = 4;
-inline constexpr int kDefaultTesseractPsm = 3;
-inline constexpr int kDefaultTableTesseractPsm = 6;
 inline constexpr std::string_view kRunNameImport = "import";
 
 namespace runs {
@@ -45,7 +43,6 @@ inline constexpr std::string_view kErrorSourceMissing = "Source statement file d
 inline constexpr std::string_view kErrorRunRootMissing = "Import run root is not configured";
 inline constexpr std::string_view kErrorExtractionFailed = "core::domain::Statement extraction failed";
 inline constexpr std::string_view kMetricsArtifactName = "metrics.json";
-inline constexpr std::string_view kTableTesseractPrefix = "tesseract_extract_table_page";
 
 namespace pageSteps {
 inline constexpr std::string_view kNoImage = "No image";

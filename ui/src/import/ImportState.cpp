@@ -197,8 +197,8 @@ void ImportState::recordFailed(const QString& now, const QString& errorMessage)
 
 bool ImportState::populateDraft(const QString& now,
                                 const std::shared_ptr<core::domain::Statement>& statement,
-                                const core::domain::WorkspaceState& state,
-                                const std::vector<core::domain::TransactionDraft>& transactions,
+                                const core::domain::catalog::WorkspaceCatalog& state,
+                                const std::vector<core::application::importing::draft::TransactionDraft>& transactions,
                                 const std::map<std::string, std::vector<uint8_t>>& artifacts,
                                 const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService,
                                 const QString& draftId,
@@ -224,8 +224,8 @@ bool ImportState::populateDraft(const QString& now,
 }
 
 bool ImportState::restoreDraft(const std::shared_ptr<core::domain::Statement>& statement,
-                               const core::domain::WorkspaceState& state,
-                               const std::vector<core::domain::TransactionDraft>& transactions,
+                               const core::domain::catalog::WorkspaceCatalog& state,
+                               const std::vector<core::application::importing::draft::TransactionDraft>& transactions,
                                const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService,
                                const QString& draftId,
                                int currentTransactionIndex,

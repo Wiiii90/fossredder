@@ -22,7 +22,7 @@ void SessionStore::bindModelSignals()
 {
 }
 
-void SessionStore::loadFromState(const WorkspaceState& state)
+void SessionStore::loadFromState(const core::domain::catalog::WorkspaceCatalog& state)
 {
     filters_.clear();
     models_.loadFromState(state);

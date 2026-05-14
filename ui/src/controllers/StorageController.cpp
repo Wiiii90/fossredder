@@ -10,6 +10,9 @@
 #include "ui/util/CoreFacadeGuard.h"
 #include "ui/util/StringConversions.h"
 #include "ui/text/Text.h"
+#include "core/ports/workspace/IWorkspaceReader.h"
+#include "core/ports/workspace/IWorkspaceWriter.h"
+#include "core/ports/presenters/IWorkspacePresenter.h"
 
 namespace ui {
 
@@ -35,11 +38,12 @@ void StorageController::finishOperation(bool success,
     emit currentPathChanged();
 }
 
-StorageController::StorageController(core::application::WorkspaceFacade* core,
+StorageController::StorageController(core::ports::workspace::IWorkspaceWriter* core,
                                      std::shared_ptr<core::ports::presenters::IWorkspacePresenter> workspacePresenter,
                                      QObject* parent)
     : QObject(parent)
     , core_(core)
+    , reader_(dynamic_cast<core::ports::workspace::IWorkspaceReader*>(core))
     , workspacePresenter_(std::move(workspacePresenter))
 {
 }
@@ -82,12 +86,14 @@ void StorageController::saveFileAs(const QString& path)
 
 QString StorageController::currentPath() const
 {
-    if (!core_) {
+    if (!reader_) {
         return {};
     }
 
-    const auto workspace = workspacePresenter_ ? workspacePresenter_->present(core_->presentWorkspace())
-                                               : core_->presentWorkspace();
+    const auto snapshot = reader_->workspaceSnapshot();
+    core::ports::presenters::WorkspacePresentation presentation{snapshot.currentPath, snapshot.hasCurrentPath};
+    const auto workspace = workspacePresenter_ ? workspacePresenter_->present(presentation)
+                                               : presentation;
     return QString::fromStdString(workspace.currentPath);
 }
 

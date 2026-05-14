@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/application/import/draft/TransactionDraft.h"
 
 namespace core::application::importing::draft {
@@ -146,7 +146,7 @@ std::vector<std::string> referenceAliasesFromMetadata(const std::string& metadat
  * @param transaction Transaction draft to inspect.
  * @return Derived text signals for matching and suggestion generation.
  */
-DraftTextSignals buildDraftTextSignals(const core::domain::WorkspaceState& state,
+DraftTextSignals buildDraftTextSignals(const core::domain::catalog::WorkspaceCatalog& state,
                                        const TransactionDraft& transaction);
 /**
  * @brief Builds ranked import suggestions for the given workspace and transaction draft.
@@ -154,7 +154,7 @@ DraftTextSignals buildDraftTextSignals(const core::domain::WorkspaceState& state
  * @param transaction Transaction draft to analyze.
  * @return Ranked import suggestions for actors, properties, and contracts.
  */
-DraftImportSuggestions buildImportSuggestions(const core::domain::WorkspaceState& state,
+DraftImportSuggestions buildImportSuggestions(const core::domain::catalog::WorkspaceCatalog& state,
                                               const TransactionDraft& transaction);
 /**
  * @brief Resolves the best matching actor identifier for the provided text.
@@ -162,40 +162,36 @@ DraftImportSuggestions buildImportSuggestions(const core::domain::WorkspaceState
  * @param text Text to resolve.
  * @return Matching actor identifier, or an empty string when no match is found.
  */
-std::string resolveActorId(const core::domain::WorkspaceState& state, const std::string& text);
+std::string resolveActorId(const core::domain::catalog::WorkspaceCatalog& state, const std::string& text);
 /**
  * @brief Resolves the best matching contract identifier for the provided text.
  * @param state Current workspace state used as the contract catalog.
  * @param text Text to resolve.
  * @return Matching contract identifier, or an empty string when no match is found.
  */
-std::string resolveContractId(const core::domain::WorkspaceState& state, const std::string& text);
+std::string resolveContractId(const core::domain::catalog::WorkspaceCatalog& state, const std::string& text);
 /**
  * @brief Checks whether all transactions assigned to a contract are allocatable.
  * @param state Current workspace state.
  * @param contractId Contract identifier to inspect.
  * @return True when the contract has at least one transaction and all are allocatable.
  */
-bool contractIsFullyAllocatable(const core::domain::WorkspaceState& state, const std::string& contractId);
+bool contractIsFullyAllocatable(const core::domain::catalog::WorkspaceCatalog& state, const std::string& contractId);
 /**
  * @brief Returns the primary state with missing collections filled from a fallback state.
  * @param primary Primary workspace state to keep when populated.
  * @param fallback Fallback workspace state used to fill gaps.
  * @return A state that prefers primary collections and borrows missing ones from fallback.
  */
-core::domain::WorkspaceState withFallbackState(core::domain::WorkspaceState primary,
-                                               const core::domain::WorkspaceState& fallback);
+core::domain::catalog::WorkspaceCatalog withFallbackState(core::domain::catalog::WorkspaceCatalog primary,
+                                                           const core::domain::catalog::WorkspaceCatalog& fallback);
 /**
  * @brief Derives UI-agnostic matching state for the currently edited draft link.
  * @param state Current workspace state used for catalog lookups.
  * @param selection Current draft link selection.
  * @return Derived selection state ready for presentation or persistence.
  */
-DraftDerivedState buildDraftDerivedState(const core::domain::WorkspaceState& state,
+DraftDerivedState buildDraftDerivedState(const core::domain::catalog::WorkspaceCatalog& state,
                                          const DraftLinkSelection& selection);
 
-}
-
-namespace core {
-namespace importing = application::importing;
 }

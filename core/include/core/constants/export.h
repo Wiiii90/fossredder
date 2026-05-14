@@ -4,11 +4,7 @@
 
 namespace core::constants::exportFlow {
 
-inline constexpr std::string_view kErrorCsvControllerMissing = "EXPORT_CSV_CONTROLLER_MISSING";
-inline constexpr std::string_view kErrorXlsxControllerMissing = "EXPORT_XLSX_CONTROLLER_MISSING";
 inline constexpr std::string_view kErrorUnsupportedFormat = "EXPORT_UNSUPPORTED_FORMAT";
-inline constexpr std::string_view kMessageCsvControllerMissing = "CSV controller is not available";
-inline constexpr std::string_view kMessageXlsxControllerMissing = "XLSX controller is not available";
 inline constexpr std::string_view kMessageUnsupportedFormat = "Unsupported export format";
 
 namespace errors {

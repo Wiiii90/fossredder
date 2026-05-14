@@ -5,9 +5,9 @@
 
 #include "text-recognition/pch.h"
 #include "core/ports/text-recognition/ITextRecognizer.h"
-#include "core/ports/text-recognition/TesseractRequest.h"
-#include "core/ports/text-recognition/TesseractResult.h"
-#include "core/ports/text-recognition/TesseractTypes.h"
+#include "core/ports/text-recognition/TextRecognitionRequest.h"
+#include "core/ports/text-recognition/TextRecognitionResult.h"
+#include "core/ports/text-recognition/TextRecognitionTypes.h"
 #include "text-recognition/TesseractCore.h"
 #include "debug/IDebugger.h"
 #include <sstream>
@@ -20,8 +20,8 @@ class TesseractTextRecognizerAdapter : public core::ports::text_recognition::ITe
 public:
     explicit TesseractTextRecognizerAdapter(std::shared_ptr<IDebugger> dbg = nullptr) : debugger(std::move(dbg)) {}
 
-    core::ports::text_recognition::tesseract::ExtractResult extract(const core::ports::text_recognition::tesseract::ExtractRequest& req) override {
-        core::ports::text_recognition::tesseract::ExtractResult out;
+    core::ports::text_recognition::ExtractResult extract(const core::ports::text_recognition::ExtractRequest& req) override {
+        core::ports::text_recognition::ExtractResult out;
         if (req.cancelFlag && req.cancelFlag->load()) return out;
 
         std::vector<uint8_t> bytes;
@@ -34,7 +34,7 @@ public:
 
         if (req.cancelFlag && req.cancelFlag->load()) return out;
 
-        auto [textDto, words] = TesseractCore::extractFromBytes(bytes, req.tessdataPath, req.recognition, debugger);
+        auto [textDto, words] = TesseractCore::extractFromBytes(bytes, req.tessdataPath.string(), req.recognition, debugger);
         out.text = textDto.text;
         std::ostringstream oss;
         for (const auto &w : words) {
@@ -44,7 +44,7 @@ public:
 
         out.words.reserve(words.size());
         for (const auto& w : words) {
-            core::ports::text_recognition::tesseract::Word wr;
+            core::ports::text_recognition::Word wr;
             wr.bbox.x = w.bbox.x;
             wr.bbox.y = w.bbox.y;
             wr.bbox.width = w.bbox.width;
@@ -56,18 +56,18 @@ public:
 
         if (req.cancelFlag && req.cancelFlag->load()) return out;
 
-        if (req.kind == core::ports::text_recognition::tesseract::ExtractRequest::Kind::Table && !req.cells.empty()) {
-            core::ports::text_recognition::tesseract::Table t;
+        if (req.kind == core::ports::text_recognition::ExtractRequest::Kind::Table && !req.cells.empty()) {
+            core::ports::text_recognition::Table t;
             t.cells = req.cells;
 
-            auto inCell = [](const core::ports::text_recognition::tesseract::Rect& w, const core::ports::text_recognition::tesseract::Rect& c) {
+            auto inCell = [](const core::ports::text_recognition::Rect& w, const core::ports::text_recognition::Rect& c) {
                 int cx = w.x + w.width / 2;
                 int cy = w.y + w.height / 2;
                 return cx >= c.x && cx < (c.x + c.width) && cy >= c.y && cy < (c.y + c.height);
             };
 
             struct WRef {
-                const core::ports::text_recognition::tesseract::Word* w;
+                const core::ports::text_recognition::Word* w;
                 int cy;
             };
 
@@ -96,7 +96,7 @@ public:
                 avgH = std::max(1, avgH / static_cast<int>(cellWords.size()));
                 int lineTol = std::max(4, avgH / 2);
 
-                std::vector<std::vector<const core::ports::text_recognition::tesseract::Word*>> lines;
+                    std::vector<std::vector<const core::ports::text_recognition::Word*>> lines;
                 std::vector<int> lineY;
 
                 for (const auto& cw : cellWords) {
@@ -146,4 +146,3 @@ std::shared_ptr<core::ports::text_recognition::ITextRecognizer> createTextRecogn
 std::shared_ptr<core::ports::text_recognition::ITextRecognizer> createTextRecognizerAdapter(std::shared_ptr<IDebugger> debugger) {
     return std::make_shared<TesseractTextRecognizerAdapter>(std::move(debugger));
 }
-

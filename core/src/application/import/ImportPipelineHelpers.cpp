@@ -15,8 +15,9 @@
 #include <sstream>
 
 namespace core::application::importing::internal {
-namespace poppler = core::ports::pdf_rendering::poppler;
-namespace tesseract = core::ports::text_recognition::tesseract;
+using core::application::importing::statement::DefaultStatementParser;
+namespace poppler = core::ports::pdf_rendering;
+namespace tesseract = core::ports::text_recognition;
 
 namespace {
 
@@ -36,7 +37,7 @@ void safeReleaseLimiter(core::jobs::SlotLimiter* ocrLimiter,
     }
 }
 
-core::ports::text_recognition::tesseract::ExtractResult extractWithLimiter(const std::shared_ptr<core::ports::text_recognition::ITextRecognizer>& tesseractService,
+core::ports::text_recognition::ExtractResult extractWithLimiter(const std::shared_ptr<core::ports::text_recognition::ITextRecognizer>& tesseractService,
                                                  const tesseract::ExtractRequest& request,
                                                  core::jobs::SlotLimiter* ocrLimiter,
                                                  double& accumulatedOcrSec)

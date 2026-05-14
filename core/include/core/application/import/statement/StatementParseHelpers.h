@@ -9,9 +9,9 @@
 #include "core/application/import/transaction/TransactionParserTypes.h"
 #include "core/application/import/statement/StatementParserTypes.h"
 #include "core/application/import/internal/ParserHelpers.h"
-#include "core/ports/image-processing/OpenCvRequest.h"
+#include "core/ports/image-processing/ImageProcessingRequest.h"
 #include "core/ports/image-processing/IImageProcessor.h"
-#include "core/ports/text-recognition/TesseractResult.h"
+#include "core/ports/text-recognition/TextRecognitionResult.h"
 #include "core/application/import/draft/TransactionDraft.h"
 
 #include <filesystem>
@@ -149,7 +149,7 @@ void attachOrphansToBlocks(std::vector<core::application::importing::transaction
 HeaderAnalysis analyzeHeaderWindow(const std::vector<core::application::importing::transaction::internal::OcrLine>& ocrLines,
                                    const std::vector<core::application::importing::statement::internal::RawLine>& lines,
                                    const core::application::importing::statement::internal::ColumnModel& seedCols,
-                                   DefaultStatementParser::ParseResult& out);
+                                   core::application::importing::statement::DefaultStatementParser::ParseResult& out);
 /**
  * @brief Reprocesses orphan transaction blocks against the current booking date and column model.
  * @param blocks Parsed blocks to repair.
@@ -162,7 +162,7 @@ void rescueOrphanBlocks(std::vector<core::application::importing::transaction::i
                         const std::vector<core::application::importing::transaction::internal::OcrLine>& orphanLines,
                         const core::application::importing::statement::internal::ColumnModel& cols,
                         const std::string& currentBookingDate,
-                        DefaultStatementParser::ParseResult& out);
+                        core::application::importing::statement::DefaultStatementParser::ParseResult& out);
 /**
  * @brief Appends a page-level summary to the parser result.
  * @param lines Raw page lines.
@@ -175,7 +175,7 @@ void appendPageSummary(const std::vector<core::application::importing::statement
                        int headerBottomY,
                        const std::vector<core::application::importing::transaction::internal::TransactionBlock>& blocks,
                        int txStartLooseCount,
-                       DefaultStatementParser::ParseResult& out);
+                       core::application::importing::statement::DefaultStatementParser::ParseResult& out);
 /**
  * @brief Converts parsed transaction blocks into drafts and extraction artifacts.
  * @param blocks Parsed transaction blocks.
@@ -189,11 +189,11 @@ void appendPageSummary(const std::vector<core::application::importing::statement
  */
 void appendTransactionsFromBlocks(const std::vector<core::application::importing::transaction::internal::TransactionBlock>& blocks,
                                   const core::application::importing::statement::internal::ColumnModel& cols,
-                                  const core::ports::text_recognition::tesseract::ExtractResult& ocr,
+                                  const core::ports::text_recognition::ExtractResult& ocr,
                                   const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
                                   const std::string& pageCropImagePath,
                                   const std::vector<uint8_t>& pageCropImageBytes,
                                   int& txIndex,
-                                  DefaultStatementParser::ParseResult& out);
+                                  core::application::importing::statement::DefaultStatementParser::ParseResult& out);
 
 }

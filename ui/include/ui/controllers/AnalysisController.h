@@ -15,9 +15,13 @@
 #include <QStringList>
 #include <qqmlintegration.h>
 
-namespace core::application { class WorkspaceFacade; }
-namespace core::application::analysis { class RunAnalysis; }
-namespace core::domain { struct WorkspaceState; }
+#include "core/application/analysis/AnalysisRequest.h"
+#include "core/application/analysis/AnalysisResult.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
+#include "core/ports/workspace/IWorkspaceReader.h"
+#include "core/ports/workspace/IWorkspaceWriter.h"
+
+namespace core::application::analysis { class AnalysisService; }
 namespace core::ports::presenters { class IAnalysisPresenter; }
 
 namespace ui {
@@ -30,12 +34,12 @@ class AnalysisController : public QObject {
     QML_NAMED_ELEMENT(AnalysisController)
     QML_UNCREATABLE("AnalysisController is provided by the application context")
 public:
-    using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::WorkspaceState>()>;
+    using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::catalog::WorkspaceCatalog>()>;
 
     /** @brief Create an analysis controller with access to the facade and analysis service. */
-    explicit AnalysisController(core::application::WorkspaceFacade* core,
+    explicit AnalysisController(core::ports::workspace::IWorkspaceWriter* core,
                                 StateSnapshotProvider stateSnapshotProvider,
-                                std::shared_ptr<core::application::analysis::RunAnalysis> analysisService,
+                                std::shared_ptr<core::application::analysis::AnalysisService> analysisService,
                                 std::shared_ptr<core::ports::presenters::IAnalysisPresenter> analysisPresenter = {},
                                 QObject* parent = nullptr);
 
@@ -57,14 +61,10 @@ public:
      *  @param filterSpec Filter specification string
      *  @return Identifier of the created analysis
      */
-    Q_INVOKABLE QString createAnalysis(const QString& name,
-                                       const QString& type,
-                                       const QString& configJson,
-                                       const QString& filterSpec,
-                                       const QString& exportFormat,
-                                       bool includeCalcAdjustments,
-                                       const QString& exportStateJson,
-                                       const QString& snapshotTransactionsJson);
+    Q_INVOKABLE QString createAnalysis(const QString& name, const QString& type,
+                                       const QString& configJson, const QString& filterSpec,
+                                       const QString& exportFormat, bool includeCalcAdjustments,
+                                       const QString& exportStateJson, const QString& snapshotTransactionsJson);
 
     /** @brief Update an existing analysis from serialized inputs.
      *  @param id Analysis identifier
@@ -73,14 +73,10 @@ public:
      *  @param configJson JSON configuration
      *  @param filterSpec Filter specification string
      */
-    Q_INVOKABLE void updateAnalysis(const QString& id,
-                                    const QString& name,
-                                    const QString& type,
-                                    const QString& configJson,
-                                    const QString& filterSpec,
-                                    const QString& exportFormat,
-                                    bool includeCalcAdjustments,
-                                    const QString& exportStateJson,
+    Q_INVOKABLE void updateAnalysis(const QString& id, const QString& name,
+                                    const QString& type, const QString& configJson,
+                                    const QString& filterSpec, const QString& exportFormat,
+                                    bool includeCalcAdjustments, const QString& exportStateJson,
                                     const QString& snapshotTransactionsJson);
 
     /** @brief Delete an analysis by identifier.
@@ -88,56 +84,19 @@ public:
      */
     Q_INVOKABLE void deleteAnalysis(const QString& id);
 
-    /** @brief Build an analysis config JSON string from UI parameters.
-     *  @param type Analysis type
-     *  @param plotType Plot type
-     *  @param plotMeasure Plot measure
-     *  @param propertyIds Property identifiers
-     *  @param contractTypes Contract types
-     *  @param taxPercent Tax percent
-     *  @return JSON string
+    /** @brief Build an analysis request DTO from UI inputs.
+     *  @param analysisId Analysis identifier
+     *  @param filterSpecification Filter specification string
+     *  @return Core analysis request DTO
      */
-    Q_INVOKABLE QString analysisConfigJson(const QString& type,
-                                          const QString& plotType,
-                                          const QString& plotMeasure,
-                                          const QStringList& propertyIds,
-                                          const QStringList& contractTypes,
-                                          double taxPercent) const;
-
-    /** @brief Build an analysis filter specification from selected filter controls.
-     *  @param dateMode Date mode (year or range)
-     *  @param year Year value for year mode
-     *  @param dateFrom Start date string
-     *  @param dateTo End date string
-     *  @param propertyIds Selected property ids
-     *  @param contractTypes Selected contract types
-     *  @param allocatableMode Allocatable selector
-     *  @return Filter specification string
-     */
-    Q_INVOKABLE QString analysisFilterSpec(const QString& dateMode,
-                                           const QString& year,
-                                           const QString& dateFrom,
-                                           const QString& dateTo,
-                                           const QStringList& propertyIds,
-                                           const QStringList& contractTypes,
-                                           const QString& allocatableMode) const;
-
-    /** @brief Build the JSON adjustments payload for selected transactions.
-     *  @param transactions List of transactions
-     *  @param selectedTransactionIds Selected transaction identifiers
-     *  @param taxPercent Tax percent
-     *  @return JSON string
-     */
-    Q_INVOKABLE QString analysisAdjustmentsJson(const QVariantList& transactions,
-                                                const QVariantList& selectedTransactionIds,
-                                                double taxPercent) const;
+    Q_INVOKABLE core::application::analysis::AnalysisRequest analysisRequest(const QString& analysisId,
+                                                                             const QString& filterSpecification) const;
 
     /** @brief Compute an analysis using the configured analysis service.
-     *  @param analysisId Analysis identifier
-     *  @param filterSpec Filter specification string
+     *  @param request Analysis request DTO
      *  @return Serialized analysis result as QVariantMap
      */
-    Q_INVOKABLE QVariantMap computeAnalysis(const QString& analysisId, const QString& filterSpec) const;
+    Q_INVOKABLE QVariantMap computeAnalysis(const core::application::analysis::AnalysisRequest& request) const;
 
     /** @brief Return filtered transaction preview data for the analysis builder. */
     Q_INVOKABLE QVariantMap previewTransactions(const QString& filterSpec) const;
@@ -146,12 +105,12 @@ public:
     Q_INVOKABLE QStringList contractTypes() const;
 
 private:
-    std::shared_ptr<const core::domain::WorkspaceState> stateSnapshot() const;
+    std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> stateSnapshot() const;
 
-    core::application::WorkspaceFacade* core_ = nullptr;
+    core::ports::workspace::IWorkspaceWriter* core_ = nullptr;
+    core::ports::workspace::IWorkspaceReader* reader_ = nullptr;
     StateSnapshotProvider stateSnapshotProvider_;
-    std::shared_ptr<core::application::analysis::RunAnalysis> analysisService_;
+    std::shared_ptr<core::application::analysis::AnalysisService> analysisService_;
     std::shared_ptr<core::ports::presenters::IAnalysisPresenter> analysisPresenter_;
 };
-
 } // namespace ui

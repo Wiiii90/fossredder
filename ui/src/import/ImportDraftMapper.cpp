@@ -16,7 +16,7 @@
 
 namespace {
 
-void applyInitialDerivedSelections(const core::domain::WorkspaceState& state, ui::TransactionDraft& draft)
+void applyInitialDerivedSelections(const core::domain::catalog::WorkspaceCatalog& state, ui::TransactionDraft& draft)
 {
     const auto derived = core::application::importing::draft::buildDraftDerivedState(state, ui::importing::toCoreSelection(draft));
 
@@ -76,8 +76,8 @@ void applyInitialDerivedSelections(const core::domain::WorkspaceState& state, ui
 
 namespace ui::importing {
 
-std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::WorkspaceState& state,
-                                                      const std::vector<core::domain::TransactionDraft>& transactions,
+std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::catalog::WorkspaceCatalog& state,
+                                                      const std::vector<core::application::importing::draft::TransactionDraft>& transactions,
                                                       const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService)
 {
     std::vector<TransactionDraft> drafts;
@@ -113,8 +113,8 @@ std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::Worksp
 
 StatementDraft* createStatementDraft(const QString& sourceFile,
                                       const std::shared_ptr<core::domain::Statement>& statement,
-                                      const core::domain::WorkspaceState& state,
-                                      const std::vector<core::domain::TransactionDraft>& transactions,
+                                      const core::domain::catalog::WorkspaceCatalog& state,
+                                      const std::vector<core::application::importing::draft::TransactionDraft>& transactions,
                                       const std::shared_ptr<core::application::importing::draft::IImportMatcherService>& matcherService,
                                       const QString& draftId,
                                       int currentTransactionIndex,
@@ -122,8 +122,8 @@ StatementDraft* createStatementDraft(const QString& sourceFile,
 {
     auto* draft = new StatementDraft(parent);
     draft->setDraftId(draftId);
-    draft->setName((statement && !statement->name.empty())
-                       ? QString::fromStdString(statement->name)
+    draft->setName((statement && !statement->name().empty())
+                       ? QString::fromStdString(statement->name())
                        : QFileInfo(sourceFile).baseName());
     draft->setCatalogState(state);
 

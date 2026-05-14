@@ -4,8 +4,8 @@
  */
 #pragma once
 
-#include "core/ports/pdf-rendering/PopplerRequest.h"
-#include "core/ports/pdf-rendering/PopplerResult.h"
+#include "core/ports/pdf-rendering/PdfRenderingRequest.h"
+#include "core/ports/pdf-rendering/PdfRenderingResult.h"
 
 namespace core::ports::pdf_rendering {
 
@@ -21,14 +21,14 @@ public:
      * @param req Rendering request.
      * @return The rendering result.
      */
-    virtual poppler::RenderResult render(const poppler::RenderRequest& req) = 0;
+    virtual RenderResult render(const RenderRequest& req) = 0;
 
     /**
      * @brief Extracts page content from a PDF.
      * @param req Extraction request.
      * @return The extraction result.
      */
-    virtual poppler::ExtractResult extract(const poppler::ExtractRequest& req) = 0;
+    virtual ExtractResult extract(const ExtractRequest& req) = 0;
 };
 
 } // namespace core::ports::pdf_rendering

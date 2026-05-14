@@ -363,7 +363,7 @@ TEST(SqliteRepositoryTests, StatementDraftRepositoryExecutesCrudAndLookup)
     const auto db = createSqliteDb(tempDb.path().string());
     const auto statementDraftRepo = createSqliteStatementDraftRepository(db);
 
-    auto statementDraft = std::make_shared<core::domain::StatementDraft>();
+    auto statementDraft = std::make_shared<core::application::importing::draft::StatementDraft>();
     statementDraft->id = "statement-draft-1";
     statementDraft->name = "Imported Statement";
     statementDraftRepo->addStatementDraft(statementDraft);
@@ -381,7 +381,7 @@ TEST(SqliteRepositoryTests, StatementDraftRepositoryExecutesCrudAndLookup)
     EXPECT_EQ((*statementDraftRepo->getStatementDraftById("statement-draft-1"))->name,
               "Imported Statement Updated");
 
-    auto secondDraft = std::make_shared<core::domain::StatementDraft>();
+    auto secondDraft = std::make_shared<core::application::importing::draft::StatementDraft>();
     secondDraft->id = "statement-draft-2";
     secondDraft->name = "Second Draft";
     statementDraftRepo->upsertStatementDraft(secondDraft);
@@ -401,12 +401,12 @@ TEST(SqliteRepositoryTests, TransactionDraftRepositoryExecutesCrudAndLookup)
     const auto statementDraftRepo = createSqliteStatementDraftRepository(db);
     const auto transactionDraftRepo = createSqliteTransactionDraftRepository(db);
 
-    auto parentStatement = std::make_shared<core::domain::StatementDraft>();
+    auto parentStatement = std::make_shared<core::application::importing::draft::StatementDraft>();
     parentStatement->id = "statement-draft-1";
     parentStatement->name = "Parent Statement";
     statementDraftRepo->addStatementDraft(parentStatement);
 
-    auto tx1 = std::make_shared<core::domain::TransactionDraft>();
+    auto tx1 = std::make_shared<core::application::importing::draft::TransactionDraft>();
     tx1->id = "tx-draft-1";
     tx1->statementDraftId = "statement-draft-1";
     tx1->position = 0;
@@ -425,7 +425,7 @@ TEST(SqliteRepositoryTests, TransactionDraftRepositoryExecutesCrudAndLookup)
     transactionDraftRepo->updateTransactionDraft(tx1);
     EXPECT_EQ((*transactionDraftRepo->getTransactionDraftById("tx-draft-1"))->name, "Draft Tx 1 Updated");
 
-    auto tx2 = std::make_shared<core::domain::TransactionDraft>();
+    auto tx2 = std::make_shared<core::application::importing::draft::TransactionDraft>();
     tx2->id = "tx-draft-2";
     tx2->statementDraftId = "statement-draft-1";
     tx2->position = 1;

@@ -164,7 +164,7 @@ std::shared_ptr<core::domain::Statement> JobManager::statementResult(const JobId
     return job->statement;
 }
 
-void JobManager::setStatementTransactions(const JobId& id, std::vector<core::domain::TransactionDraft> transactions) {
+void JobManager::setStatementTransactions(const JobId& id, std::vector<core::application::importing::draft::TransactionDraft> transactions) {
     std::shared_ptr<JobData> job;
     {
         std::lock_guard<std::mutex> g(jobsMutex_);
@@ -177,7 +177,7 @@ void JobManager::setStatementTransactions(const JobId& id, std::vector<core::dom
     job->transactions = std::move(transactions);
 }
 
-std::vector<core::domain::TransactionDraft> JobManager::statementTransactions(const JobId& id) const {
+std::vector<core::application::importing::draft::TransactionDraft> JobManager::statementTransactions(const JobId& id) const {
     std::shared_ptr<JobData> job;
     {
         std::lock_guard<std::mutex> g(jobsMutex_);

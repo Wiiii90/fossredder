@@ -6,12 +6,11 @@ namespace core::constants::analysis {
 
 inline constexpr std::string_view kTypeTab = "tab";
 inline constexpr std::string_view kTypePlot = "plot";
-inline constexpr std::string_view kTypeCalc = "calc";
+inline constexpr std::string_view kTypeCalculation = "calc";
 inline constexpr std::string_view kPlotTypeKey = "plotType";
 inline constexpr std::string_view kPlotMeasureKey = "plotMeasure";
 inline constexpr std::string_view kPropertiesKey = "properties";
 inline constexpr std::string_view kContractTypesKey = "contractTypes";
-inline constexpr int kSchemaVersion = 1;
 
 namespace plotTypes {
 inline constexpr std::string_view kPie = "pie";
@@ -31,11 +30,11 @@ inline constexpr std::string_view kMatchedTransactions = "matchedTx";
 inline constexpr std::string_view kRows = "rows";
 } // namespace metricKeys
 
-namespace calc {
+namespace calculation {
 inline constexpr std::string_view kStrategyKey = "strategy";
 inline constexpr std::string_view kPercentKey = "percent";
 inline constexpr std::string_view kStrategyTax = "tax";
-} // namespace calc
+} // namespace calculation
 
 namespace resultFields {
 inline constexpr std::string_view kMonth = "month";

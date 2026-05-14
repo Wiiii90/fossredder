@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "core/application/export/IArchive.h"
+#include "core/ports/archive/IArchive.h"
 
 #include <filesystem>
 
@@ -14,7 +14,7 @@ namespace infra::archive {
 /**
  * @brief Creates ZIP archives for exported analysis artifacts.
  */
-class ZipArchiveAdapter final : public core::application::exporting::IArchive {
+class ZipArchiveAdapter final : public core::ports::archive::IArchive {
 public:
     /**
      * @brief Creates a ZIP archive from the files contained in a source directory.

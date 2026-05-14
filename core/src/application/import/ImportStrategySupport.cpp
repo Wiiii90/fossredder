@@ -52,9 +52,9 @@ internal::ProgressReporter makeProgressReporter(const ImportRequest& req,
     };
 }
 
-core::ports::pdf_rendering::poppler::RenderRequest makeRenderRequest(const ImportRequest& req)
+core::ports::pdf_rendering::RenderRequest makeRenderRequest(const ImportRequest& req)
 {
-    core::ports::pdf_rendering::poppler::RenderRequest request;
+    core::ports::pdf_rendering::RenderRequest request;
     request.pdfPath = std::filesystem::path(req.sourcePath);
     request.dpi = core::constants::importing::kRenderDpi;
     request.outputDir = std::filesystem::path();
@@ -64,10 +64,10 @@ core::ports::pdf_rendering::poppler::RenderRequest makeRenderRequest(const Impor
     return request;
 }
 
-core::ports::pdf_rendering::poppler::ExtractRequest makeExtractRequest(const core::ports::pdf_rendering::poppler::RenderRequest& renderRequest,
+core::ports::pdf_rendering::ExtractRequest makeExtractRequest(const core::ports::pdf_rendering::RenderRequest& renderRequest,
                                                 const ImportRequest& req)
 {
-    core::ports::pdf_rendering::poppler::ExtractRequest request;
+    core::ports::pdf_rendering::ExtractRequest request;
     request.pdfPath = renderRequest.pdfPath;
     request.dpi = renderRequest.dpi;
     request.outputDir = std::filesystem::path();
@@ -78,8 +78,8 @@ core::ports::pdf_rendering::poppler::ExtractRequest makeExtractRequest(const cor
 }
 
 std::vector<internal::PageWork> collectPageWork(const ImportRequest& req,
-                                              const core::ports::pdf_rendering::poppler::RenderResult& renderResult,
-                                              const core::ports::pdf_rendering::poppler::ExtractResult& extractResult,
+                                              const core::ports::pdf_rendering::RenderResult& renderResult,
+                                              const core::ports::pdf_rendering::ExtractResult& extractResult,
                                               const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
                                               const std::shared_ptr<core::ports::text_recognition::ITextRecognizer>& tesseract,
                                               SchedulerResources& resources,

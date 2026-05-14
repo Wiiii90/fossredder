@@ -54,7 +54,7 @@ protected:
         const int row = static_cast<int>(items_.size());
         beginInsertRows(QModelIndex(), row, row);
         items_.push_back(std::move(item));
-        if (items_.back()) idToRow_.insert(QString::fromStdString(items_.back()->id), row);
+        if (items_.back()) idToRow_.insert(QString::fromStdString(items_.back()->id()), row);
         endInsertRows();
         return row;
     }
@@ -83,7 +83,7 @@ private:
         for (int i = 0; i < static_cast<int>(items_.size()); ++i) {
             const auto& item = items_[static_cast<size_t>(i)];
             if (!item) continue;
-            idToRow_.insert(QString::fromStdString(item->id), i);
+            idToRow_.insert(QString::fromStdString(item->id()), i);
         }
     }
 

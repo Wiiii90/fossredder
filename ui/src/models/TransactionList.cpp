@@ -42,7 +42,7 @@ void TransactionList::rebuildIdIndex()
     for (int i = 0; i < static_cast<int>(items.size()); ++i) {
         const auto& t = items[static_cast<size_t>(i)];
         if (!t) continue;
-        idToRow_.insert(QString::fromStdString(t->id), i);
+        idToRow_.insert(QString::fromStdString(t->id()), i);
     }
 }
 
@@ -53,25 +53,25 @@ QVector<int> TransactionList::allRoles() const
 
 QString TransactionList::contractTypeForTransaction(const Transaction& transaction) const
 {
-    if (transaction.contractId.empty()) return {};
-    const QString contractId = QString::fromStdString(transaction.contractId);
+    if (transaction.contractId().empty()) return {};
+    const QString contractId = QString::fromStdString(transaction.contractId());
     const auto it = contractTypeById_.find(contractId);
     return it == contractTypeById_.end() ? QString() : it.value();
 }
 
 void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& transaction) const
 {
-    map[payload::keys::common::kId] = QString::fromStdString(transaction.id);
-    map[payload::keys::common::kName] = QString::fromStdString(transaction.name);
-    map[payload::keys::transaction::kBookingDate] = QString::fromStdString(transaction.bookingDate);
-    map[payload::keys::transaction::kValuta] = QString::fromStdString(transaction.valuta);
-    map[payload::keys::common::kAmount] = transaction.amount;
-    map[payload::keys::common::kStatus] = static_cast<int>(transaction.status);
-    map[payload::keys::transaction::kActorId] = QString::fromStdString(transaction.actorId);
+    map[payload::keys::common::kId] = QString::fromStdString(transaction.id());
+    map[payload::keys::common::kName] = QString::fromStdString(transaction.name());
+    map[payload::keys::transaction::kBookingDate] = QString::fromStdString(transaction.bookingDate());
+    map[payload::keys::transaction::kValuta] = QString::fromStdString(transaction.valuta());
+    map[payload::keys::common::kAmount] = transaction.amount();
+    map[payload::keys::common::kStatus] = static_cast<int>(transaction.status());
+    map[payload::keys::transaction::kActorId] = QString::fromStdString(transaction.actorId());
     map[payload::keys::common::kMetadata] = QString();
     map[payload::keys::common::kType] = contractTypeForTransaction(transaction);
-    map[payload::keys::transaction::kAllocatable] = transaction.allocatable;
-    map[payload::keys::transaction::kPropertyIds] = payload::mapper::toVariantStringList(transaction.propertyIds);
+    map[payload::keys::transaction::kAllocatable] = transaction.isAllocatable();
+    map[payload::keys::transaction::kPropertyIds] = payload::mapper::toVariantStringList(transaction.propertyIds());
 }
 
 TransactionList::TransactionList(QObject* parent) : Base(parent) {}
@@ -84,18 +84,18 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     const auto& t = **entry;
 
     switch (role) {
-    case IdRole: return QString::fromStdString(t.id);
-    case StatementIdRole: return QString::fromStdString(t.statementId);
-    case NameRole: return QString::fromStdString(t.name);
-    case BookingDateRole: return QString::fromStdString(t.bookingDate);
-    case ValutaRole: return QString::fromStdString(t.valuta);
-    case AmountRole: return t.amount;
-    case StatusRole: return static_cast<int>(t.status);
-    case ActorIdRole: return QString::fromStdString(t.actorId);
+    case IdRole: return QString::fromStdString(t.id());
+    case StatementIdRole: return QString::fromStdString(t.statementId());
+    case NameRole: return QString::fromStdString(t.name());
+    case BookingDateRole: return QString::fromStdString(t.bookingDate());
+    case ValutaRole: return QString::fromStdString(t.valuta());
+    case AmountRole: return t.amount();
+    case StatusRole: return static_cast<int>(t.status());
+    case ActorIdRole: return QString::fromStdString(t.actorId());
     case MetadataRole: return QString();
     case TypeRole: return contractTypeForTransaction(t);
-    case AllocatableRole: return t.allocatable;
-    case PropertyIdsRole: return payload::mapper::toVariantStringList(t.propertyIds);
+    case AllocatableRole: return t.isAllocatable();
+    case PropertyIdsRole: return payload::mapper::toVariantStringList(t.propertyIds());
     default: return {};
     }
 }

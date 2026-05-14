@@ -7,7 +7,7 @@
 
 #include "core/constants/export.h"
 #include "core/errors/ErrorReporterRegistry.h"
-#include "core/application/workspace/AppState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "../../utils/Util.h"
 
 #include <string>
@@ -36,7 +36,7 @@ struct PropertyContractMatrix {
  */
 inline std::string resolveContractType(const std::string& contractId,
                                        const std::unordered_map<std::string, std::string>& idToType,
-                                       const core::domain::AppState& state,
+                                       const core::domain::catalog::WorkspaceCatalog& state,
                                        const char* missingTypeOrigin)
 {
     const std::string trimmedContractId = core::utils::trim(contractId);
@@ -52,15 +52,15 @@ inline std::string resolveContractType(const std::string& contractId,
         }
     }
 
-    for (const auto& contract : state.contracts) {
+    for (const auto& contract : state.contracts()) {
         if (!contract) {
             continue;
         }
-        if (core::utils::trim(contract->id) != trimmedContractId) {
+        if (core::utils::trim(contract->id()) != trimmedContractId) {
             continue;
         }
 
-        const std::string trimmedType = core::utils::trim(contract->type);
+        const std::string trimmedType = core::utils::trim(contract->type());
         if (!trimmedType.empty()) {
             return trimmedType;
         }
@@ -87,22 +87,22 @@ inline std::string resolveContractType(const std::string& contractId,
  * @param missingTypeOrigin Optional origin string for diagnostics when a type is missing.
  * @return Matrix containing properties, contract types, and aggregated amounts.
  */
-inline PropertyContractMatrix buildPropertyContractMatrix(const core::domain::AppState& state,
+inline PropertyContractMatrix buildPropertyContractMatrix(const core::domain::catalog::WorkspaceCatalog& state,
                                                           const char* missingTypeOrigin)
 {
     std::unordered_map<std::string, std::string> propertyNamesById;
-    propertyNamesById.reserve(state.properties.size());
-    for (const auto& property : state.properties) {
+    propertyNamesById.reserve(state.properties().size());
+    for (const auto& property : state.properties()) {
         if (property) {
-            propertyNamesById[property->id] = property->name;
+            propertyNamesById[property->id()] = property->name();
         }
     }
 
     std::unordered_map<std::string, std::string> contractTypesById;
-    contractTypesById.reserve(state.contracts.size());
-    for (const auto& contract : state.contracts) {
+    contractTypesById.reserve(state.contracts().size());
+    for (const auto& contract : state.contracts()) {
         if (contract) {
-            contractTypesById[contract->id] = contract->type;
+            contractTypesById[contract->id()] = contract->type();
         }
     }
 
@@ -110,12 +110,12 @@ inline PropertyContractMatrix buildPropertyContractMatrix(const core::domain::Ap
     std::unordered_set<std::string> seenContractTypes;
     std::unordered_set<std::string> seenProperties;
 
-    for (const auto& transaction : state.transactions) {
-        if (!transaction || transaction->propertyIds.empty()) {
+    for (const auto& transaction : state.transactions()) {
+        if (!transaction || transaction->propertyIds().empty()) {
             continue;
         }
 
-        const std::string contractType = resolveContractType(transaction->contractId,
+        const std::string contractType = resolveContractType(transaction->contractId(),
                                                              contractTypesById,
                                                              state,
                                                              missingTypeOrigin);
@@ -123,26 +123,26 @@ inline PropertyContractMatrix buildPropertyContractMatrix(const core::domain::Ap
             matrix.contractTypes.push_back(contractType);
         }
 
-        for (const auto& propertyId : transaction->propertyIds) {
+        for (const auto& propertyId : transaction->propertyIds()) {
             const auto propertyNameIt = propertyNamesById.find(propertyId);
             const std::string propertyName = propertyNameIt != propertyNamesById.end()
                 ? propertyNameIt->second
                 : propertyId;
-            matrix.amountsByProperty[propertyName][contractType] += transaction->amount;
+            matrix.amountsByProperty[propertyName][contractType] += transaction->amount();
             seenProperties.insert(propertyName);
         }
     }
 
     matrix.propertyNames.reserve(seenProperties.size());
-    for (const auto& property : state.properties) {
+    for (const auto& property : state.properties()) {
         if (!property) {
             continue;
         }
-        if (!matrix.amountsByProperty.count(property->name)) {
+        if (!matrix.amountsByProperty.count(property->name())) {
             continue;
         }
-        if (seenProperties.erase(property->name) > 0) {
-            matrix.propertyNames.push_back(property->name);
+        if (seenProperties.erase(property->name()) > 0) {
+            matrix.propertyNames.push_back(property->name());
         }
     }
 

@@ -12,7 +12,7 @@
 
 #include <memory>
 
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/application/storage/DeletionImpact.h"
 #include "ui/models/ActorList.h"
 #include "ui/models/AnalysisList.h"
@@ -80,7 +80,7 @@ public:
     AnnualList* annuals() noexcept;
 
     /** @brief Loads the UI session from the supplied application state snapshot. */
-    void loadFromState(const core::domain::WorkspaceState& state);
+    void loadFromState(const core::domain::catalog::WorkspaceCatalog& state);
 
     QString selectedActorId() const;
     QString selectedPropertyId() const;

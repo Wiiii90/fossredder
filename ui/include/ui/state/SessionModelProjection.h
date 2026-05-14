@@ -8,7 +8,7 @@
 #include <QHash>
 #include <QString>
 
-#include "core/application/workspace/WorkspaceState.h"
+#include "core/domain/catalog/WorkspaceCatalog.h"
 
 namespace ui {
 
@@ -16,7 +16,7 @@ class ContractList;
 class SessionModels;
 
 QHash<QString, QString> buildContractTypeIndex(const ContractList& contracts);
-void projectSessionModelsFromState(SessionModels& models, const core::domain::WorkspaceState& state);
+void projectSessionModelsFromState(SessionModels& models, const core::domain::catalog::WorkspaceCatalog& state);
 void refreshSessionModelContractTypes(SessionModels& models);
 
 } // namespace ui

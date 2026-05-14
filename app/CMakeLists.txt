@@ -43,9 +43,11 @@ target_link_libraries(fossredder PRIVATE
     FossRedder::Core
     FossRedder::Debug
     FossRedder::Persistence
+    FossRedder::InfraAnalysisImageRenderer
     FossRedder::InfraImageProcessing
     FossRedder::InfraArchive
     FossRedder::InfraPdfRendering
+    FossRedder::InfraXlsxWriter
     FossRedder::InfraTextRecognition
     FossRedder::Ui
 )

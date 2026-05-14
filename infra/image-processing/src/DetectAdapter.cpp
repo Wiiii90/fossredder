@@ -13,7 +13,7 @@
 #include <algorithm>
 
 namespace opencv {
-namespace ports = core::ports::image_processing::opencv;
+namespace ports = core::ports::image_processing;
 namespace {
 
 void writeImageViaDebugger(std::shared_ptr<IDebugger> debugger, const std::string& relPath, const cv::Mat& img) {

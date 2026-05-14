@@ -1,6 +1,6 @@
 /**
  * @file core/include/core/application/workspace/WorkspaceFacade.h
- * @brief Declares the application-facing facade that owns editable app state and workspace persistence.
+ * @brief Declares the workspace facade implementing snapshot reader and command writer ports.
  */
 
 #pragma once
@@ -9,22 +9,19 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
 
-#include "core/application/workspace/WorkspaceCatalogService.h"
+#include "core/application/workspace/WorkspaceSessionState.h"
 #include "core/errors/IErrorReporter.h"
-#include "core/domain/values/Alias.h"
-#include "core/application/import/draft/StatementDraft.h"
-#include "core/application/import/ImportLog.h"
-#include "core/application/export/ExportLog.h"
-#include "core/domain/entities/Transaction.h"
-#include "core/application/workspace/WorkspaceState.h"
-#include "core/ports/presenters/IWorkspacePresenter.h"
 #include "core/ports/storage/IStorageManager.h"
+#include "core/ports/workspace/IWorkspaceReader.h"
+#include "core/ports/workspace/IWorkspaceWriter.h"
 
 namespace core::application {
 
 class WorkspaceSession;
+class WorkspaceCommandService;
+class WorkspaceWorkflowService;
+class WorkspaceQueryService;
 
 /**
  * @brief Exposes state mutation and workspace persistence as a single application facade.
@@ -32,9 +29,11 @@ class WorkspaceSession;
  * This type is consumed by presentation-layer controllers in `ui`, while the actual
  * MVC-style UI controllers remain outside `core`.
  */
-class WorkspaceFacade {
+class WorkspaceFacade : public core::ports::workspace::IWorkspaceReader,
+                        public core::ports::workspace::IWorkspaceWriter {
 public:
-    using StateChanged = std::function<void(const core::domain::WorkspaceState&)>;
+    using SnapshotChanged = core::ports::workspace::IWorkspaceWriter::SnapshotChanged;
+    using StateChanged = std::function<void(const core::application::workspace::WorkspaceSessionState&)>;
 
     /**
      * @brief Construct with unique ownership of an `IStorageManager`.
@@ -48,108 +47,107 @@ public:
     WorkspaceFacade(WorkspaceFacade&&) noexcept;
     WorkspaceFacade& operator=(WorkspaceFacade&&) noexcept;
 
+    /**
+     * @brief Registers a snapshot callback used by read-side consumers.
+     * @param cb Callback invoked after state changes publish a fresh snapshot.
+     */
+    void setSnapshotChangedCallback(SnapshotChanged cb) override;
+
+    /**
+     * @brief Registers a callback that receives the mutable session state view.
+     * @param cb Callback invoked after state changes.
+     */
     void setStateChangedCallback(StateChanged cb);
-    void setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter);
-    void setAtomicStoreSave(core::ports::storage::IStorageManager::AtomicStoreSave saveFn);
-    void setAtomicStoreLoad(core::ports::storage::IStorageManager::AtomicStoreLoad loadFn);
-    void setDeletionImpactCallback(core::ports::storage::IStorageManager::DeletionImpactCallback cb);
 
-    void openLatest();
-    void newFile(const std::string& path);
-    void openFile(const std::string& path);
-    void saveFile();
-    void saveFileAs(const std::string& path);
+    /**
+     * @brief Registers the error reporter used by workspace operations.
+     * @param reporter Shared error reporter implementation.
+     */
+    void setErrorReporter(std::shared_ptr<core::errors::IErrorReporter> reporter) override;
 
-    const core::domain::WorkspaceState& state() const noexcept;
+    /**
+     * @brief Registers the atomic save callback delegated to the storage manager.
+     * @param saveFn Save callback implementation.
+     */
+    void setAtomicStoreSave(core::ports::storage::IStorageManager::AtomicStoreSave saveFn) override;
+
+    /**
+     * @brief Registers the atomic load callback delegated to the storage manager.
+     * @param loadFn Load callback implementation.
+     */
+    void setAtomicStoreLoad(core::ports::storage::IStorageManager::AtomicStoreLoad loadFn) override;
+
+    /**
+     * @brief Registers a callback that receives deletion impact information after saves.
+     * @param cb Deletion impact callback implementation.
+     */
+    void setDeletionImpactCallback(core::ports::storage::IStorageManager::DeletionImpactCallback cb) override;
+
+    /** @brief Returns the current immutable workspace snapshot. */
+    core::ports::workspace::WorkspaceSnapshot workspaceSnapshot() const override;
+
+    /**
+     * @brief Returns one statement draft snapshot.
+     * @param draftId Optional statement draft identifier.
+     * @return Matching draft snapshot when present.
+     */
+    std::optional<core::ports::workspace::StatementDraftSnapshot> statementDraftSnapshot(const std::string& draftId = {}) const override;
+
+    void openLatest() override;
+    void newFile(const std::string& path) override;
+    void openFile(const std::string& path) override;
+    void saveFile() override;
+    void saveFileAs(const std::string& path) override;
+    void commit() override;
+    void notifySnapshot() override;
+
+    std::string addActor(const core::ports::workspace::ActorCommand& command) override;
+    void updateActor(const core::ports::workspace::ActorCommand& command) override;
+    void deleteActor(const std::string& id) override;
+
+    std::string addProperty(const core::ports::workspace::PropertyCommand& command) override;
+    void updateProperty(const core::ports::workspace::PropertyCommand& command) override;
+    void deleteProperty(const std::string& id) override;
+
+    std::string addContract(const core::ports::workspace::ContractCommand& command) override;
+    void updateContract(const core::ports::workspace::ContractCommand& command) override;
+    void deleteContract(const std::string& id) override;
+
+    std::string addStatement(const core::ports::workspace::StatementCommand& command) override;
+    void updateStatement(const core::ports::workspace::StatementCommand& command) override;
+    void deleteStatement(const std::string& id) override;
+
+    std::string addTransaction(const core::ports::workspace::TransactionCommand& command) override;
+    void updateTransaction(const core::ports::workspace::TransactionCommand& command) override;
+    void deleteTransaction(const std::string& id) override;
+
+    std::string addAnalysis(const core::ports::workspace::AnalysisCommand& command) override;
+    void updateAnalysis(const core::ports::workspace::AnalysisCommand& command) override;
+    void deleteAnalysis(const std::string& id) override;
+
+    std::string addAnnual(const core::ports::workspace::AnnualCommand& command) override;
+    void updateAnnual(const core::ports::workspace::AnnualCommand& command) override;
+    void deleteAnnual(const std::string& id) override;
+
+    std::string finalizeStatementDraft(const core::ports::workspace::FinalizeStatementDraftCommand& command) override;
+    void saveStatementDraft(const core::ports::workspace::StatementDraftCommand& command) override;
+    void clearStatementDraft(const std::string& draftId = {}) override;
+    void setImportLogs(const core::ports::workspace::ImportLogsCommand& command) override;
+    void setExportLogs(const core::ports::workspace::ExportLogsCommand& command) override;
+
+    /** @brief Returns the full mutable session state used by the application layer. */
+    const core::application::workspace::WorkspaceSessionState& state() const noexcept;
+    /** @brief Returns the current workspace catalog aggregate. */
+    const core::domain::catalog::WorkspaceCatalog& catalogState() const noexcept;
+    /** @brief Returns the current workspace path tracked by the storage layer. */
     const std::string& currentPath() const noexcept;
-    core::ports::presenters::WorkspacePresentation presentWorkspace() const;
-
-    std::string addActor(const std::string& name, const std::vector<core::domain::Alias>& aliases);
-    void updateActor(const std::string& id, const std::string& name, const std::vector<core::domain::Alias>& aliases);
-    void deleteActor(const std::string& id);
-
-    std::string addProperty(const std::string& name, const std::vector<core::domain::Alias>& aliases);
-    void updateProperty(const std::string& id, const std::string& name, const std::vector<core::domain::Alias>& aliases);
-    void deleteProperty(const std::string& id);
-
-    std::string addContract(const std::string& name, const std::string& type,
-                            const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds,
-                            const std::vector<core::domain::Alias>& aliases);
-    void updateContract(const std::string& id, const std::string& name, const std::string& type,
-                        const std::vector<std::string>& actorIds, const std::vector<std::string>& propertyIds,
-                        const std::vector<core::domain::Alias>& aliases);
-    void deleteContract(const std::string& id);
-    std::vector<std::string> contractTypes() const;
-
-    std::string addStatement(const std::string& name);
-    void updateStatement(const std::string& id, const std::string& name);
-    void deleteStatement(const std::string& id);
-
-    std::string addTransaction(const std::string& name,
-                               const std::string& bookingDate,
-                               double amount,
-                               const std::string& statementId,
-                               core::domain::Transaction::Status status,
-                               const std::string& actorId,
-                               bool allocatable,
-                               const std::vector<std::string>& propertyIds);
-    void updateTransaction(const std::string& id,
-                           const std::string& name,
-                           const std::string& bookingDate,
-                           double amount,
-                           const std::string& statementId,
-                           core::domain::Transaction::Status status,
-                           const std::string& actorId,
-                           bool allocatable,
-                           const std::vector<std::string>& propertyIds);
-    void deleteTransaction(const std::string& id);
-
-    std::string addAnalysis(const std::string& name,
-                            const std::string& type,
-                            const std::string& configJson,
-                            const std::string& filterSpec,
-                            const std::string& exportFormat,
-                            bool includeCalcAdjustments,
-                            const std::string& exportStateJson,
-                            const std::string& snapshotTransactionsJson);
-    void updateAnalysis(const std::string& id,
-                        const std::string& name,
-                        const std::string& type,
-                        const std::string& configJson,
-                        const std::string& filterSpec,
-                        const std::string& exportFormat,
-                        bool includeCalcAdjustments,
-                        const std::string& exportStateJson,
-                        const std::string& snapshotTransactionsJson);
-    void deleteAnalysis(const std::string& id);
-
-    std::string addAnnual(const std::string& name,
-                          int year,
-                          const std::vector<std::string>& assignedAnalysisIds = {});
-    void updateAnnual(const std::string& id,
-                      const std::string& name,
-                      int year,
-                      const std::vector<std::string>& assignedAnalysisIds = {});
-    void deleteAnnual(const std::string& id);
-
-    std::string finalizeStatementDraft(const core::domain::StatementDraft& draft);
-    void saveStatementDraft(const core::domain::StatementDraft& draft);
-    void clearStatementDraft(const std::string& draftId = {});
-    std::optional<core::domain::StatementDraft> loadStatementDraft(const std::string& draftId = {}) const;
-    void setImportLogs(const std::vector<core::domain::ImportLog>& logs);
-    std::vector<std::shared_ptr<core::domain::ImportLog>> importLogs() const;
-    void setExportLogs(const std::vector<core::domain::ExportLog>& logs);
-    std::vector<std::shared_ptr<core::domain::ExportLog>> exportLogs() const;
-    void commit();
-    void notifyState();
 
 private:
-    core::domain::WorkspaceState& mutableState() noexcept;
-
-    WorkspaceCatalogService catalog_;
+    SnapshotChanged onSnapshotChanged_;
     std::unique_ptr<WorkspaceSession> session_;
+    std::unique_ptr<WorkspaceCommandService> commands_;
+    std::unique_ptr<WorkspaceWorkflowService> workflows_;
+    std::unique_ptr<WorkspaceQueryService> queries_;
 };
-
-using AppStateFacade = WorkspaceFacade;
 
 } // namespace core::application

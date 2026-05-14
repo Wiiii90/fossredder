@@ -23,9 +23,9 @@ QVariant ActorList::data(const QModelIndex &index, int role) const {
 
   switch (role) {
   case IdRole:
-    return QString::fromStdString(a->id);
+    return QString::fromStdString(a->id());
   case NameRole:
-    return QString::fromStdString(a->name);
+    return QString::fromStdString(a->name());
   default:
     return {};
   }
@@ -40,7 +40,7 @@ QHash<int, QByteArray> ActorList::roleNames() const {
 
 int ActorList::addActor(const QString &name) {
   auto a = std::make_shared<Actor>();
-  a->name = strings::toStdString(name);
+  a->rename(strings::toStdString(name));
   return appendItem(std::move(a));
 }
 

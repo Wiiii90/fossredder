@@ -15,6 +15,7 @@
 #include <memory>
 
 #include "core/application/export/ExportLog.h"
+#include "core/application/workspace/WorkspaceSessionState.h"
 #include "core/ports/presenters/IExportPresenter.h"
 #include "ui/models/ExportRunList.h"
 
@@ -47,8 +48,8 @@ public:
     };
     Q_ENUM(Mode)
 
-    using StateSnapshotProvider = std::function<std::shared_ptr<const core::domain::WorkspaceState>()>;
-    using ExportLogsStore = std::function<void(const std::vector<core::domain::ExportLog>&)>;
+    using StateSnapshotProvider = std::function<std::shared_ptr<const core::application::workspace::WorkspaceSessionState>()>;
+    using ExportLogsStore = std::function<void(const std::vector<core::application::exporting::ExportLog>&)>;
 
     /** @brief Create an export controller backed by a snapshot provider and export runner. */
     explicit ExportController(StateSnapshotProvider stateSnapshotProvider,
@@ -117,7 +118,7 @@ private:
                                const QString& message,
                                const QString& payload);
     void finishExport(bool success);
-    std::shared_ptr<const core::domain::WorkspaceState> stateSnapshot() const;
+    std::shared_ptr<const core::application::workspace::WorkspaceSessionState> stateSnapshot() const;
 
     StateSnapshotProvider stateSnapshotProvider_;
     ExportLogsStore exportLogsStore_;

@@ -26,7 +26,3 @@ public:
 };
 
 } // namespace core::application::exporting
-
-namespace core::domain {
-using ExportLog = core::application::exporting::ExportLog;
-} // namespace core::domain

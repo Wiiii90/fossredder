@@ -20,6 +20,7 @@ using core::utils::trim;
 namespace core::application::importing::transaction {
 using internal::OcrLine;
 using internal::TransactionBlock;
+namespace helpers = core::application::importing::internal;
 
 namespace {
 
@@ -105,7 +106,7 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
 
     if (!block.main.credit.empty()) {
         creditExplicitNeg = tokenIndicatesNegative(block.main.credit.line.text);
-        if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.credit.line, -1, debugOut)) {
+        if (auto v = helpers::findAndParseAmountInLine(block.main.credit.line, -1, debugOut)) {
             creditVal = v;
             if (debugOut) debugOut->push_back(std::string("initial.credit.helperUsed\t") + block.main.credit.line.text + std::string(" -> ") + std::to_string(*creditVal));
         } else {
@@ -115,7 +116,7 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
     }
     if (!block.main.debit.empty()) {
         debitExplicitNeg = tokenIndicatesNegative(block.main.debit.line.text);
-        if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.debit.line, -1, debugOut)) {
+        if (auto v = helpers::findAndParseAmountInLine(block.main.debit.line, -1, debugOut)) {
             debitVal = v;
             if (debugOut) debugOut->push_back(std::string("initial.debit.helperUsed\t") + block.main.debit.line.text + std::string(" -> ") + std::to_string(*debitVal));
         } else {
@@ -134,21 +135,21 @@ DefaultTransactionParser DefaultTransactionParser::parseTransaction(const Transa
         if (needFallback) {
             if (debugOut) debugOut->push_back(std::string("fallback.scan.start\tcreditVal=") + (creditVal?"1":"0") + std::string(" debitVal=") + (debitVal?"1":"0"));
             if (!block.main.credit.empty()) {
-                if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.credit.line, -1, debugOut)) { creditVal = v; if (debugOut) debugOut->push_back(std::string("fallback.credit.helper\t") + block.main.credit.line.text + std::string(" -> ") + std::to_string(*v)); }
+                if (auto v = helpers::findAndParseAmountInLine(block.main.credit.line, -1, debugOut)) { creditVal = v; if (debugOut) debugOut->push_back(std::string("fallback.credit.helper\t") + block.main.credit.line.text + std::string(" -> ") + std::to_string(*v)); }
             }
             if (!creditVal && !block.main.debit.empty()) {
-                if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.debit.line, -1, debugOut)) { debitVal = v; if (debugOut) debugOut->push_back(std::string("fallback.debit.helper\t") + block.main.debit.line.text + std::string(" -> ") + std::to_string(*v)); }
+                if (auto v = helpers::findAndParseAmountInLine(block.main.debit.line, -1, debugOut)) { debitVal = v; if (debugOut) debugOut->push_back(std::string("fallback.debit.helper\t") + block.main.debit.line.text + std::string(" -> ") + std::to_string(*v)); }
             }
             if (!creditVal && !debitVal) {
                 if (!block.main.left.empty()) {
-                    if (auto v = core::parser::helpers::findAndParseAmountInLine(block.main.left.line, -1, debugOut)) {
+                    if (auto v = helpers::findAndParseAmountInLine(block.main.left.line, -1, debugOut)) {
                         creditVal = v;
                         if (debugOut) debugOut->push_back(std::string("fallback.left.helper\t") + block.main.left.line.text + std::string(" -> ") + std::to_string(*v));
                     }
                 }
                 for (const auto& dl : block.detailLines) {
                     if (creditVal || debitVal) break;
-                    if (auto v = core::parser::helpers::findAndParseAmountInLine(dl, -1, debugOut)) { creditVal = v; if (debugOut) debugOut->push_back(std::string("fallback.detail.helper\t") + dl.text + std::string(" -> ") + std::to_string(*v)); break; }
+                    if (auto v = helpers::findAndParseAmountInLine(dl, -1, debugOut)) { creditVal = v; if (debugOut) debugOut->push_back(std::string("fallback.detail.helper\t") + dl.text + std::string(" -> ") + std::to_string(*v)); break; }
                 }
             }
         }

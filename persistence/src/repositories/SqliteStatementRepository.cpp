@@ -79,14 +79,14 @@ SqliteStatementRepository::SqliteStatementRepository(std::shared_ptr<SqliteDb> d
 SqliteStatementRepository::~SqliteStatementRepository() = default;
 
 void SqliteStatementRepository::addStatement(const std::shared_ptr<Statement>& statement) {
-    if (!statement || statement->id.empty()) return;
+    if (!statement || statement->id().empty()) return;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
         "INSERT OR IGNORE INTO statements (id, name, created_at, updated_at) VALUES (?, ?, ?, ?);");
     if (!stmt) return;
-    stmt.bindText(1, statement->id); stmt.bindText(2, statement->name);
-    stmt.bindText(3, statement->createdAt); stmt.bindText(4, statement->updatedAt);
+    stmt.bindText(1, statement->id()); stmt.bindText(2, statement->name());
+    stmt.bindText(3, statement->createdAt()); stmt.bindText(4, statement->updatedAt());
     stmt.step();
-    saveTransactionIds(pimpl_->db->handle(), statement->id, statement->transactionIds);
+    saveTransactionIds(pimpl_->db->handle(), statement->id(), statement->transactionIds());
 }
 
 std::vector<std::shared_ptr<Statement>> SqliteStatementRepository::getStatements() const {
@@ -96,9 +96,11 @@ std::vector<std::shared_ptr<Statement>> SqliteStatementRepository::getStatements
     if (!stmt) return out;
     while (stmt.step() == SQLITE_ROW) {
         auto s = std::make_shared<Statement>();
-        s->id = stmt.columnText(0); s->name = stmt.columnText(1);
-        s->createdAt = stmt.columnText(2); s->updatedAt = stmt.columnText(3);
-        s->transactionIds = loadTransactionIds(pimpl_->db->handle(), s->id);
+        s->setId(stmt.columnText(0));
+        s->rename(stmt.columnText(1));
+        s->setCreatedAt(stmt.columnText(2));
+        s->setUpdatedAt(stmt.columnText(3));
+        s->setTransactionIds(loadTransactionIds(pimpl_->db->handle(), s->id()));
         out.push_back(std::move(s));
     }
     return out;
@@ -112,9 +114,11 @@ std::optional<std::shared_ptr<Statement>> SqliteStatementRepository::getStatemen
     stmt.bindText(1, id);
     if (stmt.step() != SQLITE_ROW) return std::nullopt;
     auto s = std::make_shared<Statement>();
-    s->id = stmt.columnText(0); s->name = stmt.columnText(1);
-    s->createdAt = stmt.columnText(2); s->updatedAt = stmt.columnText(3);
-    s->transactionIds = loadTransactionIds(pimpl_->db->handle(), s->id);
+    s->setId(stmt.columnText(0));
+    s->rename(stmt.columnText(1));
+    s->setCreatedAt(stmt.columnText(2));
+    s->setUpdatedAt(stmt.columnText(3));
+    s->setTransactionIds(loadTransactionIds(pimpl_->db->handle(), s->id()));
     return s;
 }
 
@@ -126,17 +130,17 @@ void SqliteStatementRepository::removeStatement(const std::string& id) {
 }
 
 void SqliteStatementRepository::updateStatement(const std::shared_ptr<Statement>& statement) {
-    if (!statement || statement->id.empty()) return;
+    if (!statement || statement->id().empty()) return;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
         "UPDATE statements SET name = ?, created_at = ?, updated_at = ? WHERE id = ?;");
     if (!stmt) return;
-    stmt.bindText(1, statement->name); stmt.bindText(2, statement->createdAt); stmt.bindText(3, statement->updatedAt); stmt.bindText(4, statement->id);
+    stmt.bindText(1, statement->name()); stmt.bindText(2, statement->createdAt()); stmt.bindText(3, statement->updatedAt()); stmt.bindText(4, statement->id());
     stmt.step();
-    saveTransactionIds(pimpl_->db->handle(), statement->id, statement->transactionIds);
+    saveTransactionIds(pimpl_->db->handle(), statement->id(), statement->transactionIds());
 }
 
 void SqliteStatementRepository::upsertStatement(const std::shared_ptr<Statement>& statement) {
-    if (!statement || statement->id.empty()) return;
+    if (!statement || statement->id().empty()) return;
     updateStatement(statement);
     if (sqlite3_changes(pimpl_->db->handle()) == 0) addStatement(statement);
 }

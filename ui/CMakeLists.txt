@@ -1,5 +1,17 @@
 find_package(Qt6 COMPONENTS Quick Qml QuickControls2 Widgets Svg Concurrent QUIET)
 
+# Disable QML cache generation for faster local iteration when requested.
+# This suppresses the per-file _qml.cpp cachegen step for qt_add_qml_module().
+option(FOSSREDDER_FAST_QML_BUILD "Disable QML cache generation for faster local builds" OFF)
+if(FOSSREDDER_FAST_QML_BUILD)
+    if(DEFINED Qt6_VERSION AND Qt6_VERSION VERSION_GREATER_EQUAL "6.8.1")
+        set(QT_QML_NO_CACHEGEN TRUE)
+        message(STATUS "Fast QML build enabled: cache generation disabled for ui QML modules")
+    else()
+        message(WARNING "FOSSREDDER_FAST_QML_BUILD requires Qt 6.8.1 or newer; QML cache generation remains enabled")
+    endif()
+endif()
+
 # UI library sources and public headers.
 set(UI_SOURCES
     src/MainWindow.cpp

@@ -11,7 +11,8 @@
 #include <QVariantMap>
 #include <qqmlintegration.h>
 
-namespace core::application { class WorkspaceFacade; }
+#include "core/ports/workspace/IWorkspaceReader.h"
+#include "core/ports/workspace/IWorkspaceWriter.h"
 
 namespace ui {
 
@@ -24,7 +25,7 @@ class StatementController : public QObject {
     QML_UNCREATABLE("StatementController is provided by the application context")
 public:
     /** @brief Create a statement controller bound to the application facade. */
-    explicit StatementController(core::application::WorkspaceFacade* core, QObject* parent = nullptr);
+    explicit StatementController(core::ports::workspace::IWorkspaceWriter* core, QObject* parent = nullptr);
 
     /** @brief Return a single statement by identifier.
      *  @param id Statement identifier
@@ -55,7 +56,8 @@ public:
     Q_INVOKABLE void deleteStatement(const QString& id);
 
 private:
-    core::application::WorkspaceFacade* core_ = nullptr;
+    core::ports::workspace::IWorkspaceWriter* core_ = nullptr;
+    core::ports::workspace::IWorkspaceReader* reader_ = nullptr;
 };
 
 } // namespace ui

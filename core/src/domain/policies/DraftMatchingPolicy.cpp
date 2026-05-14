@@ -4,6 +4,11 @@
  */
 
 #include "core/pch.h"
+/**
+ * @file core/src/domain/policies/DraftMatchingPolicy.cpp
+ * @brief Shared draft matching and parsing helpers.
+ */
+
 #include "core/domain/policies/DraftMatchingPolicy.h"
 
 #include <algorithm>
@@ -23,20 +28,13 @@ char lowerAscii(char c)
 }
 
 template <typename TEntity>
-std::vector<core::domain::AliasUsage> aliasUsages(const TEntity& entity)
+std::vector<core::domain::Alias> aliasUsages(const TEntity& entity)
 {
-    if (!entity.aliasUsage.empty()) return entity.aliasUsage;
-
-    std::vector<core::domain::AliasUsage> out;
-    out.reserve(entity.aliases.size());
-    for (const auto& alias : entity.aliases) {
-        if (alias.value.empty()) continue;
-        core::domain::AliasUsage usage;
-        usage.alias = alias;
-        usage.hitCount = 1;
-        usage.createdAt = alias.createdAt;
-        usage.updatedAt = alias.updatedAt;
-        out.push_back(std::move(usage));
+    std::vector<core::domain::Alias> out;
+    out.reserve(entity.aliases().size());
+    for (const auto& alias : entity.aliases()) {
+        if (alias.value().empty()) continue;
+        out.push_back(alias);
     }
     return out;
 }
@@ -286,15 +284,15 @@ std::vector<std::string> referenceAliasesFromMetadata(const std::string& metadat
     return out;
 }
 
-std::vector<std::string> knownContractTypes(const core::domain::WorkspaceState& state)
+std::vector<std::string> knownContractTypes(const core::domain::catalog::WorkspaceCatalog& state)
 {
     std::vector<std::string> types;
     std::vector<std::string> normalizedSeen;
-    types.reserve(state.contracts.size());
-    normalizedSeen.reserve(state.contracts.size());
-    for (const auto& contract : state.contracts) {
+    types.reserve(state.contracts().size());
+    normalizedSeen.reserve(state.contracts().size());
+    for (const auto& contract : state.contracts()) {
         if (!contract) continue;
-        const auto type = trim(contract->type);
+        const auto type = trim(contract->type());
         const auto normalizedType = normalizeText(type);
         if (normalizedType.empty()) continue;
         if (std::find(normalizedSeen.begin(), normalizedSeen.end(), normalizedType) != normalizedSeen.end()) continue;
@@ -304,7 +302,7 @@ std::vector<std::string> knownContractTypes(const core::domain::WorkspaceState& 
     return types;
 }
 
-std::string extractTypeText(const core::domain::WorkspaceState& state,
+std::string extractTypeText(const core::domain::catalog::WorkspaceCatalog& state,
                             const std::string& signalText,
                             const std::vector<std::string>& lines)
 {
@@ -390,4 +388,3 @@ std::string extractActorText(const std::vector<std::string>& lines, const std::s
 }
 
 } // namespace core::domain::policies::matching
-

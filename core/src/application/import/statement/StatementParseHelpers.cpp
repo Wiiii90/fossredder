@@ -17,6 +17,8 @@
 #include <regex>
 
 namespace core::application::importing::statement::internal {
+using core::application::importing::statement::DefaultStatementParser;
+using core::application::importing::transaction::DefaultTransactionParser;
 using core::application::importing::internal::ColumnGuess;
 using core::application::importing::internal::RawLineLite;
 using core::application::importing::transaction::internal::OcrLine;
@@ -62,12 +64,12 @@ std::string fullBlockMetadata(const TransactionBlock& block)
     return out.str();
 }
 
-helpers::detail::RawLineLite toRawLineLite(const OcrLine& line)
+RawLineLite toRawLineLite(const OcrLine& line)
 {
-    return helpers::detail::RawLineLite{line.minX, line.maxX, line.minY, line.maxY, line.wordSpans, line.text};
+    return RawLineLite{line.minX, line.maxX, line.minY, line.maxY, line.wordSpans, line.text};
 }
 
-OcrLine rawLiteToOcrLine(const helpers::detail::RawLineLite& line)
+OcrLine rawLiteToOcrLine(const RawLineLite& line)
 {
     OcrLine out;
     out.minX = line.minX;
@@ -79,9 +81,9 @@ OcrLine rawLiteToOcrLine(const helpers::detail::RawLineLite& line)
     return out;
 }
 
-helpers::detail::RawLineLite mergeRawLines(const OcrLine& first, const OcrLine& second)
+RawLineLite mergeRawLines(const OcrLine& first, const OcrLine& second)
 {
-    auto merged = toRawLineLite(first);
+    RawLineLite merged = toRawLineLite(first);
     merged.minX = std::min(first.minX, second.minX);
     merged.maxX = std::max(first.maxX, second.maxX);
     merged.minY = std::min(first.minY, second.minY);
@@ -91,9 +93,9 @@ helpers::detail::RawLineLite mergeRawLines(const OcrLine& first, const OcrLine& 
     return merged;
 }
 
-core::parser::TransactionMainRow splitMergedMainRow(const OcrLine& first,
-                                                    const OcrLine& second,
-                                                    const helpers::ColumnGuess& cols) noexcept
+TransactionMainRow splitMergedMainRow(const OcrLine& first,
+                                      const OcrLine& second,
+                                      const ColumnGuess& cols) noexcept
 {
     return helpers::splitMainRowFromRaw(mergeRawLines(first, second), cols.valutaX, cols.debitX, cols.creditX);
 }
@@ -342,13 +344,13 @@ bool detectEarlyEmptyPage(const std::vector<OcrLine>& lines, std::string& outDeb
     return false;
 }
 
-std::vector<helpers::detail::RawLineLite> selectiveGroupMergeLinesRaw(const std::vector<helpers::detail::RawLineLite>& lines,
+std::vector<helpers::RawLineLite> selectiveGroupMergeLinesRaw(const std::vector<helpers::RawLineLite>& lines,
                                                                       int maxGapPx,
                                                                       const helpers::ColumnGuess& seedCols)
 {
     if (lines.size() <= 1) return lines;
 
-    std::vector<helpers::detail::RawLineLite> merged;
+    std::vector<helpers::RawLineLite> merged;
     merged.reserve(lines.size());
     auto current = lines.front();
     for (size_t i = 1; i < lines.size(); ++i) {
@@ -694,17 +696,17 @@ static void appendBlockDebug(const TransactionBlock& block,
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::blockDebug", std::current_exception()); }
 }
 
-static void applyCellAmountOverride(core::domain::TransactionDraft& tx,
+static void applyCellAmountOverride(core::application::importing::draft::TransactionDraft& tx,
                                     const TransactionBlock& block,
                                     const ColumnModel& cols,
-                                    const core::ports::text_recognition::tesseract::ExtractResult& ocr,
+                                    const core::ports::text_recognition::ExtractResult& ocr,
                                     DefaultStatementParser::ParseResult& out)
 {
     try {
         if (ocr.tables.empty() || ocr.tables[0].cells.empty()) return;
 
         const auto& table = ocr.tables[0];
-        auto overlapsLine = [&](const core::ports::text_recognition::tesseract::Cell& cell) -> bool {
+        auto overlapsLine = [&](const core::ports::text_recognition::Cell& cell) -> bool {
             const int cellTop = cell.bbox.y;
             const int cellBottom = cell.bbox.y + cell.bbox.height;
             return !(cellTop > block.main.left.line.maxY || cellBottom < block.main.left.line.minY);
@@ -738,7 +740,7 @@ static void applyCellAmountOverride(core::domain::TransactionDraft& tx,
     } catch (...) { core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::cellOverride", std::current_exception()); }
 }
 
-static void attachProofCrop(core::domain::TransactionDraft& tx,
+static void attachProofCrop(core::application::importing::draft::TransactionDraft& tx,
                             const TransactionBlock& block,
                             int txIndex,
                             const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
@@ -765,12 +767,12 @@ static void attachProofCrop(core::domain::TransactionDraft& tx,
         for (const auto& line : block.detailLines) accBounds(line);
         if (minX == std::numeric_limits<int>::max()) return;
 
-        core::ports::image_processing::opencv::CropRequest request;
+        core::ports::image_processing::CropRequest request;
         if (!pageCropImagePath.empty()) request.imagePath = std::filesystem::path(pageCropImagePath);
         request.imageBytes = pageCropImageBytes;
         request.uniqIdPrefix = std::string(core::utils::makeUniqId());
         request.filePrefix = std::string("opencv_proof_tx") + std::to_string(txIndex);
-        request.outputFormat = core::ports::image_processing::opencv::CropRequest::OutputFormat::Jpg;
+        request.outputFormat = core::ports::image_processing::CropRequest::OutputFormat::Jpg;
         request.jpegQuality = 92;
         request.bbox.x = 0;
         request.bbox.y = std::max(0, minY - 20);
@@ -794,7 +796,7 @@ static void attachProofCrop(core::domain::TransactionDraft& tx,
 
 void appendTransactionsFromBlocks(const std::vector<TransactionBlock>& blocks,
                                   const ColumnModel& cols,
-                                  const core::ports::text_recognition::tesseract::ExtractResult& ocr,
+                                  const core::ports::text_recognition::ExtractResult& ocr,
                                   const std::shared_ptr<core::ports::image_processing::IImageProcessor>& opencv,
                                   const std::string& pageCropImagePath,
                                   const std::vector<uint8_t>& pageCropImageBytes,
@@ -810,7 +812,7 @@ void appendTransactionsFromBlocks(const std::vector<TransactionBlock>& blocks,
         const auto parsed = DefaultTransactionParser::parseTransaction(block, &txDebug);
         for (const auto& line : txDebug) out.debugLines.push_back(std::string("txdbg\t") + line);
 
-        core::domain::TransactionDraft tx;
+        core::application::importing::draft::TransactionDraft tx;
         tx.name = parsed.name;
         tx.bookingDate = parsed.bookingDate;
         tx.valuta = parsed.valuta;

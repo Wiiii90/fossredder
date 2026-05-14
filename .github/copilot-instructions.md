@@ -33,3 +33,6 @@
 
 ## Warning Management
 - Handle warnings explicitly and do not suppress them; do not hide QWarnings or similar warnings during tests. Treat warning output as data to investigate and fix.
+
+## Search Preferences
+- Prefer fewer symbol searches; use targeted file reads, file/project enumeration, and semantic/code search first because symbol lookup is often too slow and token-heavy for broad analysis.

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "core/ports/image-processing/OpenCvTypes.h"
+#include "core/ports/image-processing/ImageProcessingTypes.h"
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <vector>
@@ -15,7 +15,7 @@ class IDebugger;
 
 namespace opencv {
 
-namespace ports = core::ports::image_processing::opencv;
+namespace ports = core::ports::image_processing;
 
 class DetectAdapter {
 public:

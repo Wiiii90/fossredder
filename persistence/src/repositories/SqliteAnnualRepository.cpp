@@ -70,12 +70,12 @@ void saveAnalysisIds(sqlite3* db, const std::string& annualId, const std::vector
 
 std::shared_ptr<Annual> readAnnual(sqlite3* db, persistence::StmtGuard& s) {
     auto a = std::make_shared<Annual>();
-    a->id = s.columnText(0);
-    a->name = s.columnText(1);
-    a->year = s.columnInt(2);
-    a->createdAt = s.columnText(3);
-    a->updatedAt = s.columnText(4);
-    a->analysisIds = loadAnalysisIds(db, a->id);
+    a->setId(s.columnText(0));
+    a->rename(s.columnText(1));
+    a->setYear(s.columnInt(2));
+    a->setCreatedAt(s.columnText(3));
+    a->setUpdatedAt(s.columnText(4));
+    a->setAnalysisIds(loadAnalysisIds(db, a->id()));
     return a;
 }
 
@@ -105,7 +105,7 @@ SqliteAnnualRepository::~SqliteAnnualRepository() = default;
 
 void SqliteAnnualRepository::addAnnual(const std::shared_ptr<Annual>& annual)
 {
-    if (!annual || annual->id.empty()) {
+    if (!annual || annual->id().empty()) {
         return;
     }
 
@@ -116,13 +116,13 @@ void SqliteAnnualRepository::addAnnual(const std::shared_ptr<Annual>& annual)
     if (!stmt) {
         return;
     }
-    stmt.bindText(1, annual->id);
-    stmt.bindText(2, annual->name);
-    stmt.bindInt (3, annual->year);
-    stmt.bindText(4, annual->createdAt);
-    stmt.bindText(5, annual->updatedAt);
+    stmt.bindText(1, annual->id());
+    stmt.bindText(2, annual->name());
+    stmt.bindInt (3, annual->year());
+    stmt.bindText(4, annual->createdAt());
+    stmt.bindText(5, annual->updatedAt());
     stmt.step();
-    saveAnalysisIds(pimpl_->db->handle(), annual->id, annual->analysisIds);
+    saveAnalysisIds(pimpl_->db->handle(), annual->id(), annual->analysisIds());
 }
 
 std::vector<std::shared_ptr<Annual>> SqliteAnnualRepository::getAnnuals() const
@@ -168,7 +168,7 @@ void SqliteAnnualRepository::removeAnnual(const std::string& id)
 
 void SqliteAnnualRepository::updateAnnual(const std::shared_ptr<Annual>& annual)
 {
-    if (!annual || annual->id.empty()) {
+    if (!annual || annual->id().empty()) {
         return;
     }
 
@@ -177,18 +177,18 @@ void SqliteAnnualRepository::updateAnnual(const std::shared_ptr<Annual>& annual)
     if (!stmt) {
         return;
     }
-    stmt.bindText(1, annual->name);
-    stmt.bindInt(2, annual->year);
-    stmt.bindText(3, annual->createdAt);
-    stmt.bindText(4, annual->updatedAt);
-    stmt.bindText(5, annual->id);
+    stmt.bindText(1, annual->name());
+    stmt.bindInt(2, annual->year());
+    stmt.bindText(3, annual->createdAt());
+    stmt.bindText(4, annual->updatedAt());
+    stmt.bindText(5, annual->id());
     stmt.step();
-    saveAnalysisIds(pimpl_->db->handle(), annual->id, annual->analysisIds);
+    saveAnalysisIds(pimpl_->db->handle(), annual->id(), annual->analysisIds());
 }
 
 void SqliteAnnualRepository::upsertAnnual(const std::shared_ptr<Annual>& annual)
 {
-    if (!annual || annual->id.empty()) {
+    if (!annual || annual->id().empty()) {
         return;
     }
 

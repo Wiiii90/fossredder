@@ -10,7 +10,7 @@
 #include <optional>
 #include <string>
 
-#include "core/application/workspace/AppState.h"
+#include "core/application/workspace/WorkspaceSessionState.h"
 #include "core/application/storage/DeletionImpact.h"
 
 namespace core::ports::storage {
@@ -20,8 +20,8 @@ public:
     /**
      * @brief Destroy the storage manager port.
      */
-    using AtomicStoreSave = std::function<core::domain::DeletionImpact(const std::string& dbPath, const core::domain::AppState& state)>;
-    using AtomicStoreLoad = std::function<core::domain::AppState(const std::string& dbPath)>;
+    using AtomicStoreSave = std::function<core::domain::DeletionImpact(const std::string& dbPath, const core::application::workspace::WorkspaceSessionState& document)>;
+    using AtomicStoreLoad = std::function<core::application::workspace::WorkspaceSessionState(const std::string& dbPath)>;
     using DeletionImpactCallback = std::function<void(const core::domain::DeletionImpact&)>;
 
     virtual ~IStorageManager() = default;
@@ -55,20 +55,20 @@ public:
      * @param filePath File path to load.
      * @return Loaded application state.
      */
-    virtual core::domain::AppState loadFrom(const std::string& filePath) = 0;
+    virtual core::application::workspace::WorkspaceSessionState loadFrom(const std::string& filePath) = 0;
 
     /**
      * @brief Save the current application state.
      * @param state State to save.
      */
-    virtual void save(const core::domain::AppState& state) = 0;
+    virtual void save(const core::application::workspace::WorkspaceSessionState& document) = 0;
 
     /**
      * @brief Save the current application state to a specific file path.
      * @param filePath Target file path.
      * @param state State to save.
      */
-    virtual void saveAs(const std::string& filePath, const core::domain::AppState& state) = 0;
+    virtual void saveAs(const std::string& filePath, const core::application::workspace::WorkspaceSessionState& document) = 0;
 
     /**
      * @brief Create a new storage target.

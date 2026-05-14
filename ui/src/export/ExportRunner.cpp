@@ -18,7 +18,7 @@ namespace ui::exporting {
 ExportRunner::ExportRunner(ExecuteExportFn execute)
     : execute_(std::move(execute)) {}
 
-ExportResult ExportRunner::run(std::shared_ptr<const WorkspaceState> state,
+ExportResult ExportRunner::run(std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> state,
                                const ExportRequest &request) const {
   if (!execute_) {
     const QString message = ui::text::exportRunner::runnerUnavailable();
@@ -55,7 +55,7 @@ ExportResult ExportRunner::run(std::shared_ptr<const WorkspaceState> state,
   return execute_(std::move(state), request);
 }
 
-ExportResult ExportRunner::run(const WorkspaceState &state,
+ExportResult ExportRunner::run(const core::domain::catalog::WorkspaceCatalog &state,
                                const ExportRequest &request) const {
   return run(createWorkspaceSnapshot(state), request);
 }

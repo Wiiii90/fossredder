@@ -18,11 +18,14 @@
 
 namespace {
 
+constexpr unsigned int kSingleCpuFallbackThreshold = 2;
+constexpr std::size_t kSingleWorkerFallback = 1;
+
 std::size_t defaultWorkers()
 {
     const auto hc = std::thread::hardware_concurrency();
     if (hc == 0) return core::constants::jobs::kFallbackWorkerCount;
-    if (hc <= 2) return 1;
+    if (hc <= kSingleCpuFallbackThreshold) return kSingleWorkerFallback;
     return static_cast<std::size_t>(hc - 1);
 }
 
@@ -157,7 +160,7 @@ std::shared_ptr<core::domain::Statement> JobSystem::statementResult(const JobId&
     return impl_->manager.statementResult(id);
 }
 
-std::vector<core::domain::TransactionDraft> JobSystem::statementTransactions(const JobId& id) const
+std::vector<core::application::importing::draft::TransactionDraft> JobSystem::statementTransactions(const JobId& id) const
 {
     return impl_->manager.statementTransactions(id);
 }

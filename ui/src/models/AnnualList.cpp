@@ -19,9 +19,9 @@ QVariant AnnualList::data(const QModelIndex& index, int role) const {
     if (!a) return {};
 
     switch (role) {
-    case IdRole: return QString::fromStdString(a->id);
-    case NameRole: return QString::fromStdString(a->name);
-    case YearRole: return a->year;
+    case IdRole: return QString::fromStdString(a->id());
+    case NameRole: return QString::fromStdString(a->name());
+    case YearRole: return a->year();
     default: return {};
     }
 }

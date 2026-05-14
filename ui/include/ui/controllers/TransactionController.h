@@ -13,8 +13,8 @@
 #include <qqmlintegration.h>
 
 #include "core/domain/entities/Transaction.h"
-
-namespace core::application { class WorkspaceFacade; }
+#include "core/ports/workspace/IWorkspaceReader.h"
+#include "core/ports/workspace/IWorkspaceWriter.h"
 
 namespace ui {
 
@@ -29,7 +29,7 @@ public:
     ~TransactionController() override = default;
 
     /** @brief Create a transaction controller bound to the application facade. */
-    explicit TransactionController(core::application::WorkspaceFacade* core, QObject* parent = nullptr);
+    explicit TransactionController(core::ports::workspace::IWorkspaceWriter* core, QObject* parent = nullptr);
 
     /** @brief Return a single transaction by identifier.
      *  @param id Transaction identifier
@@ -91,7 +91,8 @@ public:
     Q_INVOKABLE void deleteTransaction(const QString& id);
 
 private:
-    core::application::WorkspaceFacade* core_ = nullptr;
+    core::ports::workspace::IWorkspaceWriter* core_ = nullptr;
+    core::ports::workspace::IWorkspaceReader* reader_ = nullptr;
 };
 
 } // namespace ui

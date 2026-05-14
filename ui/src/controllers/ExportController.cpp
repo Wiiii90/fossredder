@@ -111,10 +111,10 @@ void ExportController::finishExport(bool success)
     emit exportFinished(success);
 }
 
-std::shared_ptr<const WorkspaceState> ExportController::stateSnapshot() const
+std::shared_ptr<const core::application::workspace::WorkspaceSessionState> ExportController::stateSnapshot() const
 {
     return stateSnapshotProvider_ ? stateSnapshotProvider_()
-                                  : std::shared_ptr<const WorkspaceState>{};
+                                  : std::shared_ptr<const core::application::workspace::WorkspaceSessionState>{};
 }
 
 QString ExportController::generateLogId() const
@@ -152,10 +152,10 @@ void ExportController::persistRuns()
 {
     if (!exportLogsStore_ || !runs_) return;
     const auto rows = runs_->snapshot();
-    std::vector<core::domain::ExportLog> logs;
+    std::vector<core::application::exporting::ExportLog> logs;
     logs.reserve(rows.size());
     for (const auto& row : rows) {
-        core::domain::ExportLog log;
+        core::application::exporting::ExportLog log;
         log.id = strings::toStdString(row.logId);
         log.time = strings::toStdString(row.time);
         log.targetPath = strings::toStdString(row.file);
@@ -174,8 +174,9 @@ void ExportController::restoreRunsFromSnapshot() const
     if (!snapshot) return;
 
     std::vector<ExportRunRow> rows;
-    rows.reserve(snapshot->exportLogs.size());
-    for (const auto& item : snapshot->exportLogs) {
+    const auto& exportLogs = snapshot->workflow.exportLogs;
+    rows.reserve(exportLogs.size());
+    for (const auto& item : exportLogs) {
         if (!item) continue;
         ExportRunRow row;
         row.logId = QString::fromStdString(item->id);
@@ -259,7 +260,7 @@ void ExportController::exportDataWithPayload(int format,
 
     exportFuture_ = QtConcurrent::run(
         [runner = runner_, snapshot, request = std::move(request)]() mutable {
-          return runner->run(std::move(snapshot), request);
+          return runner->run(snapshot->catalog, request);
         });
     exportWatcher_.setFuture(exportFuture_);
   } catch (const std::exception &ex) {
