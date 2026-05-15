@@ -13,6 +13,10 @@ is tailored to the refactored core boundary:
 The goal is not to test implementation accidents. The goal is to lock in the
 behavioral contract of the core after the workspace and analysis refactors.
 
+The suite is intentionally family-based: where a rule applies to all entities,
+all collections, or all port boundaries, the test should describe that family
+instead of a single incidental example.
+
 ## Scope
 
 Included in this matrix:
@@ -89,6 +93,8 @@ core/
 - Application tests should validate orchestration, projections, and workflow
   boundaries.
 - Port tests should validate contract shape and boundary semantics.
+- Prefer behavior families over one-off examples when the same rule applies to
+  actors, properties, contracts, statements, transactions, analyses, or annuals.
 - Tests should stay close to the public API, not private helper internals.
 - If a test needs a large fixture, prefer a reusable helper builder over a giant
   inline setup block.
@@ -402,4 +408,3 @@ The core test suite is complete when:
 - the workspace application boundary is covered by snapshot, workflow, and port tests
 - analysis has both execution and presentation coverage
 - the port contracts are locked with boundary-level tests
-

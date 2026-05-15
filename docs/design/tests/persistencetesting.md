@@ -12,6 +12,10 @@ matrices with explicit behavior rather than vague ideas.
 The focus is correctness, deterministic save/load behavior, relation-table
 fidelity, and stable deletion-impact handling for the workspace store.
 
+The matrix is family-based: repository tests should exercise each entity family
+and each relation family with the same kind of round-trip and deletion-impact
+rules, rather than relying on one-off example rows.
+
 ## Scope
 
 Included in this matrix:
@@ -79,6 +83,9 @@ source.
 - Keep deletion-impact behavior explicit and deterministic.
 - Use integration tests for round-trips and cascade behavior.
 - Use unit tests for the small SQLite helpers and schema lifecycle.
+- Reuse the same assertion families across actor, property, contract,
+  statement, transaction, analysis, annual, draft, import log, and export log
+  repositories.
 
 ## Test Matrix
 

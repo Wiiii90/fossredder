@@ -9,6 +9,9 @@ module stays replaceable, deterministic, and easy to reason about.
 The matrix is organized by module family and keeps the focus on externally
 visible behavior rather than implementation details.
 
+The suite is intentionally family-based: every adapter should be tested as a
+capability family, not as a one-off implementation story.
+
 ## Scope
 
 Included in this matrix:
@@ -78,6 +81,7 @@ infra/
 - Prefer deterministic file-backed fixtures and stable sample data.
 - Verify both success and failure paths.
 - Check observable outputs, not private helper internals.
+- Prefer reusable module-family fixtures over special-case test setups.
 - Keep tests aligned with the module boundary:
   - `archive` tests ZIP packaging and path preservation
   - `image-processing` tests crop, denoise, mask, and detect behavior
@@ -281,4 +285,3 @@ If these tests are implemented in order, the following sequence is the most natu
 6. `analysis-image-renderer` tests
 7. `xlsx-writer` tests
 8. cross-module consistency tests
-

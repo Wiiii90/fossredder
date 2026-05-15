@@ -10,6 +10,10 @@ The matrices below document the implemented QML surface and should remain
 stable across internal source refactors as long as observable behavior stays
 the same.
 
+The suite is intentionally family-based: when a visible rule applies to every
+entity editor, every sidebar, or every common control, the test should express
+that reusable behavior instead of a one-off scene.
+
 ## Scope
 
 Included in this matrix:
@@ -88,6 +92,8 @@ ui/
   the point of the test.
 - Keep QML tests separate from source-layer tests so each suite owns a single
   responsibility.
+- Prefer repeated behavior families over bespoke one-screen-only assertions
+  unless the screen is truly a unique edge case.
 
 ## Import
 

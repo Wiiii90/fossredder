@@ -17,6 +17,10 @@ It covers the C++ surface that sits between `core/ports` and QML:
 The goal is to lock down observable behavior and boundary contracts, not
 private implementation details.
 
+The matrix is intentionally family-based: collection projection, mutation
+reprojection, selection stability, and workflow dispatch should be asserted as
+generic rules that apply across all relevant UI collections and views.
+
 ## Scope
 
 Included in this matrix:
@@ -130,6 +134,8 @@ ui/
   filesystem browsing, localization, and settings persistence.
 - Shared helper tests should stay narrow and protect only reusable technical
   helpers that are shared across the UI layer.
+- When a rule applies to multiple entity families, prefer one generic matrix
+  row per behavior family instead of inventing a bespoke case for each screen.
 
 ## 1. Shell And Bootstrap
 
