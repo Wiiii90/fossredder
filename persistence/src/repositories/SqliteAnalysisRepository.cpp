@@ -4,16 +4,103 @@
  */
 
 #include "persistence/repositories/SqliteAnalysisRepository.h"
-#include "persistence/StmtGuard.h"
+
 #include "core/domain/entities/Analysis.h"
 #include "persistence/SqliteDb.h"
+#include "persistence/StmtGuard.h"
+
 #include <sqlite3.h>
+
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 struct SqliteAnalysisRepository::Impl {
     std::shared_ptr<SqliteDb> db;
 };
+
+namespace {
+
+std::unordered_map<std::string, double> loadAdjustments(sqlite3* db, const std::string& analysisId)
+{
+    std::unordered_map<std::string, double> out;
+    if (!db || analysisId.empty()) {
+        return out;
+    }
+
+    persistence::StmtGuard stmt(db,
+        "SELECT adjustment_key, adjustment_value FROM analysis_adjustments WHERE analysis_id = ? ORDER BY position, adjustment_key;");
+    if (!stmt) {
+        return out;
+    }
+
+    stmt.bindText(1, analysisId);
+    while (stmt.step() == SQLITE_ROW) {
+        out.emplace(stmt.columnText(0), stmt.columnDouble(1));
+    }
+
+    return out;
+}
+
+void saveAdjustments(sqlite3* db, const Analysis& analysis)
+{
+    if (!db || analysis.id().empty()) {
+        return;
+    }
+
+    persistence::StmtGuard deleteStmt(db, "DELETE FROM analysis_adjustments WHERE analysis_id = ?;");
+    if (!deleteStmt) {
+        return;
+    }
+    deleteStmt.bindText(1, analysis.id());
+    deleteStmt.step();
+
+    persistence::StmtGuard insertStmt(db,
+        "INSERT OR REPLACE INTO analysis_adjustments (analysis_id, adjustment_key, adjustment_value, position) VALUES (?, ?, ?, ?);");
+    if (!insertStmt) {
+        return;
+    }
+
+    std::size_t position = 0;
+    for (const auto& [key, value] : analysis.adjustments()) {
+        if (key.empty()) {
+            continue;
+        }
+
+        insertStmt.reset();
+        insertStmt.bindText(1, analysis.id());
+        insertStmt.bindText(2, key);
+        insertStmt.bindDouble(3, value);
+        insertStmt.bindInt(4, static_cast<int>(position++));
+        insertStmt.step();
+    }
+}
+
+std::shared_ptr<Analysis> readAnalysis(persistence::StmtGuard& stmt, sqlite3* db)
+{
+    auto analysis = std::make_shared<Analysis>();
+    analysis->setId(stmt.columnText(0));
+    analysis->rename(stmt.columnText(1));
+    analysis->setType(stmt.columnText(2));
+    analysis->setConfigJson(stmt.columnText(3));
+    analysis->setFilterSpec(stmt.columnText(4));
+    analysis->setExportFormat(stmt.columnText(5));
+    analysis->setIncludeCalculationAdjustments(stmt.columnInt(6) != 0);
+    analysis->setExportStateJson(stmt.columnText(7));
+    analysis->setSnapshotTransactionsJson(stmt.columnText(8));
+    analysis->setCreatedAt(stmt.columnText(9));
+    analysis->setUpdatedAt(stmt.columnText(10));
+
+    for (const auto& [key, value] : loadAdjustments(db, analysis->id())) {
+        analysis->setAdjustment(key, value);
+    }
+
+    return analysis;
+}
+
+} // namespace
 
 SqliteAnalysisRepository::SqliteAnalysisRepository(const std::string& dbPath)
     : SqliteAnalysisRepository(std::make_shared<SqliteDb>(dbPath))
@@ -31,23 +118,6 @@ SqliteAnalysisRepository::SqliteAnalysisRepository(std::shared_ptr<SqliteDb> db)
 }
 
 SqliteAnalysisRepository::~SqliteAnalysisRepository() = default;
-
-std::shared_ptr<Analysis> readAnalysis(persistence::StmtGuard& s)
-{
-    auto a = std::make_shared<Analysis>();
-    a->setId(s.columnText(0));
-    a->rename(s.columnText(1));
-    a->setType(s.columnText(2));
-    a->setConfigJson(s.columnText(3));
-    a->setFilterSpec(s.columnText(4));
-    a->setExportFormat(s.columnText(5));
-    a->setIncludeCalculationAdjustments(s.columnInt(6) != 0);
-    a->setExportStateJson(s.columnText(7));
-    a->setSnapshotTransactionsJson(s.columnText(8));
-    a->setCreatedAt(s.columnText(9));
-    a->setUpdatedAt(s.columnText(10));
-    return a;
-}
 
 void SqliteAnalysisRepository::addAnalysis(const std::shared_ptr<Analysis>& analysis)
 {
@@ -73,9 +143,10 @@ void SqliteAnalysisRepository::addAnalysis(const std::shared_ptr<Analysis>& anal
     stmt.bindText(9, analysis->snapshotTransactionsJson());
     stmt.bindText(10, analysis->createdAt());
     stmt.bindText(11, analysis->updatedAt());
-    stmt.step();
+    if (stmt.step() == SQLITE_DONE) {
+        saveAdjustments(pimpl_->db->handle(), *analysis);
+    }
 }
-
 
 std::vector<std::shared_ptr<Analysis>> SqliteAnalysisRepository::getAnalyses() const
 {
@@ -87,7 +158,7 @@ std::vector<std::shared_ptr<Analysis>> SqliteAnalysisRepository::getAnalyses() c
     }
 
     while (stmt.step() == SQLITE_ROW) {
-        out.push_back(readAnalysis(stmt));
+        out.push_back(readAnalysis(stmt, pimpl_->db->handle()));
     }
     return out;
 }
@@ -104,7 +175,8 @@ std::optional<std::shared_ptr<Analysis>> SqliteAnalysisRepository::getAnalysisBy
     if (stmt.step() != SQLITE_ROW) {
         return std::nullopt;
     }
-    return readAnalysis(stmt);
+
+    return readAnalysis(stmt, pimpl_->db->handle());
 }
 
 void SqliteAnalysisRepository::removeAnalysis(const std::string& id)
@@ -142,7 +214,9 @@ void SqliteAnalysisRepository::updateAnalysis(const std::shared_ptr<Analysis>& a
     stmt.bindText(9, analysis->createdAt());
     stmt.bindText(10, analysis->updatedAt());
     stmt.bindText(11, analysis->id());
-    stmt.step();
+    if (stmt.step() == SQLITE_DONE) {
+        saveAdjustments(pimpl_->db->handle(), *analysis);
+    }
 }
 
 void SqliteAnalysisRepository::upsertAnalysis(const std::shared_ptr<Analysis>& analysis)

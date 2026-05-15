@@ -43,9 +43,15 @@ if(BUILD_OPENCV_TESTS)
     include(GoogleTest)
 
     add_executable(opencv_unit_tests
+        tests/unit/TestCropAdapter.cpp
         tests/unit/TestDetectAdapter.cpp
+        tests/unit/TestDenoiseAdapter.cpp
+        tests/unit/TestMaskAdapter.cpp
     )
     target_compile_features(opencv_unit_tests PRIVATE cxx_std_20)
+    target_include_directories(opencv_unit_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    )
     target_link_libraries(opencv_unit_tests
         PRIVATE
             GTest::gtest_main

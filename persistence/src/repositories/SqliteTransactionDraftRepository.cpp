@@ -95,7 +95,6 @@ void writeTransactionDraft(sqlite3* db,
                            const char* sql,
                            bool autoPosition)
 {
-    if (!db || !draft) return;
     if (!db || !draft) {
         return;
     }
@@ -108,7 +107,6 @@ void writeTransactionDraft(sqlite3* db,
     }
 
     persistence::StmtGuard stmt(db, sql);
-    if (!stmt) return;
     if (!stmt) {
         return;
     }
@@ -214,7 +212,7 @@ void SqliteTransactionDraftRepository::addTransactionDraft(const std::shared_ptr
     writeTransactionDraft(
         db,
         draft,
-        "INSERT INTO transaction_drafts (id, statement_draft_id, position, name, booking_date, valuta, amount, description, actor_text, property_text, actor_id, new_actor_selected, contract_id, new_contract_selected, metadata, type, allocatable, allocatable_manual_override, status, proof_image_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+        "INSERT INTO transaction_drafts (id, statement_draft_id, position, name, booking_date, valuta, amount, actor_text, property_text, actor_id, actor_selected, contract_id, contract_selected, metadata, proof_image_data, type, allocatable, allocatable_selected, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
         true);
 }
 
@@ -274,7 +272,7 @@ void SqliteTransactionDraftRepository::updateTransactionDraft(const std::shared_
     writeTransactionDraft(
         db,
         draft,
-        "UPDATE transaction_drafts SET statement_draft_id = ?2, position = ?3, name = ?4, booking_date = ?5, valuta = ?6, amount = ?7, description = ?8, actor_text = ?9, property_text = ?10, actor_id = ?11, new_actor_selected = ?12, contract_id = ?13, new_contract_selected = ?14, metadata = ?15, type = ?16, allocatable = ?17, allocatable_manual_override = ?18, status = ?19, proof_image_data = ?20 WHERE id = ?1;",
+        "UPDATE transaction_drafts SET statement_draft_id = ?2, position = ?3, name = ?4, booking_date = ?5, valuta = ?6, amount = ?7, actor_text = ?8, property_text = ?9, actor_id = ?10, actor_selected = ?11, contract_id = ?12, contract_selected = ?13, metadata = ?14, proof_image_data = ?15, type = ?16, allocatable = ?17, allocatable_selected = ?18, status = ?19, created_at = ?20, updated_at = ?21 WHERE id = ?1;",
         false);
 }
 
@@ -284,7 +282,7 @@ void SqliteTransactionDraftRepository::upsertTransactionDraft(const std::shared_
     writeTransactionDraft(
         db,
         draft,
-        "INSERT OR REPLACE INTO transaction_drafts (id, statement_draft_id, position, name, booking_date, valuta, amount, description, actor_text, property_text, actor_id, new_actor_selected, contract_id, new_contract_selected, metadata, type, allocatable, allocatable_manual_override, status, proof_image_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+        "INSERT OR REPLACE INTO transaction_drafts (id, statement_draft_id, position, name, booking_date, valuta, amount, actor_text, property_text, actor_id, actor_selected, contract_id, contract_selected, metadata, proof_image_data, type, allocatable, allocatable_selected, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
         true);
 }
 
