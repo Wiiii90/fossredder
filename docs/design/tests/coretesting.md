@@ -64,23 +64,20 @@ core/
         TestAnnualPolicy.cpp
         TestDraftMatchingPolicy.cpp
     application/
+      analysis/
+        TestAnalysisService.cpp
       workspace/
         TestWorkspaceCommandService.cpp
-        TestWorkspaceWorkflowService.cpp
+        TestWorkspaceFacade.cpp
         TestWorkspaceQueryService.cpp
         TestWorkspaceSnapshotProjector.cpp
         TestWorkspaceStateManager.cpp
-        TestWorkspaceFacade.cpp
-      analysis/
-        TestAnalysisService.cpp
-        TestAnalysisPresentation.cpp
+        TestWorkspaceWorkflowService.cpp
       import/
         draft/
           TestDraftFinalizer.cpp
           TestDraftMatcher.cpp
           TestDraftMatcherProjection.cpp
-      export/
-        TestExportRequestProjection.cpp
     ports/
       workspace/
         TestWorkspaceReaderContract.cpp
@@ -246,6 +243,13 @@ draft finalization, snapshot projection, and port contracts.
 
 ### 1. Workspace boundary
 
+#### WorkspaceFacade
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| WSF-001 | Snapshot projection reflects state changes | Unit | Facade with fresh storage manager | Create workspace and add/update/delete one actor | Snapshot callbacks publish the current workspace state consistently |
+| WSF-002 | Catalog commands route through the facade boundary | Unit | Facade with writable workspace session | Send add and update actor commands | Actor is created, updated, and persisted through the boundary |
+
 #### WorkspaceCommandService
 
 | ID | Scope | Layer | Setup | Action | Expected |
@@ -254,15 +258,6 @@ draft finalization, snapshot projection, and port contracts.
 | WCS-002 | Update contract command rewrites relations | Unit | Existing contract in session state | Send update contract command | Relations update and commit occurs once |
 | WCS-003 | Delete statement command removes owned transactions | Unit | Statement with linked transactions | Send delete statement command | Catalog state reflects ownership rule |
 | WCS-004 | Add analysis command preserves typed parameters | Unit | Analysis command input | Send add analysis command | Typed fields are passed through consistently |
-
-#### WorkspaceWorkflowService
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| WWS-001 | Save statement draft updates workflow state | Unit | Session with existing workflow data | Save draft | Draft appears in session state and commit occurs |
-| WWS-002 | Clear statement draft removes dependent transactions | Unit | Session with statement draft and transaction drafts | Clear draft | Draft and dependent transactions are removed |
-| WWS-003 | Set import logs replaces workflow log collection | Unit | Session with existing import logs | Set new logs | Old logs are replaced atomically |
-| WWS-004 | Set export logs replaces workflow log collection | Unit | Session with existing export logs | Set new logs | Old logs are replaced atomically |
 
 #### WorkspaceQueryService
 
@@ -289,14 +284,14 @@ draft finalization, snapshot projection, and port contracts.
 | WSM-002 | Save preserves catalog and workflow separation | Integration | Session state with mixed content | Call `save(state)` | Persistence receives catalog and workflow data through the correct routes |
 | WSM-003 | Strict validation rejects invalid state | Integration | Invalid session state | Enable strict validation and save | Save fails deterministically |
 
-#### WorkspaceFacade
+#### WorkspaceWorkflowService
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| WSF-001 | Reader surface returns current snapshot | Unit | Facade with session state | Call reader API | Snapshot is returned through the port surface |
-| WSF-002 | Writer surface forwards lifecycle commands | Unit | Facade with storage manager | Call open/save/commit methods | Underlying session methods are invoked |
-| WSF-003 | Writer surface forwards catalog commands | Unit | Facade with workspace state | Call add/update/delete methods | Commands reach the command service |
-| WSF-004 | Draft and log commands route to workflow service | Unit | Facade with session state | Call draft/log methods | Workflow service handles the request |
+| WWS-001 | Saving a statement draft updates workflow state | Unit | Session with empty workflow state | Save one draft | Draft and its transaction drafts are stored together |
+| WWS-002 | Clearing a draft removes dependent transactions | Unit | Session with saved draft and transaction drafts | Clear that draft | Draft and all related transaction drafts are removed |
+| WWS-003 | Import logs replace workflow logs atomically | Unit | Session with existing import logs | Replace logs | Import log collection is replaced without residue |
+| WWS-004 | Export logs replace workflow logs atomically | Unit | Session with existing export logs | Replace logs | Export log collection is replaced without residue |
 
 ### 2. Analysis application
 
@@ -308,14 +303,6 @@ draft finalization, snapshot projection, and port contracts.
 | ANS-002 | Run analysis by id resolves analysis configuration | Unit | Workspace with analysis entity and catalog | Call `runAnalysisById(...)` | Analysis config is resolved and executed |
 | ANS-003 | Filtered analysis only processes matching transactions | Unit | Workspace with filterable transactions | Apply restrictive request | Non-matching transactions are excluded |
 | ANS-004 | Analysis output remains stable for identical input | Unit | Same workspace and request twice | Execute twice | Output is deterministic |
-
-#### AnalysisPresentation
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| ANP-001 | Table projection preserves row order | Unit | Analysis result with rows | Project table view | Rows remain ordered consistently |
-| ANP-002 | Plot projection preserves series grouping | Unit | Analysis result with grouped data | Project plot view | Series labels and buckets are stable |
-| ANP-003 | Presentation handles empty result sets | Unit | Empty analysis result | Project presentation | Empty UI model is returned cleanly |
 
 ### 3. Draft finalization
 
@@ -373,16 +360,36 @@ core/
     domain/
       catalog/TestWorkspaceCatalog.cpp
       entities/TestActor.cpp
+      entities/TestProperty.cpp
+      entities/TestContract.cpp
+      entities/TestStatement.cpp
       entities/TestTransaction.cpp
       entities/TestAnalysis.cpp
-      values/TestAlias.cpp
+      entities/TestAnnual.cpp
+      policies/TestAliasPolicy.cpp
+      policies/TestTransactionPolicy.cpp
+      policies/TestAnalysisPolicy.cpp
+      policies/TestAnnualPolicy.cpp
       policies/TestDraftMatchingPolicy.cpp
+      values/TestAlias.cpp
+      values/TestEntityName.cpp
+      values/TestContractType.cpp
+      values/TestAnalysisType.cpp
+      values/TestExportFormat.cpp
+      values/TestFilterSpec.cpp
+      values/TestBookingDate.cpp
+      values/TestMoneyAmount.cpp
+      values/TestYear.cpp
     application/
+      workspace/TestWorkspaceCommandService.cpp
       workspace/TestWorkspaceFacade.cpp
-      workspace/TestWorkspaceStateManager.cpp
+      workspace/TestWorkspaceQueryService.cpp
       workspace/TestWorkspaceSnapshotProjector.cpp
+      workspace/TestWorkspaceStateManager.cpp
       workspace/TestWorkspaceWorkflowService.cpp
       analysis/TestAnalysisService.cpp
+      import/draft/TestDraftMatcher.cpp
+      import/draft/TestDraftMatcherProjection.cpp
       import/draft/TestDraftFinalizer.cpp
     ports/
       workspace/TestWorkspaceReaderContract.cpp
@@ -406,5 +413,5 @@ The core test suite is complete when:
 - every policy has a dedicated contract test file
 - the workspace catalog aggregate is covered as an aggregate root
 - the workspace application boundary is covered by snapshot, workflow, and port tests
-- analysis has both execution and presentation coverage
+- analysis has execution coverage through the application service and related domain rules
 - the port contracts are locked with boundary-level tests

@@ -1,0 +1,46 @@
+/**
+ * @file core/tests/ports/workspace/TestWorkspaceReaderContract.cpp
+ * @brief Tests for the workspace reader boundary contract.
+ */
+
+#include <gtest/gtest.h>
+
+#include "core/ports/workspace/IWorkspaceReader.h"
+
+namespace core::ports::workspace {
+
+namespace {
+
+class ReaderSpy final : public IWorkspaceReader {
+public:
+    WorkspaceSnapshot snapshot;
+    std::optional<StatementDraftSnapshot> draft;
+
+    WorkspaceSnapshot workspaceSnapshot() const override {
+        return snapshot;
+    }
+
+    std::optional<StatementDraftSnapshot> statementDraftSnapshot(const std::string& = {}) const override {
+        return draft;
+    }
+};
+
+} // namespace
+
+TEST(WorkspaceReaderContractTest, ReturnsSnapshotAndDraftState) {
+    ReaderSpy reader;
+    reader.snapshot.currentPath = "P:/workspace.db";
+    reader.snapshot.hasCurrentPath = true;
+    reader.draft = StatementDraftSnapshot{};
+    reader.draft->id = "draft-1";
+
+    const auto snapshot = reader.workspaceSnapshot();
+    const auto draft = reader.statementDraftSnapshot();
+
+    EXPECT_TRUE(snapshot.hasCurrentPath);
+    EXPECT_EQ(snapshot.currentPath, "P:/workspace.db");
+    ASSERT_TRUE(draft.has_value());
+    EXPECT_EQ(draft->id, "draft-1");
+}
+
+} // namespace core::ports::workspace

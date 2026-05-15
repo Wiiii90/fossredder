@@ -17,11 +17,12 @@ Transaction::Transaction(std::string nameValue,
                          std::string valutaValue,
                          double amountValue,
                          bool allocatableValue)
-    : name_(std::move(nameValue)),
-      bookingDate_(BookingDate(std::move(bookingDateValue)).value()),
-      valuta_(std::move(valutaValue)),
-      amount_(amountValue),
-      allocatable_(allocatableValue) {}
+    : amount_(amountValue),
+      allocatable_(allocatableValue) {
+    setName(std::move(nameValue));
+    setBookingDate(std::move(bookingDateValue));
+    setValuta(std::move(valutaValue));
+}
 
 void Transaction::setName(std::string value) {
     name_ = policies::transaction::normalizeText(std::move(value));

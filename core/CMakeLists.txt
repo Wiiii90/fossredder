@@ -97,6 +97,8 @@ set(CORE_PUBLIC_HEADERS
     include/core/application/import/draft/IImportMatcherService.h
 )
 
+option(BUILD_CORE_TESTS "Build core tests" OFF)
+
 set(CORE_PRIVATE_HEADERS
     src/application/analysis/internal/AnalysisFilter.h
     src/application/analysis/presentation/PlotAnalysis.h
@@ -202,3 +204,7 @@ fossredder_enable_target_pch(fossredder_core "${CMAKE_CURRENT_SOURCE_DIR}/includ
 
 fossredder_install_library_target(fossredder_core)
 fossredder_install_headers("${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+if(BUILD_CORE_TESTS)
+    add_subdirectory(tests)
+endif()
