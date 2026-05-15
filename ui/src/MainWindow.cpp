@@ -21,16 +21,16 @@
 #include <string>
 
 #include "core/constants/app.h"
-#include "ui/actions/Actions.h"
-#include "ui/bootstrap/AppContext.h"
-#include "ui/bootstrap/QmlContracts.h"
-#include "ui/bootstrap/QmlRuntime.h"
-#include "ui/config/Defaults.h"
-#include "ui/observability/Origins.h"
-#include "ui/util/StringConversions.h"
-#include "ui/text/Text.h"
-#include "ui/window/MainWindowContext.h"
-#include "ui/window/MainWindowTrace.h"
+#include "ui/shell/AppActions.h"
+#include "ui/shell/AppContext.h"
+#include "ui/shell/QmlContracts.h"
+#include "ui/shell/QmlRuntime.h"
+#include "ui/shared/config/Defaults.h"
+#include "ui/shared/observability/Origins.h"
+#include "ui/shared/util/StringConversions.h"
+#include "ui/shared/text/Text.h"
+#include "ui/shell/window/MainWindowContext.h"
+#include "ui/shell/window/MainWindowTrace.h"
 
 namespace {
 
@@ -119,21 +119,23 @@ void MainWindow::setupUiContext() {
       ui::window::installMainWindowContext(*m_quickView->rootContext(), this,
                                            this);
   actions_ = services.actions;
-  dataSession_ = services.dataSession;
+  workspace_ = services.workspace;
   status_ = services.status;
 
   if (appContext_) {
     appContext_->setActions(services.actions);
     appContext_->setNavigation(services.navigation);
-    appContext_->setSession(services.dataSession);
-    appContext_->setFileSystemController(services.fileSystem);
+    appContext_->setWorkspace(services.workspace);
+    appContext_->setFileSystemBrowser(services.fileSystemBrowser);
+    appContext_->setLanguageService(services.languageService);
+    appContext_->setSettingsViewModel(services.settingsViewModel);
     appContext_->setStatus(services.status);
   }
 }
 
 void MainWindow::setupActionRouting() {
   ui::window::wireMainWindowActions(
-      *this, {actions_, nullptr, dataSession_, nullptr, status_},
+      *this, {actions_, nullptr, workspace_, nullptr, nullptr, nullptr, status_},
       [this]() { onAbout(); });
 }
 
@@ -226,7 +228,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *ev) {
   }
 
   if (obj == m_quickContainer) {
-    const auto outcome = dropController_.handle(ev);
+    const auto outcome = dropHandler_.handle(ev);
     if (outcome.handled) {
       if (ev->type() == QEvent::Drop && outcome.accepted && actions_) {
         ui::window::reportMainWindowFlow(
@@ -278,7 +280,7 @@ void MainWindow::handleStorageOperationFailed(const QString &operation,
     return;
 
   const QString message =
-      error.isEmpty() ? ui::text::controllerErrors::storageSaveFailed()
+      error.isEmpty() ? ui::text::workflowErrors::storageSaveFailed()
                       : error;
   if (status_)
     status_->setText(message);

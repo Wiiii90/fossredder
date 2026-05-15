@@ -13,9 +13,7 @@ Item {
     id: root
     required property var appContext
     readonly property var session: root.appContext ? root.appContext.session : null
-    readonly property var actorController: root.appContext ? root.appContext.actorController : null
-    readonly property var propertyController: root.appContext ? root.appContext.propertyController : null
-    readonly property var contractController: root.appContext ? root.appContext.contractController : null
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
     property var model: null
     property var selectedIds: []
     property bool showAdd: true
@@ -74,9 +72,9 @@ Item {
                     if (!name) return
                     let id = null
                     try {
-                        if (root.actorController && root.session && root.model === root.session.actors) id = root.actorController.addActor(name, "", "")
-                        else if (root.propertyController && root.session && root.model === root.session.properties) id = root.propertyController.addProperty(name, "", "")
-                        else if (root.contractController && root.session && root.model === root.session.contracts) id = root.contractController.addContract(name, "", "", [], [])
+                        if (root.workspaceFacade && root.session && root.model === root.session.actors) id = root.workspaceFacade.addActor(name, "", "")
+                        else if (root.workspaceFacade && root.session && root.model === root.session.properties) id = root.workspaceFacade.addProperty(name, "", "")
+                        else if (root.workspaceFacade && root.session && root.model === root.session.contracts) id = root.workspaceFacade.addContract(name, "", "", [], [])
                     } catch(e) { id = null }
                     if (id && id.length > 0) {
                         const next = root.selectedIds ? root.selectedIds.slice(0) : []

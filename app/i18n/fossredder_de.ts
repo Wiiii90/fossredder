@@ -4,32 +4,32 @@
 <context>
     <name>Actions</name>
     <message>
-        <location filename="../../ui/include/ui/text/Text.h" line="41"/>
+        <location filename="../../ui/include/ui/shared/text/Text.h" line="41"/>
         <source>New...</source>
         <translation>Neu...</translation>
     </message>
     <message>
-        <location filename="../../ui/include/ui/text/Text.h" line="42"/>
+        <location filename="../../ui/include/ui/shared/text/Text.h" line="42"/>
         <source>Open...</source>
         <translation>Öffnen...</translation>
     </message>
     <message>
-        <location filename="../../ui/include/ui/text/Text.h" line="43"/>
+        <location filename="../../ui/include/ui/shared/text/Text.h" line="43"/>
         <source>Save</source>
         <translation>Speichern</translation>
     </message>
     <message>
-        <location filename="../../ui/include/ui/text/Text.h" line="44"/>
+        <location filename="../../ui/include/ui/shared/text/Text.h" line="44"/>
         <source>Save As...</source>
         <translation>Speichern unter...</translation>
     </message>
     <message>
-        <location filename="../../ui/include/ui/text/Text.h" line="45"/>
+        <location filename="../../ui/include/ui/shared/text/Text.h" line="45"/>
         <source>Quit</source>
         <translation>Beenden</translation>
     </message>
     <message>
-        <location filename="../../ui/include/ui/text/Text.h" line="46"/>
+        <location filename="../../ui/include/ui/shared/text/Text.h" line="46"/>
         <source>About</source>
         <translation>Über</translation>
     </message>
@@ -43,7 +43,7 @@
     </message>
 </context>
 <context>
-    <name>ControllerErrors</name>
+    <name>WorkflowErrors</name>
     <message>
         <location filename="../../ui/include/ui/text/Text.h" line="100"/>
         <source>Failed to create file</source>
@@ -77,7 +77,7 @@
     <message>
         <location filename="../../ui/include/ui/text/Text.h" line="106"/>
         <source>Import controller not available</source>
-        <translation>Import-Controller nicht verfügbar</translation>
+        <translation>Import-Workflow nicht verfügbar</translation>
     </message>
     <message>
         <location filename="../../ui/include/ui/text/Text.h" line="107"/>
@@ -225,7 +225,7 @@
     </message>
 </context>
 <context>
-    <name>LanguageController</name>
+    <name>LanguageService</name>
     <message>
         <location filename="../../ui/include/ui/text/Text.h" line="187"/>
         <source>English</source>
@@ -1479,7 +1479,5 @@
     <message><source>Application</source><translation>Anwendung</translation></message>
 </context>
 </TS>
-
-
 
 

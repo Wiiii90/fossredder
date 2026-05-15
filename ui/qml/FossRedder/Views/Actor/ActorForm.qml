@@ -18,7 +18,7 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
-    readonly property var actorController: root.appContext ? root.appContext.actorController : null
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
 
     readonly property var current: root.session ? root.session.selectedActor : null
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
@@ -127,10 +127,10 @@ Item {
     }
 
     function submitActor() {
-        if (!root.actorController) return
+        if (!root.workspaceFacade) return
         const aliasValues = root.toStringList(root.aliases)
         const actorId = root.isEdit && root.current && root.current.id ? root.current.id : ""
-        const id = root.actorController.saveActor(actorId, nameField.text, aliasValues)
+        const id = root.workspaceFacade.saveActor(actorId, nameField.text, aliasValues)
         if (!root.isEdit)
             root.clearFields()
         if (root.session && id && id.length > 0)
@@ -139,11 +139,11 @@ Item {
     }
 
     function deleteActor() {
-        if (!root.actorController || !root.current || !root.current.id)
+        if (!root.workspaceFacade || !root.current || !root.current.id)
             return
 
         const removedId = root.current.id
-        root.actorController.deleteActor(removedId)
+        root.workspaceFacade.deleteActor(removedId)
         if (!root.session)
             return
 

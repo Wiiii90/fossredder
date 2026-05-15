@@ -15,11 +15,11 @@ Item {
     id: root
     required property var appContext
     required property var theme
-    readonly property var exportCtrl: root.appContext ? root.appContext.exportController : null
+    readonly property var exportWorkflow: root.appContext ? root.appContext.exportWorkflow : null
     readonly property var actions: root.appContext ? root.appContext.actions : null
-    readonly property var fileSystemController: root.appContext ? root.appContext.fileSystemController : null
-    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
-    readonly property bool hasExportCtrl: root.exportCtrl !== null
+    readonly property var fileSystemBrowser: root.appContext ? root.appContext.fileSystemBrowser : null
+    readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
+    readonly property bool hasExportCtrl: root.exportWorkflow !== null
     readonly property string readyText: qsTr("Ready")
     readonly property int csvContractValue: 0
     readonly property int xlsxContractValue: 1
@@ -53,10 +53,10 @@ Item {
     }
 
     function defaultTargetDirectory() {
-        if (root.settingsController && root.settingsController.exportDefaultDirectory && root.settingsController.exportDefaultDirectory.length > 0)
-            return String(root.settingsController.exportDefaultDirectory)
-        if (root.fileSystemController && root.fileSystemController.appDir) {
-            const appPath = root.fileSystemController.appDir()
+        if (root.settingsViewModel && root.settingsViewModel.exportDefaultDirectory && root.settingsViewModel.exportDefaultDirectory.length > 0)
+            return String(root.settingsViewModel.exportDefaultDirectory)
+        if (root.fileSystemBrowser && root.fileSystemBrowser.appDir) {
+            const appPath = root.fileSystemBrowser.appDir()
             if (appPath && String(appPath).length > 0) return String(appPath)
         }
         return Qt.resolvedUrl(".").toString().replace("file:///", "")
@@ -65,10 +65,10 @@ Item {
     function clearForm() {
         if (formPanel) {
             formPanel.targetDirectory = root.defaultTargetDirectory()
-            formPanel.packageFormatIndex = root.settingsController ? root.settingsController.exportArchiveFormat : 0
+            formPanel.packageFormatIndex = root.settingsViewModel ? root.settingsViewModel.exportArchiveFormat : 0
         }
         if (objectsPanel) objectsPanel.clearAll()
-        if (root.hasExportCtrl) root.exportCtrl.clearActiveRun()
+        if (root.hasExportCtrl) root.exportWorkflow.clearActiveRun()
     }
 
     ColumnLayout {
@@ -102,7 +102,7 @@ Item {
                     Component.onCompleted: {
                         if (!targetDirectory || targetDirectory.length === 0)
                             targetDirectory = root.defaultTargetDirectory()
-                        packageFormatIndex = root.settingsController ? root.settingsController.exportArchiveFormat : 0
+                        packageFormatIndex = root.settingsViewModel ? root.settingsViewModel.exportArchiveFormat : 0
                     }
                     onBrowseRequested: {
                         if (root.actions) root.actions.browseExportDirectory()
@@ -124,7 +124,7 @@ Item {
         ExportProgressBar {
             Layout.fillWidth: true
             theme: root.theme
-            exportCtrl: root.exportCtrl
+            exportWorkflow: root.exportWorkflow
             hasExportCtrl: root.hasExportCtrl
             readyText: root.readyText
         }
@@ -136,30 +136,30 @@ Item {
             Controls.SecondaryButton {
                 objectName: "exportClearButton"
                 text: qsTr("Clear")
-                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 0
+                visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 0
                 onClicked: root.clearForm()
             }
 
             Controls.SecondaryButton {
                 objectName: "exportCancelButton"
                 text: qsTr("Cancel")
-                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
-                onClicked: if (root.hasExportCtrl) root.exportCtrl.cancelExport()
+                visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 1
+                onClicked: if (root.hasExportCtrl) root.exportWorkflow.cancelExport()
             }
 
             Item { Layout.fillWidth: true }
 
             Controls.SecondaryButton {
                 objectName: "exportTogglePauseButton"
-                text: root.hasExportCtrl && root.exportCtrl.isPaused ? qsTr("Resume") : qsTr("Pause")
-                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 1
-                onClicked: if (root.hasExportCtrl) root.exportCtrl.togglePause()
+                text: root.hasExportCtrl && root.exportWorkflow.isPaused ? qsTr("Resume") : qsTr("Pause")
+                visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 1
+                onClicked: if (root.hasExportCtrl) root.exportWorkflow.togglePause()
             }
 
             Controls.SuccessButton {
                 objectName: "exportStartButton"
                 text: qsTr("Start")
-                visible: root.hasExportCtrl && root.exportCtrl.currentMode === 0
+                visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 0
                 enabled: {
                     const dir = formPanel ? formPanel.targetDirectory : ""
                     const items = objectsPanel ? objectsPanel.exportItems() : []
@@ -171,8 +171,8 @@ Item {
                     const path = (formPanel ? formPanel.targetDirectory : "") + "/export"
                     const selectedOption = root.formatOptions[0]
                     const items = objectsPanel ? objectsPanel.exportItems() : []
-                    const includeFormulas = root.settingsController ? root.settingsController.exportIncludeFormulas : true
-                    root.exportCtrl.exportDataWithPayload(selectedOption.contract, path, includeFormulas, root.defaultLocale, payload, Math.max(1, items.length))
+                    const includeFormulas = root.settingsViewModel ? root.settingsViewModel.exportIncludeFormulas : true
+                    root.exportWorkflow.exportDataWithPayload(selectedOption.contract, path, includeFormulas, root.defaultLocale, payload, Math.max(1, items.length))
                 }
             }
         }
@@ -188,7 +188,7 @@ Item {
         }
 
         Connections {
-            target: root.settingsController
+            target: root.settingsViewModel
             function onExportDefaultDirectoryChanged() {
                 if (!formPanel)
                     return
@@ -198,7 +198,7 @@ Item {
             function onExportArchiveFormatChanged() {
                 if (!formPanel)
                     return
-                formPanel.packageFormatIndex = root.settingsController.exportArchiveFormat
+                formPanel.packageFormatIndex = root.settingsViewModel.exportArchiveFormat
             }
         }
 

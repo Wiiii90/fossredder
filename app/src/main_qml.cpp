@@ -27,39 +27,28 @@
 #include "core/ports/presenters/IAnalysisPresenter.h"
 #include "core/ports/presenters/IExportPresenter.h"
 #include "core/ports/presenters/IImportPresenter.h"
-#include "core/ports/presenters/IWorkspacePresenter.h"
 #include "core/ports/text-recognition/ITextRecognizer.h"
 #include "core/ports/workspace/WorkspaceCommands.h"
 #include "debug/DebugDefaults.h"
 #include "analysis-image-renderer/OpenCvAnalysisImageRendererAdapter.h"
 #include "xlsx-writer/XlntTableWriterAdapter.h"
-#include "ui/bootstrap/AppContext.h"
+#include "ui/shell/AppContext.h"
 
 using core::domain::DeletionImpact;
 #include "archive/ZipArchiveAdapter.h"
 #include "debug/ErrorReporter.h"
 #include "debug/FileDebugger.h"
-#include "ui/bootstrap/QmlContracts.h"
-#include "ui/controllers/ActorController.h"
-#include "ui/controllers/AnalysisController.h"
-#include "ui/controllers/AnnualController.h"
-#include "ui/controllers/ContractController.h"
-#include "ui/controllers/DraftController.h"
-#include "ui/controllers/ExportController.h"
-#include "ui/controllers/ImportController.h"
-#include "ui/controllers/LanguageController.h"
-#include "ui/controllers/PropertyController.h"
-#include "ui/controllers/SettingsController.h"
-#include "ui/controllers/StatementController.h"
-#include "ui/controllers/StorageController.h"
-#include "ui/controllers/TransactionController.h"
-#include "ui/export/ExportRunner.h"
-#include "ui/export/WorkspaceSnapshot.h"
-#include "ui/observability/ErrorCodes.h"
-#include "ui/observability/Origins.h"
-#include "ui/observability/Trace.h"
-#include "ui/state/StateFacade.h"
-#include "ui/state/WorkspaceClone.h"
+#include "ui/shell/QmlContracts.h"
+#include "ui/platform/localization/LanguageService.h"
+#include "ui/viewmodels/system/SettingsViewModel.h"
+#include "ui/workflows/export/ExportRunner.h"
+#include "ui/workflows/export/WorkspaceSnapshot.h"
+#include "ui/shared/observability/ErrorCodes.h"
+#include "ui/shared/observability/Origins.h"
+#include "ui/shared/observability/Trace.h"
+#include "ui/workflows/analysis/AnalysisWorkflow.h"
+#include "ui/workflows/export/ExportWorkflow.h"
+#include "ui/workflows/import/ImportWorkflow.h"
 #include <QApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -240,35 +229,12 @@ executeExport(std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> sna
   return result;
 }
 
-struct UiControllers {
-  ui::StorageController *storage = nullptr;
-  ui::AnnualController *annual = nullptr;
-  ui::ActorController *actor = nullptr;
-  ui::PropertyController *property = nullptr;
-  ui::ContractController *contract = nullptr;
-  ui::StatementController *statement = nullptr;
-  ui::TransactionController *transaction = nullptr;
-  ui::DraftController *draft = nullptr;
-  ui::AnalysisController *analysisController = nullptr;
-  ui::ExportController *exportCtrl = nullptr;
-  ui::ImportController *import = nullptr;
-  ui::LanguageController *language = nullptr;
+struct UiServices {
+  ui::AnalysisWorkflow *analysisWorkflow = nullptr;
+  ui::ExportWorkflow *exportWorkflow = nullptr;
+  ui::ImportWorkflow *importWorkflow = nullptr;
+  ui::LanguageService *languageService = nullptr;
   std::shared_ptr<core::application::analysis::AnalysisService> analysisService;
-};
-
-struct WorkspacePresenterAdapter final
-    : core::ports::presenters::IWorkspacePresenter {
-  core::ports::presenters::WorkspacePresentation
-  present(const core::ports::presenters::WorkspacePresentation &result)
-      const override {
-    auto out = result;
-    if (!out.hasCurrentPath) {
-      out.currentPath.clear();
-      return out;
-    }
-    out.hasCurrentPath = !out.currentPath.empty();
-    return out;
-  }
 };
 
 struct AnalysisPresenterAdapter final
@@ -356,19 +322,19 @@ struct ImportMatcherServiceAdapter final
   }
 };
 
-UiControllers setupUiControllers(
+UiServices setupUiServices(
     QApplication &app, MainWindow &w,
     core::application::WorkspaceFacade &appStateFacade,
     const std::shared_ptr<core::errors::IErrorReporter> &errorReporter) {
-  UiControllers ui;
+  UiServices ui;
 
-  auto workspacePresenter = std::make_shared<WorkspacePresenterAdapter>();
-  ui.storage =
-      new ui::StorageController(&appStateFacade, workspacePresenter, &w);
-  w.setQmlContextProperty(ui::qml::contracts::context::kStorageController,
-                          ui.storage);
-  if (auto *appContext = w.appContext())
-    appContext->setStorageController(ui.storage);
+  if (w.workspace())
+    w.workspace()->setCoreFacade(&appStateFacade);
+  if (auto *appContext = w.appContext()) {
+    appContext->setWorkspaceFacade(w.workspace());
+  }
+  w.setQmlContextProperty(ui::qml::contracts::context::kWorkspaceFacade,
+                          w.workspace());
 
   const auto analysisSnapshotProvider = [&appStateFacade]() {
     return std::make_shared<const core::domain::catalog::WorkspaceCatalog>(appStateFacade.catalogState());
@@ -381,76 +347,45 @@ UiControllers setupUiControllers(
   ui.analysisService =
       std::make_shared<core::application::analysis::AnalysisService>();
   auto analysisPresenter = std::make_shared<AnalysisPresenterAdapter>();
-  ui.annual = new ui::AnnualController(&appStateFacade, &w);
-  ui.actor = new ui::ActorController(&appStateFacade, &w);
-  ui.property = new ui::PropertyController(&appStateFacade, &w);
-  ui.contract = new ui::ContractController(&appStateFacade, &w);
-  ui.statement = new ui::StatementController(&appStateFacade, &w);
-  ui.transaction = new ui::TransactionController(&appStateFacade, &w);
   auto importMatcherService = std::make_shared<ImportMatcherServiceAdapter>();
-  ui.draft = new ui::DraftController(&appStateFacade, importMatcherService, &w);
-   ui.analysisController =
-       new ui::AnalysisController(&appStateFacade, analysisSnapshotProvider,
-                                  ui.analysisService, analysisPresenter, &w);
-  w.setQmlContextProperty(ui::qml::contracts::context::kAnnualController,
-                          ui.annual);
+  ui.analysisWorkflow =
+      new ui::AnalysisWorkflow(&appStateFacade, analysisSnapshotProvider,
+                               ui.analysisService, analysisPresenter, &w);
+  w.setQmlContextProperty(ui::qml::contracts::context::kImportWorkflow,
+                          ui.importWorkflow);
   if (auto *appContext = w.appContext())
-    appContext->setAnnualController(ui.annual);
-  w.setQmlContextProperty(ui::qml::contracts::context::kActorController,
-                          ui.actor);
+    appContext->setImportWorkflow(ui.importWorkflow);
+  w.setQmlContextProperty(ui::qml::contracts::context::kAnalysisWorkflow,
+                          ui.analysisWorkflow);
   if (auto *appContext = w.appContext())
-    appContext->setActorController(ui.actor);
-  w.setQmlContextProperty(ui::qml::contracts::context::kPropertyController,
-                          ui.property);
-  if (auto *appContext = w.appContext())
-    appContext->setPropertyController(ui.property);
-  w.setQmlContextProperty(ui::qml::contracts::context::kContractController,
-                          ui.contract);
-  if (auto *appContext = w.appContext())
-    appContext->setContractController(ui.contract);
-  w.setQmlContextProperty(ui::qml::contracts::context::kStatementController,
-                          ui.statement);
-  if (auto *appContext = w.appContext())
-    appContext->setStatementController(ui.statement);
-  w.setQmlContextProperty(ui::qml::contracts::context::kTransactionController,
-                          ui.transaction);
-  if (auto *appContext = w.appContext())
-    appContext->setTransactionController(ui.transaction);
-  w.setQmlContextProperty(ui::qml::contracts::context::kDraftController,
-                          ui.draft);
-  if (auto *appContext = w.appContext())
-    appContext->setDraftController(ui.draft);
-  w.setQmlContextProperty(ui::qml::contracts::context::kAnalysisController,
-                          ui.analysisController);
-  if (auto *appContext = w.appContext())
-    appContext->setAnalysisController(ui.analysisController);
+    appContext->setAnalysisWorkflow(ui.analysisWorkflow);
 
   auto exportRunner =
       std::make_shared<ui::exporting::ExportRunner>(executeExport);
   auto exportPresenter = std::make_shared<ExportPresenterAdapter>();
-  ui.exportCtrl = new ui::ExportController(exportSnapshotProvider, exportRunner,
-                                           exportPresenter, &w);
-  ui.exportCtrl->setExportLogsStore(
+  ui.exportWorkflow = new ui::ExportWorkflow(exportSnapshotProvider, exportRunner,
+                                             exportPresenter, &w);
+  ui.exportWorkflow->setExportLogsStore(
       [&appStateFacade](
           const std::vector<core::application::exporting::ExportLog> &logs) {
         appStateFacade.setExportLogs(toExportLogsCommand(logs));
       });
-  w.setQmlContextProperty(ui::qml::contracts::context::kExportController,
-                          ui.exportCtrl);
+  w.setQmlContextProperty(ui::qml::contracts::context::kExportWorkflow,
+                          ui.exportWorkflow);
   if (auto *appContext = w.appContext())
-    appContext->setExportController(ui.exportCtrl);
+    appContext->setExportWorkflow(ui.exportWorkflow);
 
-  ui.language = new ui::LanguageController(&app, w.qmlEngine(), &w);
-  w.setQmlContextProperty(ui::qml::contracts::context::kLanguageController,
-                          ui.language);
+  ui.languageService = new ui::LanguageService(&app, w.qmlEngine(), &w);
+  w.setQmlContextProperty(ui::qml::contracts::context::kLanguageService,
+                          ui.languageService);
   if (auto *appContext = w.appContext())
-    appContext->setLanguageController(ui.language);
+    appContext->setLanguageService(ui.languageService);
 
-  auto *settingsController = new ui::SettingsController(&w);
-  w.setQmlContextProperty(ui::qml::contracts::context::kSettingsController,
-                          settingsController);
+  auto *settingsViewModel = new ui::SettingsViewModel(&w);
+  w.setQmlContextProperty(ui::qml::contracts::context::kSettingsViewModel,
+                          settingsViewModel);
   if (auto *appContext = w.appContext())
-    appContext->setSettingsController(settingsController);
+    appContext->setSettingsViewModel(settingsViewModel);
 
   auto importJobSystemFactory =
       [dbg = std::make_shared<FileDebugger>(
@@ -473,22 +408,15 @@ UiControllers setupUiControllers(
 
   const auto importSnapshotProvider = [&appStateFacade, &w]() {
     const auto liveState = appStateFacade.state();
-    if (auto *session = w.dataSession()) {
+    if (auto *session = w.workspace()) {
       core::application::workspace::WorkspaceSessionState snapshot;
-      snapshot.catalog.setActors(
-          ui::cloneStateItems(session->actors()->actors()));
-      snapshot.catalog.setProperties(
-          ui::cloneStateItems(session->properties()->properties()));
-      snapshot.catalog.setContracts(
-          ui::cloneStateItems(session->contracts()->contracts()));
-      snapshot.catalog.setStatements(
-          ui::cloneStateItems(session->statements()->statements()));
-      snapshot.catalog.setTransactions(
-          ui::cloneStateItems(session->transactions()->transactions()));
-      snapshot.catalog.setAnalyses(
-          ui::cloneStateItems(session->analyses()->analyses()));
-      snapshot.catalog.setAnnuals(
-          ui::cloneStateItems(session->annuals()->annuals()));
+      snapshot.catalog.setActors(session->actors()->actors());
+      snapshot.catalog.setProperties(session->properties()->properties());
+      snapshot.catalog.setContracts(session->contracts()->contracts());
+      snapshot.catalog.setStatements(session->statements()->statements());
+      snapshot.catalog.setTransactions(session->transactions()->transactions());
+      snapshot.catalog.setAnalyses(session->analyses()->analyses());
+      snapshot.catalog.setAnnuals(session->annuals()->annuals());
       if (snapshot.catalog.actors().empty())
         snapshot.catalog.setActors(liveState.catalog.actors());
       if (snapshot.catalog.properties().empty())
@@ -509,24 +437,25 @@ UiControllers setupUiControllers(
     return liveState;
   };
 
-  ui.import =
-      new ui::ImportController(importJobSystemFactory, errorReporter,
-                               importPresenter, importMatcherService, &w);
-  ui.import->setStateSnapshotProvider(importSnapshotProvider);
-  ui.import->setImportLogsStore(
+  ui.importWorkflow =
+      new ui::ImportWorkflow(importJobSystemFactory, errorReporter,
+                             importPresenter, importMatcherService,
+                             &appStateFacade, &w);
+  ui.importWorkflow->setStateSnapshotProvider(importSnapshotProvider);
+  ui.importWorkflow->setImportLogsStore(
       [&appStateFacade](
           const std::vector<core::application::importing::ImportLog> &logs) {
         appStateFacade.setImportLogs(toImportLogsCommand(logs));
       });
-  ui.import->setStatementDraftStore(
+  ui.importWorkflow->setStatementDraftStore(
       [&appStateFacade](
           const core::application::importing::draft::StatementDraft &draft) {
         appStateFacade.saveStatementDraft({toStatementDraftSnapshot(draft)});
       });
-  w.setQmlContextProperty(ui::qml::contracts::context::kImportController,
-                          ui.import);
+  w.setQmlContextProperty(ui::qml::contracts::context::kImportWorkflow,
+                          ui.importWorkflow);
   if (auto *appContext = w.appContext())
-    appContext->setImportController(ui.import);
+    appContext->setImportWorkflow(ui.importWorkflow);
 
   return ui;
 }
@@ -534,21 +463,21 @@ UiControllers setupUiControllers(
 void wireAppStateToSession(
     MainWindow &w, core::application::WorkspaceFacade &appStateFacade,
     const std::shared_ptr<core::errors::IErrorReporter> &errorReporter) {
-  if (w.dataSession()) {
-    w.dataSession()->loadFromState(appStateFacade.catalogState());
+  if (w.workspace()) {
+    w.workspace()->loadFromState(appStateFacade.catalogState());
   }
 
   appStateFacade.setStateChangedCallback(
       [&](const core::application::workspace::WorkspaceSessionState &document) {
-        if (w.dataSession()) {
-          w.dataSession()->loadFromState(document.catalog);
+        if (w.workspace()) {
+          w.workspace()->loadFromState(document.catalog);
         }
       });
 
   appStateFacade.setDeletionImpactCallback([&](const DeletionImpact &impact) {
     try {
-      if (w.dataSession())
-        w.dataSession()->applyDeletionImpact(impact);
+      if (w.workspace())
+        w.workspace()->applyDeletionImpact(impact);
     } catch (...) {
       if (errorReporter)
         errorReporter->reportException(
@@ -559,22 +488,22 @@ void wireAppStateToSession(
   });
 }
 
-void wireFileSignals(MainWindow &w, ui::StorageController *storage) {
-  if (!storage)
+void wireFileSignals(MainWindow &w, ui::WorkspaceFacade *workspace) {
+  if (!workspace)
     return;
 
-  QObject::connect(&w, &MainWindow::newFileRequested, storage,
-                   [storage](const QString &path) { storage->newFile(path); });
-  QObject::connect(&w, &MainWindow::openFileRequested, storage,
-                   [storage](const QString &path) { storage->openFile(path); });
-  QObject::connect(&w, &MainWindow::saveFileRequested, storage,
-                   [storage]() { storage->saveFile(); });
+  QObject::connect(&w, &MainWindow::newFileRequested, workspace,
+                   [workspace](const QString &path) { workspace->newFile(path); });
+  QObject::connect(&w, &MainWindow::openFileRequested, workspace,
+                   [workspace](const QString &path) { workspace->openFile(path); });
+  QObject::connect(&w, &MainWindow::saveFileRequested, workspace,
+                   [workspace]() { workspace->saveFile(); });
   QObject::connect(
-      &w, &MainWindow::saveFileAsRequested, storage,
-      [storage](const QString &path) { storage->saveFileAs(path); });
-  QObject::connect(storage, &ui::StorageController::operationSucceeded, &w,
+      &w, &MainWindow::saveFileAsRequested, workspace,
+      [workspace](const QString &path) { workspace->saveFileAs(path); });
+  QObject::connect(workspace, &ui::WorkspaceFacade::operationSucceeded, &w,
                    &MainWindow::handleStorageOperationSucceeded);
-  QObject::connect(storage, &ui::StorageController::operationFailed, &w,
+  QObject::connect(workspace, &ui::WorkspaceFacade::operationFailed, &w,
                    &MainWindow::handleStorageOperationFailed);
 }
 
@@ -625,12 +554,12 @@ int startQmlApp(QApplication &app,
   }
   appStateFacade.setErrorReporter(errorReporter);
 
-  const UiControllers ui =
-      setupUiControllers(app, w, appStateFacade, errorReporter);
+  const UiServices ui =
+      setupUiServices(app, w, appStateFacade, errorReporter);
 
   wireAppStateToSession(w, appStateFacade, errorReporter);
 
-  wireFileSignals(w, ui.storage);
+  wireFileSignals(w, w.workspace());
 
   wireQmlWarnings(w, errorReporter);
 

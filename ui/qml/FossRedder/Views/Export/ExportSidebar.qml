@@ -12,7 +12,7 @@ Item {
     required property var appContext
     required property var theme
 
-    readonly property var exportController: root.appContext ? root.appContext.exportController : null
+    readonly property var exportWorkflow: root.appContext ? root.appContext.exportWorkflow : null
 
     ColumnLayout {
         anchors.fill: parent
@@ -23,14 +23,14 @@ Item {
             theme: root.theme
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: root.exportController ? root.exportController.runs : null
+            model: root.exportWorkflow ? root.exportWorkflow.runs : null
             onRunClicked: function(index, logId, draftAttached, statementId) {
-                if (!root.exportController) return
-                root.exportController.openRunLocationAt(index)
+                if (!root.exportWorkflow) return
+                root.exportWorkflow.openRunLocationAt(index)
             }
             onDeleteClicked: function(index, draftAttached, draftId) {
-                if (!root.exportController || !root.exportController.runs) return
-                root.exportController.removeRunAt(index)
+                if (!root.exportWorkflow || !root.exportWorkflow.runs) return
+                root.exportWorkflow.removeRunAt(index)
             }
         }
     }

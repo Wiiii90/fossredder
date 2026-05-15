@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file app/src/main.cpp
  * @brief Initializes the desktop application and shared runtime infrastructure.
  */
@@ -23,7 +23,7 @@
 #include "core/errors/ErrorCodes.h"
 #include "core/errors/ErrorReporterRegistry.h"
 #include "debug/ErrorReporter.h"
-#include "ui/observability/ErrorCodes.h"
+#include "ui/shared/observability/ErrorCodes.h"
 
 #include <QDir>
 #include <QStandardPaths>
@@ -42,7 +42,6 @@ void ensureParentDirectoryExists(const std::filesystem::path &path,
                                   std::current_exception());
   }
 }
-
 /**
  * @brief Global Qt message handler that redirects Qt logging to stderr with
  * context.

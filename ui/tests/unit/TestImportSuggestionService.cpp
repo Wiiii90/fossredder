@@ -14,7 +14,7 @@
 #include "core/application/import/draft/TransactionDraft.h"
 #include "core/application/import/draft/DraftMatcher.h"
 #include "core/application/import/draft/IImportMatcherService.h"
-#include "ui/import/ImportSuggestionService.h"
+#include "ui/adapters/core/ImportSuggestionMapper.h"
 
 using core::domain::Actor;
 using core::domain::catalog::WorkspaceCatalog;
@@ -31,7 +31,6 @@ std::shared_ptr<Actor> makeActor(const std::string& id, const std::string& name,
     if (!alias.empty()) actor->aliases.push_back(core::domain::Alias{.value = alias});
     return actor;
 }
-
 std::shared_ptr<Property> makeProperty(const std::string& id, const std::string& name, const std::string& alias = {})
 {
     auto property = std::make_shared<Property>();

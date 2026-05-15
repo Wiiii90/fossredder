@@ -14,7 +14,7 @@ Item {
     required property var theme
     readonly property var navigation: toolBar.appContext ? toolBar.appContext.navigation : null
     readonly property var session: toolBar.appContext ? toolBar.appContext.session : null
-    readonly property var settingsController: toolBar.appContext ? toolBar.appContext.settingsController : null
+    readonly property var settingsViewModel: toolBar.appContext ? toolBar.appContext.settingsViewModel : null
     readonly property int navActors: 0
     readonly property int navProperties: 1
     readonly property int navContracts: 2
@@ -76,8 +76,8 @@ Item {
 
             ColumnLayout {
                 id: fileGroup
-                visible: (toolBar.settingsController ? toolBar.settingsController.toolbarShowImport : true)
-                         || (toolBar.settingsController ? toolBar.settingsController.toolbarShowExport : true)
+                visible: (toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowImport : true)
+                         || (toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowExport : true)
                 spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
@@ -90,7 +90,7 @@ Item {
                     Layout.preferredHeight: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowImport : true
+                        visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowImport : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: fileIcons.height
                         svgSource: toolBar.assetUrl("import.svg")
@@ -99,7 +99,7 @@ Item {
                         onClicked: toolBar.navigateTo(toolBar.navImport, false)
                     }
                     Controls.IconButton {
-                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowExport : true
+                        visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowExport : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: fileIcons.height
                         svgSource: toolBar.assetUrl("export.svg")
@@ -132,10 +132,10 @@ Item {
 
             ColumnLayout {
                 id: domainGroup
-                visible: (toolBar.settingsController ? toolBar.settingsController.toolbarShowBooking : true)
-                         || (toolBar.settingsController ? toolBar.settingsController.toolbarShowActors : true)
-                         || (toolBar.settingsController ? toolBar.settingsController.toolbarShowProperties : true)
-                         || (toolBar.settingsController ? toolBar.settingsController.toolbarShowContracts : true)
+                visible: (toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowBooking : true)
+                         || (toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowActors : true)
+                         || (toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowProperties : true)
+                         || (toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowContracts : true)
                 spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
@@ -148,7 +148,7 @@ Item {
                     Layout.preferredHeight: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowBooking : true
+                        visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowBooking : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: toolBar.assetUrl("booking.svg")
@@ -163,7 +163,7 @@ Item {
                         }
                     }
                     Controls.IconButton {
-                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowActors : true
+                        visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowActors : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: toolBar.assetUrl("actor.svg")
@@ -172,7 +172,7 @@ Item {
                         onClicked: toolBar.navigateTo(toolBar.navActors, true)
                     }
                     Controls.IconButton {
-                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowProperties : true
+                        visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowProperties : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: toolBar.assetUrl("property.svg")
@@ -181,7 +181,7 @@ Item {
                         onClicked: toolBar.navigateTo(toolBar.navProperties, true)
                     }
                     Controls.IconButton {
-                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowContracts : true
+                        visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowContracts : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: domainIcons.height
                         svgSource: toolBar.assetUrl("contract.svg")
@@ -214,8 +214,8 @@ Item {
 
             ColumnLayout {
                 id: toolsGroup
-                visible: (toolBar.settingsController ? toolBar.settingsController.toolbarShowAnalysis : true)
-                         || (toolBar.settingsController ? toolBar.settingsController.toolbarShowAnnual : true)
+                visible: (toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowAnalysis : true)
+                         || (toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowAnnual : true)
                 spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
@@ -228,7 +228,7 @@ Item {
                     Layout.preferredHeight: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowAnalysis : true
+                        visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowAnalysis : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: toolBar.assetUrl("analysis.svg")
@@ -241,7 +241,7 @@ Item {
                         }
                     }
                     Controls.IconButton {
-                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowAnnual : true
+                        visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowAnnual : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: toolsIcons.height
                         svgSource: toolBar.assetUrl("annual.svg")
@@ -273,7 +273,7 @@ Item {
 
             ColumnLayout {
                 id: appGroup
-                visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowSettings : true
+                visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowSettings : true
                 spacing: toolBar.theme.toolbarSectionSpacing
                 Layout.alignment: Qt.AlignVCenter
                 Layout.preferredHeight: toolBar.implicitHeight
@@ -286,7 +286,7 @@ Item {
                     Layout.preferredHeight: toolBar.iconRowHeight
 
                     Controls.IconButton {
-                        visible: toolBar.settingsController ? toolBar.settingsController.toolbarShowSettings : true
+                        visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowSettings : true
                         Layout.preferredWidth: toolBar.theme.toolbarIconButtonWidth
                         Layout.preferredHeight: appIcons.height
                         svgSource: toolBar.assetUrl("settings.svg")

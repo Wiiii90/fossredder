@@ -292,16 +292,16 @@ tested as a critical boundary:
 | AST-U-003 | `save_preservesCascadedTransactionDeletionPolicy` | dependency rule | Protects the statement→transaction suppression logic |
 | AST-U-004 | `load_afterSave_roundTripsAggregate` | parity | Verifies full aggregate round-trip |
 
-### 5.4 Structural improvement tests
+### 5.4 Boundary improvement tests
 
 These are the tests that should exist after a small refactor:
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| AST-S-001 | Deletion planning is deterministic | Unit | Existing ids and snapshot ids | Call a planning helper | Returned delete sets are stable and minimal |
-| AST-S-002 | Dependency-aware deletion order is explicit | Unit | Statement and transaction ids present | Call plan builder | Statements are deleted before dependent transaction suppression is applied |
-| AST-S-003 | Save failure aborts the transaction | Integration | Repository failure injected | Call `save(state)` | Transaction rolls back and result signals failure |
-| AST-S-004 | Analysis removal updates annual relation rows | Unit | Existing annual ids and removed analysis id | Run the deletion planner | Annual relation cleanup is captured without deleting the annual |
+| AST-B-001 | Deletion planning is deterministic | Unit | Existing ids and snapshot ids | Call a planning helper | Returned delete sets are stable and minimal |
+| AST-B-002 | Dependency-aware deletion order is explicit | Unit | Statement and transaction ids present | Call plan builder | Statements are deleted before dependent transaction suppression is applied |
+| AST-B-003 | Save failure aborts the transaction | Integration | Repository failure injected | Call `save(state)` | Transaction rolls back and result signals failure |
+| AST-B-004 | Analysis removal updates annual relation rows | Unit | Existing annual ids and removed analysis id | Run the deletion planner | Annual relation cleanup is captured without deleting the annual |
 
 ---
 
@@ -342,4 +342,3 @@ These are the tests that should exist after a small refactor:
 
 Legacy persistence tests should be removed only after the new matrix covers the
 same behavior with clearer intent and stronger assertions.
-

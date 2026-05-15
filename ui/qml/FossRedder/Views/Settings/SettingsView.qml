@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file ui/qml/FossRedder/Views/Settings/SettingsView.qml
  * @brief Provides the SettingsView component.
  */
@@ -15,8 +15,8 @@ Item {
     required property var appContext
     required property var theme
     readonly property var navigation: root.appContext ? root.appContext.navigation : null
-    readonly property var languageController: root.appContext ? root.appContext.languageController : null
-    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
+    readonly property var languageService: root.appContext ? root.appContext.languageService : null
+    readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
     readonly property Component generalPageComponent: generalComp
     readonly property Component importPageComponent: importComp
     readonly property Component exportPageComponent: exportComp
@@ -36,17 +36,17 @@ Item {
     }
 
     function saveSettings() {
-        if (root.settingsController)
-            root.settingsController.save()
-        if (root.languageController && root.settingsController)
-            root.languageController.applyLanguage(root.settingsController.language)
+        if (root.settingsViewModel)
+            root.settingsViewModel.save()
+        if (root.languageService && root.settingsViewModel)
+            root.languageService.applyLanguage(root.settingsViewModel.language)
     }
 
     function resetSettings() {
         if (root.navigation)
             root.navigation.setSettingsCategoryValue(0)
-        if (root.settingsController)
-            root.settingsController.resetToDefaults()
+        if (root.settingsViewModel)
+            root.settingsViewModel.resetToDefaults()
     }
 
     function componentForCategory(category) {
@@ -128,8 +128,8 @@ Item {
         }
 
         Component.onCompleted: {
-            if (root.settingsController)
-                root.settingsController.load()
+            if (root.settingsViewModel)
+                root.settingsViewModel.load()
             if (root.navigation) {
                 root.navigation.setSettingsCategoryValue(root.navigation.settingsCategoryValue)
             }

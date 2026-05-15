@@ -14,18 +14,18 @@ Item {
     id: root
     required property var appContext
     required property var theme
-    readonly property var importController: root.appContext ? root.appContext.importController : null
-    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
+    readonly property var importWorkflow: root.appContext ? root.appContext.importWorkflow : null
+    readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
     readonly property var actions: root.appContext ? root.appContext.actions : null
     readonly property var status: root.appContext ? root.appContext.status : null
 
     function ensureDefaultImportSelection() {
-        if (!root.hasImportController || !root.settingsController || root.importController.isRunning)
+        if (!root.hasImportWorkflow || !root.settingsViewModel || root.importWorkflow.isRunning)
             return
-        if ((root.importController.selectedFile && root.importController.selectedFile.length > 0) || root.importController.queuedCount > 0)
+        if ((root.importWorkflow.selectedFile && root.importWorkflow.selectedFile.length > 0) || root.importWorkflow.queuedCount > 0)
             return
-        if (root.settingsController.importDefaultPath && root.settingsController.importDefaultPath.length > 0)
-            root.importController.selectedFile = root.settingsController.importDefaultPath
+        if (root.settingsViewModel.importDefaultPath && root.settingsViewModel.importDefaultPath.length > 0)
+            root.importWorkflow.selectedFile = root.settingsViewModel.importDefaultPath
     }
 
     Component.onCompleted: {
@@ -40,12 +40,12 @@ Item {
     anchors.fill: parent
     anchors.margins: root.theme.pageContentMargin
 
-    property bool hasImportController: root.importController !== null
+    property bool hasImportWorkflow: root.importWorkflow !== null
 
     property bool importPageActivated: false
 
     function updateContentIndex() {
-        contentStack.currentIndex = (root.hasImportController && root.importController && root.importController.draft) ? 1 : 0
+        contentStack.currentIndex = (root.hasImportWorkflow && root.importWorkflow && root.importWorkflow.draft) ? 1 : 0
     }
 
     StackLayout {
@@ -72,7 +72,7 @@ Item {
     }
 
     Connections {
-        target: root.hasImportController ? root.importController : null
+        target: root.hasImportWorkflow ? root.importWorkflow : null
 
         function onStateChanged() {
             root.ensureDefaultImportSelection()
@@ -81,7 +81,7 @@ Item {
     }
 
     Connections {
-        target: root.settingsController
+        target: root.settingsViewModel
         function onImportDefaultPathChanged() {
             root.ensureDefaultImportSelection()
         }
@@ -126,7 +126,7 @@ Item {
                             Layout.fillHeight: true
                             Layout.minimumHeight: 260
                             theme: root.theme
-                            importController: root.importController
+                            importWorkflow: root.importWorkflow
                             actions: root.actions
                             status: root.status
                         }
@@ -137,8 +137,8 @@ Item {
                 ImportProgressBar {
                     Layout.fillWidth: true
                     theme: root.theme
-                    importController: root.importController
-                    hasImportController: root.hasImportController
+                    importWorkflow: root.importWorkflow
+                    hasImportWorkflow: root.hasImportWorkflow
                 }
 
                 Components.BottomBar {
@@ -148,24 +148,24 @@ Item {
                     Controls.SecondaryButton {
                         objectName: "importClearButton"
                         text: qsTr("Clear")
-                        visible: root.hasImportController && !root.importController.isRunning
-                        enabled: root.hasImportController && !root.importController.isRunning
-                        onClicked: { if (root.hasImportController) root.importController.resetStatus() }
+                        visible: root.hasImportWorkflow && !root.importWorkflow.isRunning
+                        enabled: root.hasImportWorkflow && !root.importWorkflow.isRunning
+                        onClicked: { if (root.hasImportWorkflow) root.importWorkflow.resetStatus() }
                     }
 
                     Controls.SecondaryButton {
                         objectName: "importCancelButton"
                         text: qsTr("Cancel")
-                        visible: root.hasImportController && root.importController.isRunning
-                        enabled: root.hasImportController && root.importController.isRunning
-                        onClicked: if (root.hasImportController) root.importController.cancelImport()
+                        visible: root.hasImportWorkflow && root.importWorkflow.isRunning
+                        enabled: root.hasImportWorkflow && root.importWorkflow.isRunning
+                        onClicked: if (root.hasImportWorkflow) root.importWorkflow.cancelImport()
                     }
 
                     Controls.SecondaryButton {
                         objectName: "importPauseButton"
                         text: qsTr("Pause")
-                        visible: root.hasImportController && root.importController.isRunning
-                        enabled: root.hasImportController && root.importController.isRunning
+                        visible: root.hasImportWorkflow && root.importWorkflow.isRunning
+                        enabled: root.hasImportWorkflow && root.importWorkflow.isRunning
                     }
 
                     Item { Layout.fillWidth: true }
@@ -173,17 +173,17 @@ Item {
                     Controls.SecondaryButton {
                         objectName: "importCancelAllButton"
                         text: qsTr("Cancel all")
-                        visible: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
-                        enabled: root.hasImportController && root.importController.isRunning && root.importController.queuedCount > 0
-                        onClicked: if (root.hasImportController) root.importController.cancelAllImports()
+                        visible: root.hasImportWorkflow && root.importWorkflow.isRunning && root.importWorkflow.queuedCount > 0
+                        enabled: root.hasImportWorkflow && root.importWorkflow.isRunning && root.importWorkflow.queuedCount > 0
+                        onClicked: if (root.hasImportWorkflow) root.importWorkflow.cancelAllImports()
                     }
 
                     Controls.SuccessButton {
                         objectName: "importStartButton"
                         text: qsTr("Start")
-                        visible: root.hasImportController && !root.importController.isRunning
-                        enabled: root.hasImportController && !root.importController.isRunning && ((root.importController.selectedFile && root.importController.selectedFile.length > 0) || root.importController.queuedCount > 0)
-                        onClicked: { if (root.hasImportController) root.importController.startStatementImport() }
+                        visible: root.hasImportWorkflow && !root.importWorkflow.isRunning
+                        enabled: root.hasImportWorkflow && !root.importWorkflow.isRunning && ((root.importWorkflow.selectedFile && root.importWorkflow.selectedFile.length > 0) || root.importWorkflow.queuedCount > 0)
+                        onClicked: { if (root.hasImportWorkflow) root.importWorkflow.startStatementImport() }
                     }
                 }
             }
@@ -206,7 +206,7 @@ Item {
                 anchors.bottomMargin: root.theme.spacingSmall
                 appContext: root.appContext
                 theme: root.theme
-                draft: (root.hasImportController ? root.importController.draft : null)
+                draft: (root.hasImportWorkflow ? root.importWorkflow.draft : null)
             }
 
             Components.BottomBar {
@@ -218,8 +218,8 @@ Item {
 
                 Controls.PrevPageButton {
                     objectName: "statementDraftPrevPageButton"
-                    enabled: !!stmtView.draft && root.hasImportController && root.importController.hasPrevDraft
-                    onClicked: if (root.hasImportController) root.importController.openPrevDraft()
+                    enabled: !!stmtView.draft && root.hasImportWorkflow && root.importWorkflow.hasPrevDraft
+                    onClicked: if (root.hasImportWorkflow) root.importWorkflow.openPrevDraft()
                 }
 
                 Controls.PrevButton {
@@ -268,8 +268,8 @@ Item {
 
                 Controls.NextPageButton {
                     objectName: "statementDraftNextPageButton"
-                    enabled: !!stmtView.draft && root.hasImportController && root.importController.hasNextDraft
-                    onClicked: if (root.hasImportController) root.importController.openNextDraft()
+                    enabled: !!stmtView.draft && root.hasImportWorkflow && root.importWorkflow.hasNextDraft
+                    onClicked: if (root.hasImportWorkflow) root.importWorkflow.openNextDraft()
                 }
             }
         }

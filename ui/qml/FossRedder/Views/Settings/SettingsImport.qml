@@ -11,7 +11,7 @@ Flickable {
     id: root
     required property var appContext
     required property var theme
-    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
+    readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
     readonly property var actions: root.appContext ? root.appContext.actions : null
     Layout.fillWidth: true
     Layout.fillHeight: true
@@ -41,8 +41,8 @@ Flickable {
                         objectName: "settingsImportDefaultPathField"
                         Layout.fillWidth: true
                         placeholderText: qsTr("Select default import path...")
-                        text: root.settingsController ? root.settingsController.importDefaultPath : ""
-                        onTextChanged: if (root.settingsController && root.settingsController.importDefaultPath !== text) root.settingsController.importDefaultPath = text
+                        text: root.settingsViewModel ? root.settingsViewModel.importDefaultPath : ""
+                        onTextChanged: if (root.settingsViewModel && root.settingsViewModel.importDefaultPath !== text) root.settingsViewModel.importDefaultPath = text
                     }
                     Controls.SecondaryButton {
                         objectName: "settingsImportBrowseButton"
@@ -84,8 +84,8 @@ Flickable {
                     Controls.TextField {
                         Layout.fillWidth: true
                         placeholderText: qsTr("Placeholder for Poppler defaults")
-                        text: root.settingsController ? root.settingsController.importPoppler : ""
-                        onTextChanged: if (root.settingsController && root.settingsController.importPoppler !== text) root.settingsController.importPoppler = text
+                        text: root.settingsViewModel ? root.settingsViewModel.importPoppler : ""
+                        onTextChanged: if (root.settingsViewModel && root.settingsViewModel.importPoppler !== text) root.settingsViewModel.importPoppler = text
                     }
                 }
 
@@ -95,8 +95,8 @@ Flickable {
                     Controls.TextField {
                         Layout.fillWidth: true
                         placeholderText: qsTr("Placeholder for OpenCV defaults")
-                        text: root.settingsController ? root.settingsController.importOpenCv : ""
-                        onTextChanged: if (root.settingsController && root.settingsController.importOpenCv !== text) root.settingsController.importOpenCv = text
+                        text: root.settingsViewModel ? root.settingsViewModel.importOpenCv : ""
+                        onTextChanged: if (root.settingsViewModel && root.settingsViewModel.importOpenCv !== text) root.settingsViewModel.importOpenCv = text
                     }
                 }
 
@@ -106,8 +106,8 @@ Flickable {
                     Controls.TextField {
                         Layout.fillWidth: true
                         placeholderText: qsTr("Placeholder for Tesseract defaults")
-                        text: root.settingsController ? root.settingsController.importTesseract : ""
-                        onTextChanged: if (root.settingsController && root.settingsController.importTesseract !== text) root.settingsController.importTesseract = text
+                        text: root.settingsViewModel ? root.settingsViewModel.importTesseract : ""
+                        onTextChanged: if (root.settingsViewModel && root.settingsViewModel.importTesseract !== text) root.settingsViewModel.importTesseract = text
                     }
                 }
 
@@ -117,8 +117,8 @@ Flickable {
                     Controls.TextField {
                         Layout.fillWidth: true
                         placeholderText: qsTr("Placeholder for parser defaults")
-                        text: root.settingsController ? root.settingsController.importParser : ""
-                        onTextChanged: if (root.settingsController && root.settingsController.importParser !== text) root.settingsController.importParser = text
+                        text: root.settingsViewModel ? root.settingsViewModel.importParser : ""
+                        onTextChanged: if (root.settingsViewModel && root.settingsViewModel.importParser !== text) root.settingsViewModel.importParser = text
                     }
                 }
 
@@ -128,8 +128,8 @@ Flickable {
                     Controls.TextField {
                         Layout.fillWidth: true
                         placeholderText: qsTr("Placeholder for matcher defaults")
-                        text: root.settingsController ? root.settingsController.importMatcher : ""
-                        onTextChanged: if (root.settingsController && root.settingsController.importMatcher !== text) root.settingsController.importMatcher = text
+                        text: root.settingsViewModel ? root.settingsViewModel.importMatcher : ""
+                        onTextChanged: if (root.settingsViewModel && root.settingsViewModel.importMatcher !== text) root.settingsViewModel.importMatcher = text
                     }
                 }
             }
@@ -138,12 +138,12 @@ Flickable {
         Connections {
             target: root.actions
             function onImportFileSelected(path) {
-                if (!path || !root.settingsController) return
-                root.settingsController.importDefaultPath = path
+                if (!path || !root.settingsViewModel) return
+                root.settingsViewModel.importDefaultPath = path
             }
             function onImportFilesSelected(paths) {
-                if (!paths || paths.length === 0 || !root.settingsController) return
-                root.settingsController.importDefaultPath = paths[0]
+                if (!paths || paths.length === 0 || !root.settingsViewModel) return
+                root.settingsViewModel.importDefaultPath = paths[0]
             }
         }
 

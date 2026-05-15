@@ -11,7 +11,7 @@ Flickable {
     id: root
     required property var appContext
     required property var theme
-    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
+    readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
     readonly property var actions: root.appContext ? root.appContext.actions : null
     Layout.fillWidth: true
     Layout.fillHeight: true
@@ -40,8 +40,8 @@ Flickable {
                         objectName: "settingsExportDefaultDirectoryField"
                         Layout.fillWidth: true
                         placeholderText: qsTr("Select default output folder...")
-                        text: root.settingsController ? root.settingsController.exportDefaultDirectory : ""
-                        onTextChanged: if (root.settingsController && root.settingsController.exportDefaultDirectory !== text) root.settingsController.exportDefaultDirectory = text
+                        text: root.settingsViewModel ? root.settingsViewModel.exportDefaultDirectory : ""
+                        onTextChanged: if (root.settingsViewModel && root.settingsViewModel.exportDefaultDirectory !== text) root.settingsViewModel.exportDefaultDirectory = text
                     }
                     Controls.SecondaryButton {
                         objectName: "settingsExportBrowseButton"
@@ -56,10 +56,10 @@ Flickable {
                     Controls.DropdownMenu {
                         objectName: "settingsExportArchiveFormatComboBox"
                         model: [qsTr("None"), qsTr("ZIP")]
-                        currentIndex: root.settingsController ? root.settingsController.exportArchiveFormat : 0
+                        currentIndex: root.settingsViewModel ? root.settingsViewModel.exportArchiveFormat : 0
                         onActivated: function(index) {
-                            if (root.settingsController)
-                                root.settingsController.exportArchiveFormat = index
+                            if (root.settingsViewModel)
+                                root.settingsViewModel.exportArchiveFormat = index
                         }
                     }
                 }
@@ -69,9 +69,9 @@ Flickable {
                     Text { text: qsTr("XLSX formulas"); color: root.theme.textPrimary; Layout.preferredWidth: root.theme.formLabelWidth }
                     Controls.CheckBox {
                         objectName: "settingsExportIncludeFormulasCheckBox"
-                        checked: root.settingsController ? root.settingsController.exportIncludeFormulas : true
+                        checked: root.settingsViewModel ? root.settingsViewModel.exportIncludeFormulas : true
                         text: qsTr("Use Excel formulas for totals when possible")
-                        onToggled: if (root.settingsController) root.settingsController.exportIncludeFormulas = checked
+                        onToggled: if (root.settingsViewModel) root.settingsViewModel.exportIncludeFormulas = checked
                     }
                 }
 
@@ -108,9 +108,9 @@ Flickable {
         Connections {
             target: root.actions
             function onExportDirectorySelected(path) {
-                if (!path || !root.settingsController)
+                if (!path || !root.settingsViewModel)
                     return
-                root.settingsController.exportDefaultDirectory = path
+                root.settingsViewModel.exportDefaultDirectory = path
             }
         }
 

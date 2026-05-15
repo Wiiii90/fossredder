@@ -14,8 +14,7 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
-    readonly property var statementController: root.appContext ? root.appContext.statementController : null
-    readonly property var transactionController: root.appContext ? root.appContext.transactionController : null
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
 
     property string createStatementName: ""
     property var createTransactions: [root.emptyTransaction()]
@@ -87,9 +86,9 @@ Item {
     }
 
     function transactionById(txId) {
-        if (!root.transactionController || !txId)
+        if (!root.workspaceFacade || !txId)
             return root.emptyTransaction()
-        return root.cloneTransaction(root.transactionController.transaction(txId))
+        return root.cloneTransaction(root.workspaceFacade.transaction(txId))
     }
 
     function currentCreateTransaction() {
@@ -212,7 +211,7 @@ Item {
     }
 
     function addEditTransaction() {
-        if (!root.transactionController || !root.session || !root.session.selectedStatementId)
+        if (!root.workspaceFacade || !root.session || !root.session.selectedStatementId)
             return
 
         const state = root.editTransactionState()
@@ -223,7 +222,7 @@ Item {
             insertAfterIndex = rows.length - 1
 
         const statementId = root.session.selectedStatementId
-        const newId = root.transactionController.addTransaction("", "", 0.0, "", statementId, 0, "", false, [])
+        const newId = root.workspaceFacade.addTransaction("", "", 0.0, "", statementId, 0, "", false, [])
         if (!newId || newId.length === 0)
             return
 
@@ -260,7 +259,7 @@ Item {
             return
         }
 
-        if (!root.transactionController || !root.editTransactionData || !root.editTransactionData.id)
+        if (!root.workspaceFacade || !root.editTransactionData || !root.editTransactionData.id)
             return
 
         const selectionState = root.editTransactionState()
@@ -270,7 +269,7 @@ Item {
             return
 
         const deletedId = root.editTransactionData.id
-        root.transactionController.deleteTransaction(root.editTransactionData.id)
+        root.workspaceFacade.deleteTransaction(root.editTransactionData.id)
 
         const updatedRows = root.session ? root.session.statementTransactionRows(root.session.selectedStatementId || "") : []
         const reselectionState = root.session
@@ -304,16 +303,16 @@ Item {
     }
 
     function createStatementWithTransactions() {
-        if (!root.statementController || !root.transactionController)
+        if (!root.workspaceFacade || !root.workspaceFacade)
             return
         if (!root.createStatementName || root.createStatementName.length === 0)
             return
 
-        const statementId = root.statementController.addStatement(root.createStatementName)
+        const statementId = root.workspaceFacade.addStatement(root.createStatementName)
         if (!statementId || statementId.length === 0)
             return
 
-        root.transactionController.addTransactions(statementId, root.createTransactions || [])
+        root.workspaceFacade.addTransactions(statementId, root.createTransactions || [])
 
         root.resetCreateState()
         if (root.session) {
@@ -326,18 +325,18 @@ Item {
         if (root.isCreateMode)
             return
 
-        if (!root.statementController || !root.session || !root.session.selectedStatementId)
+        if (!root.workspaceFacade || !root.session || !root.session.selectedStatementId)
             return
 
-        root.statementController.updateStatement(root.session.selectedStatementId,
+        root.workspaceFacade.updateStatement(root.session.selectedStatementId,
                                                 root.editStatementName)
 
-        if (!root.transactionController || !root.editTransactionData || !root.editTransactionData.id)
+        if (!root.workspaceFacade || !root.editTransactionData || !root.editTransactionData.id)
             return
 
         const normalizedTx = root.cloneTransaction(root.editTransactionData)
         const statementId = root.session.selectedStatementId || (root.editTransactionData.statementId || "")
-        root.transactionController.updateTransaction(
+        root.workspaceFacade.updateTransaction(
             root.editTransactionData.id,
             root.editTransactionData.name || "",
             root.editTransactionData.bookingDate || "",
@@ -354,11 +353,11 @@ Item {
     function deleteStatement() {
         if (root.isCreateMode)
             return
-        if (!root.statementController || !root.session || !root.session.selectedStatementId)
+        if (!root.workspaceFacade || !root.session || !root.session.selectedStatementId)
             return
 
         const removedId = root.session.selectedStatementId
-        root.statementController.deleteStatement(removedId)
+        root.workspaceFacade.deleteStatement(removedId)
         const nextId = root.session.deleteNextSelectionId(root.statementRows(), removedId, 0, "id")
         root.session.selectedStatementId = nextId || ""
         root.session.selectedTransactionId = ""

@@ -14,7 +14,7 @@ Controls.Panel {
     property var txRoot
     required property var appContext
     required property var theme
-    readonly property var draftController: root.appContext ? root.appContext.draftController : null
+    readonly property var importWorkflow: root.appContext ? root.appContext.importWorkflow : null
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1
@@ -47,10 +47,10 @@ Controls.Panel {
             }
 
             onAccepted: {
-                if (!root.txRoot || !root.txRoot.draft || !root.draftController) return
+                if (!root.txRoot || !root.txRoot.draft || !root.importWorkflow) return
                 const rows = root.txRoot.actorChoices || []
-                const row = root.draftController.findChoiceRowByText(rows, text)
-                if (row && row.id !== undefined) root.draftController.selectCurrentActorChoice(root.txRoot.draft, row)
+                const row = root.importWorkflow.findChoiceRowByText(rows, text)
+                if (row && row.id !== undefined) root.importWorkflow.selectCurrentActorChoice(root.txRoot.draft, row)
                 else if (root.txRoot.draft) {
                     root.txRoot.draft.transactions.setActorText(root.txRoot.draft.currentIndex, text)
                     root.txRoot.draft.transactions.setActorSelected(root.txRoot.draft.currentIndex, true)

@@ -11,8 +11,8 @@ Flickable {
     id: root
     required property var appContext
     required property var theme
-    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
-    readonly property var languageController: root.appContext ? root.appContext.languageController : null
+    readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
+    readonly property var languageService: root.appContext ? root.appContext.languageService : null
     Layout.fillWidth: true
     Layout.fillHeight: true
     contentHeight: column.implicitHeight
@@ -20,9 +20,9 @@ Flickable {
     clip: true
 
     function languageIndexFor(code) {
-        if (!root.languageController || !root.languageController.availableLanguages) return -1
-        for (let i = 0; i < root.languageController.availableLanguages.length; ++i) {
-            const option = root.languageController.availableLanguages[i]
+        if (!root.languageService || !root.languageService.availableLanguages) return -1
+        for (let i = 0; i < root.languageService.availableLanguages.length; ++i) {
+            const option = root.languageService.availableLanguages[i]
             if (option && option.code === code) return i
         }
         return -1
@@ -48,24 +48,24 @@ Flickable {
                     Controls.DropdownMenu {
                         id: language
         objectName: "settingsLanguageDropdown"
-                        model: root.languageController ? root.languageController.availableLanguages : []
+                        model: root.languageService ? root.languageService.availableLanguages : []
                         textRole: "label"
-                        currentIndex: root.languageIndexFor(root.settingsController ? root.settingsController.language : (root.languageController ? root.languageController.currentLanguage : ""))
+                        currentIndex: root.languageIndexFor(root.settingsViewModel ? root.settingsViewModel.language : (root.languageService ? root.languageService.currentLanguage : ""))
                         onActivated: function(index) {
-                            if (!root.languageController || index < 0 || index >= model.length) return
+                            if (!root.languageService || index < 0 || index >= model.length) return
                             const option = model[index]
                             if (!option || option.available === false) {
-                                currentIndex = root.languageIndexFor(root.settingsController ? root.settingsController.language : root.languageController.currentLanguage)
+                                currentIndex = root.languageIndexFor(root.settingsViewModel ? root.settingsViewModel.language : root.languageService.currentLanguage)
                                 return
                             }
-                            if (root.settingsController)
-                                root.settingsController.language = option.code
+                            if (root.settingsViewModel)
+                                root.settingsViewModel.language = option.code
                         }
 
                         Connections {
-                            target: root.settingsController
+                            target: root.settingsViewModel
                             function onLanguageChanged() {
-                                language.currentIndex = root.languageIndexFor(root.settingsController.language)
+                                language.currentIndex = root.languageIndexFor(root.settingsViewModel.language)
                             }
                         }
                     }

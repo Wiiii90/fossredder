@@ -18,7 +18,7 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
-    readonly property var analysisController: root.appContext ? root.appContext.analysisController : null
+    readonly property var analysisWorkflow: root.appContext ? root.appContext.analysisWorkflow : null
     Accessible.ignored: root.appContext ? root.appContext.isDebugBuild : false
 
     readonly property var plotTypeOptions: [
@@ -215,9 +215,9 @@ Item {
     }
 
     function currentFilterSpec() {
-        if (!root.analysisController)
+        if (!root.analysisWorkflow)
             return ""
-        return root.analysisController.analysisFilterSpec(
+        return root.analysisWorkflow.analysisFilterSpec(
             root.currentDateMode(),
             dateFilter.yearValue,
             dateFilter.dateFromValue,
@@ -232,7 +232,7 @@ Item {
         propertyFilterRows = propertyRows
 
         let types = []
-        try { types = root.analysisController ? root.analysisController.contractTypes() : [] } catch (e) { types = [] }
+        try { types = root.analysisWorkflow ? root.analysisWorkflow.contractTypes() : [] } catch (e) { types = [] }
         const dedup = []
         const seen = ({})
         for (let i = 0; i < types.length; ++i) {
@@ -251,9 +251,9 @@ Item {
     }
 
     function refreshPreview() {
-        if (!root.analysisController)
+        if (!root.analysisWorkflow)
             return
-        const preview = root.analysisController.previewTransactions(root.currentFilterSpec())
+        const preview = root.analysisWorkflow.previewTransactions(root.currentFilterSpec())
         root.previewTransactions = preview && preview.transactions ? preview.transactions : []
         root.previewMetrics = preview && preview.metrics ? preview.metrics : ({ statementCount: 0, transactionCount: 0, amountSum: 0.0 })
     }
@@ -270,8 +270,8 @@ Item {
         let taxPercent = parseFloat(root.calcPercentText)
         if (isNaN(taxPercent))
             taxPercent = 0.0
-        root.pendingAdjustmentsJson = root.analysisController
-                ? root.analysisController.analysisAdjustmentsJson(root.previewTransactions, root.selectedAdjustmentTxIds, taxPercent)
+        root.pendingAdjustmentsJson = root.analysisWorkflow
+                ? root.analysisWorkflow.analysisAdjustmentsJson(root.previewTransactions, root.selectedAdjustmentTxIds, taxPercent)
                 : "{}"
         root.adjustmentAmountsById = root.parseJson(root.pendingAdjustmentsJson, {})
     }
@@ -328,8 +328,8 @@ Item {
         root.syncExportFormatCombo()
 
         root.filterEditMode = false
-        if (root.analysisController) {
-            const result = root.analysisController.computeAnalysis(row.id, root.currentFilterSpec())
+        if (root.analysisWorkflow) {
+            const result = root.analysisWorkflow.computeAnalysis(row.id, root.currentFilterSpec())
             if (result && Object.keys(result).length > 0)
                 root.session.lastAnalysisResult = result
         }
@@ -338,12 +338,12 @@ Item {
     }
 
     function submitAnalysis(isCreate) {
-        if (!root.analysisController || !root.session)
+        if (!root.analysisWorkflow || !root.session)
             return
 
         const strategyType = root.mapUiToType(root.currentMainType())
         const selectedPlotType = root.plotTypeOptions[Math.max(0, plotSubtypeCombo.currentIndex)].value
-        const configJson = root.analysisController.analysisConfigJson(strategyType,
+        const configJson = root.analysisWorkflow.analysisConfigJson(strategyType,
                                                                       selectedPlotType,
                                                                       "totalAmount",
                                                                       root.selectedPropertyIds,
@@ -354,7 +354,7 @@ Item {
 
         if (isCreate) {
             root.snapshotTransactionsJson = JSON.stringify(root.previewTransactions)
-            const newId = root.analysisController.createAnalysis(nameField.text,
+            const newId = root.analysisWorkflow.createAnalysis(nameField.text,
                                                                  strategyType,
                                                                  configJson,
                                                                  filterSpec,
@@ -369,7 +369,7 @@ Item {
             const selectedId = root.session.selectedAnalysisId ? String(root.session.selectedAnalysisId) : ""
             if (selectedId.length === 0)
                 return
-            root.analysisController.updateAnalysis(selectedId,
+            root.analysisWorkflow.updateAnalysis(selectedId,
                                                    nameField.text,
                                                    strategyType,
                                                    configJson,
@@ -384,7 +384,7 @@ Item {
         if (currentId.length > 0 && root.pendingAdjustmentsJson && root.session.analyses)
             root.session.analyses.setAdjustmentsById(currentId, root.pendingAdjustmentsJson)
 
-        const result = root.analysisController.computeAnalysis(root.session.selectedAnalysisId, filterSpec)
+        const result = root.analysisWorkflow.computeAnalysis(root.session.selectedAnalysisId, filterSpec)
         if (result && Object.keys(result).length > 0)
             root.session.lastAnalysisResult = result
 
@@ -394,11 +394,11 @@ Item {
 
     function deleteCurrentAnalysis() {
         const selectedId = root.session ? (root.session.selectedAnalysisId || "") : ""
-        if (!selectedId || selectedId.length === 0 || !root.analysisController)
+        if (!selectedId || selectedId.length === 0 || !root.analysisWorkflow)
             return
 
         const currentIndex = root.analysisIndexById(selectedId)
-        root.analysisController.deleteAnalysis(selectedId)
+        root.analysisWorkflow.deleteAnalysis(selectedId)
 
         const total = root.analysesCount()
         if (total <= 0) {

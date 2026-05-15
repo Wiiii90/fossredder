@@ -14,7 +14,7 @@ Item {
     required property var appContext
     required property var theme
 
-    readonly property var draftController: draftViewRoot.appContext ? draftViewRoot.appContext.draftController : null
+    readonly property var importWorkflow: draftViewRoot.appContext ? draftViewRoot.appContext.importWorkflow : null
 
     property var draft
     property var viewState: ({})
@@ -107,13 +107,13 @@ Item {
 
     function syncViewState() {
         draftViewRoot.syncScheduled = false
-        if (!(draftViewRoot.draftController && draftViewRoot.draft)) {
+        if (!(draftViewRoot.importWorkflow && draftViewRoot.draft)) {
             draftViewRoot.viewState = ({})
             return
         }
 
-        draftViewRoot.draftController.syncCurrentTransactionDraft(draftViewRoot.draft)
-        draftViewRoot.viewState = draftViewRoot.draftController.currentTransactionViewState(draftViewRoot.draft)
+        draftViewRoot.importWorkflow.syncCurrentTransactionDraft(draftViewRoot.draft)
+        draftViewRoot.viewState = draftViewRoot.importWorkflow.currentTransactionViewState(draftViewRoot.draft)
     }
 
     function scheduleSyncViewState() {
@@ -208,12 +208,12 @@ Item {
                 Layout.fillWidth: true
                 text: draftViewRoot.draft && draftViewRoot.draft.current ? String(draftViewRoot.draft.current.amount) : ""
                 onEditingFinished: {
-                    if (draftViewRoot.draftController && draftViewRoot.draft)
-                        draftViewRoot.draftController.updateCurrentAmount(draftViewRoot.draft, amountField.text)
+                    if (draftViewRoot.importWorkflow && draftViewRoot.draft)
+                        draftViewRoot.importWorkflow.updateCurrentAmount(draftViewRoot.draft, amountField.text)
                 }
                 onAccepted: {
-                    if (draftViewRoot.draftController && draftViewRoot.draft)
-                        draftViewRoot.draftController.updateCurrentAmount(draftViewRoot.draft, amountField.text)
+                    if (draftViewRoot.importWorkflow && draftViewRoot.draft)
+                        draftViewRoot.importWorkflow.updateCurrentAmount(draftViewRoot.draft, amountField.text)
                 }
             }
         }

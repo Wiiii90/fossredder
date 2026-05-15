@@ -13,8 +13,7 @@ Item {
     required property var appContext
     required property var theme
 
-    readonly property var importController: stmtRoot.appContext ? stmtRoot.appContext.importController : null
-    readonly property var draftController: stmtRoot.appContext ? stmtRoot.appContext.draftController : null
+    readonly property var importWorkflow: stmtRoot.appContext ? stmtRoot.appContext.importWorkflow : null
     readonly property var navigation: stmtRoot.appContext ? stmtRoot.appContext.navigation : null
 
     property var draft
@@ -24,15 +23,15 @@ Item {
 
 
     function returnToImport() {
-        if (stmtRoot.importController && stmtRoot.importController.addRunNote)
-            stmtRoot.importController.addRunNote(qsTr("Draft"), qsTr("Draft paused. Click log entry to continue."), true)
-        if (stmtRoot.importController) stmtRoot.importController.clearDraft()
+        if (stmtRoot.importWorkflow && stmtRoot.importWorkflow.addRunNote)
+            stmtRoot.importWorkflow.addRunNote(qsTr("Draft"), qsTr("Draft paused. Click log entry to continue."), true)
+        if (stmtRoot.importWorkflow) stmtRoot.importWorkflow.clearDraft()
         if (stmtRoot.navigation) stmtRoot.navigation.setSectionValue(4)
     }
 
     function persistDraftSnapshotNow() {
-        if (!stmtRoot.draft || !stmtRoot.draftController) return
-        stmtRoot.draftController.persistStatementDraft(stmtRoot.draft)
+        if (!stmtRoot.draft || !stmtRoot.importWorkflow) return
+        stmtRoot.importWorkflow.persistStatementDraft(stmtRoot.draft)
     }
 
     function persistDraftSnapshot() {
@@ -41,8 +40,8 @@ Item {
     }
 
     function discardDraft() {
-        const ic = stmtRoot.importController
-        const dc = stmtRoot.draftController
+        const ic = stmtRoot.importWorkflow
+        const dc = stmtRoot.importWorkflow
         const nav = stmtRoot.navigation
 
         persistDebounce.stop()
@@ -64,10 +63,10 @@ Item {
     }
 
     function finalizeDraft() {
-        if (!stmtRoot.draft || !stmtRoot.draftController) return
+        if (!stmtRoot.draft || !stmtRoot.importWorkflow) return
 
-        const dc = stmtRoot.draftController
-        const ic = stmtRoot.importController
+        const dc = stmtRoot.importWorkflow
+        const ic = stmtRoot.importWorkflow
         const nav = stmtRoot.navigation
         const d = stmtRoot.draft
 

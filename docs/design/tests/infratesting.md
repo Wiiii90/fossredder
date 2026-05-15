@@ -2,12 +2,12 @@
 
 ## Purpose
 
-This document defines the concrete test matrix for the `infra` target family:
-`archive`, `image-processing`, `pdf-rendering`, and `text-recognition`.
+This document defines the concrete test matrix for the `infra` target family.
+It covers the observable contracts of all infrastructure adapters so each
+module stays replaceable, deterministic, and easy to reason about.
 
-The goal is not to describe implementation details, but to capture the observable
-contracts each infrastructure module must satisfy so the module boundaries stay
-stable, replaceable, and easy to reason about.
+The matrix is organized by module family and keeps the focus on externally
+visible behavior rather than implementation details.
 
 ## Scope
 
@@ -16,43 +16,79 @@ Included in this matrix:
 - `infra/image-processing/*`
 - `infra/pdf-rendering/*`
 - `infra/text-recognition/*`
+- `infra/analysis-image-renderer/*`
+- `infra/xlsx-writer/*`
 
 Out of scope:
 - `core` domain and application rules
 - UI behavior
 - persistence schema and repository behavior
-- end-to-end app flows that only happen after multiple infra modules are combined
+- end-to-end flows that only appear after multiple infra modules are combined
+
+## Target Test Tree
+
+```text
+infra/
+  archive/
+    tests/
+      unit/
+        TestZipArchiveAdapter.cpp
+      integration/
+        TestZipArchiveRoundTrip.cpp
+  image-processing/
+    tests/
+      unit/
+        TestCropAdapter.cpp
+        TestDenoiseAdapter.cpp
+        TestMaskAdapter.cpp
+        TestDetectAdapter.cpp
+      integration/
+        TestImageProcessingRoundTrip.cpp
+  pdf-rendering/
+    tests/
+      unit/
+        TestPopplerCore.cpp
+        TestPopplerPdfRendererAdapter.cpp
+      integration/
+        TestPdfRenderingRoundTrip.cpp
+  text-recognition/
+    tests/
+      unit/
+        TestTesseractCore.cpp
+        TestTesseractTextRecognizerAdapter.cpp
+      integration/
+        TestTextRecognitionRoundTrip.cpp
+  analysis-image-renderer/
+    tests/
+      unit/
+        TestOpenCvAnalysisImageRendererAdapter.cpp
+      integration/
+        TestAnalysisImageRendererRoundTrip.cpp
+  xlsx-writer/
+    tests/
+      unit/
+        TestXlntTableWriterAdapter.cpp
+      integration/
+        TestXlsxWriterRoundTrip.cpp
+```
 
 ## Testing Principles
 
 - Test each infra module in isolation first.
-- Prefer file-backed fixtures and deterministic input data.
+- Prefer deterministic file-backed fixtures and stable sample data.
 - Verify both success and failure paths.
 - Check observable outputs, not private helper internals.
 - Keep tests aligned with the module boundary:
-  - `archive` tests package creation and file layout
-  - `image-processing` tests crop/mask/denoise/detect behavior
+  - `archive` tests ZIP packaging and path preservation
+  - `image-processing` tests crop, denoise, mask, and detect behavior
   - `pdf-rendering` tests page rendering and extracted metadata
   - `text-recognition` tests OCR extraction and language/config handling
-
-## Recommended Test Layout
-
-- `infra/archive/tests/unit`
-- `infra/archive/tests/integration`
-- `infra/image-processing/tests/unit`
-- `infra/image-processing/tests/integration`
-- `infra/pdf-rendering/tests/unit`
-- `infra/pdf-rendering/tests/integration`
-- `infra/text-recognition/tests/unit`
-- `infra/text-recognition/tests/integration`
+  - `analysis-image-renderer` tests analysis overlay rendering and image export
+  - `xlsx-writer` tests workbook creation and cell/table serialization
 
 ## 1. Archive
 
-### Module intent
-
-`archive` is responsible for packaging export artifacts into ZIP archives.
-It must preserve directory structure, produce deterministic output where possible,
-and fail cleanly on invalid input or unsupported formats.
+`archive` packages export artifacts into ZIP archives.
 
 ### Behavioral matrix
 
@@ -69,22 +105,18 @@ and fail cleanly on invalid input or unsupported formats.
 | ARC-009 | Handles files with spaces and Unicode-safe names | Integration | Source files with spaces or punctuation | Create archive | Archive entries retain the expected relative names |
 | ARC-010 | Handles repeated creation over the same output path | Integration | Existing archive path | Re-create archive to same path | Old archive is replaced deterministically |
 
-### Structural tests
+### Boundary checks
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ARC-S-001 | Adapter class is the only public implementation surface | Unit | Adapter header available | Inspect public API usage in tests | Tests depend on `IArchive` plus the adapter class only |
-| ARC-S-002 | ZIP dependency stays isolated inside infra | Structural | Build target for `infra/archive` | Review include dependencies | `core` does not include `zip.h` directly |
-| ARC-S-003 | Archive packaging remains replaceable | Unit | Mock or fake archive adapter | Use the adapter through `IArchive` | Callers interact through the port, not the ZIP library |
+| ARC-B-001 | Adapter class is the only public implementation surface | Unit | Adapter header available | Inspect public API usage in tests | Tests depend on `IArchive` plus the adapter class only |
+| ARC-B-002 | ZIP dependency stays isolated inside infra | Contract | Build target for `infra/archive` | Review include dependencies | `core` does not include `zip.h` directly |
+| ARC-B-003 | Archive packaging remains replaceable | Unit | Mock or fake archive adapter | Use the adapter through `IArchive` | Callers interact through the port, not the ZIP library |
 
 ## 2. Image Processing
 
-### Module intent
-
-`image-processing` provides OpenCV-backed image operations for the import workflow:
-crop, denoise, mask, and detect.
-The module must remain a technical adapter boundary around the OpenCV dependency
-and keep the public port contracts stable.
+`image-processing` provides OpenCV-backed crop, denoise, mask, and detect
+operations for import and analysis workflows.
 
 ### Behavioral matrix
 
@@ -108,22 +140,18 @@ and keep the public port contracts stable.
 | IMG-016 | Debug output is optional | Unit | Debugger disabled | Run any image-processing operation | No debug writes are attempted |
 | IMG-017 | Debug output is written when enabled | Integration | Debugger enabled | Run any image-processing operation | Expected debug artifacts are written |
 
-### Structural tests
+### Boundary checks
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| IMG-S-001 | Public API remains capability-based | Unit | Port headers available | Inspect adapter signatures | API speaks in crop, mask, denoise, detect terms |
-| IMG-S-002 | OpenCV dependency stays isolated in infra | Structural | Build target for `infra/image-processing` | Review include dependencies | `core` does not include OpenCV headers directly |
-| IMG-S-003 | Adapter naming stays uniform | Structural | Public headers and sources | Inspect class names | Public classes follow the `OpenCv...Adapter` naming rule |
-| IMG-S-004 | Internal helpers do not leak into core | Structural | Port and adapter code | Check include graph | `core` only sees ports, not internal OpenCV helpers |
+| IMG-B-001 | Public API remains capability-based | Unit | Port headers available | Inspect adapter signatures | API speaks in crop, mask, denoise, detect terms |
+| IMG-B-002 | OpenCV dependency stays isolated in infra | Contract | Build target for `infra/image-processing` | Review include dependencies | `core` does not include OpenCV headers directly |
+| IMG-B-003 | Adapter naming stays uniform | Contract | Public headers and sources | Inspect class names | Public classes follow the `OpenCv...Adapter` naming rule |
+| IMG-B-004 | Internal helpers do not leak into core | Contract | Port and adapter code | Check include graph | `core` only sees ports, not internal OpenCV helpers |
 
 ## 3. PDF Rendering
 
-### Module intent
-
-`pdf-rendering` provides Poppler-backed PDF document rendering and page metadata extraction.
-It must be able to render pages, extract page text metadata, and serialize the
-observable page information in a stable form.
+`pdf-rendering` provides Poppler-backed PDF rendering and metadata extraction.
 
 ### Behavioral matrix
 
@@ -142,22 +170,18 @@ observable page information in a stable form.
 | PDF-011 | Cancel flag stops page iteration | Integration | Multi-page PDF and active cancel flag | Start render or extract with cancellation set | Processing stops early and returns partial or empty results |
 | PDF-012 | Rendering tolerates unsupported page content gracefully | Unit | PDF with unusual content | Render page | Adapter returns a failure or partial result without crashing |
 
-### Structural tests
+### Boundary checks
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| PDF-S-001 | Public API remains capability-based | Unit | Port headers available | Inspect adapter signatures | API speaks in render and metadata terms |
-| PDF-S-002 | Poppler dependency stays isolated in infra | Structural | Build target for `infra/pdf-rendering` | Review include dependencies | `core` does not include Poppler headers directly |
-| PDF-S-003 | Adapter naming stays uniform | Structural | Public headers and sources | Inspect class names | Public classes follow the `Poppler...Adapter` naming rule |
-| PDF-S-004 | Metadata serialization stays internal to infra | Structural | Source files available | Review include graph | JSON and Poppler helpers do not leak into `core` |
+| PDF-B-001 | Public API remains capability-based | Unit | Port headers available | Inspect adapter signatures | API speaks in render and metadata terms |
+| PDF-B-002 | Poppler dependency stays isolated in infra | Contract | Build target for `infra/pdf-rendering` | Review include dependencies | `core` does not include Poppler headers directly |
+| PDF-B-003 | Adapter naming stays uniform | Contract | Public headers and sources | Inspect class names | Public classes follow the `Poppler...Adapter` naming rule |
+| PDF-B-004 | Metadata serialization stays internal to infra | Contract | Source files available | Review include graph | JSON and Poppler helpers do not leak into `core` |
 
 ## 4. Text Recognition
 
-### Module intent
-
 `text-recognition` provides Tesseract-backed OCR and word extraction from image bytes.
-It must handle tessdata resolution, engine mode configuration, and stable word/text
-extraction behavior.
 
 ### Behavioral matrix
 
@@ -179,32 +203,82 @@ extraction behavior.
 | OCR-014 | Returns stable word boxes and confidence values | Integration | Text-bearing image | Extract words | Word boxes and confidence are populated consistently |
 | OCR-015 | Handles unreadable images without crashing | Unit | Corrupt or unreadable image bytes | Call extraction entry point | Returns empty text and empty word list |
 
-### Structural tests
+### Boundary checks
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| OCR-S-001 | Public API remains capability-based | Unit | Port headers available | Inspect adapter signatures | API speaks in recognition and word extraction terms |
-| OCR-S-002 | Tesseract dependency stays isolated in infra | Structural | Build target for `infra/text-recognition` | Review include dependencies | `core` does not include Tesseract headers directly |
-| OCR-S-003 | Adapter naming stays uniform | Structural | Public headers and sources | Inspect class names | Public classes follow the `Tesseract...Adapter` naming rule |
-| OCR-S-004 | Tessdata resolution stays inside infra | Structural | Source files available | Review include graph | Tessdata lookup logic remains local to the module |
+| OCR-B-001 | Public API remains capability-based | Unit | Port headers available | Inspect adapter signatures | API speaks in recognition and word extraction terms |
+| OCR-B-002 | Tesseract dependency stays isolated in infra | Contract | Build target for `infra/text-recognition` | Review include dependencies | `core` does not include Tesseract headers directly |
+| OCR-B-003 | Adapter naming stays uniform | Contract | Public headers and sources | Inspect class names | Public classes follow the `Tesseract...Adapter` naming rule |
+| OCR-B-004 | Tessdata resolution stays inside infra | Contract | Source files available | Review include graph | Tessdata lookup logic remains local to the module |
 
-## 5. Cross-module consistency checks
+## 5. Analysis Image Renderer
+
+`analysis-image-renderer` renders analysis overlays and derived image output
+without leaking OpenCV details into `core`.
+
+### Behavioral matrix
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| INF-001 | All infra modules expose a single, clear capability boundary | Structural | Public headers for all modules | Compare public APIs | Each module speaks only about its own responsibility |
-| INF-002 | All infra modules keep backend dependencies hidden | Structural | Core and infra headers | Inspect includes | Backend headers do not leak into `core` |
-| INF-003 | All infra modules use consistent Doxygen file headers | Structural | Public and source files | Inspect top-of-file docs | Each file has a clear `@file` and `@brief` header |
+| AIR-001 | Renders overlay image for analysis input | Integration | Valid source image and analysis data | Call renderer | Overlay image bytes are produced |
+| AIR-002 | Preserves source dimensions in output | Unit | Source image with known geometry | Render output | Output size matches the expected analysis render contract |
+| AIR-003 | Handles empty or missing analysis data safely | Unit | Source image without analysis data | Render output | Renderer returns a valid empty or fallback result |
+| AIR-004 | Honors debug output configuration | Integration | Debugger enabled | Render output | Expected debug artifacts are written |
+| AIR-005 | Rejects unsupported input gracefully | Unit | Invalid image payload | Render output | Renderer reports failure without crashing |
+
+### Boundary checks
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| AIR-B-001 | Public API remains renderer-focused | Unit | Adapter header available | Inspect adapter signatures | API speaks in render and overlay terms |
+| AIR-B-002 | OpenCV and JSON dependencies stay isolated in infra | Contract | Build target for `infra/analysis-image-renderer` | Review include dependencies | `core` does not include OpenCV or nlohmann/json headers directly |
+| AIR-B-003 | Adapter naming stays uniform | Contract | Public headers and sources | Inspect class names | Public classes follow the `OpenCvAnalysisImageRendererAdapter` naming rule |
+
+## 6. XLSX Writer
+
+`xlsx-writer` serializes tabular export data into spreadsheet workbooks.
+
+### Behavioral matrix
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| XLS-001 | Writes a workbook from a simple table | Integration | Table rows and writable path | Call writer | XLSX file is created and contains the expected rows |
+| XLS-002 | Preserves row order in the generated sheet | Integration | Table rows with known order | Write workbook | Sheet row order matches the input order |
+| XLS-003 | Preserves column headers | Unit | Table with named columns | Write workbook | Header cells contain the expected labels |
+| XLS-004 | Handles empty tables safely | Unit | No rows provided | Write workbook | Workbook is created or a documented empty result is returned |
+| XLS-005 | Handles special characters in cell values | Integration | Cells with whitespace and Unicode text | Write workbook | Values are preserved in the spreadsheet |
+| XLS-006 | Handles numeric and text cell types | Unit | Mixed table values | Write workbook | Cell types are written consistently |
+| XLS-007 | Overwrites an existing workbook deterministically | Integration | Existing output file | Write workbook again | The resulting file reflects the latest table data |
+| XLS-008 | Rejects invalid output paths | Unit | Unwritable path | Write workbook | Operation fails cleanly |
+
+### Boundary checks
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| XLS-B-001 | Public API remains table-writing focused | Unit | Adapter header available | Inspect adapter signatures | API speaks in workbook and table terms |
+| XLS-B-002 | xlnt dependency stays isolated in infra | Contract | Build target for `infra/xlsx-writer` | Review include dependencies | `core` does not include xlnt headers directly |
+| XLS-B-003 | Adapter naming stays uniform | Contract | Public headers and sources | Inspect class names | Public classes follow the `Xlnt...Adapter` naming rule |
+
+## 7. Cross-module consistency checks
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| INF-001 | All infra modules expose a single clear capability boundary | Contract | Public headers for all modules | Compare public APIs | Each module speaks only about its own responsibility |
+| INF-002 | All infra modules keep backend dependencies hidden | Contract | Core and infra headers | Inspect includes | Backend headers do not leak into `core` |
+| INF-003 | All infra modules use consistent Doxygen file headers | Contract | Public and source files | Inspect top-of-file docs | Each file has a clear `@file` and `@brief` header |
 | INF-004 | All infra modules preserve deterministic behavior on repeated input | Integration | Stable fixtures | Re-run the same operation twice | Outputs are equivalent or documented as intentionally variable |
 | INF-005 | All infra modules fail cleanly on invalid input | Unit | Invalid fixtures | Execute the public operation | Return value or result object reports failure without crashes |
 
-## 6. Direct implementation order
+## 8. Direct implementation order
 
 If these tests are implemented in order, the following sequence is the most natural:
-1. `archive` integration and structural tests
+1. `archive` tests
 2. `image-processing` crop and denoise tests
 3. `image-processing` mask and detect tests
-4. `pdf-rendering` render and metadata tests
-5. `text-recognition` OCR extraction and config tests
-6. cross-module consistency tests
+4. `pdf-rendering` tests
+5. `text-recognition` tests
+6. `analysis-image-renderer` tests
+7. `xlsx-writer` tests
+8. cross-module consistency tests
 

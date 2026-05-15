@@ -11,7 +11,7 @@ Flickable {
     id: root
     required property var appContext
     required property var theme
-    readonly property var settingsController: root.appContext ? root.appContext.settingsController : null
+    readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
     Layout.fillWidth: true
     Layout.fillHeight: true
     contentHeight: column.implicitHeight
@@ -72,56 +72,56 @@ Flickable {
 
                     Controls.CheckBox {
                         text: qsTr("Booking")
-                        checked: root.settingsController ? root.settingsController.toolbarShowBooking : true
-                        onToggled: if (root.settingsController) root.settingsController.toolbarShowBooking = checked
+                        checked: root.settingsViewModel ? root.settingsViewModel.toolbarShowBooking : true
+                        onToggled: if (root.settingsViewModel) root.settingsViewModel.toolbarShowBooking = checked
                     }
 
                     Controls.CheckBox {
                         text: qsTr("Import")
-                        checked: root.settingsController ? root.settingsController.toolbarShowImport : true
-                        onToggled: if (root.settingsController) root.settingsController.toolbarShowImport = checked
+                        checked: root.settingsViewModel ? root.settingsViewModel.toolbarShowImport : true
+                        onToggled: if (root.settingsViewModel) root.settingsViewModel.toolbarShowImport = checked
                     }
 
                     Controls.CheckBox {
                         text: qsTr("Actors")
-                        checked: root.settingsController ? root.settingsController.toolbarShowActors : true
-                        onToggled: if (root.settingsController) root.settingsController.toolbarShowActors = checked
+                        checked: root.settingsViewModel ? root.settingsViewModel.toolbarShowActors : true
+                        onToggled: if (root.settingsViewModel) root.settingsViewModel.toolbarShowActors = checked
                     }
 
                     Controls.CheckBox {
                         text: qsTr("Export")
-                        checked: root.settingsController ? root.settingsController.toolbarShowExport : true
-                        onToggled: if (root.settingsController) root.settingsController.toolbarShowExport = checked
+                        checked: root.settingsViewModel ? root.settingsViewModel.toolbarShowExport : true
+                        onToggled: if (root.settingsViewModel) root.settingsViewModel.toolbarShowExport = checked
                     }
 
                     Controls.CheckBox {
                         text: qsTr("Properties")
-                        checked: root.settingsController ? root.settingsController.toolbarShowProperties : true
-                        onToggled: if (root.settingsController) root.settingsController.toolbarShowProperties = checked
+                        checked: root.settingsViewModel ? root.settingsViewModel.toolbarShowProperties : true
+                        onToggled: if (root.settingsViewModel) root.settingsViewModel.toolbarShowProperties = checked
                     }
 
                     Controls.CheckBox {
                         text: qsTr("Analysis")
-                        checked: root.settingsController ? root.settingsController.toolbarShowAnalysis : true
-                        onToggled: if (root.settingsController) root.settingsController.toolbarShowAnalysis = checked
+                        checked: root.settingsViewModel ? root.settingsViewModel.toolbarShowAnalysis : true
+                        onToggled: if (root.settingsViewModel) root.settingsViewModel.toolbarShowAnalysis = checked
                     }
 
                     Controls.CheckBox {
                         text: qsTr("Contracts")
-                        checked: root.settingsController ? root.settingsController.toolbarShowContracts : true
-                        onToggled: if (root.settingsController) root.settingsController.toolbarShowContracts = checked
+                        checked: root.settingsViewModel ? root.settingsViewModel.toolbarShowContracts : true
+                        onToggled: if (root.settingsViewModel) root.settingsViewModel.toolbarShowContracts = checked
                     }
 
                     Controls.CheckBox {
                         text: qsTr("Annual")
-                        checked: root.settingsController ? root.settingsController.toolbarShowAnnual : true
-                        onToggled: if (root.settingsController) root.settingsController.toolbarShowAnnual = checked
+                        checked: root.settingsViewModel ? root.settingsViewModel.toolbarShowAnnual : true
+                        onToggled: if (root.settingsViewModel) root.settingsViewModel.toolbarShowAnnual = checked
                     }
 
                     Controls.CheckBox {
                         text: qsTr("Settings")
-                        checked: root.settingsController ? root.settingsController.toolbarShowSettings : true
-                        onToggled: if (root.settingsController) root.settingsController.toolbarShowSettings = checked
+                        checked: root.settingsViewModel ? root.settingsViewModel.toolbarShowSettings : true
+                        onToggled: if (root.settingsViewModel) root.settingsViewModel.toolbarShowSettings = checked
                     }
                 }
             }

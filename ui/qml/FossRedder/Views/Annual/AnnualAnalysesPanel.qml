@@ -16,7 +16,7 @@ Controls.Panel {
     property var allAnalysisRows: []
     property var analysisRows: []
     property var selectedAnalysisIds: []
-    readonly property var analysisController: root.appContext ? root.appContext.analysisController : null
+    readonly property var analysisWorkflow: root.appContext ? root.appContext.analysisWorkflow : null
 
     signal selectionChanged(var ids)
 
@@ -29,10 +29,10 @@ Controls.Panel {
     function updateAnalysisExportFormat(row, exportFormat) {
         const analysis = row || ({})
         const analysisId = analysis.id ? String(analysis.id) : ""
-        if (!root.analysisController || analysisId.length === 0)
+        if (!root.analysisWorkflow || analysisId.length === 0)
             return
 
-        root.analysisController.updateAnalysis(
+        root.analysisWorkflow.updateAnalysis(
             analysisId,
             analysis.name ? String(analysis.name) : "",
             analysis.type ? String(analysis.type) : "tab",

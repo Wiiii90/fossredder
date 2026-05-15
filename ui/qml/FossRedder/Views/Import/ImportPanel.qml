@@ -12,11 +12,11 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
-    required property var importController
+    required property var importWorkflow
     required property var actions
     required property var status
 
-    readonly property bool hasImportController: root.importController !== null
+    readonly property bool hasImportWorkflow: root.importWorkflow !== null
     readonly property string importCanceledStatusText: qsTr("Import canceled")
     readonly property string importFinishedStatusText: qsTr("Import finished")
     readonly property string importFailedStatusText: qsTr("Import failed")
@@ -38,7 +38,7 @@ Controls.Panel {
         }
         if (pdfs.length === 0) return
 
-        if (root.hasImportController) root.importController.addFiles(pdfs)
+        if (root.hasImportWorkflow) root.importWorkflow.addFiles(pdfs)
         root.pendingFiles = []
     }
 
@@ -57,7 +57,7 @@ Controls.Panel {
             objectName: "importManualPathField"
             Layout.fillWidth: true
             placeholderText: qsTr("Enter file path...")
-            enabled: root.hasImportController && !root.importController.isRunning
+            enabled: root.hasImportWorkflow && !root.importWorkflow.isRunning
             onTextEdited: { root.pendingFiles = [] }
         }
 
@@ -65,7 +65,7 @@ Controls.Panel {
             objectName: "importAddFileButton"
             text: qsTr("Add")
             Layout.preferredHeight: parent.actionButtonHeight
-            enabled: root.hasImportController && !root.importController.isRunning && root.manualPathText() && root.manualPathText().trim().length > 0
+            enabled: root.hasImportWorkflow && !root.importWorkflow.isRunning && root.manualPathText() && root.manualPathText().trim().length > 0
             onClicked: {
                 let files = []
                 if (root.pendingFiles && root.pendingFiles.length > 0) files = root.pendingFiles
@@ -80,7 +80,7 @@ Controls.Panel {
             objectName: "importBrowseFileButton"
             text: qsTr("Browse...")
             Layout.preferredHeight: parent.actionButtonHeight
-            enabled: root.hasImportController && !root.importController.isRunning
+            enabled: root.hasImportWorkflow && !root.importWorkflow.isRunning
             onClicked: { if (root.actions) root.actions.browseImportPdf() }
         }
     }
@@ -89,13 +89,13 @@ Controls.Panel {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 160
-        enabled: root.hasImportController && !root.importController.isRunning
+        enabled: root.hasImportWorkflow && !root.importWorkflow.isRunning
         title: qsTr("Drop PDFs here")
         subtitle: ""
         allowBrowse: false
         clickToBrowse: true
-        queuedCount: root.hasImportController ? root.importController.queuedCount : 0
-        files: root.hasImportController ? (root.importController.selectedFile && root.importController.selectedFile.length > 0 ? [root.importController.selectedFile].concat(root.importController.queuedFiles) : root.importController.queuedFiles) : []
+        queuedCount: root.hasImportWorkflow ? root.importWorkflow.queuedCount : 0
+        files: root.hasImportWorkflow ? (root.importWorkflow.selectedFile && root.importWorkflow.selectedFile.length > 0 ? [root.importWorkflow.selectedFile].concat(root.importWorkflow.queuedFiles) : root.importWorkflow.queuedFiles) : []
         onBrowseRequested: { if (root.actions) root.actions.browseImportPdf() }
     }
 
@@ -122,10 +122,10 @@ Controls.Panel {
     }
 
     Connections {
-        target: root.hasImportController ? root.importController : null
+        target: root.hasImportWorkflow ? root.importWorkflow : null
         function onStateChanged() {
             if (!manualPath.activeFocus && (!root.pendingFiles || root.pendingFiles.length === 0))
-                manualPath.text = root.importController.selectedFile
+                manualPath.text = root.importWorkflow.selectedFile
         }
         function onImportCanceled() {
             if (root.status) root.status.text = root.importCanceledStatusText

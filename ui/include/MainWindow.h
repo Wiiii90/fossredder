@@ -9,12 +9,12 @@
 #include <QUrl>
 #include <QVariant>
 
-#include "ui/config/Defaults.h"
-#include "ui/actions/Actions.h"
-#include "ui/state/StateFacade.h"
-#include "ui/state/StatusState.h"
-#include "ui/window/CloseWorkflow.h"
-#include "ui/window/DropController.h"
+#include "ui/shared/config/Defaults.h"
+#include "ui/shell/AppActions.h"
+#include "ui/state/status/StatusState.h"
+#include "ui/shell/window/CloseWorkflow.h"
+#include "ui/shell/window/DropHandler.h"
+#include "ui/workspace/WorkspaceFacade.h"
 
 QT_FORWARD_DECLARE_CLASS(QQmlImageProviderBase)
 QT_FORWARD_DECLARE_CLASS(QQmlEngine)
@@ -37,7 +37,7 @@ public:
     void loadQml(const QUrl& source = QUrl());
     QQmlEngine* qmlEngine() const noexcept;
     ui::bootstrap::AppContext* appContext() const noexcept { return appContext_; }
-    ui::StateFacade* dataSession() const noexcept { return dataSession_; }
+    ui::WorkspaceFacade* workspace() const noexcept { return workspace_; }
 
 public slots:
     void handleStorageOperationSucceeded(const QString& operation);
@@ -66,11 +66,11 @@ private:
 
     QQuickView* m_quickView = nullptr;
     QWidget* m_quickContainer = nullptr;
-    ui::StateFacade* dataSession_ = nullptr;
+    ui::WorkspaceFacade* workspace_ = nullptr;
     ui::Actions* actions_ = nullptr;
     ui::StatusState* status_ = nullptr;
     ui::bootstrap::AppContext* appContext_ = nullptr;
     bool qmlShutdownPrepared_ = false;
     ui::window::CloseWorkflow closeWorkflow_;
-    ui::window::DropController dropController_;
+    ui::window::DropHandler dropHandler_;
 };

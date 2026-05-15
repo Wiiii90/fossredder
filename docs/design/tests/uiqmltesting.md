@@ -1,26 +1,93 @@
-# UI QML Testing
+# UI QML Testing Matrix
 
 ## Purpose
 
-This document captures the QML-level behavior matrix for the UI. The tests are
-written against user-visible interactions and remain valid across the UI
-refactor described in `docs/design/tmp/ui_architecture_target.md`.
+This document defines the stable QML-level test matrix for the refactored UI.
+It covers user-visible behavior at the QML boundary and stays aligned with the
+root UI target architecture in `ui_architecture_target.md`.
 
-The matrix content itself is intentionally kept intact here. This update is a
-documentation alignment pass, not an in-content test redesign.
+The matrices below document the implemented QML surface and should remain
+stable across internal source refactors as long as observable behavior stays
+the same.
 
-## Relationship To The UI Refactor
+## Scope
 
-The UI refactor may move files and reshape internal UI layers, but the QML test
-surface stays the same as long as the observable behavior remains the same.
+Included in this matrix:
+- `ui/tests/qml/*`
+- QML components under `ui/qml/FossRedder/*`
 
-These tests should continue to describe:
+Out of scope:
+- C++ source-layer behavior
+- `core` domain and application behavior
+- persistence and infrastructure adapters
+- visual styling changes that do not affect observable behavior
 
-- view composition
-- button and panel wiring
-- selection changes
-- create/update/delete flows
-- view-specific state transitions
+## Target Test Tree
+
+```text
+ui/
+  tests/
+    qml/
+      qmltests.cpp
+      Lookup.js
+      common/
+        tst_Button.qml
+        tst_BottomBar.qml
+        tst_CheckBox.qml
+        tst_DropdownMenu.qml
+        tst_Panel.qml
+        tst_ProgressBar.qml
+        tst_RunLogList.qml
+        tst_TextField.qml
+      actor/
+        tst_ActorView.qml
+        tst_ActorForm.qml
+      property/
+        tst_PropertyView.qml
+        tst_PropertyForm.qml
+      contract/
+        tst_ContractView.qml
+        tst_ContractForm.qml
+      annual/
+        tst_AnnualView.qml
+        tst_AnnualForm.qml
+      booking/
+        tst_BookingView.qml
+        tst_BookingStatementView.qml
+      analysis/
+        tst_AnalysisView.qml
+        tst_AnalysisTransactionsPanel.qml
+        tst_AnalysisTableView.qml
+        tst_AnalysisPlotView.qml
+        tst_AnalysisForm.qml
+      import/
+        tst_ImportView.qml
+        tst_ImportForm.qml
+        tst_StatementDraftView.qml
+      export/
+        tst_ExportForm.qml
+        tst_ExportPanel.qml
+        tst_ExportProgressBar.qml
+        tst_ExportView.qml
+      settings/
+        tst_SettingsExport.qml
+        tst_SettingsImport.qml
+        tst_SettingsMiscellaneous.qml
+        tst_SettingsGeneral.qml
+        tst_SettingsView.qml
+```
+
+## Testing Principles
+
+- Test the observable QML behavior, not the C++ implementation details behind
+  it.
+- Keep test ids stable so the matrix remains useful when the UI internals move.
+- Use the smallest realistic QML harness or fake app context that can express
+  the interaction.
+- Prefer boundary wiring tests over layout pixel tests unless layout behavior is
+  the point of the test.
+- Keep QML tests separate from source-layer tests so each suite owns a single
+  responsibility.
 
 ## Import
 
@@ -259,94 +326,6 @@ These tests should continue to describe:
 |---|---|---|---|---|---|
 | ANL-TV-001 | Table render | QML/Interaction | Adjustment data available | Open table view | Adjustment rows render from amount map |
 
-## Export
-
-### ExportView
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| EXP-001 | Default directory | QML/Interaction | Settings or file system default directory available | Open ExportView | Export form starts with default directory |
-| EXP-002 | Clear export form | QML/Interaction | Export controller idle | Click Clear | Form, panel and active run state are cleared |
-| EXP-003 | Cancel export | QML/Interaction | Export controller running | Click Cancel | `cancelExport()` is called |
-| EXP-004 | Pause or resume export | QML/Interaction | Export controller running | Click Pause or Resume | `togglePause()` is called |
-| EXP-005 | Start export payload | QML/Interaction | Export entries and target directory present | Click Start | `exportDataWithPayload()` is called with normalized payload and correct item count |
-| EXP-006 | Browse directory | QML/Interaction | Export form loaded | Click Browse | Browse request is emitted from form and routed to actions |
-| EXP-007 | Directory selection | QML/Interaction | Actions emits selected directory | Select directory | Export form target directory is updated |
-| EXP-008 | Settings sync | QML/Interaction | Settings default directory or archive format changes | Change settings values | Export form updates its directory and archive format |
-
-### ExportForm
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| EXP-F-001 | Target directory edit | QML | Form loaded | Edit target directory | Target directory property updates |
-| EXP-F-002 | Archive format edit | QML | Form loaded | Change archive selector | Package format index updates |
-| EXP-F-003 | Browse request | QML | Form loaded | Click Browse | Browse request signal is emitted |
-
-### ExportPanel
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| EXP-P-001 | Add annual entry | QML/Interaction | Annual rows available | Activate add entry button for annual | Annual entry is added once |
-| EXP-P-002 | Add analysis entry | QML/Interaction | Analysis rows available | Activate add entry button for analysis | Analysis entry is added once |
-| EXP-P-003 | Remove entry | QML/Interaction | At least one export entry present | Activate remove entry button | Entry is removed deterministically |
-| EXP-P-004 | Update annual entry | QML/Interaction | Annual entry present | Select different annual | Entry updates to selected annual and linked analyses |
-| EXP-P-005 | Collapse annual entry | QML/Interaction | Annual entry present | Toggle collapse button | Collapsed state flips deterministically |
-| EXP-P-006 | Update analysis export type | QML/Interaction | Standalone or nested analysis present | Change export type selector | Export type is normalized and updated |
-| EXP-P-007 | Load items | QML/Interaction | Serialized items available | Load items | Entries reconstruct according to payload rows |
-| EXP-P-008 | Export items mapping | QML/Interaction | Entries present | Read export items | Output payload matches current entries |
-
-## Settings
-
-### SettingsView
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| SET-V-001 | Container mount | QML | App context and theme available | Open SettingsView | Correct category component is loaded |
-| SET-V-002 | Category navigation | QML/Interaction | Settings category available | Click Prev or Next | Navigation category changes within bounds |
-| SET-V-003 | Save settings | QML/Interaction | Settings controller available | Click Update | Settings are saved and language is applied |
-| SET-V-004 | Reset settings | QML/Interaction | Settings controller available | Click Default | Category resets and settings return to defaults |
-
-### SettingsGeneral
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| SET-G-001 | Language selection | QML/Interaction | Available languages loaded | Change language combo box | Settings language updates to selected code |
-| SET-G-002 | Invalid language selection | QML/Interaction | Unavailable language present | Select unavailable language | Selection remains on a valid available language |
-| SET-G-003 | Current language sync | QML/Interaction | Settings language changes externally | Refresh view bindings | Combo box reflects current controller language |
-
-### SettingsImport
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| SET-I-001 | Default import path edit | QML/Interaction | SettingsImport loaded | Edit default path field | `importDefaultPath` updates |
-| SET-I-002 | Browse import path | QML/Interaction | SettingsImport loaded | Click Browse | `browseImportPdf()` is called |
-| SET-I-003 | Import file signal wiring | QML/Interaction | Actions emits `importFileSelected` | Emit selected path | `importDefaultPath` is updated from signal |
-
-### SettingsExport
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| SET-E-001 | Default output directory edit | QML/Interaction | SettingsExport loaded | Edit default directory field | `exportDefaultDirectory` updates |
-| SET-E-002 | Archive format selection | QML/Interaction | SettingsExport loaded | Change archive format combo | `exportArchiveFormat` updates |
-| SET-E-003 | Include formulas toggle | QML/Interaction | SettingsExport loaded | Toggle formulas checkbox | `exportIncludeFormulas` updates |
-| SET-E-004 | Browse/export directory signal wiring | QML/Interaction | SettingsExport loaded | Click Browse or emit `exportDirectorySelected` | Browse action is called and selected path is applied |
-
-### SettingsMiscellaneous
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| SET-M-001 | Toolbar visibility binding | QML/Interaction | SettingsMiscellaneous loaded | Toggle toolbar visibility flags | Settings toolbar flags update deterministically |
-
-## Workflow and E2E Candidates
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| WF-IMP-001 | Draft finalize flow | QML/Interaction | Import draft available | Finalize draft | Statement is created, draft is cleared and log navigation target is stable |
-| WF-IMP-002 | Draft discard flow | QML/Interaction | Import draft available | Discard draft | Draft persistence is cleared and import navigation returns to idle state |
-| WF-EXP-001 | Export payload flow | QML/Interaction | Export entries configured | Start export | Payload contains selected objects and current export configuration |
-| WF-BKG-001 | Statement transaction flow | QML/Interaction | Statement with editable transaction loaded | Update transaction and save statement | Statement and transaction state stay synchronized |
-| WF-ANL-001 | Analysis preview flow | QML/Interaction | Filters changed | Apply filter changes | Preview refresh follows current filter state |
-
 ## Components
 
 ### EntityPicker
@@ -432,34 +411,3 @@ These tests should continue to describe:
 | CTRL-RL-001 | Log click | QML/Interaction | Log model available | Activate log row | Run click signal wiring is available for row interaction |
 | CTRL-RL-002 | Delete click | QML/Interaction | Log row available | Activate remove button | Delete click signal wiring is available for row interaction |
 | CTRL-RL-003 | Payload summary | QML | Log contains payload | Inspect rendered text | Summary reflects annuals, analyses and formats |
-
-## Test File Layout
-
-| Folder | Purpose |
-|---|---|
-| `ui/tests/qml/common` | Shared control and component tests |
-| `ui/tests/qml/actor` | Actor view and form tests |
-| `ui/tests/qml/property` | Property view and form tests |
-| `ui/tests/qml/contract` | Contract view and form tests |
-| `ui/tests/qml/booking` | Booking view and statement tests |
-
-## Support Files
-
-| File | Purpose |
-|---|---|
-| `ui/tests/qml/Lookup.js` | Recursive object lookup helper for QML tests |
-| `ui/tests/qml/qmltests.cpp` | Quick Test bootstrap for UI QML tests |
-
-## Test Support Files
-
-### Lookup.js
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| SUP-001 | Recursive object lookup | QML test support | Test tree contains nested objects | Search by objectName | Matching object is returned from nested content or special item slots |
-
-### qmltests.cpp
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| SUP-002 | Quick Test bootstrap | C++ test support | QML test binary starts | Initialize engine | UI QML imports and runtime registration are configured before tests run |

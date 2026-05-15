@@ -11,8 +11,8 @@ MenuBar {
     id: root
     required property var navigation
     required property var actions
-    required property var languageController
-    required property var settingsController
+    required property var languageService
+    required property var settingsViewModel
     required property var theme
     readonly property int navActors: 0
     readonly property int navProperties: 1
@@ -147,21 +147,21 @@ MenuBar {
         title: qsTr("Language")
 
         Instantiator {
-            model: root.languageController ? root.languageController.availableLanguages : []
+            model: root.languageService ? root.languageService.availableLanguages : []
 
             delegate: Action {
                 required property var modelData
                 text: modelData.label
                 checkable: true
-                checked: root.languageController && root.languageController.currentLanguage === modelData.code
+                checked: root.languageService && root.languageService.currentLanguage === modelData.code
                 enabled: modelData.available !== false
                 onTriggered: {
                     if (!enabled)
                         return
-                    if (root.settingsController)
-                        root.settingsController.language = modelData.code
-                    if (root.languageController)
-                        root.languageController.applyLanguage(modelData.code)
+                    if (root.settingsViewModel)
+                        root.settingsViewModel.language = modelData.code
+                    if (root.languageService)
+                        root.languageService.applyLanguage(modelData.code)
                 }
             }
 

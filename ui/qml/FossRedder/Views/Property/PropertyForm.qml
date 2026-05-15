@@ -18,7 +18,7 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
-    readonly property var propertyController: root.appContext ? root.appContext.propertyController : null
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
 
     readonly property var current: root.session ? root.session.selectedProperty : null
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
@@ -113,12 +113,12 @@ Item {
 
 
     function submitProperty() {
-        if (!root.propertyController)
+        if (!root.workspaceFacade)
             return
 
         const aliasValues = root.toStringList(root.aliases)
         const currentId = root.isEdit && root.current && root.current.id ? root.current.id : ""
-        const propertyId = root.propertyController.saveProperty(currentId, nameField.text, aliasValues)
+        const propertyId = root.workspaceFacade.saveProperty(currentId, nameField.text, aliasValues)
         if (!root.isEdit)
             root.clearFields()
         if (root.session && propertyId && propertyId.length > 0)
@@ -127,11 +127,11 @@ Item {
     }
 
     function deleteProperty() {
-        if (!root.propertyController || !root.current || !root.current.id)
+        if (!root.workspaceFacade || !root.current || !root.current.id)
             return
 
         const removedId = root.current.id
-        root.propertyController.deleteProperty(removedId)
+        root.workspaceFacade.deleteProperty(removedId)
         if (!root.session)
             return
 

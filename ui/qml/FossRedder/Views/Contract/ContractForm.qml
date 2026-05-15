@@ -18,7 +18,7 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
-    readonly property var contractController: root.appContext ? root.appContext.contractController : null
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
 
     readonly property var current: root.session ? root.session.selectedContract : null
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
@@ -143,12 +143,12 @@ Item {
     function canSubmit() { return nameField.text.length > 0 }
 
     function submitContract() {
-        if (!root.contractController)
+        if (!root.workspaceFacade)
             return
 
         const aliasValues = root.toStringList(root.aliases)
         const currentId = root.isEdit && root.current && root.current.id ? root.current.id : ""
-        const contractId = root.contractController.saveContract(currentId,
+        const contractId = root.workspaceFacade.saveContract(currentId,
                                                                 nameField.text,
                                                                 root.contractType,
                                                                 root.selectedActorIds,
@@ -162,11 +162,11 @@ Item {
     }
 
     function deleteContract() {
-        if (!root.contractController || !root.current || !root.current.id)
+        if (!root.workspaceFacade || !root.current || !root.current.id)
             return
 
         const removedId = root.current.id
-        root.contractController.deleteContract(removedId)
+        root.workspaceFacade.deleteContract(removedId)
         if (!root.session) {
             root.clearFields()
             return

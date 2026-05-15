@@ -12,8 +12,8 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
-    required property var importController
-    required property bool hasImportController
+    required property var importWorkflow
+    required property bool hasImportWorkflow
 
     Layout.fillWidth: true
     contentSpacing: root.theme.spacingSmall
@@ -22,21 +22,21 @@ Controls.Panel {
         objectName: "importProgressBar"
         Layout.fillWidth: true
         visible: true
-        value: root.hasImportController && root.importController && typeof root.importController.progress === "number"
-            ? root.importController.progress
+        value: root.hasImportWorkflow && root.importWorkflow && typeof root.importWorkflow.progress === "number"
+            ? root.importWorkflow.progress
             : 0
     }
 
     Label {
         Layout.fillWidth: true
-        text: root.hasImportController
-              ? (root.importController.error && root.importController.error.length > 0
-                  ? root.importController.error
-                  : (root.importController.phase && root.importController.phase.length > 0
-                      ? root.importController.phase
+        text: root.hasImportWorkflow
+              ? (root.importWorkflow.error && root.importWorkflow.error.length > 0
+                  ? root.importWorkflow.error
+                  : (root.importWorkflow.phase && root.importWorkflow.phase.length > 0
+                      ? root.importWorkflow.phase
                       : qsTr("Ready")))
               : qsTr("Ready")
-        color: root.hasImportController && root.importController.error && root.importController.error.length > 0 ? root.theme.danger : root.theme.textPrimary
+        color: root.hasImportWorkflow && root.importWorkflow.error && root.importWorkflow.error.length > 0 ? root.theme.danger : root.theme.textPrimary
         wrapMode: Text.WordWrap
     }
 }

@@ -16,7 +16,7 @@ Controls.Panel {
     required property var appContext
     required property var theme
     readonly property var session: root.appContext ? root.appContext.session : null
-    readonly property var draftController: root.appContext ? root.appContext.draftController : null
+    readonly property var importWorkflow: root.appContext ? root.appContext.importWorkflow : null
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1
@@ -56,8 +56,8 @@ Controls.Panel {
                         checked: root.txRoot && root.txRoot.draft && root.txRoot.draft.current && root.txRoot.draft.current.propertyIds && propertyOption.modelData && propertyOption.modelData.id
                             ? root.txRoot.draft.current.propertyIds.indexOf(propertyOption.modelData.id) !== -1
                             : false
-                        onClicked: if (root.txRoot && root.txRoot.draft && root.draftController) {
-                            root.draftController.setCurrentPropertySelected(root.txRoot.draft, propertyOption.modelData.id, checked)
+                        onClicked: if (root.txRoot && root.txRoot.draft && root.importWorkflow) {
+                            root.importWorkflow.setCurrentPropertySelected(root.txRoot.draft, propertyOption.modelData.id, checked)
                         }
                     }
 

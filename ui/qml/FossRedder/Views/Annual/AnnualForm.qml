@@ -15,8 +15,7 @@ Item {
     id: root
     required property var appContext
     required property var theme
-    readonly property var annualController: root.appContext ? root.appContext.annualController : null
-    readonly property var transactionController: root.appContext ? root.appContext.transactionController : null
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var current: root.session ? root.session.selectedAnnual : null
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
@@ -154,7 +153,7 @@ Item {
         for (let i = 0; i < txIds.length; ++i) {
             const txId = txIds[i]
             const snapshot = snapshotById[txId] || ({})
-            const live = root.transactionController ? root.transactionController.transaction(txId) : ({})
+            const live = root.workspaceFacade ? root.workspaceFacade.transaction(txId) : ({})
             const hasLive = live && live.id && String(live.id).length > 0
             const bookingDate = hasLive ? String(live.bookingDate || "") : String(snapshot.date || "")
             const year = root.bookingYear(bookingDate)
@@ -195,7 +194,7 @@ Item {
             })
         }
 
-        const allTransactions = root.transactionController ? (root.transactionController.transactions() || []) : []
+        const allTransactions = root.workspaceFacade ? (root.workspaceFacade.transactions() || []) : []
         for (let i = 0; i < allTransactions.length; ++i) {
             const tx = allTransactions[i] || ({})
             const txId = String(tx.id || "")
@@ -274,12 +273,12 @@ Item {
             return
         }
 
-        if (!root.annualController || !root.current || !root.current.id) {
+        if (!root.workspaceFacade || !root.current || !root.current.id) {
             root.clearFields()
             return
         }
 
-        const payload = root.annualController.annual(root.current.id)
+        const payload = root.workspaceFacade.annual(root.current.id)
         root.annualNameText = payload && payload.name !== undefined ? String(payload.name) : ""
         root.yearText = payload && payload.year !== undefined ? String(payload.year) : ""
         root.analysisIds = payload && payload.analysisIds ? payload.analysisIds : []
@@ -303,7 +302,7 @@ Item {
     }
 
     function submitAnnual() {
-        if (!root.annualController)
+        if (!root.workspaceFacade)
             return
 
         const year = root.parseYear(root.yearText)
@@ -311,7 +310,7 @@ Item {
             return
 
         const currentId = root.isEdit && root.current && root.current.id ? root.current.id : ""
-        const annualId = root.annualController.saveAnnual(currentId,
+        const annualId = root.workspaceFacade.saveAnnual(currentId,
                                                           root.annualNameText,
                                                           year,
                                                           root.analysisIds || [])
@@ -325,11 +324,11 @@ Item {
     }
 
     function deleteAnnual() {
-        if (!root.annualController || !root.current || !root.current.id)
+        if (!root.workspaceFacade || !root.current || !root.current.id)
             return
 
         const removedId = root.current.id
-        root.annualController.deleteAnnual(removedId)
+        root.workspaceFacade.deleteAnnual(removedId)
         if (!root.session) {
             root.clearFields()
             return

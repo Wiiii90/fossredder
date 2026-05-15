@@ -21,8 +21,8 @@ GridLayout {
         Layout.fillWidth: true
         navigation: layoutRoot.appContext ? layoutRoot.appContext.navigation : null
         actions: layoutRoot.appContext ? layoutRoot.appContext.actions : null
-        languageController: layoutRoot.appContext ? layoutRoot.appContext.languageController : null
-        settingsController: layoutRoot.appContext ? layoutRoot.appContext.settingsController : null
+        languageService: layoutRoot.appContext ? layoutRoot.appContext.languageService : null
+        settingsViewModel: layoutRoot.appContext ? layoutRoot.appContext.settingsViewModel : null
         theme: layoutRoot.theme
     }
 
