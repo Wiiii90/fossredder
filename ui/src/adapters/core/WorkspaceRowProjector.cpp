@@ -247,7 +247,7 @@ QString deleteNextSelectionIdForRows(const QVariantList& rows,
                                      const QString& idKey)
 {
     const int removedIndex = selectionIndexOfId(rows, removedId, idKey);
-    const int nextIndex = removedIndex >= 0 ? removedIndex : fallbackIndex;
+    const int nextIndex = removedIndex >= 0 ? removedIndex + 1 : fallbackIndex;
     return wrappedSelectionIdAt(rows, nextIndex, idKey);
 }
 

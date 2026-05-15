@@ -1,5 +1,5 @@
 /**
- * @file ui/include/ui/analysis/AnalysisInputMapper.h
+ * @file ui/include/ui/adapters/core/AnalysisRequestMapper.h
  * @brief Declares helpers that map analysis-related UI input into core-friendly values.
  */
 
@@ -14,12 +14,6 @@
 #include "core/application/analysis/AnalysisRequest.h"
 
 namespace ui::analysis::input {
-
-/** @brief Convert a QML transaction list into core analysis transactions.
- *  @param transactions List of serialized transactions
- *  @return Vector of core AnalysisTransaction
- */
-std::vector<core::domain::AnalysisTransaction> toCoreTransactions(const QVariantList& transactions);
 
 /** @brief Convert selected QML transaction identifiers into trimmed core identifiers.
  *  @param selectedTransactionIds List of selected transaction identifiers

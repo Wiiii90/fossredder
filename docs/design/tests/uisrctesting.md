@@ -2,302 +2,204 @@
 
 ## Purpose
 
-This document defines the target source-layer test matrix for the refactored
-`ui` module.
+This document defines the current target test matrix for the `ui/src` C++
+surface.
 
-It covers the C++ surface that sits between `core/ports` and QML:
+It mirrors the refactored UI boundary and keeps the source tests aligned with
+the real code in `ui/tests`. The goal is to lock in the behavior of the UI
+bridge layer:
 
-- shell and bootstrap wiring
-- workspace orchestration
-- import, export, and analysis workflows
-- session, selection, navigation, filter, mutation, and status state
-- core-facing adapters and payload mappers
-- platform services and shared helpers
+- workspace facade and selection wiring
+- session state and derived collections
+- row projection and selection helpers
+- mutation normalization helpers
+- neutral navigation state
+- thin adapter smoke checks
+- small workflow smoke checks
 
-The goal is to lock down observable behavior and boundary contracts, not
-private implementation details.
-
-The matrix is intentionally family-based: collection projection, mutation
-reprojection, selection stability, and workflow dispatch should be asserted as
-generic rules that apply across all relevant UI collections and views.
+The matrix is intentionally family-based. When the same rule applies to all
+workspace collections, selection helpers, or row projection helpers, the test
+should describe that family instead of a single incidental screen-specific
+example.
 
 ## Scope
 
 Included in this matrix:
-- `ui/include/ui/*`
-- `ui/src/*`
-- `app/src/main_qml.cpp` where it wires the UI boundary
+- `ui/tests/unit/*`
+- `ui/tests/interaction/*`
+- `ui/tests/support/*`
+- the source layer in `ui/include/ui/*` and `ui/src/*` that these tests cover
 
 Out of scope:
 - QML rendering and visual layout
 - `core` domain and application behavior
 - persistence and infrastructure adapters
-- end-to-end flows that cross multiple subsystems at once
 
 ## Target Test Tree
 
 ```text
 ui/
   tests/
+    support/
+      FakeStorageManager.h
+      WorkspaceTestData.h
     unit/
-      shell/
-        TestAppContext.cpp
-        TestQmlRuntime.cpp
-        TestMainWindowContext.cpp
-      workspace/
-        TestWorkspaceFacade.cpp
-      workflows/
-        import/
-          TestImportWorkflow.cpp
-          TestImportWorkflowState.cpp
-          TestImportRunStore.cpp
-          TestImportJobBridge.cpp
-        export/
-          TestExportWorkflow.cpp
-          TestExportRunner.cpp
-          TestWorkspaceSnapshot.cpp
-        analysis/
-          TestAnalysisWorkflow.cpp
-      state/
-        session/
-          TestWorkspaceSessionState.cpp
-          TestWorkspaceSessionModels.cpp
-          TestWorkspaceSessionSelection.cpp
-        selection/
-          TestSelectionState.cpp
-        navigation/
-          TestNavigationState.cpp
-        filters/
-          TestFilterState.cpp
-        mutation/
-          TestSessionMutationState.cpp
-        status/
-          TestStatusState.cpp
-      adapters/
-        core/
-          TestImportSuggestionService.cpp
-          TestAnalysisPayloadMapper.cpp
-          TestWorkspaceRowProjector.cpp
-          TestAnalysisRequestMapper.cpp
-          TestAnalysisResultMapper.cpp
-          TestDraftViewMapper.cpp
-          TestImportDraftMapper.cpp
-          TestImportSuggestionMapper.cpp
-          TestEntityPayloadMapper.cpp
-          TestPayloadMapper.cpp
-      viewmodels/
-        system/
-          TestSettingsViewModel.cpp
-      platform/
-        dialogs/
-          TestFileDialogs.cpp
-        filesystem/
-          TestFileSystemBrowser.cpp
-        localization/
-          TestLanguageService.cpp
-        settings/
-          TestSettingsStore.cpp
-      shared/
-        util/
-          TestStringConversions.cpp
-          TestCoreFacadeGuard.cpp
-        payload/
-          TestPayloadKeys.cpp
+      TestAnalysisPayloadMapper.cpp
+      TestImportSuggestionService.cpp
+      TestNavigationState.cpp
+      TestSelectionState.cpp
+      TestSessionModels.cpp
+      TestSessionMutationState.cpp
+      TestWorkspaceFacade.cpp
+      TestWorkspaceRowProjector.cpp
+      TestWorkspaceSessionSelection.cpp
+      TestWorkspaceSessionState.cpp
     interaction/
-      shell/
-        TestMainWindow.cpp
-        TestDropHandler.cpp
-        TestCloseWorkflow.cpp
-      workspace/
-        TestWorkspaceSelectionFlow.cpp
-        TestWorkspaceRefreshFlow.cpp
-      workflows/
-        import/
-          TestImportState.cpp
-        analysis/
-          TestAnalysisWorkflow.cpp
-        export/
-          TestExportWorkflow.cpp
+      TestImportState.cpp
 ```
 
 ## Testing Principles
 
-- Source tests should validate orchestration, mapping, and state transitions.
-- Workspace tests should verify that the facade calls the correct core port
-  methods and refreshes UI state deterministically.
-- Workflow tests should verify run handling, command dispatch, and boundary
-  translation for import, export, and analysis.
-- Adapter tests should verify stable payload shapes and deterministic mapping.
-- State tests should verify selection, navigation, filters, and session
-  mutation rules without depending on QML rendering.
-- Platform tests should verify OS-facing behavior such as file dialogs,
-  filesystem browsing, localization, and settings persistence.
-- Shared helper tests should stay narrow and protect only reusable technical
-  helpers that are shared across the UI layer.
-- When a rule applies to multiple entity families, prefer one generic matrix
-  row per behavior family instead of inventing a bespoke case for each screen.
+- Source tests should validate observable behavior, not private helper details.
+- Workspace tests should verify projection, selection, and boundary routing.
+- Session tests should verify that collections stay consistent across refresh
+  and deletion impact.
+- Row projection tests should verify stable ids, stable ordering, and stable
+  selection behavior across all workspace families.
+- Adapter smoke tests should keep the payload surface and mapper headers
+  usable, even when the implementation remains intentionally thin.
+- Workflow smoke tests should keep the import boundary usable without coupling
+  the source tests to QML rendering.
+- Prefer family-based assertions over screen-specific one-off cases when the
+  same rule applies to multiple collections.
 
-## 1. Shell And Bootstrap
+## 1. Workspace Boundary
 
-`shell` covers the application boundary, QML registration, main-window wiring,
-and the global action surface.
+`WorkspaceFacade` is the UI-facing entry point for workspace projection,
+selection access, and core-boundary mutation routing.
 
 ### Behavioral matrix
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| SHL-001 | App context exposes the neutral UI services | Unit | App context initialized | Read the registered services | Workspace facade, workflows, settings, and localization services are available under the final names |
-| SHL-002 | QML runtime registers the public UI API only | Unit | QML runtime initialized | Inspect registered types | Only the intended shell, workspace, workflow, viewmodel, and platform types are exposed |
-| SHL-003 | Main window context wires actions and services | Unit | Main window context built | Inspect bound services | The context receives the correct workspace, workflow, and status services |
-| SHL-004 | Main QML entry wires the root UI boundary | Integration | App bootstrap started | Start the UI entry point | QML sees the same neutral service names that the target architecture defines |
-| SHL-005 | Close workflow preserves unsaved changes handling | Interaction | Dirty UI state present | Trigger close | Close prompt or guard is activated instead of silent exit |
-| SHL-006 | Drop handler routes file drops into the app boundary | Interaction | File payload provided | Drop files onto the main window | File drop is converted into the expected workspace or import action |
+| WSP-001 | Workspace projection loads all catalog families | Unit | Facade with a representative workspace catalog | Load the catalog into the facade | Actor, property, contract, statement, transaction, analysis, and annual rows are all available |
+| WSP-002 | Selection accessors resolve current workspace rows | Unit | Facade with a representative workspace catalog | Set actor, property, contract, statement, transaction, analysis, and annual selection ids | The selected rows resolve to the expected objects |
+| WSP-003 | Statement transaction ids stay readable through the facade | Unit | Facade with a representative statement | Query statement transaction ids | The facade returns the current ordered transaction id list |
+| WSP-004 | Workspace path changes propagate through the boundary | Unit | Facade wired to a storage manager stub | Create or open a workspace path | The facade and storage manager agree on the current path |
+| WSP-005 | Mutations route through the core boundary and refresh rows | Unit | Facade wired to a writable core boundary | Add and delete actors | The actor row model updates deterministically after each mutation |
 
 ### Boundary checks
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| SHL-S-001 | Shell types are the only bootstrap-facing UI surface | Contract | Public headers available | Inspect includes | Bootstrap code depends on shell contracts rather than old controller classes |
-| SHL-S-002 | Window helpers stay window-local | Contract | Window source files available | Review include graph | Window helpers do not depend on QML component internals |
+| WSP-C-001 | Workspace facade stays the public workspace entry point | Contract | UI workspace headers available | Review public API | The facade exposes workspace behavior without reintroducing old controller classes |
+| WSP-C-002 | Workspace projection stays source-side | Contract | Workspace source files available | Review include graph | Projection helpers remain in the UI source layer and do not leak into core |
 
-## 2. Workspace Boundary
+## 2. Session State
 
-`WorkspaceFacade` is the single UI-facing entry point for catalog-level CRUD,
-snapshot access, and selection-friendly read/write orchestration.
+`SessionModels`, `SessionSelection`, `SelectionState`, `NavigationState`, and
+`SessionMutationState` keep the UI workspace state deterministic.
 
 ### Behavioral matrix
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| WSP-001 | Workspace facade exposes actor CRUD | Unit | Core ports stubbed | Add, update, and delete an actor | The facade forwards to the correct core operations and refreshes local state |
-| WSP-002 | Workspace facade exposes property CRUD | Unit | Core ports stubbed | Add, update, and delete a property | Property operations flow through the same boundary contract |
-| WSP-003 | Workspace facade exposes contract CRUD | Unit | Core ports stubbed | Add, update, and delete a contract | Contract relations are forwarded through the workspace boundary |
-| WSP-004 | Workspace facade exposes statement and transaction CRUD | Unit | Core ports stubbed | Add, update, and delete booking data | Statement and transaction mutations stay synchronized |
-| WSP-005 | Workspace facade exposes annual and analysis CRUD | Unit | Core ports stubbed | Add, update, and delete reporting data | Annual and analysis mutations flow through the same workspace path |
-| WSP-006 | Workspace facade rebuilds row snapshots after mutation | Interaction | Workspace data changed | Refresh the workspace state | The UI receives a fresh row projection without stale ids |
-| WSP-007 | Workspace row projection stays deterministic | Unit | Snapshot with stable data | Project rows twice | Both projections produce the same row order and payload |
-| WSP-008 | Workspace facade returns read snapshots only | Unit | Core ports stubbed | Read workspace data | Returned data is snapshot-shaped, not raw domain state |
+| ST-001 | Session models project every workspace collection family | Unit | Session loaded from a representative workspace catalog | Rebuild the models | Actor, property, contract, statement, transaction, analysis, and annual models all match the source catalog |
+| ST-002 | Session models refresh derived transaction types after contract changes | Unit | Catalog with a changed contract type | Reload the models | Transaction types reflect the updated contract type |
+| ST-003 | Session state exposes filtered transaction views for statements and properties | Unit | Session loaded from a representative workspace catalog | Query statement and property filters | Statement and property transaction filters return the expected counts |
+| ST-004 | Session state applies deletion impact across collections and filters | Unit | Session loaded from a representative workspace catalog | Apply statement, transaction, and property deletion impact | The affected collections and filtered views are cleared consistently |
+| ST-005 | Session state updates transaction property assignments in place | Unit | Session loaded from a representative workspace catalog | Reassign transaction property ids | The transaction row updates and the property filter shrinks accordingly |
+| ST-006 | Session selection tracks current rows across all collections | Unit | Session models with a representative workspace catalog | Select actor, property, contract, statement, transaction, analysis, and annual ids | Each selected row resolves to the expected object |
+| ST-007 | Session selection clears stale selections after reload | Unit | Session models with selected rows | Remove the backing rows and refresh selection | Stale ids and stale analysis result state are cleared deterministically |
+| ST-008 | Selection state projects and clears rows consistently | Unit | Selection state with a representative workspace catalog | Set and then remove source rows | Selected rows resolve while present and clear once the source disappears |
+| ST-009 | Navigation state stores the current section and settings category | Unit | Fresh navigation state | Change section and settings category values | Section and category values stay in sync with the enum representation |
+| ST-010 | Mutation helpers normalize string and draft state families | Unit | Mixed string collections and draft payloads | Normalize, insert, remove, and current-state helpers | String collections, transaction drafts, and draft-list helpers stay deterministic |
 
 ### Boundary checks
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| WSP-S-001 | Workspace facade is the only durable catalog entry point | Contract | UI workspace headers available | Inspect public API | Old entity-specific controller classes are not part of the final UI contract |
-| WSP-S-002 | Workspace projection helpers stay UI-side only | Contract | Adapter files available | Review include graph | Core ports stay free of UI projection helpers |
+| ST-C-001 | Session state remains UI-local | Contract | Session source files available | Review include graph | Session logic stays inside the UI source layer |
+| ST-C-002 | Mutation logic stays reusable across collections | Contract | Mutation helper source available | Review helper surface | Shared mutation helpers are used instead of duplicating collection-specific logic |
 
-## 3. Workflows
+## 3. Row Projection And Adapters
 
-`workflows` contains the actual use-case orchestration for import, export, and
-analysis. These components translate UI events into port calls and workflow
-state changes.
-
-### Import workflow
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| IMP-001 | Import workflow starts a statement import | Unit | Import input configured | Start import | The workflow dispatches the expected port call and records running state |
-| IMP-002 | Import workflow cancels the active run | Unit | Running import present | Cancel import | Running state is cleared and the cancel path is forwarded |
-| IMP-003 | Import workflow handles finalization | Unit | Draft statement loaded | Finalize draft | Finalization payload is built and passed through the boundary |
-| IMP-004 | Import workflow stores run metadata | Unit | Completed import payload available | Persist run | Run metadata is written to the run store |
-| IMP-005 | Import job bridge translates job payloads | Unit | Job payload ready | Bridge the job | The bridge produces the expected internal request shape |
-| IMP-006 | Import workflow state survives refreshes | Interaction | Selected import file exists | Refresh the workflow state | The current file, path, and draft state remain consistent |
-
-### Export workflow
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| EXP-001 | Export workflow starts export with selected payload | Unit | Export payload configured | Start export | Export request is forwarded with the current snapshot and config |
-| EXP-002 | Export workflow tracks export runs | Unit | Export in progress | Update state | The workflow state reflects the current run status |
-| EXP-003 | Export runner emits a snapshot export payload | Unit | Workspace snapshot present | Run export | The runner produces the export artifact or request payload |
-| EXP-004 | Workspace snapshot serializes the boundary data | Unit | Workspace data present | Build snapshot | Snapshot contains the selected read-side data and no raw mutable state |
-
-### Analysis workflow
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| ANL-001 | Analysis workflow starts with the current workspace snapshot | Unit | Workspace snapshot ready | Run analysis | The workflow asks the core boundary for the current analysis result |
-| ANL-002 | Analysis workflow forwards normalized requests | Unit | Analysis request edited | Trigger update | Request mapper receives normalized analysis data |
-| ANL-003 | Analysis workflow forwards normalized results | Unit | Core analysis result ready | Project result | Result mapper produces the expected UI-facing payload |
-| ANL-004 | Analysis workflow preserves export and filter state | Interaction | Analysis state changed | Refresh workflow | Existing UI state remains stable unless the workflow explicitly changes it |
-
-### Boundary checks
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| WF-S-001 | Workflows stay use-case focused | Contract | Workflow headers available | Review responsibilities | Import, export, and analysis remain separate concerns |
-| WF-S-002 | Workflow helpers stay private to their workflow family | Contract | Workflow sources available | Review include graph | Import helpers do not leak into export or analysis and vice versa |
-
-## 4. State
-
-`state` contains the local UI state needed to keep the workspace, selection,
-navigation, filter, mutation, and status behavior deterministic.
+`WorkspaceRowProjector` and the thin mapper smoke tests protect the row and
+payload shapes that QML and workflows consume.
 
 ### Behavioral matrix
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ST-001 | Workspace session state stores the current collections | Unit | Session state initialized | Set collections | Actor, property, contract, statement, transaction, annual, and analysis collections are stored consistently |
-| ST-002 | Workspace session models mirror session state | Unit | Session state updated | Rebuild models | List models reflect the current session state deterministically |
-| ST-003 | Workspace session selection tracks current ids | Unit | Selection state ready | Change selection | The selected actor, property, contract, statement, transaction, annual, or analysis id updates correctly |
-| ST-004 | Selection state deduplicates repeated ids | Unit | Duplicate ids provided | Update selection | Duplicate ids are removed and order remains stable |
-| ST-005 | Navigation state moves through adjacent rows | Unit | Multiple rows available | Trigger prev/next navigation | Selection moves to the expected adjacent item |
-| ST-006 | Filter state normalizes invalid combinations | Unit | Invalid filter input | Apply filters | The filter model resolves to a valid state or rejects the invalid combination safely |
-| ST-007 | Session mutation state updates draft data deterministically | Unit | Draft state present | Mutate a field | Draft changes are normalized and stored in a predictable way |
-| ST-008 | Status state reflects the latest operation outcome | Unit | Workflow status changed | Update status | Status text and severity are updated without losing the previous operation context |
+| ADP-001 | Workspace row projection stays stable for all workspace families | Unit | Session store loaded from a representative catalog | Build actor, property, contract, analysis, annual, statement, and transaction rows | Each family exposes deterministic ids, names, and role payloads |
+| ADP-002 | Workspace row ordering preserves the generic selection contract | Unit | Synthetic row list with ordered ids | Insert, prune, and reorder ids | Ordering, insertion, wrapping, and reselection behave deterministically |
+| ADP-003 | Analysis payload mapper header stays usable | Unit | Mapper header available | Include the mapper header | The adapter remains a valid build-time contract surface |
+| ADP-004 | Import suggestion mapper header stays usable | Unit | Mapper header available | Include the mapper header | The adapter remains a valid build-time contract surface |
 
 ### Boundary checks
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ST-S-001 | Session state remains UI-local | Contract | State headers available | Review include graph | Session state does not depend on QML rendering internals |
-| ST-S-002 | Mutation helpers stay isolated from view code | Contract | State source files available | Review include graph | Mutation logic is not duplicated in viewmodels or workflows |
+| ADP-C-001 | Row projector stays a UI source helper | Contract | Adapter headers available | Review public API | Row projection helpers stay capability-based and do not drift back into controller naming |
+| ADP-C-002 | Thin mappers stay header-usable | Contract | Mapper headers available | Compile the smoke tests | The mapper headers remain included and usable without runtime coupling |
 
-## 5. Adapters And ViewModels
+## 4. Import Interaction
 
-`adapters` and `viewmodels` bridge core-shaped data into UI-shaped payloads
-without recreating domain logic in the UI layer.
+The interaction smoke test keeps the import workflow boundary usable without
+binding the suite to QML rendering.
 
 ### Behavioral matrix
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ADP-001 | Workspace row projector produces stable rows | Unit | Workspace snapshot ready | Project rows | Row payloads and row order match the source snapshot deterministically |
-| ADP-002 | Analysis request mapper keeps request shape stable | Unit | Analysis form input ready | Map request | The mapped request contains the normalized fields expected by the workflow |
-| ADP-003 | Analysis result mapper keeps result shape stable | Unit | Analysis result ready | Map result | UI-facing analysis data contains the expected summary and detail fields |
-| ADP-004 | Draft view mapper preserves draft editing data | Unit | Draft payload ready | Map view | Draft view state contains the fields needed by the editor and nothing more |
-| ADP-005 | Import draft mapper preserves workflow context | Unit | Import draft payload ready | Map draft | The mapper retains source file, statement draft, and run context correctly |
-| ADP-006 | Import suggestion mapper preserves suggestion semantics | Unit | Suggestion data ready | Map suggestion | The mapper exposes the same suggestion choices and labels across refreshes |
-| ADP-007 | Entity payload mapper preserves QVariant shape | Unit | Entity payload ready | Convert payload | The payload keys and values stay stable for QML consumption |
-| ADP-008 | Generic payload mapper preserves helper semantics | Unit | Payload input ready | Convert payload | The helper maps only the intended structural fields |
-| ADP-009 | Settings viewmodel exposes saveable UI state | Unit | Settings store stubbed | Mutate settings | The viewmodel reflects the current settings and forwards saves |
+| IMP-001 | Import workflow header remains usable | Interaction | Import workflow state header available | Include the workflow state header | The import workflow boundary remains buildable and accessible from the UI source layer |
 
 ### Boundary checks
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ADP-S-001 | Adapter naming stays capability-based | Contract | Adapter headers available | Review public APIs | Mapping classes speak in rows, payloads, and requests rather than old controller names |
-| ADP-S-002 | Viewmodels stay QML-facing only | Contract | Viewmodel headers available | Review include graph | Viewmodels do not depend on QML visual components |
+| IMP-C-001 | Import state remains workflow-local | Contract | Import workflow files available | Review include graph | Import state does not leak into unrelated UI source modules |
 
-## 6. Platform And Shared
+## Test File Guidance
 
-`platform` and `shared` contain the supporting services that are not part of
-the workspace, workflow, or viewmodel responsibilities.
+Recommended file layout:
 
-### Behavioral matrix
+```text
+ui/
+  tests/
+    support/
+      FakeStorageManager.h
+      WorkspaceTestData.h
+    unit/
+      TestAnalysisPayloadMapper.cpp
+      TestImportSuggestionService.cpp
+      TestNavigationState.cpp
+      TestSelectionState.cpp
+      TestSessionModels.cpp
+      TestSessionMutationState.cpp
+      TestWorkspaceFacade.cpp
+      TestWorkspaceRowProjector.cpp
+      TestWorkspaceSessionSelection.cpp
+      TestWorkspaceSessionState.cpp
+    interaction/
+      TestImportState.cpp
+```
 
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| PLT-001 | File dialogs expose deterministic paths | Unit | Dialog service stubbed | Open or accept a dialog | Returned path matches the expected file dialog contract |
-| PLT-002 | File system browser exposes navigation behavior | Unit | Browser initialized | Browse or navigate directories | The current folder, selection, and entries update as expected |
-| PLT-003 | Language service exposes the active locale | Unit | Language service initialized | Query current language | The service returns the active language and updates correctly on change |
-| PLT-004 | Settings store persists neutral settings names | Unit | Settings store initialized | Save and load settings | The stored values round-trip without depending on old controller names |
-| SHR-001 | String conversions remain deterministic | Unit | Representative text input | Convert strings | Conversion helpers return stable text and encoding results |
-| SHR-002 | Core facade guard blocks invalid access | Unit | Invalid or null facade input | Guard access | The guard prevents unsafe facade use and returns a safe state |
-| SHR-003 | Payload keys remain stable | Contract | Payload key headers available | Inspect key constants | Payload keys do not drift across refactors |
+## Implementation Order
 
-### Boundary checks
+1. Workspace facade and session projection.
+2. Session selection, navigation, and mutation helpers.
+3. Row projection and mapper smoke checks.
+4. Import interaction smoke coverage.
 
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| PLT-S-001 | Platform services stay OS-local | Contract | Platform headers available | Review include graph | File dialogs, browser, language, and settings services stay out of core logic |
-| PLT-S-002 | Shared helpers stay technical | Contract | Shared headers available | Review include graph | Shared helpers do not accumulate domain rules |
+## Definition of Done
+
+The `ui/src` test suite is complete when:
+
+- the workspace facade boundary is covered by behavior tests
+- session models, selection, navigation, and mutation state are covered by
+  stable family-based tests
+- row projection helpers are covered for every workspace family
+- mapper smoke tests remain buildable and usable
+- the import workflow boundary remains smoke-tested
+- the document tree matches the actual `ui/tests` tree

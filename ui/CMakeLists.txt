@@ -339,6 +339,14 @@ if(BUILD_UI_TESTS)
     set(UI_UNIT_TEST_SRCS
         tests/unit/TestAnalysisPayloadMapper.cpp
         tests/unit/TestImportSuggestionService.cpp
+        tests/unit/TestNavigationState.cpp
+        tests/unit/TestSelectionState.cpp
+        tests/unit/TestSessionModels.cpp
+        tests/unit/TestSessionMutationState.cpp
+        tests/unit/TestWorkspaceFacade.cpp
+        tests/unit/TestWorkspaceRowProjector.cpp
+        tests/unit/TestWorkspaceSessionSelection.cpp
+        tests/unit/TestWorkspaceSessionState.cpp
     )
 
     add_executable(ui_unit_tests ${UI_UNIT_TEST_SRCS})
@@ -346,6 +354,9 @@ if(BUILD_UI_TESTS)
         PRIVATE
             GTest::gtest_main
             FossRedder::Ui
+    )
+    target_include_directories(ui_unit_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
     )
     target_compile_features(ui_unit_tests PRIVATE cxx_std_20)
     fossredder_set_runtime_output_dirs(ui_unit_tests)

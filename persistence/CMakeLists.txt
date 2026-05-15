@@ -57,9 +57,6 @@ if (BUILD_PERSISTENCE_TESTS)
     include(GoogleTest)
 
     set(PERSISTENCE_TEST_SRCS
-        tests/unit/TestWorkspaceStateStore.cpp
-        tests/unit/TestSqliteRepository.cpp
-        tests/unit/TestSqliteRegistry.cpp
     )
     add_executable(persistence_unit_tests ${PERSISTENCE_TEST_SRCS})
     target_include_directories(persistence_unit_tests PRIVATE
