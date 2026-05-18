@@ -22,7 +22,7 @@ TestCase {
         property string text: ""
     }
 
-    property var settingsController: QtObject {
+    property var settingsViewModel: QtObject {
         property string importDefaultPath: ""
     }
 
@@ -35,26 +35,7 @@ TestCase {
         function browseImportPdf() { browseCalls += 1 }
     }
 
-    property var draftController: QtObject {
-        property int persistCalls: 0
-        property int clearPersistedCalls: 0
-        property int finalizeCalls: 0
-        property string lastClearedDraftId: ""
-
-        function persistStatementDraft(draft) { persistCalls += 1 }
-        function clearPersistedStatementDraft(draftId) {
-            clearPersistedCalls += 1
-            lastClearedDraftId = draftId
-        }
-        function finalizeStatementDraft(draft) {
-            finalizeCalls += 1
-            return "statement-finalized"
-        }
-        function syncCurrentTransactionDraft(draft) {}
-        function currentTransactionViewState(draft) { return ({ actorChoices: [], effectiveAllocatable: false }) }
-    }
-
-    property var importController: QtObject {
+    property var importWorkflow: QtObject {
         property bool isRunning: false
         property real progress: 0
         property string phase: ""
@@ -80,10 +61,15 @@ TestCase {
         property int cancelCalls: 0
         property int cancelAllCalls: 0
         property int clearDraftCalls: 0
+        property int persistCalls: 0
+        property int clearPersistedCalls: 0
+        property int finalizeCalls: 0
         property int prevDraftCalls: 0
         property int nextDraftCalls: 0
         property int runNoteCalls: 0
         property var lastRunNote: ({})
+        property string lastClearedDraftId: ""
+        property string finalizeResult: "statement-finalized"
 
         function startStatementImport() { startCalls += 1 }
         function resetStatus() { resetCalls += 1 }
@@ -92,6 +78,17 @@ TestCase {
         function clearDraft() { clearDraftCalls += 1; draft = null }
         function openPrevDraft() { prevDraftCalls += 1 }
         function openNextDraft() { nextDraftCalls += 1 }
+        function persistStatementDraft(draft) { persistCalls += 1 }
+        function clearPersistedStatementDraft(draftId) {
+            clearPersistedCalls += 1
+            lastClearedDraftId = draftId
+        }
+        function finalizeStatementDraft(draft) {
+            finalizeCalls += 1
+            return finalizeResult
+        }
+        function syncCurrentTransactionDraft(draft) {}
+        function currentTransactionViewState(draft) { return ({ actorChoices: [], effectiveAllocatable: false }) }
         function addRunNote(statusText, messageText, draftAttached, statementId) {
             runNoteCalls += 1
             lastRunNote = {
@@ -109,11 +106,10 @@ TestCase {
     }
 
     property var appContext: QtObject {
-        property var importController: testCase.importController
-        property var settingsController: testCase.settingsController
+        property var importWorkflow: testCase.importWorkflow
+        property var settingsViewModel: testCase.settingsViewModel
         property var actions: testCase.actions
         property var status: testCase.status
-        property var draftController: testCase.draftController
         property var navigation: testCase.navigation
     }
 
@@ -169,45 +165,45 @@ TestCase {
 
     function init() {
         status.text = ""
-        settingsController.importDefaultPath = ""
+        settingsViewModel.importDefaultPath = ""
         actions.browseCalls = 0
 
-        draftController.persistCalls = 0
-        draftController.clearPersistedCalls = 0
-        draftController.finalizeCalls = 0
-        draftController.lastClearedDraftId = ""
-
-        importController.isRunning = false
-        importController.selectedFile = ""
-        importController.queuedCount = 0
-        importController.queuedFiles = []
-        importController.draft = null
-        importController.hasPrevDraft = false
-        importController.hasNextDraft = false
-        importController.startCalls = 0
-        importController.resetCalls = 0
-        importController.cancelCalls = 0
-        importController.cancelAllCalls = 0
-        importController.clearDraftCalls = 0
-        importController.prevDraftCalls = 0
-        importController.nextDraftCalls = 0
-        importController.runNoteCalls = 0
-        importController.lastRunNote = ({})
+        importWorkflow.isRunning = false
+        importWorkflow.selectedFile = ""
+        importWorkflow.queuedCount = 0
+        importWorkflow.queuedFiles = []
+        importWorkflow.draft = null
+        importWorkflow.hasPrevDraft = false
+        importWorkflow.hasNextDraft = false
+        importWorkflow.startCalls = 0
+        importWorkflow.resetCalls = 0
+        importWorkflow.cancelCalls = 0
+        importWorkflow.cancelAllCalls = 0
+        importWorkflow.clearDraftCalls = 0
+        importWorkflow.persistCalls = 0
+        importWorkflow.clearPersistedCalls = 0
+        importWorkflow.finalizeCalls = 0
+        importWorkflow.prevDraftCalls = 0
+        importWorkflow.nextDraftCalls = 0
+        importWorkflow.runNoteCalls = 0
+        importWorkflow.lastRunNote = ({})
+        importWorkflow.lastClearedDraftId = ""
+        importWorkflow.finalizeResult = "statement-finalized"
 
         navigation.sectionValue = -1
     }
 
     function test_IMP_V_001_defaultImportSelectionUsesSettingsPath() {
-        settingsController.importDefaultPath = "test:///import/default.pdf"
+        settingsViewModel.importDefaultPath = "test:///import/default.pdf"
 
         var view = createView()
         wait(0)
 
-        compare(importController.selectedFile, "test:///import/default.pdf")
+        compare(importWorkflow.selectedFile, "test:///import/default.pdf")
     }
 
     function test_IMP_V_002_startButtonCallsController() {
-        importController.selectedFile = "test:///import/statement.pdf"
+        importWorkflow.selectedFile = "test:///import/statement.pdf"
 
         var view = createView()
         wait(0)
@@ -216,11 +212,11 @@ TestCase {
 
         startButton.clicked()
 
-        compare(importController.startCalls, 1)
+        compare(importWorkflow.startCalls, 1)
     }
 
     function test_IMP_V_003_clearButtonCallsController() {
-        importController.selectedFile = "test:///import/statement.pdf"
+        importWorkflow.selectedFile = "test:///import/statement.pdf"
 
         var view = createView()
         wait(0)
@@ -229,12 +225,12 @@ TestCase {
 
         clearButton.clicked()
 
-        compare(importController.resetCalls, 1)
+        compare(importWorkflow.resetCalls, 1)
     }
 
     function test_IMP_V_004_cancelButtonCallsController() {
-        importController.isRunning = true
-        importController.queuedCount = 2
+        importWorkflow.isRunning = true
+        importWorkflow.queuedCount = 2
 
         var view = createView()
         wait(0)
@@ -243,12 +239,12 @@ TestCase {
 
         cancelButton.clicked()
 
-        compare(importController.cancelCalls, 1)
+        compare(importWorkflow.cancelCalls, 1)
     }
 
     function test_IMP_V_005_cancelAllButtonCallsController() {
-        importController.isRunning = true
-        importController.queuedCount = 2
+        importWorkflow.isRunning = true
+        importWorkflow.queuedCount = 2
 
         var view = createView()
         wait(0)
@@ -257,11 +253,11 @@ TestCase {
 
         cancelAllButton.clicked()
 
-        compare(importController.cancelAllCalls, 1)
+        compare(importWorkflow.cancelAllCalls, 1)
     }
 
     function test_IMP_V_006_draftStateSwitchesToDraftPage() {
-        importController.draft = createDraftObject()
+        importWorkflow.draft = createDraftObject()
 
         var view = createView()
         wait(0)
@@ -271,7 +267,7 @@ TestCase {
     }
 
     function test_IMP_D_005_transactionNavigationButtonsUpdateCurrentIndex() {
-        importController.draft = createDraftObject()
+        importWorkflow.draft = createDraftObject()
 
         var view = createView()
         wait(0)
@@ -280,9 +276,9 @@ TestCase {
         var prevTransactionButton = findRequired(view, "statementDraftPrevTransactionButton")
 
         nextTransactionButton.clicked()
-        compare(importController.draft.currentIndex, 1)
+        compare(importWorkflow.draft.currentIndex, 1)
 
         prevTransactionButton.clicked()
-        compare(importController.draft.currentIndex, 0)
+        compare(importWorkflow.draft.currentIndex, 0)
     }
 }

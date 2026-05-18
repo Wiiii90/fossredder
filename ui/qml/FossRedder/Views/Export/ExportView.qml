@@ -71,6 +71,19 @@ Item {
         if (root.hasExportCtrl) root.exportWorkflow.clearActiveRun()
     }
 
+    Connections {
+        target: root.appContext ? root.appContext.session : null
+        function onDataRevisionChanged() {
+            if (formPanel) {
+                if (!formPanel.targetDirectory || formPanel.targetDirectory.length === 0)
+                    formPanel.targetDirectory = root.defaultTargetDirectory()
+                formPanel.packageFormatIndex = root.settingsViewModel ? root.settingsViewModel.exportArchiveFormat : 0
+            }
+            if (objectsPanel && objectsPanel.syncWithWorkspaceRevision)
+                objectsPanel.syncWithWorkspaceRevision()
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: root.theme.pageContentMargin

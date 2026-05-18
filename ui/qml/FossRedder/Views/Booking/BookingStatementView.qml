@@ -15,6 +15,7 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
+    readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
 
     property string createStatementName: ""
     property var createTransactions: [root.emptyTransaction()]
@@ -55,26 +56,36 @@ Item {
     }
 
     function statementRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.statementRows() : []
     }
 
     function actorRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.actorRows() : []
     }
 
     function contractRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.contractRows() : []
     }
 
     function propertyRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.propertyRows() : []
     }
 
+    function statementTransactionRows(statementId) {
+        const _workspaceRevision = root.workspaceRevision
+        return root.session ? root.session.statementTransactionRows(statementId) : []
+    }
+
     function editTransactionState() {
+        const _workspaceRevision = root.workspaceRevision
         if (!root.session || !root.session.selectedStatementId)
             return ({ rows: [], orderIds: [], index: -1, id: "" })
 
-        const rows = root.session.statementTransactionRows(root.session.selectedStatementId)
+        const rows = root.statementTransactionRows(root.session.selectedStatementId)
         const preferred = root.editTransactionOrderIds && root.editTransactionOrderIds.length > 0
             ? root.editTransactionOrderIds
             : root.session.rowIds(rows)
@@ -141,13 +152,14 @@ Item {
     }
 
     function navigateStatement(delta) {
+        const _workspaceRevision = root.workspaceRevision
         const rows = root.statementRows()
         if (!root.session || rows.length === 0)
             return
 
         const currentId = root.isCreateMode ? "" : (root.session.selectedStatementId || "")
-        const fallbackIndex = delta > 0 ? 0 : rows.length - 1
-        const nextId = root.session.navigatedId(rows, currentId, delta, fallbackIndex)
+        const defaultIndex = delta > 0 ? 0 : rows.length - 1
+        const nextId = root.session.navigatedId(rows, currentId, delta, defaultIndex)
         if (!nextId || nextId.length === 0)
             return
 
@@ -157,6 +169,7 @@ Item {
     }
 
     function navigateTransaction(delta) {
+        const _workspaceRevision = root.workspaceRevision
         if (root.isCreateMode) {
             if (root.createTransactions.length === 0)
                 return
@@ -222,11 +235,11 @@ Item {
             insertAfterIndex = rows.length - 1
 
         const statementId = root.session.selectedStatementId
-        const newId = root.workspaceFacade.addTransaction("", "", 0.0, "", statementId, 0, "", false, [])
+        const newId = root.workspaceFacade.addTransaction("", "", 0.0, statementId, 0, "", "", false, [])
         if (!newId || newId.length === 0)
             return
 
-        const updatedRows = root.session.statementTransactionRows(statementId)
+        const updatedRows = root.statementTransactionRows(statementId)
         const updatedIds = root.session.rowIds(updatedRows)
 
         root.editTransactionOrderIds = root.session
@@ -271,7 +284,7 @@ Item {
         const deletedId = root.editTransactionData.id
         root.workspaceFacade.deleteTransaction(root.editTransactionData.id)
 
-        const updatedRows = root.session ? root.session.statementTransactionRows(root.session.selectedStatementId || "") : []
+        const updatedRows = root.statementTransactionRows(root.session.selectedStatementId || "")
         const reselectionState = root.session
             ? root.session.deleteReselectionState(updatedRows,
                                                  root.editTransactionOrderIds || [],
@@ -312,7 +325,20 @@ Item {
         if (!statementId || statementId.length === 0)
             return
 
-        root.workspaceFacade.addTransactions(statementId, root.createTransactions || [])
+        const drafts = root.createTransactions || []
+        for (let i = 0; i < drafts.length; ++i) {
+            const tx = root.cloneTransaction(drafts[i])
+            root.workspaceFacade.addTransaction(
+                tx.name || "",
+                tx.bookingDate || "",
+                Number(tx.amount || 0.0),
+                statementId,
+                tx.status !== undefined ? Number(tx.status) : 0,
+                tx.actorId || "",
+                tx.contractId || "",
+                !!tx.allocatable,
+                tx.propertyIds || [])
+        }
 
         root.resetCreateState()
         if (root.session) {
@@ -341,10 +367,10 @@ Item {
             root.editTransactionData.name || "",
             root.editTransactionData.bookingDate || "",
             normalizedTx.amount,
-            root.editTransactionData.description || "",
             statementId,
             normalizedTx.status,
             root.editTransactionData.actorId || "",
+            root.editTransactionData.contractId || "",
             !!root.editTransactionData.allocatable,
             root.editTransactionData.propertyIds || [])
         root.captureEditState()
@@ -367,12 +393,23 @@ Item {
         target: root.session
 
         function onSelectedStatementIdChanged() {
-            if (!root.isCreateMode)
+            if (root.isCreateMode)
+                root.resetCreateState()
+            else
                 root.syncEditState()
         }
 
         function onSelectedTransactionIdChanged() {
-            if (!root.isCreateMode)
+            if (root.isCreateMode)
+                root.resetCreateState()
+            else
+                root.syncEditState()
+        }
+
+        function onDataRevisionChanged() {
+            if (root.isCreateMode)
+                root.resetCreateState()
+            else
                 root.syncEditState()
         }
     }

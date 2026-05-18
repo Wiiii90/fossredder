@@ -338,11 +338,15 @@ if(BUILD_UI_TESTS)
 
     set(UI_UNIT_TEST_SRCS
         tests/unit/TestAnalysisPayloadMapper.cpp
+        tests/unit/TestAnalysisWorkflow.cpp
+        tests/unit/TestExportWorkflow.cpp
+        tests/unit/TestImportWorkflow.cpp
         tests/unit/TestImportSuggestionService.cpp
         tests/unit/TestNavigationState.cpp
         tests/unit/TestSelectionState.cpp
         tests/unit/TestSessionModels.cpp
         tests/unit/TestSessionMutationState.cpp
+        tests/unit/TestWorkspaceStartupRehydration.cpp
         tests/unit/TestWorkspaceFacade.cpp
         tests/unit/TestWorkspaceRowProjector.cpp
         tests/unit/TestWorkspaceSessionSelection.cpp

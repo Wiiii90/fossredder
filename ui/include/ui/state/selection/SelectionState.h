@@ -29,16 +29,18 @@ class ActorSelection : public QObject {
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QStringList aliases READ aliases NOTIFY changed)
+    Q_PROPERTY(QStringList contractIds READ contractIds NOTIFY changed)
 
 public:
     explicit ActorSelection(QObject* parent = nullptr);
 
     void clear();
-    void set(QString id, QString name, QStringList aliases);
+    void set(QString id, QString name, QStringList aliases, QStringList contractIds);
 
     QString id() const { return id_; }
     QString name() const { return name_; }
     QStringList aliases() const { return aliases_; }
+    QStringList contractIds() const { return contractIds_; }
 
 signals:
     void changed();
@@ -47,6 +49,7 @@ private:
     QString id_;
     QString name_;
     QStringList aliases_;
+    QStringList contractIds_;
 };
 
 class PropertySelection : public QObject {
@@ -56,16 +59,18 @@ class PropertySelection : public QObject {
     Q_PROPERTY(QString id READ id NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
     Q_PROPERTY(QStringList aliases READ aliases NOTIFY changed)
+    Q_PROPERTY(QStringList contractIds READ contractIds NOTIFY changed)
 
 public:
     explicit PropertySelection(QObject* parent = nullptr);
 
     void clear();
-    void set(QString id, QString name, QStringList aliases);
+    void set(QString id, QString name, QStringList aliases, QStringList contractIds);
 
     QString id() const { return id_; }
     QString name() const { return name_; }
     QStringList aliases() const { return aliases_; }
+    QStringList contractIds() const { return contractIds_; }
 
 signals:
     void changed();
@@ -74,6 +79,7 @@ private:
     QString id_;
     QString name_;
     QStringList aliases_;
+    QStringList contractIds_;
 };
 
 class ContractSelection : public QObject {

@@ -46,7 +46,12 @@ ExportWorkflow::ExportWorkflow(
 void ExportWorkflow::setExportLogsStore(ExportLogsStore store)
 {
     exportLogsStore_ = std::move(store);
-    persistRuns();
+}
+
+void ExportWorkflow::refreshFromStateSnapshot()
+{
+    restoreRunsFromSnapshot();
+    emit stateChanged();
 }
 
 int ExportWorkflow::currentMode() const noexcept
@@ -167,12 +172,13 @@ void ExportWorkflow::persistRuns()
     exportLogsStore_(logs);
 }
 
-void ExportWorkflow::restoreRunsFromSnapshot() const
+void ExportWorkflow::restoreRunsFromSnapshot()
 {
     if (!runs_ || !stateSnapshotProvider_) return;
     const auto snapshot = stateSnapshotProvider_();
     if (!snapshot) return;
 
+    const QString previousActiveRunLogId = activeRunLogId_;
     std::vector<ExportRunRow> rows;
     const auto& exportLogs = snapshot->workflow.exportLogs;
     rows.reserve(exportLogs.size());
@@ -188,6 +194,12 @@ void ExportWorkflow::restoreRunsFromSnapshot() const
         rows.push_back(std::move(row));
     }
     runs_->setRuns(std::move(rows));
+
+    if (!previousActiveRunLogId.isEmpty() && runs_->findByLogId(previousActiveRunLogId) >= 0) {
+        activeRunLogId_ = previousActiveRunLogId;
+    } else if (!activeRunLogId_.isEmpty() && runs_->findByLogId(activeRunLogId_) < 0) {
+        activeRunLogId_.clear();
+    }
 }
 
 void ExportWorkflow::exportData(int format, const QString &path,

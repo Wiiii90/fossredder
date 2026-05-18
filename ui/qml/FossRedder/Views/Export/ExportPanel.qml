@@ -15,6 +15,7 @@ Controls.Panel {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
 
     property var exportEntries: []
     property string addMode: "annual"
@@ -22,10 +23,12 @@ Controls.Panel {
     property string pendingAnalysisId: ""
 
     function annualRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.annualRows() : []
     }
 
     function analysisRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.analysisRows() : []
     }
 
@@ -101,6 +104,11 @@ Controls.Panel {
             root.pendingAnnualId = firstId
         else
             root.pendingAnalysisId = firstId
+    }
+
+    function syncWithWorkspaceRevision() {
+        const _workspaceRevision = root.workspaceRevision
+        root.ensurePendingSelection()
     }
 
     function selectPendingRow(index) {
@@ -268,6 +276,13 @@ Controls.Panel {
 
     onAddModeChanged: root.ensurePendingSelection()
 
+    Connections {
+        target: root.session
+        function onDataRevisionChanged() {
+            root.syncWithWorkspaceRevision()
+        }
+    }
+
     RowLayout {
         Layout.fillWidth: true
 
@@ -303,7 +318,7 @@ Controls.Panel {
             model: root.addRows()
             textRole: root.addTextRole()
             currentIndex: root.pendingIndex()
-            onActivated: root.selectPendingRow(currentIndex)
+            onActivated: function(index) { root.selectPendingRow(index) }
         }
 
         Controls.SecondaryButton {

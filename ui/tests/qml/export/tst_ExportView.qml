@@ -24,11 +24,11 @@ TestCase {
         function browseExportDirectory() { browseCalls += 1 }
     }
 
-    property var fileSystemController: QtObject {
+    property var fileSystemBrowser: QtObject {
         function appDir() { return "test:///runtime/app" }
     }
 
-    property var settingsController: QtObject {
+    property var settingsViewModel: QtObject {
         property string exportDefaultDirectory: "test:///export/default"
         property int exportArchiveFormat: 0
         property bool exportIncludeFormulas: true
@@ -45,7 +45,7 @@ TestCase {
         function analysisRows() { return analysesData || [] }
     }
 
-    property var exportController: QtObject {
+    property var exportWorkflow: QtObject {
         property int currentMode: 0
         property bool isPaused: false
         property real progress: 0
@@ -75,10 +75,10 @@ TestCase {
     }
 
     property var appContext: QtObject {
-        property var exportController: testCase.exportController
+        property var exportWorkflow: testCase.exportWorkflow
         property var actions: testCase.actions
-        property var fileSystemController: testCase.fileSystemController
-        property var settingsController: testCase.settingsController
+        property var fileSystemBrowser: testCase.fileSystemBrowser
+        property var settingsViewModel: testCase.settingsViewModel
         property var session: testCase.session
     }
 
@@ -133,20 +133,20 @@ TestCase {
     function init() {
         actions.browseCalls = 0
 
-        settingsController.exportDefaultDirectory = "test:///export/default"
-        settingsController.exportArchiveFormat = 0
-        settingsController.exportIncludeFormulas = true
+        settingsViewModel.exportDefaultDirectory = "test:///export/default"
+        settingsViewModel.exportArchiveFormat = 0
+        settingsViewModel.exportIncludeFormulas = true
 
-        exportController.currentMode = 0
-        exportController.isPaused = false
-        exportController.progress = 0
-        exportController.phase = ""
-        exportController.error = ""
-        exportController.clearCalls = 0
-        exportController.cancelCalls = 0
-        exportController.togglePauseCalls = 0
-        exportController.exportCalls = 0
-        exportController.lastExportArgs = ({})
+        exportWorkflow.currentMode = 0
+        exportWorkflow.isPaused = false
+        exportWorkflow.progress = 0
+        exportWorkflow.phase = ""
+        exportWorkflow.error = ""
+        exportWorkflow.clearCalls = 0
+        exportWorkflow.cancelCalls = 0
+        exportWorkflow.togglePauseCalls = 0
+        exportWorkflow.exportCalls = 0
+        exportWorkflow.lastExportArgs = ({})
     }
 
     function test_EXP_002_clearButtonResetsExportState() {
@@ -155,27 +155,27 @@ TestCase {
 
         clearButton.clicked()
 
-        compare(exportController.clearCalls, 1)
+        compare(exportWorkflow.clearCalls, 1)
     }
 
     function test_EXP_003_cancelButtonCallsController() {
-        exportController.currentMode = 1
+        exportWorkflow.currentMode = 1
         var view = createView()
         var cancelButton = findRequired(view, "exportCancelButton")
 
         cancelButton.clicked()
 
-        compare(exportController.cancelCalls, 1)
+        compare(exportWorkflow.cancelCalls, 1)
     }
 
     function test_EXP_004_pauseButtonCallsController() {
-        exportController.currentMode = 1
+        exportWorkflow.currentMode = 1
         var view = createView()
         var pauseButton = findRequired(view, "exportTogglePauseButton")
 
         pauseButton.clicked()
 
-        compare(exportController.togglePauseCalls, 1)
+        compare(exportWorkflow.togglePauseCalls, 1)
     }
 
     function test_EXP_005_startBuildsPayloadAndStartsExport() {
@@ -186,13 +186,13 @@ TestCase {
         addButton.clicked()
         startButton.clicked()
 
-        compare(exportController.exportCalls, 1)
-        verify(String(exportController.lastExportArgs.payload).indexOf("Annual") !== -1)
-        verify(String(exportController.lastExportArgs.path).indexOf("/export") !== -1)
+        compare(exportWorkflow.exportCalls, 1)
+        verify(String(exportWorkflow.lastExportArgs.payload).indexOf("Annual") !== -1)
+        verify(String(exportWorkflow.lastExportArgs.path).indexOf("/export") !== -1)
     }
 
     function test_EXP_001_defaultDirectoryIsLoadedFromSettings() {
-        settingsController.exportDefaultDirectory = "test:///export/from-settings"
+        settingsViewModel.exportDefaultDirectory = "test:///export/from-settings"
         var view = createView()
         var formPanel = findRequired(view, "exportFormPanel")
 
@@ -221,7 +221,7 @@ TestCase {
         var view = createView()
         var formPanel = findRequired(view, "exportFormPanel")
 
-        settingsController.exportArchiveFormat = 1
+        settingsViewModel.exportArchiveFormat = 1
 
         compare(formPanel.packageFormatIndex, 1)
     }

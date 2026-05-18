@@ -5,6 +5,7 @@
 #include "core/errors/ErrorReporterRegistry.h"
 #include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/domain/entities/Contract.h"
+#include "core/domain/entities/Property.h"
 #include "core/domain/entities/Transaction.h"
 #include "../../../utils/Util.h"
 
@@ -20,6 +21,8 @@ namespace core::application::analysis {
 namespace {
 
 using ContractTypeIndex = std::unordered_map<std::string, std::string>;
+using ContractPropertyIndex = std::unordered_map<std::string, std::vector<std::string>>;
+using PropertyNameIndex = std::unordered_map<std::string, std::string>;
 
 struct PlotConfig {
     std::string plotType = std::string(core::constants::analysis::plotTypes::kPie);
@@ -135,13 +138,73 @@ ContractTypeIndex buildContractTypeIndex(const core::domain::catalog::WorkspaceC
     return index;
 }
 
-bool matchesPropertyAnalysisFilter(const core::domain::Transaction& transaction, const std::vector<std::string>& propertyAnalysisFilter)
+ContractPropertyIndex buildContractPropertyIndex(const core::domain::catalog::WorkspaceCatalog& state)
+{
+    ContractPropertyIndex index;
+    index.reserve(state.contracts().size());
+    for (const auto& contract : state.contracts()) {
+        if (!contract) {
+            continue;
+        }
+        index.emplace(contract->id(), contract->propertyIds());
+    }
+    return index;
+}
+
+PropertyNameIndex buildPropertyNameIndex(const core::domain::catalog::WorkspaceCatalog& state)
+{
+    PropertyNameIndex index;
+    index.reserve(state.properties().size());
+    for (const auto& property : state.properties()) {
+        if (!property) {
+            continue;
+        }
+        index.emplace(property->id(), property->name().empty() ? property->id() : property->name());
+    }
+    return index;
+}
+
+std::string propertyLabelForId(const PropertyNameIndex& propertyNameById,
+                               const std::string& propertyId)
+{
+    const auto it = propertyNameById.find(propertyId);
+    if (it == propertyNameById.end() || it->second.empty()) {
+        return propertyId;
+    }
+    return it->second;
+}
+
+std::vector<std::string> effectivePropertyIds(const core::domain::Transaction& transaction,
+                                              const ContractPropertyIndex& propertyIdsByContractId)
+{
+    std::vector<std::string> ids = transaction.propertyIds();
+    if (transaction.contractId().empty()) {
+        return ids;
+    }
+
+    const auto it = propertyIdsByContractId.find(transaction.contractId());
+    if (it == propertyIdsByContractId.end()) {
+        return ids;
+    }
+
+    for (const auto& propertyId : it->second) {
+        if (std::find(ids.begin(), ids.end(), propertyId) == ids.end()) {
+            ids.push_back(propertyId);
+        }
+    }
+    return ids;
+}
+
+bool matchesPropertyAnalysisFilter(const core::domain::Transaction& transaction,
+                                   const std::vector<std::string>& propertyAnalysisFilter,
+                                   const ContractPropertyIndex& propertyIdsByContractId)
 {
     if (propertyAnalysisFilter.empty()) {
         return true;
     }
 
-    for (const auto& propertyId : transaction.propertyIds()) {
+    const auto propertyIds = effectivePropertyIds(transaction, propertyIdsByContractId);
+    for (const auto& propertyId : propertyIds) {
         if (std::find(propertyAnalysisFilter.begin(), propertyAnalysisFilter.end(), propertyId) != propertyAnalysisFilter.end()) {
             return true;
         }
@@ -178,7 +241,8 @@ std::vector<std::shared_ptr<core::domain::Transaction>> collectMatchedTransactio
                                                                                    const AnalysisFilter& filter,
                                                                                    const std::vector<std::string>& propertyAnalysisFilter,
                                                                                    const std::vector<std::string>& normalizedContractTypeAnalysisFilter,
-                                                                                   const ContractTypeIndex& normalizedContractTypeById)
+                                                                                   const ContractTypeIndex& normalizedContractTypeById,
+                                                                                   const ContractPropertyIndex& propertyIdsByContractId)
 {
     std::vector<std::shared_ptr<core::domain::Transaction>> matched;
     matched.reserve(state.transactions().size());
@@ -189,7 +253,7 @@ std::vector<std::shared_ptr<core::domain::Transaction>> collectMatchedTransactio
         if (!filter.empty() && !filter.matches(transaction, state)) {
             continue;
         }
-        if (!matchesPropertyAnalysisFilter(*transaction, propertyAnalysisFilter)) {
+        if (!matchesPropertyAnalysisFilter(*transaction, propertyAnalysisFilter, propertyIdsByContractId)) {
             continue;
         }
         if (!matchesContractTypeAnalysisFilter(*transaction, normalizedContractTypeAnalysisFilter, normalizedContractTypeById)) {
@@ -294,7 +358,8 @@ AnalysisResult buildPieResult(const std::vector<std::shared_ptr<core::domain::Tr
 }
 
 AnalysisResult buildHistogramResult(const std::vector<std::shared_ptr<core::domain::Transaction>>& matched,
-                                    const core::domain::catalog::WorkspaceCatalog& state)
+                                    const core::domain::catalog::WorkspaceCatalog& state,
+                                    const ContractPropertyIndex& propertyIdsByContractId)
 {
     AnalysisResult result;
     if (matched.empty()) {
@@ -302,6 +367,7 @@ AnalysisResult buildHistogramResult(const std::vector<std::shared_ptr<core::doma
     }
 
     const auto contractTypeByIdRaw = buildContractTypeIndex(state, false);
+    const auto propertyNameById = buildPropertyNameIndex(state);
     std::map<std::string, double> monthTotal;
     std::map<std::string, std::map<std::string, double>> monthByContract;
     std::map<std::string, std::map<std::string, double>> monthByProperty;
@@ -322,9 +388,10 @@ AnalysisResult buildHistogramResult(const std::vector<std::shared_ptr<core::doma
         }
         monthByContract[month][contractType] += amount;
 
-        if (!transaction->propertyIds().empty()) {
-            for (const auto& propertyId : transaction->propertyIds()) {
-                monthByProperty[month][propertyId] += amount;
+        const auto propertyIds = effectivePropertyIds(*transaction, propertyIdsByContractId);
+        if (!propertyIds.empty()) {
+            for (const auto& propertyId : propertyIds) {
+                monthByProperty[month][propertyLabelForId(propertyNameById, propertyId)] += amount;
             }
         } else {
             monthByProperty[month][std::string(core::constants::analysis::labels::kNoProperty)] += amount;
@@ -371,13 +438,19 @@ AnalysisResult computePlotAnalysis(const core::domain::Analysis& analysis,
 {
     const PlotConfig config = parsePlotConfig(analysis);
     const ContractTypeIndex normalizedContractTypeById = buildContractTypeIndex(state, true);
+    const ContractPropertyIndex propertyIdsByContractId = buildContractPropertyIndex(state);
     const auto normalizedPropertyFilter = normalizeList(config.propertyAnalysisFilter);
     const auto normalizedContractTypeFilter = normalizeList(config.contractTypeAnalysisFilter);
-    const auto matched = collectMatchedTransactions(state, filter, normalizedPropertyFilter, normalizedContractTypeFilter, normalizedContractTypeById);
+    const auto matched = collectMatchedTransactions(state,
+                                                    filter,
+                                                    normalizedPropertyFilter,
+                                                    normalizedContractTypeFilter,
+                                                    normalizedContractTypeById,
+                                                    propertyIdsByContractId);
 
     AnalysisResult out;
     if (config.plotType == core::constants::analysis::plotTypes::kHistogram) {
-        out = buildHistogramResult(matched, state);
+        out = buildHistogramResult(matched, state, propertyIdsByContractId);
     } else {
         out = buildPieResult(matched, normalizedContractTypeById, config.plotMeasure);
     }

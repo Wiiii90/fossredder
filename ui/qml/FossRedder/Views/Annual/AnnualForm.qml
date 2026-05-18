@@ -17,6 +17,7 @@ Item {
     required property var theme
     readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
     readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
     readonly property var current: root.session ? root.session.selectedAnnual : null
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
     property string annualNameText: ""
@@ -34,10 +35,12 @@ Item {
     anchors.fill: parent
 
     function annualRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.annualRows() : []
     }
 
     function analysisRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.analysisRows() : []
     }
 
@@ -293,8 +296,8 @@ Item {
             return
 
         const currentId = root.isEdit ? (root.session.selectedAnnualId || "") : ""
-        const fallbackIndex = delta > 0 ? 0 : rows.length - 1
-        const nextId = root.session.navigatedId(rows, currentId, delta, fallbackIndex)
+        const defaultIndex = delta > 0 ? 0 : rows.length - 1
+        const nextId = root.session.navigatedId(rows, currentId, delta, defaultIndex)
         if (!nextId || nextId.length === 0)
             return
 
@@ -342,6 +345,10 @@ Item {
 
     onCurrentChanged: root.syncFields()
     onIsEditChanged: root.syncFields()
+    Connections {
+        target: root.session
+        function onDataRevisionChanged() { root.syncFields() }
+    }
 
     ColumnLayout {
         anchors.fill: parent

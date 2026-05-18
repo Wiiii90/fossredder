@@ -22,10 +22,17 @@ void SessionStore::bindModelSignals()
 {
 }
 
+void SessionStore::bumpDataRevision()
+{
+    ++dataRevision_;
+    emit dataRevisionChanged();
+}
+
 void SessionStore::loadFromState(const core::domain::catalog::WorkspaceCatalog& state)
 {
     filters_.clear();
     models_.loadFromState(state);
+    bumpDataRevision();
 }
 
 TransactionFilter* SessionStore::statementTransactions(const QString& statementId)
@@ -44,11 +51,13 @@ void SessionStore::applyDeletionImpact(const DeletionImpact& impact)
                                               models_,
                                               filters_);
     models_.refreshContractTypes();
+    bumpDataRevision();
 }
 
 void SessionStore::setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds)
 {
     SessionMutationState::setTransactionPropertyIdsImmediate(txId, propertyIds, models_);
+    bumpDataRevision();
 }
 
 }

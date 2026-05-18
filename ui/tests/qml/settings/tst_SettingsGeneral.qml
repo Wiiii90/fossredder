@@ -18,11 +18,11 @@ TestCase {
     width: 960
     height: 640
 
-    property var settingsController: QtObject {
+    property var settingsViewModel: QtObject {
         property string language: "en"
     }
 
-    property var languageController: QtObject {
+    property var languageService: QtObject {
         property var availableLanguages: [
             { code: "en", label: "English", available: true },
             { code: "de", label: "Deutsch", available: true }
@@ -31,8 +31,8 @@ TestCase {
     }
 
     property var appContext: QtObject {
-        property var settingsController: testCase.settingsController
-        property var languageController: testCase.languageController
+        property var settingsViewModel: testCase.settingsViewModel
+        property var languageService: testCase.languageService
     }
 
     property var theme: QtObject {
@@ -64,20 +64,20 @@ TestCase {
     }
 
     function init() {
-        languageController.availableLanguages = [
+        languageService.availableLanguages = [
             { code: "en", label: "English", available: true },
             { code: "de", label: "Deutsch", available: true }
         ]
-        settingsController.language = "en"
-        languageController.currentLanguage = "en"
+        settingsViewModel.language = "en"
+        languageService.currentLanguage = "en"
     }
 
     function test_SET_G_003_languageDropdownReflectsSettingsLanguage() {
         var view = createView()
         var languageDropdown = findRequired(view, "settingsLanguageDropdown")
 
-        settingsController.language = "de"
-        languageController.currentLanguage = "de"
+        settingsViewModel.language = "de"
+        languageService.currentLanguage = "de"
 
         tryCompare(languageDropdown, "currentIndex", 1)
     }
@@ -89,15 +89,15 @@ TestCase {
         languageDropdown.currentIndex = 1
         languageDropdown.activated(1)
 
-        compare(settingsController.language, "de")
+        compare(settingsViewModel.language, "de")
     }
 
     function test_SET_G_002_unavailableLanguageSelectionReverts() {
-        languageController.availableLanguages = [
+        languageService.availableLanguages = [
             { code: "en", label: "English", available: true },
             { code: "xx", label: "Unavailable", available: false }
         ]
-        settingsController.language = "en"
+        settingsViewModel.language = "en"
 
         var view = createView()
         var languageDropdown = findRequired(view, "settingsLanguageDropdown")
@@ -105,7 +105,7 @@ TestCase {
         languageDropdown.currentIndex = 1
         languageDropdown.activated(1)
 
-        compare(settingsController.language, "en")
+        compare(settingsViewModel.language, "en")
         compare(languageDropdown.currentIndex, 0)
     }
 

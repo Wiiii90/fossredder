@@ -53,6 +53,7 @@ core::ports::workspace::WorkspaceSnapshot WorkspaceSnapshotProjector::project(
         row.name = item->name();
         row.createdAt = item->createdAt();
         row.updatedAt = item->updatedAt();
+        row.contractIds = item->contractIds();
         row.aliases.reserve(item->aliases().size());
         for (const auto& alias : item->aliases()) {
             row.aliases.push_back(projectAlias(alias));
@@ -71,6 +72,7 @@ core::ports::workspace::WorkspaceSnapshot WorkspaceSnapshotProjector::project(
         row.name = item->name();
         row.createdAt = item->createdAt();
         row.updatedAt = item->updatedAt();
+        row.contractIds = item->contractIds();
         row.aliases.reserve(item->aliases().size());
         for (const auto& alias : item->aliases()) {
             row.aliases.push_back(projectAlias(alias));

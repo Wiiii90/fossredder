@@ -22,6 +22,19 @@ Item {
         root.session.selectedTransactionId = ""
     }
 
+    Connections {
+        target: root.session
+        function onDataRevisionChanged() {
+            if (root.importWorkflow && root.importWorkflow.refreshFromStateSnapshot)
+                root.importWorkflow.refreshFromStateSnapshot()
+        }
+    }
+
+    Component.onCompleted: {
+        if (root.importWorkflow && root.importWorkflow.refreshFromStateSnapshot)
+            root.importWorkflow.refreshFromStateSnapshot()
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: root.theme.spacingMedium

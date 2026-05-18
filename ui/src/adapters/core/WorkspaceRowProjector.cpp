@@ -20,7 +20,7 @@ namespace ui {
 
 QString deleteNextSelectionIdForRows(const QVariantList& rows,
                                      const QString& removedId,
-                                     int fallbackIndex,
+                                     int defaultIndex,
                                      const QString& idKey);
 
 namespace {
@@ -151,11 +151,11 @@ QString wrappedSelectionIdAt(const QVariantList& rows, int index, const QString&
 QString navigatedSelectionId(const QVariantList& rows,
                              const QString& currentId,
                              int delta,
-                             int fallbackIndex,
+                             int defaultIndex,
                              const QString& idKey)
 {
     const int currentIndex = selectionIndexOfId(rows, currentId, idKey);
-    const int baseIndex = currentIndex >= 0 ? currentIndex : fallbackIndex;
+    const int baseIndex = currentIndex >= 0 ? currentIndex : defaultIndex;
     return wrappedSelectionIdAt(rows, baseIndex + delta, idKey);
 }
 
@@ -202,8 +202,12 @@ QVariantMap resolveSelectionRowState(const QVariantList& rows,
                                      const QString& selectedId,
                                      const QString& idKey)
 {
-    QVariantMap out = selectionStateMap(currentIndex, selectedId, idKey);
-    out.insert(QStringLiteral("currentId"), rowIdAt(rows, currentIndex, idKey));
+    const int selectedIndex = rowIndexOfId(rows, selectedId, idKey);
+    const int resolvedIndex = selectedIndex >= 0 ? selectedIndex : normalizedSelectionIndex(currentIndex, rows.size());
+    const QString resolvedId = !selectedId.isEmpty() ? selectedId : rowIdAt(rows, resolvedIndex, idKey);
+
+    QVariantMap out = selectionStateMap(resolvedIndex, resolvedId, idKey);
+    out.insert(QStringLiteral("currentId"), rowIdAt(rows, resolvedIndex, idKey));
     return out;
 }
 
@@ -224,9 +228,13 @@ QVariantMap orderedSelectionRowsState(const QVariantList& rows,
                                       const QVariantList& preferredOrder,
                                       const QString& idKey)
 {
+    const QVariantList orderedRows = orderedRowsBySelectionIds(rows, preferredOrder, idKey);
+    const QVariantList orderIds = pruneAndAppendMissingIds(preferredOrder, selectionRowIds(rows, idKey));
+
     QVariantMap out;
-    out.insert(QStringLiteral("rows"), orderedRowsBySelectionIds(rows, preferredOrder, idKey));
-    out.insert(QStringLiteral("order"), pruneAndAppendMissingIds(preferredOrder, selectionRowIds(rows, idKey)));
+    out.insert(QStringLiteral("rows"), orderedRows);
+    out.insert(QStringLiteral("orderIds"), orderIds);
+    out.insert(QStringLiteral("order"), orderIds);
     return out;
 }
 
@@ -237,17 +245,23 @@ QVariantMap orderedSelectionStateForRows(const QVariantList& rows,
                                          const QString& idKey)
 {
     QVariantMap out = orderedSelectionRowsState(rows, preferredOrder, idKey);
-    out.insert(QStringLiteral("selection"), resolveSelectionRowState(rows, currentIndex, selectedId, idKey));
+    const QVariantList orderedRows = out.value(QStringLiteral("rows")).toList();
+    const QVariantMap selection = resolveSelectionRowState(orderedRows, currentIndex, selectedId, idKey);
+    out.insert(QStringLiteral("selection"), selection);
+    out.insert(QStringLiteral("index"), selection.value(QStringLiteral("index")));
+    out.insert(QStringLiteral("id"), selection.value(QStringLiteral("id")));
+    out.insert(QStringLiteral("currentId"), selection.value(QStringLiteral("currentId")));
+    out.insert(QStringLiteral("idKey"), selection.value(QStringLiteral("idKey")));
     return out;
 }
 
 QString deleteNextSelectionIdForRows(const QVariantList& rows,
                                      const QString& removedId,
-                                     int fallbackIndex,
+                                     int defaultIndex,
                                      const QString& idKey)
 {
     const int removedIndex = selectionIndexOfId(rows, removedId, idKey);
-    const int nextIndex = removedIndex >= 0 ? removedIndex + 1 : fallbackIndex;
+    const int nextIndex = removedIndex >= 0 ? removedIndex + 1 : defaultIndex;
     return wrappedSelectionIdAt(rows, nextIndex, idKey);
 }
 
@@ -255,12 +269,12 @@ QVariantMap navigateSelectionDeltaState(const QVariantList& rows,
                                         int currentIndex,
                                         const QString& selectedId,
                                         int delta,
-                                        int fallbackIndex,
+                                        int defaultIndex,
                                         const QString& idKey)
 {
     QVariantMap out = resolveSelectionRowState(rows, currentIndex, selectedId, idKey);
-    out.insert(QStringLiteral("id"), navigatedSelectionId(rows, selectedId, delta, fallbackIndex, idKey));
-    out.insert(QStringLiteral("index"), wrappedSelectionIndex((currentIndex >= 0 ? currentIndex : fallbackIndex) + delta, rows.size()));
+    out.insert(QStringLiteral("id"), navigatedSelectionId(rows, selectedId, delta, defaultIndex, idKey));
+    out.insert(QStringLiteral("index"), wrappedSelectionIndex((currentIndex >= 0 ? currentIndex : defaultIndex) + delta, rows.size()));
     return out;
 }
 
@@ -334,9 +348,9 @@ QString wrappedIdAt(const QVariantList& rows, int index)
 QString navigatedId(const QVariantList& rows,
                    const QString& currentId,
                    int delta,
-                   int fallbackIndex)
+                   int defaultIndex)
 {
-    return navigatedSelectionId(rows, currentId, delta, fallbackIndex, ui::payload::keys::common::kId);
+    return navigatedSelectionId(rows, currentId, delta, defaultIndex, ui::payload::keys::common::kId);
 }
 
 QVariantList displayRowsWithEmpty(const QVariantList& rows,
@@ -424,10 +438,10 @@ QVariantMap navigateSelectionState(const QVariantList& rows,
                                    int currentIndex,
                                    const QString& selectedId,
                                    int delta,
-                                   int fallbackIndex,
+                                   int defaultIndex,
                                    const QString& idKey)
 {
-    return navigateSelectionDeltaState(rows, currentIndex, selectedId, delta, fallbackIndex, idKey);
+    return navigateSelectionDeltaState(rows, currentIndex, selectedId, delta, defaultIndex, idKey);
 }
 
 QVariantMap deleteReselectionState(const QVariantList& rows,
@@ -441,10 +455,10 @@ QVariantMap deleteReselectionState(const QVariantList& rows,
 
 QString deleteNextSelectionId(const QVariantList& rows,
                               const QString& removedId,
-                              int fallbackIndex,
+                              int defaultIndex,
                               const QString& idKey)
 {
-    return deleteNextSelectionIdForRows(rows, removedId, fallbackIndex, idKey);
+    return deleteNextSelectionIdForRows(rows, removedId, defaultIndex, idKey);
 }
 
 QVariantMap basicFormState(const QString& name,
@@ -490,15 +504,13 @@ QVariantList buildActorRows(const SessionStore& session)
         row.insert(ui::payload::keys::common::kId, QString::fromStdString(actor->id()));
         row.insert(ui::payload::keys::common::kName, QString::fromStdString(actor->name()));
         row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(actor->name()));
-        QVariantList aliases;
-        aliases.reserve(static_cast<int>(actor->aliases().size()));
+        row.insert(ui::payload::keys::state::kSelectedIds, payload::mapper::toQStringList(actor->contractIds()));
+        std::vector<std::string> aliases;
+        aliases.reserve(actor->aliases().size());
         for (const auto& alias : actor->aliases()) {
-            QVariantMap aliasMap;
-            aliasMap.insert(QStringLiteral("value"), QString::fromStdString(alias.value()));
-            aliasMap.insert(QStringLiteral("kind"), QString::fromStdString(alias.kind()));
-            aliases.push_back(aliasMap);
+            aliases.push_back(alias.value());
         }
-        row.insert(ui::payload::keys::actor::kAliases, aliases);
+        row.insert(ui::payload::keys::actor::kAliases, payload::mapper::toVariantStringList(aliases));
         out.push_back(row);
     }
     return out;
@@ -514,15 +526,13 @@ QVariantList buildPropertyRows(const SessionStore& session)
         row.insert(ui::payload::keys::common::kId, QString::fromStdString(property->id()));
         row.insert(ui::payload::keys::common::kName, QString::fromStdString(property->name()));
         row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(property->name()));
-        QVariantList aliases;
-        aliases.reserve(static_cast<int>(property->aliases().size()));
+        row.insert(ui::payload::keys::state::kSelectedIds, payload::mapper::toQStringList(property->contractIds()));
+        std::vector<std::string> aliases;
+        aliases.reserve(property->aliases().size());
         for (const auto& alias : property->aliases()) {
-            QVariantMap aliasMap;
-            aliasMap.insert(QStringLiteral("value"), QString::fromStdString(alias.value()));
-            aliasMap.insert(QStringLiteral("kind"), QString::fromStdString(alias.kind()));
-            aliases.push_back(aliasMap);
+            aliases.push_back(alias.value());
         }
-        row.insert(ui::payload::keys::property::kAliases, aliases);
+        row.insert(ui::payload::keys::property::kAliases, payload::mapper::toVariantStringList(aliases));
         out.push_back(row);
     }
     return out;

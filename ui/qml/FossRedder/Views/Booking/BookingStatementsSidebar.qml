@@ -15,10 +15,22 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
+
+    function statementRows() {
+        const _workspaceRevision = root.workspaceRevision
+        return root.session ? root.session.statementRows() : []
+    }
+
+    function statementTransactionRows(statementId) {
+        const _workspaceRevision = root.workspaceRevision
+        return root.session ? root.session.statementTransactionRows(statementId) : []
+    }
 
     function selectedStatementIndex() {
+        const _workspaceRevision = root.workspaceRevision
         if (!root.session || !root.session.selectedStatementId) return -1
-        const rows = root.session.statementRows()
+        const rows = root.statementRows()
         if (!rows || rows.length === undefined) return -1
         for (let i = 0; i < rows.length; ++i) {
             const row = rows[i]
@@ -57,7 +69,7 @@ Item {
 
             Repeater {
                 id: statementRepeater
-                model: root.session ? root.session.statementRows() : []
+                model: root.statementRows()
 
                 delegate: Column {
                     id: statementEntry
@@ -68,13 +80,22 @@ Item {
                     property string statementName: (statementEntry.modelData.name !== undefined && statementEntry.modelData.name !== null) ? statementEntry.modelData.name : ""
 
                     Rectangle {
+                        objectName: "bookingStatementRow_" + statementEntry.statementId
                         width: parent.width
-                        height: 34
+                        height: 36
                         color: (root.session && statementEntry.statementId === root.session.selectedStatementId && (!root.session.selectedTransactionId || root.session.selectedTransactionId === ""))
                                    ? root.theme.selectionHighlight : "transparent"
+                        radius: root.theme.radius
+                        border.width: root.theme.borderWidthThin
+                        border.color: (root.session && statementEntry.statementId === root.session.selectedStatementId && (!root.session.selectedTransactionId || root.session.selectedTransactionId === ""))
+                                          ? root.theme.selectionHighlight
+                                          : root.theme.borderSoft
 
                         MouseArea {
+                            objectName: "bookingStatementMouse_" + statementEntry.statementId
                             anchors.fill: parent
+                            acceptedButtons: Qt.LeftButton
+                            preventStealing: true
                             onClicked: {
                                 if (!root.session) return
                                 root.session.selectedStatementId = statementEntry.statementId
@@ -100,26 +121,32 @@ Item {
                     }
 
                     Column {
-                        width: statementColumn.width - (root.theme.spacing + root.theme.margins)
-                        leftPadding: root.theme.spacing + root.theme.margins
+                        x: root.theme.spacing + root.theme.margins
+                        y: root.theme.spacingSmall
+                        width: statementColumn.width - x
                         spacing: root.theme.margins
                         visible: !statementEntry.collapsed
 
                         Repeater {
-                            model: (root.session && statementEntry.statementId.length > 0) ? root.session.statementTransactionRows(statementEntry.statementId) : []
+                            model: (root.session && statementEntry.statementId.length > 0) ? root.statementTransactionRows(statementEntry.statementId) : []
 
                             delegate: Rectangle {
                                 id: transactionEntry
+                                objectName: "bookingTransactionRow_" + transactionEntry.modelData.id
                                 required property var modelData
                                 width: statementColumn.width - (root.theme.spacing + root.theme.margins)
-                                height: 40
+                                height: 42
                                 radius: 6
+                                z: 1
                                 color: root.session && transactionEntry.modelData.id === root.session.selectedTransactionId ? root.theme.selectionHighlight : "transparent"
                                 border.color: root.theme.borderSoft
                                 border.width: root.theme.borderWidthThin
 
                                 MouseArea {
+                                    objectName: "bookingTransactionMouse_" + transactionEntry.modelData.id
                                     anchors.fill: parent
+                                    acceptedButtons: Qt.LeftButton
+                                    preventStealing: true
                                     onClicked: {
                                         if (!root.session) return
                                         root.session.selectedStatementId = statementEntry.statementId
@@ -156,6 +183,7 @@ Item {
     Connections {
         target: root.session
         function onSelectedStatementIdChanged() { root.ensureSelectedStatementVisible() }
+        function onDataRevisionChanged() { root.ensureSelectedStatementVisible() }
     }
 
     Connections {

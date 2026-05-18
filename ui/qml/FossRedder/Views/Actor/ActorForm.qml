@@ -19,7 +19,6 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
-
     readonly property var current: root.session ? root.session.selectedActor : null
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
 
@@ -27,6 +26,8 @@ Item {
     property string aliasInputText: ""
     property int aliasIndex: aliases.length > 0 ? 0 : -1
     property var selectedContractIds: []
+    property string contractSelectionOwnerId: ""
+    property var savedSelectedContractIds: []
     property string savedName: ""
     property var savedAliases: []
 
@@ -48,6 +49,7 @@ Item {
     function captureSavedState() {
         root.savedName = String(nameField.text || "")
         root.savedAliases = root.aliases ? root.aliases.slice() : []
+        root.savedSelectedContractIds = root.selectedContractIds ? root.selectedContractIds.slice() : []
     }
 
     function hasChanges() {
@@ -55,9 +57,11 @@ Item {
             return nameField.text.length > 0
         return root.savedName !== String(nameField.text || "")
                 || root.normalizedList(root.savedAliases) !== root.normalizedList(root.aliases)
+                || root.normalizedList(root.savedSelectedContractIds) !== root.normalizedList(root.selectedContractIds)
     }
 
     function clearFields() {
+        root.contractSelectionOwnerId = ""
         if (!root.session) {
             root.applyFormState({})
             return
@@ -66,7 +70,24 @@ Item {
     }
 
     function toStringList(values) {
-        return root.session ? root.session.normalizeStrings(values || []) : []
+        const out = []
+        const list = values || []
+        for (var i = 0; i < list.length; ++i) {
+            const item = list[i]
+            if (item && typeof item === "object") {
+                if (item.value !== undefined && String(item.value).length > 0)
+                    out.push(String(item.value))
+                else if (item.source !== undefined && String(item.source).length > 0)
+                    out.push(String(item.source))
+                else if (item.id !== undefined && String(item.id).length > 0)
+                    out.push(String(item.id))
+                else
+                    out.push(String(item))
+            } else {
+                out.push(String(item))
+            }
+        }
+        return out
     }
 
     function actorRows() {
@@ -83,17 +104,17 @@ Item {
             return
 
         const currentId = root.isEdit ? (root.session.selectedActorId || "") : ""
-        const fallbackIndex = delta > 0 ? 0 : rows.length - 1
-        const nextId = root.session.navigatedId(rows, currentId, delta, fallbackIndex)
+        const defaultIndex = delta > 0 ? 0 : rows.length - 1
+        const nextId = root.session.navigatedId(rows, currentId, delta, defaultIndex)
         if (!nextId || nextId.length === 0)
             return
         root.session.selectedActorId = nextId
     }
 
     function addAlias(value) {
-        if (!root.session)
+        if (!root.workspaceFacade)
             return
-        const next = root.session.addUniqueTrimmed(root.aliases || [], value || "")
+        const next = root.workspaceFacade.addUniqueTrimmed(root.aliases || [], value || "")
         if (next.length === root.aliases.length)
             return
         root.aliases = next
@@ -102,9 +123,9 @@ Item {
     }
 
     function deleteAlias(index) {
-        if (!root.session)
+        if (!root.workspaceFacade)
             return
-        const next = root.session.removeAt(root.aliases || [], index)
+        const next = root.workspaceFacade.removeAt(root.aliases || [], index)
         if (next.length === root.aliases.length)
             return
         root.aliases = next
@@ -112,27 +133,33 @@ Item {
     }
 
 
-    function syncFields() {
+    function syncFields(forceReload) {
         if (!root.isEdit) {
             root.clearFields()
+            root.captureSavedState()
             return
         }
+        const currentId = root.current && root.current.id ? String(root.current.id) : ""
+        const previousOwnerId = root.contractSelectionOwnerId
+        if (!forceReload && previousOwnerId === currentId)
+            return
+        root.contractSelectionOwnerId = currentId
         const current = root.current
         const state = root.session
             ? root.session.basicFormState(current && current.name ? current.name : "",
-                                          current && current.aliases ? current.aliases : [],
-                                          [])
+                                          current && current.aliases ? root.toStringList(current.aliases) : [],
+                                          current && current.contractIds ? root.toStringList(current.contractIds) : [])
             : ({})
         root.applyFormState(state)
+        root.captureSavedState()
     }
 
     function submitActor() {
         if (!root.workspaceFacade) return
         const aliasValues = root.toStringList(root.aliases)
+        const contractIds = root.selectedContractIds ? root.selectedContractIds.slice() : []
         const actorId = root.isEdit && root.current && root.current.id ? root.current.id : ""
-        const id = root.workspaceFacade.saveActor(actorId, nameField.text, aliasValues)
-        if (!root.isEdit)
-            root.clearFields()
+        const id = root.workspaceFacade.saveActor(actorId, nameField.text, aliasValues, contractIds)
         if (root.session && id && id.length > 0)
             root.session.selectedActorId = id
         root.captureSavedState()
@@ -151,13 +178,18 @@ Item {
         root.session.selectedActorId = nextId || ""
     }
 
-    onCurrentChanged: root.syncFields()
-    onIsEditChanged: root.syncFields()
+    onCurrentChanged: root.syncFields(true)
+    onIsEditChanged: root.syncFields(true)
+
+    Connections {
+        target: root.session
+        function onSelectedActorIdChanged() { root.syncFields() }
+        function onDataRevisionChanged() { root.syncFields(true) }
+    }
 
     Connections {
         target: root.current
-        function onNameChanged() { root.syncFields() }
-        function onAliasesChanged() { root.syncFields() }
+        function onChanged() { root.syncFields(true) }
     }
 
     ColumnLayout {
@@ -220,6 +252,7 @@ Item {
                         Layout.fillWidth: true
                         placeholderText: ""
                         text: root.aliasInputText
+                        onTextChanged: root.aliasInputText = text
                         onTextEdited: root.aliasInputText = text
                     }
 
@@ -268,8 +301,9 @@ Item {
 
                     Flickable {
                         id: actorAliasScroll
-                        width: parent ? parent.width : 0
-                        height: parent ? parent.height : 0
+                        objectName: "actorAliasScroll"
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                         clip: true
                         contentWidth: width
                         contentHeight: actorAliasFlow.implicitHeight
@@ -326,7 +360,7 @@ Item {
                 theme: root.theme
                 contractRows: root.contractRows()
                 selectedContractIds: root.selectedContractIds
-                onSelectionChanged: (ids) => root.selectedContractIds = ids
+                onSelectionChanged: function(ids) { root.selectedContractIds = ids }
             }
             }
         }

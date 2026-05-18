@@ -10,7 +10,7 @@
 #include <QString>
 
 #include "core/constants/runtime.h"
-#include "ui/bootstrap/QmlRuntime.h"
+#include "ui/shell/QmlRuntime.h"
 
 class UiQmlTestSetup : public QObject {
     Q_OBJECT

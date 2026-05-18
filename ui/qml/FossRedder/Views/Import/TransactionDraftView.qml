@@ -164,7 +164,7 @@ Item {
                     textRole: "label"
                     model: draftViewRoot.statusOptions
                     currentIndex: draftViewRoot.statusCurrentIndex()
-                    onActivated: draftViewRoot.setStatusByIndex(statusCombo.currentIndex)
+                    onActivated: function(index) { draftViewRoot.setStatusByIndex(index) }
                 }
             }
         }

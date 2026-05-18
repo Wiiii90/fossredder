@@ -17,12 +17,14 @@ struct ActorCommand {
     std::string id;
     std::string name;
     std::vector<AliasSnapshot> aliases;
+    std::vector<std::string> contractIds;
 };
 
 struct PropertyCommand {
     std::string id;
     std::string name;
     std::vector<AliasSnapshot> aliases;
+    std::vector<std::string> contractIds;
 };
 
 struct ContractCommand {
@@ -47,6 +49,7 @@ struct TransactionCommand {
     std::string statementId;
     core::domain::Transaction::Status status = core::domain::Transaction::Status::Neutral;
     std::string actorId;
+    std::string contractId;
     bool allocatable = false;
     std::vector<std::string> propertyIds;
 };
@@ -61,6 +64,7 @@ struct AnalysisCommand {
     bool includeCalculationAdjustments = true;
     std::string exportStateJson;
     std::string snapshotTransactionsJson;
+    std::vector<std::pair<std::string, double>> adjustments;
 };
 
 struct AnnualCommand {

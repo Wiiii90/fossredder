@@ -132,7 +132,7 @@ Item {
                     textRole: "label"
                     model: root.statusOptions
                     currentIndex: root.statusIndex()
-                    onActivated: root.updateField("status", root.statusOptions[currentIndex].value)
+                    onActivated: function(index) { root.updateField("status", root.statusOptions[index].value) }
                 }
             }
         }

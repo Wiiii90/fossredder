@@ -140,7 +140,7 @@ toCoreExportFormat(ui::qml::contracts::ExportFormat format) {
         core::errors::ErrorSeverity::Warning,
         ui::observability::codes::FlowExportFallback,
         ui::observability::origins::app::kToCoreExportFormat,
-        "Unknown export format, fallback to CSV",
+        "Unknown export format, defaulting to CSV",
         {{ui::observability::context::kFormat,
           std::to_string(static_cast<int>(format))}});
     return core::application::exporting::ExportFormat::Csv;
@@ -308,11 +308,11 @@ struct ImportMatcherServiceAdapter final
         state, contractId);
   }
 
-  core::domain::catalog::WorkspaceCatalog withFallbackState(
+  core::domain::catalog::WorkspaceCatalog mergeCatalogState(
       core::domain::catalog::WorkspaceCatalog primary,
-      const core::domain::catalog::WorkspaceCatalog &fallback) const override {
-    return core::application::importing::draft::withFallbackState(
-        std::move(primary), fallback);
+      const core::domain::catalog::WorkspaceCatalog &secondary) const override {
+    return core::application::importing::draft::mergeCatalogState(
+        std::move(primary), secondary);
   }
 
   std::vector<std::string>
@@ -347,14 +347,13 @@ UiServices setupUiServices(
   ui.analysisService =
       std::make_shared<core::application::analysis::AnalysisService>();
   auto analysisPresenter = std::make_shared<AnalysisPresenterAdapter>();
+  auto analysisImageRenderer =
+      std::make_shared<infra::analysis_image_renderer::OpenCvAnalysisImageRendererAdapter>();
   auto importMatcherService = std::make_shared<ImportMatcherServiceAdapter>();
   ui.analysisWorkflow =
       new ui::AnalysisWorkflow(&appStateFacade, analysisSnapshotProvider,
-                               ui.analysisService, analysisPresenter, &w);
-  w.setQmlContextProperty(ui::qml::contracts::context::kImportWorkflow,
-                          ui.importWorkflow);
-  if (auto *appContext = w.appContext())
-    appContext->setImportWorkflow(ui.importWorkflow);
+                               ui.analysisService, analysisPresenter, &w,
+                               analysisImageRenderer);
   w.setQmlContextProperty(ui::qml::contracts::context::kAnalysisWorkflow,
                           ui.analysisWorkflow);
   if (auto *appContext = w.appContext())
@@ -406,35 +405,8 @@ UiServices setupUiServices(
 
   auto importPresenter = std::make_shared<ImportPresenterAdapter>();
 
-  const auto importSnapshotProvider = [&appStateFacade, &w]() {
-    const auto liveState = appStateFacade.state();
-    if (auto *session = w.workspace()) {
-      core::application::workspace::WorkspaceSessionState snapshot;
-      snapshot.catalog.setActors(session->actors()->actors());
-      snapshot.catalog.setProperties(session->properties()->properties());
-      snapshot.catalog.setContracts(session->contracts()->contracts());
-      snapshot.catalog.setStatements(session->statements()->statements());
-      snapshot.catalog.setTransactions(session->transactions()->transactions());
-      snapshot.catalog.setAnalyses(session->analyses()->analyses());
-      snapshot.catalog.setAnnuals(session->annuals()->annuals());
-      if (snapshot.catalog.actors().empty())
-        snapshot.catalog.setActors(liveState.catalog.actors());
-      if (snapshot.catalog.properties().empty())
-        snapshot.catalog.setProperties(liveState.catalog.properties());
-      if (snapshot.catalog.contracts().empty())
-        snapshot.catalog.setContracts(liveState.catalog.contracts());
-      if (snapshot.catalog.statements().empty())
-        snapshot.catalog.setStatements(liveState.catalog.statements());
-      if (snapshot.catalog.transactions().empty())
-        snapshot.catalog.setTransactions(liveState.catalog.transactions());
-      if (snapshot.catalog.analyses().empty())
-        snapshot.catalog.setAnalyses(liveState.catalog.analyses());
-      if (snapshot.catalog.annuals().empty())
-        snapshot.catalog.setAnnuals(liveState.catalog.annuals());
-      snapshot.workflow = liveState.workflow;
-      return snapshot;
-    }
-    return liveState;
+  const auto importSnapshotProvider = [&appStateFacade]() {
+    return appStateFacade.state();
   };
 
   ui.importWorkflow =
@@ -461,16 +433,21 @@ UiServices setupUiServices(
 }
 
 void wireAppStateToSession(
-    MainWindow &w, core::application::WorkspaceFacade &appStateFacade,
+    MainWindow &w, const UiServices &ui,
+    core::application::WorkspaceFacade &appStateFacade,
     const std::shared_ptr<core::errors::IErrorReporter> &errorReporter) {
-  if (w.workspace()) {
-    w.workspace()->loadFromState(appStateFacade.catalogState());
-  }
+  if (w.workspace())
+    w.workspace()->loadFromState(appStateFacade.state());
 
   appStateFacade.setStateChangedCallback(
       [&](const core::application::workspace::WorkspaceSessionState &document) {
-        if (w.workspace()) {
-          w.workspace()->loadFromState(document.catalog);
+        if (w.workspace())
+          w.workspace()->loadFromState(document);
+        if (ui.importWorkflow) {
+          ui.importWorkflow->refreshFromStateSnapshot();
+        }
+        if (ui.exportWorkflow) {
+          ui.exportWorkflow->refreshFromStateSnapshot();
         }
       });
 
@@ -557,7 +534,14 @@ int startQmlApp(QApplication &app,
   const UiServices ui =
       setupUiServices(app, w, appStateFacade, errorReporter);
 
-  wireAppStateToSession(w, appStateFacade, errorReporter);
+  wireAppStateToSession(w, ui, appStateFacade, errorReporter);
+
+  if (ui.importWorkflow) {
+    ui.importWorkflow->refreshFromStateSnapshot();
+  }
+  if (ui.exportWorkflow) {
+    ui.exportWorkflow->refreshFromStateSnapshot();
+  }
 
   wireFileSignals(w, w.workspace());
 
@@ -565,6 +549,16 @@ int startQmlApp(QApplication &app,
 
   // Load QML after all context properties/providers are installed.
   w.loadQml();
+
+  if (w.workspace()) {
+    w.workspace()->loadFromState(appStateFacade.state());
+  }
+  if (ui.importWorkflow) {
+    ui.importWorkflow->refreshFromStateSnapshot();
+  }
+  if (ui.exportWorkflow) {
+    ui.exportWorkflow->refreshFromStateSnapshot();
+  }
 
   w.show();
   const int exitCode = app.exec();

@@ -17,6 +17,12 @@ Controls.Panel {
     required property var theme
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var importWorkflow: root.appContext ? root.appContext.importWorkflow : null
+    readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
+
+    function propertyRows() {
+        const _workspaceRevision = root.workspaceRevision
+        return root.session ? root.session.propertyRows() : []
+    }
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1
@@ -42,7 +48,7 @@ Controls.Panel {
 
             Repeater {
                 id: propertyRepeater
-                model: root.session ? root.session.propertyRows() : []
+                model: root.propertyRows()
 
                 delegate: RowLayout {
                     id: propertyOption
@@ -56,7 +62,7 @@ Controls.Panel {
                         checked: root.txRoot && root.txRoot.draft && root.txRoot.draft.current && root.txRoot.draft.current.propertyIds && propertyOption.modelData && propertyOption.modelData.id
                             ? root.txRoot.draft.current.propertyIds.indexOf(propertyOption.modelData.id) !== -1
                             : false
-                        onClicked: if (root.txRoot && root.txRoot.draft && root.importWorkflow) {
+                        onToggled: if (root.txRoot && root.txRoot.draft && root.importWorkflow) {
                             root.importWorkflow.setCurrentPropertySelected(root.txRoot.draft, propertyOption.modelData.id, checked)
                         }
                     }

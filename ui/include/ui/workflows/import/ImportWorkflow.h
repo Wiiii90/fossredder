@@ -86,6 +86,7 @@ public:
   void setStateSnapshotProvider(StateSnapshotProvider provider);
   void setImportLogsStore(ImportLogsStore store);
   void setStatementDraftStore(StatementDraftStore store);
+  Q_INVOKABLE void refreshFromStateSnapshot();
 
   bool isRunning() const noexcept { return state_.isRunning(); }
   double progress() const noexcept { return state_.progress(); }
@@ -216,7 +217,7 @@ private:
       const std::shared_ptr<core::domain::Statement> &statement,
       const std::vector<core::application::importing::draft::TransactionDraft>
           &transactions) const;
-  core::domain::catalog::WorkspaceCatalog matchingStateForDraft(
+  core::domain::catalog::WorkspaceCatalog matchingCatalogForDraft(
       const StatementDraft *draft) const;
   core::application::importing::draft::StatementDraft buildFinalizationInput(
       StatementDraft *draft) const;

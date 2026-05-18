@@ -25,6 +25,24 @@ TEST(SessionMutationStateTest, NormalizesStringCollectionsConsistently)
     EXPECT_EQ(normalized.at(4).toString(), QStringLiteral("true"));
 }
 
+TEST(SessionMutationStateTest, NormalizesStructuredAliasAndIdValues)
+{
+    const QVariantList values{
+        QVariantMap{{QStringLiteral("value"), QStringLiteral("Alias One")}, {QStringLiteral("kind"), QStringLiteral("actor")}},
+        QVariantMap{{QStringLiteral("source"), QStringLiteral("Alias From Source")}},
+        QVariantMap{{QStringLiteral("id"), QStringLiteral("contract-1")}},
+        QStringLiteral("plain")
+    };
+
+    const QVariantList normalized = SessionMutationState::normalizeStrings(values);
+
+    ASSERT_EQ(normalized.size(), 4);
+    EXPECT_EQ(normalized.at(0).toString(), QStringLiteral("Alias One"));
+    EXPECT_EQ(normalized.at(1).toString(), QStringLiteral("Alias From Source"));
+    EXPECT_EQ(normalized.at(2).toString(), QStringLiteral("contract-1"));
+    EXPECT_EQ(normalized.at(3).toString(), QStringLiteral("plain"));
+}
+
 TEST(SessionMutationStateTest, TrimsAndDeduplicatesStringEntries)
 {
     const QVariantList values{QStringLiteral("alpha"), QStringLiteral("beta")};
@@ -119,4 +137,3 @@ TEST(SessionMutationStateTest, NormalizesTransactionDraftStateFamilies)
 }
 
 } // namespace ui
-

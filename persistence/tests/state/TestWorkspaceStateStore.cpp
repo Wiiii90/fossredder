@@ -36,7 +36,18 @@ TEST(WorkspaceStateStoreTest, SavesAndLoadsTheFullWorkspaceStateRoundTrip)
     EXPECT_EQ(loaded.workflow.importLogs.size(), 1);
     EXPECT_EQ(loaded.workflow.exportLogs.size(), 1);
 
+    ASSERT_EQ(loaded.catalog.statements().front()->transactionIds(),
+              std::vector<std::string>({"tx-1", "tx-2"}));
+    ASSERT_EQ(loaded.catalog.actors().front()->aliases().size(), 2);
+    EXPECT_EQ(loaded.catalog.actors().front()->aliases().at(0).value(), "Primary Actor");
+    EXPECT_EQ(loaded.catalog.actors().front()->aliases().at(1).value(), "Main Actor");
+    ASSERT_EQ(loaded.catalog.properties().front()->aliases().size(), 1);
+    EXPECT_EQ(loaded.catalog.properties().front()->aliases().at(0).value(), "Property Alias");
+    ASSERT_EQ(loaded.catalog.contracts().front()->aliases().size(), 1);
+    EXPECT_EQ(loaded.catalog.contracts().front()->aliases().at(0).value(), "Lease");
     ASSERT_EQ(loaded.catalog.transactions().front()->name(), "Rent");
+    ASSERT_EQ(loaded.catalog.transactions().front()->statementId(), "statement-1");
+    ASSERT_EQ(loaded.catalog.analyses().front()->adjustments().at("actor-1"), 19.25);
     ASSERT_EQ(loaded.workflow.statementDrafts.front()->name, "Imported Statement");
     ASSERT_EQ(loaded.workflow.importLogs.front()->status, "done");
     ASSERT_EQ(loaded.workflow.exportLogs.front()->status, "done");

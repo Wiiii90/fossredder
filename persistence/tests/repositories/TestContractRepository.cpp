@@ -35,6 +35,8 @@ TEST(ContractRepositoryTest, AddsUpdatesRemovesAndClearsContracts)
     ASSERT_TRUE(repo.getContractById("contract-1").has_value());
     EXPECT_EQ(repo.getContractById("contract-1").value()->name(), "Lease Contract");
     EXPECT_EQ(repo.getContractById("contract-1").value()->type(), "lease");
+    EXPECT_EQ(repo.getContractById("contract-1").value()->aliases().size(), 1);
+    EXPECT_EQ(repo.getContractById("contract-1").value()->aliases().at(0).value(), "Lease");
     EXPECT_EQ(repo.getContractsForActor("actor-1").size(), 1);
     EXPECT_EQ(repo.getContractsForProperty("property-1").size(), 1);
     EXPECT_EQ(repo.getActorIdsForContract("contract-1"), std::vector<std::string>{"actor-1"});
@@ -50,6 +52,8 @@ TEST(ContractRepositoryTest, AddsUpdatesRemovesAndClearsContracts)
     ASSERT_TRUE(repo.getContractById("contract-1").has_value());
     EXPECT_EQ(repo.getContractById("contract-1").value()->name(), "Updated Contract");
     EXPECT_EQ(repo.getContractById("contract-1").value()->type(), "rental");
+    EXPECT_EQ(repo.getContractById("contract-1").value()->aliases().size(), 1);
+    EXPECT_EQ(repo.getContractById("contract-1").value()->aliases().at(0).value(), "Lease");
     EXPECT_EQ(repo.getActorIdsForContract("contract-1"),
               std::vector<std::string>({"actor-1", "actor-2"}));
     EXPECT_EQ(repo.getPropertyIdsForContract("contract-1"),

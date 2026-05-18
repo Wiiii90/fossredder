@@ -17,9 +17,11 @@ TestCase {
     when: windowShown
     width: 960
     height: 640
+    readonly property string previewPngDataUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3Crect width='1' height='1' fill='red'/%3E%3C/svg%3E"
 
     property var session: QtObject {
         property string selectedAnalysisId: ""
+        property int dataRevision: 0
         property var analysesData: []
         property var propertiesData: []
         property var lastAnalysisResult: ({})
@@ -31,20 +33,61 @@ TestCase {
     }
 
     property var analysisController: QtObject {
+        property int computeCalls: 0
+        property string lastCreatedType: "plot"
         function contractTypes() { return ["lease"] }
-        function analysisConfigJson(type, plotType, plotMeasure, propertyIds, contractTypes, taxPercent) { return "{}" }
-        function analysisFilterSpec(dateMode, year, dateFrom, dateTo, propertyIds, contractTypes, allocatableMode) { return "" }
+        function analysisConfigJson(type, plotType, plotMeasure, propertyIds, contractTypes, taxPercent) {
+            return JSON.stringify({ plotType: plotType, plotMeasure: plotMeasure, properties: propertyIds, contractTypes: contractTypes })
+        }
+        function analysisFilterSpec(dateField, dateMode, year, dateFrom, dateTo, propertyIds, contractTypes, allocatableMode) {
+            var prefix = dateField === "valuta" ? "dateField=valuta;" : ""
+            return prefix + (dateMode === "year"
+                ? "date>=" + year + "-01-01;date<=" + year + "-12-31"
+                : "date>=" + dateFrom + ";date<=" + dateTo)
+        }
         function analysisAdjustmentsJson(transactions, selectedTransactionIds, taxPercent) { return "{}" }
         function previewTransactions(filterSpec) { return { transactions: [], metrics: { statementCount: 0, transactionCount: 0, amountSum: 0.0 } } }
-        function computeAnalysis(analysisId, filterSpec) { return ({}) }
-        function createAnalysis(name, type, configJson, filterSpec, exportFormat, includeCalcAdjustments, exportStateJson, snapshotTransactionsJson) { return "analysis-new" }
+        function computeAnalysis(analysisId, filterSpec) {
+            computeCalls += 1
+            if (lastCreatedType === "tab") {
+                return ({
+                    type: "tab",
+                    table: [
+                        ["2026-01-01", "Rent", "100.0"],
+                        ["2026-01-02", "Service", "50.0"]
+                    ]
+                })
+            }
+            return ({
+                type: "pie",
+                artifacts: [testCase.previewPngDataUrl],
+                table: [["Lease", "100.0"]]
+            })
+        }
+        function createAnalysis(name, type, configJson, filterSpec, exportFormat, includeCalcAdjustments, exportStateJson, snapshotTransactionsJson) {
+            lastCreatedType = type
+            session.analysesData = [{
+                id: "analysis-new",
+                name: name,
+                type: type,
+                config: configJson,
+                filter: filterSpec,
+                exportFormat: exportFormat,
+                includeCalcAdjustments: includeCalcAdjustments,
+                exportState: exportStateJson,
+                snapshotTransactions: snapshotTransactionsJson,
+                adjustments: "{}"
+            }]
+            session.dataRevision += 1
+            return "analysis-new"
+        }
         function updateAnalysis(id, name, type, configJson, filterSpec, exportFormat, includeCalcAdjustments, exportStateJson, snapshotTransactionsJson) {}
         function deleteAnalysis(id) {}
     }
 
     property var appContext: QtObject {
         property var session: testCase.session
-        property var analysisController: testCase.analysisController
+        property var analysisWorkflow: testCase.analysisController
         property bool isDebugBuild: false
     }
 
@@ -114,7 +157,9 @@ TestCase {
     }
 
     function createView() {
-        return createTemporaryObject(analysisViewComponent, testCase)
+        var view = createTemporaryObject(analysisViewComponent, testCase)
+        view.visible = true
+        return view
     }
 
     function init() {
@@ -122,6 +167,8 @@ TestCase {
         session.analysesData = []
         session.propertiesData = [{ id: "property-1", name: "Lot" }]
         session.lastAnalysisResult = ({})
+        analysisController.computeCalls = 0
+        analysisController.lastCreatedType = "plot"
     }
 
     function test_mountsAnalysisForm() {
@@ -140,5 +187,49 @@ TestCase {
 
         var updateButton = findRequired(view, "analysisUpdateButton")
         verify(updateButton !== null)
+    }
+
+    function test_createAnalysisShowsRenderedPreviewImage() {
+        var view = createView()
+        var nameField = findRequired(view, "analysisNameField")
+        var createButton = findRequired(view, "analysisCreateButton")
+        var beforeComputeCalls = analysisController.computeCalls
+
+        nameField.text = "Preview"
+        createButton.clicked()
+
+        verify(analysisController.computeCalls > beforeComputeCalls)
+        compare(session.selectedAnalysisId, "analysis-new")
+        wait(0)
+
+        var image = findRequired(view, "analysisPreviewImage")
+        compare(String(image.source), previewPngDataUrl)
+        tryCompare(image, "status", Image.Ready)
+    }
+
+    function test_createTableAnalysisShowsTablePreview() {
+        var view = createView()
+        var nameField = findRequired(view, "analysisNameField")
+        var typeCombo = findRequired(view, "analysisMainTypeComboBox")
+        var createButton = findRequired(view, "analysisCreateButton")
+        var beforeComputeCalls = analysisController.computeCalls
+
+        nameField.text = "Table Preview"
+        typeCombo.currentIndex = 1
+        createButton.clicked()
+
+        verify(analysisController.computeCalls > beforeComputeCalls)
+        compare(session.selectedAnalysisId, "analysis-new")
+        wait(0)
+
+        var table = findRequired(view, "analysisTablePreview")
+        var viewport = findRequired(view, "analysisTableViewport")
+        verify(table.width > 0)
+        verify(table.height > 0)
+        verify(viewport.width > 0)
+        verify(viewport.height > 0)
+        tryCompare(table, "grandTotal", 150.0)
+        compare(table.contractTypes.length, 1)
+        compare(table.matrixPropertyNames.length, 1)
     }
 }

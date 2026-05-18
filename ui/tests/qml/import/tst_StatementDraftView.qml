@@ -18,29 +18,15 @@ TestCase {
     width: 960
     height: 640
 
-    property var importController: QtObject {
-        property int clearDraftCalls: 0
-        property int runNoteCalls: 0
-        property var lastRunNote: ({})
-
-        function clearDraft() { clearDraftCalls += 1 }
-        function addRunNote(statusText, messageText, draftAttached, statementId) {
-            runNoteCalls += 1
-            lastRunNote = {
-                status: statusText,
-                message: messageText,
-                draftAttached: draftAttached,
-                statementId: statementId || ""
-            }
-        }
-    }
-
-    property var draftController: QtObject {
+    property var importWorkflow: QtObject {
         property int persistCalls: 0
         property int clearPersistedCalls: 0
         property int finalizeCalls: 0
         property string finalizeResult: "statement-finalized"
         property string lastClearedDraftId: ""
+        property int clearDraftCalls: 0
+        property int runNoteCalls: 0
+        property var lastRunNote: ({})
 
         function persistStatementDraft(draft) { persistCalls += 1 }
         function clearPersistedStatementDraft(draftId) {
@@ -53,6 +39,16 @@ TestCase {
         }
         function syncCurrentTransactionDraft(draft) {}
         function currentTransactionViewState(draft) { return ({ actorChoices: [], effectiveAllocatable: false }) }
+        function clearDraft() { clearDraftCalls += 1 }
+        function addRunNote(statusText, messageText, draftAttached, statementId) {
+            runNoteCalls += 1
+            lastRunNote = {
+                status: statusText,
+                message: messageText,
+                draftAttached: draftAttached,
+                statementId: statementId || ""
+            }
+        }
     }
 
     property var navigation: QtObject {
@@ -73,8 +69,7 @@ TestCase {
     }
 
     property var appContext: QtObject {
-        property var importController: testCase.importController
-        property var draftController: testCase.draftController
+        property var importWorkflow: testCase.importWorkflow
         property var navigation: testCase.navigation
         property var session: testCase.session
     }
@@ -128,15 +123,14 @@ TestCase {
     }
 
     function init() {
-        importController.clearDraftCalls = 0
-        importController.runNoteCalls = 0
-        importController.lastRunNote = ({})
-
-        draftController.persistCalls = 0
-        draftController.clearPersistedCalls = 0
-        draftController.finalizeCalls = 0
-        draftController.finalizeResult = "statement-finalized"
-        draftController.lastClearedDraftId = ""
+        importWorkflow.finalizeCalls = 0
+        importWorkflow.persistCalls = 0
+        importWorkflow.clearPersistedCalls = 0
+        importWorkflow.finalizeResult = "statement-finalized"
+        importWorkflow.lastClearedDraftId = ""
+        importWorkflow.clearDraftCalls = 0
+        importWorkflow.runNoteCalls = 0
+        importWorkflow.lastRunNote = ({})
 
         navigation.sectionValue = -1
         draftObject = createDraftObject()
@@ -147,8 +141,8 @@ TestCase {
 
         view.returnToImport()
 
-        compare(importController.runNoteCalls, 1)
-        compare(importController.clearDraftCalls, 1)
+        compare(importWorkflow.runNoteCalls, 1)
+        compare(importWorkflow.clearDraftCalls, 1)
         compare(navigation.sectionValue, 4)
     }
 
@@ -157,9 +151,9 @@ TestCase {
 
         view.discardDraft()
 
-        compare(draftController.clearPersistedCalls, 1)
-        compare(draftController.lastClearedDraftId, "draft-1")
-        compare(importController.clearDraftCalls, 1)
+        compare(importWorkflow.clearPersistedCalls, 1)
+        compare(importWorkflow.lastClearedDraftId, "draft-1")
+        compare(importWorkflow.clearDraftCalls, 1)
         compare(navigation.sectionValue, 4)
     }
 
@@ -169,23 +163,23 @@ TestCase {
         view.finalizeDraft()
         wait(0)
 
-        compare(draftController.finalizeCalls, 1)
-        compare(draftController.clearPersistedCalls, 1)
-        compare(importController.clearDraftCalls, 1)
+        compare(importWorkflow.finalizeCalls, 1)
+        compare(importWorkflow.clearPersistedCalls, 1)
+        compare(importWorkflow.clearDraftCalls, 1)
         compare(navigation.sectionValue, 4)
-        verify(String(importController.lastRunNote.status).indexOf("Finalized") !== -1)
+        verify(String(importWorkflow.lastRunNote.status).indexOf("Finalized") !== -1)
     }
 
     function test_IMP_D_004_finalizeFailureKeepsDraftAvailable() {
-        draftController.finalizeResult = ""
+        importWorkflow.finalizeResult = ""
         var view = createView()
 
         view.finalizeDraft()
 
-        compare(draftController.finalizeCalls, 1)
-        compare(draftController.clearPersistedCalls, 0)
-        compare(importController.clearDraftCalls, 0)
-        verify(String(importController.lastRunNote.status).indexOf("Finalize failed") !== -1)
+        compare(importWorkflow.finalizeCalls, 1)
+        compare(importWorkflow.clearPersistedCalls, 0)
+        compare(importWorkflow.clearDraftCalls, 0)
+        verify(String(importWorkflow.lastRunNote.status).indexOf("Finalize failed") !== -1)
     }
 
     function test_IMP_D_006_deleteTransactionRemovesCurrentTransaction() {

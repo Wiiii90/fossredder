@@ -14,6 +14,19 @@ Item {
 
     readonly property var exportWorkflow: root.appContext ? root.appContext.exportWorkflow : null
 
+    Connections {
+        target: root.appContext ? root.appContext.session : null
+        function onDataRevisionChanged() {
+            if (root.exportWorkflow && root.exportWorkflow.refreshFromStateSnapshot)
+                root.exportWorkflow.refreshFromStateSnapshot()
+        }
+    }
+
+    Component.onCompleted: {
+        if (root.exportWorkflow && root.exportWorkflow.refreshFromStateSnapshot)
+            root.exportWorkflow.refreshFromStateSnapshot()
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: root.theme.spacingMedium

@@ -55,7 +55,7 @@ Controls.Panel {
                     Layout.fillWidth: false
                     Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                     checked: root.txRoot.hasProperty(propertyDelegate.propertyId)
-                    onClicked: root.txRoot.toggleProperty(propertyDelegate.propertyId, checked)
+                    onToggled: root.txRoot.toggleProperty(propertyDelegate.propertyId, checked)
                 }
 
                 Label {

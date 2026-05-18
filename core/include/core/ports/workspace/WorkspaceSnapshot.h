@@ -26,6 +26,7 @@ struct ActorSnapshot {
     std::string id;
     std::string name;
     std::vector<AliasSnapshot> aliases;
+    std::vector<std::string> contractIds;
     std::string createdAt;
     std::string updatedAt;
 };
@@ -34,6 +35,7 @@ struct PropertySnapshot {
     std::string id;
     std::string name;
     std::vector<AliasSnapshot> aliases;
+    std::vector<std::string> contractIds;
     std::string createdAt;
     std::string updatedAt;
 };

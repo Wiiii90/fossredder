@@ -58,39 +58,48 @@ Controls.Panel {
                 Repeater {
                     model: root.contractRows
 
-                    delegate: RowLayout {
+                    delegate: Item {
                         id: contractRow
                         required property var modelData
                         readonly property string contractId: contractRow.modelData && contractRow.modelData.id ? contractRow.modelData.id : ""
 
                         width: contractColumn.width
-                        spacing: root.theme.spacingSmall
+                        height: rowLayout.implicitHeight
 
-                        Controls.CheckBox {
-                            objectName: "actorContractCheckBox"
-                            Layout.fillWidth: false
-                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                            checked: root.selectedContractIds.indexOf(contractRow.contractId) !== -1
-                            onClicked: {
-                                const next = root.selectedContractIds ? root.selectedContractIds.slice(0) : []
-                                const idx = next.indexOf(contractRow.contractId)
-                                if (checked && idx === -1)
-                                    next.push(contractRow.contractId)
-                                else if (!checked && idx !== -1)
-                                    next.splice(idx, 1)
-                                root.selectionChanged(next)
+                        RowLayout {
+                            id: rowLayout
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            spacing: root.theme.spacingSmall
+
+                            Controls.CheckBox {
+                                objectName: "actorContractCheckBox"
+                                Layout.fillWidth: false
+                                Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                                checked: root.selectedContractIds.indexOf(contractRow.contractId) !== -1
+                                onToggled: {
+                                    const next = root.selectedContractIds ? root.selectedContractIds.slice(0) : []
+                                    const idx = next.indexOf(contractRow.contractId)
+                                    if (checked && idx === -1) {
+                                        next.push(contractRow.contractId)
+                                    } else if (!checked && idx !== -1) {
+                                        next.splice(idx, 1)
+                                    }
+                                    root.selectionChanged(next)
+                                }
+                            }
+
+                            Label {
+                                Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                                text: contractRow.modelData && contractRow.modelData.name ? contractRow.modelData.name : ""
+                                elide: Text.ElideRight
+                            }
+
+                            Item {
+                                Layout.fillWidth: true
                             }
                         }
 
-                        Label {
-                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                            text: contractRow.modelData && contractRow.modelData.name ? contractRow.modelData.name : ""
-                            elide: Text.ElideRight
-                        }
-
-                        Item {
-                            Layout.fillWidth: true
-                        }
                     }
                 }
             }

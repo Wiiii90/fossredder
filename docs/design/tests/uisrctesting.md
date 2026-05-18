@@ -45,12 +45,16 @@ ui/
       WorkspaceTestData.h
     unit/
       TestAnalysisPayloadMapper.cpp
+      TestAnalysisWorkflow.cpp
+      TestExportWorkflow.cpp
       TestImportSuggestionService.cpp
+      TestImportWorkflow.cpp
       TestNavigationState.cpp
       TestSelectionState.cpp
       TestSessionModels.cpp
       TestSessionMutationState.cpp
       TestWorkspaceFacade.cpp
+      TestWorkspaceStartupRehydration.cpp
       TestWorkspaceRowProjector.cpp
       TestWorkspaceSessionSelection.cpp
       TestWorkspaceSessionState.cpp
@@ -64,12 +68,17 @@ ui/
 - Workspace tests should verify projection, selection, and boundary routing.
 - Session tests should verify that collections stay consistent across refresh
   and deletion impact.
+- Projection refresh tests should verify that derived rows rebind when the
+  workspace revision changes.
 - Row projection tests should verify stable ids, stable ordering, and stable
   selection behavior across all workspace families.
+- Ordered selection projection should expose a flat row contract for QML:
+  `rows`, `orderIds`, `index`, `id`, and `currentId` should stay in sync with
+  the nested `selection` payload.
 - Adapter smoke tests should keep the payload surface and mapper headers
   usable, even when the implementation remains intentionally thin.
-- Workflow smoke tests should keep the import boundary usable without coupling
-  the source tests to QML rendering.
+- Workflow smoke tests should keep the import and export boundaries usable
+  without coupling the source tests to QML rendering.
 - Prefer family-based assertions over screen-specific one-off cases when the
   same rule applies to multiple collections.
 
@@ -87,6 +96,8 @@ selection access, and core-boundary mutation routing.
 | WSP-003 | Statement transaction ids stay readable through the facade | Unit | Facade with a representative statement | Query statement transaction ids | The facade returns the current ordered transaction id list |
 | WSP-004 | Workspace path changes propagate through the boundary | Unit | Facade wired to a storage manager stub | Create or open a workspace path | The facade and storage manager agree on the current path |
 | WSP-005 | Mutations route through the core boundary and refresh rows | Unit | Facade wired to a writable core boundary | Add and delete actors | The actor row model updates deterministically after each mutation |
+| WSP-006 | Workspace revision changes rebind derived row projections | Unit | Facade with a representative workspace catalog and a visible derived row consumer | Mutate the workspace and bump the revision | Statement, transaction, and other derived collection bindings re-evaluate deterministically |
+| WSP-007 | Startup rehydrates persisted workspace families into UI models | Unit | Facade attached to a loaded workspace session state with workflow logs | Open the workspace and refresh the facade state | Booking, analysis, import, and export rows are restored from persisted state without dropping relations |
 
 ### Boundary checks
 
@@ -132,9 +143,12 @@ payload shapes that QML and workflows consume.
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | ADP-001 | Workspace row projection stays stable for all workspace families | Unit | Session store loaded from a representative catalog | Build actor, property, contract, analysis, annual, statement, and transaction rows | Each family exposes deterministic ids, names, and role payloads |
-| ADP-002 | Workspace row ordering preserves the generic selection contract | Unit | Synthetic row list with ordered ids | Insert, prune, and reorder ids | Ordering, insertion, wrapping, and reselection behave deterministically |
+| ADP-002 | Workspace row ordering preserves the generic selection contract | Unit | Synthetic row list with ordered ids | Insert, prune, and reorder ids | Ordering, insertion, wrapping, and reselection behave deterministically, and the ordered selection payload exposes stable `orderIds`, `index`, `id`, and `currentId` fields |
 | ADP-003 | Analysis payload mapper header stays usable | Unit | Mapper header available | Include the mapper header | The adapter remains a valid build-time contract surface |
 | ADP-004 | Import suggestion mapper header stays usable | Unit | Mapper header available | Include the mapper header | The adapter remains a valid build-time contract surface |
+| ADP-005 | Analysis preview returns filtered transactions from the current workspace snapshot | Unit | Analysis workflow with a representative workspace catalog | Request a preview for an empty filter and for a matching filter expression | The preview returns the visible transactions, the count metrics, and the row payloads stay aligned with the workspace snapshot |
+| ADP-006 | Analysis filter composition defaults to the previous year and skips unrestricted groups | Unit | Analysis workflow with UI filter inputs and settings defaults | Build a filter from an unconfigured year selector and from all-selected property and contract groups | The canonical filter uses the previous year as default, keeps the year mode as the default case, and omits property and contract clauses when the selection is unrestricted |
+| ADP-007 | Analysis filter composition keeps explicit partial selections intact | Unit | Analysis workflow with UI filter inputs | Build a filter from a partial property selection, a partial contract selection, and an explicit allocatable mode | The canonical filter preserves the explicit clauses and remains stable for preview and execution |
 
 ### Boundary checks
 
@@ -143,7 +157,28 @@ payload shapes that QML and workflows consume.
 | ADP-C-001 | Row projector stays a UI source helper | Contract | Adapter headers available | Review public API | Row projection helpers stay capability-based and do not drift back into controller naming |
 | ADP-C-002 | Thin mappers stay header-usable | Contract | Mapper headers available | Compile the smoke tests | The mapper headers remain included and usable without runtime coupling |
 
-## 4. Import Interaction
+## 4. Workflow Smokes
+
+The workflow unit tests keep the export and import boundaries usable without
+binding the suite to QML rendering.
+
+### ExportWorkflow
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| EXP-W-001 | Restored export runs are projected from persisted state | Unit | Snapshot provider with export logs | Construct the workflow | Restored export runs are visible in the workflow model |
+| EXP-W-002 | Snapshot refresh replaces export run rows deterministically | Unit | Workflow with restored runs and a changed snapshot | Refresh from the state snapshot | Workflow rows rebind to the new snapshot content |
+| EXP-W-003 | Log-store hookup does not overwrite restored export runs | Unit | Workflow with restored runs and a writable log store | Bind the log store and mutate a run | Restored rows remain intact until a user mutation occurs |
+
+### ImportWorkflow
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-W-001 | Restored import runs are projected from persisted state | Unit | Snapshot provider with import logs | Construct the workflow | Restored import runs are visible in the workflow model |
+| IMP-W-002 | Snapshot refresh replaces import run rows deterministically | Unit | Workflow with restored runs and a changed snapshot | Refresh from the state snapshot | Workflow rows rebind to the new snapshot content |
+| IMP-W-003 | Log-store hookup does not overwrite restored import runs | Unit | Workflow with restored runs and a writable log store | Bind the log store and mutate a run | Restored rows remain intact until a user mutation occurs |
+
+## 5. Import Interaction
 
 The interaction smoke test keeps the import workflow boundary usable without
 binding the suite to QML rendering.
@@ -172,7 +207,10 @@ ui/
       WorkspaceTestData.h
     unit/
       TestAnalysisPayloadMapper.cpp
+      TestAnalysisWorkflow.cpp
+      TestExportWorkflow.cpp
       TestImportSuggestionService.cpp
+      TestImportWorkflow.cpp
       TestNavigationState.cpp
       TestSelectionState.cpp
       TestSessionModels.cpp
@@ -190,7 +228,9 @@ ui/
 1. Workspace facade and session projection.
 2. Session selection, navigation, and mutation helpers.
 3. Row projection and mapper smoke checks.
-4. Import interaction smoke coverage.
+4. Analysis workflow filter composition and preview checks.
+5. Export and import workflow smoke checks.
+6. Import interaction smoke coverage.
 
 ## Definition of Done
 
@@ -201,5 +241,7 @@ The `ui/src` test suite is complete when:
   stable family-based tests
 - row projection helpers are covered for every workspace family
 - mapper smoke tests remain buildable and usable
+- export and import workflow smoke tests remain buildable and usable
+- analysis filter composition and preview behavior stay stable across default and partial-selection cases
 - the import workflow boundary remains smoke-tested
 - the document tree matches the actual `ui/tests` tree

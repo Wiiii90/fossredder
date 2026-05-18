@@ -58,6 +58,7 @@ public:
                             QObject* parent = nullptr);
 
     void setExportLogsStore(ExportLogsStore store);
+    Q_INVOKABLE void refreshFromStateSnapshot();
 
     bool isRunning() const noexcept { return isRunning_; }
     bool isPaused() const noexcept { return isPaused_; }
@@ -108,7 +109,7 @@ private:
                                               const QString& path,
                                               bool includeFormulas,
                                               const QString& locale) const;
-    void restoreRunsFromSnapshot() const;
+    void restoreRunsFromSnapshot();
     void persistRuns();
     QString generateLogId() const;
     QString currentTimestamp() const;

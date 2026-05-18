@@ -24,6 +24,7 @@ const QVector<int>& transactionRoles()
         TransactionList::AmountRole,
         TransactionList::StatusRole,
         TransactionList::ActorIdRole,
+        TransactionList::ContractIdRole,
         TransactionList::MetadataRole,
         TransactionList::TypeRole,
         TransactionList::AllocatableRole,
@@ -68,6 +69,7 @@ void TransactionList::fillTransactionMap(QVariantMap& map, const Transaction& tr
     map[payload::keys::common::kAmount] = transaction.amount();
     map[payload::keys::common::kStatus] = static_cast<int>(transaction.status());
     map[payload::keys::transaction::kActorId] = QString::fromStdString(transaction.actorId());
+    map[payload::keys::transaction::kContractId] = QString::fromStdString(transaction.contractId());
     map[payload::keys::common::kMetadata] = QString();
     map[payload::keys::common::kType] = contractTypeForTransaction(transaction);
     map[payload::keys::transaction::kAllocatable] = transaction.isAllocatable();
@@ -92,6 +94,7 @@ QVariant TransactionList::data(const QModelIndex& index, int role) const
     case AmountRole: return t.amount();
     case StatusRole: return static_cast<int>(t.status());
     case ActorIdRole: return QString::fromStdString(t.actorId());
+    case ContractIdRole: return QString::fromStdString(t.contractId());
     case MetadataRole: return QString();
     case TypeRole: return contractTypeForTransaction(t);
     case AllocatableRole: return t.isAllocatable();
@@ -111,6 +114,7 @@ QHash<int, QByteArray> TransactionList::roleNames() const
     roles[AmountRole] = payload::keys::common::kAmount.toUtf8();
     roles[StatusRole] = payload::keys::common::kStatus.toUtf8();
     roles[ActorIdRole] = payload::keys::transaction::kActorId.toUtf8();
+    roles[ContractIdRole] = payload::keys::transaction::kContractId.toUtf8();
     roles[MetadataRole] = payload::keys::common::kMetadata.toUtf8();
     roles[TypeRole] = payload::keys::common::kType.toUtf8();
     roles[AllocatableRole] = payload::keys::transaction::kAllocatable.toUtf8();

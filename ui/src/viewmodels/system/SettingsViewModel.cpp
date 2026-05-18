@@ -5,6 +5,7 @@
 
 #include "ui/viewmodels/system/SettingsViewModel.h"
 
+#include <QDate>
 #include <QSettings>
 
 #include "core/constants/import.h"
@@ -46,6 +47,17 @@ int SettingsViewModel::normalizeArchiveFormat(int value) noexcept
     return value == 1 ? 1 : 0;
 }
 
+QString normalizeAnalysisDateMode(const QString& value)
+{
+    const QString normalized = value.trimmed().toLower();
+    return normalized == QStringLiteral("range") ? QStringLiteral("range") : QStringLiteral("year");
+}
+
+int normalizeAnalysisYear(int value) noexcept
+{
+    return value > 0 ? value : (QDate::currentDate().year() - 1);
+}
+
 void SettingsViewModel::emitStateChanged()
 {
     emit stateChanged();
@@ -63,6 +75,8 @@ void SettingsViewModel::applyDefaults()
     exportDefaultDirectory_.clear();
     exportArchiveFormat_ = 0;
     exportIncludeFormulas_ = true;
+    analysisDefaultDateMode_ = QStringLiteral("year");
+    analysisDefaultYear_ = QDate::currentDate().year() - 1;
     toolbarShowBooking_ = true;
     toolbarShowActors_ = true;
     toolbarShowProperties_ = true;
@@ -88,6 +102,8 @@ void SettingsViewModel::loadFromPersistentStore()
     exportDefaultDirectory_ = normalizeText(settings.value(fromCoreString(core::constants::preferences::keys::kExportDefaultDirectory)).toString());
     exportArchiveFormat_ = normalizeArchiveFormat(settings.value(fromCoreString(core::constants::preferences::keys::kExportArchiveFormat), 0).toInt());
     exportIncludeFormulas_ = settings.value(fromCoreString(core::constants::preferences::keys::kExportIncludeFormulas), true).toBool();
+    analysisDefaultDateMode_ = normalizeAnalysisDateMode(settings.value(fromCoreString(core::constants::preferences::keys::kAnalysisDefaultDateMode), QStringLiteral("year")).toString());
+    analysisDefaultYear_ = normalizeAnalysisYear(settings.value(fromCoreString(core::constants::preferences::keys::kAnalysisDefaultYear), QDate::currentDate().year() - 1).toInt());
     toolbarShowBooking_ = settings.value(fromCoreString(core::constants::preferences::keys::kToolbarShowBooking), true).toBool();
     toolbarShowActors_ = settings.value(fromCoreString(core::constants::preferences::keys::kToolbarShowActors), true).toBool();
     toolbarShowProperties_ = settings.value(fromCoreString(core::constants::preferences::keys::kToolbarShowProperties), true).toBool();
@@ -112,6 +128,8 @@ void SettingsViewModel::persistToStore() const
     settings.setValue(fromCoreString(core::constants::preferences::keys::kExportDefaultDirectory), exportDefaultDirectory_);
     settings.setValue(fromCoreString(core::constants::preferences::keys::kExportArchiveFormat), exportArchiveFormat_);
     settings.setValue(fromCoreString(core::constants::preferences::keys::kExportIncludeFormulas), exportIncludeFormulas_);
+    settings.setValue(fromCoreString(core::constants::preferences::keys::kAnalysisDefaultDateMode), analysisDefaultDateMode_);
+    settings.setValue(fromCoreString(core::constants::preferences::keys::kAnalysisDefaultYear), analysisDefaultYear_);
     settings.setValue(fromCoreString(core::constants::preferences::keys::kToolbarShowBooking), toolbarShowBooking_);
     settings.setValue(fromCoreString(core::constants::preferences::keys::kToolbarShowActors), toolbarShowActors_);
     settings.setValue(fromCoreString(core::constants::preferences::keys::kToolbarShowProperties), toolbarShowProperties_);
@@ -209,6 +227,24 @@ void SettingsViewModel::setExportIncludeFormulas(bool value)
     emitStateChanged();
 }
 
+void SettingsViewModel::setAnalysisDefaultDateMode(const QString& value)
+{
+    const QString nextValue = normalizeAnalysisDateMode(value);
+    if (analysisDefaultDateMode_ == nextValue) return;
+    analysisDefaultDateMode_ = nextValue;
+    emit analysisDefaultDateModeChanged();
+    emitStateChanged();
+}
+
+void SettingsViewModel::setAnalysisDefaultYear(int value)
+{
+    const int nextValue = normalizeAnalysisYear(value);
+    if (analysisDefaultYear_ == nextValue) return;
+    analysisDefaultYear_ = nextValue;
+    emit analysisDefaultYearChanged();
+    emitStateChanged();
+}
+
 void SettingsViewModel::setToolbarShowBooking(bool value)
 {
     if (toolbarShowBooking_ == value) return;
@@ -296,6 +332,8 @@ void SettingsViewModel::load()
     savedExportDefaultDirectory_ = exportDefaultDirectory_;
     savedExportArchiveFormat_ = exportArchiveFormat_;
     savedExportIncludeFormulas_ = exportIncludeFormulas_;
+    savedAnalysisDefaultDateMode_ = analysisDefaultDateMode_;
+    savedAnalysisDefaultYear_ = analysisDefaultYear_;
     savedToolbarShowBooking_ = toolbarShowBooking_;
     savedToolbarShowActors_ = toolbarShowActors_;
     savedToolbarShowProperties_ = toolbarShowProperties_;
@@ -322,6 +360,8 @@ void SettingsViewModel::save()
     savedExportDefaultDirectory_ = exportDefaultDirectory_;
     savedExportArchiveFormat_ = exportArchiveFormat_;
     savedExportIncludeFormulas_ = exportIncludeFormulas_;
+    savedAnalysisDefaultDateMode_ = analysisDefaultDateMode_;
+    savedAnalysisDefaultYear_ = analysisDefaultYear_;
     savedToolbarShowBooking_ = toolbarShowBooking_;
     savedToolbarShowActors_ = toolbarShowActors_;
     savedToolbarShowProperties_ = toolbarShowProperties_;
@@ -348,6 +388,8 @@ void SettingsViewModel::resetToDefaults()
     emit exportDefaultDirectoryChanged();
     emit exportArchiveFormatChanged();
     emit exportIncludeFormulasChanged();
+    emit analysisDefaultDateModeChanged();
+    emit analysisDefaultYearChanged();
     emit toolbarShowBookingChanged();
     emit toolbarShowActorsChanged();
     emit toolbarShowPropertiesChanged();
@@ -373,6 +415,8 @@ bool SettingsViewModel::hasChanges() const noexcept
         || exportDefaultDirectory_ != savedExportDefaultDirectory_
         || exportArchiveFormat_ != savedExportArchiveFormat_
         || exportIncludeFormulas_ != savedExportIncludeFormulas_
+        || analysisDefaultDateMode_ != savedAnalysisDefaultDateMode_
+        || analysisDefaultYear_ != savedAnalysisDefaultYear_
         || toolbarShowBooking_ != savedToolbarShowBooking_
         || toolbarShowActors_ != savedToolbarShowActors_
         || toolbarShowProperties_ != savedToolbarShowProperties_

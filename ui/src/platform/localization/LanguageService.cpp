@@ -183,10 +183,10 @@ void LanguageService::persistLanguage(const QString& languageCode)
 
 QString LanguageService::persistedLanguage() const
 {
-    const QString fallbackLanguage = normalizeLanguageCode(QLocale::system().name());
+    const QString defaultLanguage = normalizeLanguageCode(QLocale::system().name());
     auto settings = openLanguageSettings();
     return normalizeLanguageCode(
-        settings.value(fromCoreString(core::constants::preferences::keys::kLanguage), fallbackLanguage).toString());
+        settings.value(fromCoreString(core::constants::preferences::keys::kLanguage), defaultLanguage).toString());
 }
 
 }

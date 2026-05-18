@@ -8,14 +8,24 @@
 #include <algorithm>
 
 #include <QSet>
+#include <QDate>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QDir>
+#include <QCryptographicHash>
+#include <QFileInfo>
+#include <QStandardPaths>
 
 #include "core/application/analysis/AnalysisService.h"
 #include "core/errors/ErrorCodes.h"
+#include "core/domain/entities/Analysis.h"
 #include "core/domain/entities/Actor.h"
 #include "core/domain/entities/Contract.h"
 #include "core/domain/entities/Property.h"
 #include "core/domain/entities/Statement.h"
 #include "core/domain/entities/Transaction.h"
+#include "core/ports/analysis-image-renderer/IAnalysisImageRenderer.h"
 #include "core/ports/presenters/IAnalysisPresenter.h"
 #include "core/ports/workspace/IWorkspaceReader.h"
 #include "core/ports/workspace/IWorkspaceWriter.h"
@@ -73,6 +83,24 @@ QVariantMap findAnalysisPayload(const std::vector<core::ports::workspace::Analys
     return payload;
 }
 
+std::vector<std::pair<std::string, double>> parseAdjustments(const QString& adjustmentsJson)
+{
+    std::vector<std::pair<std::string, double>> out;
+    const QJsonDocument document = QJsonDocument::fromJson(adjustmentsJson.toUtf8());
+    if (!document.isObject()) {
+        return out;
+    }
+    const QJsonObject object = document.object();
+    out.reserve(static_cast<std::size_t>(object.size()));
+    for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
+        if (!it.value().isDouble()) {
+            continue;
+        }
+        out.emplace_back(it.key().toStdString(), it.value().toDouble());
+    }
+    return out;
+}
+
 } // namespace
 
 AnalysisWorkflow::AnalysisWorkflow(
@@ -80,13 +108,15 @@ AnalysisWorkflow::AnalysisWorkflow(
     StateSnapshotProvider stateSnapshotProvider,
     std::shared_ptr<core::application::analysis::AnalysisService> analysisService,
     std::shared_ptr<core::ports::presenters::IAnalysisPresenter> analysisPresenter,
-    QObject* parent)
+    QObject* parent,
+    std::shared_ptr<core::ports::analysis_image_renderer::IAnalysisImageRenderer> imageRenderer)
     : QObject(parent)
     , core_(core)
     , reader_(dynamic_cast<core::ports::workspace::IWorkspaceReader*>(core))
     , stateSnapshotProvider_(std::move(stateSnapshotProvider))
     , analysisService_(std::move(analysisService))
     , analysisPresenter_(std::move(analysisPresenter))
+    , imageRenderer_(std::move(imageRenderer))
 {
 }
 
@@ -133,7 +163,8 @@ QString AnalysisWorkflow::createAnalysis(const QString& name,
                                            const QString& exportFormat,
                                            bool includeCalcAdjustments,
                                            const QString& exportStateJson,
-                                           const QString& snapshotTransactionsJson)
+                                           const QString& snapshotTransactionsJson,
+                                           const QString& adjustmentsJson)
 {
     return ui::util::guard::invokeValue<QString>(
         core_, observability::origins::workflow::analysis::kAdd, {}, [&]() {
@@ -146,6 +177,7 @@ QString AnalysisWorkflow::createAnalysis(const QString& name,
             command.includeCalculationAdjustments = includeCalcAdjustments;
             command.exportStateJson = strings::toStdString(exportStateJson);
             command.snapshotTransactionsJson = strings::toStdString(snapshotTransactionsJson);
+            command.adjustments = parseAdjustments(adjustmentsJson);
             return QString::fromStdString(core_->addAnalysis(command));
         });
 }
@@ -158,7 +190,8 @@ void AnalysisWorkflow::updateAnalysis(const QString& id,
                                         const QString& exportFormat,
                                         bool includeCalcAdjustments,
                                         const QString& exportStateJson,
-                                        const QString& snapshotTransactionsJson)
+                                        const QString& snapshotTransactionsJson,
+                                        const QString& adjustmentsJson)
 {
     ui::util::guard::invokeVoid(
         core_, observability::origins::workflow::analysis::kUpdate, [&]() {
@@ -172,6 +205,7 @@ void AnalysisWorkflow::updateAnalysis(const QString& id,
             command.includeCalculationAdjustments = includeCalcAdjustments;
             command.exportStateJson = strings::toStdString(exportStateJson);
             command.snapshotTransactionsJson = strings::toStdString(snapshotTransactionsJson);
+            command.adjustments = parseAdjustments(adjustmentsJson);
             core_->updateAnalysis(command);
         });
 }
@@ -193,6 +227,155 @@ core::application::analysis::AnalysisRequest AnalysisWorkflow::analysisRequest(c
     return request;
 }
 
+QString AnalysisWorkflow::analysisFilterSpec(const QString& dateField,
+                                             const QString& dateMode,
+                                             const QString& year,
+                                             const QString& dateFrom,
+                                             const QString& dateTo,
+                                             const QStringList& propertyIds,
+                                             const QStringList& contractTypes,
+                                             const QString& allocatableMode) const
+{
+    QStringList clauses;
+    const QString field = dateField.trimmed().toLower();
+    if (field == QStringLiteral("valuta")) {
+        clauses.push_back(QStringLiteral("dateField=valuta"));
+    }
+
+    const QString mode = dateMode.trimmed().toLower();
+    QString resolvedYear = year.trimmed();
+    bool yearOk = false;
+    const int parsedYear = resolvedYear.toInt(&yearOk);
+    if (mode == QStringLiteral("year")) {
+        const int defaultYear = QDate::currentDate().year() - 1;
+        const int nextYear = yearOk && parsedYear > 0 ? parsedYear : defaultYear;
+        resolvedYear = QString::number(nextYear);
+        clauses.push_back(QStringLiteral("date>=%1-01-01").arg(resolvedYear));
+        clauses.push_back(QStringLiteral("date<=%1-12-31").arg(resolvedYear));
+    } else {
+        const QString from = dateFrom.trimmed();
+        const QString to = dateTo.trimmed();
+        bool hasDateClause = false;
+        if (!from.isEmpty()) {
+            clauses.push_back(QStringLiteral("date>=%1").arg(from));
+            hasDateClause = true;
+        }
+        if (!to.isEmpty()) {
+            clauses.push_back(QStringLiteral("date<=%1").arg(to));
+            hasDateClause = true;
+        }
+        if (!hasDateClause) {
+            const int defaultYear = QDate::currentDate().year() - 1;
+            resolvedYear = QString::number(defaultYear);
+            clauses.push_back(QStringLiteral("date>=%1-01-01").arg(resolvedYear));
+            clauses.push_back(QStringLiteral("date<=%1-12-31").arg(resolvedYear));
+        }
+    }
+
+    QStringList normalizedPropertyIds;
+    normalizedPropertyIds.reserve(propertyIds.size());
+    for (const auto& propertyId : propertyIds) {
+        const QString value = propertyId.trimmed();
+        if (!value.isEmpty() && !normalizedPropertyIds.contains(value)) {
+            normalizedPropertyIds.push_back(value);
+        }
+    }
+    if (!normalizedPropertyIds.isEmpty()) {
+        clauses.push_back(QStringLiteral("propertyId=%1").arg(normalizedPropertyIds.join(QStringLiteral(","))));
+    }
+
+    QStringList normalizedContractTypes;
+    normalizedContractTypes.reserve(contractTypes.size());
+    for (const auto& contractType : contractTypes) {
+        const QString value = contractType.trimmed().toLower();
+        if (!value.isEmpty() && !normalizedContractTypes.contains(value)) {
+            normalizedContractTypes.push_back(value);
+        }
+    }
+    if (!normalizedContractTypes.isEmpty()) {
+        clauses.push_back(QStringLiteral("contract.type=%1").arg(normalizedContractTypes.join(QStringLiteral(","))));
+    }
+
+    const QString modeValue = allocatableMode.trimmed().toLower();
+    if (modeValue == QStringLiteral("allocatable") || modeValue == QStringLiteral("non-allocatable")) {
+        clauses.push_back(QStringLiteral("allocatable=%1").arg(modeValue));
+    }
+
+    return clauses.join(QStringLiteral(";"));
+}
+
+QString AnalysisWorkflow::analysisConfigJson(const QString& type,
+                                             const QString& plotType,
+                                             const QString& plotMeasure,
+                                             const QStringList& propertyIds,
+                                             const QStringList& contractTypes,
+                                             double taxPercent) const
+{
+    QJsonObject config;
+    const QString normalizedType = type.trimmed().toLower();
+
+    if (normalizedType == QStringLiteral("calc")) {
+        config.insert(QStringLiteral("strategy"), QStringLiteral("tax"));
+        config.insert(QStringLiteral("percent"), taxPercent);
+        return QString::fromUtf8(QJsonDocument(config).toJson(QJsonDocument::Compact));
+    }
+
+    config.insert(QStringLiteral("plotType"), plotType.trimmed().isEmpty() ? QStringLiteral("pie") : plotType.trimmed());
+    config.insert(QStringLiteral("plotMeasure"), plotMeasure.trimmed().isEmpty() ? QStringLiteral("totalAmount") : plotMeasure.trimmed());
+
+    QJsonArray properties;
+    for (const auto& propertyId : propertyIds) {
+        const QString value = propertyId.trimmed();
+        if (!value.isEmpty()) {
+            properties.push_back(value);
+        }
+    }
+    config.insert(QStringLiteral("properties"), properties);
+
+    QJsonArray types;
+    for (const auto& contractType : contractTypes) {
+        const QString value = contractType.trimmed();
+        if (!value.isEmpty()) {
+            types.push_back(value);
+        }
+    }
+    config.insert(QStringLiteral("contractTypes"), types);
+
+    return QString::fromUtf8(QJsonDocument(config).toJson(QJsonDocument::Compact));
+}
+
+QString AnalysisWorkflow::analysisAdjustmentsJson(const QVariantList& transactions,
+                                                  const QStringList& selectedTransactionIds,
+                                                  double taxPercent) const
+{
+    QSet<QString> selected;
+    selected.reserve(selectedTransactionIds.size());
+    for (const auto& id : selectedTransactionIds) {
+        const QString value = id.trimmed();
+        if (!value.isEmpty()) {
+            selected.insert(value);
+        }
+    }
+
+    QJsonObject adjustments;
+    if (selected.isEmpty()) {
+        return QStringLiteral("{}");
+    }
+
+    const double factor = 1.0 + (taxPercent / 100.0);
+    for (const auto& value : transactions) {
+        const QVariantMap row = value.toMap();
+        const QString id = row.value(QStringLiteral("id")).toString().trimmed();
+        if (id.isEmpty() || !selected.contains(id)) {
+            continue;
+        }
+        const double amount = row.value(QStringLiteral("amount")).toDouble();
+        adjustments.insert(id, amount * factor);
+    }
+
+    return QString::fromUtf8(QJsonDocument(adjustments).toJson(QJsonDocument::Compact));
+}
+
 QVariantMap AnalysisWorkflow::computeAnalysis(const core::application::analysis::AnalysisRequest& request) const
 {
     QVariantMap out;
@@ -208,17 +391,107 @@ QVariantMap AnalysisWorkflow::computeAnalysis(const core::application::analysis:
     }
 
     try {
-        const auto result = analysisService_->runAnalysis(*snapshot, request);
+        auto result = analysisService_->runAnalysis(*snapshot, request);
         if (!result.found) {
             return out;
         }
-        return ::ui::analysis::toPayload(result);
+        return payloadWithRenderedPreview(request, std::move(result));
     } catch (...) {
         ui::util::guard::reportException(
             observability::origins::workflow::analysis::kCompute);
     }
 
     return out;
+}
+
+QVariantMap AnalysisWorkflow::computeAnalysis(const QString& analysisId,
+                                              const QString& filterSpecification) const
+{
+    return computeAnalysis(analysisRequest(analysisId, filterSpecification));
+}
+
+QVariantMap AnalysisWorkflow::computeAnalysisPreview(const QString& analysisId,
+                                                     const QString& filterSpecification,
+                                                     bool includeCalcAdjustments,
+                                                     const QString& adjustmentsJson) const
+{
+    QVariantMap out;
+    if (!analysisService_) {
+        reportMissingAnalysisService();
+        return out;
+    }
+
+    const auto snapshot = stateSnapshot();
+    if (!snapshot) {
+        reportMissingAnalysisState();
+        return out;
+    }
+
+    const std::string targetId = analysisId.trimmed().toStdString();
+    const auto it = std::find_if(snapshot->analyses().begin(), snapshot->analyses().end(), [&](const auto& analysis) {
+        return analysis && analysis->id() == targetId;
+    });
+    if (it == snapshot->analyses().end() || !*it) {
+        return out;
+    }
+
+    try {
+        const auto& source = **it;
+        core::domain::Analysis preview;
+        preview.setId(source.id());
+        preview.rename(source.name());
+        preview.setType(source.type());
+        preview.setConfigJson(source.configJson());
+        preview.setFilterSpec(source.filterSpec());
+        preview.setExportFormat(source.exportFormat());
+        preview.setExportStateJson(source.exportStateJson());
+        preview.setSnapshotTransactionsJson(source.snapshotTransactionsJson());
+        preview.setIncludeCalculationAdjustments(includeCalcAdjustments);
+        for (const auto& [key, value] : parseAdjustments(adjustmentsJson)) {
+            preview.setAdjustment(key, value);
+        }
+
+        const auto request = analysisRequest(analysisId, filterSpecification);
+        auto result = analysisService_->computeAnalysis(preview, *snapshot, request.filterSpecification);
+        if (!result.found) {
+            return out;
+        }
+        return payloadWithRenderedPreview(request, std::move(result));
+    } catch (...) {
+        ui::util::guard::reportException(
+            observability::origins::workflow::analysis::kCompute);
+    }
+
+    return out;
+}
+
+QVariantMap AnalysisWorkflow::payloadWithRenderedPreview(const core::application::analysis::AnalysisRequest& request,
+                                                         core::application::analysis::AnalysisResult result) const
+{
+    if (imageRenderer_) {
+        const QString baseDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation)
+                + QStringLiteral("/fossredder-analysis-preview");
+        QDir().mkpath(baseDir);
+        QCryptographicHash hash(QCryptographicHash::Sha256);
+        hash.addData(QByteArray::fromStdString(request.analysisId));
+        hash.addData(QByteArray::fromStdString(request.filterSpecification));
+        hash.addData(QByteArray::fromStdString(result.type));
+        hash.addData(QByteArray::fromStdString(result.configJson));
+        for (const auto& row : result.table) {
+            for (const auto& column : row) {
+                hash.addData(QByteArray::fromStdString(column));
+                hash.addData(QByteArray(1, '\0'));
+            }
+            hash.addData(QByteArray(1, '\n'));
+        }
+        const QString fileName = QString::fromLatin1(hash.result().toHex()) + QStringLiteral(".png");
+        const QString outputPath = QDir(baseDir).filePath(fileName);
+        if (QFileInfo::exists(outputPath)
+                || imageRenderer_->writeAnalysisImage(outputPath.toStdString(), request.analysisId, result)) {
+            result.artifacts.push_back(outputPath.toStdString());
+        }
+    }
+    return ::ui::analysis::toPayload(result);
 }
 
 QStringList AnalysisWorkflow::contractTypes() const
@@ -260,12 +533,21 @@ QVariantMap AnalysisWorkflow::previewTransactions(const QString& filterSpecifica
 
     QHash<QString, QString> contractTypeById;
     QHash<QString, QString> contractNameById;
+    QHash<QString, QStringList> contractPropertyIdsById;
     contractTypeById.reserve(static_cast<int>(snapshot->contracts().size()));
     contractNameById.reserve(static_cast<int>(snapshot->contracts().size()));
+    contractPropertyIdsById.reserve(static_cast<int>(snapshot->contracts().size()));
     for (const auto& contract : snapshot->contracts()) {
         if (!contract) continue;
-        contractTypeById.insert(QString::fromStdString(contract->id()), QString::fromStdString(contract->type()));
-        contractNameById.insert(QString::fromStdString(contract->id()), QString::fromStdString(contract->name()));
+        const QString id = QString::fromStdString(contract->id());
+        QStringList propertyIds;
+        propertyIds.reserve(static_cast<int>(contract->propertyIds().size()));
+        for (const auto& propertyId : contract->propertyIds()) {
+            propertyIds.push_back(QString::fromStdString(propertyId));
+        }
+        contractTypeById.insert(id, QString::fromStdString(contract->type()));
+        contractNameById.insert(id, QString::fromStdString(contract->name()));
+        contractPropertyIdsById.insert(id, propertyIds);
     }
 
     QHash<QString, QString> actorNameById;
@@ -306,10 +588,23 @@ QVariantMap AnalysisWorkflow::previewTransactions(const QString& filterSpecifica
         const QString contractId = QString::fromStdString(transaction->contractId());
         const QString actorId = QString::fromStdString(transaction->actorId());
 
-        QStringList propertyNames;
-        propertyNames.reserve(static_cast<int>(transaction->propertyIds().size()));
+        QStringList propertyIds;
+        propertyIds.reserve(static_cast<int>(transaction->propertyIds().size()));
         for (const auto& propertyId : transaction->propertyIds()) {
             const QString id = QString::fromStdString(propertyId);
+            if (!id.isEmpty() && !propertyIds.contains(id)) {
+                propertyIds.push_back(id);
+            }
+        }
+        for (const auto& propertyId : contractPropertyIdsById.value(contractId)) {
+            if (!propertyId.isEmpty() && !propertyIds.contains(propertyId)) {
+                propertyIds.push_back(propertyId);
+            }
+        }
+
+        QStringList propertyNames;
+        propertyNames.reserve(propertyIds.size());
+        for (const auto& id : propertyIds) {
             const QString name = propertyNameById.value(id, id);
             if (!name.isEmpty()) propertyNames.push_back(name);
         }
@@ -326,6 +621,7 @@ QVariantMap AnalysisWorkflow::previewTransactions(const QString& filterSpecifica
         row[QStringLiteral("contractId")] = contractId;
         row[QStringLiteral("contractName")] = contractNameById.value(contractId, QString());
         row[QStringLiteral("contractType")] = contractTypeById.value(contractId, QString());
+        row[QStringLiteral("propertyIds")] = propertyIds;
         row[QStringLiteral("propertyNames")] = propertyNames;
         row[QStringLiteral("propertiesLabel")] = propertyNames.join(QStringLiteral(", "));
         row[QStringLiteral("allocatable")] = transaction->isAllocatable();

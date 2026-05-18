@@ -41,8 +41,8 @@ Controls.Panel {
             textRole: "display"
             model: root.txRoot.actorDisplayModel()
             currentIndex: root.txRoot.selectedIndexFor(model, root.txRoot.actorIdValue())
-            onActivated: {
-                const row = model[currentIndex]
+            onActivated: function(index) {
+                const row = model[index]
                 root.txRoot.updateField("actorId", row && row.id ? row.id : "")
             }
         }

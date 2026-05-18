@@ -24,11 +24,13 @@ class WorkspaceSession;
 struct ActorInput {
     std::string name;
     std::vector<core::domain::Alias> aliases;
+    std::vector<std::string> contractIds;
 };
 
 struct PropertyInput {
     std::string name;
     std::vector<core::domain::Alias> aliases;
+    std::vector<std::string> contractIds;
 };
 
 struct ContractInput {
@@ -46,6 +48,7 @@ struct TransactionInput {
     std::string statementId;
     core::domain::Transaction::Status status = core::domain::Transaction::Status::Neutral;
     std::string actorId;
+    std::string contractId;
     bool allocatable = false;
     std::vector<std::string> propertyIds;
 };
@@ -59,6 +62,7 @@ struct AnalysisInput {
     bool includeCalculationAdjustments = true;
     std::string exportStateJson;
     std::string snapshotTransactionsJson;
+    std::vector<std::pair<std::string, double>> adjustments;
 };
 
 class WorkspaceCommandService {

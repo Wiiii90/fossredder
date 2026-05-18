@@ -58,12 +58,12 @@ inline void invokeVoid(CorePtr core, const char* origin, Func&& func)
     }
 }
 
-/** @brief Execute a value-returning UI-to-core call with fallback on failure. */
+/** @brief Execute a value-returning UI-to-core call with a default value on failure. */
 template <typename TValue, typename CorePtr, typename Func>
-inline TValue invokeValue(CorePtr core, const char* origin, TValue fallback, Func&& func)
+inline TValue invokeValue(CorePtr core, const char* origin, TValue defaultValue, Func&& func)
 {
     if (!ensureCore(core, origin)) {
-        return fallback;
+        return defaultValue;
     }
 
     try {
@@ -73,7 +73,7 @@ inline TValue invokeValue(CorePtr core, const char* origin, TValue fallback, Fun
     } catch (...) {
         reportException(origin, core::errors::codes::ExceptionNonStd);
     }
-    return fallback;
+    return defaultValue;
 }
 
 } // namespace guard

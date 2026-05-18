@@ -27,7 +27,7 @@ TestCase {
         }
     }
 
-    property var settingsController: QtObject {
+    property var settingsViewModel: QtObject {
         property string language: "en"
         property string importDefaultPath: ""
         property string importPoppler: ""
@@ -55,7 +55,7 @@ TestCase {
         function load() { loadCalls += 1 }
     }
 
-    property var languageController: QtObject {
+    property var languageService: QtObject {
         property var availableLanguages: [
             { code: "en", label: "English", available: true },
             { code: "de", label: "Deutsch", available: true }
@@ -80,8 +80,8 @@ TestCase {
 
     property var appContext: QtObject {
         property var navigation: testCase.navigation
-        property var settingsController: testCase.settingsController
-        property var languageController: testCase.languageController
+        property var settingsViewModel: testCase.settingsViewModel
+        property var languageService: testCase.languageService
         property var actions: testCase.actions
     }
 
@@ -127,24 +127,24 @@ TestCase {
 
     function init() {
         navigation.settingsCategoryValue = 0
-        settingsController.saveCalls = 0
-        settingsController.resetCalls = 0
-        settingsController.loadCalls = 0
-        settingsController.language = "en"
-        languageController.applyCalls = 0
-        languageController.lastLanguage = ""
+        settingsViewModel.saveCalls = 0
+        settingsViewModel.resetCalls = 0
+        settingsViewModel.loadCalls = 0
+        settingsViewModel.language = "en"
+        languageService.applyCalls = 0
+        languageService.lastLanguage = ""
     }
 
     function test_SET_V_003_updateButtonSavesAndAppliesLanguage() {
         var view = createView()
         var updateButton = findRequired(view, "settingsUpdateButton")
 
-        settingsController.language = "de"
+        settingsViewModel.language = "de"
         updateButton.clicked()
 
-        compare(settingsController.saveCalls, 1)
-        compare(languageController.applyCalls, 1)
-        compare(languageController.lastLanguage, "de")
+        compare(settingsViewModel.saveCalls, 1)
+        compare(languageService.applyCalls, 1)
+        compare(languageService.lastLanguage, "de")
     }
 
     function test_SET_V_004_defaultButtonResetsSettingsAndCategory() {
@@ -154,7 +154,7 @@ TestCase {
 
         defaultButton.clicked()
 
-        compare(settingsController.resetCalls, 1)
+        compare(settingsViewModel.resetCalls, 1)
         compare(navigation.settingsCategoryValue, 0)
     }
 

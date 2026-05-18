@@ -15,6 +15,7 @@
 #include "core/domain/catalog/WorkspaceCatalog.h"
 #include "core/application/storage/DeletionImpact.h"
 #include "core/application/workspace/WorkspaceFacade.h"
+#include "core/application/workspace/WorkspaceSessionState.h"
 #include "ui/viewmodels/catalog/ActorListModel.h"
 #include "ui/viewmodels/reporting/AnalysisListModel.h"
 #include "ui/viewmodels/reporting/AnnualListModel.h"
@@ -62,6 +63,7 @@ class WorkspaceFacade : public QObject {
     Q_PROPERTY(AnnualSelection* selectedAnnual READ selectedAnnual CONSTANT)
 
     Q_PROPERTY(QVariant lastAnalysisResult READ lastAnalysisResult WRITE setLastAnalysisResult NOTIFY lastAnalysisResultChanged)
+    Q_PROPERTY(int dataRevision READ dataRevision NOTIFY dataRevisionChanged)
 
 public:
     /** @brief Creates the facade and its owned workspace state objects. */
@@ -84,6 +86,8 @@ public:
 
     /** @brief Loads the UI session from the supplied application state snapshot. */
     void loadFromState(const core::domain::catalog::WorkspaceCatalog& state);
+    /** @brief Loads the UI session from the full application workspace state. */
+    void loadFromState(const core::application::workspace::WorkspaceSessionState& state);
     /** @brief Binds the facade to the application workspace facade used for writes and storage. */
     void setCoreFacade(core::application::WorkspaceFacade* coreFacade) noexcept;
     /** @brief Returns the bound application workspace facade, when available. */
@@ -95,14 +99,14 @@ public:
     Q_INVOKABLE void saveFile();
     Q_INVOKABLE void saveFileAs(const QString& path);
 
-    Q_INVOKABLE QString addActor(const QString& name, const QStringList& aliases = {});
-    Q_INVOKABLE void updateActor(const QString& id, const QString& name, const QStringList& aliases = {});
-    Q_INVOKABLE QString saveActor(const QString& id, const QString& name, const QStringList& aliases = {});
+    Q_INVOKABLE QString addActor(const QString& name, const QStringList& aliases = {}, const QStringList& contractIds = {});
+    Q_INVOKABLE void updateActor(const QString& id, const QString& name, const QStringList& aliases = {}, const QStringList& contractIds = {});
+    Q_INVOKABLE QString saveActor(const QString& id, const QString& name, const QStringList& aliases = {}, const QStringList& contractIds = {});
     Q_INVOKABLE void deleteActor(const QString& id);
 
-    Q_INVOKABLE QString addProperty(const QString& name, const QStringList& aliases = {});
-    Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QStringList& aliases = {});
-    Q_INVOKABLE QString saveProperty(const QString& id, const QString& name, const QStringList& aliases = {});
+    Q_INVOKABLE QString addProperty(const QString& name, const QStringList& aliases = {}, const QStringList& contractIds = {});
+    Q_INVOKABLE void updateProperty(const QString& id, const QString& name, const QStringList& aliases = {}, const QStringList& contractIds = {});
+    Q_INVOKABLE QString saveProperty(const QString& id, const QString& name, const QStringList& aliases = {}, const QStringList& contractIds = {});
     Q_INVOKABLE void deleteProperty(const QString& id);
 
     Q_INVOKABLE QString addContract(const QString& name,
@@ -135,6 +139,7 @@ public:
                                        const QString& statementId,
                                        int status = 0,
                                        const QString& actorId = QString(),
+                                       const QString& contractId = QString(),
                                        bool allocatable = false,
                                        const QStringList& propertyIds = {});
     Q_INVOKABLE void updateTransaction(const QString& id,
@@ -144,6 +149,7 @@ public:
                                        const QString& statementId,
                                        int status,
                                        const QString& actorId,
+                                       const QString& contractId,
                                        bool allocatable,
                                        const QStringList& propertyIds);
     Q_INVOKABLE QString saveTransaction(const QString& id,
@@ -153,6 +159,7 @@ public:
                                         const QString& statementId,
                                         int status,
                                         const QString& actorId,
+                                        const QString& contractId,
                                         bool allocatable,
                                         const QStringList& propertyIds);
     Q_INVOKABLE void deleteTransaction(const QString& id);
@@ -214,6 +221,8 @@ public:
     Q_INVOKABLE QVariantList annualRows() const;
     Q_INVOKABLE QVariantList statementRows() const;
     Q_INVOKABLE QVariantList statementTransactionRows(const QString& statementId) const;
+    Q_INVOKABLE QVariantMap transaction(const QString& id) const;
+    Q_INVOKABLE QVariantMap annual(const QString& id) const;
     Q_INVOKABLE QVariantList normalizeStrings(const QVariantList& values) const;
     Q_INVOKABLE QVariantList addUniqueTrimmed(const QVariantList& values, const QString& value) const;
     Q_INVOKABLE QVariantList removeAt(const QVariantList& values, int index) const;
@@ -229,7 +238,7 @@ public:
     Q_INVOKABLE QString navigatedId(const QVariantList& rows,
                                     const QString& currentId,
                                     int delta,
-                                    int fallbackIndex = 0) const;
+                                    int defaultIndex = 0) const;
     Q_INVOKABLE QVariantList displayRowsWithEmpty(const QVariantList& rows,
                                                   const QString& emptyDisplay,
                                                   const QString& displayKey = QStringLiteral("display")) const;
@@ -278,7 +287,7 @@ public:
                                                    int currentIndex,
                                                    const QString& selectedId,
                                                    int delta,
-                                                   int fallbackIndex = 0,
+                                                   int defaultIndex = 0,
                                                    const QString& idKey = QStringLiteral("id")) const;
     Q_INVOKABLE QVariantMap deleteReselectionState(const QVariantList& rows,
                                                    const QVariantList& preferredOrder,
@@ -287,7 +296,7 @@ public:
                                                    const QString& idKey = QStringLiteral("id")) const;
     Q_INVOKABLE QString deleteNextSelectionId(const QVariantList& rows,
                                               const QString& removedId,
-                                              int fallbackIndex = 0,
+                                              int defaultIndex = 0,
                                               const QString& idKey = QStringLiteral("id")) const;
     Q_INVOKABLE QVariantMap basicFormState(const QString& name,
                                            const QVariantList& aliases,
@@ -309,6 +318,7 @@ public:
 
     QVariant lastAnalysisResult() const { return selection_->lastAnalysisResult(); }
     void setLastAnalysisResult(const QVariant& value) { selection_->setLastAnalysisResult(value); }
+    int dataRevision() const noexcept { return dataRevision_; }
 
 signals:
     void selectedActorIdChanged();
@@ -319,13 +329,17 @@ signals:
     void selectedAnalysisIdChanged();
     void selectedAnnualIdChanged();
     void lastAnalysisResultChanged();
+    void dataRevisionChanged();
     void operationSucceeded(const QString& operation);
     void operationFailed(const QString& operation, const QString& error);
 
 private:
+    void bumpDataRevision();
+
     std::unique_ptr<SessionStore> session_;
     std::unique_ptr<SessionSelection> selection_;
     core::application::WorkspaceFacade* coreFacade_ = nullptr;
+    int dataRevision_ = 0;
 };
 
 }

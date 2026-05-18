@@ -23,12 +23,12 @@ function hashString(value) {
     return Math.abs(hash)
 }
 
-function colorForKey(key, palette, fallbackColor) {
+function colorForKey(key, palette, defaultColor) {
     try {
         var index = hashString(key) % palette.length
         return palette[index]
     } catch (e) {
-        return fallbackColor
+        return defaultColor
     }
 }
 

@@ -35,6 +35,7 @@ inline std::shared_ptr<core::domain::Actor> makeActor()
     actor->rename("Main Actor");
     actor->addAlias(makeAlias("Primary Actor"));
     actor->addAlias(makeAlias("Main Actor"));
+    actor->setContractIds({"contract-1"});
     actor->setCreatedAt("2026-01-01T08:00:00Z");
     actor->setUpdatedAt("2026-01-02T08:00:00Z");
     return actor;
@@ -46,6 +47,7 @@ inline std::shared_ptr<core::domain::Property> makeProperty()
     property->setId("property-1");
     property->rename("Primary Property");
     property->addAlias(makeAlias("Property Alias"));
+    property->setContractIds({"contract-1"});
     property->setCreatedAt("2026-01-01T08:00:00Z");
     property->setUpdatedAt("2026-01-02T08:00:00Z");
     return property;

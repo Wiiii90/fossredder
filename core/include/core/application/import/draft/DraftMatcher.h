@@ -178,13 +178,13 @@ std::string resolveContractId(const core::domain::catalog::WorkspaceCatalog& sta
  */
 bool contractIsFullyAllocatable(const core::domain::catalog::WorkspaceCatalog& state, const std::string& contractId);
 /**
- * @brief Returns the primary state with missing collections filled from a fallback state.
+ * @brief Merges two catalog states by keeping populated primary collections and filling gaps from a secondary state.
  * @param primary Primary workspace state to keep when populated.
- * @param fallback Fallback workspace state used to fill gaps.
- * @return A state that prefers primary collections and borrows missing ones from fallback.
+ * @param secondary Secondary workspace state used to fill gaps.
+ * @return A state that prefers primary collections and borrows missing ones from the secondary state.
  */
-core::domain::catalog::WorkspaceCatalog withFallbackState(core::domain::catalog::WorkspaceCatalog primary,
-                                                           const core::domain::catalog::WorkspaceCatalog& fallback);
+core::domain::catalog::WorkspaceCatalog mergeCatalogState(core::domain::catalog::WorkspaceCatalog primary,
+                                                           const core::domain::catalog::WorkspaceCatalog& secondary);
 /**
  * @brief Derives UI-agnostic matching state for the currently edited draft link.
  * @param state Current workspace state used for catalog lookups.

@@ -19,6 +19,11 @@ properties, contracts, statements, transactions, analyses, annuals, drafts, or
 logs, the tests should exercise that family consistently instead of checking a
 single narrow example.
 
+The current schema target is a single clean `v1` schema for fresh workspace
+databases. It includes the relation tables needed by statements, drafts, logs,
+and analysis adjustments so new databases start with the complete structure the
+application now expects.
+
 ## Scope
 
 Included in this matrix:
@@ -102,8 +107,11 @@ The persistence layer should not become a UI projection source.
 | DBS-003 | Initialize schema on first open | Integration | Fresh database file | Open `SqliteDb` | Core tables exist after construction |
 | DBS-004 | Reopen an existing database safely | Integration | Database file already initialized | Open `SqliteDb` again | Schema remains valid and the connection opens |
 | DBS-005 | Foreign keys are enabled | Integration | Fresh or existing database | Query `PRAGMA foreign_keys` | Returns `1` |
-| DBS-006 | User version is set after migration | Integration | Fresh database | Open `SqliteDb` | Schema version is at least the current migration version |
-| DBS-007 | Factory produces usable DB instances | Unit | Factory inputs | Create database through factory | Returned DB object is ready for use |
+| DBS-006 | User version is set after initialization | Integration | Fresh database | Open `SqliteDb` | Schema version is `1` |
+| DBS-007 | Statement relation table exists in a fresh database | Integration | Fresh database | Open `SqliteDb` | `statement_transactions` exists and is writable |
+| DBS-008 | Draft and log tables exist in a fresh database | Integration | Fresh database | Open `SqliteDb` | Draft and log relation tables exist and are writable |
+| DBS-009 | Analysis adjustment storage exists in a fresh database | Integration | Fresh database | Open `SqliteDb` | `analysis_adjustments` exists and is writable |
+| DBS-010 | Factory produces usable DB instances | Unit | Factory inputs | Create database through factory | Returned DB object is ready for use |
 
 ### 2. Transaction guard
 
@@ -255,7 +263,7 @@ The persistence layer should not become a UI projection source.
 |---|---|---|---|---|---|
 | WSS-001 | Save empty session state to fresh DB | Integration | Temporary database | Call `save(emptyState)` | Save succeeds and database remains valid |
 | WSS-002 | Load from empty DB returns empty session state | Integration | Fresh database | Call `load()` | All collections are empty |
-| WSS-003 | Full session round-trips | Integration | State with catalog, drafts, and logs | Call `save(state)` then `load()` | Loaded state matches the saved state |
+| WSS-003 | Full session round-trips | Integration | State with catalog, drafts, logs, and relation-backed statements | Call `save(state)` then `load()` | Loaded state matches the saved state, including statement transaction ids and analysis adjustments |
 | WSS-004 | Deleted actor is reported in deletion impact | Integration | Persisted state with actor, then remove actor from new snapshot | Call `save(newState)` | Removed actor id is reported |
 | WSS-005 | Deleted statement is reported in deletion impact | Integration | Persisted state with statement, then remove statement from new snapshot | Call `save(newState)` | Removed statement id is reported |
 | WSS-006 | Cascaded transaction deletion is suppressed when statement is removed | Integration | Persisted statement and transaction | Remove only the statement in new snapshot | Transaction is removed by cascade and not double-counted |
@@ -264,13 +272,14 @@ The persistence layer should not become a UI projection source.
 | WSS-009 | Contract removal keeps unrelated transactions stable | Integration | Transactions reference a contract | Remove contract from snapshot | Contract is removed and transactions survive with nullable FK behavior |
 | WSS-010 | Draft removal cleans nested draft rows | Integration | Statement draft contains transaction drafts | Remove statement draft from snapshot | Draft and dependent transactions are removed together |
 | WSS-011 | Save is transactional on failure | Integration | Inject a failing write path or schema violation | Call `save(state)` | No partial state is committed |
-| WSS-012 | Load after save preserves relation topology | Integration | State with relation tables populated | Save and reload | Relation ids, aliases, timestamps, and relation tables remain consistent |
+| WSS-012 | Load after save preserves relation topology | Integration | State with relation tables populated | Save and reload | Relation ids, aliases, timestamps, statement transaction links, and analysis adjustments remain consistent |
 
 ### Workspace store rules
 
 - Deletion planning must stay deterministic.
 - Statement deletions must not double-report transaction cascades.
 - Analysis deletions must clean annual references.
+- Statement transaction relations are synchronized from the saved catalog so the relation table stays consistent across round-trips.
 - Repository failures must not leave partial state behind.
 
 ### Recommended state-store tests
@@ -299,8 +308,3 @@ The persistence layer should not become a UI projection source.
 3. Keep relation-table round-trips explicit.
 4. Keep workspace save/load tests focused on deletion impact and topology.
 5. Extend the schema only when the actual repository contract needs it.
-
-## Cleanup Target for Old Tests
-
-Legacy persistence tests should be removed only after the new matrix covers the
-same behavior with clearer intent and stronger assertions.

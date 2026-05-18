@@ -5,6 +5,7 @@
 namespace core::constants::filters {
 
 inline constexpr std::string_view kDate = "date";
+inline constexpr std::string_view kDateField = "dateField";
 inline constexpr std::string_view kAmount = "amount";
 inline constexpr std::string_view kContractType = "contract.type";
 inline constexpr std::string_view kPropertyId = "propertyId";

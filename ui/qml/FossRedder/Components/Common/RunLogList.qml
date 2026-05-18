@@ -64,6 +64,7 @@ Item {
 
     ListView {
         id: runsList
+        objectName: "runLogList"
         anchors.fill: parent
         clip: true
         topMargin: root.theme.spacingSmall

@@ -19,6 +19,8 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var analysisWorkflow: root.appContext ? root.appContext.analysisWorkflow : null
+    readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
+    readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
     Accessible.ignored: root.appContext ? root.appContext.isDebugBuild : false
 
     readonly property var plotTypeOptions: [
@@ -72,10 +74,12 @@ Item {
     property bool includeCalcAdjustments: true
     property string exportStateJson: "{}"
     property string snapshotTransactionsJson: "{}"
+    property string activeResultType: "plot"
 
     property string savedName: ""
     property int savedMainTypeIndex: 0
     property int savedPlotSubtypeIndex: 0
+    property int savedDateFieldIndex: 0
     property int savedDateModeIndex: 1
     property string savedYearValue: ""
     property string savedDateFromValue: ""
@@ -90,7 +94,7 @@ Item {
     property string savedPendingAdjustmentsJson: "{}"
 
     function mapTypeToUi(typeValue) {
-        return typeValue === "tab" ? "table" : "plot"
+        return typeValue === "tab" || typeValue === "tabular" ? "table" : "plot"
     }
 
     function mapUiToType(uiValue) {
@@ -101,10 +105,111 @@ Item {
         root.filterWorkspaceIndex = root.filterWorkspaceIndex === 0 ? 1 : 0
     }
 
-    function parseJson(value, fallbackValue) {
+    function parseJson(value, defaultValue) {
         if (!value || String(value).length === 0)
-            return fallbackValue
-        try { return JSON.parse(value) } catch (e) { return fallbackValue }
+            return defaultValue
+        try { return JSON.parse(value) } catch (e) { return defaultValue }
+    }
+
+    function defaultAnalysisDateMode() {
+        if (root.settingsViewModel && root.settingsViewModel.analysisDefaultDateMode) {
+            const mode = String(root.settingsViewModel.analysisDefaultDateMode).toLowerCase()
+            return mode === "range" ? "range" : "year"
+        }
+        return "year"
+    }
+
+    function defaultAnalysisYear() {
+        if (root.settingsViewModel && root.settingsViewModel.analysisDefaultYear !== undefined) {
+            const configured = Number(root.settingsViewModel.analysisDefaultYear)
+            if (!isNaN(configured) && configured > 0)
+                return String(Math.floor(configured))
+        }
+        return String(new Date().getFullYear() - 1)
+    }
+
+    function isAllSelected(selectedIds, availableRows, idField) {
+        const selected = selectedIds || []
+        const rows = availableRows || []
+        if (rows.length === 0)
+            return true
+        if (selected.length !== rows.length)
+            return false
+        const seen = ({})
+        for (let i = 0; i < selected.length; ++i) {
+            const value = String(selected[i] || "")
+            if (value.length === 0 || seen[value])
+                continue
+            seen[value] = true
+        }
+        for (let i = 0; i < rows.length; ++i) {
+            const row = rows[i] || ({})
+            const value = String(idField ? row[idField] : (row.id !== undefined ? row.id : rows[i]) || "")
+            if (value.length === 0 || !seen[value])
+                return false
+        }
+        return true
+    }
+
+    function allPropertyIds() {
+        const out = []
+        const rows = root.propertyFilterRows || []
+        for (let i = 0; i < rows.length; ++i) {
+            const row = rows[i] || ({})
+            const id = String(row.id || "")
+            if (id.length > 0)
+                out.push(id)
+        }
+        return out
+    }
+
+    function allContractTypes() {
+        const out = []
+        const rows = root.contractTypeRows || []
+        for (let i = 0; i < rows.length; ++i) {
+            const value = String(rows[i] || "")
+            if (value.length > 0)
+                out.push(value)
+        }
+        return out
+    }
+
+    function pruneSelection(values, availableRows, idField) {
+        const available = ({})
+        const rows = availableRows || []
+        for (let i = 0; i < rows.length; ++i) {
+            const row = rows[i] || ({})
+            const value = String(idField ? row[idField] : rows[i] || "")
+            if (value.length > 0)
+                available[value] = true
+        }
+
+        const out = []
+        const selected = values || []
+        for (let i = 0; i < selected.length; ++i) {
+            const value = String(selected[i] || "")
+            if (value.length > 0 && available[value])
+                out.push(value)
+        }
+        return out
+    }
+
+    function effectiveSelectedPropertyIds() {
+        if ((root.propertyFilterRows || []).length === 0)
+            return []
+        const selected = root.selectedPropertyIds || []
+        if (root.isAllSelected(selected, root.propertyFilterRows, "id"))
+            return []
+        return selected.length === 0 ? ["unassigned"] : selected
+    }
+
+    function effectiveSelectedContractTypes() {
+        if ((root.contractTypeRows || []).length === 0)
+            return []
+        const selected = root.selectedContractTypes || []
+        if (root.isAllSelected(selected, root.contractTypeRows))
+            return []
+        return selected.length === 0 ? ["unassigned"] : selected
     }
 
     function normalizeExportStateJson(value) {
@@ -120,12 +225,15 @@ Item {
 
     function parseFilterSpecForUi(spec) {
         const state = {
-            dateMode: "range",
-            year: "",
+            dateField: "bookingDate",
+            dateMode: root.defaultAnalysisDateMode(),
+            year: root.defaultAnalysisYear(),
             dateFrom: "",
             dateTo: "",
             propertyIds: [],
+            propertyIdsNone: false,
             contractTypes: [],
+            contractTypesNone: false,
             allocatableMode: "all"
         }
         if (!spec || String(spec).length === 0)
@@ -138,10 +246,17 @@ Item {
                 state.dateFrom = clause.substring(6)
             else if (clause.indexOf("date<=") === 0)
                 state.dateTo = clause.substring(6)
-            else if (clause.indexOf("propertyId=") === 0)
-                state.propertyIds = clause.substring(11).split(",").filter(v => v.length > 0)
-            else if (clause.indexOf("contract.type=") === 0)
-                state.contractTypes = clause.substring(14).split(",").filter(v => v.length > 0)
+            else if (clause.indexOf("dateField=") === 0)
+                state.dateField = clause.substring(10) === "valuta" ? "valuta" : "bookingDate"
+            else if (clause.indexOf("propertyId=") === 0) {
+                const values = clause.substring(11).split(",").filter(v => v.length > 0)
+                state.propertyIdsNone = values.indexOf("unassigned") !== -1
+                state.propertyIds = values.filter(v => v !== "unassigned")
+            } else if (clause.indexOf("contract.type=") === 0) {
+                const values = clause.substring(14).split(",").filter(v => v.length > 0)
+                state.contractTypesNone = values.indexOf("unassigned") !== -1
+                state.contractTypes = values.filter(v => v !== "unassigned")
+            }
             else if (clause.indexOf("allocatable=") === 0)
                 state.allocatableMode = clause.substring(12)
         }
@@ -159,6 +274,10 @@ Item {
 
     function currentDateMode() {
         return dateFilter.dateModeIndex === 0 ? "year" : "range"
+    }
+
+    function currentDateField() {
+        return dateFilter.dateFieldIndex === 1 ? "valuta" : "bookingDate"
     }
 
     function currentMainType() {
@@ -179,6 +298,7 @@ Item {
         root.savedName = nameField.text ? String(nameField.text) : ""
         root.savedMainTypeIndex = mainTypeCombo.currentIndex
         root.savedPlotSubtypeIndex = plotSubtypeCombo.currentIndex
+        root.savedDateFieldIndex = dateFilter.dateFieldIndex
         root.savedDateModeIndex = dateFilter.dateModeIndex
         root.savedYearValue = dateFilter.yearValue
         root.savedDateFromValue = dateFilter.dateFromValue
@@ -200,6 +320,7 @@ Item {
         return (root.savedName !== String(nameField.text || ""))
                 || root.savedMainTypeIndex !== mainTypeCombo.currentIndex
                 || root.savedPlotSubtypeIndex !== plotSubtypeCombo.currentIndex
+                || root.savedDateFieldIndex !== dateFilter.dateFieldIndex
                 || root.savedDateModeIndex !== dateFilter.dateModeIndex
                 || root.savedYearValue !== String(dateFilter.yearValue || "")
                 || root.savedDateFromValue !== String(dateFilter.dateFromValue || "")
@@ -217,19 +338,26 @@ Item {
     function currentFilterSpec() {
         if (!root.analysisWorkflow)
             return ""
+        const allocatableMode = String(root.allocatableMode || "").toLowerCase()
         return root.analysisWorkflow.analysisFilterSpec(
+            root.currentDateField(),
             root.currentDateMode(),
             dateFilter.yearValue,
             dateFilter.dateFromValue,
             dateFilter.dateToValue,
-            root.selectedPropertyIds,
-            root.selectedContractTypes,
-            root.allocatableMode)
+            root.effectiveSelectedPropertyIds(),
+            root.effectiveSelectedContractTypes(),
+            allocatableMode === "allocatable" || allocatableMode === "non-allocatable" ? allocatableMode : "")
     }
 
     function ensureChoices() {
+        const _workspaceRevision = root.workspaceRevision
+        const propertyWasAll = root.isAllSelected(root.selectedPropertyIds, root.propertyFilterRows, "id")
+        const contractTypesWereAll = root.isAllSelected(root.selectedContractTypes, root.contractTypeRows)
         const propertyRows = root.session ? root.session.propertyRows() : []
         propertyFilterRows = propertyRows
+        root.selectedPropertyIds = propertyWasAll ? root.allPropertyIds()
+                                                  : root.pruneSelection(root.selectedPropertyIds, root.propertyFilterRows, "id")
 
         let types = []
         try { types = root.analysisWorkflow ? root.analysisWorkflow.contractTypes() : [] } catch (e) { types = [] }
@@ -243,11 +371,9 @@ Item {
             dedup.push(value)
         }
         contractTypeRows = dedup
+        root.selectedContractTypes = contractTypesWereAll ? root.allContractTypes()
+                                                          : root.pruneSelection(root.selectedContractTypes, root.contractTypeRows)
 
-        if (root.selectedPropertyIds.length === 0)
-            root.selectedPropertyIds = propertyRows.map(p => p.id)
-        if (root.selectedContractTypes.length === 0)
-            root.selectedContractTypes = dedup.slice()
     }
 
     function refreshPreview() {
@@ -267,6 +393,13 @@ Item {
     }
 
     function applySelectedCalc() {
+        root.refreshPendingAdjustmentsFromCalcSelection()
+        root.refreshAnalysisResult()
+    }
+
+    function refreshPendingAdjustmentsFromCalcSelection() {
+        if (!root.selectedAdjustmentTxIds || root.selectedAdjustmentTxIds.length === 0)
+            return
         let taxPercent = parseFloat(root.calcPercentText)
         if (isNaN(taxPercent))
             taxPercent = 0.0
@@ -276,20 +409,52 @@ Item {
         root.adjustmentAmountsById = root.parseJson(root.pendingAdjustmentsJson, {})
     }
 
+    function computeAnalysisResult(analysisId, filterSpec) {
+        if (!root.analysisWorkflow)
+            return ({})
+        if (root.analysisWorkflow.computeAnalysisPreview) {
+            return root.analysisWorkflow.computeAnalysisPreview(
+                        analysisId,
+                        filterSpec,
+                        root.includeCalcAdjustments,
+                        root.pendingAdjustmentsJson || "{}")
+        }
+        return root.analysisWorkflow.computeAnalysis(analysisId, filterSpec)
+    }
+
+    function refreshAnalysisResult() {
+        if (!root.session || !root.analysisWorkflow)
+            return
+        const selectedId = root.session.selectedAnalysisId ? String(root.session.selectedAnalysisId) : ""
+        if (selectedId.length === 0)
+            return
+        const result = root.computeAnalysisResult(selectedId, root.currentFilterSpec())
+        if (result && Object.keys(result).length > 0)
+            root.session.lastAnalysisResult = result
+    }
+
     function parseAnalysisIntoForm() {
         const selectedId = root.session ? (root.session.selectedAnalysisId || "") : ""
         const row = root.analysisRowById(selectedId)
 
         if (!row || !row.id) {
+            if (selectedId && String(selectedId).length > 0) {
+                root.refreshPreview()
+                return
+            }
             nameField.text = ""
             mainTypeCombo.currentIndex = 0
+            root.activeResultType = "plot"
             plotSubtypeCombo.currentIndex = 0
-            dateFilter.dateModeIndex = 1
-            dateFilter.yearValue = ""
+            dateFilter.suppressFilterChanged = true
+            dateFilter.dateFieldIndex = 0
+            dateFilter.dateModeIndex = root.defaultAnalysisDateMode() === "year" ? 0 : 1
+            dateFilter.yearValue = root.defaultAnalysisYear()
             dateFilter.dateFromValue = ""
             dateFilter.dateToValue = ""
-            root.selectedPropertyIds = propertyFilterRows.map(p => p.id)
-            root.selectedContractTypes = contractTypeRows.slice()
+            dateFilter.suppressFilterChanged = false
+            root.selectedPropertyIds = root.allPropertyIds()
+            root.selectedContractTypes = root.allContractTypes()
             root.allocatableMode = "all"
             root.filterEditMode = true
             root.filterWorkspaceIndex = 0
@@ -306,17 +471,25 @@ Item {
         nameField.text = row.name ? row.name : ""
         const uiType = root.mapTypeToUi(row.type ? row.type : "plot")
         mainTypeCombo.currentIndex = uiType === "table" ? 1 : 0
+        root.activeResultType = root.mapUiToType(uiType)
 
         const config = root.parseJson(row.config ? row.config : "{}", {})
         plotSubtypeCombo.currentIndex = config.plotType === "histogram" ? 1 : 0
 
         const parsedFilter = root.parseFilterSpecForUi(row.filter ? row.filter : "")
+        dateFilter.suppressFilterChanged = true
+        dateFilter.dateFieldIndex = parsedFilter.dateField === "valuta" ? 1 : 0
         dateFilter.dateModeIndex = parsedFilter.dateMode === "year" ? 0 : 1
         dateFilter.yearValue = parsedFilter.year
         dateFilter.dateFromValue = parsedFilter.dateFrom
         dateFilter.dateToValue = parsedFilter.dateTo
-        root.selectedPropertyIds = parsedFilter.propertyIds.length > 0 ? parsedFilter.propertyIds : propertyFilterRows.map(p => p.id)
-        root.selectedContractTypes = parsedFilter.contractTypes.length > 0 ? parsedFilter.contractTypes : contractTypeRows.slice()
+        dateFilter.suppressFilterChanged = false
+        root.selectedPropertyIds = parsedFilter.propertyIdsNone
+                ? []
+                : (parsedFilter.propertyIds.length > 0 ? parsedFilter.propertyIds : root.allPropertyIds())
+        root.selectedContractTypes = parsedFilter.contractTypesNone
+                ? []
+                : (parsedFilter.contractTypes.length > 0 ? parsedFilter.contractTypes : root.allContractTypes())
         root.allocatableMode = parsedFilter.allocatableMode
 
         root.pendingAdjustmentsJson = row && row.adjustments ? row.adjustments : "{}"
@@ -328,11 +501,7 @@ Item {
         root.syncExportFormatCombo()
 
         root.filterEditMode = false
-        if (root.analysisWorkflow) {
-            const result = root.analysisWorkflow.computeAnalysis(row.id, root.currentFilterSpec())
-            if (result && Object.keys(result).length > 0)
-                root.session.lastAnalysisResult = result
-        }
+        root.refreshAnalysisResult()
         root.captureSavedAnalysisState()
         root.refreshPreview()
     }
@@ -341,7 +510,10 @@ Item {
         if (!root.analysisWorkflow || !root.session)
             return
 
+        root.refreshPendingAdjustmentsFromCalcSelection()
+
         const strategyType = root.mapUiToType(root.currentMainType())
+        root.activeResultType = strategyType
         const selectedPlotType = root.plotTypeOptions[Math.max(0, plotSubtypeCombo.currentIndex)].value
         const configJson = root.analysisWorkflow.analysisConfigJson(strategyType,
                                                                       selectedPlotType,
@@ -359,9 +531,10 @@ Item {
                                                                  configJson,
                                                                  filterSpec,
                                                                  selectedExportFormat,
-                                                                 root.includeCalcAdjustments,
-                                                                 root.normalizeExportStateJson(root.exportStateJson),
-                                                                 root.snapshotTransactionsJson)
+                                                                  root.includeCalcAdjustments,
+                                                                  root.normalizeExportStateJson(root.exportStateJson),
+                                                                  root.snapshotTransactionsJson,
+                                                                  root.pendingAdjustmentsJson)
             if (!newId || newId.length === 0)
                 return
             root.session.selectedAnalysisId = newId
@@ -375,16 +548,17 @@ Item {
                                                    configJson,
                                                    filterSpec,
                                                    selectedExportFormat,
-                                                   root.includeCalcAdjustments,
-                                                   root.normalizeExportStateJson(root.exportStateJson),
-                                                   root.snapshotTransactionsJson)
+                                                    root.includeCalcAdjustments,
+                                                    root.normalizeExportStateJson(root.exportStateJson),
+                                                    root.snapshotTransactionsJson,
+                                                    root.pendingAdjustmentsJson)
         }
 
         const currentId = root.session.selectedAnalysisId ? String(root.session.selectedAnalysisId) : ""
         if (currentId.length > 0 && root.pendingAdjustmentsJson && root.session.analyses)
             root.session.analyses.setAdjustmentsById(currentId, root.pendingAdjustmentsJson)
 
-        const result = root.analysisWorkflow.computeAnalysis(root.session.selectedAnalysisId, filterSpec)
+        const result = root.computeAnalysisResult(root.session.selectedAnalysisId, filterSpec)
         if (result && Object.keys(result).length > 0)
             root.session.lastAnalysisResult = result
 
@@ -414,7 +588,8 @@ Item {
     function currentSelectedType() {
         const selectedId = root.session.selectedAnalysisId ? String(root.session.selectedAnalysisId) : ""
         const row = root.analysisRowById(selectedId)
-        return row && row.type ? row.type : "plot"
+        const type = row && row.type ? row.type : root.activeResultType
+        return type === "tabular" ? "tab" : type
     }
 
     function analysisRowById(id) {
@@ -431,6 +606,7 @@ Item {
     }
 
     function currentAnalysisRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.analysisRows() : []
     }
 
@@ -483,22 +659,22 @@ Item {
     }
 
     function clearFilters() {
-        dateFilter.dateModeIndex = 1
-        dateFilter.yearValue = ""
+        dateFilter.suppressFilterChanged = true
+        dateFilter.dateFieldIndex = 0
+        dateFilter.dateModeIndex = 0
+        dateFilter.yearValue = root.defaultAnalysisYear()
         dateFilter.dateFromValue = ""
         dateFilter.dateToValue = ""
-        root.selectedPropertyIds = propertyFilterRows.map(p => p.id)
-        root.selectedContractTypes = contractTypeRows.slice()
+        dateFilter.suppressFilterChanged = false
+        root.selectedPropertyIds = root.allPropertyIds()
+        root.selectedContractTypes = root.allContractTypes()
         root.allocatableMode = "all"
         root.resetAdjustments()
         root.refreshPreview()
     }
 
     function hasCustomExportState() {
-        const state = root.parseJson(root.normalizeExportStateJson(root.exportStateJson), {})
-        const hasPieFilter = state.pieLegendFilter && state.pieLegendFilter.length > 0
-        const hasHistogramSplit = state.histogramSplitByProperty === true
-        return !!hasPieFilter || !!hasHistogramSplit
+        return root.normalizeExportStateJson(root.exportStateJson) !== "{}"
     }
 
     function resetPreviewExportState() {
@@ -651,7 +827,10 @@ Item {
                                 Layout.fillWidth: false
                                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                                 checked: root.includeCalcAdjustments
-                                onClicked: root.includeCalcAdjustments = this.checked
+                                onToggled: {
+                                    root.includeCalcAdjustments = checked
+                                    root.refreshAnalysisResult()
+                                }
                             }
                             Label {
                                 text: qsTr("Include Calc Adjustments")
@@ -737,7 +916,7 @@ Item {
                                     propertyRows: root.propertyFilterRows
                                     selectedIds: root.selectedPropertyIds
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: propertyFilterPanel.implicitHeight
+                                    Layout.preferredHeight: root.theme.viewSelectionPanelPreferredHeight
                                     onSelectionChanged: (ids) => { root.selectedPropertyIds = ids; previewDebounce.restart() }
                                 }
 
@@ -747,7 +926,7 @@ Item {
                                     contractTypes: root.contractTypeRows
                                     selectedTypes: root.selectedContractTypes
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: contractTypeFilterPanel.implicitHeight
+                                    Layout.preferredHeight: root.theme.viewSelectionPanelPreferredHeight
                                     onSelectionChanged: (selected) => { root.selectedContractTypes = selected; previewDebounce.restart() }
                                 }
 
@@ -860,11 +1039,19 @@ Item {
             onExportStateChanged: (stateJson) => root.exportStateJson = root.normalizeExportStateJson(stateJson)
         }
     }
-    Component { id: tableComp; Views.AnalysisTableView { appContext: root.appContext; theme: root.theme; adjustmentAmountsById: root.adjustmentAmountsById } }
+    Component {
+        id: tableComp
+        Views.AnalysisTableView {
+            appContext: root.appContext
+            theme: root.theme
+            adjustmentAmountsById: root.includeCalcAdjustments ? root.adjustmentAmountsById : ({})
+        }
+    }
 
     Connections {
         target: root.session
         function onSelectedAnalysisIdChanged() { root.parseAnalysisIntoForm() }
+        function onDataRevisionChanged() { root.refreshFromSelection() }
     }
 
     Component.onCompleted: {

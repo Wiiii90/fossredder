@@ -18,7 +18,7 @@ TestCase {
     width: 960
     height: 640
 
-    property var settingsController: QtObject {
+    property var settingsViewModel: QtObject {
         property string importDefaultPath: ""
         property string importPoppler: ""
         property string importOpenCv: ""
@@ -35,7 +35,7 @@ TestCase {
     }
 
     property var appContext: QtObject {
-        property var settingsController: testCase.settingsController
+        property var settingsViewModel: testCase.settingsViewModel
         property var actions: testCase.actions
     }
 
@@ -68,7 +68,7 @@ TestCase {
     }
 
     function init() {
-        settingsController.importDefaultPath = ""
+        settingsViewModel.importDefaultPath = ""
         actions.browseCalls = 0
     }
 
@@ -78,7 +78,7 @@ TestCase {
 
         pathField.text = "test:///import/default.pdf"
 
-        compare(settingsController.importDefaultPath, "test:///import/default.pdf")
+        compare(settingsViewModel.importDefaultPath, "test:///import/default.pdf")
     }
 
     function test_SET_I_002_browseButtonCallsAction() {
@@ -95,7 +95,7 @@ TestCase {
 
         actions.importFileSelected("test:///import/from-action.pdf")
 
-        compare(settingsController.importDefaultPath, "test:///import/from-action.pdf")
+        compare(settingsViewModel.importDefaultPath, "test:///import/from-action.pdf")
     }
 
 }

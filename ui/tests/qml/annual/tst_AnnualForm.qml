@@ -24,6 +24,7 @@ TestCase {
     property var session: QtObject {
         property var selectedAnnual: null
         property string selectedAnnualId: ""
+        property int dataRevision: 0
         property var annuals: []
         property var analysesData: []
 
@@ -77,7 +78,7 @@ TestCase {
         }
 
         function annual(id) {
-            return testCase.annualById[String(id || "")] || ({ id: "", name: "", year: 0, transactionIds: [], assignedAnalysisIds: [] })
+            return testCase.annualById[String(id || "")] || ({ id: "", name: "", year: 0, transactionIds: [], analysisIds: [] })
         }
 
         function saveAnnual(id, name, year, assignedAnalysisIds) {
@@ -132,11 +133,22 @@ TestCase {
         }
     }
 
+    property var workspaceFacade: QtObject {
+        function annualRows() { return session.annualRows() }
+        function analysisRows() { return session.analysisRows() }
+        function transaction(id) { return testCase.transactionController.transaction(id) }
+        function transactions() { return testCase.transactionController.transactions() }
+        function annual(id) { return testCase.annualController.annual(id) }
+        function saveAnnual(id, name, year, assignedAnalysisIds) {
+            return testCase.annualController.saveAnnual(id, name, year, assignedAnalysisIds)
+        }
+        function deleteAnnual(id) { testCase.annualController.deleteAnnual(id) }
+    }
+
     property var appContext: QtObject {
         property var session: testCase.session
-        property var annualController: testCase.annualController
-        property var analysisController: testCase.analysisController
-        property var transactionController: testCase.transactionController
+        property var workspaceFacade: testCase.workspaceFacade
+        property var analysisWorkflow: testCase.analysisController
         property bool isDebugBuild: false
     }
 
@@ -226,7 +238,7 @@ TestCase {
             name: "Loaded",
             year: 2027,
             transactionIds: ["tx-1"],
-            assignedAnalysisIds: ["analysis-1"]
+            analysisIds: ["analysis-1"]
         }
         session.analysesData = [
             { id: "analysis-1", name: "A1", type: "tab", config: "{}", filter: "", exportFormat: "xlsx", includeCalcAdjustments: true, exportState: "{}", snapshotTransactions: "[]" }
@@ -239,8 +251,8 @@ TestCase {
         compare(form.isEdit, true)
         compare(nameField.text, "Loaded")
         compare(yearField.text, "2027")
-        compare(form.assignedAnalysisIds.length, 1)
-        compare(form.assignedAnalysisIds[0], "analysis-1")
+        compare(form.analysisIds.length, 1)
+        compare(form.analysisIds[0], "analysis-1")
     }
 
     function test_updateModeSavesCurrentAnnualId() {
@@ -249,7 +261,7 @@ TestCase {
             name: "Old",
             year: 2025,
             transactionIds: [],
-            assignedAnalysisIds: []
+            analysisIds: []
         }
 
         var form = createForm({ id: "annual-2" })
@@ -285,12 +297,12 @@ TestCase {
         addAnalysisCombo.currentIndex = 0
         addAnalysisButton.clicked()
 
-        compare(form.assignedAnalysisIds.length, 1)
-        compare(form.assignedAnalysisIds[0], "analysis-1")
+        compare(form.analysisIds.length, 1)
+        compare(form.analysisIds[0], "analysis-1")
 
         var removeButton = findRequired(form, "annualRemoveAnalysisButton")
         removeButton.clicked()
-        compare(form.assignedAnalysisIds.length, 0)
+        compare(form.analysisIds.length, 0)
     }
 
     function test_analysisExportFormatUpdateCallsController() {
@@ -337,7 +349,7 @@ TestCase {
             name: "DeleteMe",
             year: 2024,
             transactionIds: [],
-            assignedAnalysisIds: []
+            analysisIds: []
         }
 
         var form = createForm({ id: "annual-3" })

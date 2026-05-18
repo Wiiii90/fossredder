@@ -72,8 +72,8 @@ Item {
                     if (!name) return
                     let id = null
                     try {
-                        if (root.workspaceFacade && root.session && root.model === root.session.actors) id = root.workspaceFacade.addActor(name, "", "")
-                        else if (root.workspaceFacade && root.session && root.model === root.session.properties) id = root.workspaceFacade.addProperty(name, "", "")
+                        if (root.workspaceFacade && root.session && root.model === root.session.actors) id = root.workspaceFacade.addActor(name)
+                        else if (root.workspaceFacade && root.session && root.model === root.session.properties) id = root.workspaceFacade.addProperty(name)
                         else if (root.workspaceFacade && root.session && root.model === root.session.contracts) id = root.workspaceFacade.addContract(name, "", "", [], [])
                     } catch(e) { id = null }
                     if (id && id.length > 0) {

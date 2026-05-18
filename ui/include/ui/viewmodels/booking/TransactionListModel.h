@@ -30,6 +30,7 @@ public:
         AmountRole,
         StatusRole,
         ActorIdRole,
+        ContractIdRole,
         MetadataRole,
         TypeRole,
         AllocatableRole,

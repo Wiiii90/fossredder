@@ -18,7 +18,7 @@ TestCase {
     width: 960
     height: 640
 
-    property var settingsController: QtObject {
+    property var settingsViewModel: QtObject {
         property string exportDefaultDirectory: ""
         property int exportArchiveFormat: 0
         property bool exportIncludeFormulas: true
@@ -31,7 +31,7 @@ TestCase {
     }
 
     property var appContext: QtObject {
-        property var settingsController: testCase.settingsController
+        property var settingsViewModel: testCase.settingsViewModel
         property var actions: testCase.actions
     }
 
@@ -64,9 +64,9 @@ TestCase {
     }
 
     function init() {
-        settingsController.exportDefaultDirectory = ""
-        settingsController.exportArchiveFormat = 0
-        settingsController.exportIncludeFormulas = true
+        settingsViewModel.exportDefaultDirectory = ""
+        settingsViewModel.exportArchiveFormat = 0
+        settingsViewModel.exportIncludeFormulas = true
         actions.browseCalls = 0
     }
 
@@ -76,7 +76,7 @@ TestCase {
 
         pathField.text = "test:///export/out"
 
-        compare(settingsController.exportDefaultDirectory, "test:///export/out")
+        compare(settingsViewModel.exportDefaultDirectory, "test:///export/out")
     }
 
     function test_SET_E_002_archiveFormatSelectionUpdatesSettings() {
@@ -86,7 +86,7 @@ TestCase {
         archiveCombo.currentIndex = 1
         archiveCombo.activated(1)
 
-        compare(settingsController.exportArchiveFormat, 1)
+        compare(settingsViewModel.exportArchiveFormat, 1)
     }
 
     function test_SET_E_003_includeFormulasToggleUpdatesSettings() {
@@ -96,7 +96,7 @@ TestCase {
         formulasCheck.checked = false
         formulasCheck.toggled()
 
-        compare(settingsController.exportIncludeFormulas, false)
+        compare(settingsViewModel.exportIncludeFormulas, false)
     }
 
     function test_SET_E_004_browseButtonAndSelectedDirectorySignal() {
@@ -107,7 +107,7 @@ TestCase {
         compare(actions.browseCalls, 1)
 
         actions.exportDirectorySelected("test:///export/from-action")
-        compare(settingsController.exportDefaultDirectory, "test:///export/from-action")
+        compare(settingsViewModel.exportDefaultDirectory, "test:///export/from-action")
     }
 
 }

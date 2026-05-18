@@ -21,6 +21,7 @@ TestCase {
     property var session: QtObject {
         property string selectedStatementId: ""
         property string selectedTransactionId: ""
+        property int dataRevision: 0
         property var selectedStatement: null
         property var statements: []
         property var actors: []
@@ -64,16 +65,27 @@ TestCase {
 
     property var transactionController: QtObject {
         function addTransactions(statementId, drafts) { return [] }
-        function addTransaction(name, bookingDate, amount, description, statementId, status, actorId, allocatable, propertyIds) { return "tx-new" }
+        function addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) { return "tx-new" }
         function transaction(id) { return ({}) }
-        function updateTransaction(id, name, bookingDate, amount, description, statementId, status, actorId, allocatable, propertyIds) {}
+        function updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {}
         function deleteTransaction(id) {}
     }
 
     property var appContext: QtObject {
         property var session: testCase.session
-        property var statementController: testCase.statementController
-        property var transactionController: testCase.transactionController
+        property var workspaceFacade: QtObject {
+            function addStatement(name) { return testCase.statementController.addStatement(name) }
+            function updateStatement(id, name) { testCase.statementController.updateStatement(id, name) }
+            function deleteStatement(id) { testCase.statementController.deleteStatement(id) }
+            function addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+                return testCase.transactionController.addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
+            }
+            function transaction(id) { return testCase.transactionController.transaction(id) }
+            function updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+                testCase.transactionController.updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
+            }
+            function deleteTransaction(id) { testCase.transactionController.deleteTransaction(id) }
+        }
     }
 
     property var theme: QtObject {

@@ -20,6 +20,7 @@ TestCase {
 
     property var session: QtObject {
         property string selectedAnalysisId: ""
+        property int dataRevision: 0
         property var analysesData: []
         property var propertiesData: []
         property var lastAnalysisResult: ({})
@@ -40,6 +41,7 @@ TestCase {
         property var lastCreate: ({})
         property var lastUpdate: ({})
         property string lastDeleteId: ""
+        property string lastFilterSpec: ""
         property var availableContractTypes: ["lease", "service"]
 
         function reset() {
@@ -51,6 +53,7 @@ TestCase {
             lastCreate = ({})
             lastUpdate = ({})
             lastDeleteId = ""
+            lastFilterSpec = ""
         }
 
         function contractTypes() {
@@ -59,23 +62,45 @@ TestCase {
 
         function analysisConfigJson(type, plotType, plotMeasure, propertyIds, contractTypes, taxPercent) {
             return JSON.stringify({
-                type: type,
                 plotType: plotType,
                 plotMeasure: plotMeasure,
-                propertyIds: propertyIds,
-                contractTypes: contractTypes,
-                taxPercent: taxPercent
+                properties: propertyIds,
+                contractTypes: contractTypes
             })
         }
 
-        function analysisFilterSpec(dateMode, year, dateFrom, dateTo, propertyIds, contractTypes, allocatableMode) {
-            if (dateMode === "year")
-                return "date>=" + year + "-01-01;date<=" + year + "-12-31;allocatable=" + allocatableMode
-            return "date>=" + dateFrom + ";date<=" + dateTo + ";allocatable=" + allocatableMode
+        function analysisFilterSpec(dateField, dateMode, year, dateFrom, dateTo, propertyIds, contractTypes, allocatableMode) {
+            var parts = []
+            if (dateField === "valuta")
+                parts.push("dateField=valuta")
+            if (dateMode === "year") {
+                parts.push("date>=" + year + "-01-01")
+                parts.push("date<=" + year + "-12-31")
+            } else {
+                if (dateFrom && String(dateFrom).length > 0)
+                    parts.push("date>=" + dateFrom)
+                if (dateTo && String(dateTo).length > 0)
+                    parts.push("date<=" + dateTo)
+            }
+            if (propertyIds && propertyIds.length > 0)
+                parts.push("propertyId=" + propertyIds.join(","))
+            if (contractTypes && contractTypes.length > 0)
+                parts.push("contract.type=" + contractTypes.join(","))
+            if (allocatableMode && String(allocatableMode).length > 0 && String(allocatableMode) !== "all")
+                parts.push("allocatable=" + allocatableMode)
+            lastFilterSpec = parts.join(";")
+            return lastFilterSpec
         }
 
         function analysisAdjustmentsJson(transactions, selectedTransactionIds, taxPercent) {
-            return JSON.stringify({ selected: selectedTransactionIds, percent: taxPercent })
+            var out = ({})
+            for (var i = 0; i < transactions.length; ++i) {
+                var tx = transactions[i]
+                if (!tx || selectedTransactionIds.indexOf(tx.id) === -1)
+                    continue
+                out[tx.id] = Number(tx.amount) * (1.0 + taxPercent / 100.0)
+            }
+            return JSON.stringify(out)
         }
 
         function previewTransactions(filterSpec) {
@@ -91,7 +116,7 @@ TestCase {
             return { result: "ok", id: analysisId, filter: filterSpec }
         }
 
-        function createAnalysis(name, type, configJson, filterSpec, exportFormat, includeCalcAdjustments, exportStateJson, snapshotTransactionsJson) {
+        function createAnalysis(name, type, configJson, filterSpec, exportFormat, includeCalcAdjustments, exportStateJson, snapshotTransactionsJson, adjustmentsJson) {
             createCalls += 1
             lastCreate = {
                 name: name,
@@ -101,12 +126,13 @@ TestCase {
                 exportFormat: exportFormat,
                 includeCalcAdjustments: includeCalcAdjustments,
                 exportStateJson: exportStateJson,
-                snapshotTransactionsJson: snapshotTransactionsJson
+                snapshotTransactionsJson: snapshotTransactionsJson,
+                adjustmentsJson: adjustmentsJson
             }
             return "analysis-new"
         }
 
-        function updateAnalysis(id, name, type, configJson, filterSpec, exportFormat, includeCalcAdjustments, exportStateJson, snapshotTransactionsJson) {
+        function updateAnalysis(id, name, type, configJson, filterSpec, exportFormat, includeCalcAdjustments, exportStateJson, snapshotTransactionsJson, adjustmentsJson) {
             updateCalls += 1
             lastUpdate = {
                 id: id,
@@ -117,7 +143,8 @@ TestCase {
                 exportFormat: exportFormat,
                 includeCalcAdjustments: includeCalcAdjustments,
                 exportStateJson: exportStateJson,
-                snapshotTransactionsJson: snapshotTransactionsJson
+                snapshotTransactionsJson: snapshotTransactionsJson,
+                adjustmentsJson: adjustmentsJson
             }
         }
 
@@ -129,7 +156,7 @@ TestCase {
 
     property var appContext: QtObject {
         property var session: testCase.session
-        property var analysisController: testCase.analysisController
+        property var analysisWorkflow: testCase.analysisController
         property bool isDebugBuild: false
     }
 
@@ -197,7 +224,29 @@ TestCase {
 
         compare(analysisController.createCalls, 1)
         compare(analysisController.lastCreate.name, "AN 1")
+        var config = JSON.parse(analysisController.lastCreate.configJson)
+        compare(config.plotType, "pie")
+        compare(config.plotMeasure, "totalAmount")
+        compare(config.properties.length, 2)
+        compare(config.properties[0], "property-1")
+        compare(config.properties[1], "property-2")
+        compare(config.contractTypes.length, 2)
+        compare(config.contractTypes[0], "lease")
+        compare(config.contractTypes[1], "service")
         compare(session.selectedAnalysisId, "analysis-new")
+    }
+
+    function test_newAnalysisDefaultsToPreviousYearAndUnrestrictedSelection() {
+        var form = createForm()
+        var dateMode = findRequired(form, "analysisDateModeComboBox")
+        var yearField = findRequired(form, "analysisYearField")
+        var expectedYear = String(new Date().getFullYear() - 1)
+
+        tryCompare(analysisController, "previewCalls", 1)
+        compare(dateMode.currentIndex, 0)
+        compare(yearField.text, expectedYear)
+        compare(analysisController.lastFilterSpec,
+                "date>=" + expectedYear + "-01-01;date<=" + expectedYear + "-12-31")
     }
 
     function test_readModeLoadsSelectedAnalysisState() {
@@ -316,6 +365,25 @@ TestCase {
         calcPercentField.text = "19"
         applyCalcButton.clicked()
 
-        verify(form.pendingAdjustmentsJson.indexOf("selected") !== -1)
+        verify(form.pendingAdjustmentsJson.indexOf("tx-1") !== -1)
+    }
+
+    function test_createPassesCurrentCalcAdjustments() {
+        var form = createForm()
+        var nameField = findRequired(form, "analysisNameField")
+        var txSelectionCheck = findRequired(form, "analysisTransactionSelectionCheckBox")
+        var calcPercentField = findRequired(form, "analysisCalcPercentField")
+        var createButton = findRequired(form, "analysisCreateButton")
+
+        nameField.text = "Adjusted"
+        txSelectionCheck.checked = true
+        txSelectionCheck.clicked()
+        calcPercentField.text = "19"
+        createButton.clicked()
+
+        compare(analysisController.createCalls, 1)
+        var adjustments = JSON.parse(analysisController.lastCreate.adjustmentsJson)
+        verify(adjustments["tx-1"] !== undefined)
+        compare(adjustments["tx-1"], 11.9)
     }
 }

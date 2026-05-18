@@ -8,8 +8,10 @@
 #include <exception>
 
 #include "core/application/workspace/WorkspaceFacade.h"
-#include "core/domain/values/Alias.h"
 #include "core/ports/workspace/WorkspaceCommands.h"
+#include "ui/adapters/core/EntityPayloadMapper.h"
+#include "ui/shared/payload/PayloadKeys.h"
+#include "ui/shared/payload/PayloadMapper.h"
 #include "ui/state/mutation/SessionMutationState.h"
 #include "ui/adapters/core/WorkspaceRowProjector.h"
 #include "ui/shared/util/StringConversions.h"
@@ -36,23 +38,27 @@ std::vector<std::string> stdStrings(const QStringList& values)
 
 core::ports::workspace::ActorCommand makeActorCommand(const QString& id,
                                                       const QString& name,
-                                                      const QStringList& aliases)
+                                                      const QStringList& aliases,
+                                                      const QStringList& contractIds)
 {
     core::ports::workspace::ActorCommand command;
     command.id = strings::toStdString(id);
     command.name = strings::toStdString(name);
     command.aliases = aliasSnapshots(aliases);
+    command.contractIds = stdStrings(contractIds);
     return command;
 }
 
 core::ports::workspace::PropertyCommand makePropertyCommand(const QString& id,
                                                             const QString& name,
-                                                            const QStringList& aliases)
+                                                            const QStringList& aliases,
+                                                            const QStringList& contractIds)
 {
     core::ports::workspace::PropertyCommand command;
     command.id = strings::toStdString(id);
     command.name = strings::toStdString(name);
     command.aliases = aliasSnapshots(aliases);
+    command.contractIds = stdStrings(contractIds);
     return command;
 }
 
@@ -80,6 +86,7 @@ core::ports::workspace::TransactionCommand makeTransactionCommand(const QString&
                                                                   const QString& statementId,
                                                                   int status,
                                                                   const QString& actorId,
+                                                                  const QString& contractId,
                                                                   bool allocatable,
                                                                   const QStringList& propertyIds)
 {
@@ -91,6 +98,7 @@ core::ports::workspace::TransactionCommand makeTransactionCommand(const QString&
     command.statementId = strings::toStdString(statementId);
     command.status = static_cast<core::domain::Transaction::Status>(status);
     command.actorId = strings::toStdString(actorId);
+    command.contractId = strings::toStdString(contractId);
     command.allocatable = allocatable;
     command.propertyIds = stdStrings(propertyIds);
     return command;
@@ -158,17 +166,20 @@ WorkspaceFacade::WorkspaceFacade(core::application::WorkspaceFacade* coreFacade,
 SessionStore* WorkspaceFacade::session() noexcept { return session_.get(); }
 SessionSelection* WorkspaceFacade::selection() noexcept { return selection_.get(); }
 
+void WorkspaceFacade::bumpDataRevision()
+{
+    ++dataRevision_;
+    emit dataRevisionChanged();
+}
+
 void WorkspaceFacade::setCoreFacade(core::application::WorkspaceFacade* coreFacade) noexcept
 {
     coreFacade_ = coreFacade;
     if (!coreFacade_) return;
-    loadFromState(coreFacade_->catalogState());
+    loadFromState(coreFacade_->state());
     coreFacade_->setSnapshotChangedCallback([this](const core::ports::workspace::WorkspaceSnapshot& snapshot) {
-        core::domain::catalog::WorkspaceCatalog state;
-        // Rebuild via the lightweight session path instead of duplicating projection logic.
-        // The core snapshot is currently read through the application facade where needed.
         (void)snapshot;
-        loadFromState(coreFacade_->catalogState());
+        loadFromState(coreFacade_->state());
     });
 }
 
@@ -181,6 +192,12 @@ void WorkspaceFacade::loadFromState(const core::domain::catalog::WorkspaceCatalo
 {
     session_->loadFromState(state);
     selection_->loadFromState();
+    bumpDataRevision();
+}
+
+void WorkspaceFacade::loadFromState(const core::application::workspace::WorkspaceSessionState& state)
+{
+    loadFromState(state.catalog);
 }
 
 QString WorkspaceFacade::currentPath() const
@@ -331,6 +348,37 @@ QVariantList WorkspaceFacade::statementTransactionRows(const QString& statementI
     return buildStatementTransactionRows(*session_, statementId);
 }
 
+QVariantMap WorkspaceFacade::transaction(const QString& id) const
+{
+    QVariantMap out;
+    if (!session_ || id.isEmpty()) return out;
+
+    const auto& model = session_->models().transactions();
+    const int row = model.findRowById(id);
+    if (row < 0) return out;
+    return model.get(row);
+}
+
+QVariantMap WorkspaceFacade::annual(const QString& id) const
+{
+    QVariantMap out;
+    if (!session_ || id.isEmpty()) return out;
+
+    const auto& rows = session_->models().annuals().annuals();
+    for (const auto& annual : rows) {
+        if (!annual) continue;
+        if (QString::fromStdString(annual->id()) != id) continue;
+
+        out = payload::entity::toPayload(*annual);
+        out.insert(QStringLiteral("display"),
+                   annual->name().empty() ? QString::number(annual->year())
+                                          : QString::fromStdString(annual->name()));
+        return out;
+    }
+
+    return out;
+}
+
 QVariantList WorkspaceFacade::normalizeStrings(const QVariantList& values) const
 {
     return SessionMutationState::normalizeStrings(values);
@@ -394,9 +442,9 @@ QString WorkspaceFacade::wrappedIdAt(const QVariantList& rows, int index) const
 QString WorkspaceFacade::navigatedId(const QVariantList& rows,
                                  const QString& currentId,
                                  int delta,
-                                 int fallbackIndex) const
+                                 int defaultIndex) const
 {
-    return ui::navigatedId(rows, currentId, delta, fallbackIndex);
+    return ui::navigatedId(rows, currentId, delta, defaultIndex);
 }
 
 QVariantList WorkspaceFacade::displayRowsWithEmpty(const QVariantList& rows,
@@ -515,10 +563,10 @@ QVariantMap WorkspaceFacade::navigateSelectionState(const QVariantList& rows,
                                                 int currentIndex,
                                                 const QString& selectedId,
                                                 int delta,
-                                                int fallbackIndex,
+                                                int defaultIndex,
                                                 const QString& idKey) const
 {
-    return ui::navigateSelectionState(rows, currentIndex, selectedId, delta, fallbackIndex, idKey);
+    return ui::navigateSelectionState(rows, currentIndex, selectedId, delta, defaultIndex, idKey);
 }
 
 QVariantMap WorkspaceFacade::deleteReselectionState(const QVariantList& rows,
@@ -532,10 +580,10 @@ QVariantMap WorkspaceFacade::deleteReselectionState(const QVariantList& rows,
 
 QString WorkspaceFacade::deleteNextSelectionId(const QVariantList& rows,
                                            const QString& removedId,
-                                           int fallbackIndex,
+                                           int defaultIndex,
                                            const QString& idKey) const
 {
-    return ui::deleteNextSelectionId(rows, removedId, fallbackIndex, idKey);
+    return ui::deleteNextSelectionId(rows, removedId, defaultIndex, idKey);
 }
 
 QVariantMap WorkspaceFacade::basicFormState(const QString& name,
@@ -554,23 +602,23 @@ QVariantMap WorkspaceFacade::contractFormState(const QString& name,
     return ui::contractFormState(name, type, actorIds, propertyIds, aliases);
 }
 
-QString WorkspaceFacade::addActor(const QString& name, const QStringList& aliases)
+QString WorkspaceFacade::addActor(const QString& name, const QStringList& aliases, const QStringList& contractIds)
 {
     if (!coreFacade_) return {};
-    return QString::fromStdString(coreFacade_->addActor(makeActorCommand({}, name, aliases)));
+    return QString::fromStdString(coreFacade_->addActor(makeActorCommand({}, name, aliases, contractIds)));
 }
 
-void WorkspaceFacade::updateActor(const QString& id, const QString& name, const QStringList& aliases)
+void WorkspaceFacade::updateActor(const QString& id, const QString& name, const QStringList& aliases, const QStringList& contractIds)
 {
     if (!coreFacade_) return;
-    coreFacade_->updateActor(makeActorCommand(id, name, aliases));
+    coreFacade_->updateActor(makeActorCommand(id, name, aliases, contractIds));
 }
 
-QString WorkspaceFacade::saveActor(const QString& id, const QString& name, const QStringList& aliases)
+QString WorkspaceFacade::saveActor(const QString& id, const QString& name, const QStringList& aliases, const QStringList& contractIds)
 {
     if (!coreFacade_) return {};
-    if (id.isEmpty()) return addActor(name, aliases);
-    updateActor(id, name, aliases);
+    if (id.isEmpty()) return addActor(name, aliases, contractIds);
+    updateActor(id, name, aliases, contractIds);
     return id;
 }
 
@@ -579,23 +627,23 @@ void WorkspaceFacade::deleteActor(const QString& id)
     if (coreFacade_) coreFacade_->deleteActor(strings::toStdString(id));
 }
 
-QString WorkspaceFacade::addProperty(const QString& name, const QStringList& aliases)
+QString WorkspaceFacade::addProperty(const QString& name, const QStringList& aliases, const QStringList& contractIds)
 {
     if (!coreFacade_) return {};
-    return QString::fromStdString(coreFacade_->addProperty(makePropertyCommand({}, name, aliases)));
+    return QString::fromStdString(coreFacade_->addProperty(makePropertyCommand({}, name, aliases, contractIds)));
 }
 
-void WorkspaceFacade::updateProperty(const QString& id, const QString& name, const QStringList& aliases)
+void WorkspaceFacade::updateProperty(const QString& id, const QString& name, const QStringList& aliases, const QStringList& contractIds)
 {
     if (!coreFacade_) return;
-    coreFacade_->updateProperty(makePropertyCommand(id, name, aliases));
+    coreFacade_->updateProperty(makePropertyCommand(id, name, aliases, contractIds));
 }
 
-QString WorkspaceFacade::saveProperty(const QString& id, const QString& name, const QStringList& aliases)
+QString WorkspaceFacade::saveProperty(const QString& id, const QString& name, const QStringList& aliases, const QStringList& contractIds)
 {
     if (!coreFacade_) return {};
-    if (id.isEmpty()) return addProperty(name, aliases);
-    updateProperty(id, name, aliases);
+    if (id.isEmpty()) return addProperty(name, aliases, contractIds);
+    updateProperty(id, name, aliases, contractIds);
     return id;
 }
 
@@ -680,12 +728,13 @@ QString WorkspaceFacade::addTransaction(const QString& name,
                                         const QString& statementId,
                                         int status,
                                         const QString& actorId,
+                                        const QString& contractId,
                                         bool allocatable,
                                         const QStringList& propertyIds)
 {
     if (!coreFacade_) return {};
     return QString::fromStdString(coreFacade_->addTransaction(
-        makeTransactionCommand({}, name, bookingDate, amount, statementId, status, actorId, allocatable, propertyIds)));
+        makeTransactionCommand({}, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds)));
 }
 
 void WorkspaceFacade::updateTransaction(const QString& id,
@@ -695,11 +744,12 @@ void WorkspaceFacade::updateTransaction(const QString& id,
                                         const QString& statementId,
                                         int status,
                                         const QString& actorId,
+                                        const QString& contractId,
                                         bool allocatable,
                                         const QStringList& propertyIds)
 {
     if (!coreFacade_) return;
-    coreFacade_->updateTransaction(makeTransactionCommand(id, name, bookingDate, amount, statementId, status, actorId, allocatable, propertyIds));
+    coreFacade_->updateTransaction(makeTransactionCommand(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds));
 }
 
 QString WorkspaceFacade::saveTransaction(const QString& id,
@@ -709,12 +759,13 @@ QString WorkspaceFacade::saveTransaction(const QString& id,
                                          const QString& statementId,
                                          int status,
                                          const QString& actorId,
+                                         const QString& contractId,
                                          bool allocatable,
                                          const QStringList& propertyIds)
 {
     if (!coreFacade_) return {};
-    if (id.isEmpty()) return addTransaction(name, bookingDate, amount, statementId, status, actorId, allocatable, propertyIds);
-    updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, allocatable, propertyIds);
+    if (id.isEmpty()) return addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds);
+    updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds);
     return id;
 }
 
@@ -796,11 +847,13 @@ TransactionFilter* WorkspaceFacade::propertyTransactions(const QString& property
 void WorkspaceFacade::applyDeletionImpact(const DeletionImpact& impact)
 {
     session_->applyDeletionImpact(impact);
+    bumpDataRevision();
 }
 
 void WorkspaceFacade::setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds)
 {
     session_->setTransactionPropertyIdsImmediate(txId, propertyIds);
+    bumpDataRevision();
 }
 
 }

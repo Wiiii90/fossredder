@@ -1,6 +1,6 @@
 /**
  * @file core/src/application/import/draft/DraftMatcherResolution.cpp
- * @brief Implements import-draft ID resolution and fallback-state helpers.
+ * @brief Implements import-draft ID resolution and catalog-state merge helpers.
  */
 
 #include "core/pch.h"
@@ -55,16 +55,16 @@ bool contractIsFullyAllocatable(const core::domain::catalog::WorkspaceCatalog& s
     return hasTransactions;
 }
 
-core::domain::catalog::WorkspaceCatalog withFallbackState(core::domain::catalog::WorkspaceCatalog primary,
-                                                           const core::domain::catalog::WorkspaceCatalog& fallback)
+core::domain::catalog::WorkspaceCatalog mergeCatalogState(core::domain::catalog::WorkspaceCatalog primary,
+                                                          const core::domain::catalog::WorkspaceCatalog& secondary)
 {
-    if (primary.actors().empty()) primary.setActors(fallback.actors());
-    if (primary.properties().empty()) primary.setProperties(fallback.properties());
-    if (primary.contracts().empty()) primary.setContracts(fallback.contracts());
-    if (primary.statements().empty()) primary.setStatements(fallback.statements());
-    if (primary.transactions().empty()) primary.setTransactions(fallback.transactions());
-    if (primary.analyses().empty()) primary.setAnalyses(fallback.analyses());
-    if (primary.annuals().empty()) primary.setAnnuals(fallback.annuals());
+    if (primary.actors().empty()) primary.setActors(secondary.actors());
+    if (primary.properties().empty()) primary.setProperties(secondary.properties());
+    if (primary.contracts().empty()) primary.setContracts(secondary.contracts());
+    if (primary.statements().empty()) primary.setStatements(secondary.statements());
+    if (primary.transactions().empty()) primary.setTransactions(secondary.transactions());
+    if (primary.analyses().empty()) primary.setAnalyses(secondary.analyses());
+    if (primary.annuals().empty()) primary.setAnnuals(secondary.annuals());
     return primary;
 }
 

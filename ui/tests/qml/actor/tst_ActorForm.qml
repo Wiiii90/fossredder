@@ -21,6 +21,7 @@ TestCase {
     property var session: QtObject {
         property var selectedActor: null
         property string selectedActorId: ""
+        property int dataRevision: 0
         property var actors: []
         property var contracts: []
 
@@ -100,6 +101,12 @@ TestCase {
             var idx = Math.max(0, Math.min(fallbackIndex, kept.length - 1))
             return String(kept[idx][key] || "")
         }
+
+        function selectActorState(newId, newName, newAliases, newContractIds) {
+            if (selectedActor && selectedActor.setState)
+                selectedActor.setState(newId, newName, newAliases, newContractIds)
+            selectedActorId = String(newId || "")
+        }
     }
 
     property var actorController: QtObject {
@@ -107,22 +114,57 @@ TestCase {
         property int deleteCalls: 0
         property var lastSave: ({})
         property string lastDeleteId: ""
+        property var saveActorOverride: null
 
         function reset() {
             saveCalls = 0
             deleteCalls = 0
             lastSave = ({})
             lastDeleteId = ""
+            saveActorOverride = null
         }
 
-        function saveActor(id, name, aliases) {
+        function defaultSaveActor(id, name, aliases, contractIds) {
             saveCalls += 1
             lastSave = {
                 id: id,
                 name: name,
-                aliases: aliases
+                aliases: aliases,
+                contractIds: contractIds
             }
             return id && id.length > 0 ? id : "actor-new"
+        }
+
+        function saveActor(id, name, aliases, contractIds) {
+            if (saveActorOverride)
+                return saveActorOverride(id, name, aliases, contractIds)
+            return defaultSaveActor(id, name, aliases, contractIds)
+        }
+
+        function normalizeStrings(values) {
+            var out = []
+            if (!values)
+                return out
+            for (var i = 0; i < values.length; ++i)
+                out.push(String(values[i]))
+            return out
+        }
+
+        function addUniqueTrimmed(values, value) {
+            var out = values ? values.slice(0) : []
+            var next = String(value || "").trim()
+            if (next.length === 0 || out.indexOf(next) !== -1)
+                return out
+            out.push(next)
+            return out
+        }
+
+        function removeAt(values, index) {
+            var out = values ? values.slice(0) : []
+            if (index < 0 || index >= out.length)
+                return out
+            out.splice(index, 1)
+            return out
         }
 
         function deleteActor(id) {
@@ -133,7 +175,7 @@ TestCase {
 
     property var appContext: QtObject {
         property var session: testCase.session
-        property var actorController: testCase.actorController
+        property var workspaceFacade: testCase.actorController
     }
 
     property var theme: QtObject {
@@ -181,10 +223,8 @@ TestCase {
     function createActorObject(source) {
         if (!source)
             return null
-        var actor = Qt.createQmlObject('import QtQml 2.15; QtObject { property string id: ""; property string name: ""; property var aliases: [] }', testCase)
-        actor.id = source.id || ""
-        actor.name = source.name || ""
-        actor.aliases = source.aliases || []
+        var actor = Qt.createQmlObject('import QtQml 2.15; QtObject { signal changed(); property string id: ""; property string name: ""; property var aliases: []; property var contractIds: []; function setState(newId, newName, newAliases, newContractIds) { id = newId || ""; name = newName || ""; aliases = newAliases || []; contractIds = newContractIds || []; changed(); } }', testCase)
+        actor.setState(source.id || "", source.name || "", source.aliases || [], source.contractIds || [])
         return actor
     }
 
@@ -204,17 +244,69 @@ TestCase {
     }
 
     function test_createModeSavesActorAndSelectsNewId() {
+        session.contracts = [
+            { id: "contract-1", name: "Lease" }
+        ]
         var form = createForm(null)
         var nameField = findRequired(form, "actorNameField")
         var submitButton = findRequired(form, "actorCreateButton")
+        var aliasInput = findRequired(form, "actorAliasInput")
+        var addAliasButton = findRequired(form, "actorAddAliasButton")
+        var checkBox = findRequired(form, "actorContractCheckBox")
 
         nameField.text = "Alice"
-        submitButton.clicked()
+        aliasInput.text = "Alias One"
+        addAliasButton.clicked()
+        checkBox.checked = true
+        checkBox.toggled()
+        compare(form.aliases.length, 1)
+        compare(form.aliases[0], "Alias One")
+        compare(form.selectedContractIds.length, 1)
+        compare(form.selectedContractIds[0], "contract-1")
+
+        actorController.saveActorOverride = function(id, name, aliases, contractIds) {
+            var result = actorController.defaultSaveActor(id, name, aliases, contractIds)
+            session.selectedActor = createActorObject({
+                id: result,
+                name: name,
+                aliases: aliases,
+                contractIds: contractIds
+            })
+            session.selectedActorId = result
+            session.dataRevision += 1
+            return result
+        }
+        try {
+            submitButton.clicked()
+        } finally {
+            actorController.saveActorOverride = null
+        }
 
         compare(actorController.saveCalls, 1)
         compare(actorController.lastSave.id, "")
         compare(actorController.lastSave.name, "Alice")
+        compare(actorController.lastSave.aliases.length, 1)
+        compare(actorController.lastSave.aliases[0], "Alias One")
+        compare(actorController.lastSave.contractIds.length, 1)
+        compare(actorController.lastSave.contractIds[0], "contract-1")
         compare(session.selectedActorId, "actor-new")
+
+        compare(form.aliases.length, 1)
+        compare(form.aliases[0], "Alias One")
+        compare(form.selectedContractIds.length, 1)
+        compare(form.selectedContractIds[0], "contract-1")
+
+        session.selectedActor = createActorObject({ id: "actor-other", name: "Other", aliases: ["Other"], contractIds: [] })
+        session.selectedActorId = "actor-other"
+        compare(form.aliases.length, 1)
+        compare(form.aliases[0], "Other")
+
+        session.selectedActor = createActorObject({ id: "actor-new", name: "Alice", aliases: ["Alias One"], contractIds: ["contract-1"] })
+        session.selectedActorId = "actor-new"
+        compare(form.aliases.length, 1)
+        compare(form.aliases[0], "Alias One")
+        compare(form.selectedContractIds.length, 1)
+        compare(form.selectedContractIds[0], "contract-1")
     }
 
     function test_aliasButtonsAddAndRemoveAlias() {
@@ -230,6 +322,31 @@ TestCase {
 
         removeAliasButton.clicked()
         compare(form.aliases.length, 0)
+    }
+
+    function test_editModeAliasButtonAddsAliasToFormState() {
+        var form = createForm({ id: "actor-4", name: "Alice", aliases: ["Base"] })
+        var aliasInput = findRequired(form, "actorAliasInput")
+        var addAliasButton = findRequired(form, "actorAddAliasButton")
+
+        aliasInput.text = "Alias Two"
+        compare(aliasInput.text, "Alias Two")
+        compare(addAliasButton.enabled, true)
+        compare(addAliasButton.width > 0, true)
+        compare(addAliasButton.height > 0, true)
+        addAliasButton.clicked()
+
+        compare(form.aliases.length, 2)
+        compare(form.aliases[0], "Base")
+        compare(form.aliases[1], "Alias Two")
+    }
+
+    function test_aliasPanelGetsLayoutSpaceForRenderedAliases() {
+        var form = createForm({ id: "actor-4", name: "Alice", aliases: ["Base"] })
+        var aliasScroll = findRequired(form, "actorAliasScroll")
+
+        compare(aliasScroll.width > 0, true)
+        compare(aliasScroll.height > 0, true)
     }
 
     function test_readModeLoadsSelectedActorState() {
@@ -256,6 +373,107 @@ TestCase {
         compare(actorController.lastSave.name, "New Name")
     }
 
+    function test_updateModeKeepsSelectedContractsAndSavesThem() {
+        session.contracts = [
+            { id: "contract-1", name: "Lease" }
+        ]
+        var form = createForm({ id: "actor-6", name: "Old", aliases: ["One"], contractIds: [] })
+        var nameField = findRequired(form, "actorNameField")
+        var updateButton = findRequired(form, "actorUpdateButton")
+        var aliasInput = findRequired(form, "actorAliasInput")
+        var addAliasButton = findRequired(form, "actorAddAliasButton")
+        var checkBox = findRequired(form, "actorContractCheckBox")
+
+        checkBox.checked = true
+        checkBox.toggled()
+        aliasInput.text = "Alias Two"
+        addAliasButton.clicked()
+        compare(form.aliases.length, 2)
+        compare(form.aliases[1], "Alias Two")
+        nameField.text = "New Name"
+        actorController.saveActorOverride = function(id, name, aliases, contractIds) {
+            var result = actorController.defaultSaveActor(id, name, aliases, contractIds)
+            if (session.selectedActor && session.selectedActor.setState)
+                session.selectedActor.setState(id || "actor-6", name, aliases, contractIds)
+            session.selectedActorId = id || "actor-6"
+            session.dataRevision += 1
+            return result
+        }
+        try {
+            updateButton.clicked()
+        } finally {
+            actorController.saveActorOverride = null
+        }
+
+        compare(actorController.saveCalls, 1)
+        compare(actorController.lastSave.id, "actor-6")
+        compare(actorController.lastSave.name, "New Name")
+        compare(actorController.lastSave.aliases.length, 2)
+        compare(actorController.lastSave.aliases[0], "One")
+        compare(actorController.lastSave.aliases[1], "Alias Two")
+        compare(actorController.lastSave.contractIds.length, 1)
+        compare(actorController.lastSave.contractIds[0], "contract-1")
+        compare(form.aliases.length, 2)
+        compare(form.aliases[0], "One")
+        compare(form.aliases[1], "Alias Two")
+
+        session.selectedActor = createActorObject({ id: "actor-7", name: "Other", aliases: ["Other"], contractIds: [] })
+        compare(form.aliases.length, 1)
+        compare(form.aliases[0], "Other")
+
+        session.selectedActor = createActorObject({
+            id: "actor-6",
+            name: "New Name",
+            aliases: ["One", "Alias Two"],
+            contractIds: ["contract-1"]
+        })
+        compare(form.aliases.length, 2)
+        compare(form.aliases[0], "One")
+        compare(form.aliases[1], "Alias Two")
+
+        compare(form.selectedContractIds.length, 1)
+        compare(form.selectedContractIds[0], "contract-1")
+    }
+
+    function test_selectionChangedSignalRefreshesAliasesWithoutReplacingSelectionObject() {
+        var form = createForm({ id: "actor-6", name: "Old", aliases: ["One"], contractIds: [] })
+
+        compare(form.aliases.length, 1)
+        compare(form.aliases[0], "One")
+
+        session.selectActorState("actor-6", "Old", ["One", "Alias Two"], [])
+        session.dataRevision += 1
+        compare(form.aliases.length, 2)
+        compare(form.aliases[0], "One")
+        compare(form.aliases[1], "Alias Two")
+
+        session.selectActorState("actor-7", "Other", ["Other"], [])
+        compare(form.aliases.length, 1)
+        compare(form.aliases[0], "Other")
+
+        session.selectActorState("actor-6", "Old", ["One", "Alias Two"], [])
+        compare(form.aliases.length, 2)
+        compare(form.aliases[0], "One")
+        compare(form.aliases[1], "Alias Two")
+    }
+
+    function test_dataRevisionRefreshesAliasesWhenSelectionObjectDoesNotEmitChanged() {
+        var form = createForm({ id: "actor-6", name: "Old", aliases: ["One"], contractIds: [] })
+
+        compare(form.aliases.length, 1)
+        compare(form.aliases[0], "One")
+
+        session.selectedActor.aliases = ["One", "Alias Two"]
+        session.selectedActor.contractIds = ["contract-1"]
+        session.dataRevision += 1
+
+        compare(form.aliases.length, 2)
+        compare(form.aliases[0], "One")
+        compare(form.aliases[1], "Alias Two")
+        compare(form.selectedContractIds.length, 1)
+        compare(form.selectedContractIds[0], "contract-1")
+    }
+
     function test_contractSelectionUpdatesSelectedIds() {
         session.contracts = [
             { id: "contract-1", name: "Lease" }
@@ -264,10 +482,17 @@ TestCase {
         var checkBox = findRequired(form, "actorContractCheckBox")
 
         checkBox.checked = true
-        checkBox.clicked()
+        checkBox.toggled()
 
         compare(form.selectedContractIds.length, 1)
         compare(form.selectedContractIds[0], "contract-1")
+
+        var updateButton = findRequired(form, "actorUpdateButton")
+        var nameField = findRequired(form, "actorNameField")
+        nameField.text = "Alice"
+        updateButton.clicked()
+        compare(actorController.lastSave.contractIds.length, 1)
+        compare(actorController.lastSave.contractIds[0], "contract-1")
     }
 
     function test_navigationButtonsMoveSelectionId() {

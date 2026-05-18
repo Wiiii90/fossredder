@@ -58,38 +58,46 @@ Controls.Panel {
                 Repeater {
                     model: root.propertyRows
 
-                    delegate: RowLayout {
+                    delegate: Item {
                         id: propertyRow
                         required property var modelData
                         readonly property string propertyId: propertyRow.modelData && propertyRow.modelData.id ? propertyRow.modelData.id : ""
 
                         width: propertyColumn.width
-                        spacing: root.theme.spacingSmall
+                        height: rowLayout.implicitHeight
 
-                        Controls.CheckBox {
-                            objectName: "contractPropertyCheckBox"
-                            Layout.fillWidth: false
-                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                            checked: root.selectedPropertyIds.indexOf(propertyRow.propertyId) !== -1
-                            onClicked: {
-                                const next = root.selectedPropertyIds ? root.selectedPropertyIds.slice(0) : []
-                                const idx = next.indexOf(propertyRow.propertyId)
-                                if (checked && idx === -1)
-                                    next.push(propertyRow.propertyId)
-                                else if (!checked && idx !== -1)
-                                    next.splice(idx, 1)
-                                root.selectionChanged(next)
+                        RowLayout {
+                            id: rowLayout
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            spacing: root.theme.spacingSmall
+
+                            Controls.CheckBox {
+                                objectName: "contractPropertyCheckBox"
+                                Layout.fillWidth: false
+                                Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                                checked: root.selectedPropertyIds.indexOf(propertyRow.propertyId) !== -1
+                                onToggled: {
+                                    const next = root.selectedPropertyIds ? root.selectedPropertyIds.slice(0) : []
+                                    const idx = next.indexOf(propertyRow.propertyId)
+                                    if (checked && idx === -1) {
+                                        next.push(propertyRow.propertyId)
+                                    } else if (!checked && idx !== -1) {
+                                        next.splice(idx, 1)
+                                    }
+                                    root.selectionChanged(next)
+                                }
                             }
-                        }
 
-                        Label {
-                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                            text: propertyRow.modelData && propertyRow.modelData.name ? propertyRow.modelData.name : ""
-                            elide: Text.ElideRight
-                        }
+                            Label {
+                                Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                                text: propertyRow.modelData && propertyRow.modelData.name ? propertyRow.modelData.name : ""
+                                elide: Text.ElideRight
+                            }
 
-                        Item {
-                            Layout.fillWidth: true
+                            Item {
+                                Layout.fillWidth: true
+                            }
                         }
                     }
                 }

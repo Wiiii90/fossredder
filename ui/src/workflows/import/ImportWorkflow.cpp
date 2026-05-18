@@ -132,7 +132,7 @@ const ui::TransactionDraft* currentDraft(ui::StatementDraft* draft)
   return &drafts[static_cast<std::size_t>(index)];
 }
 
-core::domain::catalog::WorkspaceCatalog toWorkspaceState(
+core::domain::catalog::WorkspaceCatalog toCatalog(
     const core::ports::workspace::WorkspaceSnapshot& snapshot)
 {
   core::domain::catalog::WorkspaceCatalog state;
@@ -149,6 +149,7 @@ core::domain::catalog::WorkspaceCatalog toWorkspaceState(
       aliases.emplace_back(alias.value, alias.kind, alias.source, alias.createdAt, alias.updatedAt);
     }
     entity->setAliases(std::move(aliases));
+    entity->setContractIds(src.contractIds);
     entity->setCreatedAt(src.createdAt);
     entity->setUpdatedAt(src.updatedAt);
     actors.push_back(std::move(entity));
@@ -167,6 +168,7 @@ core::domain::catalog::WorkspaceCatalog toWorkspaceState(
       aliases.emplace_back(alias.value, alias.kind, alias.source, alias.createdAt, alias.updatedAt);
     }
     entity->setAliases(std::move(aliases));
+    entity->setContractIds(src.contractIds);
     entity->setCreatedAt(src.createdAt);
     entity->setUpdatedAt(src.updatedAt);
     properties.push_back(std::move(entity));
@@ -289,11 +291,7 @@ ImportWorkflow::ImportWorkflow(
 void ImportWorkflow::setStateSnapshotProvider(
     StateSnapshotProvider provider) {
   stateSnapshotProvider_ = std::move(provider);
-  if (stateSnapshotProvider_) {
-    const auto snapshot = stateSnapshotProvider_();
-    restoreRunsFromSnapshot(snapshot);
-    emit stateChanged();
-  }
+  refreshFromStateSnapshot();
 }
 
 void ImportWorkflow::setStatementDraftStore(StatementDraftStore store) {
@@ -323,21 +321,21 @@ bool ImportWorkflow::openNextDraft() {
   return openPersistedDraft(ids.at(index + 1));
 }
 
-core::domain::catalog::WorkspaceCatalog ImportWorkflow::matchingStateForDraft(
+core::domain::catalog::WorkspaceCatalog ImportWorkflow::matchingCatalogForDraft(
     const ui::StatementDraft *draft) const {
   const auto reader = workspaceWriter_
                           ? dynamic_cast<const core::ports::workspace::IWorkspaceReader *>(workspaceWriter_)
                           : nullptr;
-  const auto liveState = reader ? toWorkspaceState(reader->workspaceSnapshot())
-                                : core::domain::catalog::WorkspaceCatalog{};
+  const auto liveCatalog = reader ? toCatalog(reader->workspaceSnapshot())
+                                  : core::domain::catalog::WorkspaceCatalog{};
   if (!draft || !importMatcherService_) {
-    return liveState;
+    return liveCatalog;
   }
 
-  return importMatcherService_->withFallbackState(
+  return importMatcherService_->mergeCatalogState(
       draft->hasCatalogState() ? draft->catalogState()
                                : core::domain::catalog::WorkspaceCatalog{},
-      liveState);
+      liveCatalog);
 }
 
 core::application::importing::draft::StatementDraft
@@ -356,7 +354,7 @@ ImportWorkflow::buildFinalizationInput(ui::StatementDraft *draft) const {
   input.name = ui::strings::toStdString(draft->name());
   input.transactions.reserve(transactionDrafts.size());
 
-  const auto appState = matchingStateForDraft(draft);
+  const auto appState = matchingCatalogForDraft(draft);
   const auto* matcher = this->importMatcherService_.get();
   for (const ui::TransactionDraft &draftTransaction : transactionDrafts) {
     core::application::importing::draft::TransactionDraft transaction;
@@ -447,7 +445,7 @@ void ImportWorkflow::syncCurrentTransactionDraftImpl(ui::StatementDraft *draft) 
     return;
   }
 
-  const auto appState = matchingStateForDraft(draft);
+  const auto appState = matchingCatalogForDraft(draft);
   const auto derived = importMatcherService_->buildDraftDerivedState(
       appState, ui::importing::toCoreSelection(*current));
   const auto index = draft->currentIndex();
@@ -579,7 +577,7 @@ QVariantMap ImportWorkflow::currentTransactionViewState(ui::StatementDraft *draf
         const auto *current = currentDraft(draft);
         if (!current || !importMatcherService_) return QVariantMap{};
         return ui::importing::toViewState(importMatcherService_->buildDraftDerivedState(
-            matchingStateForDraft(draft),
+            matchingCatalogForDraft(draft),
             ui::importing::toCoreSelection(*current)));
       });
 }
@@ -650,6 +648,18 @@ void ImportWorkflow::updateCurrentAmount(ui::StatementDraft *draft,
 
 void ImportWorkflow::setImportLogsStore(ImportLogsStore store) {
   importLogsStore_ = std::move(store);
+}
+
+void ImportWorkflow::refreshFromStateSnapshot() {
+  if (!stateSnapshotProvider_) {
+    return;
+  }
+
+  const auto snapshot = stateSnapshotProvider_();
+  if (!state_.isRunning()) {
+    restoreRunsFromSnapshot(snapshot);
+  }
+  emit stateChanged();
 }
 
 QString ImportWorkflow::selectedFile() const { return state_.selectedFile(); }

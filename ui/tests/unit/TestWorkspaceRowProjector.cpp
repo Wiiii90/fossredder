@@ -33,7 +33,11 @@ TEST(WorkspaceRowProjectorTest, ProjectsStableRowsForAllWorkspaceFamilies)
     ASSERT_EQ(transactionRows.size(), 2);
 
     EXPECT_EQ(actorRows.first().toMap().value(QStringLiteral("id")).toString(), QStringLiteral("actor-1"));
+    EXPECT_EQ(actorRows.first().toMap().value(QStringLiteral("aliases")).toList().first().toString(), QStringLiteral("Primary Actor"));
+    EXPECT_EQ(actorRows.first().toMap().value(QStringLiteral("selectedIds")).toList().first().toString(), QStringLiteral("contract-1"));
     EXPECT_EQ(propertyRows.first().toMap().value(QStringLiteral("name")).toString(), QStringLiteral("Primary Property"));
+    EXPECT_EQ(propertyRows.first().toMap().value(QStringLiteral("aliases")).toList().first().toString(), QStringLiteral("Property Alias"));
+    EXPECT_EQ(propertyRows.first().toMap().value(QStringLiteral("selectedIds")).toList().first().toString(), QStringLiteral("contract-1"));
     EXPECT_EQ(contractRows.first().toMap().value(QStringLiteral("type")).toString(), QStringLiteral("lease"));
     EXPECT_EQ(analysisRows.first().toMap().value(QStringLiteral("adjustments")).toString(), QStringLiteral("{\"actor-1\":19.25}"));
     EXPECT_EQ(annualRows.first().toMap().value(QStringLiteral("year")).toInt(), 2026);
@@ -81,9 +85,19 @@ TEST(WorkspaceRowProjectorTest, PreservesGenericOrderingAndSelectionContracts)
     const QVariantMap orderedRows = orderedRowsState(rows, QVariantList{QStringLiteral("c"), QStringLiteral("a")});
     EXPECT_EQ(orderedRows.value(QStringLiteral("rows")).toList().first().toMap().value(QStringLiteral("id")).toString(), QStringLiteral("c"));
     EXPECT_EQ(orderedRows.value(QStringLiteral("order")).toList(), QVariantList({QStringLiteral("c"), QStringLiteral("a"), QStringLiteral("b")}));
+    EXPECT_EQ(orderedRows.value(QStringLiteral("orderIds")).toList(), QVariantList({QStringLiteral("c"), QStringLiteral("a"), QStringLiteral("b")}));
 
     const QVariantMap orderedSelection = orderedSelectionState(rows, QVariantList{QStringLiteral("c"), QStringLiteral("a")}, 1, QStringLiteral("b"));
     EXPECT_EQ(orderedSelection.value(QStringLiteral("selection")).toMap().value(QStringLiteral("id")).toString(), QStringLiteral("b"));
+    EXPECT_EQ(orderedSelection.value(QStringLiteral("id")).toString(), QStringLiteral("b"));
+    EXPECT_EQ(orderedSelection.value(QStringLiteral("currentId")).toString(), QStringLiteral("b"));
+    EXPECT_EQ(orderedSelection.value(QStringLiteral("index")).toInt(), 2);
+    EXPECT_EQ(orderedSelection.value(QStringLiteral("orderIds")).toList(), QVariantList({QStringLiteral("c"), QStringLiteral("a"), QStringLiteral("b")}));
+
+    const QVariantMap selectedById = orderedSelectionState(rows, QVariantList{QStringLiteral("c"), QStringLiteral("a")}, 0, QStringLiteral("b"));
+    EXPECT_EQ(selectedById.value(QStringLiteral("id")).toString(), QStringLiteral("b"));
+    EXPECT_EQ(selectedById.value(QStringLiteral("currentId")).toString(), QStringLiteral("b"));
+    EXPECT_EQ(selectedById.value(QStringLiteral("index")).toInt(), 2);
 
     const QVariantMap navigation = navigateSelectionState(rows, 1, QStringLiteral("b"), 1);
     EXPECT_EQ(navigation.value(QStringLiteral("id")).toString(), QStringLiteral("c"));

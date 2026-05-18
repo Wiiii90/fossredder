@@ -28,8 +28,8 @@ public:
     virtual std::string resolveActorId(const core::domain::catalog::WorkspaceCatalog& state, const std::string& text) const = 0;
     virtual std::string resolveContractId(const core::domain::catalog::WorkspaceCatalog& state, const std::string& text) const = 0;
     virtual bool contractIsFullyAllocatable(const core::domain::catalog::WorkspaceCatalog& state, const std::string& contractId) const = 0;
-    virtual core::domain::catalog::WorkspaceCatalog withFallbackState(core::domain::catalog::WorkspaceCatalog primary,
-                                                                       const core::domain::catalog::WorkspaceCatalog& fallback) const = 0;
+    virtual core::domain::catalog::WorkspaceCatalog mergeCatalogState(core::domain::catalog::WorkspaceCatalog primary,
+                                                                      const core::domain::catalog::WorkspaceCatalog& secondary) const = 0;
     virtual std::vector<std::string> referenceAliasesFromMetadata(const std::string& metadata) const = 0;
 };
 

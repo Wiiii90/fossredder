@@ -22,6 +22,7 @@ TEST(PropertyRepositoryTest, AddsUpdatesRemovesAndClearsProperties)
     ASSERT_TRUE(repo.getPropertyById("property-1").has_value());
     EXPECT_EQ(repo.getPropertyById("property-1").value()->name(), "Primary Property");
     EXPECT_EQ(repo.getPropertyById("property-1").value()->aliases().size(), 1);
+    EXPECT_EQ(repo.getPropertyById("property-1").value()->aliases().at(0).value(), "Property Alias");
 
     auto updated = makeProperty();
     updated->rename("Updated Property");
@@ -31,6 +32,7 @@ TEST(PropertyRepositoryTest, AddsUpdatesRemovesAndClearsProperties)
     ASSERT_TRUE(repo.getPropertyById("property-1").has_value());
     EXPECT_EQ(repo.getPropertyById("property-1").value()->name(), "Updated Property");
     EXPECT_EQ(repo.getPropertyById("property-1").value()->aliases().size(), 1);
+    EXPECT_EQ(repo.getPropertyById("property-1").value()->aliases().at(0).value(), "Updated Alias");
 
     repo.removeProperty("property-1");
     EXPECT_FALSE(repo.getPropertyById("property-1").has_value());

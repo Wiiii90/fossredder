@@ -68,6 +68,14 @@ QVariantList toTransactionList(const core::application::analysis::AnalysisResult
         }
         item[ui::payload::keys::transaction::kPropertyIds] = propertyIds;
 
+        QStringList propertyNames;
+        propertyNames.reserve(static_cast<int>(transaction.propertyNames.size()));
+        for (const auto& propertyName : transaction.propertyNames) {
+            if (propertyName.empty()) continue;
+            propertyNames.push_back(QString::fromStdString(propertyName));
+        }
+        item[QStringLiteral("propertyNames")] = propertyNames;
+
         transactions.push_back(item);
     }
     return transactions;

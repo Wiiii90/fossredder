@@ -16,6 +16,7 @@
 #include "core/domain/entities/Analysis.h"
 #include "core/domain/entities/Annual.h"
 #include "persistence/SqliteDb.h"
+#include "persistence/StmtGuard.h"
 #include "persistence/SqliteTransaction.h"
 #include "persistence/repositories/SqliteActorRepository.h"
 #include "persistence/repositories/SqliteAnalysisRepository.h"
@@ -238,6 +239,48 @@ void removeMissingTransactions(
   }
 }
 
+void syncStatementTransactions(
+    sqlite3 *db,
+    const core::application::workspace::WorkspaceSessionState &document) {
+  if (!db) {
+    return;
+  }
+
+  persistence::StmtGuard deleteStmt(db,
+                                    "DELETE FROM statement_transactions;");
+  if (!deleteStmt) {
+    return;
+  }
+  deleteStmt.step();
+
+  persistence::StmtGuard insertStmt(
+      db,
+      "INSERT OR REPLACE INTO statement_transactions (statement_id, transaction_id, position) VALUES (?, ?, ?);");
+  if (!insertStmt) {
+    return;
+  }
+
+  for (const auto &statement : document.catalog.statements()) {
+    if (!statement || statement->id().empty()) {
+      continue;
+    }
+
+    const auto &transactionIds = statement->transactionIds();
+    for (std::size_t i = 0; i < transactionIds.size(); ++i) {
+      const auto &transactionId = transactionIds[i];
+      if (transactionId.empty()) {
+        continue;
+      }
+
+      insertStmt.reset();
+      insertStmt.bindText(1, statement->id());
+      insertStmt.bindText(2, transactionId);
+      insertStmt.bindInt(3, static_cast<int>(i));
+      insertStmt.step();
+    }
+  }
+}
+
 } // namespace
 
 WorkspaceStateStore::WorkspaceStateStore(std::shared_ptr<SqliteDb> db)
@@ -316,6 +359,7 @@ core::domain::DeletionImpact WorkspaceStateStore::save(
 
   core::application::WorkspaceStateManager manager(std::move(repos));
   manager.save(document);
+  syncStatementTransactions(db_->handle(), document);
 
   transaction.commit();
   return impact;

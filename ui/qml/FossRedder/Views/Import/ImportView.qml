@@ -81,6 +81,14 @@ Item {
     }
 
     Connections {
+        target: root.session
+        function onDataRevisionChanged() {
+            root.ensureDefaultImportSelection()
+            root.updateContentIndex()
+        }
+    }
+
+    Connections {
         target: root.settingsViewModel
         function onImportDefaultPathChanged() {
             root.ensureDefaultImportSelection()

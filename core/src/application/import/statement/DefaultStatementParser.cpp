@@ -137,9 +137,9 @@ DefaultStatementParser::ParseResult DefaultStatementParser::parse([[maybe_unused
     const bool headerFound = headerAnalysis.headerFound;
 
     if (currentBookingDate.empty()) {
-        if (auto d = core::application::importing::statement::internal::findFallbackBookingDate(ocrLines, 30)) {
+        if (auto d = core::application::importing::statement::internal::findDefaultBookingDate(ocrLines, 30)) {
             currentBookingDate = *d;
-            out.debugLines.push_back(std::string("header.fallbackBookingDate\t") + currentBookingDate);
+            out.debugLines.push_back(std::string("header.defaultBookingDate\t") + currentBookingDate);
             cur.bookingDateGroup = currentBookingDate;
         }
     }

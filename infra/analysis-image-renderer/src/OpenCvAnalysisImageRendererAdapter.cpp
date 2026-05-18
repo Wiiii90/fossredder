@@ -10,8 +10,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iomanip>
 #include <sstream>
+#include <unordered_map>
 #include <nlohmann/json.hpp>
 
 #include <opencv2/core.hpp>
@@ -36,6 +38,96 @@ bool tryParseJsonObject(const std::string& text, nlohmann::json& out)
         return out.is_object();
     } catch (...) {
         return false;
+    }
+}
+
+std::int32_t qmlHashString(const std::string& value)
+{
+    std::int32_t hash = 0;
+    for (const unsigned char ch : value) {
+        hash = static_cast<std::int32_t>((hash << 5) - hash + ch);
+    }
+    return hash < 0 ? -hash : hash;
+}
+
+const std::vector<cv::Scalar>& qmlChartPalette()
+{
+    static const std::vector<cv::Scalar> colors = {
+        cv::Scalar(221, 170, 119, 255), // #77aadd in OpenCV BGRA order
+        cv::Scalar(170, 204, 136, 255), // #88ccaa
+        cv::Scalar(119, 170, 221, 255), // #ddaa77
+        cv::Scalar(170, 136, 204, 255), // #cc88aa
+    };
+    return colors;
+}
+
+cv::Scalar colorForKey(const std::string& key)
+{
+    const auto& colors = qmlChartPalette();
+    if (colors.empty()) return cv::Scalar(119, 170, 221, 255);
+    const auto index = static_cast<std::size_t>(qmlHashString(key)) % colors.size();
+    return colors[index];
+}
+
+double renderScale(const cv::Mat& image)
+{
+    return std::max(1.0, static_cast<double>(image.cols) / 1280.0);
+}
+
+int scaled(const cv::Mat& image, int value)
+{
+    return static_cast<int>(std::round(value * renderScale(image)));
+}
+
+double scaledFont(const cv::Mat& image, double value)
+{
+    return value * renderScale(image);
+}
+
+int chartFontFace()
+{
+    return cv::FONT_HERSHEY_SIMPLEX;
+}
+
+void drawRotatedText(cv::Mat& image,
+                     const std::string& text,
+                     const cv::Point& topLeft,
+                     double fontScale,
+                     const cv::Scalar& color,
+                     int thickness)
+{
+    if (text.empty()) return;
+
+    int baseline = 0;
+    const auto textSize = cv::getTextSize(text, chartFontFace(), fontScale, thickness, &baseline);
+    cv::Mat textImage(textSize.height + baseline + 8, textSize.width + 8, CV_8UC4, cv::Scalar(0, 0, 0, 0));
+    cv::putText(textImage,
+                text,
+                cv::Point(4, textSize.height + 2),
+                chartFontFace(),
+                fontScale,
+                color,
+                thickness,
+                cv::LINE_AA);
+
+    cv::Mat rotated;
+    cv::rotate(textImage, rotated, cv::ROTATE_90_CLOCKWISE);
+
+    for (int y = 0; y < rotated.rows; ++y) {
+        const int targetY = topLeft.y + y;
+        if (targetY < 0 || targetY >= image.rows) continue;
+        for (int x = 0; x < rotated.cols; ++x) {
+            const int targetX = topLeft.x + x;
+            if (targetX < 0 || targetX >= image.cols) continue;
+
+            const cv::Vec4b source = rotated.at<cv::Vec4b>(y, x);
+            if (source[3] == 0) continue;
+            if (image.channels() == 4) {
+                image.at<cv::Vec4b>(targetY, targetX) = source;
+            } else {
+                image.at<cv::Vec3b>(targetY, targetX) = cv::Vec3b(source[0], source[1], source[2]);
+            }
+        }
     }
 }
 
@@ -133,8 +225,8 @@ bool drawTableImage(cv::Mat& image, const std::vector<std::vector<std::string>>&
 {
     if (rows.empty()) return false;
 
-    int y = 150;
-    const int lineHeight = 30;
+    int y = scaled(image, 150);
+    const int lineHeight = scaled(image, 30);
     const int maxRows = 16;
     for (size_t r = 0; r < rows.size() && static_cast<int>(r) < maxRows; ++r) {
         std::ostringstream line;
@@ -144,11 +236,11 @@ bool drawTableImage(cv::Mat& image, const std::vector<std::vector<std::string>>&
         }
         cv::putText(image,
                     line.str(),
-                    cv::Point(50, y),
-                    cv::FONT_HERSHEY_SIMPLEX,
-                    r == 0 ? 0.68 : 0.55,
+                    cv::Point(scaled(image, 50), y),
+                    chartFontFace(),
+                    r == 0 ? scaledFont(image, 0.68) : scaledFont(image, 0.55),
                     r == 0 ? cv::Scalar(30, 30, 30, 255) : cv::Scalar(70, 70, 70, 255),
-                    r == 0 ? 2 : 1,
+                    r == 0 ? scaled(image, 2) : std::max(1, scaled(image, 1)),
                     cv::LINE_AA);
         y += lineHeight;
     }
@@ -177,34 +269,32 @@ bool drawPieChartImage(cv::Mat& image, const core::domain::AnalysisResult& resul
 
     const int width = image.cols;
     const int height = image.rows;
-    const int legendWidth = std::max(280, width / 3);
-    const int pieAreaWidth = width - legendWidth;
-    const int radiusPx = std::max(120, std::min(pieAreaWidth / 2 - 20, height / 2 - 20));
-    const cv::Point center(pieAreaWidth / 2, height / 2);
+    const int margin = scaled(image, 24);
+    const int legendWidth = std::max(320, width / 3);
+    const int pieAreaWidth = width - legendWidth - (margin * 3);
+    const int radiusPx = std::max(scaled(image, 120), std::min(pieAreaWidth / 2, height / 2 - margin));
+    const cv::Point center(margin + radiusPx, margin + radiusPx);
     const cv::Size radius(radiusPx, radiusPx);
-    const std::vector<cv::Scalar> colors = {
-        {66, 133, 244, 255}, {219, 68, 55, 255}, {244, 180, 0, 255}, {15, 157, 88, 255},
-        {171, 71, 188, 255}, {0, 172, 193, 255}, {255, 112, 67, 255}, {158, 158, 158, 255}
-    };
 
-    double startAngle = 0.0;
+    double startAngle = -90.0;
     for (size_t i = 0; i < slices.size(); ++i) {
         const double angle = 360.0 * (slices[i].value / total);
-        const cv::Scalar color = colors[i % colors.size()];
+        const cv::Scalar color = colorForKey(slices[i].label);
         cv::ellipse(image, center, radius, 0.0, startAngle, startAngle + angle, color, cv::FILLED, cv::LINE_AA);
         startAngle += angle;
     }
 
-    const int legendX = width - legendWidth + 20;
-    int legendY = 40;
-    const int maxLegendRows = std::max(1, (height - 40) / 30);
+    const int legendX = margin + (radiusPx * 2) + margin;
+    int legendY = margin + scaled(image, 20);
+    const int maxLegendRows = std::max(1, (height - margin) / scaled(image, 30));
     for (size_t i = 0; i < slices.size() && static_cast<int>(i) < maxLegendRows; ++i) {
-        const cv::Scalar color = colors[i % colors.size()];
-        cv::rectangle(image, cv::Point(legendX, legendY - 16), cv::Point(legendX + 20, legendY + 4), color, cv::FILLED, cv::LINE_AA);
+        const cv::Scalar color = colorForKey(slices[i].label);
+        cv::rectangle(image, cv::Point(legendX, legendY - scaled(image, 16)), cv::Point(legendX + scaled(image, 20), legendY + scaled(image, 4)), color, cv::FILLED, cv::LINE_AA);
         std::ostringstream label;
-        label << slices[i].label << " (" << std::fixed << std::setprecision(1) << (slices[i].value * 100.0 / total) << "%)";
-        cv::putText(image, label.str(), cv::Point(legendX + 30, legendY), cv::FONT_HERSHEY_SIMPLEX, 0.55, cv::Scalar(50, 50, 50, 255), 1, cv::LINE_AA);
-        legendY += 30;
+        label << slices[i].label << "  " << std::fixed << std::setprecision(2) << slices[i].value
+              << "  " << std::setprecision(1) << (slices[i].value * 100.0 / total) << "%";
+        cv::putText(image, label.str(), cv::Point(legendX + scaled(image, 30), legendY), chartFontFace(), scaledFont(image, 0.55), cv::Scalar(50, 50, 50, 255), std::max(1, scaled(image, 1)), cv::LINE_AA);
+        legendY += scaled(image, 30);
     }
 
     return true;
@@ -215,9 +305,13 @@ bool drawHistogramImage(cv::Mat& image, const core::domain::AnalysisResult& resu
     struct Bucket {
         std::string label;
         double value = 0.0;
+        std::unordered_map<std::string, double> byContract;
+        std::unordered_map<std::string, double> byProperty;
     };
 
     std::vector<Bucket> buckets;
+    std::vector<std::string> categories;
+    std::vector<std::string> propertyCategories;
     for (const auto& row : result.table) {
         if (row.empty()) continue;
 
@@ -234,59 +328,156 @@ bool drawHistogramImage(cv::Mat& image, const core::domain::AnalysisResult& resu
                     && summary[core::constants::analysis::resultFields::kTotal].is_number()) {
                     total = std::fabs(summary[core::constants::analysis::resultFields::kTotal].get<double>());
                 }
+                if (summary.contains("byContract") && summary["byContract"].is_object()) {
+                    for (const auto& item : summary["byContract"].items()) {
+                        const std::string key = item.key();
+                        if (std::find(categories.begin(), categories.end(), key) == categories.end()) {
+                            categories.push_back(key);
+                        }
+                    }
+                }
+                if (summary.contains("byProperty") && summary["byProperty"].is_object()) {
+                    for (const auto& item : summary["byProperty"].items()) {
+                        const std::string key = item.key();
+                        if (std::find(propertyCategories.begin(), propertyCategories.end(), key) == propertyCategories.end()) {
+                            propertyCategories.push_back(key);
+                        }
+                    }
+                }
             } else {
                 total = std::fabs(parseNumber(row[1]));
             }
         }
 
-        buckets.push_back({month, total});
+        Bucket bucket;
+        bucket.label = month;
+        bucket.value = total;
+        if (row.size() > 1) {
+            nlohmann::json summary;
+            if (tryParseJsonObject(row[1], summary) && summary.contains("byContract") && summary["byContract"].is_object()) {
+                for (const auto& item : summary["byContract"].items()) {
+                    if (item.value().is_number()) {
+                        bucket.byContract[item.key()] = std::fabs(item.value().get<double>());
+                    }
+                }
+            }
+            if (tryParseJsonObject(row[1], summary) && summary.contains("byProperty") && summary["byProperty"].is_object()) {
+                for (const auto& item : summary["byProperty"].items()) {
+                    if (item.value().is_number()) {
+                        bucket.byProperty[item.key()] = std::fabs(item.value().get<double>());
+                    }
+                }
+            }
+        }
+        if (bucket.value <= 0.0 && !bucket.byContract.empty()) {
+            for (const auto& [_, value] : bucket.byContract) {
+                bucket.value += value;
+            }
+        }
+        buckets.push_back(std::move(bucket));
     }
     if (buckets.empty()) return false;
+    if (categories.empty()) categories.push_back("Total");
 
     const int width = image.cols;
     const int height = image.rows;
-    const int legendWidth = std::max(260, width / 3);
-    const int left = 40;
-    const int right = width - legendWidth - 20;
-    const int top = 20;
-    const int bottom = height - 40;
-    cv::line(image, cv::Point(left, bottom), cv::Point(right, bottom), cv::Scalar(110, 110, 110, 255), 2, cv::LINE_AA);
-    cv::line(image, cv::Point(left, top), cv::Point(left, bottom), cv::Scalar(110, 110, 110, 255), 2, cv::LINE_AA);
+    const int margin = scaled(image, 24);
+    std::size_t longestPropertyLabel = 0;
+    for (const auto& property : propertyCategories) {
+        longestPropertyLabel = std::max(longestPropertyLabel, property.size());
+    }
+    const int legendTop = height - scaled(image, 132);
+    const int labelBandHeight = propertyCategories.size() > 1
+        ? std::min(scaled(image, 360), scaled(image, 42) + static_cast<int>(longestPropertyLabel) * scaled(image, 10))
+        : scaled(image, 46);
+    const int left = margin;
+    const int right = width - margin;
+    const int top = margin;
+    const int bottom = legendTop - labelBandHeight;
 
     double maxValue = 0.0;
     for (const auto& bucket : buckets) maxValue = std::max(maxValue, bucket.value);
     if (maxValue <= 0.0) maxValue = 1.0;
 
     const int count = static_cast<int>(buckets.size());
-    const int slotWidth = std::max(16, (right - left - 20) / std::max(1, count));
-    const int barWidth = std::max(10, slotWidth - 12);
-    const cv::Scalar barColor(66, 133, 244, 255);
+    const int slotWidth = std::max(scaled(image, 20), (right - left - scaled(image, 20)) / std::max(1, count));
+    const int barWidth = std::max(scaled(image, 10), slotWidth - scaled(image, 34));
+    const cv::Scalar barColor = colorForKey("Total");
+    const bool splitByProperty = propertyCategories.size() > 1;
     for (int i = 0; i < count; ++i) {
         const auto& bucket = buckets[static_cast<size_t>(i)];
-        const int barHeight = static_cast<int>(((bottom - top - 10) * bucket.value) / maxValue);
-        const int x1 = left + 10 + (i * slotWidth);
-        const int x2 = x1 + barWidth;
-        const int y1 = bottom - barHeight;
+        const int x1 = left + (i * slotWidth) + ((slotWidth - barWidth) / 2);
+        if (splitByProperty && !bucket.byProperty.empty()) {
+            const int gap = scaled(image, 5);
+            const int propertyCount = static_cast<int>(propertyCategories.size());
+            const int propertyBarWidth = std::max(scaled(image, 5), (barWidth - (gap * std::max(0, propertyCount - 1))) / std::max(1, propertyCount));
+            double contractTotal = 0.0;
+            for (const auto& [_, value] : bucket.byContract) contractTotal += value;
+            if (contractTotal <= 0.0) contractTotal = bucket.value;
 
-        cv::rectangle(image, cv::Point(x1, y1), cv::Point(x2, bottom - 1), barColor, cv::FILLED, cv::LINE_AA);
+            for (int pi = 0; pi < propertyCount; ++pi) {
+                const auto& property = propertyCategories[static_cast<size_t>(pi)];
+                const auto propertyIt = bucket.byProperty.find(property);
+                const double propertyValue = propertyIt == bucket.byProperty.end() ? 0.0 : propertyIt->second;
+                const int px1 = x1 + (pi * (propertyBarWidth + gap));
+                const int px2 = px1 + propertyBarWidth;
+                int baseline = bottom;
+
+                if (bucket.byContract.empty()) {
+                    const int barHeight = static_cast<int>(((bottom - top - 10) * propertyValue) / maxValue);
+                    cv::rectangle(image, cv::Point(px1, bottom - barHeight), cv::Point(px2, bottom - 1), barColor, cv::FILLED, cv::LINE_AA);
+                } else {
+                    for (const auto& category : categories) {
+                        const auto contractIt = bucket.byContract.find(category);
+                        if (contractIt == bucket.byContract.end()) continue;
+                        const double segmentValue = contractTotal > 0.0 ? propertyValue * (contractIt->second / contractTotal) : 0.0;
+                        const int segmentHeight = static_cast<int>(((bottom - top - 10) * segmentValue) / maxValue);
+                        cv::rectangle(image, cv::Point(px1, baseline - segmentHeight), cv::Point(px2, baseline - 1), colorForKey(category), cv::FILLED, cv::LINE_AA);
+                        baseline -= segmentHeight;
+                    }
+                }
+
+                drawRotatedText(image,
+                                property,
+                                cv::Point(px1 + std::max(0, (propertyBarWidth - scaled(image, 14)) / 2),
+                                          bottom + scaled(image, 26)),
+                                scaledFont(image, 0.36),
+                                cv::Scalar(70, 70, 70, 255),
+                                std::max(1, scaled(image, 1)));
+            }
+        } else if (bucket.byContract.empty()) {
+            const int barHeight = static_cast<int>(((bottom - top - 10) * bucket.value) / maxValue);
+            cv::rectangle(image, cv::Point(x1, bottom - barHeight), cv::Point(x1 + barWidth, bottom - 1), barColor, cv::FILLED, cv::LINE_AA);
+        } else {
+            int baseline = bottom;
+            for (const auto& category : categories) {
+                const auto it = bucket.byContract.find(category);
+                if (it == bucket.byContract.end()) continue;
+                const int segmentHeight = static_cast<int>(((bottom - top - 10) * it->second) / maxValue);
+                cv::rectangle(image, cv::Point(x1, baseline - segmentHeight), cv::Point(x1 + barWidth, baseline - 1), colorForKey(category), cv::FILLED, cv::LINE_AA);
+                baseline -= segmentHeight;
+            }
+        }
 
         if (i % std::max(1, count / 12) == 0) {
-            cv::putText(image, bucket.label, cv::Point(x1, bottom + 16), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(70, 70, 70, 255), 1, cv::LINE_AA);
+            cv::putText(image, bucket.label, cv::Point(x1, bottom + scaled(image, 18)), chartFontFace(), scaledFont(image, 0.4), cv::Scalar(70, 70, 70, 255), std::max(1, scaled(image, 1)), cv::LINE_AA);
         }
     }
 
-    const int legendX = width - legendWidth + 20;
-    cv::rectangle(image, cv::Point(legendX, 26), cv::Point(legendX + 20, 46), barColor, cv::FILLED, cv::LINE_AA);
-    cv::putText(image, "Total", cv::Point(legendX + 30, 42), cv::FONT_HERSHEY_SIMPLEX, 0.55, cv::Scalar(50, 50, 50, 255), 1, cv::LINE_AA);
-
-    int legendY = 80;
-    const int maxLegendRows = std::max(1, (height - 80) / 24);
-    for (int i = 0; i < count && i < maxLegendRows; ++i) {
-        const auto& bucket = buckets[static_cast<size_t>(i)];
-        std::ostringstream label;
-        label << bucket.label << ": " << std::fixed << std::setprecision(2) << bucket.value;
-        cv::putText(image, label.str(), cv::Point(legendX, legendY), cv::FONT_HERSHEY_SIMPLEX, 0.45, cv::Scalar(60, 60, 60, 255), 1, cv::LINE_AA);
-        legendY += 24;
+    int legendX = margin;
+    int legendY = legendTop + scaled(image, 26);
+    const int legendRight = width - margin;
+    for (size_t i = 0; i < categories.size(); ++i) {
+        const auto& category = categories[i];
+        const int textWidth = std::max(scaled(image, 80), static_cast<int>(category.size()) * scaled(image, 9));
+        const int itemWidth = textWidth + scaled(image, 48);
+        if (legendX + itemWidth > legendRight) {
+            legendX = margin;
+            legendY += scaled(image, 30);
+        }
+        cv::rectangle(image, cv::Point(legendX, legendY - scaled(image, 16)), cv::Point(legendX + scaled(image, 20), legendY + scaled(image, 4)), colorForKey(category), cv::FILLED, cv::LINE_AA);
+        cv::putText(image, category, cv::Point(legendX + scaled(image, 30), legendY), chartFontFace(), scaledFont(image, 0.55), cv::Scalar(50, 50, 50, 255), std::max(1, scaled(image, 1)), cv::LINE_AA);
+        legendX += itemWidth;
     }
 
     return true;
@@ -295,8 +486,8 @@ bool drawHistogramImage(cv::Mat& image, const core::domain::AnalysisResult& resu
 bool writeImageFromResult(const std::filesystem::path& outputPath,
                           const core::domain::AnalysisResult& result)
 {
-    constexpr int width = 1280;
-    constexpr int height = 720;
+    constexpr int width = 2560;
+    constexpr int height = 1440;
     const bool asPng = outputPath.has_extension()
         && outputPath.extension().string() == ".png";
 

@@ -45,15 +45,13 @@ Controls.Panel {
                                                      : ""
             Layout.fillWidth: true
             textRole: "display"
-            model: root.session
-                ? root.session.displayRowsWithEmpty(root.actorRows || [], qsTr("No actor"), "name")
-                : []
+            model: root.session ? root.session.displayRowsWithEmpty(root.actorRows || [], qsTr("No actor"), "name") : []
             currentIndex: {
                 const idx = root.session ? root.session.indexOfId(model, selectedActorId) : -1
                 return idx >= 0 ? idx : 0
             }
-            onActivated: {
-                const row = model[currentIndex]
+            onActivated: function(index) {
+                const row = model[index]
                 root.selectionChanged(row && row.id ? [String(row.id)] : [])
             }
         }

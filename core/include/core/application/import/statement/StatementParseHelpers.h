@@ -53,12 +53,12 @@ bool isLikelyTransactionHeaderLine(const core::application::importing::transacti
  */
 std::pair<int, bool> detectHeaderRegion(const std::vector<core::application::importing::transaction::internal::OcrLine>& lines, size_t scanLines);
 /**
- * @brief Finds a fallback booking date near the top of the parsed page.
+ * @brief Finds a default booking date near the top of the parsed page.
  * @param lines OCR lines extracted from the page.
  * @param scanLines Number of leading lines to inspect.
  * @return Booking date when one can be inferred, otherwise an empty optional.
  */
-std::optional<std::string> findFallbackBookingDate(const std::vector<core::application::importing::transaction::internal::OcrLine>& lines, size_t scanLines) noexcept;
+std::optional<std::string> findDefaultBookingDate(const std::vector<core::application::importing::transaction::internal::OcrLine>& lines, size_t scanLines) noexcept;
 /**
  * @brief Extracts a booking date from a header line.
  * @param line Header text to inspect.

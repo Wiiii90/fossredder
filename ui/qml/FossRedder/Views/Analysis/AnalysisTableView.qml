@@ -10,6 +10,7 @@ pragma ComponentBehavior: Bound
 
 Item {
     id: root
+    objectName: "analysisTablePreview"
     required property var appContext
     required property var theme
 
@@ -41,13 +42,14 @@ Item {
         return isNaN(n) ? 0.0 : n
     }
 
-    function propertyLabel(propertyId) {
-        try {
-            if (root.session && root.session.propertyName)
-                return root.session.propertyName(propertyId)
-        } catch (e) {
+    function propertyLabel(tx, index, propertyId) {
+        const names = tx && tx.propertyNames && tx.propertyNames.length !== undefined ? tx.propertyNames : []
+        if (index >= 0 && index < names.length) {
+            const name = String(names[index] || "")
+            if (name.length > 0)
+                return name
         }
-        return propertyId
+        return String(propertyId || "")
     }
 
     function matrixValue(contractType, propertyName) {
@@ -85,7 +87,7 @@ Item {
 
     function rebuildMatrix() {
         const result = root.session ? root.session.lastAnalysisResult : null
-        const transactions = result && result.transactions ? result.transactions : []
+        const transactions = root.tableTransactions(result)
 
         root.matrixPropertyNames = []
         root.contractTotals = ({})
@@ -114,7 +116,7 @@ Item {
                     : baseAmount
             const propertyIds = tx.propertyIds && tx.propertyIds.length > 0
                     ? tx.propertyIds
-                    : []
+                    : [qsTr("Unassigned")]
 
             contractSet[contractType] = true
             if (!amountsByContract[contractType])
@@ -126,7 +128,7 @@ Item {
                 const propertyId = String(propertyIds[p])
                 if (propertyId.length === 0)
                     continue
-                const propertyName = root.propertyLabel(propertyId)
+                const propertyName = root.propertyLabel(tx, p, propertyId)
                 propertySet[propertyName] = true
                 amountsByContract[contractType][propertyName] = (amountsByContract[contractType][propertyName] || 0.0) + adjustedAmount
                 propertyTotals[propertyName] = (propertyTotals[propertyName] || 0.0) + adjustedAmount
@@ -158,13 +160,37 @@ Item {
         root.matrixRows = []
     }
 
+    function tableTransactions(result) {
+        if (!result)
+            return []
+        if (result.transactions && result.transactions.length !== undefined && result.transactions.length > 0)
+            return result.transactions
+
+        const table = result.table && result.table.length !== undefined ? result.table : []
+        const out = []
+        for (let i = 0; i < table.length; ++i) {
+            const row = table[i]
+            if (!row || row.length < 3)
+                continue
+            out.push({
+                id: "table-row-" + i,
+                date: String(row[0] || ""),
+                name: String(row[1] || ""),
+                amount: root.parseNumber(row[2]),
+                contractType: qsTr("Unassigned"),
+                propertyIds: [qsTr("Unassigned")]
+            })
+        }
+        return out
+    }
+
     ColumnLayout {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
+        anchors.fill: parent
         spacing: root.spacingSmallValue
 
         Flickable {
             id: matrixViewport
+            objectName: "analysisTableViewport"
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
@@ -215,6 +241,8 @@ Item {
                         Label {
                             text: qsTr("Total")
                             Layout.preferredWidth: root.tableTotalColumnWidthValue
+                            Layout.minimumWidth: root.tableTotalColumnWidthValue
+                            Layout.fillWidth: true
                             horizontalAlignment: Text.AlignRight
                             rightPadding: root.spacingSmallValue
                         }
@@ -269,6 +297,8 @@ Item {
 
                             Rectangle {
                                 Layout.preferredWidth: root.tableTotalColumnWidthValue
+                                Layout.minimumWidth: root.tableTotalColumnWidthValue
+                                Layout.fillWidth: true
                                 Layout.preferredHeight: root.tableRowHeightValue
                                 color: root.surfaceAltColor
                                 border.width: root.borderWidthThinValue
@@ -333,6 +363,8 @@ Item {
 
                         Rectangle {
                             Layout.preferredWidth: root.tableTotalColumnWidthValue
+                            Layout.minimumWidth: root.tableTotalColumnWidthValue
+                            Layout.fillWidth: true
                             Layout.preferredHeight: root.tableRowHeightValue
                             color: root.gridCellColor(false, true, false)
                             border.width: root.borderWidthThinValue

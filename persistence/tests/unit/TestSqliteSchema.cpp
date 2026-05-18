@@ -31,11 +31,21 @@ TEST(SqliteSchemaTest, EnsureCreatesTheWorkspaceTablesAndForeignKeyMode)
     EXPECT_TRUE(tableExists(handle, "actor_aliases"));
     EXPECT_TRUE(tableExists(handle, "contracts"));
     EXPECT_TRUE(tableExists(handle, "transactions"));
-    EXPECT_TRUE(tableExists(handle, "analyses"));
-    EXPECT_TRUE(tableExists(handle, "annuals"));
+    EXPECT_TRUE(tableExists(handle, "statement_transactions"));
+    EXPECT_TRUE(tableExists(handle, "statement_drafts"));
+    EXPECT_TRUE(tableExists(handle, "statement_draft_transactions"));
+    EXPECT_TRUE(tableExists(handle, "transaction_drafts"));
+    EXPECT_TRUE(tableExists(handle, "transaction_draft_properties"));
     EXPECT_TRUE(tableExists(handle, "import_logs"));
+    EXPECT_TRUE(tableExists(handle, "import_log_statement_drafts"));
     EXPECT_TRUE(tableExists(handle, "export_logs"));
-    EXPECT_GE(pragmaInt(handle, "user_version"), 1);
+    EXPECT_TRUE(tableExists(handle, "export_log_annuals"));
+    EXPECT_TRUE(tableExists(handle, "export_log_analyses"));
+    EXPECT_TRUE(tableExists(handle, "analyses"));
+    EXPECT_TRUE(tableExists(handle, "analysis_adjustments"));
+    EXPECT_TRUE(tableExists(handle, "annuals"));
+    EXPECT_TRUE(tableExists(handle, "annual_analyses"));
+    EXPECT_EQ(pragmaInt(handle, "user_version"), 1);
 
     sqlite3_close(handle);
 }

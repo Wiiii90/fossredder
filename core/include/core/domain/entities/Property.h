@@ -73,10 +73,46 @@ public:
      */
     [[nodiscard]] std::size_t aliasCount() const noexcept;
 
+    /**
+     * @brief Replaces all linked contract identifiers.
+     * @param value Contract identifiers.
+     */
+    void setContractIds(std::vector<std::string> value);
+
+    /**
+     * @brief Adds a linked contract identifier when it is not already present.
+     * @param value Contract identifier to add.
+     */
+    void addContractId(std::string value);
+
+    /**
+     * @brief Removes a linked contract identifier.
+     * @param value Contract identifier to remove.
+     */
+    void removeContractId(std::string value);
+
+    /**
+     * @brief Clears all linked contract identifiers.
+     */
+    void clearContractIds();
+
+    /**
+     * @brief Checks whether the property has at least one linked contract.
+     * @return `true` when any contract relation exists.
+     */
+    [[nodiscard]] bool hasContractRelations() const noexcept;
+
+    /**
+     * @brief Returns the number of linked contract identifiers.
+     * @return Contract relation count.
+     */
+    [[nodiscard]] std::size_t contractCount() const noexcept;
+
 private:
     std::string id_;
     std::string name_;
     std::vector<Alias> aliases_;
+    std::vector<std::string> contractIds_;
     std::string createdAt_;
     std::string updatedAt_;
 
@@ -85,6 +121,7 @@ public:
     [[nodiscard]] const std::string& id() const noexcept;
     [[nodiscard]] const std::string& name() const noexcept;
     [[nodiscard]] const std::vector<Alias>& aliases() const noexcept;
+    [[nodiscard]] const std::vector<std::string>& contractIds() const noexcept;
     [[nodiscard]] const std::string& createdAt() const noexcept;
     [[nodiscard]] const std::string& updatedAt() const noexcept;
 

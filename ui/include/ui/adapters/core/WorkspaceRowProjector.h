@@ -33,7 +33,7 @@ QString wrappedIdAt(const QVariantList& rows, int index);
 QString navigatedId(const QVariantList& rows,
                    const QString& currentId,
                    int delta,
-                   int fallbackIndex = 0);
+                   int defaultIndex = 0);
 
 // Row projection helpers
 QVariantList displayRowsWithEmpty(const QVariantList& rows,
@@ -66,7 +66,7 @@ QVariantMap navigateSelectionState(const QVariantList& rows,
                                    int currentIndex,
                                    const QString& selectedId,
                                    int delta,
-                                   int fallbackIndex = 0,
+                                   int defaultIndex = 0,
                                    const QString& idKey = QStringLiteral("id"));
 QVariantMap deleteReselectionState(const QVariantList& rows,
                                    const QVariantList& preferredOrder,
@@ -75,7 +75,7 @@ QVariantMap deleteReselectionState(const QVariantList& rows,
                                    const QString& idKey = QStringLiteral("id"));
 QString deleteNextSelectionId(const QVariantList& rows,
                               const QString& removedId,
-                              int fallbackIndex = 0,
+                              int defaultIndex = 0,
                               const QString& idKey = QStringLiteral("id"));
 
 // Form state helpers

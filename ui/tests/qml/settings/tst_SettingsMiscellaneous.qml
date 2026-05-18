@@ -16,7 +16,7 @@ TestCase {
     width: 960
     height: 640
 
-    property var settingsController: QtObject {
+    property var settingsViewModel: QtObject {
         property bool toolbarShowBooking: true
         property bool toolbarShowImport: true
         property bool toolbarShowActors: true
@@ -29,7 +29,7 @@ TestCase {
     }
 
     property var appContext: QtObject {
-        property var settingsController: testCase.settingsController
+        property var settingsViewModel: testCase.settingsViewModel
     }
 
     property var theme: QtObject {
@@ -56,19 +56,19 @@ TestCase {
     }
 
     function init() {
-        settingsController.toolbarShowBooking = true
-        settingsController.toolbarShowImport = true
+        settingsViewModel.toolbarShowBooking = true
+        settingsViewModel.toolbarShowImport = true
     }
 
     function test_SET_M_001_toolbarFlagsAreWritableThroughBoundControls() {
         var view = createView()
         verify(view !== null)
 
-        settingsController.toolbarShowBooking = false
-        settingsController.toolbarShowImport = false
+        settingsViewModel.toolbarShowBooking = false
+        settingsViewModel.toolbarShowImport = false
 
-        compare(settingsController.toolbarShowBooking, false)
-        compare(settingsController.toolbarShowImport, false)
+        compare(settingsViewModel.toolbarShowBooking, false)
+        compare(settingsViewModel.toolbarShowImport, false)
     }
 
 }

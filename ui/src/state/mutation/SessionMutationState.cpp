@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <QModelIndex>
 #include <QSet>
+#include <QVariantMap>
 
 #include "ui/state/filters/FilterState.h"
 #include "ui/state/session/WorkspaceSessionModels.h"
@@ -49,6 +50,23 @@ void assignTransactionPropertyIds(Transaction &transaction,
   transaction.setPropertyIds(toStdStringVector(propertyIds));
 }
 
+QString stringValue(const QVariant& value)
+{
+    const QVariantMap map = value.toMap();
+    if (!map.isEmpty()) {
+        const QString aliasValue = map.value(QStringLiteral("value")).toString();
+        if (!aliasValue.isEmpty()) return aliasValue;
+
+        const QString aliasSource = map.value(QStringLiteral("source")).toString();
+        if (!aliasSource.isEmpty()) return aliasSource;
+
+        const QString id = map.value(QStringLiteral("id")).toString();
+        if (!id.isEmpty()) return id;
+    }
+
+    return value.toString();
+}
+
 } // namespace
 
 QVariantList SessionMutationState::normalizeStrings(const QVariantList& values)
@@ -56,7 +74,7 @@ QVariantList SessionMutationState::normalizeStrings(const QVariantList& values)
     QVariantList out;
     out.reserve(values.size());
     for (const auto& value : values) {
-        out.push_back(value.toString());
+        out.push_back(stringValue(value));
     }
     return out;
 }
@@ -94,7 +112,7 @@ QVariantList SessionMutationState::removeString(const QVariantList& values, cons
     QVariantList out;
     out.reserve(values.size());
     for (const auto& item : values) {
-        const QString current = item.toString();
+        const QString current = stringValue(item);
         if (current != value) {
             out.push_back(current);
         }

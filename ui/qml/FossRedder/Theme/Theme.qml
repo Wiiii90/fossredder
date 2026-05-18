@@ -30,7 +30,6 @@ QtObject {
     property color statusBarBackground: "#f6fbfd"
     property color statusBarBorder: "#e3eef6"
     property color placeholderText: "#666666"
-    property color debugText: "#444444"
     property color selectionHighlight: "#ffd39c"
     property color toolbarBackground: "#f6fbfd"
     property color toolbarBorder: "#e6eef5"

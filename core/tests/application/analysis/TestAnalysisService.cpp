@@ -56,4 +56,92 @@ TEST(AnalysisServiceTest, ReturnsUnfoundResultWhenAnalysisIdIsMissing) {
     EXPECT_TRUE(result.transactions.empty());
 }
 
+TEST(AnalysisServiceTest, RunsAnalysisAgainstPersistedTransactionSnapshot) {
+    core::domain::catalog::WorkspaceCatalog state;
+
+    auto liveContract = std::make_shared<core::domain::Contract>();
+    liveContract->setId("contract-live");
+    liveContract->rename("Live Contract");
+    liveContract->setType("live-type");
+    state.setContracts({liveContract});
+
+    auto liveTransaction = std::make_shared<core::domain::Transaction>();
+    liveTransaction->setId("tx-live");
+    liveTransaction->setName("Live Transaction");
+    liveTransaction->setBookingDate("2026-01-31");
+    liveTransaction->setAmount(999.0);
+    liveTransaction->setContractId("contract-live");
+    state.setTransactions({liveTransaction});
+
+    auto analysis = std::make_shared<core::domain::Analysis>();
+    analysis->setId("analysis-1");
+    analysis->rename("Frozen Analysis");
+    analysis->setType("plot");
+    analysis->setExportFormat("png");
+    analysis->setConfigJson(R"({"plotType":"pie","plotMeasure":"totalAmount","contractTypes":["snapshot-type"]})");
+    analysis->setSnapshotTransactionsJson(R"([
+        {
+            "id":"tx-snapshot",
+            "name":"Snapshot Transaction",
+            "date":"2025-01-31",
+            "amount":42.0,
+            "contractId":"contract-snapshot",
+            "contractName":"Snapshot Contract",
+            "contractType":"snapshot-type",
+            "propertyIds":["property-snapshot"],
+            "propertyNames":["Snapshot Property"],
+            "allocatable":true
+        }
+    ])");
+    state.setAnalyses({analysis});
+
+    AnalysisService service;
+    const auto result = service.runAnalysisById(state, "analysis-1", "date>=2025-01-01;date<=2025-12-31;contract.type=snapshot-type");
+
+    ASSERT_TRUE(result.found);
+    ASSERT_EQ(result.transactions.size(), 1u);
+    EXPECT_EQ(result.transactions.front().id, "tx-snapshot");
+    EXPECT_EQ(result.transactions.front().contractType, "snapshot-type");
+    ASSERT_EQ(result.table.size(), 1u);
+    EXPECT_EQ(result.table.front().front(), "snapshot-type");
+}
+
+TEST(AnalysisServiceTest, IncludesCalculationAdjustmentsInPlotResultsWhenEnabled) {
+    core::domain::catalog::WorkspaceCatalog state;
+
+    auto contract = std::make_shared<core::domain::Contract>();
+    contract->setId("contract-1");
+    contract->rename("Contract");
+    contract->setType("rent");
+    state.setContracts({contract});
+
+    auto transaction = std::make_shared<core::domain::Transaction>();
+    transaction->setId("tx-1");
+    transaction->setName("Rent");
+    transaction->setBookingDate("2026-01-31");
+    transaction->setAmount(100.0);
+    transaction->setContractId("contract-1");
+    state.setTransactions({transaction});
+
+    auto analysis = std::make_shared<core::domain::Analysis>();
+    analysis->setId("analysis-1");
+    analysis->rename("Adjusted Analysis");
+    analysis->setType("plot");
+    analysis->setExportFormat("png");
+    analysis->setConfigJson(R"({"plotType":"pie","plotMeasure":"totalAmount"})");
+    analysis->setIncludeCalculationAdjustments(true);
+    analysis->setAdjustment("tx-1", 119.0);
+    state.setAnalyses({analysis});
+
+    AnalysisService service;
+    const auto result = service.runAnalysisById(state, "analysis-1");
+
+    ASSERT_TRUE(result.found);
+    ASSERT_EQ(result.table.size(), 1u);
+    EXPECT_EQ(result.table.front().front(), "rent");
+    EXPECT_DOUBLE_EQ(std::stod(result.table.front().at(1)), 119.0);
+    ASSERT_EQ(result.transactions.size(), 1u);
+    EXPECT_DOUBLE_EQ(result.transactions.front().amount, 119.0);
+}
+
 } // namespace core::application::analysis

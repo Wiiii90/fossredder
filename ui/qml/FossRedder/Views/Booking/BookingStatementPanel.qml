@@ -48,13 +48,14 @@ Item {
             }
         }
 
-        RowLayout {
-            Layout.fillWidth: true
+            RowLayout {
+                Layout.fillWidth: true
 
-            Label {
-                text: root.transactionInfoText
-                color: root.theme.textMuted
-            }
+                Label {
+                    objectName: "bookingTransactionInfoLabel"
+                    text: root.transactionInfoText
+                    color: root.theme.textMuted
+                }
 
             Item {
                 Layout.fillWidth: true

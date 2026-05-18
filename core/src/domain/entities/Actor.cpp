@@ -25,6 +25,12 @@ void Actor::setAliases(std::vector<Alias> value) {
     aliases_ = std::move(value);
 }
 
+void Actor::setContractIds(std::vector<std::string> value) {
+    std::sort(value.begin(), value.end());
+    value.erase(std::unique(value.begin(), value.end()), value.end());
+    contractIds_ = std::move(value);
+}
+
 void Actor::addAlias(Alias value) {
     policies::alias::normalizeAlias(value);
     if (value.value().empty() || policies::alias::containsAliasValue(aliases_, value.value())) {
@@ -54,9 +60,35 @@ std::size_t Actor::aliasCount() const noexcept {
     return aliases_.size();
 }
 
+void Actor::addContractId(std::string value) {
+    value = policies::alias::trimCopy(std::move(value));
+    if (value.empty() || std::find(contractIds_.begin(), contractIds_.end(), value) != contractIds_.end()) {
+        return;
+    }
+    contractIds_.push_back(std::move(value));
+}
+
+void Actor::removeContractId(std::string value) {
+    const auto normalized = policies::alias::trimCopy(value);
+    contractIds_.erase(std::remove(contractIds_.begin(), contractIds_.end(), normalized), contractIds_.end());
+}
+
+void Actor::clearContractIds() {
+    contractIds_.clear();
+}
+
+bool Actor::hasContractRelations() const noexcept {
+    return !contractIds_.empty();
+}
+
+std::size_t Actor::contractCount() const noexcept {
+    return contractIds_.size();
+}
+
 const std::string& Actor::id() const noexcept { return id_; }
 const std::string& Actor::name() const noexcept { return name_; }
 const std::vector<Alias>& Actor::aliases() const noexcept { return aliases_; }
+const std::vector<std::string>& Actor::contractIds() const noexcept { return contractIds_; }
 const std::string& Actor::createdAt() const noexcept { return createdAt_; }
 const std::string& Actor::updatedAt() const noexcept { return updatedAt_; }
 void Actor::setId(std::string value) { id_ = std::move(value); }

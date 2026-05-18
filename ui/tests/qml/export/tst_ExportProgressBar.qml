@@ -27,7 +27,7 @@ TestCase {
         property int radius: 3
     }
 
-    property var exportCtrl: QtObject {
+    property var exportWorkflow: QtObject {
         property int currentMode: 0
         property real progress: 0.0
         property string phase: ""
@@ -39,7 +39,7 @@ TestCase {
         ExportProgressBar {
             width: 700
             theme: testCase.theme
-            exportCtrl: testCase.exportCtrl
+            exportWorkflow: testCase.exportWorkflow
             hasExportCtrl: true
             readyText: "Ready"
         }
@@ -56,15 +56,15 @@ TestCase {
     }
 
     function init() {
-        exportCtrl.currentMode = 0
-        exportCtrl.progress = 0.0
-        exportCtrl.phase = ""
-        exportCtrl.error = ""
+        exportWorkflow.currentMode = 0
+        exportWorkflow.progress = 0.0
+        exportWorkflow.phase = ""
+        exportWorkflow.error = ""
     }
 
     function test_EXP_004_progressUsesControllerWhenRunning() {
-        exportCtrl.currentMode = 1
-        exportCtrl.progress = 0.65
+        exportWorkflow.currentMode = 1
+        exportWorkflow.progress = 0.65
 
         var view = createView()
         var bar = findRequired(view, "exportProgressBar")
@@ -73,8 +73,8 @@ TestCase {
     }
 
     function test_EXP_005_statusShowsPhaseBeforeReady() {
-        exportCtrl.currentMode = 1
-        exportCtrl.phase = "Exporting"
+        exportWorkflow.currentMode = 1
+        exportWorkflow.phase = "Exporting"
 
         var view = createView()
         var statusLabel = findRequired(view, "exportProgressStatusLabel")
@@ -83,9 +83,9 @@ TestCase {
     }
 
     function test_EXP_003_statusShowsErrorWhenPresent() {
-        exportCtrl.currentMode = 1
-        exportCtrl.phase = "Exporting"
-        exportCtrl.error = "Disk full"
+        exportWorkflow.currentMode = 1
+        exportWorkflow.phase = "Exporting"
+        exportWorkflow.error = "Disk full"
 
         var view = createView()
         var statusLabel = findRequired(view, "exportProgressStatusLabel")

@@ -28,6 +28,11 @@ enum class AnalysisFilterOperator {
     Equal
 };
 
+enum class AnalysisDateField {
+    BookingDate,
+    Valuta
+};
+
 struct AnalysisFilterClause {
     std::string key;
     std::string value;
@@ -212,12 +217,22 @@ std::vector<std::string> splitContractTypes(const std::string& value)
     return wanted;
 }
 
-void addDatePredicate(core::application::analysis::AnalysisFilter& filter, const AnalysisFilterClause& clause)
+AnalysisDateField parseDateField(const std::string& value)
+{
+    return toLowerStr(cleanValue(value)) == "valuta" ? AnalysisDateField::Valuta
+                                                     : AnalysisDateField::BookingDate;
+}
+
+void addDatePredicate(core::application::analysis::AnalysisFilter& filter,
+                      const AnalysisFilterClause& clause,
+                      AnalysisDateField dateField)
 {
     const int target = dateToInt(clause.value);
-    filter.addPredicate([target, op = clause.op](const std::shared_ptr<Transaction>& transaction, const WorkspaceCatalog&) {
+    filter.addPredicate([target, op = clause.op, dateField](const std::shared_ptr<Transaction>& transaction, const WorkspaceCatalog&) {
         if (!transaction) return false;
-        return compareInt(op, dateToInt(transaction->bookingDate()), target);
+        const std::string sourceDate = dateField == AnalysisDateField::Valuta ? transaction->valuta()
+                                                                              : transaction->bookingDate();
+        return compareInt(op, dateToInt(sourceDate), target);
     });
 }
 
@@ -260,15 +275,38 @@ void addPropertyPredicate(core::application::analysis::AnalysisFilter& filter, c
     const auto wanted = splitList(clause.value);
     if (wanted.empty()) return;
 
-    filter.addPredicate([wanted](const std::shared_ptr<Transaction>& transaction, const WorkspaceCatalog&) {
+    filter.addPredicate([wanted](const std::shared_ptr<Transaction>& transaction, const WorkspaceCatalog& state) {
         if (!transaction) return false;
+        const bool allowUnassigned = std::find(wanted.begin(), wanted.end(), std::string(core::constants::filters::kUnassigned)) != wanted.end();
+        bool hasAnyProperty = false;
 
         for (const auto& propertyId : wanted) {
             if (std::find(transaction->propertyIds().begin(), transaction->propertyIds().end(), propertyId) != transaction->propertyIds().end()) {
                 return true;
             }
         }
-        return false;
+        if (!transaction->propertyIds().empty()) {
+            hasAnyProperty = true;
+        }
+
+        if (transaction->contractId().empty()) return allowUnassigned && !hasAnyProperty;
+        const std::string contractId = cleanValue(transaction->contractId());
+        for (const auto& contract : state.contracts()) {
+            if (!contract) continue;
+            if (cleanValue(contract->id()) != contractId) continue;
+
+            if (!contract->propertyIds().empty()) {
+                hasAnyProperty = true;
+            }
+            for (const auto& propertyId : wanted) {
+                if (std::find(contract->propertyIds().begin(), contract->propertyIds().end(), propertyId) != contract->propertyIds().end()) {
+                    return true;
+                }
+            }
+            return allowUnassigned && !hasAnyProperty;
+        }
+
+        return allowUnassigned && !hasAnyProperty;
     });
 }
 
@@ -290,6 +328,8 @@ AnalysisFilter parseAnalysisFilterSpec(const std::string& spec)
     AnalysisFilter f;
     if (spec.empty()) return f;
 
+    std::vector<AnalysisFilterClause> clauses;
+    AnalysisDateField dateField = AnalysisDateField::BookingDate;
     std::istringstream ss(spec);
     std::string token;
     while (std::getline(ss, token, core::constants::filters::separators::kClause)) {
@@ -298,17 +338,24 @@ AnalysisFilter parseAnalysisFilterSpec(const std::string& spec)
 
         const auto clause = parseClause(token);
         if (!clause) continue;
+        if (clause->key == core::constants::filters::kDateField) {
+            dateField = parseDateField(clause->value);
+            continue;
+        }
+        clauses.push_back(*clause);
+    }
 
-        if (clause->key == core::constants::filters::kDate) {
-            addDatePredicate(f, *clause);
-        } else if (clause->key == core::constants::filters::kAmount) {
-            addAmountPredicate(f, *clause);
-        } else if (clause->key == core::constants::filters::kContractType) {
-            addContractTypePredicate(f, *clause);
-        } else if (clause->key == core::constants::filters::kPropertyId) {
-            addPropertyPredicate(f, *clause);
-        } else if (clause->key == core::constants::filters::kAllocatable) {
-            addAllocatablePredicate(f, *clause);
+    for (const auto& clause : clauses) {
+        if (clause.key == core::constants::filters::kDate) {
+            addDatePredicate(f, clause, dateField);
+        } else if (clause.key == core::constants::filters::kAmount) {
+            addAmountPredicate(f, clause);
+        } else if (clause.key == core::constants::filters::kContractType) {
+            addContractTypePredicate(f, clause);
+        } else if (clause.key == core::constants::filters::kPropertyId) {
+            addPropertyPredicate(f, clause);
+        } else if (clause.key == core::constants::filters::kAllocatable) {
+            addAllocatablePredicate(f, clause);
         }
     }
 

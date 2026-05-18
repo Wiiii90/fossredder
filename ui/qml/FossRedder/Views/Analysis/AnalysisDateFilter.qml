@@ -12,10 +12,12 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
-    property int dateModeIndex: 1
+    property int dateFieldIndex: 0
+    property int dateModeIndex: 0
     property string yearValue: ""
     property string dateFromValue: ""
     property string dateToValue: ""
+    property bool suppressFilterChanged: false
     readonly property real modeFieldWidth: root.theme.formFieldWidth
     readonly property real valueFieldWidth: root.theme.formFieldWidth
     readonly property real yearFieldWidth: (root.theme.formFieldWidth * 2) + root.theme.spacingSmall + implicitFromLabel.implicitWidth + implicitToLabel.implicitWidth
@@ -28,9 +30,17 @@ Controls.Panel {
         Layout.fillWidth: true
         spacing: root.theme.spacingSmall
 
-        Label {
-            text: qsTr("Date")
-            Layout.preferredWidth: root.theme.formLabelWidth
+        Controls.DropdownMenu {
+            id: dateFieldCombo
+            objectName: "analysisDateFieldComboBox"
+            Layout.preferredWidth: root.theme.formFieldWidth
+            model: [ qsTr("Booking Date"), qsTr("Valuta") ]
+            currentIndex: root.dateFieldIndex
+            onCurrentIndexChanged: {
+                root.dateFieldIndex = currentIndex
+                if (!root.suppressFilterChanged)
+                    root.filterChanged()
+            }
         }
 
         Controls.DropdownMenu {
@@ -41,7 +51,8 @@ Controls.Panel {
             currentIndex: root.dateModeIndex
             onCurrentIndexChanged: {
                 root.dateModeIndex = currentIndex
-                root.filterChanged()
+                if (!root.suppressFilterChanged)
+                    root.filterChanged()
             }
         }
 
@@ -60,7 +71,8 @@ Controls.Panel {
             text: root.dateFromValue
             onTextChanged: {
                 root.dateFromValue = text
-                root.filterChanged()
+                if (!root.suppressFilterChanged)
+                    root.filterChanged()
             }
         }
 
@@ -79,7 +91,8 @@ Controls.Panel {
             text: root.dateToValue
             onTextChanged: {
                 root.dateToValue = text
-                root.filterChanged()
+                if (!root.suppressFilterChanged)
+                    root.filterChanged()
             }
         }
 
@@ -92,7 +105,8 @@ Controls.Panel {
             text: root.yearValue
             onTextChanged: {
                 root.yearValue = text
-                root.filterChanged()
+                if (!root.suppressFilterChanged)
+                    root.filterChanged()
             }
         }
 

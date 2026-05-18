@@ -62,6 +62,7 @@ core/
         TestTransactionPolicy.cpp
         TestAnalysisPolicy.cpp
         TestAnnualPolicy.cpp
+        TestStatementPolicy.cpp
         TestDraftMatchingPolicy.cpp
     application/
       analysis/
@@ -228,6 +229,14 @@ catalog aggregate.
 |---|---|---|---|---|---|
 | POL-ANN-001 | Analysis ids are unique | Unit | Analysis id list with duplicates | Validate uniqueness | Duplicates are rejected or removed as specified |
 | POL-ANN-002 | Year validation mirrors the value object rule | Unit | Representative year values | Validate year | Same result as `Year::isValid(...)` |
+
+#### StatementPolicy
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| POL-STM-001 | Transaction ids are trimmed and normalized | Unit | Statement policy helpers and spaced ids | Normalize a transaction id | The id is trimmed to its canonical form |
+| POL-STM-002 | Transaction id lists are normalized deterministically | Unit | Mixed transaction id list | Normalize the list | Duplicate ids are removed and stable ordering is preserved |
+| POL-STM-003 | Membership and index helpers stay deterministic | Unit | Known ordered transaction ids | Query membership and index helpers | Membership and position checks return stable results |
 
 #### DraftMatchingPolicy
 

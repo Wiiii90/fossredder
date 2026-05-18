@@ -29,6 +29,8 @@ class SettingsViewModel : public QObject {
     Q_PROPERTY(QString exportDefaultDirectory READ exportDefaultDirectory WRITE setExportDefaultDirectory NOTIFY exportDefaultDirectoryChanged)
     Q_PROPERTY(int exportArchiveFormat READ exportArchiveFormat WRITE setExportArchiveFormat NOTIFY exportArchiveFormatChanged)
     Q_PROPERTY(bool exportIncludeFormulas READ exportIncludeFormulas WRITE setExportIncludeFormulas NOTIFY exportIncludeFormulasChanged)
+    Q_PROPERTY(QString analysisDefaultDateMode READ analysisDefaultDateMode WRITE setAnalysisDefaultDateMode NOTIFY analysisDefaultDateModeChanged)
+    Q_PROPERTY(int analysisDefaultYear READ analysisDefaultYear WRITE setAnalysisDefaultYear NOTIFY analysisDefaultYearChanged)
     Q_PROPERTY(bool toolbarShowBooking READ toolbarShowBooking WRITE setToolbarShowBooking NOTIFY toolbarShowBookingChanged)
     Q_PROPERTY(bool toolbarShowActors READ toolbarShowActors WRITE setToolbarShowActors NOTIFY toolbarShowActorsChanged)
     Q_PROPERTY(bool toolbarShowProperties READ toolbarShowProperties WRITE setToolbarShowProperties NOTIFY toolbarShowPropertiesChanged)
@@ -52,6 +54,8 @@ public:
     QString exportDefaultDirectory() const { return exportDefaultDirectory_; }
     int exportArchiveFormat() const noexcept { return exportArchiveFormat_; }
     bool exportIncludeFormulas() const noexcept { return exportIncludeFormulas_; }
+    QString analysisDefaultDateMode() const { return analysisDefaultDateMode_; }
+    int analysisDefaultYear() const noexcept { return analysisDefaultYear_; }
     bool toolbarShowBooking() const noexcept { return toolbarShowBooking_; }
     bool toolbarShowActors() const noexcept { return toolbarShowActors_; }
     bool toolbarShowProperties() const noexcept { return toolbarShowProperties_; }
@@ -72,6 +76,8 @@ public:
     void setExportDefaultDirectory(const QString& value);
     void setExportArchiveFormat(int value);
     void setExportIncludeFormulas(bool value);
+    void setAnalysisDefaultDateMode(const QString& value);
+    void setAnalysisDefaultYear(int value);
     void setToolbarShowBooking(bool value);
     void setToolbarShowActors(bool value);
     void setToolbarShowProperties(bool value);
@@ -98,6 +104,8 @@ signals:
     void exportDefaultDirectoryChanged();
     void exportArchiveFormatChanged();
     void exportIncludeFormulasChanged();
+    void analysisDefaultDateModeChanged();
+    void analysisDefaultYearChanged();
     void toolbarShowBookingChanged();
     void toolbarShowActorsChanged();
     void toolbarShowPropertiesChanged();
@@ -130,6 +138,8 @@ private:
     QString exportDefaultDirectory_;
     int exportArchiveFormat_ = 0;
     bool exportIncludeFormulas_ = true;
+    QString analysisDefaultDateMode_;
+    int analysisDefaultYear_ = 0;
     bool toolbarShowBooking_ = true;
     bool toolbarShowActors_ = true;
     bool toolbarShowProperties_ = true;
@@ -150,6 +160,8 @@ private:
     QString savedExportDefaultDirectory_;
     int savedExportArchiveFormat_ = 0;
     bool savedExportIncludeFormulas_ = true;
+    QString savedAnalysisDefaultDateMode_;
+    int savedAnalysisDefaultYear_ = 0;
     bool savedToolbarShowBooking_ = true;
     bool savedToolbarShowActors_ = true;
     bool savedToolbarShowProperties_ = true;

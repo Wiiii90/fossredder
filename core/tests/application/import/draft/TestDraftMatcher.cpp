@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include "core/application/import/draft/DraftMatcher.h"
 
 namespace core::application::importing::draft {
@@ -26,9 +28,9 @@ TEST(DraftMatcherTest, ResolvesActorAndContractIdsFromWorkspaceState) {
     contract->setActorIds({"actor-1"});
     state.setContracts({contract});
 
-    EXPECT_EQ(resolveActorId(state, " Alpha "), "actor-1");
-    EXPECT_EQ(resolveContractId(state, " rent "), "contract-1");
-    EXPECT_TRUE(contractIsFullyAllocatable(state, "contract-1") == false);
+    EXPECT_EQ(resolveActorId(state, " Alpha "), std::string("actor-1"));
+    EXPECT_EQ(resolveContractId(state, " rent "), std::string("contract-1"));
+    EXPECT_FALSE(contractIsFullyAllocatable(state, "contract-1"));
 }
 
 TEST(DraftMatcherTest, NormalizesTextAndFillsFallbackState) {
@@ -40,10 +42,10 @@ TEST(DraftMatcherTest, NormalizesTextAndFillsFallbackState) {
     actor->rename("Alpha");
     fallback.setActors({actor});
 
-    const auto merged = withFallbackState(primary, fallback);
+    const auto merged = mergeCatalogState(std::move(primary), fallback);
 
-    EXPECT_EQ(merged.actors().size(), 1u);
-    EXPECT_EQ(normalizeDraftText("Alpha-Beta"), "alpha beta");
+    EXPECT_EQ(merged.actors().size(), std::size_t{1});
+    EXPECT_EQ(normalizeDraftText("Alpha-Beta"), std::string("alpha beta"));
     EXPECT_TRUE(matchesDraftText("Alpha", " alpha "));
 }
 

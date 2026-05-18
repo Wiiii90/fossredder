@@ -269,7 +269,7 @@ std::pair<int, bool> detectHeaderRegion(const std::vector<OcrLine>& lines, size_
     return {lastBlockY, lastBlockY >= 0};
 }
 
-std::optional<std::string> findFallbackBookingDate(const std::vector<OcrLine>& lines, size_t scanLines) noexcept
+std::optional<std::string> findDefaultBookingDate(const std::vector<OcrLine>& lines, size_t scanLines) noexcept
 {
     try {
         static const std::regex reDate(R"((\d{2}\.\d{2}\.\d{4}))");
@@ -289,7 +289,7 @@ std::optional<std::string> findFallbackBookingDate(const std::vector<OcrLine>& l
             }
         }
     } catch (...) {
-        core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::findFallbackBookingDate", std::current_exception());
+        core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::DefaultStatementParser::findDefaultBookingDate", std::current_exception());
     }
     return std::nullopt;
 }

@@ -13,6 +13,7 @@ Controls.Panel {
     id: root
     required property var theme
     property string mode: "all"
+    property bool initialized: false
     signal modeSelected(string mode)
 
     Layout.fillWidth: true
@@ -34,6 +35,8 @@ Controls.Panel {
             model: [ qsTr("All"), qsTr("Only allocatable"), qsTr("Only non allocatable") ]
             currentIndex: root.mode === "allocatable" ? 1 : (root.mode === "non-allocatable" ? 2 : 0)
             onCurrentIndexChanged: {
+                if (!root.initialized)
+                    return
                 const next = currentIndex === 1 ? "allocatable" : (currentIndex === 2 ? "non-allocatable" : "all")
                 root.modeSelected(next)
             }
@@ -43,4 +46,6 @@ Controls.Panel {
             Layout.fillWidth: true
         }
     }
+
+    Component.onCompleted: root.initialized = true
 }

@@ -24,6 +24,7 @@ class SessionStore : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(SessionStore)
     QML_UNCREATABLE("SessionStore is exposed by the application context")
+    Q_PROPERTY(int dataRevision READ dataRevision NOTIFY dataRevisionChanged)
 
 public:
     /** @brief Creates the session store and connects derived-state recomputation. */
@@ -42,12 +43,18 @@ public:
     void applyDeletionImpact(const core::domain::DeletionImpact& impact);
     /** @brief Applies an immediate property reassignment for a single transaction. */
     void setTransactionPropertyIdsImmediate(const QString& txId, const QStringList& propertyIds);
+    int dataRevision() const noexcept { return dataRevision_; }
+
+signals:
+    void dataRevisionChanged();
 
 private:
     void bindModelSignals();
+    void bumpDataRevision();
 
     FilterState filters_;
     SessionModels models_;
+    int dataRevision_ = 0;
 };
 
 }

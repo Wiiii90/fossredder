@@ -127,7 +127,7 @@ std::optional<double> parseAmountInternal(const std::string& line)
         }
         if (best) return best;
     } catch (...) {
-        core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::parseAmountInternal::fallback", std::current_exception());
+        core::errors::reportException(core::errors::ErrorSeverity::Warning, "core::parser::parseAmountInternal::recovery", std::current_exception());
     }
 
     return std::nullopt;

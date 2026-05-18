@@ -177,7 +177,9 @@ void SqlitePropertyRepository::addProperty(const std::shared_ptr<Property>& prop
     if (!stmt) return;
     stmt.bindText  (1, property->id());    stmt.bindText  (2, property->name());
     stmt.bindText(3, property->createdAt()); stmt.bindText(4, property->updatedAt());
-    if (stmt.step() == SQLITE_DONE) replacePropertyAliases(pimpl_->db->handle(), *property, {});
+    if (stmt.step() == SQLITE_DONE) {
+        replacePropertyAliases(pimpl_->db->handle(), *property, {});
+    }
 }
 
 std::vector<std::shared_ptr<Property>> SqlitePropertyRepository::getProperties() const {
@@ -226,7 +228,9 @@ void SqlitePropertyRepository::updateProperty(const std::shared_ptr<Property>& p
     stmt.bindText(2, property->createdAt());
     stmt.bindText(3, property->updatedAt());
     stmt.bindText(4, property->id());
-    if (stmt.step() == SQLITE_DONE) replacePropertyAliases(pimpl_->db->handle(), *property, existing);
+    if (stmt.step() == SQLITE_DONE) {
+        replacePropertyAliases(pimpl_->db->handle(), *property, existing);
+    }
 }
 
 void SqlitePropertyRepository::upsertProperty(const std::shared_ptr<Property>& property) {
@@ -240,4 +244,3 @@ void SqlitePropertyRepository::clearProperties() {
     sqlite3_exec(pimpl_->db->handle(), "DELETE FROM property_aliases; DELETE FROM properties;", nullptr, nullptr, &err);
     if (err) sqlite3_free(err);
 }
-

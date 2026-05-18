@@ -21,10 +21,12 @@ TestCase {
     property var statementsById: ({})
     property var transactionsById: ({})
     property var statementTransactions: ({})
+    property int dataRevision: 0
 
     property var session: QtObject {
         property string selectedStatementId: ""
         property string selectedTransactionId: ""
+        property int dataRevision: 0
         property var selectedStatement: null
         property var statements: []
         property var actors: []
@@ -205,11 +207,13 @@ TestCase {
             if (ids.length === 0)
                 return { rows: list, orderIds: [], index: -1, id: "" }
 
-            var currentId = selectedId && String(selectedId).length > 0 ? String(selectedId) : String(ids[Math.max(0, Math.min(index, ids.length - 1))])
-            var currentIndex = ids.indexOf(currentId)
+            var currentIndex = -1
+            if (selectedId && String(selectedId).length > 0)
+                currentIndex = ids.indexOf(String(selectedId))
             if (currentIndex < 0)
-                currentIndex = 0
-            return { rows: list, orderIds: ids, index: currentIndex, id: String(ids[currentIndex]) }
+                currentIndex = Math.max(0, Math.min(index, ids.length - 1))
+            var currentId = String(ids[currentIndex])
+            return { rows: list, orderIds: ids, index: currentIndex, id: currentId, currentId: currentId }
         }
 
         function navigateSelectionState(rows, index, selectedId, delta, fallbackIndex, key) {
@@ -342,7 +346,7 @@ TestCase {
             return ids
         }
 
-        function addTransaction(name, bookingDate, amount, description, statementId, status, actorId, allocatable, propertyIds) {
+        function addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
             addTransactionCalls += 1
             var id = "tx-added-" + addTransactionCalls
             testCase.transactionsById[id] = {
@@ -350,10 +354,11 @@ TestCase {
                 name: name,
                 bookingDate: bookingDate,
                 amount: amount,
-                description: description,
+                description: "",
                 statementId: statementId,
                 status: status,
                 actorId: actorId,
+                contractId: contractId,
                 allocatable: allocatable,
                 propertyIds: propertyIds || []
             }
@@ -367,17 +372,17 @@ TestCase {
             return testCase.transactionsById[String(id || "")] || ({})
         }
 
-        function updateTransaction(id, name, bookingDate, amount, description, statementId, status, actorId, allocatable, propertyIds) {
+        function updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
             updateCalls += 1
             lastUpdate = {
                 id: id,
                 name: name,
                 bookingDate: bookingDate,
                 amount: amount,
-                description: description,
                 statementId: statementId,
                 status: status,
                 actorId: actorId,
+                contractId: contractId,
                 allocatable: allocatable,
                 propertyIds: propertyIds
             }
@@ -400,8 +405,19 @@ TestCase {
 
     property var appContext: QtObject {
         property var session: testCase.session
-        property var statementController: testCase.statementController
-        property var transactionController: testCase.transactionController
+        property var workspaceFacade: QtObject {
+            function addStatement(name) { return testCase.statementController.addStatement(name) }
+            function updateStatement(id, name) { testCase.statementController.updateStatement(id, name) }
+            function deleteStatement(id) { testCase.statementController.deleteStatement(id) }
+            function addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+                return testCase.transactionController.addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
+            }
+            function transaction(id) { return testCase.transactionController.transaction(id) }
+            function updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, allocatable, propertyIds) {
+                testCase.transactionController.updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, allocatable, propertyIds)
+            }
+            function deleteTransaction(id) { testCase.transactionController.deleteTransaction(id) }
+        }
     }
 
     property var theme: QtObject {
@@ -493,7 +509,7 @@ TestCase {
         view.createStatementWithTransactions()
 
         compare(statementController.addCalls, 1)
-        compare(transactionController.addTransactionsCalls, 1)
+        compare(transactionController.addTransactionCalls, 1)
         compare(session.selectedStatementId, "statement-new")
     }
 
@@ -565,5 +581,65 @@ TestCase {
 
         prevStatement.clicked()
         compare(session.selectedStatementId, "statement-1")
+    }
+
+    function test_workspaceRevisionRebindsStatementAndTransactionLists() {
+        var view = createView()
+        var prevStatement = findRequired(view, "bookingPreviousStatementButton")
+        var prevTransaction = findRequired(view, "bookingPreviousTransactionButton")
+
+        compare(prevStatement.enabled, false)
+        compare(prevTransaction.enabled, false)
+
+        session.selectedStatementId = "statement-1"
+        session.selectedStatement = { id: "statement-1", name: "S1" }
+        session.statements = [{ id: "statement-1", name: "S1" }]
+        statementTransactions["statement-1"] = ["tx-1", "tx-2"]
+        transactionsById["tx-1"] = { id: "tx-1", name: "Tx 1", statementId: "statement-1" }
+        transactionsById["tx-2"] = { id: "tx-2", name: "Tx 2", statementId: "statement-1" }
+        session.dataRevision += 1
+
+        tryCompare(prevStatement, "enabled", true)
+        tryCompare(prevTransaction, "enabled", true)
+    }
+
+    function test_selectedTransactionUpdatesInfoTextByRowPosition() {
+        statementsById["statement-1"] = { id: "statement-1", name: "S1" }
+        transactionsById["tx-1"] = {
+            id: "tx-1",
+            name: "Rent 1",
+            bookingDate: "2026-01-01",
+            valuta: "2026-01-01",
+            amount: 10,
+            description: "",
+            statementId: "statement-1",
+            status: 0,
+            actorId: "",
+            allocatable: false,
+            propertyIds: []
+        }
+        transactionsById["tx-2"] = {
+            id: "tx-2",
+            name: "Rent 2",
+            bookingDate: "2026-01-02",
+            valuta: "2026-01-02",
+            amount: 12,
+            description: "",
+            statementId: "statement-1",
+            status: 0,
+            actorId: "",
+            allocatable: false,
+            propertyIds: []
+        }
+        statementTransactions["statement-1"] = ["tx-1", "tx-2"]
+        session.statements = [{ id: "statement-1", name: "S1" }]
+        session.selectedStatementId = "statement-1"
+        session.selectedStatement = { id: "statement-1", name: "S1" }
+        session.selectedTransactionId = "tx-2"
+
+        var view = createView()
+        var infoLabel = findRequired(view, "bookingTransactionInfoLabel")
+
+        compare(infoLabel.text, "Transaction 2 / 2")
     }
 }

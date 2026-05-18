@@ -104,6 +104,34 @@ void normalizeAliases(std::vector<core::domain::Alias>& aliases) {
     }
 }
 
+void projectActorPropertyLinksFromContracts(core::application::workspace::WorkspaceSessionState& document) {
+    const auto& contracts = document.catalog.contracts();
+
+    for (auto& actor : document.catalog.actors()) {
+        if (!actor) continue;
+        std::vector<std::string> contractIds;
+        for (const auto& contract : contracts) {
+            if (contract && contract->containsActorId(actor->id())) {
+                contractIds.push_back(contract->id());
+            }
+        }
+        dedupStrings(contractIds);
+        actor->setContractIds(std::move(contractIds));
+    }
+
+    for (auto& property : document.catalog.properties()) {
+        if (!property) continue;
+        std::vector<std::string> contractIds;
+        for (const auto& contract : contracts) {
+            if (contract && contract->containsPropertyId(property->id())) {
+                contractIds.push_back(contract->id());
+            }
+        }
+        dedupStrings(contractIds);
+        property->setContractIds(std::move(contractIds));
+    }
+}
+
 template <typename T>
 std::shared_ptr<T> cloneEntity(const std::shared_ptr<T>& entity) {
     return entity;
@@ -155,6 +183,7 @@ void rehydrate(core::application::workspace::WorkspaceSessionState& document) {
         dedupStrings(analysisIds);
         annual->setAnalysisIds(std::move(analysisIds));
     }
+    projectActorPropertyLinksFromContracts(document);
 }
 
 void validate(const core::application::workspace::WorkspaceSessionState& document, bool strict) {
@@ -235,10 +264,24 @@ void validate(const core::application::workspace::WorkspaceSessionState& documen
         if (actor && !core::domain::EntityName::isValid(actor->name())) {
             fail("Actor.name is invalid");
         }
+        if (actor) {
+            for (const auto& contractId : actor->contractIds()) {
+                if (!contractIds.count(contractId)) {
+                    fail("Actor references missing contract");
+                }
+            }
+        }
     }
     for (const auto& property : state.properties()) {
         if (property && !core::domain::EntityName::isValid(property->name())) {
             fail("Property.name is invalid");
+        }
+        if (property) {
+            for (const auto& contractId : property->contractIds()) {
+                if (!contractIds.count(contractId)) {
+                    fail("Property references missing contract");
+                }
+            }
         }
     }
     for (const auto& statement : state.statements()) {

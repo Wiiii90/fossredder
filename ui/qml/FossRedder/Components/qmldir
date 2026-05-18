@@ -1,7 +1,5 @@
 module FossRedder.Components
 depends QtQuick
-Histogram 1.0 Charts/Histogram.qml
-Pie 1.0 Charts/Pie.qml
 EntityPicker 1.0 Common/EntityPicker.qml
 ListRow 1.0 Common/ListRow.qml
 RunLogList 1.0 Common/RunLogList.qml

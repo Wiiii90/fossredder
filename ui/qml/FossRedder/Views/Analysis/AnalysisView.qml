@@ -13,9 +13,28 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
 
+    function scheduleRefresh() {
+        Qt.callLater(function() {
+            if (analysisForm)
+                analysisForm.refreshFromSelection()
+        })
+    }
+
     onVisibleChanged: {
         if (visible && analysisForm)
-            analysisForm.refreshFromSelection()
+            root.scheduleRefresh()
+    }
+
+    Connections {
+        target: root.session
+        function onSelectedAnalysisIdChanged() {
+            if (analysisForm)
+                root.scheduleRefresh()
+        }
+        function onDataRevisionChanged() {
+            if (analysisForm)
+                root.scheduleRefresh()
+        }
     }
 
     Views.AnalysisForm {
@@ -23,5 +42,6 @@ Item {
         anchors.fill: parent
         appContext: root.appContext
         theme: root.theme
+        Component.onCompleted: root.scheduleRefresh()
     }
 }

@@ -107,11 +107,13 @@ bool eraseEntity(Collection& collection, const std::string& id) {
 void applyActorDraft(core::domain::Actor& actor, const core::application::ActorInput& input) {
     actor.rename(input.name);
     actor.setAliases(input.aliases);
+    actor.setContractIds(input.contractIds);
 }
 
 void applyPropertyDraft(core::domain::Property& property, const core::application::PropertyInput& input) {
     property.rename(input.name);
     property.setAliases(input.aliases);
+    property.setContractIds(input.contractIds);
 }
 
 void applyContractDraft(core::domain::Contract& contract, const core::application::ContractInput& input) {
@@ -135,6 +137,10 @@ void applyAnalysisDraft(core::domain::Analysis& analysis, const core::applicatio
     analysis.setIncludeCalculationAdjustments(input.includeCalculationAdjustments);
     analysis.setExportStateJson(input.exportStateJson);
     analysis.setSnapshotTransactionsJson(input.snapshotTransactionsJson);
+    analysis.clearAdjustments();
+    for (const auto& [key, value] : input.adjustments) {
+        analysis.setAdjustment(key, value);
+    }
 }
 
 void applyAnnualDraft(core::domain::Annual& annual,
@@ -151,12 +157,109 @@ void applyTransactionDraft(core::domain::Transaction& tx, const core::applicatio
     tx.setStatementId(input.statementId);
     tx.setStatus(input.status);
     tx.setActorId(input.actorId);
+    tx.setContractId(input.contractId);
     tx.setAllocatable(input.allocatable);
     tx.setPropertyIds(input.propertyIds);
 }
 
 bool isBlank(const std::string& value) {
     return core::domain::policies::alias::trimCopy(value).empty();
+}
+
+bool syncActorRelations(core::domain::catalog::WorkspaceCatalog& state,
+                        const std::string& actorId,
+                        const std::vector<std::string>& desiredContractIds) {
+    if (actorId.empty()) {
+        return false;
+    }
+
+    std::unordered_set<std::string> desired;
+    for (const auto& contractId : desiredContractIds) {
+        if (!contractId.empty()) {
+            desired.insert(contractId);
+        }
+    }
+
+    bool changed = false;
+    for (auto& contract : state.contracts()) {
+        if (!contract) {
+            continue;
+        }
+        const bool shouldLink = desired.find(contract->id()) != desired.end();
+        const bool hasLink = contract->containsActorId(actorId);
+        if (shouldLink && !hasLink) {
+            contract->addActorId(actorId);
+            stampUpdated(*contract);
+            changed = true;
+        } else if (!shouldLink && hasLink) {
+            contract->removeActorId(actorId);
+            stampUpdated(*contract);
+            changed = true;
+        }
+    }
+
+    return changed;
+}
+
+bool syncPropertyRelations(core::domain::catalog::WorkspaceCatalog& state,
+                           const std::string& propertyId,
+                           const std::vector<std::string>& desiredContractIds) {
+    if (propertyId.empty()) {
+        return false;
+    }
+
+    std::unordered_set<std::string> desired;
+    for (const auto& contractId : desiredContractIds) {
+        if (!contractId.empty()) {
+            desired.insert(contractId);
+        }
+    }
+
+    bool changed = false;
+    for (auto& contract : state.contracts()) {
+        if (!contract) {
+            continue;
+        }
+        const bool shouldLink = desired.find(contract->id()) != desired.end();
+        const bool hasLink = contract->containsPropertyId(propertyId);
+        if (shouldLink && !hasLink) {
+            contract->addPropertyId(propertyId);
+            stampUpdated(*contract);
+            changed = true;
+        } else if (!shouldLink && hasLink) {
+            contract->removePropertyId(propertyId);
+            stampUpdated(*contract);
+            changed = true;
+        }
+    }
+
+    return changed;
+}
+
+void projectActorPropertyLinksFromContracts(core::domain::catalog::WorkspaceCatalog& state) {
+    const auto& contracts = state.contracts();
+
+    for (auto& actor : state.actors()) {
+        if (!actor) continue;
+        std::vector<std::string> contractIds;
+        for (const auto& contract : contracts) {
+            if (contract && contract->containsActorId(actor->id())) {
+                contractIds.push_back(contract->id());
+            }
+        }
+        actor->setContractIds(std::move(contractIds));
+    }
+
+    for (auto& property : state.properties()) {
+        if (!property) continue;
+        std::vector<std::string> contractIds;
+        for (const auto& contract : contracts) {
+            if (contract && contract->containsPropertyId(property->id())) {
+                contractIds.push_back(contract->id());
+            }
+        }
+        property->setContractIds(std::move(contractIds));
+    }
 }
 
 template <typename T>
@@ -231,6 +334,8 @@ public:
         auto actors = state.actors();
         const auto id = appendEntity(actors, [&](core::domain::Actor& actor) { applyActorDraft(actor, input); });
         state.setActors(std::move(actors));
+        syncActorRelations(state, id, input.contractIds);
+        projectActorPropertyLinksFromContracts(state);
         return id;
     }
 
@@ -241,6 +346,10 @@ public:
         auto actors = state.actors();
         const bool updated = updateEntity(actors, id, [&](core::domain::Actor& actor) { applyActorDraft(actor, input); });
         state.setActors(std::move(actors));
+        if (updated) {
+            syncActorRelations(state, id, input.contractIds);
+            projectActorPropertyLinksFromContracts(state);
+        }
         return updated;
     }
 
@@ -248,6 +357,10 @@ public:
         auto actors = state.actors();
         const bool removed = eraseEntity(actors, id);
         state.setActors(std::move(actors));
+        if (removed) {
+            syncActorRelations(state, id, std::vector<std::string>{});
+            projectActorPropertyLinksFromContracts(state);
+        }
         return removed;
     }
 
@@ -258,6 +371,8 @@ public:
         auto properties = state.properties();
         const auto id = appendEntity(properties, [&](core::domain::Property& property) { applyPropertyDraft(property, input); });
         state.setProperties(std::move(properties));
+        syncPropertyRelations(state, id, input.contractIds);
+        projectActorPropertyLinksFromContracts(state);
         return id;
     }
 
@@ -268,6 +383,10 @@ public:
         auto properties = state.properties();
         const bool updated = updateEntity(properties, id, [&](core::domain::Property& property) { applyPropertyDraft(property, input); });
         state.setProperties(std::move(properties));
+        if (updated) {
+            syncPropertyRelations(state, id, input.contractIds);
+            projectActorPropertyLinksFromContracts(state);
+        }
         return updated;
     }
 
@@ -275,6 +394,10 @@ public:
         auto properties = state.properties();
         const bool removed = eraseEntity(properties, id);
         state.setProperties(std::move(properties));
+        if (removed) {
+            syncPropertyRelations(state, id, std::vector<std::string>{});
+            projectActorPropertyLinksFromContracts(state);
+        }
         return removed;
     }
 
@@ -285,6 +408,7 @@ public:
         auto contracts = state.contracts();
         const auto id = appendEntity(contracts, [&](core::domain::Contract& contract) { applyContractDraft(contract, input); });
         state.setContracts(std::move(contracts));
+        projectActorPropertyLinksFromContracts(state);
         return id;
     }
 
@@ -295,6 +419,9 @@ public:
         auto contracts = state.contracts();
         const bool updated = updateEntity(contracts, id, [&](core::domain::Contract& contract) { applyContractDraft(contract, input); });
         state.setContracts(std::move(contracts));
+        if (updated) {
+            projectActorPropertyLinksFromContracts(state);
+        }
         return updated;
     }
 
@@ -302,6 +429,9 @@ public:
         auto contracts = state.contracts();
         const bool removed = eraseEntity(contracts, id);
         state.setContracts(std::move(contracts));
+        if (removed) {
+            projectActorPropertyLinksFromContracts(state);
+        }
         return removed;
     }
 
@@ -528,11 +658,11 @@ void WorkspaceCommandService::commitIfChanged(WorkspaceCommandService& service, 
 }
 
 std::string WorkspaceCommandService::addActor(const core::ports::workspace::ActorCommand& command) {
-    return WorkspaceCommandService::commitCreated(*this, catalogMutator().addActor(mutableCatalogState(), {command.name, toAliases(command.aliases)}));
+    return WorkspaceCommandService::commitCreated(*this, catalogMutator().addActor(mutableCatalogState(), {command.name, toAliases(command.aliases), command.contractIds}));
 }
 
 void WorkspaceCommandService::updateActor(const core::ports::workspace::ActorCommand& command) {
-    WorkspaceCommandService::commitIfChanged(*this, catalogMutator().updateActor(mutableCatalogState(), command.id, {command.name, toAliases(command.aliases)}));
+    WorkspaceCommandService::commitIfChanged(*this, catalogMutator().updateActor(mutableCatalogState(), command.id, {command.name, toAliases(command.aliases), command.contractIds}));
 }
 
 void WorkspaceCommandService::deleteActor(const std::string& id) {
@@ -540,11 +670,11 @@ void WorkspaceCommandService::deleteActor(const std::string& id) {
 }
 
 std::string WorkspaceCommandService::addProperty(const core::ports::workspace::PropertyCommand& command) {
-    return WorkspaceCommandService::commitCreated(*this, catalogMutator().addProperty(mutableCatalogState(), {command.name, toAliases(command.aliases)}));
+    return WorkspaceCommandService::commitCreated(*this, catalogMutator().addProperty(mutableCatalogState(), {command.name, toAliases(command.aliases), command.contractIds}));
 }
 
 void WorkspaceCommandService::updateProperty(const core::ports::workspace::PropertyCommand& command) {
-    WorkspaceCommandService::commitIfChanged(*this, catalogMutator().updateProperty(mutableCatalogState(), command.id, {command.name, toAliases(command.aliases)}));
+    WorkspaceCommandService::commitIfChanged(*this, catalogMutator().updateProperty(mutableCatalogState(), command.id, {command.name, toAliases(command.aliases), command.contractIds}));
 }
 
 void WorkspaceCommandService::deleteProperty(const std::string& id) {
@@ -595,6 +725,7 @@ std::string WorkspaceCommandService::addTransaction(const core::ports::workspace
     input.statementId = command.statementId;
     input.status = command.status;
     input.actorId = command.actorId;
+    input.contractId = command.contractId;
     input.allocatable = command.allocatable;
     input.propertyIds = command.propertyIds;
     return WorkspaceCommandService::commitCreated(*this, catalogMutator().addTransaction(mutableCatalogState(), input));
@@ -608,6 +739,7 @@ void WorkspaceCommandService::updateTransaction(const core::ports::workspace::Tr
     input.statementId = command.statementId;
     input.status = command.status;
     input.actorId = command.actorId;
+    input.contractId = command.contractId;
     input.allocatable = command.allocatable;
     input.propertyIds = command.propertyIds;
     WorkspaceCommandService::commitIfChanged(*this, catalogMutator().updateTransaction(mutableCatalogState(), command.id, input));
@@ -626,7 +758,8 @@ std::string WorkspaceCommandService::addAnalysis(const core::ports::workspace::A
         core::domain::ExportFormat(command.exportFormat),
         command.includeCalculationAdjustments,
         command.exportStateJson,
-        command.snapshotTransactionsJson
+        command.snapshotTransactionsJson,
+        command.adjustments
     }));
 }
 
@@ -639,7 +772,8 @@ void WorkspaceCommandService::updateAnalysis(const core::ports::workspace::Analy
         core::domain::ExportFormat(command.exportFormat),
         command.includeCalculationAdjustments,
         command.exportStateJson,
-        command.snapshotTransactionsJson
+        command.snapshotTransactionsJson,
+        command.adjustments
     }));
 }
 

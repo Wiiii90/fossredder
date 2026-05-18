@@ -58,6 +58,7 @@ ui/
       booking/
         tst_BookingView.qml
         tst_BookingStatementView.qml
+        tst_BookingStatementsSidebar.qml
       analysis/
         tst_AnalysisView.qml
         tst_AnalysisTransactionsPanel.qml
@@ -65,10 +66,12 @@ ui/
         tst_AnalysisPlotView.qml
         tst_AnalysisForm.qml
       import/
+        tst_ImportSidebar.qml
         tst_ImportView.qml
         tst_ImportForm.qml
         tst_StatementDraftView.qml
       export/
+        tst_ExportSidebar.qml
         tst_ExportForm.qml
         tst_ExportPanel.qml
         tst_ExportProgressBar.qml
@@ -94,6 +97,8 @@ ui/
   responsibility.
 - Prefer repeated behavior families over bespoke one-screen-only assertions
   unless the screen is truly a unique edge case.
+- For list-backed views, include a revision-driven refresh assertion so derived
+  models rebind when the workspace data changes.
 
 ## Import
 
@@ -115,6 +120,12 @@ ui/
 | IMP-F-001 | Source selection | QML | Form loaded | Inspect source selector | Supported import source labels are shown |
 | IMP-F-002 | Strategy selection | QML | Form loaded | Inspect strategy selector | Supported statement strategy labels are shown |
 
+### ImportSidebar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-S-001 | Run-log binding | QML/Interaction | Import workflow exposes persisted logs | Open the sidebar | The restored run-log rows are visible in the list |
+
 ### StatementDraftView
 
 | ID | Scope | Layer | Setup | Action | Expected |
@@ -125,6 +136,41 @@ ui/
 | IMP-D-004 | Draft finalize failure | QML/Interaction | Draft loaded and finalize fails | Activate finalize button | Failure note is written and draft remains available |
 | IMP-D-005 | Transaction navigation | QML/Interaction | Draft with multiple transactions | Activate previous or next transaction button | Draft transaction index changes and snapshot persistence is requested |
 | IMP-D-006 | Transaction delete | QML/Interaction | Draft with more than one transaction | Activate delete transaction button | Current transaction is removed and snapshot is persisted |
+
+## Export
+
+### ExportView
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| EXP-V-001 | Container mount | QML | App context and theme available | Open ExportView | `ExportPanel` and `ExportSidebar` are filled with app context and theme |
+
+### ExportForm
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| EXP-F-001 | Target directory | QML | Form loaded | Edit target directory | Export settings update deterministically |
+| EXP-F-002 | Archive format | QML | Form loaded | Select archive format | Selected format updates deterministically |
+| EXP-F-003 | Browse action | QML | Form loaded | Activate browse button | Browse request is emitted |
+
+### ExportPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| EXP-P-001 | Annual export binding | QML/Interaction | Annual and analysis rows available | Open panel in annual mode | Annual entries are shown and add/remove actions stay deterministic |
+| EXP-P-002 | Analysis export binding | QML/Interaction | Analysis rows available | Switch to analysis mode | Analysis entries are shown and add/remove actions stay deterministic |
+
+### ExportProgressBar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| EXP-PB-001 | Progress binding | QML | Export workflow running | Inspect the progress bar | Progress value and status text follow the workflow state |
+
+### ExportSidebar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| EXP-S-001 | Run-log binding | QML/Interaction | Export workflow exposes persisted logs | Open the sidebar | The restored run-log rows are visible in the list |
 
 ## Actor
 
@@ -185,7 +231,7 @@ ui/
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| CON-001 | Create contract | QML/Interaction | No selected contract | Enter name and click Create | `saveContract("", ...)` is called, form clears, selected contract id becomes returned id |
+| CON-001 | Create contract | QML/Interaction | No selected contract, a valid contract type, and at least one relation selected | Enter name and type, select at least one actor or property, then click Create | `saveContract("", ...)` is called, form clears, selected contract id becomes returned id |
 | CON-002 | Read contract state | QML/Interaction | Selected contract with type, actors, properties, aliases | Open form in edit mode | Fields and selection panels reflect selected contract state |
 | CON-003 | Update contract | QML/Interaction | Selected contract with modified fields | Change name, type, selections or aliases and click Update | `saveContract(current.id, ...)` is called and saved state is refreshed |
 | CON-004 | Delete contract | QML/Interaction | Selected contract with valid id | Click Delete | `deleteContract(id)` is called and selection advances deterministically |
@@ -209,7 +255,7 @@ ui/
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | ANN-001 | Create annual | QML/Interaction | No selected annual, valid year entered | Enter annual name and year, click Create | `saveAnnual("", ...)` is called, selected annual id becomes returned id |
-| ANN-002 | Read annual state | QML/Interaction | Selected annual with loaded analyses and transactions | Open form in edit mode | Annual fields and derived panels reflect selected annual state |
+| ANN-002 | Read annual state | QML/Interaction | Selected annual with loaded analyses and transactions | Open form in edit mode | `annual(id)` resolves the live annual payload and the form fields plus derived panels reflect selected annual state |
 | ANN-003 | Update annual | QML/Interaction | Selected annual with modified fields or analyses | Change name, year or analyses and click Update | `saveAnnual(current.id, ...)` is called and saved state is refreshed |
 | ANN-004 | Delete annual | QML/Interaction | Selected annual with valid id | Click Delete | `deleteAnnual(id)` is called and selection advances deterministically |
 | ANN-005 | Year validation | QML/Interaction | Create mode with invalid year text | Enter invalid year | Submit remains disabled |
@@ -238,13 +284,21 @@ ui/
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | BKG-001 | Create statement | QML/Interaction | No selected statement and valid name entered | Enter name and click Create | `addStatement()` and `addTransactions()` are called, selected statement id becomes returned id |
-| BKG-002 | Read statement state | QML/Interaction | Selected statement with transactions loaded | Open in edit mode | Statement and transaction fields reflect selected statement state |
+| BKG-002 | Read statement state | QML/Interaction | Selected statement with transactions loaded | Open in edit mode | `transaction(txId)` resolves the live transaction payload and statement and transaction fields reflect the selected statement state |
 | BKG-003 | Update statement | QML/Interaction | Selected statement with modified name or transaction data | Change fields and click Update | `updateStatement()` and `updateTransaction()` are called for active data |
 | BKG-004 | Delete statement | QML/Interaction | Selected statement with valid id | Click Delete | `deleteStatement(id)` is called and selection advances deterministically |
 | BKG-005 | Create transaction in create mode | QML/Interaction | Create mode with a draft statement | Click transaction add | A new draft transaction is inserted after current one |
 | BKG-006 | Delete transaction in create mode | QML/Interaction | Create mode with multiple transactions | Click transaction delete | Current draft transaction is removed if more than one remains |
 | BKG-007 | Create mode navigation | QML/Interaction | Multiple draft transactions | Click Prev or Next transaction | Current draft transaction index changes |
 | BKG-008 | Statement navigation | QML/Interaction | Statement rows available | Click Prev page or Next page | Selected statement id moves to adjacent statement |
+| BKG-009 | Workspace revision refresh | QML/Interaction | Booking view loaded with empty lists | Update the workspace revision and provide statement and transaction rows | Booking lists, sidebar rows, and navigation controls re-evaluate and become visible without reopening the view |
+
+### BookingStatementsSidebar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| BKG-S-001 | Transaction row click | QML/Interaction | Statement rows and transaction rows available | Click a transaction row | The matching statement remains selected and the transaction id becomes active, so the detail view follows the clicked transaction with the correct 1-based position |
+| BKG-S-002 | Statement row click | QML/Interaction | Statement rows and transaction rows available | Click a statement row | The statement remains selected and the transaction selection is cleared |
 
 ### BookingStatementPanel
 

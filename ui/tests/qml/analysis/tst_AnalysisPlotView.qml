@@ -20,6 +20,7 @@ TestCase {
 
     property string exportState: "{}"
     property string emittedExportState: ""
+    readonly property string previewPngDataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
 
     property var session: QtObject {
         property var lastAnalysisResult: ({
@@ -101,11 +102,20 @@ TestCase {
         emittedExportState = ""
     }
 
-    function test_histogramSplitSwitchPersistsExportState() {
-        var view = createView()
-        var splitSwitch = findRequired(view, "analysisHistogramSplitSwitch")
+    function test_renderedArtifactImageTakesOverPreview() {
+        session.lastAnalysisResult = ({
+            type: "pie",
+            artifacts: [previewPngDataUrl],
+            table: [
+                ["Lease", "100.0"]
+            ]
+        })
 
-        splitSwitch.checked = true
-        verify(emittedExportState.indexOf("histogramSplitByProperty") !== -1)
+        var view = createView()
+        var image = findRequired(view, "analysisPreviewImage")
+
+        verify(image.visible)
+        compare(String(image.source), previewPngDataUrl)
+        tryCompare(image, "status", Image.Ready)
     }
 }
