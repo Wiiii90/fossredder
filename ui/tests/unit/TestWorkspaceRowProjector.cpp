@@ -13,7 +13,7 @@ namespace ui {
 
 TEST(WorkspaceRowProjectorTest, ProjectsStableRowsForAllWorkspaceFamilies)
 {
-    SessionStore store;
+    SessionState store;
     store.loadFromState(tests::support::makeWorkspaceCatalog());
 
     const QVariantList actorRows = buildActorRows(store);

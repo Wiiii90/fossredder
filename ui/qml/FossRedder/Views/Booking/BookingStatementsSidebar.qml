@@ -39,24 +39,46 @@ Item {
         return -1
     }
 
-    function ensureSelectedStatementVisible() {
+    function maxContentY() {
+        return Math.max(0, statementsFlick.contentHeight - statementsFlick.height)
+    }
+
+    function scrollItemToTop(item) {
+        if (!item || !statementsFlick || !statementColumn) return
+        const point = item.mapToItem(statementColumn, 0, 0)
+        statementsFlick.contentY = Math.max(0, Math.min(point.y, root.maxContentY()))
+    }
+
+    function selectedStatementItem() {
         const idx = selectedStatementIndex()
-        if (idx < 0 || !statementRepeater || !statementsFlick) return
+        if (idx < 0 || !statementRepeater) return null
         const item = statementRepeater.itemAt(idx)
-        if (!item) return
-        const top = item.y
-        const bottom = top + item.height
-        const viewportTop = statementsFlick.contentY
-        const viewportBottom = viewportTop + statementsFlick.height
-        if (top < viewportTop) {
-            statementsFlick.contentY = top
-        } else if (bottom > viewportBottom) {
-            statementsFlick.contentY = Math.max(0, bottom - statementsFlick.height)
+        return item ? item.statementRowItem() : null
+    }
+
+    function selectedTransactionItem() {
+        if (!root.session || !root.session.selectedTransactionId) return null
+        for (let i = 0; i < statementRepeater.count; ++i) {
+            const item = statementRepeater.itemAt(i)
+            if (!item) continue
+            const txItem = item.transactionItemById(root.session.selectedTransactionId)
+            if (txItem) return txItem
         }
+        return null
+    }
+
+    function scrollSelectionToTop() {
+        const txItem = selectedTransactionItem()
+        if (txItem) {
+            root.scrollItemToTop(txItem)
+            return
+        }
+        root.scrollItemToTop(selectedStatementItem())
     }
 
     Flickable {
         id: statementsFlick
+        objectName: "bookingStatementsFlick"
         anchors.fill: parent
         clip: true
         contentWidth: width
@@ -71,105 +93,131 @@ Item {
                 id: statementRepeater
                 model: root.statementRows()
 
-                delegate: Column {
+                delegate: Rectangle {
                     id: statementEntry
                     required property var modelData
                     width: statementColumn.width
                     property bool collapsed: false
                     property string statementId: (statementEntry.modelData.id !== undefined && statementEntry.modelData.id !== null) ? statementEntry.modelData.id : ""
                     property string statementName: (statementEntry.modelData.name !== undefined && statementEntry.modelData.name !== null) ? statementEntry.modelData.name : ""
-
-                    Rectangle {
-                        objectName: "bookingStatementRow_" + statementEntry.statementId
-                        width: parent.width
-                        height: 36
-                        color: (root.session && statementEntry.statementId === root.session.selectedStatementId && (!root.session.selectedTransactionId || root.session.selectedTransactionId === ""))
-                                   ? root.theme.selectionHighlight : "transparent"
-                        radius: root.theme.radius
-                        border.width: root.theme.borderWidthThin
-                        border.color: (root.session && statementEntry.statementId === root.session.selectedStatementId && (!root.session.selectedTransactionId || root.session.selectedTransactionId === ""))
-                                          ? root.theme.selectionHighlight
-                                          : root.theme.borderSoft
-
-                        MouseArea {
-                            objectName: "bookingStatementMouse_" + statementEntry.statementId
-                            anchors.fill: parent
-                            acceptedButtons: Qt.LeftButton
-                            preventStealing: true
-                            onClicked: {
-                                if (!root.session) return
-                                root.session.selectedStatementId = statementEntry.statementId
-                                root.session.selectedTransactionId = ""
-                            }
+                    readonly property bool isSelectedStatement: root.session && statementEntry.statementId === root.session.selectedStatementId
+                    color: root.theme.surfaceAlt
+                    radius: root.theme.viewSidebarRowRadius
+                    border.width: root.theme.borderWidthThin
+                    border.color: statementEntry.isSelectedStatement ? root.theme.selectionHighlight : root.theme.borderSoft
+                    implicitHeight: statementContent.implicitHeight + (root.theme.spacingSmall * 2)
+                    function statementRowItem() { return statementEntry }
+                    function transactionItemById(transactionId) {
+                        for (let i = 0; i < transactionRepeater.count; ++i) {
+                            const item = transactionRepeater.itemAt(i)
+                            if (item && item.transactionId === transactionId) return item
                         }
+                        return null
+                    }
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: root.theme.spacingSmall
-                            Label { text: statementEntry.statementName; Layout.fillWidth: true; elide: Label.ElideRight }
-                            Item { Layout.fillWidth: true }
+                    Column {
+                        id: statementContent
+                        anchors.fill: parent
+                        anchors.margins: root.theme.spacingSmall
+                        spacing: root.theme.spacingSmall
+
+                        Item {
+                            width: parent.width
+                            height: Math.max(root.theme.viewSidebarRowHeight - (root.theme.spacingSmall * 2),
+                                             statementNameText.implicitHeight + (root.theme.margins * 2),
+                                             collapseButton.implicitHeight + (root.theme.margins * 2))
+
+                            MouseArea {
+                                objectName: "bookingStatementMouse_" + statementEntry.statementId
+                                anchors.fill: parent
+                                acceptedButtons: Qt.LeftButton
+                                preventStealing: true
+                                onClicked: {
+                                    if (!root.session) return
+                                    root.session.selectedStatementId = statementEntry.statementId
+                                    root.session.selectedTransactionId = ""
+                                    Qt.callLater(root.scrollSelectionToTop)
+                                }
+                            }
+
+                            Text {
+                                id: statementNameText
+                                anchors.left: parent.left
+                                anchors.right: collapseButton.left
+                                anchors.rightMargin: root.theme.spacingSmall
+                                anchors.top: parent.top
+                                anchors.topMargin: root.theme.margins
+                                text: statementEntry.statementName
+                                color: root.theme.textPrimary
+                                elide: Text.ElideRight
+                            }
+
                             Controls.Button {
+                                id: collapseButton
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.topMargin: root.theme.margins
+                                anchors.rightMargin: root.theme.margins
                                 implicitWidth: root.theme.spacingLarge + root.theme.margins * 4
                                 implicitHeight: root.theme.spacingLarge + root.theme.margins * 4
                                 fillColor: "transparent"
                                 textColor: root.theme.textMuted
                                 text: statementEntry.collapsed ? "\u25B6" : "\u25BC"
                                 onClicked: statementEntry.collapsed = !statementEntry.collapsed
-                                Layout.alignment: Qt.AlignVCenter
                             }
                         }
-                    }
 
-                    Column {
-                        x: root.theme.spacing + root.theme.margins
-                        y: root.theme.spacingSmall
-                        width: statementColumn.width - x
-                        spacing: root.theme.margins
-                        visible: !statementEntry.collapsed
+                        Column {
+                            width: parent.width
+                            spacing: root.theme.spacingSmall
+                            visible: !statementEntry.collapsed
 
-                        Repeater {
-                            model: (root.session && statementEntry.statementId.length > 0) ? root.statementTransactionRows(statementEntry.statementId) : []
+                            Repeater {
+                                id: transactionRepeater
+                                model: (root.session && statementEntry.statementId.length > 0) ? root.statementTransactionRows(statementEntry.statementId) : []
 
-                            delegate: Rectangle {
-                                id: transactionEntry
-                                objectName: "bookingTransactionRow_" + transactionEntry.modelData.id
-                                required property var modelData
-                                width: statementColumn.width - (root.theme.spacing + root.theme.margins)
-                                height: 42
-                                radius: 6
-                                z: 1
-                                color: root.session && transactionEntry.modelData.id === root.session.selectedTransactionId ? root.theme.selectionHighlight : "transparent"
-                                border.color: root.theme.borderSoft
-                                border.width: root.theme.borderWidthThin
+                                delegate: Rectangle {
+                                    id: transactionEntry
+                                    objectName: "bookingTransactionRow_" + transactionEntry.modelData.id
+                                    required property var modelData
+                                    property string transactionId: (transactionEntry.modelData.id !== undefined && transactionEntry.modelData.id !== null) ? transactionEntry.modelData.id : ""
+                                    width: parent.width
+                                    height: 42
+                                    radius: 6
+                                    color: root.session && transactionEntry.modelData.id === root.session.selectedTransactionId ? root.theme.selectionHighlight : "transparent"
+                                    border.color: root.theme.borderSoft
+                                    border.width: root.theme.borderWidthThin
 
-                                MouseArea {
-                                    objectName: "bookingTransactionMouse_" + transactionEntry.modelData.id
-                                    anchors.fill: parent
-                                    acceptedButtons: Qt.LeftButton
-                                    preventStealing: true
-                                    onClicked: {
-                                        if (!root.session) return
-                                        root.session.selectedStatementId = statementEntry.statementId
-                                        root.session.selectedTransactionId = transactionEntry.modelData.id
-                                    }
-                                }
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: root.theme.spacingSmall
-                                    spacing: root.theme.spacingSmall
-
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: transactionEntry.modelData.name ? transactionEntry.modelData.name : ""
-                                        color: root.theme.textPrimary
-                                        elide: Text.ElideRight
+                                    MouseArea {
+                                        objectName: "bookingTransactionMouse_" + transactionEntry.modelData.id
+                                        anchors.fill: parent
+                                        acceptedButtons: Qt.LeftButton
+                                        preventStealing: true
+                                        onClicked: {
+                                            if (!root.session) return
+                                            root.session.selectedStatementId = statementEntry.statementId
+                                            root.session.selectedTransactionId = transactionEntry.modelData.id
+                                            Qt.callLater(root.scrollSelectionToTop)
+                                        }
                                     }
 
-                                    Text {
-                                        text: transactionEntry.modelData.bookingDate ? transactionEntry.modelData.bookingDate : ""
-                                        color: root.theme.textMuted
-                                        elide: Text.ElideRight
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: root.theme.spacingSmall
+                                        spacing: root.theme.spacingSmall
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: transactionEntry.modelData.name ? transactionEntry.modelData.name : ""
+                                            color: root.theme.textPrimary
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            text: transactionEntry.modelData.bookingDate ? transactionEntry.modelData.bookingDate : ""
+                                            color: root.theme.textMuted
+                                            elide: Text.ElideRight
+                                        }
                                     }
                                 }
                             }
@@ -182,12 +230,15 @@ Item {
 
     Connections {
         target: root.session
-        function onSelectedStatementIdChanged() { root.ensureSelectedStatementVisible() }
-        function onDataRevisionChanged() { root.ensureSelectedStatementVisible() }
+        function onSelectedStatementIdChanged() { Qt.callLater(root.scrollSelectionToTop) }
+        function onSelectedTransactionIdChanged() { Qt.callLater(root.scrollSelectionToTop) }
+        function onDataRevisionChanged() { Qt.callLater(root.scrollSelectionToTop) }
     }
 
     Connections {
         target: statementRepeater
-        function onModelChanged() { root.ensureSelectedStatementVisible() }
+        function onModelChanged() { Qt.callLater(root.scrollSelectionToTop) }
     }
+
+    Component.onCompleted: Qt.callLater(root.scrollSelectionToTop)
 }

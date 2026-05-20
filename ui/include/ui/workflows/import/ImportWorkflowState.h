@@ -30,6 +30,7 @@ public:
     ImportWorkflowState() = default;
 
     bool isRunning() const noexcept { return isRunning_; }
+    bool isPaused() const noexcept { return paused_; }
     double progress() const noexcept { return progress_; }
     const QString& phase() const noexcept { return phase_; }
     const QString& error() const noexcept { return error_; }
@@ -53,6 +54,7 @@ public:
     void beginImport(const QString& path);
     void rejectStart(const QString& errorMessage);
     void beginCancel(bool clearQueue);
+    bool togglePause();
     void recordCanceled(const QString& now);
     void recordFailed(const QString& now, const QString& errorMessage);
     void recordFinished(const QString& now);
@@ -93,6 +95,7 @@ private:
     StatementDraft* draft_ = nullptr;
     int artifactCount_ = 0;
     bool canceled_ = false;
+    bool paused_ = false;
     bool cancelClearsQueue_ = false;
     QString currentImportFile_;
     std::shared_ptr<core::application::importing::draft::IImportMatcherService> matcherService_;

@@ -24,6 +24,9 @@ class FilterState;
 class SessionMutationState {
 public:
     static QVariantList normalizeStrings(const QVariantList& values);
+    static QVariantMap transactionDraft(const QVariantMap& draft,
+                                        const QVariantList& contractRows,
+                                        const QVariantMap& changes);
     static QVariantList addUniqueTrimmed(const QVariantList& values, const QString& value);
     static QVariantList removeAt(const QVariantList& values, int index);
     static QVariantList removeString(const QVariantList& values, const QString& value);

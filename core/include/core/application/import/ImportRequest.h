@@ -24,6 +24,7 @@ struct ImportRequest {
     std::string jobId;
     std::function<void(double, const std::string&)> progressCallback;
     std::shared_ptr<std::atomic<bool>> cancelFlag;
+    std::shared_ptr<std::atomic<bool>> pauseFlag;
     core::jobs::Scheduler* scheduler = nullptr;
     core::jobs::SlotLimiter* ocrLimiter = nullptr;
 };

@@ -70,6 +70,8 @@ public:
      * @param id Job identifier.
      */
     void cancel(const JobId& id);
+    void pause(const JobId& id);
+    void resume(const JobId& id);
 
     /**
      * @brief Retrieve a job snapshot.

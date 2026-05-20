@@ -94,6 +94,7 @@ core::ports::workspace::StatementDraftSnapshot toStatementDraftSnapshot(
     txSnapshot.allocatable = tx.allocatable;
     txSnapshot.position = tx.position;
     txSnapshot.metadata = tx.metadata;
+    txSnapshot.proofImageData = tx.proofImageData;
     snapshot.transactions.push_back(std::move(txSnapshot));
   }
   return snapshot;

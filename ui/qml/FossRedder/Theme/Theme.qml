@@ -88,6 +88,8 @@ QtObject {
     property int viewInlineIconSize: 28
     property int viewSectionIconSize: 28
     property int viewCompactActionButtonSize: 40
+    property int viewCompactActionButtonSizeSmall: 32
+    property int viewCompactActionButtonSizeTiny: 22
     property color subtlePrimaryFill: "#DCEBFA"
     property int radius: 3
     property int borderWidthThin: 1

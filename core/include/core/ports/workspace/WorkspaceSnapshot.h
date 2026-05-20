@@ -113,6 +113,7 @@ struct TransactionDraftSnapshot {
     bool allocatable = false;
     int position = 0;
     std::string metadata;
+    std::vector<uint8_t> proofImageData;
 };
 
 struct StatementDraftSnapshot {

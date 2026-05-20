@@ -44,8 +44,10 @@ struct ContractInput {
 struct TransactionInput {
     std::string name;
     core::domain::BookingDate bookingDate;
+    std::string valuta;
     double amount = 0.0;
     std::string statementId;
+    std::string insertAfterTransactionId;
     core::domain::Transaction::Status status = core::domain::Transaction::Status::Neutral;
     std::string actorId;
     std::string contractId;

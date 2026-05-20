@@ -65,7 +65,7 @@ Item {
                 objectName: "bookingStatementAddTransactionButton"
                 visible: root.transactionAddVisible
                 enabled: root.transactionAddEnabled
-                text: qsTr("Add")
+                text: qsTr("+")
                 implicitHeight: root.theme.viewCompactActionButtonSize
                 implicitWidth: root.theme.viewCompactActionButtonSize
                 textColor: root.theme.textMuted
@@ -77,7 +77,7 @@ Item {
                 objectName: "bookingStatementRemoveTransactionButton"
                 visible: root.transactionDeleteVisible
                 enabled: root.transactionDeleteEnabled
-                text: qsTr("Remove")
+                text: qsTr("-")
                 implicitHeight: root.theme.viewCompactActionButtonSize
                 implicitWidth: root.theme.viewCompactActionButtonSize
                 textColor: root.theme.textMuted

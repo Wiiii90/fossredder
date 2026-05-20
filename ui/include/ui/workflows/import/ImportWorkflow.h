@@ -6,6 +6,7 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
 #include <QString>
 #include <QStringList>
 #include <exception>
@@ -44,6 +45,7 @@ class ImportWorkflow : public QObject {
   QML_UNCREATABLE("ImportWorkflow is provided by the application context")
 
   Q_PROPERTY(bool isRunning READ isRunning NOTIFY stateChanged)
+  Q_PROPERTY(bool isPaused READ isPaused NOTIFY stateChanged)
   Q_PROPERTY(double progress READ progress NOTIFY stateChanged)
   Q_PROPERTY(QString phase READ phase NOTIFY stateChanged)
   Q_PROPERTY(QString error READ error NOTIFY stateChanged)
@@ -57,6 +59,7 @@ class ImportWorkflow : public QObject {
   Q_PROPERTY(StatementDraft *draft READ draft NOTIFY stateChanged)
   Q_PROPERTY(bool hasPrevDraft READ hasPrevDraft NOTIFY stateChanged)
   Q_PROPERTY(bool hasNextDraft READ hasNextDraft NOTIFY stateChanged)
+  Q_PROPERTY(bool hasDraftStack READ hasDraftStack NOTIFY stateChanged)
 
 public:
   using JobSystemFactory =
@@ -89,6 +92,7 @@ public:
   Q_INVOKABLE void refreshFromStateSnapshot();
 
   bool isRunning() const noexcept { return state_.isRunning(); }
+  bool isPaused() const noexcept { return state_.isPaused(); }
   double progress() const noexcept { return state_.progress(); }
   QString phase() const { return state_.phase(); }
   QString error() const { return state_.error(); }
@@ -101,6 +105,7 @@ public:
   StatementDraft *draft() const noexcept;
   bool hasPrevDraft() const;
   bool hasNextDraft() const;
+  bool hasDraftStack() const;
 
   /** @brief Start importing the selected file or the next queued file. */
   Q_INVOKABLE void startStatementImport();
@@ -128,7 +133,8 @@ public:
   /** @brief Append a UI-side import run note for draft lifecycle actions. */
   Q_INVOKABLE void addRunNote(const QString &status, const QString &message,
                               bool draftAttached = false,
-                              const QString &statementId = {});
+                              const QString &statementId = {},
+                              const QString &contextDraftId = {});
   Q_INVOKABLE void removeRunAt(int index);
   Q_INVOKABLE void activateRunAt(int index);
   Q_INVOKABLE bool openPrevDraft();
@@ -144,6 +150,8 @@ public:
   Q_INVOKABLE void syncCurrentTransactionDraft(StatementDraft *draft);
   Q_INVOKABLE void selectCurrentActorChoice(StatementDraft *draft,
                                             const QVariantMap &row);
+  Q_INVOKABLE QVariantMap createActorChoiceForCurrentDraft(
+      StatementDraft *draft, const QString &actorName);
   Q_INVOKABLE void selectCurrentContractChoice(StatementDraft *draft,
                                                const QVariantMap &row);
   Q_INVOKABLE void setCurrentPropertySelected(StatementDraft *draft,
@@ -158,6 +166,9 @@ public:
   /** @brief Request cancellation of the active import and clear the remaining
    * queue. */
   Q_INVOKABLE void cancelAllImports();
+
+  /** @brief Toggle the user-visible pause gate for the active import. */
+  Q_INVOKABLE void togglePause();
 
   /** @brief Return the model that tracks persisted import-run entries. */
   ImportRunList *runs() noexcept;
@@ -201,6 +212,8 @@ private:
       const core::application::workspace::WorkspaceSessionState &snapshot);
   QStringList draftStackIds() const;
   int activeDraftStackIndex() const;
+  void rememberCurrentDraftTransactionIndex();
+  int rememberedDraftTransactionIndex(const QString &draftId) const;
   void restoreRunsFromSnapshot(
       const core::application::workspace::WorkspaceSessionState &snapshot);
   void persistRuns();
@@ -211,7 +224,8 @@ private:
                              const QString &statementId = {});
   ImportRunRow upsertActiveDraftRun(const QString &status,
                                     const QString &message, bool draftAttached,
-                                    const QString &statementId = {});
+                                    const QString &statementId = {},
+                                    const QString &contextDraftId = {});
   bool saveImportedDraft(
       const QString &draftId,
       const std::shared_ptr<core::domain::Statement> &statement,
@@ -224,9 +238,13 @@ private:
   void syncCurrentTransactionDraftImpl(StatementDraft *draft);
 
   QString activeDraftLogId_;
+  QHash<QString, int> draftTransactionIndexByDraftId_;
   QString activeRunLogId_;
   QString activeRunDraftId_;
   bool activeRunTerminalHandled_ = false;
+  bool hasPendingTerminalEvent_ = false;
+  core::jobs::JobState pendingTerminalState_ = core::jobs::JobState::Pending;
+  QString pendingTerminalMessage_;
   StatementDraftStore statementDraftStore_;
 };
 

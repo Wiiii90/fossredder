@@ -19,6 +19,9 @@ Item {
     property var draft
     property var viewState: ({})
     property bool syncScheduled: false
+    property string pendingNameText: ""
+    property string pendingBookingDateText: ""
+    property string pendingValutaText: ""
     readonly property var actorChoices: draftViewRoot.viewState && draftViewRoot.viewState.actorChoices ? draftViewRoot.viewState.actorChoices : []
     readonly property var statusOptions: [
         { label: qsTr("Neutral"), value: 0 },
@@ -33,6 +36,19 @@ Item {
 
     function currentTransaction() {
         return draftViewRoot.currentDraftItem()
+    }
+
+    function syncAmountFieldToCurrent() {
+        const tx = draftViewRoot.currentTransaction()
+        const nextText = tx && tx.amount !== undefined ? String(tx.amount) : ""
+        if (amountField.text !== nextText) amountField.text = nextText
+    }
+
+    function syncPendingTextsToCurrent() {
+        const tx = draftViewRoot.currentTransaction()
+        draftViewRoot.pendingNameText = tx && tx.name !== undefined && tx.name !== null ? String(tx.name) : ""
+        draftViewRoot.pendingBookingDateText = tx && tx.bookingDate !== undefined && tx.bookingDate !== null ? String(tx.bookingDate) : ""
+        draftViewRoot.pendingValutaText = tx && tx.valuta !== undefined && tx.valuta !== null ? String(tx.valuta) : ""
     }
 
     function suggestionBucket(kind) {
@@ -112,7 +128,6 @@ Item {
             return
         }
 
-        draftViewRoot.importWorkflow.syncCurrentTransactionDraft(draftViewRoot.draft)
         draftViewRoot.viewState = draftViewRoot.importWorkflow.currentTransactionViewState(draftViewRoot.draft)
     }
 
@@ -124,20 +139,94 @@ Item {
         })
     }
 
+    function refreshDerivedState() {
+        draftViewRoot.scheduleSyncViewState()
+    }
+
+    function commitNameText(value) {
+        if (!draftViewRoot.draft) return
+        const tx = draftViewRoot.currentTransaction()
+        const nextValue = value !== undefined && value !== null ? String(value) : ""
+        const currentValue = tx && tx.name !== undefined && tx.name !== null ? String(tx.name) : ""
+        if (nextValue !== currentValue)
+            draftViewRoot.draft.transactions.setName(draftViewRoot.draft.currentIndex, nextValue)
+        draftViewRoot.refreshDerivedState()
+    }
+
+    function commitBookingDateText(value) {
+        if (!draftViewRoot.draft) return
+        const tx = draftViewRoot.currentTransaction()
+        const nextValue = value !== undefined && value !== null ? String(value) : ""
+        const currentValue = tx && tx.bookingDate !== undefined && tx.bookingDate !== null ? String(tx.bookingDate) : ""
+        if (nextValue !== currentValue)
+            draftViewRoot.draft.transactions.setBookingDate(draftViewRoot.draft.currentIndex, nextValue)
+        draftViewRoot.refreshDerivedState()
+    }
+
+    function commitValutaText(value) {
+        if (!draftViewRoot.draft) return
+        const tx = draftViewRoot.currentTransaction()
+        const nextValue = value !== undefined && value !== null ? String(value) : ""
+        const currentValue = tx && tx.valuta !== undefined && tx.valuta !== null ? String(tx.valuta) : ""
+        if (nextValue !== currentValue)
+            draftViewRoot.draft.transactions.setValuta(draftViewRoot.draft.currentIndex, nextValue)
+        draftViewRoot.refreshDerivedState()
+    }
+
+    function commitAmountText(value) {
+        if (draftViewRoot.importWorkflow && draftViewRoot.draft && draftViewRoot.importWorkflow.updateCurrentAmount)
+            draftViewRoot.importWorkflow.updateCurrentAmount(draftViewRoot.draft, value)
+        draftViewRoot.refreshDerivedState()
+    }
+
+    function commitPendingEdits() {
+        draftViewRoot.commitNameText(draftViewRoot.pendingNameText)
+        draftViewRoot.commitBookingDateText(draftViewRoot.pendingBookingDateText)
+        draftViewRoot.commitValutaText(draftViewRoot.pendingValutaText)
+        draftViewRoot.commitAmountText(amountField.text)
+        if (metadataPanel && metadataPanel.commitMetadata)
+            metadataPanel.commitMetadata(metadataPanel.currentText())
+        if (actorPanel && actorPanel.commitActorText)
+            actorPanel.commitActorText(actorPanel.currentText())
+        if (contractPanel && contractPanel.commitTypeText)
+            contractPanel.commitTypeText(contractPanel.currentTypeText())
+    }
+
     implicitHeight: txLayout.implicitHeight
     implicitWidth: txLayout.implicitWidth
     height: draftViewRoot.implicitHeight
 
-    onDraftChanged: draftViewRoot.scheduleSyncViewState()
+    onDraftChanged: {
+        draftViewRoot.syncPendingTextsToCurrent()
+        draftViewRoot.syncAmountFieldToCurrent()
+        draftViewRoot.scheduleSyncViewState()
+    }
 
     Connections {
         target: draftViewRoot.draft
-        function onCurrentIndexChanged() { draftViewRoot.scheduleSyncViewState() }
-        function onCurrentChanged() { draftViewRoot.scheduleSyncViewState() }
-        function onCountChanged() { draftViewRoot.scheduleSyncViewState() }
+        function onChanged() {}
+        function onCurrentIndexChanged() {
+            draftViewRoot.syncPendingTextsToCurrent()
+            draftViewRoot.syncAmountFieldToCurrent()
+            draftViewRoot.scheduleSyncViewState()
+        }
+        function onCurrentChanged() {
+            draftViewRoot.syncPendingTextsToCurrent()
+            draftViewRoot.syncAmountFieldToCurrent()
+            draftViewRoot.scheduleSyncViewState()
+        }
+        function onCountChanged() {
+            draftViewRoot.syncPendingTextsToCurrent()
+            draftViewRoot.syncAmountFieldToCurrent()
+            draftViewRoot.scheduleSyncViewState()
+        }
     }
 
-    Component.onCompleted: draftViewRoot.scheduleSyncViewState()
+    Component.onCompleted: {
+        draftViewRoot.syncPendingTextsToCurrent()
+        draftViewRoot.syncAmountFieldToCurrent()
+        draftViewRoot.scheduleSyncViewState()
+    }
 
     ColumnLayout {
         id: txLayout
@@ -154,8 +243,12 @@ Item {
 
             leftContent: Component {
                 Controls.TextField { id: nameField
+                    objectName: "transactionDraftNameField"
                     text: draftViewRoot.draft && draftViewRoot.draft.current ? (draftViewRoot.draft.current.name || "") : ""
-                    onTextEdited: if (draftViewRoot.draft) draftViewRoot.draft.transactions.setName(draftViewRoot.draft.currentIndex, nameField.text)
+                    onTextEdited: draftViewRoot.pendingNameText = nameField.text
+                    onEditingFinished: draftViewRoot.commitNameText(nameField.text)
+                    onAccepted: draftViewRoot.commitNameText(nameField.text)
+                    onActiveFocusChanged: if (!activeFocus) draftViewRoot.commitNameText(nameField.text)
                 }
             }
 
@@ -181,15 +274,23 @@ Item {
 
             leftContent: Component {
                 Controls.TextField { id: bookingDateField
+                    objectName: "transactionDraftBookingDateField"
                     text: draftViewRoot.draft && draftViewRoot.draft.current ? (draftViewRoot.draft.current.bookingDate || "") : ""
-                    onTextEdited: if (draftViewRoot.draft) draftViewRoot.draft.transactions.setBookingDate(draftViewRoot.draft.currentIndex, bookingDateField.text)
+                    onTextEdited: draftViewRoot.pendingBookingDateText = bookingDateField.text
+                    onEditingFinished: draftViewRoot.commitBookingDateText(bookingDateField.text)
+                    onAccepted: draftViewRoot.commitBookingDateText(bookingDateField.text)
+                    onActiveFocusChanged: if (!activeFocus) draftViewRoot.commitBookingDateText(bookingDateField.text)
                 }
             }
 
             rightContent: Component {
                 Controls.TextField { id: valutaField
+                    objectName: "transactionDraftValutaField"
                     text: draftViewRoot.draft && draftViewRoot.draft.current ? (draftViewRoot.draft.current.valuta || "") : ""
-                    onTextEdited: if (draftViewRoot.draft) draftViewRoot.draft.transactions.setValuta(draftViewRoot.draft.currentIndex, valutaField.text)
+                    onTextEdited: draftViewRoot.pendingValutaText = valutaField.text
+                    onEditingFinished: draftViewRoot.commitValutaText(valutaField.text)
+                    onAccepted: draftViewRoot.commitValutaText(valutaField.text)
+                    onActiveFocusChanged: if (!activeFocus) draftViewRoot.commitValutaText(valutaField.text)
                 }
             }
         }
@@ -205,23 +306,21 @@ Item {
 
             Controls.TextField {
                 id: amountField
+                objectName: "transactionDraftAmountField"
                 Layout.fillWidth: true
-                text: draftViewRoot.draft && draftViewRoot.draft.current ? String(draftViewRoot.draft.current.amount) : ""
-                onEditingFinished: {
-                    if (draftViewRoot.importWorkflow && draftViewRoot.draft)
-                        draftViewRoot.importWorkflow.updateCurrentAmount(draftViewRoot.draft, amountField.text)
-                }
-                onAccepted: {
-                    if (draftViewRoot.importWorkflow && draftViewRoot.draft)
-                        draftViewRoot.importWorkflow.updateCurrentAmount(draftViewRoot.draft, amountField.text)
-                }
+                text: draftViewRoot.draft && draftViewRoot.draft.current && draftViewRoot.draft.current.amount !== undefined
+                      ? String(draftViewRoot.draft.current.amount)
+                      : ""
+                onEditingFinished: draftViewRoot.commitAmountText(amountField.text)
+                onAccepted: draftViewRoot.commitAmountText(amountField.text)
+                onActiveFocusChanged: if (!activeFocus) draftViewRoot.commitAmountText(amountField.text)
             }
         }
 
-        TransactionDraftMetadataPanel { txRoot: draftViewRoot }
+        TransactionDraftMetadataPanel { id: metadataPanel; txRoot: draftViewRoot }
 
-        TransactionDraftActorPanel { txRoot: draftViewRoot; appContext: draftViewRoot.appContext; theme: draftViewRoot.theme }
-        TransactionDraftContractPanel { txRoot: draftViewRoot; appContext: draftViewRoot.appContext; theme: draftViewRoot.theme }
+        TransactionDraftActorPanel { id: actorPanel; txRoot: draftViewRoot; appContext: draftViewRoot.appContext; theme: draftViewRoot.theme }
+        TransactionDraftContractPanel { id: contractPanel; txRoot: draftViewRoot; appContext: draftViewRoot.appContext; theme: draftViewRoot.theme }
         TransactionDraftPropertyPanel { txRoot: draftViewRoot; appContext: draftViewRoot.appContext; theme: draftViewRoot.theme }
 
         TransactionDraftAllocatablePanel { txRoot: draftViewRoot }

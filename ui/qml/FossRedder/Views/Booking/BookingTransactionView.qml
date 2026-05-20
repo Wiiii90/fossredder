@@ -12,8 +12,9 @@ pragma ComponentBehavior: Bound
 
 Item {
     id: root
+    objectName: "bookingTransactionViewRoot"
     required property var theme
-    required property var session
+    required property var sessionState
     property var transactionData: ({})
     property var actorRows: []
     property var contractRows: []
@@ -29,7 +30,15 @@ Item {
 
     function updateField(key, value) {
         const base = root.transactionData || ({})
-        const next = root.session ? root.session.mapWithKeyValue(base, key, value) : base
+        const next = root.sessionState ? root.sessionState.mapWithKeyValue(base, key, value) : base
+        root.transactionEdited(next)
+    }
+
+    function updateFields(values) {
+        const entries = values || ({})
+        let next = root.transactionData || ({})
+        for (const key in entries)
+            next = root.sessionState ? root.sessionState.mapWithKeyValue(next, key, entries[key]) : next
         root.transactionEdited(next)
     }
 
@@ -38,7 +47,7 @@ Item {
     }
 
     function normalizedDraft() {
-        return root.session ? root.session.normalizeTransactionDraft(root.transactionData || ({})) : ({})
+        return root.sessionState ? root.sessionState.normalizeTransactionDraft(root.transactionData || ({})) : ({})
     }
 
     function actorIdValue() {
@@ -59,47 +68,80 @@ Item {
     }
 
     function hasProperty(propertyId) {
-        if (!root.session || !propertyId)
+        if (!root.sessionState || !propertyId)
             return false
-        return root.session.indexOfString(root.selectedPropertyIds(), String(propertyId)) !== -1
+        return root.sessionState.indexOfString(root.selectedPropertyIds(), String(propertyId)) !== -1
     }
 
     function toggleProperty(propertyId, checked) {
-        if (!root.session || !propertyId)
+        if (!root.sessionState || !propertyId)
             return
 
         const key = String(propertyId)
         const ids = checked
-            ? root.session.addUniqueTrimmed(root.selectedPropertyIds(), key)
-            : root.session.removeString(root.selectedPropertyIds(), key)
+            ? root.sessionState.addUniqueTrimmed(root.selectedPropertyIds(), key)
+            : root.sessionState.removeString(root.selectedPropertyIds(), key)
 
-        root.updateField("propertyIds", ids)
+        root.applyPropertySelection(ids)
     }
 
     function actorDisplayModel() {
-        return root.session
-            ? root.session.displayRowsWithEmpty(root.actorRows || [], qsTr("No actor"), "display")
+        return root.sessionState
+            ? root.sessionState.displayRowsWithEmpty(root.actorRows || [], qsTr("No actor"), "display")
             : []
     }
 
     function contractDisplayModel() {
-        return root.session
-            ? root.session.displayRowsWithEmpty(root.contractRows || [], qsTr("No contract"), "display")
+        return root.sessionState
+            ? root.sessionState.displayRowsWithEmpty(root.contractRows || [], qsTr("No contract"), "display")
             : []
     }
 
     function selectedIndexFor(model, id) {
-        if (!root.session)
+        if (!root.sessionState)
             return 0
-        const idx = root.session.indexOfId(model || [], String(id || ""))
+        const idx = root.sessionState.indexOfId(model || [], String(id || ""))
         return idx >= 0 ? idx : 0
     }
 
+    function applyContractSelection(contractId) {
+        if (!root.sessionState || !root.sessionState.transactionDraft)
+            return
+        const selectedContractId = String(contractId || "").trim()
+        const next = root.sessionState.transactionDraft(
+            root.transactionData || ({}),
+            root.contractRows || [],
+            { contractId: selectedContractId })
+        root.transactionEdited(next || ({}))
+    }
+
+    function applyActorSelection(actorId) {
+        if (!root.sessionState || !root.sessionState.transactionDraft)
+            return
+        const selectedActorId = String(actorId || "").trim()
+        const next = root.sessionState.transactionDraft(
+            root.transactionData || ({}),
+            root.contractRows || [],
+            { actorId: selectedActorId })
+        root.transactionEdited(next || ({}))
+    }
+
+    function applyPropertySelection(propertyIds) {
+        if (!root.sessionState || !root.sessionState.transactionDraft)
+            return
+        const ids = propertyIds ? propertyIds.slice() : []
+        const next = root.sessionState.transactionDraft(
+            root.transactionData || ({}),
+            root.contractRows || [],
+            { propertyIds: ids })
+        root.transactionEdited(next || ({}))
+    }
+
     function statusIndex() {
-        if (!root.session)
+        if (!root.sessionState)
             return 0
         const tx = root.normalizedDraft()
-        const idx = root.session.indexOfKeyValue(root.statusOptions, "value", tx.status !== undefined ? tx.status : 0)
+        const idx = root.sessionState.indexOfKeyValue(root.statusOptions, "value", tx.status !== undefined ? tx.status : 0)
         return idx >= 0 ? idx : 0
     }
 
@@ -175,10 +217,7 @@ Item {
                 objectName: "bookingTransactionAmountField"
                 Layout.fillWidth: true
                 text: root.transactionData && root.transactionData.amount !== undefined ? String(root.transactionData.amount) : ""
-                onTextEdited: {
-                    const normalized = root.session ? root.session.normalizeTransactionDraft({ amount: text }) : ({ amount: 0.0 })
-                    root.updateField("amount", normalized.amount)
-                }
+                onTextEdited: root.updateField("amount", text)
             }
         }
 

@@ -10,6 +10,7 @@ pragma ComponentBehavior: Bound
 MenuBar {
     id: root
     required property var navigation
+    required property var appContext
     required property var actions
     required property var languageService
     required property var settingsViewModel
@@ -33,6 +34,12 @@ MenuBar {
         if (!root.navigation) return
         root.clearBookingStateForSection(section)
         root.navigation.setSectionValue(section)
+    }
+
+    function navigateToImportHome() {
+        if (root.appContext && root.appContext.importWorkflow && root.appContext.importWorkflow.clearDraft)
+            root.appContext.importWorkflow.clearDraft()
+        root.navigateToSection(root.navImport)
     }
 
     background: Rectangle {
@@ -104,7 +111,7 @@ MenuBar {
 
         Action {
             text: qsTr("Import")
-            onTriggered: root.navigateToSection(root.navImport)
+            onTriggered: root.navigateToImportHome()
         }
         Action {
             text: qsTr("Export")

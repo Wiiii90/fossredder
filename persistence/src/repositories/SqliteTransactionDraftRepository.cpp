@@ -102,7 +102,7 @@ void writeTransactionDraft(sqlite3* db,
     if (draft->id.empty()) {
         draft->id = persistence::generateUuid();
     }
-    if (autoPosition && draft->position <= 0) {
+    if (autoPosition && draft->position < 0) {
         draft->position = nextTransactionDraftPosition(db);
     }
 

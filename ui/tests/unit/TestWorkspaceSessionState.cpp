@@ -1,6 +1,6 @@
 /**
  * @file ui/tests/unit/TestWorkspaceSessionState.cpp
- * @brief Tests for the UI SessionStore boundary and derived filters.
+ * @brief Tests for the UI SessionState boundary and derived filters.
  */
 
 #include <gtest/gtest.h>
@@ -15,7 +15,7 @@ namespace ui {
 
 TEST(WorkspaceSessionStateTest, ExposesFilteredTransactionViewsForWorkspaceCollections)
 {
-    SessionStore store;
+    SessionState store;
     store.loadFromState(tests::support::makeWorkspaceCatalog());
 
     TransactionFilter* statementFilter = store.statementTransactions(QStringLiteral("statement-1"));
@@ -32,7 +32,7 @@ TEST(WorkspaceSessionStateTest, ExposesFilteredTransactionViewsForWorkspaceColle
 
 TEST(WorkspaceSessionStateTest, AppliesDeletionImpactAcrossModelsAndFilters)
 {
-    SessionStore store;
+    SessionState store;
     store.loadFromState(tests::support::makeWorkspaceCatalog());
 
     TransactionFilter* statementFilter = store.statementTransactions(QStringLiteral("statement-1"));
@@ -63,7 +63,7 @@ TEST(WorkspaceSessionStateTest, AppliesDeletionImpactAcrossModelsAndFilters)
 
 TEST(WorkspaceSessionStateTest, UpdatesTransactionPropertyAssignmentsInPlace)
 {
-    SessionStore store;
+    SessionState store;
     store.loadFromState(tests::support::makeWorkspaceCatalog());
 
     TransactionFilter* propertyFilter = store.propertyTransactions(QStringLiteral("property-1"));
@@ -78,6 +78,25 @@ TEST(WorkspaceSessionStateTest, UpdatesTransactionPropertyAssignmentsInPlace)
               QVariantList({QStringLiteral("property-2")}));
 
     EXPECT_EQ(propertyFilter->rowCount(), 1);
+}
+
+TEST(WorkspaceSessionStateTest, ResolvesAmountForCommitWithParserAndPersistedFallback)
+{
+    SessionState store;
+    store.loadFromState(tests::support::makeWorkspaceCatalog());
+
+    EXPECT_DOUBLE_EQ(store.amountForTransactionCommit(QStringLiteral("12,75"),
+                                                      QStringLiteral(""),
+                                                      0.0),
+                     12.75);
+    EXPECT_DOUBLE_EQ(store.amountForTransactionCommit(QStringLiteral("not-a-number"),
+                                                      QStringLiteral("tx-1"),
+                                                      0.0),
+                     1250.0);
+    EXPECT_DOUBLE_EQ(store.amountForTransactionCommit(QVariant(),
+                                                      QStringLiteral("missing"),
+                                                      7.5),
+                     7.5);
 }
 
 } // namespace ui

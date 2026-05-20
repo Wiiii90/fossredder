@@ -177,6 +177,12 @@ binding the suite to QML rendering.
 | IMP-W-001 | Restored import runs are projected from persisted state | Unit | Snapshot provider with import logs | Construct the workflow | Restored import runs are visible in the workflow model |
 | IMP-W-002 | Snapshot refresh replaces import run rows deterministically | Unit | Workflow with restored runs and a changed snapshot | Refresh from the state snapshot | Workflow rows rebind to the new snapshot content |
 | IMP-W-003 | Log-store hookup does not overwrite restored import runs | Unit | Workflow with restored runs and a writable log store | Bind the log store and mutate a run | Restored rows remain intact until a user mutation occurs |
+| IMP-W-004 | Import pause progress gate | Unit | Running import workflow state | Toggle pause and resume | Progress updates are ignored while paused and accepted after resume |
+| IMP-W-005 | Legacy draft-log restoration | Unit | Snapshot provider with a Draft import log carrying `statementDraftIds` but no attached-draft flag | Restore import runs | The workflow projects a clickable draft row with the restored draft id |
+| IMP-W-006 | Draft stack navigation cycles through import home | Unit | Snapshot provider with multiple persisted statement drafts and draft logs | Navigate next from the last draft or previous from the first draft, then navigate again | The active draft clears to the import home slot first, then continues to the opposite edge |
+| IMP-W-007 | Statement draft transaction navigation wraps | Unit | Statement draft view-model with multiple transactions | Navigate next from the last transaction and previous from the first transaction | The active transaction index wraps to the opposite edge |
+| IMP-W-008 | Reopened draft restores remembered transaction | Unit | Persisted draft is opened after selecting a non-first transaction | Clear and reopen the same draft | The draft opens with the previously selected transaction index |
+| IMP-W-009 | Persisted draft positions follow current transaction order | Unit | Statement draft contains manually reordered or inserted transactions with stale position fields | Persist the draft snapshot | Transaction draft snapshot positions are rewritten from the current list order |
 
 ## 5. Import Interaction
 

@@ -350,7 +350,6 @@ Implemented methods:
 - `clearActor()`
 - `assignToStatement(std::string)`
 - `clearStatement()`
-- `discardImportedValuta()`
 - `clearProperties()`
 - `hasStatus(Status) const`
 - `hasStatement() const`
@@ -385,7 +384,6 @@ Currently enforced:
   passes
 
 Important current behavior:
-- `discardImportedValuta()` replaces the older `clearValuta()` semantics
 - `finalizeFromDraft()` still implicitly encodes a workflow rule rather than a
   pure entity rule
 

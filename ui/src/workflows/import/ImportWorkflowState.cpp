@@ -66,6 +66,7 @@ bool ImportWorkflowState::resetStatus()
     progress_ = ui::config::importProgress::kMinimum;
     canceled_ = false;
     cancelClearsQueue_ = false;
+    paused_ = false;
     currentPage_ = ui::config::importPaging::kNone;
     pageCount_ = ui::config::importPaging::kNone;
     selectedFile_.clear();
@@ -128,6 +129,7 @@ void ImportWorkflowState::resetCancellationState()
 {
     canceled_ = false;
     cancelClearsQueue_ = false;
+    paused_ = false;
 }
 
 void ImportWorkflowState::storeArtifacts(const std::map<std::string, std::vector<uint8_t>>& artifacts)
@@ -171,9 +173,18 @@ void ImportWorkflowState::beginCancel(bool clearQueue)
 {
     if (!isRunning_) return;
     canceled_ = true;
+    paused_ = false;
     cancelClearsQueue_ = clearQueue;
     if (clearQueue) queuedFiles_.clear();
     phase_ = ui::text::importPhases::stopping();
+}
+
+bool ImportWorkflowState::togglePause()
+{
+    if (!isRunning_ || canceled_) return false;
+    paused_ = !paused_;
+    phase_ = paused_ ? QStringLiteral("Paused") : QStringLiteral("Running import...");
+    return true;
 }
 
 void ImportWorkflowState::recordCanceled(const QString& now)
@@ -247,7 +258,7 @@ bool ImportWorkflowState::restoreDraft(const std::shared_ptr<core::domain::State
 
 void ImportWorkflowState::updateProgress(double progress, const QString& phase, const QRegularExpression& pagePattern)
 {
-    if (!isRunning_ || canceled_) return;
+    if (!isRunning_ || canceled_ || paused_) return;
 
     progress_ = progress;
     if (phase.isEmpty()) return;

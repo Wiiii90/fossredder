@@ -29,6 +29,7 @@ core::application::importing::draft::TransactionDraft toDraft(const core::ports:
     draft.allocatable = snapshot.allocatable;
     draft.position = snapshot.position;
     draft.metadata = snapshot.metadata;
+    draft.proofImageData = snapshot.proofImageData;
     return draft;
 }
 
@@ -212,7 +213,7 @@ std::string WorkspaceWorkflowService::finalizeStatementDraft(const core::ports::
 
 void WorkspaceWorkflowService::saveStatementDraft(const core::ports::workspace::StatementDraftCommand& command) {
     ::saveStatementDraft(mutableDocument(), toDraft(command.draft));
-    commit();
+    session_->notifyState();
 }
 
 void WorkspaceWorkflowService::clearStatementDraft(const std::string& draftId) {

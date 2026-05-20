@@ -37,6 +37,7 @@ TestCase {
 
     property var importWorkflow: QtObject {
         property bool isRunning: false
+        property bool isPaused: false
         property real progress: 0
         property string phase: ""
         property string error: ""
@@ -46,6 +47,8 @@ TestCase {
         property var draft: null
         property bool hasPrevDraft: false
         property bool hasNextDraft: false
+        property bool hasDraftStack: false
+        property bool hasPersistedDraftValue: false
 
         signal stateChanged()
         signal importFileSelected(string path)
@@ -60,12 +63,15 @@ TestCase {
         property int resetCalls: 0
         property int cancelCalls: 0
         property int cancelAllCalls: 0
+        property int togglePauseCalls: 0
+        property int upsertPauseCalls: 0
         property int clearDraftCalls: 0
         property int persistCalls: 0
         property int clearPersistedCalls: 0
         property int finalizeCalls: 0
         property int prevDraftCalls: 0
         property int nextDraftCalls: 0
+        property bool nextDraftClearsDraft: false
         property int runNoteCalls: 0
         property var lastRunNote: ({})
         property string lastClearedDraftId: ""
@@ -75,9 +81,17 @@ TestCase {
         function resetStatus() { resetCalls += 1 }
         function cancelImport() { cancelCalls += 1 }
         function cancelAllImports() { cancelAllCalls += 1 }
+        function togglePause() { togglePauseCalls += 1; isPaused = !isPaused }
         function clearDraft() { clearDraftCalls += 1; draft = null }
         function openPrevDraft() { prevDraftCalls += 1 }
-        function openNextDraft() { nextDraftCalls += 1 }
+        function openNextDraft() {
+            nextDraftCalls += 1
+            if (nextDraftClearsDraft) {
+                draft = null
+                stateChanged()
+            }
+        }
+        function hasPersistedDraft() { return hasPersistedDraftValue }
         function persistStatementDraft(draft) { persistCalls += 1 }
         function clearPersistedStatementDraft(draftId) {
             clearPersistedCalls += 1
@@ -89,13 +103,14 @@ TestCase {
         }
         function syncCurrentTransactionDraft(draft) {}
         function currentTransactionViewState(draft) { return ({ actorChoices: [], effectiveAllocatable: false }) }
-        function addRunNote(statusText, messageText, draftAttached, statementId) {
+        function addRunNote(statusText, messageText, draftAttached, statementId, contextDraftId) {
             runNoteCalls += 1
             lastRunNote = {
                 status: statusText,
                 message: messageText,
                 draftAttached: draftAttached,
-                statementId: statementId || ""
+                statementId: statementId || "",
+                contextDraftId: contextDraftId || ""
             }
         }
     }
@@ -175,16 +190,22 @@ TestCase {
         importWorkflow.draft = null
         importWorkflow.hasPrevDraft = false
         importWorkflow.hasNextDraft = false
+        importWorkflow.hasDraftStack = false
+        importWorkflow.hasPersistedDraftValue = false
         importWorkflow.startCalls = 0
         importWorkflow.resetCalls = 0
         importWorkflow.cancelCalls = 0
         importWorkflow.cancelAllCalls = 0
+        importWorkflow.togglePauseCalls = 0
+        importWorkflow.upsertPauseCalls = 0
+        importWorkflow.isPaused = false
         importWorkflow.clearDraftCalls = 0
         importWorkflow.persistCalls = 0
         importWorkflow.clearPersistedCalls = 0
         importWorkflow.finalizeCalls = 0
         importWorkflow.prevDraftCalls = 0
         importWorkflow.nextDraftCalls = 0
+        importWorkflow.nextDraftClearsDraft = false
         importWorkflow.runNoteCalls = 0
         importWorkflow.lastRunNote = ({})
         importWorkflow.lastClearedDraftId = ""
@@ -254,6 +275,108 @@ TestCase {
         cancelAllButton.clicked()
 
         compare(importWorkflow.cancelAllCalls, 1)
+    }
+
+    function test_IMP_V_007_pauseButtonCallsControllerAndShowsResume() {
+        importWorkflow.isRunning = true
+
+        var view = createView()
+        wait(0)
+
+        var pauseButton = findRequired(view, "importPauseButton")
+
+        compare(pauseButton.text, "Pause")
+        pauseButton.clicked()
+
+        compare(importWorkflow.togglePauseCalls, 1)
+        compare(pauseButton.text, "Resume")
+    }
+
+    function test_IMP_V_008_runningButtonOrderKeepsPauseAtRightEdge() {
+        importWorkflow.isRunning = true
+        importWorkflow.queuedCount = 2
+
+        var view = createView()
+        wait(0)
+
+        var cancelButton = findRequired(view, "importCancelButton")
+        var pauseButton = findRequired(view, "importPauseButton")
+        var cancelAllButton = findRequired(view, "importCancelAllButton")
+
+        verify(cancelButton.x < cancelAllButton.x)
+        verify(cancelAllButton.x < pauseButton.x)
+    }
+
+    function test_IMP_V_009_importPageDraftNavigationButtonsStayAtOuterEdges() {
+        importWorkflow.hasDraftStack = true
+        importWorkflow.selectedFile = "test:///import/statement.pdf"
+
+        var view = createView()
+        wait(0)
+
+        var prevDraftButton = findRequired(view, "importPreviousDraftButton")
+        var clearButton = findRequired(view, "importClearButton")
+        var startButton = findRequired(view, "importStartButton")
+        var nextDraftButton = findRequired(view, "importNextDraftButton")
+
+        compare(prevDraftButton.enabled, true)
+        compare(nextDraftButton.enabled, true)
+        verify(prevDraftButton.x < clearButton.x)
+        verify(startButton.x < nextDraftButton.x)
+
+        prevDraftButton.clicked()
+        nextDraftButton.clicked()
+
+        compare(importWorkflow.prevDraftCalls, 1)
+        compare(importWorkflow.nextDraftCalls, 1)
+    }
+
+    function test_IMP_V_010_runningDraftNavigationButtonsStayAtOuterEdges() {
+        importWorkflow.isRunning = true
+        importWorkflow.queuedCount = 2
+        importWorkflow.hasDraftStack = true
+
+        var view = createView()
+        wait(0)
+
+        var prevDraftButton = findRequired(view, "importPreviousDraftButton")
+        var cancelButton = findRequired(view, "importCancelButton")
+        var pauseButton = findRequired(view, "importPauseButton")
+        var nextDraftButton = findRequired(view, "importNextDraftButton")
+
+        compare(prevDraftButton.enabled, true)
+        compare(nextDraftButton.enabled, true)
+        verify(prevDraftButton.x < cancelButton.x)
+        verify(pauseButton.x < nextDraftButton.x)
+    }
+
+    function test_IMP_V_011_importPageDraftNavigationDisabledWithoutDraftLogs() {
+        importWorkflow.hasPersistedDraftValue = true
+        importWorkflow.selectedFile = "test:///import/statement.pdf"
+
+        var view = createView()
+        wait(0)
+
+        compare(findRequired(view, "importPreviousDraftButton").enabled, false)
+        compare(findRequired(view, "importNextDraftButton").enabled, false)
+    }
+
+    function test_IMP_V_012_draftPageOuterNavigationCanReturnToImportHome() {
+        importWorkflow.draft = createDraftObject()
+        importWorkflow.hasDraftStack = true
+        importWorkflow.hasNextDraft = true
+
+        var view = createView()
+        wait(0)
+
+        var stack = findRequired(view, "importContentStack")
+        compare(stack.currentIndex, 1)
+
+        importWorkflow.nextDraftClearsDraft = true
+
+        findRequired(view, "statementDraftNextPageButton").clicked()
+        compare(importWorkflow.nextDraftCalls, 1)
+        tryCompare(stack, "currentIndex", 0)
     }
 
     function test_IMP_V_006_draftStateSwitchesToDraftPage() {

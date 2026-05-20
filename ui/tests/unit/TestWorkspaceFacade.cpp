@@ -15,6 +15,7 @@
 #include "core/application/workspace/WorkspaceFacade.h"
 #include "support/FakeStorageManager.h"
 #include "support/WorkspaceTestData.h"
+#include "ui/adapters/core/WorkspaceRowProjector.h"
 #include "ui/workspace/WorkspaceFacade.h"
 
 namespace {
@@ -97,10 +98,10 @@ TEST(WorkspaceFacadeTest, LoadsTheWorkspaceProjectionAndSelectionState)
         QVariantMap{{QStringLiteral("id"), QStringLiteral("b")}, {QStringLiteral("display"), QStringLiteral("Beta")}},
         QVariantMap{{QStringLiteral("id"), QStringLiteral("c")}, {QStringLiteral("display"), QStringLiteral("Gamma")}}
     };
-    const QVariantMap orderedSelection = facade.orderedSelectionState(rows,
-                                                                      QVariantList{QStringLiteral("c"), QStringLiteral("a")},
-                                                                      1,
-                                                                      QStringLiteral("b"));
+    const QVariantMap orderedSelection = ui::orderedSelectionState(rows,
+                                                                   QVariantList{QStringLiteral("c"), QStringLiteral("a")},
+                                                                   1,
+                                                                   QStringLiteral("b"));
     EXPECT_EQ(orderedSelection.value(QStringLiteral("orderIds")).toList(),
               QVariantList({QStringLiteral("c"), QStringLiteral("a"), QStringLiteral("b")}));
     EXPECT_EQ(orderedSelection.value(QStringLiteral("index")).toInt(), 2);

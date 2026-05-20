@@ -29,7 +29,9 @@ Item {
     function navigateCategory(delta) {
         if (!root.navigation)
             return
-        const nextCategory = Math.max(root.firstCategory, Math.min(root.lastCategory, root.currentCategory + delta))
+        const total = root.lastCategory - root.firstCategory + 1
+        const offset = root.currentCategory - root.firstCategory
+        const nextCategory = root.firstCategory + ((offset + delta + total) % total)
         if (nextCategory === root.currentCategory)
             return
         root.navigation.setSettingsCategoryValue(nextCategory)
@@ -85,7 +87,7 @@ Item {
 
             Controls.PrevButton {
                 objectName: "settingsPrevCategoryButton"
-                enabled: root.currentCategory > root.firstCategory
+                enabled: root.lastCategory > root.firstCategory
                 onClicked: root.navigateCategory(-1)
             }
 
@@ -109,7 +111,7 @@ Item {
 
             Controls.NextButton {
                 objectName: "settingsNextCategoryButton"
-                enabled: root.currentCategory < root.lastCategory
+                enabled: root.lastCategory > root.firstCategory
                 onClicked: root.navigateCategory(1)
             }
         }
@@ -137,4 +139,3 @@ Item {
         }
     }
 }
-

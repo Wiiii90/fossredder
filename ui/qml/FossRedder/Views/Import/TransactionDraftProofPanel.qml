@@ -31,6 +31,7 @@ Controls.Panel {
 
         Image {
             id: proofImage
+            objectName: "transactionDraftProofImage"
             Layout.fillWidth: true
             Layout.preferredHeight: source.toString().length > 0 ? Math.max(180, paintedHeight > 0 ? paintedHeight : width * 0.6) : 0
             Layout.minimumHeight: 0

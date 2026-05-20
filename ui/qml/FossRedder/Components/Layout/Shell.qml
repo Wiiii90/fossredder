@@ -19,6 +19,7 @@ GridLayout {
         id: appMenu
         Layout.row: 0
         Layout.fillWidth: true
+        appContext: layoutRoot.appContext
         navigation: layoutRoot.appContext ? layoutRoot.appContext.navigation : null
         actions: layoutRoot.appContext ? layoutRoot.appContext.actions : null
         languageService: layoutRoot.appContext ? layoutRoot.appContext.languageService : null
@@ -82,4 +83,3 @@ GridLayout {
     }
 
 }
-

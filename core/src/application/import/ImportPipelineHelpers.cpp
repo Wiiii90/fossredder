@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <thread>
 
 namespace core::application::importing::internal {
 using core::application::importing::statement::DefaultStatementParser;
@@ -25,6 +26,21 @@ constexpr auto kTsvArtifactPrefix = "tesseract/page_";
 constexpr auto kTsvArtifactSuffix = "_crop_0.tsv";
 constexpr auto kParserLogArtifactPrefix = "parser/page_";
 constexpr auto kParserLogArtifactSuffix = ".log";
+constexpr auto kPausePollInterval = std::chrono::milliseconds(50);
+
+bool importCanceled(const ImportRequest& req)
+{
+    return req.cancelFlag && req.cancelFlag->load();
+}
+
+bool waitWhilePaused(const ImportRequest& req)
+{
+    while (req.pauseFlag && req.pauseFlag->load()) {
+        if (importCanceled(req)) return false;
+        std::this_thread::sleep_for(kPausePollInterval);
+    }
+    return !importCanceled(req);
+}
 
 void safeReleaseLimiter(core::jobs::SlotLimiter* ocrLimiter,
                         core::errors::IErrorReporter* errorReporter,
@@ -130,6 +146,10 @@ PageWork processImportPage(size_t pageIndex,
         finishUnits(std::string(core::constants::importing::kProgressCanceled));
         return page;
     }
+    if (!waitWhilePaused(req)) {
+        finishUnits(std::string(core::constants::importing::kProgressCanceled));
+        return page;
+    }
 
     std::vector<uint8_t> pageBytes;
     if (pageIndex < renderRes.imageBytes.size() && !renderRes.imageBytes[pageIndex].empty()) {
@@ -141,10 +161,18 @@ PageWork processImportPage(size_t pageIndex,
         finishUnits(std::string(core::constants::importing::pageSteps::kNoImage));
         return page;
     }
+    if (!waitWhilePaused(req)) {
+        finishUnits(std::string(core::constants::importing::kProgressCanceled));
+        return page;
+    }
 
     auto maskRequest = buildMaskRequest(pageBytes, pageIndex, req, extractRes);
 
     if (maskRequest.useTesseract) {
+        if (!waitWhilePaused(req)) {
+            finishUnits(std::string(core::constants::importing::kProgressCanceled));
+            return page;
+        }
         try {
             const auto tessRequest = buildMaskOcrRequest(pageBytes, req);
             const auto tessResponse = extractWithLimiter(tesseract, tessRequest, ocrLimiter, page.ocrSec);
@@ -156,10 +184,18 @@ PageWork processImportPage(size_t pageIndex,
         }
     }
 
+    if (!waitWhilePaused(req)) {
+        finishUnits(std::string(core::constants::importing::kProgressCanceled));
+        return page;
+    }
     auto maskResponse = opencv->mask(maskRequest);
     std::vector<uint8_t> maskedBytes = !maskResponse.maskedImageBytes.empty() ? maskResponse.maskedImageBytes : pageBytes;
     unitDone(1, std::string(core::constants::importing::pageSteps::kMask));
 
+    if (!waitWhilePaused(req)) {
+        finishUnits(std::string(core::constants::importing::kProgressCanceled));
+        return page;
+    }
     const auto detectRequest = buildDetectRequest(maskedBytes, pageIndex, req);
     auto detectResponse = opencv->detect(detectRequest);
     unitDone(1, std::string(core::constants::importing::pageSteps::kDetect));
@@ -169,6 +205,10 @@ PageWork processImportPage(size_t pageIndex,
         return page;
     }
 
+    if (!waitWhilePaused(req)) {
+        finishUnits(std::string(core::constants::importing::kProgressCanceled));
+        return page;
+    }
     const auto cropRequest = buildCropRequest(pageBytes, pageIndex, req, detectResponse);
     auto cropResponse = opencv->crop(cropRequest);
     unitDone(1, std::string(core::constants::importing::pageSteps::kCrop));
@@ -180,6 +220,10 @@ PageWork processImportPage(size_t pageIndex,
 
     const auto tableRequest = buildTableOcrRequest(cropResponse.croppedImageBytes.front(), pageIndex, req, detectResponse);
 
+    if (!waitWhilePaused(req)) {
+        finishUnits(std::string(core::constants::importing::kProgressCanceled));
+        return page;
+    }
     try {
         page.ocr = extractWithLimiter(tesseract, tableRequest, ocrLimiter, page.ocrSec);
     } catch (...) {
@@ -217,6 +261,10 @@ FinalizeStats finalizeParsedPages(const ImportRequest& req,
     FinalizeStats stats;
     const size_t finalizePageCount = std::max<size_t>(1, pages.size());
     for (size_t pageIndex = 0; pageIndex < pages.size(); ++pageIndex) {
+        if (!waitWhilePaused(req)) {
+            report(0.0, std::string(core::constants::importing::kProgressCanceled));
+            break;
+        }
         if (req.cancelFlag && req.cancelFlag->load()) {
             report(0.0, std::string(core::constants::importing::kProgressCanceled));
             break;

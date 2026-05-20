@@ -66,7 +66,7 @@ TestCase {
 
     function init() {
         exportWorkflow.runs = [
-            { logId: "export-1", time: "2026-05-16 10:00:00", status: "Success", file: "/tmp/export.xlsx", message: "done", payload: "{\"items\":[]}" }
+            { logId: "export-1", time: "2026-05-16 10:00:00", status: "Success", file: "/tmp/export.xlsx", message: "done", payload: "{\"items\":[]}", draftAttached: false, draftId: "", statementId: "" }
         ]
         exportWorkflow.openCalls = 0
         exportWorkflow.removeCalls = 0

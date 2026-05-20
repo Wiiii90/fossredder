@@ -14,6 +14,7 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var sessionState: root.appContext ? root.appContext.sessionState : null
     readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
     readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
 
@@ -28,15 +29,22 @@ Item {
     property string savedEditStatementName: ""
     property string savedEditTransactionJson: "{}"
     property var currentTransactionDraft: (root.emptyTransaction())
+    property var lastTransactionIdByStatementId: ({})
 
     readonly property bool isCreateMode: !root.session || !root.session.selectedStatementId || root.session.selectedStatementId.length === 0
 
     function emptyTransaction() {
-        return root.session ? root.session.emptyTransactionDraft() : ({})
+        return root.sessionState ? root.sessionState.emptyTransactionDraft() : ({})
     }
 
     function cloneTransaction(tx) {
-        return root.session ? root.session.normalizeTransactionDraft(tx || ({})) : ({})
+        return root.sessionState ? root.sessionState.normalizeTransactionDraft(tx || ({})) : ({})
+    }
+
+    function amountForCommit(rawAmount, txId, fallbackValue) {
+        if (!root.sessionState)
+            return Number(fallbackValue || 0.0)
+        return root.sessionState.amountForTransactionCommit(rawAmount, txId || "", Number(fallbackValue || 0.0))
     }
 
     function transactionSnapshot(data) {
@@ -88,12 +96,12 @@ Item {
         const rows = root.statementTransactionRows(root.session.selectedStatementId)
         const preferred = root.editTransactionOrderIds && root.editTransactionOrderIds.length > 0
             ? root.editTransactionOrderIds
-            : root.session.rowIds(rows)
-        return root.session.orderedSelectionState(rows,
-                                                  preferred,
-                                                  root.editTransactionIndex,
-                                                  root.session.selectedTransactionId || "",
-                                                  "id")
+            : root.sessionState.rowIds(rows)
+        return root.sessionState.orderedSelectionState(rows,
+                                                       preferred,
+                                                       root.editTransactionIndex,
+                                                       root.session.selectedTransactionId || "",
+                                                       "id")
     }
 
     function transactionById(txId) {
@@ -102,33 +110,87 @@ Item {
         return root.cloneTransaction(root.workspaceFacade.transaction(txId))
     }
 
+    function rememberSelectedTransaction() {
+        if (!root.session || !root.session.selectedStatementId || !root.session.selectedTransactionId)
+            return
+        const statementId = String(root.session.selectedStatementId || "")
+        const txId = String(root.session.selectedTransactionId || "")
+        if (statementId.length === 0 || txId.length === 0)
+            return
+        const next = ({})
+        const previous = root.lastTransactionIdByStatementId || ({})
+        for (const key in previous)
+            next[key] = previous[key]
+        next[statementId] = txId
+        root.lastTransactionIdByStatementId = next
+    }
+
+    function statementHasTransaction(statementId, txId) {
+        const target = String(txId || "")
+        if (target.length === 0)
+            return false
+        const rows = root.statementTransactionRows(statementId)
+        for (let i = 0; i < rows.length; ++i) {
+            if (String(rows[i].id || "") === target)
+                return true
+        }
+        return false
+    }
+
+    function transactionIdForStatement(statementId) {
+        const statementKey = String(statementId || "")
+        const remembered = root.lastTransactionIdByStatementId
+            ? String(root.lastTransactionIdByStatementId[statementKey] || "")
+            : ""
+        if (root.statementHasTransaction(statementKey, remembered))
+            return remembered
+        const rows = root.statementTransactionRows(statementKey)
+        return rows.length > 0 && rows[0].id ? String(rows[0].id) : ""
+    }
+
+    function ensureSelectedTransactionForStatement() {
+        if (root.isCreateMode || !root.session || !root.session.selectedStatementId)
+            return true
+        const statementId = String(root.session.selectedStatementId || "")
+        const currentTxId = String(root.session.selectedTransactionId || "")
+        if (root.statementHasTransaction(statementId, currentTxId))
+            return true
+        const nextTxId = root.transactionIdForStatement(statementId)
+        if (currentTxId === nextTxId)
+            return true
+        root.session.selectedTransactionId = nextTxId
+        return false
+    }
+
     function currentCreateTransaction() {
-        if (!root.session)
-            return root.emptyTransaction()
-        const state = root.session.currentDraftState(root.createTransactions || [],
-                                                     root.createTransactionIndex,
-                                                     root.emptyTransaction())
-        root.createTransactions = state.drafts || [root.emptyTransaction()]
-        root.createTransactionIndex = state.index !== undefined ? state.index : 0
-        root.currentTransactionDraft = state.draft || root.emptyTransaction()
+        const list = root.createTransactions && root.createTransactions.length > 0
+            ? root.createTransactions.slice()
+            : [root.emptyTransaction()]
+        const lastIndex = Math.max(0, list.length - 1)
+        const index = Math.max(0, Math.min(root.createTransactionIndex, lastIndex))
+        root.createTransactions = list
+        root.createTransactionIndex = index
+        root.currentTransactionDraft = list[index] || root.emptyTransaction()
         return root.currentTransactionDraft
     }
 
     function setCurrentCreateTransaction(data) {
-        if (!root.session)
-            return
-
-        const state = root.session.setCurrentDraft(root.createTransactions || [],
-                                                   root.createTransactionIndex,
-                                                   data || ({}),
-                                                   root.emptyTransaction())
-        root.createTransactions = state.drafts || [root.emptyTransaction()]
-        root.createTransactionIndex = state.index !== undefined ? state.index : 0
-        root.currentTransactionDraft = state.draft || root.emptyTransaction()
+        const list = root.createTransactions && root.createTransactions.length > 0
+            ? root.createTransactions.slice()
+            : [root.emptyTransaction()]
+        const lastIndex = Math.max(0, list.length - 1)
+        const index = Math.max(0, Math.min(root.createTransactionIndex, lastIndex))
+        list[index] = data || root.emptyTransaction()
+        root.createTransactions = list
+        root.createTransactionIndex = index
+        root.currentTransactionDraft = list[index] || root.emptyTransaction()
     }
 
     function syncEditState() {
         if (root.isCreateMode)
+            return
+
+        if (!root.ensureSelectedTransactionForStatement())
             return
 
         const statement = root.session ? root.session.selectedStatement : null
@@ -148,6 +210,7 @@ Item {
 
         if (root.session)
             root.session.selectedTransactionId = state.id || ""
+        root.rememberSelectedTransaction()
         root.captureEditState()
     }
 
@@ -158,14 +221,28 @@ Item {
             return
 
         const currentId = root.isCreateMode ? "" : (root.session.selectedStatementId || "")
-        const defaultIndex = delta > 0 ? 0 : rows.length - 1
-        const nextId = root.session.navigatedId(rows, currentId, delta, defaultIndex)
+        const currentIndex = root.sessionState.indexOfId ? root.sessionState.indexOfId(rows, currentId) : -1
+        if ((delta > 0 && currentIndex === rows.length - 1)
+                || (delta < 0 && currentIndex === 0)) {
+            root.rememberSelectedTransaction()
+            root.session.selectedStatementId = ""
+            root.session.selectedTransactionId = ""
+            root.editTransactionOrderIds = []
+            root.editTransactionIndex = -1
+            return
+        }
+        const nextIndex = currentIndex < 0
+            ? (delta > 0 ? 0 : rows.length - 1)
+            : currentIndex + delta
+        const nextId = rows[nextIndex] && rows[nextIndex].id ? String(rows[nextIndex].id) : ""
         if (!nextId || nextId.length === 0)
             return
 
+        root.rememberSelectedTransaction()
         root.session.selectedStatementId = nextId
-        root.session.selectedTransactionId = ""
+        root.session.selectedTransactionId = root.transactionIdForStatement(nextId)
         root.editTransactionOrderIds = []
+        root.editTransactionIndex = 0
     }
 
     function navigateTransaction(delta) {
@@ -174,7 +251,7 @@ Item {
             if (root.createTransactions.length === 0)
                 return
 
-            const idx = root.session ? root.session.wrappedIndex(root.createTransactionIndex + delta, root.createTransactions.length) : 0
+            const idx = root.sessionState ? root.sessionState.wrappedIndex(root.createTransactionIndex + delta, root.createTransactions.length) : 0
             root.createTransactionIndex = idx
             return
         }
@@ -185,15 +262,16 @@ Item {
         if (!root.session || rows.length === 0)
             return
 
-        const next = root.session.navigateSelectionState(rows,
-                                                         state.index !== undefined ? state.index : root.editTransactionIndex,
-                                                         state.id || root.session.selectedTransactionId || "",
-                                                         delta,
-                                                         0,
-                                                         "id")
+        const next = root.sessionState.navigateSelectionState(rows,
+                                                              state.index !== undefined ? state.index : root.editTransactionIndex,
+                                                              state.id || root.session.selectedTransactionId || "",
+                                                              delta,
+                                                              0,
+                                                              "id")
         root.editTransactionIndex = next.index !== undefined ? next.index : 0
         root.editTransactionData = root.transactionById(next.id || "")
         root.session.selectedTransactionId = next.id || ""
+        root.rememberSelectedTransaction()
     }
 
     function resetCreateState() {
@@ -204,7 +282,7 @@ Item {
             root.currentTransactionDraft = root.emptyTransaction()
             return
         }
-        const state = root.session.createDraftListState([], 0, root.emptyTransaction())
+        const state = root.sessionState.createDraftListState([], 0, root.emptyTransaction())
         root.createTransactions = state.drafts || [root.emptyTransaction()]
         root.createTransactionIndex = state.index !== undefined ? state.index : 0
         root.currentTransactionDraft = state.draft || root.emptyTransaction()
@@ -215,12 +293,15 @@ Item {
             return
         }
 
-        const state = root.session.insertDraftAfterCurrent(root.createTransactions || [],
-                                                           root.createTransactionIndex,
-                                                           root.emptyTransaction())
-        root.createTransactions = state.drafts || [root.emptyTransaction()]
-        root.createTransactionIndex = state.index !== undefined ? state.index : 0
-        root.currentTransactionDraft = root.createTransactions[root.createTransactionIndex] || root.emptyTransaction()
+        const list = root.createTransactions && root.createTransactions.length > 0
+            ? root.createTransactions.slice()
+            : [root.emptyTransaction()]
+        const index = Math.max(0, Math.min(root.createTransactionIndex, list.length - 1))
+        const insertIndex = Math.max(0, Math.min(index + 1, list.length))
+        list.splice(insertIndex, 0, root.emptyTransaction())
+        root.createTransactions = list
+        root.createTransactionIndex = insertIndex
+        root.currentTransactionDraft = list[insertIndex] || root.emptyTransaction()
     }
 
     function addEditTransaction() {
@@ -235,15 +316,19 @@ Item {
             insertAfterIndex = rows.length - 1
 
         const statementId = root.session.selectedStatementId
-        const newId = root.workspaceFacade.addTransaction("", "", 0.0, statementId, 0, "", "", false, [])
+        const current = root.cloneTransaction(root.editTransactionData || root.emptyTransaction())
+        const bookingDate = current.bookingDate || ""
+        const valuta = current.valuta || ""
+        const afterTransactionId = current.id || (state.id || "")
+        const newId = root.workspaceFacade.insertTransactionAfter(afterTransactionId, "", bookingDate, valuta, 0.0, statementId, 0, "", "", false, [])
         if (!newId || newId.length === 0)
             return
 
         const updatedRows = root.statementTransactionRows(statementId)
-        const updatedIds = root.session.rowIds(updatedRows)
+        const updatedIds = root.sessionState.rowIds(updatedRows)
 
-        root.editTransactionOrderIds = root.session
-            ? root.session.orderWithInsertedId(root.editTransactionOrderIds || [], updatedIds, newId, insertAfterIndex)
+        root.editTransactionOrderIds = root.sessionState
+            ? root.sessionState.orderWithInsertedId(root.editTransactionOrderIds || [], updatedIds, newId, insertAfterIndex)
             : updatedIds
 
         if (root.session)
@@ -263,12 +348,18 @@ Item {
         if (root.isCreateMode) {
             if (!root.session)
                 return
-            const state = root.session.removeDraftAt(root.createTransactions || [],
-                                                     root.createTransactionIndex,
-                                                     root.emptyTransaction())
-            root.createTransactions = state.drafts || [root.emptyTransaction()]
-            root.createTransactionIndex = state.index !== undefined ? state.index : 0
-            root.currentTransactionDraft = root.createTransactions[root.createTransactionIndex] || root.emptyTransaction()
+            const list = root.createTransactions && root.createTransactions.length > 0
+                ? root.createTransactions.slice()
+                : [root.emptyTransaction()]
+            const index = Math.max(0, Math.min(root.createTransactionIndex, list.length - 1))
+            if (list.length > 1)
+                list.splice(index, 1)
+            if (list.length === 0)
+                list.push(root.emptyTransaction())
+            const nextIndex = Math.max(0, Math.min(index, list.length - 1))
+            root.createTransactions = list
+            root.createTransactionIndex = nextIndex
+            root.currentTransactionDraft = list[nextIndex] || root.emptyTransaction()
             return
         }
 
@@ -285,18 +376,19 @@ Item {
         root.workspaceFacade.deleteTransaction(root.editTransactionData.id)
 
         const updatedRows = root.statementTransactionRows(root.session.selectedStatementId || "")
-        const reselectionState = root.session
-            ? root.session.deleteReselectionState(updatedRows,
-                                                 root.editTransactionOrderIds || [],
-                                                 root.editTransactionIndex,
-                                                 deletedId,
-                                                 "id")
+        const reselectionState = root.sessionState
+            ? root.sessionState.deleteReselectionState(updatedRows,
+                                                       root.editTransactionOrderIds || [],
+                                                       root.editTransactionIndex,
+                                                       deletedId,
+                                                       "id")
             : ({ orderIds: [], index: -1, id: "" })
 
         root.editTransactionOrderIds = reselectionState.orderIds || []
         root.editTransactionIndex = reselectionState.index !== undefined ? reselectionState.index : -1
         if (root.session)
             root.session.selectedTransactionId = reselectionState.id || ""
+        root.rememberSelectedTransaction()
         root.editTransactionData = root.transactionById(reselectionState.id || "")
     }
 
@@ -327,11 +419,13 @@ Item {
 
         const drafts = root.createTransactions || []
         for (let i = 0; i < drafts.length; ++i) {
-            const tx = root.cloneTransaction(drafts[i])
+            const rawTx = drafts[i] || root.emptyTransaction()
+            const tx = root.cloneTransaction(rawTx)
             root.workspaceFacade.addTransaction(
                 tx.name || "",
                 tx.bookingDate || "",
-                Number(tx.amount || 0.0),
+                tx.valuta || "",
+                root.amountForCommit(rawTx.amount, "", tx.amount),
                 statementId,
                 tx.status !== undefined ? Number(tx.status) : 0,
                 tx.actorId || "",
@@ -343,7 +437,7 @@ Item {
         root.resetCreateState()
         if (root.session) {
             root.session.selectedStatementId = statementId
-            root.session.selectedTransactionId = ""
+            root.session.selectedTransactionId = root.transactionIdForStatement(statementId)
         }
     }
 
@@ -354,26 +448,46 @@ Item {
         if (!root.workspaceFacade || !root.session || !root.session.selectedStatementId)
             return
 
-        root.workspaceFacade.updateStatement(root.session.selectedStatementId,
-                                                root.editStatementName)
+        const selectedStatementId = root.session.selectedStatementId || ""
+        const currentStatementName = String(root.editStatementName || "")
+        const statementChanged = root.savedEditStatementName !== currentStatementName
 
-        if (!root.workspaceFacade || !root.editTransactionData || !root.editTransactionData.id)
-            return
+        const txData = root.editTransactionData || root.emptyTransaction()
+        const txId = txData.id || ""
+        const transactionChanged = root.savedEditTransactionJson !== root.transactionSnapshot(txData)
 
-        const normalizedTx = root.cloneTransaction(root.editTransactionData)
-        const statementId = root.session.selectedStatementId || (root.editTransactionData.statementId || "")
-        root.workspaceFacade.updateTransaction(
-            root.editTransactionData.id,
-            root.editTransactionData.name || "",
-            root.editTransactionData.bookingDate || "",
-            normalizedTx.amount,
-            statementId,
-            normalizedTx.status,
-            root.editTransactionData.actorId || "",
-            root.editTransactionData.contractId || "",
-            !!root.editTransactionData.allocatable,
-            root.editTransactionData.propertyIds || [])
-        root.captureEditState()
+        const normalizedTx = root.cloneTransaction(txData)
+        const txName = txData.name || ""
+        const txBookingDate = txData.bookingDate || ""
+        const txValuta = txData.valuta || ""
+        const txAmount = root.amountForCommit(txData.amount, txId, normalizedTx.amount)
+        const txStatus = normalizedTx.status
+        const txActorId = txData.actorId || ""
+        const txContractId = txData.contractId || ""
+        const txAllocatable = !!txData.allocatable
+        const txPropertyIds = txData.propertyIds || []
+        const txStatementId = selectedStatementId || (txData.statementId || "")
+
+        if (transactionChanged && txId.length > 0) {
+            root.workspaceFacade.updateTransaction(
+                txId,
+                txName,
+                txBookingDate,
+                txValuta,
+                txAmount,
+                txStatementId,
+                txStatus,
+                txActorId,
+                txContractId,
+                txAllocatable,
+                txPropertyIds)
+        }
+
+        if (statementChanged) {
+            root.workspaceFacade.updateStatement(selectedStatementId, currentStatementName)
+        }
+
+        Qt.callLater(root.syncEditState)
     }
 
     function deleteStatement() {
@@ -384,9 +498,9 @@ Item {
 
         const removedId = root.session.selectedStatementId
         root.workspaceFacade.deleteStatement(removedId)
-        const nextId = root.session.deleteNextSelectionId(root.statementRows(), removedId, 0, "id")
+        const nextId = root.sessionState.deleteNextSelectionId(root.statementRows(), removedId, 0, "id")
         root.session.selectedStatementId = nextId || ""
-        root.session.selectedTransactionId = ""
+        root.session.selectedTransactionId = nextId ? root.transactionIdForStatement(nextId) : ""
     }
 
     Connections {
@@ -395,15 +509,20 @@ Item {
         function onSelectedStatementIdChanged() {
             if (root.isCreateMode)
                 root.resetCreateState()
-            else
+            else {
+                root.editTransactionOrderIds = []
+                root.editTransactionIndex = 0
                 root.syncEditState()
+            }
         }
 
         function onSelectedTransactionIdChanged() {
             if (root.isCreateMode)
                 root.resetCreateState()
-            else
+            else {
+                root.rememberSelectedTransaction()
                 root.syncEditState()
+            }
         }
 
         function onDataRevisionChanged() {
@@ -461,7 +580,7 @@ Item {
                 id: transactionView
                 Layout.fillWidth: true
                 theme: root.theme
-                session: root.session
+                sessionState: root.sessionState
                 transactionData: root.isCreateMode ? root.currentTransactionDraft : root.editTransactionData
                 actorRows: root.actorRows()
                 contractRows: root.contractRows()
@@ -470,7 +589,7 @@ Item {
                     if (root.isCreateMode)
                         root.setCurrentCreateTransaction(nextData)
                     else
-                        root.editTransactionData = root.cloneTransaction(nextData)
+                        root.editTransactionData = nextData || root.emptyTransaction()
                 }
             }
         }

@@ -51,6 +51,7 @@ public:
     Q_INVOKABLE void next();
     Q_INVOKABLE void prev();
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE void insertTransactionAfterCurrent();
     Q_INVOKABLE void removeTransaction(int index);
 
     void setCatalogState(const core::domain::catalog::WorkspaceCatalog& state);

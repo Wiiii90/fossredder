@@ -18,8 +18,10 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var sessionState: root.appContext ? root.appContext.sessionState : null
     readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
     readonly property var current: root.session ? root.session.selectedActor : null
+    readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
 
     property var aliases: []
@@ -66,7 +68,7 @@ Item {
             root.applyFormState({})
             return
         }
-        root.applyFormState(root.session.basicFormState("", [], []))
+        root.applyFormState(root.sessionState.basicFormState("", [], []))
     }
 
     function toStringList(values) {
@@ -91,21 +93,31 @@ Item {
     }
 
     function actorRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.actorRows() : []
     }
 
     function contractRows() {
+        const _workspaceRevision = root.workspaceRevision
         return root.session ? root.session.contractRows() : []
     }
 
     function navigateActor(delta) {
-        const rows = root.session && root.session.actors ? root.session.actors : []
+        const rows = root.actorRows()
         if (!root.session || rows.length === 0)
             return
 
         const currentId = root.isEdit ? (root.session.selectedActorId || "") : ""
-        const defaultIndex = delta > 0 ? 0 : rows.length - 1
-        const nextId = root.session.navigatedId(rows, currentId, delta, defaultIndex)
+        const currentIndex = root.sessionState.indexOfId ? root.sessionState.indexOfId(rows, currentId) : -1
+        if ((delta > 0 && currentIndex === rows.length - 1)
+                || (delta < 0 && currentIndex === 0)) {
+            root.session.selectedActorId = ""
+            return
+        }
+        const nextIndex = currentIndex < 0
+            ? (delta > 0 ? 0 : rows.length - 1)
+            : currentIndex + delta
+        const nextId = rows[nextIndex] && rows[nextIndex].id ? String(rows[nextIndex].id) : ""
         if (!nextId || nextId.length === 0)
             return
         root.session.selectedActorId = nextId
@@ -114,7 +126,7 @@ Item {
     function addAlias(value) {
         if (!root.workspaceFacade)
             return
-        const next = root.workspaceFacade.addUniqueTrimmed(root.aliases || [], value || "")
+        const next = root.sessionState.addUniqueTrimmed(root.aliases || [], value || "")
         if (next.length === root.aliases.length)
             return
         root.aliases = next
@@ -125,7 +137,7 @@ Item {
     function deleteAlias(index) {
         if (!root.workspaceFacade)
             return
-        const next = root.workspaceFacade.removeAt(root.aliases || [], index)
+        const next = root.sessionState.removeAt(root.aliases || [], index)
         if (next.length === root.aliases.length)
             return
         root.aliases = next
@@ -146,9 +158,9 @@ Item {
         root.contractSelectionOwnerId = currentId
         const current = root.current
         const state = root.session
-            ? root.session.basicFormState(current && current.name ? current.name : "",
-                                          current && current.aliases ? root.toStringList(current.aliases) : [],
-                                          current && current.contractIds ? root.toStringList(current.contractIds) : [])
+            ? root.sessionState.basicFormState(current && current.name ? current.name : "",
+                                               current && current.aliases ? root.toStringList(current.aliases) : [],
+                                               current && current.contractIds ? root.toStringList(current.contractIds) : [])
             : ({})
         root.applyFormState(state)
         root.captureSavedState()
@@ -174,7 +186,7 @@ Item {
         if (!root.session)
             return
 
-        const nextId = root.session.deleteNextSelectionId(root.session.actorRows(), removedId, 0, "id")
+        const nextId = root.sessionState.deleteNextSelectionId(root.session.actorRows(), removedId, 0, "id")
         root.session.selectedActorId = nextId || ""
     }
 

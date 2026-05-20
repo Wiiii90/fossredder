@@ -66,13 +66,13 @@ bool StatementDraft::hasCurrent() const
 void StatementDraft::next()
 {
     if (!hasCurrent()) return;
-    setCurrentIndex(currentIndex_ + 1);
+    setCurrentIndex((currentIndex_ + 1) % count());
 }
 
 void StatementDraft::prev()
 {
     if (!hasCurrent()) return;
-    setCurrentIndex(currentIndex_ - 1);
+    setCurrentIndex((currentIndex_ + count() - 1) % count());
 }
 
 void StatementDraft::setDrafts(std::vector<TransactionDraft> drafts)
@@ -84,6 +84,21 @@ void StatementDraft::setDrafts(std::vector<TransactionDraft> drafts)
 
 void StatementDraft::refresh()
 {
+    emit changed();
+}
+
+void StatementDraft::insertTransactionAfterCurrent()
+{
+    TransactionDraft draft;
+    draft.status = static_cast<int>(core::domain::Transaction::Status::Unverified);
+
+    const int currentCount = count();
+    auto drafts = transactions_.drafts();
+    const int insertIndex = currentCount <= 0 ? 0 : std::min(currentIndex_ + 1, currentCount);
+    drafts.insert(drafts.begin() + insertIndex, std::move(draft));
+
+    transactions_.setDrafts(std::move(drafts));
+    currentIndex_ = insertIndex;
     emit changed();
 }
 

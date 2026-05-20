@@ -172,4 +172,17 @@ TestCase {
         compare(navigation.settingsCategoryValue, 0)
         verify(loader.item !== null)
     }
+
+    function test_SET_V_005_categoryNavigationWrapsAtEdges() {
+        navigation.settingsCategoryValue = 3
+        var view = createView()
+        var nextButton = findRequired(view, "settingsNextCategoryButton")
+        var prevButton = findRequired(view, "settingsPrevCategoryButton")
+
+        nextButton.clicked()
+        compare(navigation.settingsCategoryValue, 0)
+
+        prevButton.clicked()
+        compare(navigation.settingsCategoryValue, 3)
+    }
 }

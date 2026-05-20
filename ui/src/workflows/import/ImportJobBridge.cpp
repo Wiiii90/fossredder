@@ -76,6 +76,18 @@ void ImportJobBridge::cancelCurrent() {
   jobSystem_->cancel(strings::toStdString(currentJobId_));
 }
 
+void ImportJobBridge::pauseCurrent() {
+  if (!jobSystem_ || currentJobId_.isEmpty())
+    return;
+  jobSystem_->pause(strings::toStdString(currentJobId_));
+}
+
+void ImportJobBridge::resumeCurrent() {
+  if (!jobSystem_ || currentJobId_.isEmpty())
+    return;
+  jobSystem_->resume(strings::toStdString(currentJobId_));
+}
+
 void ImportJobBridge::clearSubscription() {
   if (!jobSystem_ || currentSubId_ == 0 || currentJobId_.isEmpty()) {
     currentSubId_ = 0;

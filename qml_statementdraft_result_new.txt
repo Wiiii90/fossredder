@@ -1,0 +1,39 @@
+********* Start testing of ui_qml_tests *********
+Config: Using QtTest library 6.8.3, Qt 6.8.3 (x86_64-little_endian-llp64 shared (dynamic) debug build; by MSVC 2022), windows 10
+PASS   : ui_qml_tests::StatementDraftViewTests::initTestCase()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_001_returnWritesDraftNoteAndNavigatesBack() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_001_returnWritesDraftNoteAndNavigatesBack() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_001_returnWritesDraftNoteAndNavigatesBack()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_002_discardClearsPersistedDraftAndNavigatesBack() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_002_discardClearsPersistedDraftAndNavigatesBack() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_002_discardClearsPersistedDraftAndNavigatesBack()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_003_finalizeSuccessClearsPersistedDraftAndLogsFinalized() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_003_finalizeSuccessClearsPersistedDraftAndLogsFinalized() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_003_finalizeSuccessClearsPersistedDraftAndLogsFinalized()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_004_finalizeFailureKeepsDraftAvailable() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_004_finalizeFailureKeepsDraftAvailable() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_004_finalizeFailureKeepsDraftAvailable()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_005_transactionNavigationUpdatesCurrentIndex() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_005_transactionNavigationUpdatesCurrentIndex() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_005_transactionNavigationUpdatesCurrentIndex()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_006_deleteTransactionRemovesCurrentTransaction() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_006_deleteTransactionRemovesCurrentTransaction() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_006_deleteTransactionRemovesCurrentTransaction()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_007_transactionNavigationWrapsAtEdges() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_007_transactionNavigationWrapsAtEdges()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_008_metadataAndProofAreRenderedFromCurrentDraft() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_008_metadataAndProofAreRenderedFromCurrentDraft() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_008_metadataAndProofAreRenderedFromCurrentDraft()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_009_addTransactionAddsCurrentTransaction() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_009_addTransactionAddsCurrentTransaction() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_009_addTransactionAddsCurrentTransaction()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_010_amountCommitsOnEditingFinished() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_010_amountCommitsOnEditingFinished() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_010_amountCommitsOnEditingFinished()
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_011_amountStaysConsistentAcrossTransactionNavigation() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftPropertyPanel.qml:20:5: Unable to assign [undefined] to int
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_011_amountStaysConsistentAcrossTransactionNavigation() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+QWARN  : ui_qml_tests::StatementDraftViewTests::test_IMP_D_011_amountStaysConsistentAcrossTransactionNavigation() file:///P:/fossredder-testing/ui/qml/FossRedder/Views/Import/TransactionDraftProofPanel.qml:32:9: QML QQuickImage: Error decoding: data:image/jpeg;base64,YWJj: Unsupported image format
+PASS   : ui_qml_tests::StatementDraftViewTests::test_IMP_D_011_amountStaysConsistentAcrossTransactionNavigation()
+PASS   : ui_qml_tests::StatementDraftViewTests::cleanupTestCase()
+Totals: 13 passed, 0 failed, 0 skipped, 0 blacklisted, 2739ms
+********* Finished testing of ui_qml_tests *********

@@ -296,7 +296,7 @@ QVariantMap deleteReselectionStateForRows(const QVariantList& rows,
     return out;
 }
 
-QVariantList buildStatementTransactionIds(const SessionStore& session, const QString& statementId)
+QVariantList buildStatementTransactionIds(const SessionState& session, const QString& statementId)
 {
     QVariantList out;
     if (statementId.isEmpty()) return out;
@@ -494,7 +494,7 @@ QVariantMap contractFormState(const QString& name,
     return out;
 }
 
-QVariantList buildActorRows(const SessionStore& session)
+QVariantList buildActorRows(const SessionState& session)
 {
     QVariantList out;
     for (const auto& actor : session.models().actors().actors()) {
@@ -516,7 +516,7 @@ QVariantList buildActorRows(const SessionStore& session)
     return out;
 }
 
-QVariantList buildPropertyRows(const SessionStore& session)
+QVariantList buildPropertyRows(const SessionState& session)
 {
     QVariantList out;
     for (const auto& property : session.models().properties().properties()) {
@@ -538,7 +538,7 @@ QVariantList buildPropertyRows(const SessionStore& session)
     return out;
 }
 
-QVariantList buildContractRows(const SessionStore& session)
+QVariantList buildContractRows(const SessionState& session)
 {
     QVariantList out;
     for (const auto& contract : session.models().contracts().contracts()) {
@@ -562,7 +562,7 @@ QVariantList buildContractRows(const SessionStore& session)
     return out;
 }
 
-QVariantList buildAnalysisRows(const SessionStore& session)
+QVariantList buildAnalysisRows(const SessionState& session)
 {
     QVariantList out;
     for (const auto& analysis : session.models().analyses().analyses()) {
@@ -587,7 +587,7 @@ QVariantList buildAnalysisRows(const SessionStore& session)
     return out;
 }
 
-QVariantList buildAnnualRows(const SessionStore& session)
+QVariantList buildAnnualRows(const SessionState& session)
 {
     QVariantList out;
     for (const auto& annual : session.models().annuals().annuals()) {
@@ -606,7 +606,7 @@ QVariantList buildAnnualRows(const SessionStore& session)
     return out;
 }
 
-QVariantList buildStatementRows(const SessionStore& session)
+QVariantList buildStatementRows(const SessionState& session)
 {
     QVariantList out;
     for (const auto& statement : session.models().statements().statements()) {
@@ -620,7 +620,7 @@ QVariantList buildStatementRows(const SessionStore& session)
     return out;
 }
 
-QVariantList buildStatementTransactionRows(const SessionStore& session, const QString& statementId)
+QVariantList buildStatementTransactionRows(const SessionState& session, const QString& statementId)
 {
     QVariantList out;
     if (statementId.isEmpty()) return out;

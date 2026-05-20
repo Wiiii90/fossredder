@@ -54,6 +54,20 @@ Item {
         toolBar.navigation.setSectionValue(section)
     }
 
+    function navigateToImportHome() {
+        if (toolBar.appContext && toolBar.appContext.importWorkflow && toolBar.appContext.importWorkflow.clearDraft)
+            toolBar.appContext.importWorkflow.clearDraft()
+        toolBar.navigateTo(toolBar.navImport, false)
+    }
+
+    function navigateToBookingCreate() {
+        if (toolBar.session) {
+            toolBar.session.selectedStatementId = ""
+            toolBar.session.selectedTransactionId = ""
+        }
+        toolBar.navigateTo(toolBar.navBooking, false)
+    }
+
     function showDividerForGroup(visibleGroup, hasVisibleAfter) {
         return visibleGroup && hasVisibleAfter
     }
@@ -96,7 +110,7 @@ Item {
                         svgSource: toolBar.assetUrl("import.svg")
                         label: qsTr("Import")
                         active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navImport
-                        onClicked: toolBar.navigateTo(toolBar.navImport, false)
+                        onClicked: toolBar.navigateToImportHome()
                     }
                     Controls.IconButton {
                         visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowExport : true
@@ -154,13 +168,7 @@ Item {
                         svgSource: toolBar.assetUrl("booking.svg")
                         label: qsTr("Booking")
                         active: toolBar.navigation && toolBar.navigation.sectionValue === toolBar.navBooking
-                        onClicked: {
-                            if (toolBar.session) {
-                                toolBar.session.selectedStatementId = ""
-                                toolBar.session.selectedTransactionId = ""
-                            }
-                            toolBar.navigateTo(toolBar.navBooking, false)
-                        }
+                        onClicked: toolBar.navigateToBookingCreate()
                     }
                     Controls.IconButton {
                         visible: toolBar.settingsViewModel ? toolBar.settingsViewModel.toolbarShowActors : true

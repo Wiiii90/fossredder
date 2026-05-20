@@ -92,6 +92,25 @@ TestCase {
             return lastFilterSpec
         }
 
+        function parseAnalysisFilterSpec(filterSpec) {
+            var state = {
+                dateField: "bookingDate",
+                dateMode: "year",
+                year: "2025",
+                dateFrom: "",
+                dateTo: "",
+                propertyIds: [],
+                propertyIdsNone: false,
+                contractTypes: [],
+                contractTypesNone: false,
+                allocatableMode: "all"
+            }
+            var spec = String(filterSpec || "")
+            if (spec.indexOf("dateField=valuta") !== -1)
+                state.dateField = "valuta"
+            return state
+        }
+
         function analysisAdjustmentsJson(transactions, selectedTransactionIds, taxPercent) {
             var out = ({})
             for (var i = 0; i < transactions.length; ++i) {

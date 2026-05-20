@@ -10,9 +10,6 @@
 #include "core/application/workspace/WorkspaceFacade.h"
 #include "core/ports/workspace/WorkspaceCommands.h"
 #include "ui/adapters/core/EntityPayloadMapper.h"
-#include "ui/shared/payload/PayloadKeys.h"
-#include "ui/shared/payload/PayloadMapper.h"
-#include "ui/state/mutation/SessionMutationState.h"
 #include "ui/adapters/core/WorkspaceRowProjector.h"
 #include "ui/shared/util/StringConversions.h"
 
@@ -82,8 +79,10 @@ core::ports::workspace::ContractCommand makeContractCommand(const QString& id,
 core::ports::workspace::TransactionCommand makeTransactionCommand(const QString& id,
                                                                   const QString& name,
                                                                   const QString& bookingDate,
+                                                                  const QString& valuta,
                                                                   double amount,
                                                                   const QString& statementId,
+                                                                  const QString& insertAfterTransactionId,
                                                                   int status,
                                                                   const QString& actorId,
                                                                   const QString& contractId,
@@ -94,8 +93,10 @@ core::ports::workspace::TransactionCommand makeTransactionCommand(const QString&
     command.id = strings::toStdString(id);
     command.name = strings::toStdString(name);
     command.bookingDate = strings::toStdString(bookingDate);
+    command.valuta = strings::toStdString(valuta);
     command.amount = amount;
     command.statementId = strings::toStdString(statementId);
+    command.insertAfterTransactionId = strings::toStdString(insertAfterTransactionId);
     command.status = static_cast<core::domain::Transaction::Status>(status);
     command.actorId = strings::toStdString(actorId);
     command.contractId = strings::toStdString(contractId);
@@ -144,7 +145,7 @@ core::ports::workspace::AnnualCommand makeAnnualCommand(const QString& id,
 
 WorkspaceFacade::WorkspaceFacade(QObject* parent)
     : QObject(parent)
-    , session_(std::make_unique<SessionStore>(this))
+    , session_(std::make_unique<SessionState>(this))
     , selection_(std::make_unique<SessionSelection>(session_->models(), this))
 {
     QObject::connect(selection_.get(), &SessionSelection::selectedActorIdChanged, this, &WorkspaceFacade::selectedActorIdChanged);
@@ -163,7 +164,7 @@ WorkspaceFacade::WorkspaceFacade(core::application::WorkspaceFacade* coreFacade,
     setCoreFacade(coreFacade);
 }
 
-SessionStore* WorkspaceFacade::session() noexcept { return session_.get(); }
+SessionState* WorkspaceFacade::session() noexcept { return session_.get(); }
 SessionSelection* WorkspaceFacade::selection() noexcept { return selection_.get(); }
 
 void WorkspaceFacade::bumpDataRevision()
@@ -379,229 +380,6 @@ QVariantMap WorkspaceFacade::annual(const QString& id) const
     return out;
 }
 
-QVariantList WorkspaceFacade::normalizeStrings(const QVariantList& values) const
-{
-    return SessionMutationState::normalizeStrings(values);
-}
-
-QVariantList WorkspaceFacade::addUniqueTrimmed(const QVariantList& values, const QString& value) const
-{
-    return SessionMutationState::addUniqueTrimmed(values, value);
-}
-
-QVariantList WorkspaceFacade::removeAt(const QVariantList& values, int index) const
-{
-    return SessionMutationState::removeAt(values, index);
-}
-
-QVariantList WorkspaceFacade::removeString(const QVariantList& values, const QString& value) const
-{
-    return SessionMutationState::removeString(values, value);
-}
-
-QVariantList WorkspaceFacade::insertAt(const QVariantList& values, int index, const QVariant& value) const
-{
-    return SessionMutationState::insertAt(values, index, value);
-}
-
-QVariantList WorkspaceFacade::pruneAndAppendMissing(const QVariantList& preferredIds, const QVariantList& availableIds) const
-{
-    return ui::pruneAndAppendMissing(preferredIds, availableIds);
-}
-
-int WorkspaceFacade::indexOfId(const QVariantList& rows, const QString& id) const
-{
-    return ui::indexOfId(rows, id);
-}
-
-int WorkspaceFacade::indexOfKeyValue(const QVariantList& rows, const QString& key, const QVariant& value) const
-{
-    return ui::indexOfKeyValue(rows, key, value);
-}
-
-int WorkspaceFacade::indexOfString(const QVariantList& values, const QString& value) const
-{
-    return ui::indexOfString(values, value);
-}
-
-int WorkspaceFacade::normalizedIndex(int index, int count) const
-{
-    return ui::normalizedIndex(index, count);
-}
-
-int WorkspaceFacade::wrappedIndex(int index, int count) const
-{
-    return ui::wrappedIndex(index, count);
-}
-
-QString WorkspaceFacade::wrappedIdAt(const QVariantList& rows, int index) const
-{
-    return ui::wrappedIdAt(rows, index);
-}
-
-QString WorkspaceFacade::navigatedId(const QVariantList& rows,
-                                 const QString& currentId,
-                                 int delta,
-                                 int defaultIndex) const
-{
-    return ui::navigatedId(rows, currentId, delta, defaultIndex);
-}
-
-QVariantList WorkspaceFacade::displayRowsWithEmpty(const QVariantList& rows,
-                                               const QString& emptyDisplay,
-                                               const QString& displayKey) const
-{
-    return ui::displayRowsWithEmpty(rows, emptyDisplay, displayKey);
-}
-
-QVariantList WorkspaceFacade::rowIds(const QVariantList& rows, const QString& idKey) const
-{
-    return ui::rowIds(rows, idKey);
-}
-
-QVariantList WorkspaceFacade::orderedRowsByIds(const QVariantList& rows,
-                                           const QVariantList& orderIds,
-                                           const QString& idKey) const
-{
-    return ui::orderedRowsByIds(rows, orderIds, idKey);
-}
-
-QVariantMap WorkspaceFacade::mapWithKeyValue(const QVariantMap& base, const QString& key, const QVariant& value) const
-{
-    return ui::mapWithKeyValue(base, key, value);
-}
-
-QVariantMap WorkspaceFacade::emptyTransactionDraft() const
-{
-    return SessionMutationState::emptyTransactionDraft();
-}
-
-QVariantMap WorkspaceFacade::normalizeTransactionDraft(const QVariantMap& tx) const
-{
-    return SessionMutationState::normalizeTransactionDraft(tx);
-}
-
-QVariantList WorkspaceFacade::normalizeTransactionDrafts(const QVariantList& values) const
-{
-    return SessionMutationState::normalizeTransactionDrafts(values);
-}
-
-bool WorkspaceFacade::transactionDraftHasContent(const QVariantMap& tx) const
-{
-    return SessionMutationState::transactionDraftHasContent(tx);
-}
-
-QVariantMap WorkspaceFacade::createDraftListState(const QVariantList& drafts,
-                                              int currentIndex,
-                                              const QVariantMap& emptyDraft) const
-{
-    return SessionMutationState::createDraftListState(drafts, currentIndex, emptyDraft);
-}
-
-QVariantMap WorkspaceFacade::insertDraftAfterCurrent(const QVariantList& drafts,
-                                                 int currentIndex,
-                                                 const QVariantMap& emptyDraft) const
-{
-    return SessionMutationState::insertDraftAfterCurrent(drafts, currentIndex, emptyDraft);
-}
-
-QVariantMap WorkspaceFacade::removeDraftAt(const QVariantList& drafts,
-                                       int currentIndex,
-                                       const QVariantMap& emptyDraft) const
-{
-    return SessionMutationState::removeDraftAt(drafts, currentIndex, emptyDraft);
-}
-
-QVariantMap WorkspaceFacade::setCurrentDraft(const QVariantList& drafts,
-                                         int currentIndex,
-                                         const QVariantMap& draft,
-                                         const QVariantMap& emptyDraft) const
-{
-    return SessionMutationState::setCurrentDraft(drafts, currentIndex, draft, emptyDraft);
-}
-
-QVariantMap WorkspaceFacade::currentDraftState(const QVariantList& drafts,
-                                           int currentIndex,
-                                           const QVariantMap& emptyDraft) const
-{
-    return SessionMutationState::currentDraftState(drafts, currentIndex, emptyDraft);
-}
-
-QVariantMap WorkspaceFacade::resolveSelectionState(const QVariantList& rows,
-                                               int currentIndex,
-                                               const QString& selectedId,
-                                               const QString& idKey) const
-{
-    return ui::resolveSelectionState(rows, currentIndex, selectedId, idKey);
-}
-
-QVariantList WorkspaceFacade::orderWithInsertedId(const QVariantList& currentOrder,
-                                              const QVariantList& availableIds,
-                                              const QString& insertedId,
-                                              int insertAfterIndex) const
-{
-    return ui::orderWithInsertedId(currentOrder, availableIds, insertedId, insertAfterIndex);
-}
-
-QVariantMap WorkspaceFacade::orderedRowsState(const QVariantList& rows,
-                                          const QVariantList& preferredOrder,
-                                          const QString& idKey) const
-{
-    return ui::orderedRowsState(rows, preferredOrder, idKey);
-}
-
-QVariantMap WorkspaceFacade::orderedSelectionState(const QVariantList& rows,
-                                               const QVariantList& preferredOrder,
-                                               int currentIndex,
-                                               const QString& selectedId,
-                                               const QString& idKey) const
-{
-    return ui::orderedSelectionState(rows, preferredOrder, currentIndex, selectedId, idKey);
-}
-
-QVariantMap WorkspaceFacade::navigateSelectionState(const QVariantList& rows,
-                                                int currentIndex,
-                                                const QString& selectedId,
-                                                int delta,
-                                                int defaultIndex,
-                                                const QString& idKey) const
-{
-    return ui::navigateSelectionState(rows, currentIndex, selectedId, delta, defaultIndex, idKey);
-}
-
-QVariantMap WorkspaceFacade::deleteReselectionState(const QVariantList& rows,
-                                                const QVariantList& preferredOrder,
-                                                int currentIndex,
-                                                const QString& removedId,
-                                                const QString& idKey) const
-{
-    return ui::deleteReselectionState(rows, preferredOrder, currentIndex, removedId, idKey);
-}
-
-QString WorkspaceFacade::deleteNextSelectionId(const QVariantList& rows,
-                                           const QString& removedId,
-                                           int defaultIndex,
-                                           const QString& idKey) const
-{
-    return ui::deleteNextSelectionId(rows, removedId, defaultIndex, idKey);
-}
-
-QVariantMap WorkspaceFacade::basicFormState(const QString& name,
-                                        const QVariantList& aliases,
-                                        const QVariantList& selectedIds) const
-{
-    return ui::basicFormState(name, aliases, selectedIds);
-}
-
-QVariantMap WorkspaceFacade::contractFormState(const QString& name,
-                                           const QString& type,
-                                           const QVariantList& actorIds,
-                                           const QVariantList& propertyIds,
-                                           const QVariantList& aliases) const
-{
-    return ui::contractFormState(name, type, actorIds, propertyIds, aliases);
-}
-
 QString WorkspaceFacade::addActor(const QString& name, const QStringList& aliases, const QStringList& contractIds)
 {
     if (!coreFacade_) return {};
@@ -724,6 +502,7 @@ void WorkspaceFacade::deleteStatement(const QString& id)
 
 QString WorkspaceFacade::addTransaction(const QString& name,
                                         const QString& bookingDate,
+                                        const QString& valuta,
                                         double amount,
                                         const QString& statementId,
                                         int status,
@@ -734,12 +513,30 @@ QString WorkspaceFacade::addTransaction(const QString& name,
 {
     if (!coreFacade_) return {};
     return QString::fromStdString(coreFacade_->addTransaction(
-        makeTransactionCommand({}, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds)));
+        makeTransactionCommand({}, name, bookingDate, valuta, amount, statementId, {}, status, actorId, contractId, allocatable, propertyIds)));
+}
+
+QString WorkspaceFacade::insertTransactionAfter(const QString& afterTransactionId,
+                                                const QString& name,
+                                                const QString& bookingDate,
+                                                const QString& valuta,
+                                                double amount,
+                                                const QString& statementId,
+                                                int status,
+                                                const QString& actorId,
+                                                const QString& contractId,
+                                                bool allocatable,
+                                                const QStringList& propertyIds)
+{
+    if (!coreFacade_) return {};
+    return QString::fromStdString(coreFacade_->addTransaction(
+        makeTransactionCommand({}, name, bookingDate, valuta, amount, statementId, afterTransactionId, status, actorId, contractId, allocatable, propertyIds)));
 }
 
 void WorkspaceFacade::updateTransaction(const QString& id,
                                         const QString& name,
                                         const QString& bookingDate,
+                                        const QString& valuta,
                                         double amount,
                                         const QString& statementId,
                                         int status,
@@ -749,12 +546,13 @@ void WorkspaceFacade::updateTransaction(const QString& id,
                                         const QStringList& propertyIds)
 {
     if (!coreFacade_) return;
-    coreFacade_->updateTransaction(makeTransactionCommand(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds));
+    coreFacade_->updateTransaction(makeTransactionCommand(id, name, bookingDate, valuta, amount, statementId, {}, status, actorId, contractId, allocatable, propertyIds));
 }
 
 QString WorkspaceFacade::saveTransaction(const QString& id,
                                          const QString& name,
                                          const QString& bookingDate,
+                                         const QString& valuta,
                                          double amount,
                                          const QString& statementId,
                                          int status,
@@ -764,8 +562,8 @@ QString WorkspaceFacade::saveTransaction(const QString& id,
                                          const QStringList& propertyIds)
 {
     if (!coreFacade_) return {};
-    if (id.isEmpty()) return addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds);
-    updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds);
+    if (id.isEmpty()) return addTransaction(name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds);
+    updateTransaction(id, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds);
     return id;
 }
 

@@ -224,52 +224,7 @@ Item {
     }
 
     function parseFilterSpecForUi(spec) {
-        const state = {
-            dateField: "bookingDate",
-            dateMode: root.defaultAnalysisDateMode(),
-            year: root.defaultAnalysisYear(),
-            dateFrom: "",
-            dateTo: "",
-            propertyIds: [],
-            propertyIdsNone: false,
-            contractTypes: [],
-            contractTypesNone: false,
-            allocatableMode: "all"
-        }
-        if (!spec || String(spec).length === 0)
-            return state
-
-        const clauses = String(spec).split(";")
-        for (let i = 0; i < clauses.length; ++i) {
-            const clause = clauses[i]
-            if (clause.indexOf("date>=") === 0)
-                state.dateFrom = clause.substring(6)
-            else if (clause.indexOf("date<=") === 0)
-                state.dateTo = clause.substring(6)
-            else if (clause.indexOf("dateField=") === 0)
-                state.dateField = clause.substring(10) === "valuta" ? "valuta" : "bookingDate"
-            else if (clause.indexOf("propertyId=") === 0) {
-                const values = clause.substring(11).split(",").filter(v => v.length > 0)
-                state.propertyIdsNone = values.indexOf("unassigned") !== -1
-                state.propertyIds = values.filter(v => v !== "unassigned")
-            } else if (clause.indexOf("contract.type=") === 0) {
-                const values = clause.substring(14).split(",").filter(v => v.length > 0)
-                state.contractTypesNone = values.indexOf("unassigned") !== -1
-                state.contractTypes = values.filter(v => v !== "unassigned")
-            }
-            else if (clause.indexOf("allocatable=") === 0)
-                state.allocatableMode = clause.substring(12)
-        }
-
-        if (state.dateFrom.length === 10 && state.dateTo.length === 10
-                && state.dateFrom.endsWith("-01-01")
-                && state.dateTo.endsWith("-12-31")
-                && state.dateFrom.substring(0, 4) === state.dateTo.substring(0, 4)) {
-            state.dateMode = "year"
-            state.year = state.dateFrom.substring(0, 4)
-        }
-
-        return state
+        return root.analysisWorkflow.parseAnalysisFilterSpec(String(spec || ""))
     }
 
     function currentDateMode() {
@@ -649,10 +604,15 @@ Item {
 
         const currentId = root.session.selectedAnalysisId ? String(root.session.selectedAnalysisId) : ""
         let index = root.analysisIndexById(currentId)
+        if ((delta > 0 && index === total - 1)
+                || (delta < 0 && index === 0)) {
+            root.session.selectedAnalysisId = ""
+            return
+        }
         if (index < 0)
-            index = delta > 0 ? -1 : 0
+            index = delta > 0 ? -1 : total
 
-        const nextIndex = (index + delta + total) % total
+        const nextIndex = index + delta
         const nextRow = root.analysisRowAt(nextIndex)
         if (nextRow && nextRow.id)
             root.session.selectedAnalysisId = String(nextRow.id)

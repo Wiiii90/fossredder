@@ -23,20 +23,12 @@ Item {
 
 
     function returnToImport() {
+        stmtRoot.persistPendingEdits()
+        const draftId = (stmtRoot.draft && stmtRoot.draft.draftId) ? stmtRoot.draft.draftId : ""
         if (stmtRoot.importWorkflow && stmtRoot.importWorkflow.addRunNote)
-            stmtRoot.importWorkflow.addRunNote(qsTr("Draft"), qsTr("Draft paused. Click log entry to continue."), true)
+            stmtRoot.importWorkflow.addRunNote(qsTr("Draft"), qsTr("Draft paused. Click log entry to continue."), true, "", draftId)
         if (stmtRoot.importWorkflow) stmtRoot.importWorkflow.clearDraft()
         if (stmtRoot.navigation) stmtRoot.navigation.setSectionValue(4)
-    }
-
-    function persistDraftSnapshotNow() {
-        if (!stmtRoot.draft || !stmtRoot.importWorkflow) return
-        stmtRoot.importWorkflow.persistStatementDraft(stmtRoot.draft)
-    }
-
-    function persistDraftSnapshot() {
-        if (!stmtRoot.draft) return
-        persistDebounce.restart()
     }
 
     function discardDraft() {
@@ -44,10 +36,9 @@ Item {
         const dc = stmtRoot.importWorkflow
         const nav = stmtRoot.navigation
 
-        persistDebounce.stop()
         const draftId = (stmtRoot.draft && stmtRoot.draft.draftId) ? stmtRoot.draft.draftId : ""
         if (dc) dc.clearPersistedStatementDraft(draftId)
-        if (ic && ic.addRunNote) ic.addRunNote(qsTr("Draft discarded"), qsTr("Statement draft was discarded."), false)
+        if (ic && ic.addRunNote) ic.addRunNote(qsTr("Draft discarded"), qsTr("Statement draft was discarded."), false, "", draftId)
         if (ic) ic.clearDraft()
         if (nav) nav.setSectionValue(4)
     }
@@ -55,30 +46,41 @@ Item {
     function discardCurrentTransaction() {
         if (!stmtRoot.draft || stmtRoot.draft.count <= 1) return
         stmtRoot.draft.removeTransaction(stmtRoot.draft.currentIndex)
-        stmtRoot.persistDraftSnapshot()
+        if (stmtRoot.importWorkflow)
+            stmtRoot.importWorkflow.persistStatementDraft(stmtRoot.draft)
     }
 
     function deleteCurrentTransaction() {
         stmtRoot.discardCurrentTransaction()
     }
 
+    function addTransactionAfterCurrent() {
+        if (!stmtRoot.draft)
+            return
+        if (stmtRoot.draft.insertTransactionAfterCurrent)
+            stmtRoot.draft.insertTransactionAfterCurrent()
+        if (stmtRoot.importWorkflow)
+            stmtRoot.importWorkflow.persistStatementDraft(stmtRoot.draft)
+    }
+
     function finalizeDraft() {
         if (!stmtRoot.draft || !stmtRoot.importWorkflow) return
+        stmtRoot.persistPendingEdits()
 
         const dc = stmtRoot.importWorkflow
         const ic = stmtRoot.importWorkflow
         const nav = stmtRoot.navigation
         const d = stmtRoot.draft
+        const draftId = (d && d.draftId) ? d.draftId : ""
 
-        persistDebounce.stop()
         const sid = dc.finalizeStatementDraft(d)
         if (!(sid && sid.length > 0)) {
-            if (ic && ic.addRunNote) ic.addRunNote(qsTr("Finalize failed"), qsTr("Draft could not be finalized."), true)
+            if (ic && ic.addRunNote) ic.addRunNote(qsTr("Finalize failed"), qsTr("Draft could not be finalized."), true, "", draftId)
             return
         }
 
-        dc.clearPersistedStatementDraft((d && d.draftId) ? d.draftId : "")
-        if (ic && ic.addRunNote) ic.addRunNote(qsTr("Finalized"), qsTr("Draft was finalized into a statement."), false, sid)
+        dc.clearPersistedStatementDraft(draftId)
+        if (ic && ic.addRunNote) ic.addRunNote(qsTr("Finalized"), qsTr("Draft was finalized into a statement."), false, sid, draftId)
         if (ic) ic.clearDraft()
 
         if (nav) {
@@ -88,29 +90,30 @@ Item {
         }
     }
 
+    function commitStatementName(value) {
+        if (!stmtRoot.draft) return
+        const nextValue = value !== undefined && value !== null ? String(value) : ""
+        const currentValue = stmtRoot.draft.name !== undefined && stmtRoot.draft.name !== null ? String(stmtRoot.draft.name) : ""
+        if (nextValue !== currentValue)
+            stmtRoot.draft.name = nextValue
+    }
+
+    function commitPendingEdits() {
+        stmtRoot.commitStatementName(statementDraftNameField.text)
+        if (txView && txView.commitPendingEdits)
+            txView.commitPendingEdits()
+    }
+
+    function persistPendingEdits() {
+        stmtRoot.commitPendingEdits()
+        if (stmtRoot.importWorkflow && stmtRoot.draft && stmtRoot.importWorkflow.persistStatementDraft)
+            stmtRoot.importWorkflow.persistStatementDraft(stmtRoot.draft)
+    }
+
     ColumnLayout {
         id: stmtLayout
         anchors.fill: parent
         spacing: stmtRoot.theme.spacingSmall
-
-        Timer {
-            id: persistDebounce
-            interval: 350
-            repeat: false
-            onTriggered: stmtRoot.persistDraftSnapshotNow()
-        }
-
-        Component.onCompleted: {
-            stmtRoot.persistDraftSnapshot()
-        }
-
-        Connections {
-            target: stmtRoot.draft
-            function onDraftIdChanged() { stmtRoot.persistDraftSnapshot() }
-            function onNameChanged() { stmtRoot.persistDraftSnapshot() }
-            function onCurrentIndexChanged() { stmtRoot.persistDraftSnapshot() }
-            function onCountChanged() { stmtRoot.persistDraftSnapshot() }
-        }
 
         Label {
             visible: !stmtRoot.draft
@@ -136,10 +139,13 @@ Item {
                 }
 
                 Controls.TextField {
+                    id: statementDraftNameField
                     objectName: "statementDraftNameField"
                     Layout.fillWidth: true
                     text: stmtRoot.draft ? stmtRoot.draft.name : ""
-                    onTextChanged: if (stmtRoot.draft && stmtRoot.draft.name !== text) stmtRoot.draft.name = text
+                    onEditingFinished: stmtRoot.commitStatementName(text)
+                    onAccepted: stmtRoot.commitStatementName(text)
+                    onActiveFocusChanged: if (!activeFocus) stmtRoot.commitStatementName(text)
                 }
             }
 
@@ -154,12 +160,24 @@ Item {
                 }
 
                 Controls.SecondaryButton {
-                    objectName: "statementDraftDeleteTransactionButton"
-                    visible: stmtRoot.draft && stmtRoot.draft.count > 1
-                    text: "×"
+                    objectName: "statementDraftAddTransactionButton"
+                    visible: stmtRoot.draft
+                    text: qsTr("+")
                     implicitHeight: stmtRoot.theme.viewCompactActionButtonSize
                     implicitWidth: stmtRoot.theme.viewCompactActionButtonSize
                     textColor: stmtRoot.theme.textMuted
+                    focusPolicy: Qt.NoFocus
+                    onClicked: stmtRoot.addTransactionAfterCurrent()
+                }
+
+                Controls.SecondaryButton {
+                    objectName: "statementDraftDeleteTransactionButton"
+                    visible: stmtRoot.draft && stmtRoot.draft.count > 1
+                    text: qsTr("-")
+                    implicitHeight: stmtRoot.theme.viewCompactActionButtonSize
+                    implicitWidth: stmtRoot.theme.viewCompactActionButtonSize
+                    textColor: stmtRoot.theme.textMuted
+                    focusPolicy: Qt.NoFocus
                     onClicked: stmtRoot.deleteCurrentTransaction()
                 }
             }

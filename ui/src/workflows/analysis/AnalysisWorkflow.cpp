@@ -18,6 +18,7 @@
 #include <QStandardPaths>
 
 #include "core/application/analysis/AnalysisService.h"
+#include "core/application/analysis/AnalysisFilterSpec.h"
 #include "core/errors/ErrorCodes.h"
 #include "core/domain/entities/Analysis.h"
 #include "core/domain/entities/Actor.h"
@@ -236,72 +237,55 @@ QString AnalysisWorkflow::analysisFilterSpec(const QString& dateField,
                                              const QStringList& contractTypes,
                                              const QString& allocatableMode) const
 {
-    QStringList clauses;
-    const QString field = dateField.trimmed().toLower();
-    if (field == QStringLiteral("valuta")) {
-        clauses.push_back(QStringLiteral("dateField=valuta"));
-    }
-
-    const QString mode = dateMode.trimmed().toLower();
-    QString resolvedYear = year.trimmed();
-    bool yearOk = false;
-    const int parsedYear = resolvedYear.toInt(&yearOk);
-    if (mode == QStringLiteral("year")) {
-        const int defaultYear = QDate::currentDate().year() - 1;
-        const int nextYear = yearOk && parsedYear > 0 ? parsedYear : defaultYear;
-        resolvedYear = QString::number(nextYear);
-        clauses.push_back(QStringLiteral("date>=%1-01-01").arg(resolvedYear));
-        clauses.push_back(QStringLiteral("date<=%1-12-31").arg(resolvedYear));
-    } else {
-        const QString from = dateFrom.trimmed();
-        const QString to = dateTo.trimmed();
-        bool hasDateClause = false;
-        if (!from.isEmpty()) {
-            clauses.push_back(QStringLiteral("date>=%1").arg(from));
-            hasDateClause = true;
-        }
-        if (!to.isEmpty()) {
-            clauses.push_back(QStringLiteral("date<=%1").arg(to));
-            hasDateClause = true;
-        }
-        if (!hasDateClause) {
-            const int defaultYear = QDate::currentDate().year() - 1;
-            resolvedYear = QString::number(defaultYear);
-            clauses.push_back(QStringLiteral("date>=%1-01-01").arg(resolvedYear));
-            clauses.push_back(QStringLiteral("date<=%1-12-31").arg(resolvedYear));
-        }
-    }
-
-    QStringList normalizedPropertyIds;
-    normalizedPropertyIds.reserve(propertyIds.size());
+    core::application::analysis::AnalysisFilterSelection selection;
+    selection.dateField = dateField.trimmed().toLower().toStdString();
+    selection.dateMode = dateMode.trimmed().toLower().toStdString();
+    selection.year = year.trimmed().toStdString();
+    selection.dateFrom = dateFrom.trimmed().toStdString();
+    selection.dateTo = dateTo.trimmed().toStdString();
+    selection.allocatableMode = allocatableMode.trimmed().toLower().toStdString();
     for (const auto& propertyId : propertyIds) {
         const QString value = propertyId.trimmed();
-        if (!value.isEmpty() && !normalizedPropertyIds.contains(value)) {
-            normalizedPropertyIds.push_back(value);
+        if (!value.isEmpty()) {
+            selection.propertyIds.push_back(value.toStdString());
         }
     }
-    if (!normalizedPropertyIds.isEmpty()) {
-        clauses.push_back(QStringLiteral("propertyId=%1").arg(normalizedPropertyIds.join(QStringLiteral(","))));
-    }
-
-    QStringList normalizedContractTypes;
-    normalizedContractTypes.reserve(contractTypes.size());
     for (const auto& contractType : contractTypes) {
         const QString value = contractType.trimmed().toLower();
-        if (!value.isEmpty() && !normalizedContractTypes.contains(value)) {
-            normalizedContractTypes.push_back(value);
+        if (!value.isEmpty()) {
+            selection.contractTypes.push_back(value.toStdString());
         }
     }
-    if (!normalizedContractTypes.isEmpty()) {
-        clauses.push_back(QStringLiteral("contract.type=%1").arg(normalizedContractTypes.join(QStringLiteral(","))));
-    }
+    return QString::fromStdString(core::application::analysis::buildAnalysisFilterSpec(selection));
+}
 
-    const QString modeValue = allocatableMode.trimmed().toLower();
-    if (modeValue == QStringLiteral("allocatable") || modeValue == QStringLiteral("non-allocatable")) {
-        clauses.push_back(QStringLiteral("allocatable=%1").arg(modeValue));
-    }
+QVariantMap AnalysisWorkflow::parseAnalysisFilterSpec(const QString& filterSpec) const
+{
+    const auto parsed = core::application::analysis::parseAnalysisFilterSelection(filterSpec.toStdString());
+    QVariantMap out;
+    out.insert(QStringLiteral("dateField"), QString::fromStdString(parsed.dateField));
+    out.insert(QStringLiteral("dateMode"), QString::fromStdString(parsed.dateMode));
+    out.insert(QStringLiteral("year"), QString::fromStdString(parsed.year));
+    out.insert(QStringLiteral("dateFrom"), QString::fromStdString(parsed.dateFrom));
+    out.insert(QStringLiteral("dateTo"), QString::fromStdString(parsed.dateTo));
 
-    return clauses.join(QStringLiteral(";"));
+    QVariantList propertyIds;
+    propertyIds.reserve(static_cast<int>(parsed.propertyIds.size()));
+    for (const auto& id : parsed.propertyIds) {
+        propertyIds.push_back(QString::fromStdString(id));
+    }
+    out.insert(QStringLiteral("propertyIds"), propertyIds);
+    out.insert(QStringLiteral("propertyIdsNone"), parsed.propertyIdsUnassigned);
+
+    QVariantList contractTypes;
+    contractTypes.reserve(static_cast<int>(parsed.contractTypes.size()));
+    for (const auto& type : parsed.contractTypes) {
+        contractTypes.push_back(QString::fromStdString(type));
+    }
+    out.insert(QStringLiteral("contractTypes"), contractTypes);
+    out.insert(QStringLiteral("contractTypesNone"), parsed.contractTypesUnassigned);
+    out.insert(QStringLiteral("allocatableMode"), QString::fromStdString(parsed.allocatableMode));
+    return out;
 }
 
 QString AnalysisWorkflow::analysisConfigJson(const QString& type,

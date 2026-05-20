@@ -98,6 +98,31 @@ TEST(AnalysisWorkflowTest, AnalysisFilterSpecEmitsExplicitClausesForPartialSelec
               QStringLiteral("date>=2025-01-01;date<=2025-12-31;propertyId=property-1;contract.type=lease;allocatable=allocatable"));
 }
 
+TEST(AnalysisWorkflowTest, ParseAnalysisFilterSpecMapsCoreFilterStateBackToUiState)
+{
+    auto state = std::make_shared<const core::domain::catalog::WorkspaceCatalog>(tests::support::makeWorkspaceCatalog());
+    auto analysisService = std::make_shared<core::application::analysis::AnalysisService>();
+    AnalysisWorkflow workflow(nullptr, [state]() { return state; }, analysisService);
+
+    const QVariantMap parsed = workflow.parseAnalysisFilterSpec(
+        QStringLiteral("dateField=valuta;date>=2025-01-01;date<=2025-12-31;propertyId=property-1,unassigned;contract.type=lease,unassigned;allocatable=non-allocatable"));
+
+    EXPECT_EQ(parsed.value(QStringLiteral("dateField")).toString(), QStringLiteral("valuta"));
+    EXPECT_EQ(parsed.value(QStringLiteral("dateMode")).toString(), QStringLiteral("year"));
+    EXPECT_EQ(parsed.value(QStringLiteral("year")).toString(), QStringLiteral("2025"));
+    EXPECT_EQ(parsed.value(QStringLiteral("allocatableMode")).toString(), QStringLiteral("non-allocatable"));
+
+    const QVariantList propertyIds = parsed.value(QStringLiteral("propertyIds")).toList();
+    ASSERT_EQ(propertyIds.size(), 1);
+    EXPECT_EQ(propertyIds.front().toString(), QStringLiteral("property-1"));
+    EXPECT_EQ(parsed.value(QStringLiteral("propertyIdsNone")).toBool(), true);
+
+    const QVariantList contractTypes = parsed.value(QStringLiteral("contractTypes")).toList();
+    ASSERT_EQ(contractTypes.size(), 1);
+    EXPECT_EQ(contractTypes.front().toString(), QStringLiteral("lease"));
+    EXPECT_EQ(parsed.value(QStringLiteral("contractTypesNone")).toBool(), true);
+}
+
 TEST(AnalysisWorkflowTest, AnalysisConfigJsonUsesCoreAnalysisKeys)
 {
     auto state = std::make_shared<const core::domain::catalog::WorkspaceCatalog>(tests::support::makeWorkspaceCatalog());

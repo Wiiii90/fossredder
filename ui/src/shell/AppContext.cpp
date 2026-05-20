@@ -38,7 +38,9 @@ void AppContext::setSession(ui::WorkspaceFacade* value)
 {
     if (session_ == value) return;
     session_ = value;
+    sessionState_ = session_ ? session_->session() : nullptr;
     emit sessionChanged();
+    emit sessionStateChanged();
     emit workspaceChanged();
     emit workspaceFacadeChanged();
 }

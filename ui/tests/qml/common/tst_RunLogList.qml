@@ -9,6 +9,8 @@ import QtQuick 2.15
 import QtTest 1.3
 import FossRedder.Components 1.0
 
+import "../Lookup.js" as Lookup
+
 TestCase {
     id: testCase
     name: "RunLogListTests"
@@ -42,7 +44,10 @@ TestCase {
                     status: "Success",
                     file: "test:///exports/a.xlsx",
                     message: "done",
-                    payload: '{"items":[{"objectType":"Annual"},{"objectType":"Analysis","exportType":"CSV"}]}'
+                    payload: '{"items":[{"objectType":"Annual"},{"objectType":"Analysis","exportType":"CSV"}]}',
+                    draftAttached: false,
+                    draftId: "",
+                    statementId: "statement-1"
                 }
             ]
         }
@@ -50,6 +55,12 @@ TestCase {
 
     function createControl() {
         return createTemporaryObject(runLogListComponent, testCase)
+    }
+
+    function findRequired(root, objectName) {
+        var found = Lookup.findObject(root, objectName)
+        verify(found !== null, "Missing object: " + objectName)
+        return found
     }
 
     function test_CTRL_RL_003_payloadSummaryParsesAnnualAndAnalysisCounts() {
@@ -69,6 +80,82 @@ TestCase {
         var control = createControl()
         verify(control.model !== null)
         compare(control.model.length, 1)
+    }
+
+    function test_CTRL_RL_005_delegateHasClickableHeight() {
+        var control = createControl()
+        wait(0)
+
+        var mouseArea = findRequired(control, "runLogRow_log-1")
+        verify(mouseArea.height > 0)
+    }
+
+    function test_CTRL_RL_006_deletedRunWithoutStatementIsNotClickable() {
+        var control = createTemporaryObject(runLogListComponent, testCase, {
+            model: [
+                {
+                    logId: "deleted-log",
+                    time: "2026-01-01T10:00:00Z",
+                    status: "Deleted",
+                    file: "test:///imports/a.pdf",
+                    message: "Imported statement was deleted.",
+                    payload: "",
+                    draftAttached: false,
+                    draftId: "",
+                    statementId: ""
+                }
+            ]
+        })
+        wait(0)
+
+        var mouseArea = findRequired(control, "runLogRow_deleted-log")
+        verify(!mouseArea.enabled)
+    }
+
+    function test_CTRL_RL_004_clickEmitsDraftId() {
+        var control = createTemporaryObject(runLogListComponent, testCase, {
+            model: [
+                {
+                    logId: "draft-log",
+                    time: "2026-01-01T10:00:00Z",
+                    status: "Draft",
+                    file: "test:///imports/a.pdf",
+                    message: "draft",
+                    payload: "",
+                    draftAttached: true,
+                    draftId: "draft-1",
+                    statementId: ""
+                }
+            ]
+        })
+        var received = ({})
+        control.runClicked.connect(function(index, logId, draftAttached, statementId, draftId) {
+            received = { index: index, logId: logId, draftAttached: draftAttached, statementId: statementId, draftId: draftId }
+        })
+        wait(0)
+
+        var mouseArea = findRequired(control, "runLogRow_draft-log")
+        verify(mouseArea.enabled)
+        mouseArea.activateRun()
+
+        compare(received.logId, "draft-log")
+        compare(received.draftAttached, true)
+        compare(received.draftId, "draft-1")
+    }
+
+    function test_CTRL_RL_002_deleteClickEmitsDeleteSignal() {
+        var control = createControl()
+        var received = ({})
+        control.deleteClicked.connect(function(index, draftAttached, draftId) {
+            received = { index: index, draftAttached: draftAttached, draftId: draftId }
+        })
+        wait(0)
+
+        var deleteButton = findRequired(control, "runLogDelete_log-1")
+        deleteButton.clicked()
+
+        compare(received.index, 0)
+        compare(received.draftAttached, false)
     }
 
 }

@@ -116,4 +116,79 @@ TestCase {
         compare(session.selectedStatementId, "statement-1")
         compare(session.selectedTransactionId, "")
     }
+
+    function test_statementSelectionScrollsStatementToTop() {
+        for (var i = 0; i < 12; ++i)
+            statementRowsData.push({ id: "statement-" + i, name: "S" + i })
+
+        var view = createView()
+        view.height = 120
+        var flick = findRequired(view, "bookingStatementsFlick")
+        var statementMouse = findRequired(view, "bookingStatementMouse_statement-8")
+        var row = findRequired(view, "bookingStatementRow_statement-8")
+
+        statementMouse.clicked(Qt.LeftButton)
+        wait(0)
+
+        var expectedY = row.mapToItem(flick.contentItem, 0, 0).y
+        compare(Math.round(flick.contentY), Math.round(expectedY))
+    }
+
+    function test_initialStatementSelectionScrollsStatementToTop() {
+        for (var i = 0; i < 12; ++i)
+            statementRowsData.push({ id: "statement-" + i, name: "S" + i })
+        session.selectedStatementId = "statement-8"
+
+        var view = createView()
+        view.height = 120
+        wait(0)
+        var flick = findRequired(view, "bookingStatementsFlick")
+        var row = findRequired(view, "bookingStatementRow_statement-8")
+
+        var expectedY = row.mapToItem(flick.contentItem, 0, 0).y
+        compare(Math.round(flick.contentY), Math.round(expectedY))
+    }
+
+    function test_initialTransactionSelectionScrollsTransactionToTop() {
+        statementRowsData = [
+            { id: "statement-1", name: "S1" },
+            { id: "statement-2", name: "S2" }
+        ]
+        transactionRowsByStatementId["statement-1"] = []
+        for (var i = 0; i < 10; ++i)
+            transactionRowsByStatementId["statement-1"].push({ id: "tx-" + i, name: "Tx " + i, bookingDate: "2026-01-01" })
+        session.selectedStatementId = "statement-1"
+        session.selectedTransactionId = "tx-7"
+
+        var view = createView()
+        view.height = 120
+        wait(0)
+        var flick = findRequired(view, "bookingStatementsFlick")
+        var row = findRequired(view, "bookingTransactionRow_tx-7")
+
+        var expectedY = row.mapToItem(flick.contentItem, 0, 0).y
+        compare(Math.round(flick.contentY), Math.round(expectedY))
+    }
+
+    function test_transactionSelectionScrollsTransactionToTop() {
+        statementRowsData = [
+            { id: "statement-1", name: "S1" },
+            { id: "statement-2", name: "S2" }
+        ]
+        transactionRowsByStatementId["statement-1"] = []
+        for (var i = 0; i < 10; ++i)
+            transactionRowsByStatementId["statement-1"].push({ id: "tx-" + i, name: "Tx " + i, bookingDate: "2026-01-01" })
+
+        var view = createView()
+        view.height = 120
+        var flick = findRequired(view, "bookingStatementsFlick")
+        var txMouse = findRequired(view, "bookingTransactionMouse_tx-7")
+        var row = findRequired(view, "bookingTransactionRow_tx-7")
+
+        txMouse.clicked(Qt.LeftButton)
+        wait(0)
+
+        var expectedY = row.mapToItem(flick.contentItem, 0, 0).y
+        compare(Math.round(flick.contentY), Math.round(expectedY))
+    }
 }

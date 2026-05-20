@@ -44,12 +44,33 @@ Item {
             theme: root.theme
             Layout.fillWidth: true
             Layout.fillHeight: true
+            cardMinHeight: root.theme.viewSidebarRowHeight + root.theme.spacingSmall
+            cardRadius: root.theme.viewSidebarRowRadius
+            cardPadding: root.theme.spacingSmall
+            listTopMargin: 0
+            itemSpacing: root.theme.spacingSmall
+            baseBorderColor: root.theme.borderSoft
+            hoverBorderColor: root.theme.borderSoft
+            actionButtonSize: root.theme.viewCompactActionButtonSizeTiny
+            actionButtonTopInset: 0
+            actionButtonRightInset: 0
+            headerTopInset: root.theme.spacingSmall
             model: root.importWorkflow ? root.importWorkflow.runs : null
-            onRunClicked: function(index, logId, draftAttached, statementId) {
+            selectedLogId: root.importWorkflow && root.importWorkflow.draft
+                           ? root.importWorkflow.draft.draftId
+                           : ""
+            onRunClicked: function(index, logId, draftAttached, statementId, draftId) {
                 if (!root.importWorkflow) return
                 if (draftAttached) {
+                    const targetDraftId = (draftId && draftId.length > 0) ? draftId : logId
+                    const currentDraftId = (root.importWorkflow.draft && root.importWorkflow.draft.draftId)
+                        ? root.importWorkflow.draft.draftId
+                        : ""
                     root.importWorkflow.activateRunAt(index)
-                    root.importWorkflow.openPersistedDraft(logId)
+                    if (targetDraftId !== currentDraftId)
+                        root.importWorkflow.openPersistedDraft(targetDraftId)
+                    if (root.navigation)
+                        root.navigation.setSectionValue(4)
                     return
                 }
                 if (!statementId || statementId.length === 0) return

@@ -88,6 +88,7 @@ JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec)
             }
 
             const auto cancel = impl_->manager.cancelFlag(id);
+            const auto pause = impl_->manager.pauseFlag(id);
             auto progressCallback = [this, id](double progress, const std::string& message) {
                 JobEvent event;
                 event.jobId = id;
@@ -106,6 +107,7 @@ JobId JobSystem::startImportStatement(const ImportStatementJobSpec& spec)
             importRequest.jobId = id;
             importRequest.progressCallback = std::move(progressCallback);
             importRequest.cancelFlag = cancel;
+            importRequest.pauseFlag = pause;
             importRequest.scheduler = &impl_->scheduler;
             importRequest.ocrLimiter = &impl_->ocrLimiter;
 
@@ -148,6 +150,16 @@ void JobSystem::unsubscribe(const JobId& id, SubscriptionId subId)
 void JobSystem::cancel(const JobId& id)
 {
     impl_->manager.cancel(id);
+}
+
+void JobSystem::pause(const JobId& id)
+{
+    impl_->manager.pause(id);
+}
+
+void JobSystem::resume(const JobId& id)
+{
+    impl_->manager.resume(id);
 }
 
 std::optional<JobSnapshot> JobSystem::snapshot(const JobId& id) const

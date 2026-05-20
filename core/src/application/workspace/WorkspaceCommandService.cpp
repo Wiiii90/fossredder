@@ -153,6 +153,7 @@ void applyAnnualDraft(core::domain::Annual& annual,
 void applyTransactionDraft(core::domain::Transaction& tx, const core::application::TransactionInput& input) {
     tx.setName(input.name);
     tx.setBookingDate(input.bookingDate.value());
+    tx.setValuta(input.valuta);
     tx.setAmount(input.amount);
     tx.setStatementId(input.statementId);
     tx.setStatus(input.status);
@@ -483,10 +484,15 @@ public:
 
         const auto id = appendEntity(transactions, [&](core::domain::Transaction& tx) {
             applyTransactionDraft(tx, input);
-            tx.clearValuta();
         });
 
-        linkTransactionToStatement(statements, input.statementId, id);
+        const auto statement = findById(statements, input.statementId);
+        if (statement && !input.insertAfterTransactionId.empty()
+                && statement->containsTransaction(input.insertAfterTransactionId)) {
+            statement->insertTransaction(id, statement->indexOfTransaction(input.insertAfterTransactionId) + 1);
+        } else {
+            linkTransactionToStatement(statements, input.statementId, id);
+        }
         state.setStatements(std::move(statements));
         state.setTransactions(std::move(transactions));
 
@@ -721,8 +727,10 @@ std::string WorkspaceCommandService::addTransaction(const core::ports::workspace
     TransactionInput input;
     input.name = command.name;
     input.bookingDate = core::domain::BookingDate(command.bookingDate);
+    input.valuta = command.valuta;
     input.amount = command.amount;
     input.statementId = command.statementId;
+    input.insertAfterTransactionId = command.insertAfterTransactionId;
     input.status = command.status;
     input.actorId = command.actorId;
     input.contractId = command.contractId;
@@ -735,6 +743,7 @@ void WorkspaceCommandService::updateTransaction(const core::ports::workspace::Tr
     TransactionInput input;
     input.name = command.name;
     input.bookingDate = core::domain::BookingDate(command.bookingDate);
+    input.valuta = command.valuta;
     input.amount = command.amount;
     input.statementId = command.statementId;
     input.status = command.status;

@@ -224,6 +224,7 @@ The persistence layer should not become a UI projection source.
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | TD-R-001 | Add transaction draft stores row | Contract | Empty repository | Call `addTransactionDraft(draft)` | Draft is retrievable by id |
+| TD-R-002 | Explicit zero-based draft positions are preserved | Contract | Draft transaction rows with positions `0` and `1` | Add and reload transaction drafts | Position `0` remains the first row and is not auto-shifted |
 | TD-R-002 | Property ids round-trip | Integration | Draft with property ids | Save and reload | `propertyIds` are preserved in order |
 | TD-R-003 | Optional foreign keys persist | Contract | Draft with statementDraftId, actorId, contractId | Save and reload | Optional fields are persisted consistently |
 | TD-R-004 | Clear drafts removes rows and relation rows | Integration | Repository contains transaction drafts | Call `clearTransactionDrafts()` | Base rows and property relation rows are removed |

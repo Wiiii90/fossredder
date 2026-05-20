@@ -20,6 +20,9 @@ struct ExportRunRow {
     QString status;
     QString message;
     QString payload;
+    bool draftAttached = false;
+    QString draftId;
+    QString statementId;
 };
 
 class ExportRunList : public models::RowListModel<ExportRunRow> {
@@ -33,7 +36,10 @@ public:
         FileRole,
         StatusRole,
         MessageRole,
-        PayloadRole
+        PayloadRole,
+        DraftAttachedRole,
+        DraftIdRole,
+        StatementIdRole
     };
 
 private:

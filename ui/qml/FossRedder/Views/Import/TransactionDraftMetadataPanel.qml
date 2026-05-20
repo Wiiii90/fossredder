@@ -1,6 +1,6 @@
 /**
  * @file ui/qml/FossRedder/Views/Import/TransactionDraftMetadataPanel.qml
- * @brief Displays and edits metadata fields for the current transaction draft.
+ * @brief Displays metadata preview fields for the current transaction draft.
  */
 
 import QtQuick 2.15
@@ -13,6 +13,10 @@ Controls.Panel {
     id: root
 
     property var txRoot
+
+    function currentText() {
+        return metadataField.text
+    }
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1
@@ -32,12 +36,14 @@ Controls.Panel {
 
         Label { text: qsTr("Metadata"); Layout.fillWidth: true }
         Controls.TextArea {
+            id: metadataField
+            objectName: "transactionDraftMetadataTextArea"
             Layout.fillWidth: true
             Layout.preferredHeight: implicitHeight
             Layout.minimumHeight: 0
+            readOnly: true
             placeholderText: qsTr("Extracted metadata")
             text: root.txRoot && root.txRoot.draft && root.txRoot.draft.current ? (root.txRoot.draft.current.metadata || "") : ""
-            onTextChanged: if (activeFocus && root.txRoot && root.txRoot.draft) root.txRoot.draft.transactions.setMetadata(root.txRoot.draft.currentIndex, text)
         }
     }
 }

@@ -155,7 +155,6 @@ catalog aggregate.
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| TX-001 | Clearing imported valuta resets imported state only | Unit | Transaction with imported valuta | Call `clearValuta()` | Imported valuta is cleared, unrelated fields remain |
 | TX-002 | Setting statement id updates relation state | Unit | Transaction without statement | Call `setStatementId(...)` | Relation state changes consistently |
 | TX-003 | Setting property ids deduplicates values | Unit | Transaction with duplicate property ids | Call `setPropertyIds(...)` | Property ids are normalized and deduplicated |
 | TX-004 | Finalization-ready transaction keeps domain invariants | Unit | Transaction from draft input | Call the finalization path used by application | Transaction remains valid for domain rules |
@@ -267,6 +266,7 @@ draft finalization, snapshot projection, and port contracts.
 | WCS-002 | Update contract command rewrites relations | Unit | Existing contract in session state | Send update contract command | Relations update and commit occurs once |
 | WCS-003 | Delete statement command removes owned transactions | Unit | Statement with linked transactions | Send delete statement command | Catalog state reflects ownership rule |
 | WCS-004 | Add analysis command preserves typed parameters | Unit | Analysis command input | Send add analysis command | Typed fields are passed through consistently |
+| WCS-005 | Insert transaction command preserves statement order and valuta | Unit | Statement with two transactions | Add a transaction with `insertAfterTransactionId` and `valuta` | The statement id order places the new transaction after the requested one and the transaction keeps its valuta |
 
 #### WorkspaceQueryService
 
@@ -301,6 +301,7 @@ draft finalization, snapshot projection, and port contracts.
 | WWS-002 | Clearing a draft removes dependent transactions | Unit | Session with saved draft and transaction drafts | Clear that draft | Draft and all related transaction drafts are removed |
 | WWS-003 | Import logs replace workflow logs atomically | Unit | Session with existing import logs | Replace logs | Import log collection is replaced without residue |
 | WWS-004 | Export logs replace workflow logs atomically | Unit | Session with existing export logs | Replace logs | Export log collection is replaced without residue |
+| WWS-005 | Saving a statement draft avoids disk commit | Unit | Session with an opened workspace path | Save one draft | Draft state updates in memory while storage remains untouched until an explicit save/commit path |
 
 ### 2. Analysis application
 
@@ -323,6 +324,7 @@ draft finalization, snapshot projection, and port contracts.
 | DFT-002 | Rejects invalid draft input | Unit | Catalog and invalid draft | Call finalizer | No catalog mutation occurs |
 | DFT-003 | Preserves transaction ordering from draft positions | Unit | Draft with ordered transactions | Finalize draft | Final transactions follow draft order |
 | DFT-004 | Applies references through domain rules, not duplicate logic | Unit | Draft with actor/property/contract text | Finalize draft | Finalization uses domain matching behavior |
+| DFT-005 | Preserves draft valuta on finalized transactions | Unit | Valid transaction draft with a valuta value | Finalize draft | Final transaction keeps the draft valuta instead of clearing it |
 
 #### DraftMatcher
 

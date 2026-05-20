@@ -13,7 +13,19 @@ Item {
     id: root
     required property var theme
     property var model: null
-    signal runClicked(int index, string logId, bool draftAttached, string statementId)
+    property string selectedLogId: ""
+    property int cardMinHeight: 0
+    property real cardRadius: -1
+    property int cardPadding: root.theme.spacingSmall
+    property int listTopMargin: root.theme.spacingSmall
+    property int itemSpacing: root.theme.spacingSmall
+    property color baseBorderColor: root.theme.border
+    property color hoverBorderColor: root.theme.accent
+    property int actionButtonSize: root.theme.viewCompactActionButtonSize
+    property int actionButtonTopInset: 0
+    property int actionButtonRightInset: 0
+    property int headerTopInset: 0
+    signal runClicked(int index, string logId, bool draftAttached, string statementId, string draftId)
     signal deleteClicked(int index, bool draftAttached, string draftId)
 
     function friendlyDateTime(value) {
@@ -62,17 +74,24 @@ Item {
         }
     }
 
+    function selectionColor() {
+        return root.theme && root.theme.selectionHighlight !== undefined
+            ? root.theme.selectionHighlight
+            : root.theme.accent
+    }
+
     ListView {
         id: runsList
         objectName: "runLogList"
         anchors.fill: parent
         clip: true
-        topMargin: root.theme.spacingSmall
-        spacing: root.theme.spacingSmall
+        topMargin: root.listTopMargin
+        spacing: root.itemSpacing
         model: root.model
 
         delegate: Rectangle {
             id: runEntry
+            objectName: "runLogCard_" + logId
             required property int index
             required property string logId
             required property var time
@@ -80,37 +99,39 @@ Item {
             required property var file
             required property var message
             property var payload: ""
-            property bool draftAttached: false
-            property string draftId: ""
-            property string statementId: ""
+            required property bool draftAttached
+            required property string draftId
+            required property string statementId
+            readonly property string normalizedStatus: String(status || "").toLowerCase()
+            readonly property bool navigableDraft: draftAttached || draftId.length > 0 || normalizedStatus === "draft"
+            readonly property bool navigableStatement: statementId.length > 0
+            readonly property bool selected: root.selectedLogId.length > 0
+                                             && (root.selectedLogId === runEntry.logId
+                                                 || root.selectedLogId === runEntry.draftId)
             width: runsList.width
-            radius: root.theme.radius
+            height: Math.max(root.cardMinHeight, content.implicitHeight + root.cardPadding)
+            radius: root.cardRadius >= 0 ? root.cardRadius : root.theme.radius
             color: "transparent"
             border.width: root.theme.borderWidthThin
-            border.color: hoverArea.containsMouse ? root.theme.accent : root.theme.border
-
-            MouseArea {
-                id: hoverArea
-                anchors.fill: parent
-                hoverEnabled: true
-                enabled: runEntry.draftAttached || (runEntry.statementId && runEntry.statementId.length > 0) || !runEntry.draftAttached
-                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                onClicked: root.runClicked(runEntry.index, runEntry.logId, runEntry.draftAttached, runEntry.statementId)
-            }
+            border.color: runEntry.selected
+                          ? root.selectionColor()
+                          : (rowClickArea.containsMouse ? root.hoverBorderColor : root.baseBorderColor)
 
             ColumnLayout {
                 id: content
+                z: 1
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.leftMargin: root.theme.spacingSmall
-                anchors.topMargin: root.theme.spacingSmall
-                anchors.rightMargin: root.theme.spacingSmall
-                anchors.bottomMargin: root.theme.spacingSmall
+                anchors.leftMargin: root.cardPadding
+                anchors.topMargin: root.cardPadding
+                anchors.rightMargin: root.cardPadding
+                anchors.bottomMargin: root.cardPadding
                 spacing: root.theme.spacingSmall
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.theme.viewCompactActionButtonSize
+                    Layout.preferredHeight: root.actionButtonSize + root.actionButtonTopInset
+                    Layout.topMargin: root.headerTopInset
 
                     Label {
                         text: root.friendlyDateTime(runEntry.time)
@@ -126,17 +147,22 @@ Item {
                         font.pointSize: 10
                         Layout.alignment: Qt.AlignVCenter
                         verticalAlignment: Text.AlignVCenter
-                        color: runEntry.status === "Success" || runEntry.status === "Finalized"
+                        color: runEntry.normalizedStatus === "success" || runEntry.normalizedStatus === "finalized"
                                ? root.theme.success
-                               : (runEntry.status === "Running" || runEntry.status === "Draft"
+                               : (runEntry.normalizedStatus === "running" || runEntry.normalizedStatus === "paused" || runEntry.normalizedStatus === "draft"
                                    ? root.theme.warning
                                    : root.theme.danger)
                     }
 
                     Controls.SecondaryButton {
+                        z: 3
+                        objectName: "runLogDelete_" + runEntry.logId
                         text: "×"
-                        implicitHeight: root.theme.viewCompactActionButtonSize
-                        implicitWidth: root.theme.viewCompactActionButtonSize
+                        implicitHeight: root.actionButtonSize
+                        implicitWidth: root.actionButtonSize
+                        Layout.alignment: Qt.AlignTop | Qt.AlignRight
+                        Layout.topMargin: root.actionButtonTopInset
+                        Layout.rightMargin: root.actionButtonRightInset
                         textColor: root.theme.textMuted
                         onClicked: root.deleteClicked(runEntry.index, runEntry.draftAttached, runEntry.draftId)
                     }
@@ -166,7 +192,23 @@ Item {
                 }
             }
 
-            implicitHeight: content.implicitHeight + root.theme.spacingSmall
+            MouseArea {
+                id: rowClickArea
+                objectName: "runLogRow_" + runEntry.logId
+                z: 2
+                anchors.fill: parent
+                anchors.rightMargin: root.actionButtonSize + root.theme.spacingSmall + root.actionButtonRightInset
+                hoverEnabled: true
+                preventStealing: true
+                enabled: runEntry.navigableDraft || runEntry.navigableStatement
+                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                function activateRun() {
+                    root.runClicked(runEntry.index, runEntry.logId, runEntry.navigableDraft, runEntry.statementId, runEntry.draftId)
+                }
+                onClicked: activateRun()
+            }
+
+            implicitHeight: height
         }
     }
 }

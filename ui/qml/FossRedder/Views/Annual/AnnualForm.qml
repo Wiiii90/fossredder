@@ -17,6 +17,7 @@ Item {
     required property var theme
     readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
     readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var sessionState: root.appContext ? root.appContext.sessionState : null
     readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
     readonly property var current: root.session ? root.session.selectedAnnual : null
     property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
@@ -296,8 +297,16 @@ Item {
             return
 
         const currentId = root.isEdit ? (root.session.selectedAnnualId || "") : ""
-        const defaultIndex = delta > 0 ? 0 : rows.length - 1
-        const nextId = root.session.navigatedId(rows, currentId, delta, defaultIndex)
+        const currentIndex = root.sessionState.indexOfId ? root.sessionState.indexOfId(rows, currentId) : -1
+        if ((delta > 0 && currentIndex === rows.length - 1)
+                || (delta < 0 && currentIndex === 0)) {
+            root.session.selectedAnnualId = ""
+            return
+        }
+        const nextIndex = currentIndex < 0
+            ? (delta > 0 ? 0 : rows.length - 1)
+            : currentIndex + delta
+        const nextId = rows[nextIndex] && rows[nextIndex].id ? String(rows[nextIndex].id) : ""
         if (!nextId || nextId.length === 0)
             return
 
@@ -337,7 +346,7 @@ Item {
             return
         }
 
-        const nextId = root.session.deleteNextSelectionId(root.annualRows(), removedId, 0, "id")
+        const nextId = root.sessionState.deleteNextSelectionId(root.annualRows(), removedId, 0, "id")
         root.session.selectedAnnualId = nextId || ""
         if (!nextId || nextId.length === 0)
             root.clearFields()

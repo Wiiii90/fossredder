@@ -17,7 +17,7 @@ TestCase {
     when: windowShown
     width: 960
     height: 640
-    readonly property string previewPngDataUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3Crect width='1' height='1' fill='red'/%3E%3C/svg%3E"
+    readonly property string previewPngDataUrl: "data:image/svg+xml,%3Csvg width='1' height='1' viewBox='0 0 1 1'%3E%3Crect width='1' height='1' fill='red'/%3E%3C/svg%3E"
 
     property var session: QtObject {
         property string selectedAnalysisId: ""
@@ -44,6 +44,24 @@ TestCase {
             return prefix + (dateMode === "year"
                 ? "date>=" + year + "-01-01;date<=" + year + "-12-31"
                 : "date>=" + dateFrom + ";date<=" + dateTo)
+        }
+        function parseAnalysisFilterSpec(filterSpec) {
+            var state = {
+                dateField: "bookingDate",
+                dateMode: "year",
+                year: "2025",
+                dateFrom: "",
+                dateTo: "",
+                propertyIds: [],
+                propertyIdsNone: false,
+                contractTypes: [],
+                contractTypesNone: false,
+                allocatableMode: "all"
+            }
+            var spec = String(filterSpec || "")
+            if (spec.indexOf("dateField=valuta") !== -1)
+                state.dateField = "valuta"
+            return state
         }
         function analysisAdjustmentsJson(transactions, selectedTransactionIds, taxPercent) { return "{}" }
         function previewTransactions(filterSpec) { return { transactions: [], metrics: { statementCount: 0, transactionCount: 0, amountSum: 0.0 } } }
@@ -231,5 +249,60 @@ TestCase {
         tryCompare(table, "grandTotal", 150.0)
         compare(table.contractTypes.length, 1)
         compare(table.matrixPropertyNames.length, 1)
+    }
+
+    function test_navigationCyclesThroughCreateMode() {
+        session.analysesData = [
+            { id: "analysis-1", name: "A1", type: "plot", config: "{}", filter: "", exportFormat: "png", includeCalcAdjustments: true, exportState: "{}", snapshotTransactions: "[]", adjustments: "{}" },
+            { id: "analysis-2", name: "A2", type: "plot", config: "{}", filter: "", exportFormat: "png", includeCalcAdjustments: true, exportState: "{}", snapshotTransactions: "[]", adjustments: "{}" },
+            { id: "analysis-3", name: "A3", type: "plot", config: "{}", filter: "", exportFormat: "png", includeCalcAdjustments: true, exportState: "{}", snapshotTransactions: "[]", adjustments: "{}" }
+        ]
+        session.selectedAnalysisId = "analysis-3"
+
+        var view = createView()
+        findRequired(view, "analysisNextButton").clicked()
+        compare(session.selectedAnalysisId, "")
+
+        findRequired(view, "analysisNextButton").clicked()
+        compare(session.selectedAnalysisId, "analysis-1")
+
+        session.selectedAnalysisId = "analysis-1"
+        findRequired(view, "analysisPreviousButton").clicked()
+        compare(session.selectedAnalysisId, "")
+
+        findRequired(view, "analysisPreviousButton").clicked()
+        compare(session.selectedAnalysisId, "analysis-3")
+    }
+
+    function test_navigationStaysEnabledWithSingleRow() {
+        session.analysesData = [
+            { id: "analysis-1", name: "A1", type: "plot", config: "{}", filter: "", exportFormat: "png", includeCalcAdjustments: true, exportState: "{}", snapshotTransactions: "[]", adjustments: "{}" }
+        ]
+
+        var view = createView()
+        var nextButton = findRequired(view, "analysisNextButton")
+        var previousButton = findRequired(view, "analysisPreviousButton")
+
+        compare(nextButton.enabled, true)
+        compare(previousButton.enabled, true)
+
+        nextButton.clicked()
+        compare(session.selectedAnalysisId, "analysis-1")
+    }
+
+    function test_createModeNavigationStartsAtEdges() {
+        session.analysesData = [
+            { id: "analysis-1", name: "A1", type: "plot", config: "{}", filter: "", exportFormat: "png", includeCalcAdjustments: true, exportState: "{}", snapshotTransactions: "[]", adjustments: "{}" },
+            { id: "analysis-2", name: "A2", type: "plot", config: "{}", filter: "", exportFormat: "png", includeCalcAdjustments: true, exportState: "{}", snapshotTransactions: "[]", adjustments: "{}" },
+            { id: "analysis-3", name: "A3", type: "plot", config: "{}", filter: "", exportFormat: "png", includeCalcAdjustments: true, exportState: "{}", snapshotTransactions: "[]", adjustments: "{}" }
+        ]
+
+        var view = createView()
+        findRequired(view, "analysisNextButton").clicked()
+        compare(session.selectedAnalysisId, "analysis-1")
+
+        session.selectedAnalysisId = ""
+        findRequired(view, "analysisPreviousButton").clicked()
+        compare(session.selectedAnalysisId, "analysis-3")
     }
 }

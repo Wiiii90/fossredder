@@ -28,6 +28,7 @@ core::ports::workspace::TransactionDraftSnapshot projectTransactionDraft(const c
     snapshot.allocatable = draft.allocatable;
     snapshot.position = draft.position;
     snapshot.metadata = draft.metadata;
+    snapshot.proofImageData = draft.proofImageData;
     return snapshot;
 }
 

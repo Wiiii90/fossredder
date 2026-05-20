@@ -1,4 +1,5 @@
 set(CORE_PUBLIC_HEADERS
+    include/core/application/analysis/AnalysisFilterSpec.h
     include/core/application/analysis/AnalysisService.h
     include/core/application/analysis/AnalysisRequest.h
     include/core/application/export/AnalysisExportService.h
@@ -117,6 +118,7 @@ set(CORE_PRIVATE_HEADERS
 
 # Core implementation sources.
 set(CORE_SRCS
+    src/application/analysis/AnalysisFilterSpec.cpp
     src/application/analysis/AnalysisService.cpp
     src/application/analysis/internal/AnalysisFilter.cpp
     src/application/analysis/presentation/PlotAnalysis.cpp

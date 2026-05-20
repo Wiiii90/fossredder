@@ -67,6 +67,60 @@ QString stringValue(const QVariant& value)
     return value.toString();
 }
 
+QVariantMap mapWith(const QVariantMap& base, const QString& key, const QVariant& value)
+{
+    QVariantMap out = base;
+    out.insert(key, value);
+    return out;
+}
+
+QVariantMap contractRowById(const QVariantList& contractRows, const QString& contractId)
+{
+    const QString target = contractId.trimmed();
+    if (target.isEmpty()) {
+        return {};
+    }
+    for (const auto& rowValue : contractRows) {
+        const QVariantMap row = rowValue.toMap();
+        if (row.value(QStringLiteral("id")).toString() == target) {
+            return row;
+        }
+    }
+    return {};
+}
+
+bool contractSupportsActor(const QVariantMap& contractRow, const QString& actorId)
+{
+    const QString targetActor = actorId.trimmed();
+    if (targetActor.isEmpty() || contractRow.isEmpty()) {
+        return true;
+    }
+    const QVariantList actorIds = SessionMutationState::normalizeStrings(
+        contractRow.value(QStringLiteral("actorIds")).toList());
+    for (const auto& actorValue : actorIds) {
+        if (actorValue.toString() == targetActor) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool contractSupportsProperties(const QVariantMap& contractRow, const QVariantList& propertyIds)
+{
+    if (contractRow.isEmpty()) {
+        return true;
+    }
+    const QVariantList normalizedPropertyIds = SessionMutationState::normalizeStrings(propertyIds);
+    const QVariantList allowedPropertyIds = SessionMutationState::normalizeStrings(
+        contractRow.value(QStringLiteral("propertyIds")).toList());
+    for (const auto& propertyValue : normalizedPropertyIds) {
+        if (!allowedPropertyIds.contains(propertyValue)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace
 
 QVariantList SessionMutationState::normalizeStrings(const QVariantList& values)
@@ -76,6 +130,54 @@ QVariantList SessionMutationState::normalizeStrings(const QVariantList& values)
     for (const auto& value : values) {
         out.push_back(stringValue(value));
     }
+    return out;
+}
+
+QVariantMap SessionMutationState::transactionDraft(const QVariantMap& draft,
+                                                   const QVariantList& contractRows,
+                                                   const QVariantMap& changes)
+{
+    QVariantMap out = draft;
+
+    if (changes.contains(QStringLiteral("contractId"))) {
+        const QString normalizedContractId = changes.value(QStringLiteral("contractId")).toString().trimmed();
+        const QVariantMap contractRow = contractRowById(contractRows, normalizedContractId);
+        const QVariantList actorIds = SessionMutationState::normalizeStrings(
+            contractRow.value(QStringLiteral("actorIds")).toList());
+        const QVariantList propertyIds = SessionMutationState::normalizeStrings(
+            contractRow.value(QStringLiteral("propertyIds")).toList());
+        const QString actorId = actorIds.isEmpty() ? QString() : actorIds.first().toString();
+
+        out = mapWith(out, QStringLiteral("contractId"), normalizedContractId);
+        out = mapWith(out, QStringLiteral("actorId"), actorId);
+        out = mapWith(out, QStringLiteral("propertyIds"), propertyIds);
+    }
+
+    if (changes.contains(QStringLiteral("actorId"))) {
+        const QString normalizedActorId = changes.value(QStringLiteral("actorId")).toString().trimmed();
+        const QString currentContractId = out.value(QStringLiteral("contractId")).toString().trimmed();
+        const QVariantMap currentContract = contractRowById(contractRows, currentContractId);
+        const QString nextContractId = contractSupportsActor(currentContract, normalizedActorId)
+            ? currentContractId
+            : QString();
+
+        out = mapWith(out, QStringLiteral("actorId"), normalizedActorId);
+        out = mapWith(out, QStringLiteral("contractId"), nextContractId);
+    }
+
+    if (changes.contains(QStringLiteral("propertyIds"))) {
+        const QVariantList normalizedPropertyIds = SessionMutationState::normalizeStrings(
+            changes.value(QStringLiteral("propertyIds")).toList());
+        const QString currentContractId = out.value(QStringLiteral("contractId")).toString().trimmed();
+        const QVariantMap currentContract = contractRowById(contractRows, currentContractId);
+        const QString nextContractId = contractSupportsProperties(currentContract, normalizedPropertyIds)
+            ? currentContractId
+            : QString();
+
+        out = mapWith(out, QStringLiteral("propertyIds"), normalizedPropertyIds);
+        out = mapWith(out, QStringLiteral("contractId"), nextContractId);
+    }
+
     return out;
 }
 

@@ -80,10 +80,6 @@ void Transaction::clearStatement() {
     statementId_.clear();
 }
 
-void Transaction::clearValuta() {
-    valuta_.clear();
-}
-
 void Transaction::clearProperties() {
     propertyIds_.clear();
 }

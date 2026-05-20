@@ -29,6 +29,9 @@ QVariant ExportRunList::data(const QModelIndex& index, int role) const
     case StatusRole: return r->status;
     case MessageRole: return r->message;
     case PayloadRole: return r->payload;
+    case DraftAttachedRole: return r->draftAttached;
+    case DraftIdRole: return r->draftId;
+    case StatementIdRole: return r->statementId;
     default: return {};
     }
 }
@@ -42,6 +45,9 @@ QHash<int, QByteArray> ExportRunList::roleNames() const
     roles[StatusRole] = ui::payload::keys::common::kStatus.toUtf8();
     roles[MessageRole] = ui::payload::keys::exportRun::kMessage.toUtf8();
     roles[PayloadRole] = ui::payload::keys::exportRun::kPayload.toUtf8();
+    roles[DraftAttachedRole] = ui::payload::keys::importRun::kDraftAttached.toUtf8();
+    roles[DraftIdRole] = ui::payload::keys::importRun::kDraftId.toUtf8();
+    roles[StatementIdRole] = ui::payload::keys::importRun::kStatementId.toUtf8();
     return roles;
 }
 
@@ -53,7 +59,8 @@ bool ExportRunList::upsertRun(const ExportRunRow& row)
         return true;
     }
     replaceRow(idx, row);
-    emitRowChanged(idx, {LogIdRole, TimeRole, FileRole, StatusRole, MessageRole, PayloadRole});
+    emitRowChanged(idx, {LogIdRole, TimeRole, FileRole, StatusRole, MessageRole, PayloadRole,
+                         DraftAttachedRole, DraftIdRole, StatementIdRole});
     return false;
 }
 

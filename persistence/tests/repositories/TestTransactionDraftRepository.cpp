@@ -51,4 +51,32 @@ TEST(TransactionDraftRepositoryTest, AddsUpdatesRemovesAndClearsTransactionDraft
     EXPECT_TRUE(repo.getTransactionDrafts().empty());
 }
 
+TEST(TransactionDraftRepositoryTest, PreservesExplicitZeroBasedPositions)
+{
+    TempDatabase dbFile("transaction-draft-repository-positions");
+    SqliteStatementDraftRepository statementDrafts(dbFile.string());
+    SqliteTransactionDraftRepository repo(dbFile.string());
+
+    auto statementDraft = makeStatementDraft();
+    statementDraft.transactionIds.clear();
+    statementDrafts.addStatementDraft(std::make_shared<core::application::importing::draft::StatementDraft>(statementDraft));
+
+    auto first = makeTransactionDraft("draft-tx-1");
+    first.statementDraftId = "statement-draft-1";
+    first.position = 0;
+    auto second = makeTransactionDraft("draft-tx-2");
+    second.statementDraftId = "statement-draft-1";
+    second.position = 1;
+
+    repo.addTransactionDraft(std::make_shared<core::application::importing::draft::TransactionDraft>(first));
+    repo.addTransactionDraft(std::make_shared<core::application::importing::draft::TransactionDraft>(second));
+
+    const auto rows = repo.getTransactionDrafts();
+    ASSERT_EQ(rows.size(), 2u);
+    EXPECT_EQ(rows[0]->id, "draft-tx-1");
+    EXPECT_EQ(rows[0]->position, 0);
+    EXPECT_EQ(rows[1]->id, "draft-tx-2");
+    EXPECT_EQ(rows[1]->position, 1);
+}
+
 } // namespace persistence::tests

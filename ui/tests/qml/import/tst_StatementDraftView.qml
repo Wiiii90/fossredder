@@ -26,6 +26,8 @@ TestCase {
         property string lastClearedDraftId: ""
         property int clearDraftCalls: 0
         property int runNoteCalls: 0
+        property int amountUpdateCalls: 0
+        property string lastAmountText: ""
         property var lastRunNote: ({})
 
         function persistStatementDraft(draft) { persistCalls += 1 }
@@ -38,15 +40,35 @@ TestCase {
             return finalizeResult
         }
         function syncCurrentTransactionDraft(draft) {}
+        function updateCurrentAmount(draft, text) {
+            amountUpdateCalls += 1
+            lastAmountText = text
+            if (!draft || !draft.transactions || !draft.transactions.setAmount) return
+            var value = Number(text)
+            if (!isNaN(value)) draft.transactions.setAmount(draft.currentIndex, value)
+        }
         function currentTransactionViewState(draft) { return ({ actorChoices: [], effectiveAllocatable: false }) }
+        function createActorChoiceForCurrentDraft(draft, actorName) {
+            var name = String(actorName || "").trim()
+            if (name.length === 0) return ({})
+            return ({ id: "actor-new", display: name, name: name })
+        }
+        function selectCurrentActorChoice(draft, row) {
+            if (!draft || !draft.transactions || !row) return
+            draft.transactions.setActorId(draft.currentIndex, row.id || "")
+            draft.transactions.setActorText(draft.currentIndex, "")
+            draft.transactions.setActorSelected(draft.currentIndex, true)
+            if (draft.refresh) draft.refresh()
+        }
         function clearDraft() { clearDraftCalls += 1 }
-        function addRunNote(statusText, messageText, draftAttached, statementId) {
+        function addRunNote(statusText, messageText, draftAttached, statementId, contextDraftId) {
             runNoteCalls += 1
             lastRunNote = {
                 status: statusText,
                 message: messageText,
                 draftAttached: draftAttached,
-                statementId: statementId || ""
+                statementId: statementId || "",
+                contextDraftId: contextDraftId || ""
             }
         }
     }
@@ -109,7 +131,7 @@ TestCase {
     property var draftObject: null
 
     function createDraftObject() {
-        return Qt.createQmlObject('import QtQml 2.15; QtObject { property string draftId: "draft-1"; property string name: "Draft Name"; property int currentIndex: 0; property int count: 2; property var current: ({ id: "tx-1", name: "Tx 1", status: 0, actorText: "", type: "", bookingDate: "", valuta: "", amount: 12.5, contractId: "", propertyIds: [] }); property var transactions: QtObject { function setStatus(index, value) {} function setActorText(index, text) {} function setActorId(index, id) {} function setNewActorSelected(index, selected) {} function setType(index, value) {} function setContractId(index, id) {} function setNewContractSelected(index, selected) {} function setBookingDate(index, value) {} function setValuta(index, value) {} function setName(index, value) {} function setAllocatable(index, value) {} function setAllocatableManualOverride(index, value) {} function removeTransaction(index) {} } function prev() { if (currentIndex > 0) currentIndex -= 1 } function next() { if (currentIndex < count - 1) currentIndex += 1 } function removeTransaction(index) { if (count > 1) count -= 1 } function refresh() {} }', testCase)
+        return Qt.createQmlObject('import QtQml 2.15; QtObject { id: draftRoot; signal changed(); property string draftId: "draft-1"; property string name: "Draft Name"; property int currentIndex: 0; property int count: 2; property var current: ({ id: "tx-1", name: "Tx 1", status: 0, actorText: "", type: "", bookingDate: "", valuta: "", amount: 12.5, metadata: "Kundennr: 12345", proofImageData: "YWJj", contractId: "", propertyIds: [] }); property var rows: [{ id: "tx-1", name: "Tx 1", status: 0, actorText: "", type: "", bookingDate: "", valuta: "", amount: 12.5, metadata: "Kundennr: 12345", proofImageData: "YWJj", contractId: "", propertyIds: [] }, { id: "tx-2", name: "Tx 2", status: 0, actorText: "", type: "", bookingDate: "", valuta: "", amount: 42.0, metadata: "", proofImageData: "", contractId: "", propertyIds: [] }]; property var transactions: QtObject { function updateField(index, key, value) { var copy = Object.assign({}, draftRoot.rows[index]); copy[key] = value; draftRoot.rows[index] = copy; if (index === draftRoot.currentIndex) draftRoot.current = copy; draftRoot.changed(); } function setStatus(index, value) { updateField(index, "status", value) } function setActorText(index, text) { updateField(index, "actorText", text) } function setActorId(index, id) { updateField(index, "actorId", id) } function setActorSelected(index, selected) {} function setNewActorSelected(index, selected) {} function setType(index, value) { updateField(index, "type", value) } function setContractId(index, id) { updateField(index, "contractId", id) } function setNewContractSelected(index, selected) {} function setBookingDate(index, value) { updateField(index, "bookingDate", value) } function setValuta(index, value) { updateField(index, "valuta", value) } function setName(index, value) { updateField(index, "name", value) } function setAmount(index, value) { updateField(index, "amount", value) } function setMetadata(index, value) { updateField(index, "metadata", value) } function setAllocatable(index, value) { updateField(index, "allocatable", value) } function setAllocatableSelected(index, value) {} function setAllocatableManualOverride(index, value) {} function removeTransaction(index) {} } function selectCurrent() { current = rows[currentIndex]; changed(); } function prev() { if (count > 0) { currentIndex = (currentIndex + count - 1) % count; selectCurrent(); } } function next() { if (count > 0) { currentIndex = (currentIndex + 1) % count; selectCurrent(); } } function insertTransactionAfterCurrent() { count += 1; currentIndex += 1 } function removeTransaction(index) { if (count > 1) count -= 1 } function refresh() { changed(); } }', testCase)
     }
 
     function findRequired(root, objectName) {
@@ -130,6 +152,8 @@ TestCase {
         importWorkflow.lastClearedDraftId = ""
         importWorkflow.clearDraftCalls = 0
         importWorkflow.runNoteCalls = 0
+        importWorkflow.amountUpdateCalls = 0
+        importWorkflow.lastAmountText = ""
         importWorkflow.lastRunNote = ({})
 
         navigation.sectionValue = -1
@@ -189,6 +213,17 @@ TestCase {
         deleteButton.clicked()
 
         compare(draftObject.count, 1)
+        compare(importWorkflow.persistCalls, 1)
+    }
+
+    function test_IMP_D_009_addTransactionAddsCurrentTransaction() {
+        var view = createView()
+        var addButton = findRequired(view, "statementDraftAddTransactionButton")
+
+        addButton.clicked()
+
+        compare(draftObject.count, 3)
+        compare(importWorkflow.persistCalls, 1)
     }
 
     function test_IMP_D_005_transactionNavigationUpdatesCurrentIndex() {
@@ -200,5 +235,66 @@ TestCase {
 
         draftObject.prev()
         compare(draftObject.currentIndex, 0)
+    }
+
+    function test_IMP_D_007_transactionNavigationWrapsAtEdges() {
+        var view = createView()
+        draftObject.currentIndex = 1
+
+        draftObject.next()
+        compare(draftObject.currentIndex, 0)
+
+        draftObject.prev()
+        compare(draftObject.currentIndex, 1)
+    }
+
+    function test_IMP_D_008_metadataAndProofAreRenderedFromCurrentDraft() {
+        var view = createView()
+        var metadata = findRequired(view, "transactionDraftMetadataTextArea")
+        var proof = findRequired(view, "transactionDraftProofImage")
+
+        compare(metadata.text, "Kundennr: 12345")
+        compare(proof.source.toString(), "data:image/jpeg;base64,YWJj")
+    }
+
+    function test_IMP_D_010_amountCommitsOnEditingFinished() {
+        var view = createView()
+        var amount = findRequired(view, "transactionDraftAmountField")
+
+        compare(amount.text, "12.5")
+
+        amount.text = "99.99"
+        wait(0)
+
+        compare(amount.text, "99.99")
+        compare(importWorkflow.amountUpdateCalls, 0)
+
+        amount.editingFinished()
+        wait(0)
+
+        compare(importWorkflow.amountUpdateCalls, 1)
+        compare(importWorkflow.lastAmountText, "99.99")
+    }
+
+    function test_IMP_D_011_amountStaysConsistentAcrossTransactionNavigation() {
+        var view = createView()
+        var amount = findRequired(view, "transactionDraftAmountField")
+
+        compare(amount.text, "12.5")
+
+        amount.text = "99.99"
+        amount.editingFinished()
+        wait(0)
+        compare(amount.text, "99.99")
+
+        draftObject.next()
+        wait(0)
+        compare(draftObject.currentIndex, 1)
+        compare(amount.text, "42")
+
+        draftObject.prev()
+        wait(0)
+        compare(draftObject.currentIndex, 0)
+        compare(amount.text, "99.99")
     }
 }

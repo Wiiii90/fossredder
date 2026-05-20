@@ -26,6 +26,14 @@ TestCase {
 
         function annualRows() { return annuals || [] }
         function analysisRows() { return analysesData || [] }
+        function indexOfId(rows, id) {
+            var list = rows || []
+            for (var i = 0; i < list.length; ++i) {
+                if (String(list[i].id || "") === String(id || ""))
+                    return i
+            }
+            return -1
+        }
         function navigatedId(rows, currentId, delta, fallbackIndex) {
             var list = rows || []
             if (list.length === 0)
@@ -60,6 +68,7 @@ TestCase {
 
     property var appContext: QtObject {
         property var session: testCase.session
+        property var sessionState: testCase.session
         property var annualController: testCase.annualController
         property var analysisController: testCase.analysisController
         property var transactionController: testCase.transactionController
@@ -127,5 +136,62 @@ TestCase {
         var view = createView()
         var updateButton = findRequired(view, "annualUpdateButton")
         verify(updateButton !== null)
+    }
+
+    function test_navigationCyclesThroughCreateMode() {
+        session.annuals = [
+            { id: "annual-1", name: "A1" },
+            { id: "annual-2", name: "A2" },
+            { id: "annual-3", name: "A3" }
+        ]
+        session.selectedAnnualId = "annual-3"
+        session.selectedAnnual = Qt.createQmlObject('import QtQml 2.15; QtObject { property string id: "annual-3" }', testCase)
+
+        var view = createView()
+        findRequired(view, "annualNextButton").clicked()
+        compare(session.selectedAnnualId, "")
+
+        findRequired(view, "annualNextButton").clicked()
+        compare(session.selectedAnnualId, "annual-1")
+
+        session.selectedAnnualId = "annual-1"
+        session.selectedAnnual = Qt.createQmlObject('import QtQml 2.15; QtObject { property string id: "annual-1" }', testCase)
+        findRequired(view, "annualPreviousButton").clicked()
+        compare(session.selectedAnnualId, "")
+
+        findRequired(view, "annualPreviousButton").clicked()
+        compare(session.selectedAnnualId, "annual-3")
+    }
+
+    function test_navigationStaysEnabledWithSingleRow() {
+        session.annuals = [
+            { id: "annual-1", name: "A1" }
+        ]
+
+        var view = createView()
+        var nextButton = findRequired(view, "annualNextButton")
+        var previousButton = findRequired(view, "annualPreviousButton")
+
+        compare(nextButton.enabled, true)
+        compare(previousButton.enabled, true)
+
+        nextButton.clicked()
+        compare(session.selectedAnnualId, "annual-1")
+    }
+
+    function test_createModeNavigationStartsAtEdges() {
+        session.annuals = [
+            { id: "annual-1", name: "A1" },
+            { id: "annual-2", name: "A2" },
+            { id: "annual-3", name: "A3" }
+        ]
+
+        var view = createView()
+        findRequired(view, "annualNextButton").clicked()
+        compare(session.selectedAnnualId, "annual-1")
+
+        session.selectedAnnualId = ""
+        findRequired(view, "annualPreviousButton").clicked()
+        compare(session.selectedAnnualId, "annual-3")
     }
 }

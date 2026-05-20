@@ -59,6 +59,7 @@ std::string DraftFinalizer::finalize(core::domain::catalog::WorkspaceCatalog& st
         transaction->setId(core::utils::makeStableId());
         transaction->setName(item.name);
         transaction->setBookingDate(item.bookingDate);
+        transaction->setValuta(item.valuta);
         transaction->setAmount(item.amount);
         transaction->setStatementId(statement->id());
         transaction->setStatus(item.status);
@@ -71,8 +72,6 @@ std::string DraftFinalizer::finalize(core::domain::catalog::WorkspaceCatalog& st
                                                                        transaction->statementId())) {
             continue;
         }
-        transaction->clearValuta();
-
         const std::string normalizedContractId = core::domain::policies::transaction::trimCopy(item.contractId);
         if (!normalizedContractId.empty()) {
             transaction->setContractId(normalizedContractId);

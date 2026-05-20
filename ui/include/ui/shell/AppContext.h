@@ -12,6 +12,7 @@
 #include "ui/viewmodels/system/SettingsViewModel.h"
 #include "ui/state/navigation/NavigationState.h"
 #include "ui/state/status/StatusState.h"
+#include "ui/state/session/WorkspaceSessionState.h"
 #include "ui/workspace/WorkspaceFacade.h"
 
 namespace ui::bootstrap {
@@ -23,6 +24,7 @@ class AppContext : public QObject {
     Q_PROPERTY(ui::Actions* actions READ actions WRITE setActions NOTIFY actionsChanged)
     Q_PROPERTY(ui::NavigationState* navigation READ navigation WRITE setNavigation NOTIFY navigationChanged)
     Q_PROPERTY(ui::WorkspaceFacade* session READ session WRITE setSession NOTIFY sessionChanged)
+    Q_PROPERTY(ui::SessionState* sessionState READ sessionState NOTIFY sessionStateChanged)
     Q_PROPERTY(ui::WorkspaceFacade* workspace READ workspace WRITE setWorkspace NOTIFY workspaceChanged)
     Q_PROPERTY(ui::WorkspaceFacade* workspaceFacade READ workspaceFacade WRITE setWorkspaceFacade NOTIFY workspaceFacadeChanged)
     Q_PROPERTY(ui::FileSystemBrowser* fileSystemBrowser READ fileSystemBrowser WRITE setFileSystemBrowser NOTIFY fileSystemBrowserChanged)
@@ -42,6 +44,7 @@ public:
     ui::WorkspaceFacade* session() const noexcept { return session_; }
     ui::WorkspaceFacade* workspace() const noexcept { return session_; }
     ui::WorkspaceFacade* workspaceFacade() const noexcept { return session_; }
+    ui::SessionState* sessionState() const noexcept { return sessionState_; }
     ui::FileSystemBrowser* fileSystemBrowser() const noexcept { return fileSystemBrowser_; }
     ui::StatusState* status() const noexcept { return status_; }
     ui::AnalysisWorkflow* analysisWorkflow() const noexcept { return analysisWorkflow_; }
@@ -69,6 +72,7 @@ signals:
     void actionsChanged();
     void navigationChanged();
     void sessionChanged();
+    void sessionStateChanged();
     void workspaceChanged();
     void workspaceFacadeChanged();
     void fileSystemBrowserChanged();
@@ -84,6 +88,7 @@ private:
     ui::Actions* actions_ = nullptr;
     ui::NavigationState* navigation_ = nullptr;
     ui::WorkspaceFacade* session_ = nullptr;
+    ui::SessionState* sessionState_ = nullptr;
     ui::FileSystemBrowser* fileSystemBrowser_ = nullptr;
     ui::StatusState* status_ = nullptr;
     ui::AnalysisWorkflow* analysisWorkflow_ = nullptr;

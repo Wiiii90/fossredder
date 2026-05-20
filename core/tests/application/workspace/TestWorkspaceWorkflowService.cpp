@@ -54,6 +54,38 @@ TEST(WorkspaceWorkflowServiceTest, SavesAndClearsStatementDraftState) {
     EXPECT_TRUE(session.state().workflow.transactionDrafts.empty());
 }
 
+TEST(WorkspaceWorkflowServiceTest, SavingStatementDraftUpdatesSessionWithoutDiskCommit) {
+    auto storage = std::make_unique<core::tests::application::workspace::FakeStorageManager>();
+    auto* storagePtr = storage.get();
+    WorkspaceSession session(std::move(storage));
+    session.newFile("P:/workspace.db");
+    WorkspaceWorkflowService service(session);
+
+    core::ports::workspace::StatementDraftCommand saveCommand;
+    saveCommand.draft.id = "draft-1";
+    saveCommand.draft.name = "Imported Statement";
+    saveCommand.draft.transactions.push_back({
+        "tx-1",
+        "draft-1",
+        "Rent",
+        "2024-01-31",
+        {},
+        10.0,
+        {},
+        {},
+        {},
+        static_cast<int>(core::domain::Transaction::Status::Neutral),
+        true,
+        0,
+        {}
+    });
+
+    service.saveStatementDraft(saveCommand);
+
+    EXPECT_EQ(session.state().workflow.statementDrafts.size(), 1u);
+    EXPECT_TRUE(storagePtr->savedState_.workflow.statementDrafts.empty());
+}
+
 TEST(WorkspaceWorkflowServiceTest, ReplacesImportAndExportLogsAtomically) {
     auto storage = std::make_unique<core::tests::application::workspace::FakeStorageManager>();
     auto* storagePtr = storage.get();

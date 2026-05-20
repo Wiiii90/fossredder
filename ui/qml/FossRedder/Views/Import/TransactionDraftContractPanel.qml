@@ -16,6 +16,8 @@ Controls.Panel {
     required property var appContext
     required property var theme
     readonly property var session: root.appContext ? root.appContext.session : null
+    property string pendingTypeText: ""
+    property bool hasPendingTypeEdit: false
 
     function selectedContractName() {
         if (!root.txRoot || !root.txRoot.draft || !root.txRoot.draft.current) return ""
@@ -25,6 +27,29 @@ Controls.Panel {
             const row = root.session.contracts.get(index)
             if (row && row.name) return row.name
         }
+        return ""
+    }
+
+    function commitTypeText(value) {
+        if (!root.txRoot || !root.txRoot.draft)
+            return
+        const tx = root.txRoot.draft.current
+        const nextValue = value !== undefined && value !== null ? String(value) : ""
+        const currentValue = tx && tx.type !== undefined && tx.type !== null ? String(tx.type) : ""
+        if (nextValue !== currentValue) {
+            root.txRoot.draft.transactions.setType(root.txRoot.draft.currentIndex, nextValue)
+            root.txRoot.draft.transactions.setContractId(root.txRoot.draft.currentIndex, "")
+            root.txRoot.draft.transactions.setNewContractSelected(root.txRoot.draft.currentIndex, true)
+        }
+        if (root.txRoot && root.txRoot.refreshDerivedState)
+            root.txRoot.refreshDerivedState()
+    }
+
+    function currentTypeText() {
+        if (root.hasPendingTypeEdit)
+            return root.pendingTypeText
+        if (root.txRoot && root.txRoot.draft && root.txRoot.draft.current && root.txRoot.draft.current.type !== undefined && root.txRoot.draft.current.type !== null)
+            return String(root.txRoot.draft.current.type)
         return ""
     }
 
@@ -55,11 +80,13 @@ Controls.Panel {
             leftContent: Component {
                 Controls.TextField {
                     text: root.txRoot && root.txRoot.draft && root.txRoot.draft.current ? (root.txRoot.draft.current.type || "") : ""
-                    onTextEdited: if (root.txRoot && root.txRoot.draft) {
-                        root.txRoot.draft.transactions.setType(root.txRoot.draft.currentIndex, text)
-                        root.txRoot.draft.transactions.setContractId(root.txRoot.draft.currentIndex, "")
-                        root.txRoot.draft.transactions.setNewContractSelected(root.txRoot.draft.currentIndex, true)
+                    onTextEdited: {
+                        root.pendingTypeText = text
+                        root.hasPendingTypeEdit = true
                     }
+                    onEditingFinished: root.commitTypeText(text)
+                    onAccepted: root.commitTypeText(text)
+                    onActiveFocusChanged: if (!activeFocus) root.commitTypeText(text)
                 }
             }
 
@@ -80,5 +107,12 @@ Controls.Panel {
             color: root.txRoot ? root.txRoot.suggestionColor(root.txRoot.contractTopSuggestion()) : root.theme.textMuted
             Layout.fillWidth: true
         }
+    }
+
+    Connections {
+        target: root.txRoot ? root.txRoot.draft : null
+        function onCurrentIndexChanged() { root.hasPendingTypeEdit = false; root.pendingTypeText = "" }
+        function onCurrentChanged() { root.hasPendingTypeEdit = false; root.pendingTypeText = "" }
+        function onCountChanged() { root.hasPendingTypeEdit = false; root.pendingTypeText = "" }
     }
 }

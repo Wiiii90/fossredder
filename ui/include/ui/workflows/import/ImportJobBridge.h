@@ -43,6 +43,8 @@ public:
     bool isAvailable() const noexcept { return static_cast<bool>(jobSystem_); }
 
     void cancelCurrent();
+    void pauseCurrent();
+    void resumeCurrent();
     void clearSubscription();
 
     std::shared_ptr<core::domain::Statement> statementResult() const;

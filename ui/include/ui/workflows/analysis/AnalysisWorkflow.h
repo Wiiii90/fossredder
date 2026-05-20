@@ -105,6 +105,7 @@ public:
                                            const QStringList& propertyIds,
                                            const QStringList& contractTypes,
                                            const QString& allocatableMode) const;
+    Q_INVOKABLE QVariantMap parseAnalysisFilterSpec(const QString& filterSpec) const;
 
     /** @brief Build the core-compatible analysis configuration JSON from UI inputs. */
     Q_INVOKABLE QString analysisConfigJson(const QString& type,

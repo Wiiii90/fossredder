@@ -44,6 +44,12 @@ Item {
 
     property bool importPageActivated: false
 
+    function hasAnyDraftNavigation() {
+        if (!root.hasImportWorkflow)
+            return false
+        return root.importWorkflow.hasDraftStack
+    }
+
     function updateContentIndex() {
         contentStack.currentIndex = (root.hasImportWorkflow && root.importWorkflow && root.importWorkflow.draft) ? 1 : 0
     }
@@ -153,45 +159,66 @@ Item {
                     Layout.fillWidth: true
                     theme: root.theme
 
-                    Controls.SecondaryButton {
+                    Controls.PrevPageButton {
+                        objectName: "importPreviousDraftButton"
+                        enabled: root.hasAnyDraftNavigation()
+                        onClicked: if (root.hasImportWorkflow) root.importWorkflow.openPrevDraft()
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Controls.DangerButton {
                         objectName: "importClearButton"
                         text: qsTr("Clear")
+                        Layout.preferredWidth: root.theme.viewActionButtonWidth
                         visible: root.hasImportWorkflow && !root.importWorkflow.isRunning
                         enabled: root.hasImportWorkflow && !root.importWorkflow.isRunning
                         onClicked: { if (root.hasImportWorkflow) root.importWorkflow.resetStatus() }
                     }
 
-                    Controls.SecondaryButton {
+                    Controls.DangerButton {
                         objectName: "importCancelButton"
                         text: qsTr("Cancel")
+                        Layout.preferredWidth: root.theme.viewActionButtonWidth
                         visible: root.hasImportWorkflow && root.importWorkflow.isRunning
                         enabled: root.hasImportWorkflow && root.importWorkflow.isRunning
                         onClicked: if (root.hasImportWorkflow) root.importWorkflow.cancelImport()
                     }
 
-                    Controls.SecondaryButton {
-                        objectName: "importPauseButton"
-                        text: qsTr("Pause")
-                        visible: root.hasImportWorkflow && root.importWorkflow.isRunning
-                        enabled: root.hasImportWorkflow && root.importWorkflow.isRunning
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Controls.SecondaryButton {
+                    Controls.DangerButton {
                         objectName: "importCancelAllButton"
                         text: qsTr("Cancel all")
+                        Layout.preferredWidth: root.theme.viewActionButtonWidth
                         visible: root.hasImportWorkflow && root.importWorkflow.isRunning && root.importWorkflow.queuedCount > 0
                         enabled: root.hasImportWorkflow && root.importWorkflow.isRunning && root.importWorkflow.queuedCount > 0
                         onClicked: if (root.hasImportWorkflow) root.importWorkflow.cancelAllImports()
                     }
 
+
+                    Controls.SuccessButton {
+                        objectName: "importPauseButton"
+                        text: root.hasImportWorkflow && root.importWorkflow.isPaused ? qsTr("Resume") : qsTr("Pause")
+                        Layout.preferredWidth: root.theme.viewActionButtonWidth
+                        visible: root.hasImportWorkflow && root.importWorkflow.isRunning
+                        enabled: root.hasImportWorkflow && root.importWorkflow.isRunning
+                        onClicked: if (root.hasImportWorkflow) root.importWorkflow.togglePause()
+                    }
+
                     Controls.SuccessButton {
                         objectName: "importStartButton"
                         text: qsTr("Start")
+                        Layout.preferredWidth: root.theme.viewActionButtonWidth
                         visible: root.hasImportWorkflow && !root.importWorkflow.isRunning
                         enabled: root.hasImportWorkflow && !root.importWorkflow.isRunning && ((root.importWorkflow.selectedFile && root.importWorkflow.selectedFile.length > 0) || root.importWorkflow.queuedCount > 0)
                         onClicked: { if (root.hasImportWorkflow) root.importWorkflow.startStatementImport() }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Controls.NextPageButton {
+                        objectName: "importNextDraftButton"
+                        enabled: root.hasAnyDraftNavigation()
+                        onClicked: if (root.hasImportWorkflow) root.importWorkflow.openNextDraft()
                     }
                 }
             }
@@ -227,15 +254,18 @@ Item {
                 Controls.PrevPageButton {
                     objectName: "statementDraftPrevPageButton"
                     enabled: !!stmtView.draft && root.hasImportWorkflow && root.importWorkflow.hasPrevDraft
-                    onClicked: if (root.hasImportWorkflow) root.importWorkflow.openPrevDraft()
+                    onClicked: {
+                        if (stmtView && stmtView.persistPendingEdits) stmtView.persistPendingEdits()
+                        if (root.hasImportWorkflow) root.importWorkflow.openPrevDraft()
+                    }
                 }
 
                 Controls.PrevButton {
                     objectName: "statementDraftPrevTransactionButton"
                     enabled: !!stmtView.draft && stmtView.draft.currentIndex > 0
                     onClicked: {
+                        if (stmtView && stmtView.commitPendingEdits) stmtView.commitPendingEdits()
                         stmtView.draft.prev()
-                        stmtView.persistDraftSnapshot()
                     }
                 }
 
@@ -269,15 +299,18 @@ Item {
                     objectName: "statementDraftNextTransactionButton"
                     enabled: !!stmtView.draft && stmtView.draft.currentIndex < (stmtView.draft.count - 1)
                     onClicked: {
+                        if (stmtView && stmtView.commitPendingEdits) stmtView.commitPendingEdits()
                         stmtView.draft.next()
-                        stmtView.persistDraftSnapshot()
                     }
                 }
 
                 Controls.NextPageButton {
                     objectName: "statementDraftNextPageButton"
                     enabled: !!stmtView.draft && root.hasImportWorkflow && root.importWorkflow.hasNextDraft
-                    onClicked: if (root.hasImportWorkflow) root.importWorkflow.openNextDraft()
+                    onClicked: {
+                        if (stmtView && stmtView.persistPendingEdits) stmtView.persistPendingEdits()
+                        if (root.hasImportWorkflow) root.importWorkflow.openNextDraft()
+                    }
                 }
             }
         }

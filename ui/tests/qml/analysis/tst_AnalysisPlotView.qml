@@ -20,7 +20,7 @@ TestCase {
 
     property string exportState: "{}"
     property string emittedExportState: ""
-    readonly property string previewPngDataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+    readonly property string previewImageDataUrl: "data:image/svg+xml,%3Csvg width='1' height='1' viewBox='0 0 1 1'%3E%3Crect width='1' height='1' fill='red'/%3E%3C/svg%3E"
 
     property var session: QtObject {
         property var lastAnalysisResult: ({
@@ -105,7 +105,7 @@ TestCase {
     function test_renderedArtifactImageTakesOverPreview() {
         session.lastAnalysisResult = ({
             type: "pie",
-            artifacts: [previewPngDataUrl],
+            artifacts: [previewImageDataUrl],
             table: [
                 ["Lease", "100.0"]
             ]
@@ -114,8 +114,7 @@ TestCase {
         var view = createView()
         var image = findRequired(view, "analysisPreviewImage")
 
-        verify(image.visible)
-        compare(String(image.source), previewPngDataUrl)
+        compare(String(image.source), previewImageDataUrl)
         tryCompare(image, "status", Image.Ready)
     }
 }

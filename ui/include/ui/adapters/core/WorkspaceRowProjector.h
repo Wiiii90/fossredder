@@ -12,16 +12,16 @@
 
 namespace ui {
 
-class SessionStore;
+class SessionState;
 
-QVariantList buildStatementTransactionIds(const SessionStore& session, const QString& statementId);
-QVariantList buildActorRows(const SessionStore& session);
-QVariantList buildPropertyRows(const SessionStore& session);
-QVariantList buildContractRows(const SessionStore& session);
-QVariantList buildAnalysisRows(const SessionStore& session);
-QVariantList buildAnnualRows(const SessionStore& session);
-QVariantList buildStatementRows(const SessionStore& session);
-QVariantList buildStatementTransactionRows(const SessionStore& session, const QString& statementId);
+QVariantList buildStatementTransactionIds(const SessionState& session, const QString& statementId);
+QVariantList buildActorRows(const SessionState& session);
+QVariantList buildPropertyRows(const SessionState& session);
+QVariantList buildContractRows(const SessionState& session);
+QVariantList buildAnalysisRows(const SessionState& session);
+QVariantList buildAnnualRows(const SessionState& session);
+QVariantList buildStatementRows(const SessionState& session);
+QVariantList buildStatementTransactionRows(const SessionState& session, const QString& statementId);
 
 QVariantList pruneAndAppendMissing(const QVariantList& preferredIds, const QVariantList& availableIds);
 int indexOfId(const QVariantList& rows, const QString& id);

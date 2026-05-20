@@ -43,7 +43,7 @@ Controls.Panel {
             currentIndex: root.txRoot.selectedIndexFor(model, root.txRoot.contractIdValue())
             onActivated: function(index) {
                 const row = model[index]
-                root.txRoot.updateField("contractId", row && row.id ? row.id : "")
+                root.txRoot.applyContractSelection(row && row.id ? row.id : "")
             }
         }
     }

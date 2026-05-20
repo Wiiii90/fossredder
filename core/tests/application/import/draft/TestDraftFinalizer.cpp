@@ -20,6 +20,7 @@ TEST(DraftFinalizerTest, FinalizesValidDraftIntoWorkspaceState) {
     TransactionDraft item;
     item.name = "Rent";
     item.bookingDate = "2024-01-31";
+    item.valuta = "02.02";
     item.amount = 10.0;
     item.type = "rent";
     item.allocatable = true;
@@ -33,6 +34,7 @@ TEST(DraftFinalizerTest, FinalizesValidDraftIntoWorkspaceState) {
     EXPECT_EQ(state.contracts().size(), 1u);
     EXPECT_EQ(state.statements().front()->transactionCount(), 1u);
     EXPECT_EQ(state.transactions().front()->statementId(), statementId);
+    EXPECT_EQ(state.transactions().front()->valuta(), "02.02");
 }
 
 TEST(DraftFinalizerTest, ReturnsEmptyStringForEmptyDraft) {

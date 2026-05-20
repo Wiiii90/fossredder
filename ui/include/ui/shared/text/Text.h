@@ -131,16 +131,20 @@ inline constexpr auto kStatusCanceledSource = QT_TRANSLATE_NOOP("ImportWorkflowS
 inline constexpr auto kStatusFailedSource = QT_TRANSLATE_NOOP("ImportWorkflowState", "Failed");
 inline constexpr auto kStatusSuccessSource = QT_TRANSLATE_NOOP("ImportWorkflowState", "Success");
 inline constexpr auto kStatusRunningSource = QT_TRANSLATE_NOOP("ImportWorkflowState", "Running");
+inline constexpr auto kStatusPausedSource = QT_TRANSLATE_NOOP("ImportWorkflowState", "Paused");
 inline constexpr auto kStatusDraftSource = QT_TRANSLATE_NOOP("ImportWorkflowState", "Draft");
 inline constexpr auto kStatusFinalizedSource = QT_TRANSLATE_NOOP("ImportWorkflowState", "Finalized");
+inline constexpr auto kStatusDeletedSource = QT_TRANSLATE_NOOP("ImportWorkflowState", "Deleted");
 
 inline QString typeStatement() { return detail::translate(kContext, kTypeStatementSource); }
 inline QString statusCanceled() { return detail::translate(kContext, kStatusCanceledSource); }
 inline QString statusFailed() { return detail::translate(kContext, kStatusFailedSource); }
 inline QString statusSuccess() { return detail::translate(kContext, kStatusSuccessSource); }
 inline QString statusRunning() { return detail::translate(kContext, kStatusRunningSource); }
+inline QString statusPaused() { return detail::translate(kContext, kStatusPausedSource); }
 inline QString statusDraft() { return detail::translate(kContext, kStatusDraftSource); }
 inline QString statusFinalized() { return detail::translate(kContext, kStatusFinalizedSource); }
+inline QString statusDeleted() { return detail::translate(kContext, kStatusDeletedSource); }
 
 }
 

@@ -113,10 +113,6 @@ public:
      */
     void clearStatement();
     /**
-     * @brief Clears imported valuta data.
-     */
-    void clearValuta();
-    /**
      * @brief Clears linked property ids.
      */
     void clearProperties();

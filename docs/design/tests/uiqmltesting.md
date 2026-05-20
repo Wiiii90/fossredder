@@ -42,6 +42,7 @@ ui/
         tst_Panel.qml
         tst_ProgressBar.qml
         tst_RunLogList.qml
+        tst_Toolbar.qml
         tst_TextField.qml
       actor/
         tst_ActorView.qml
@@ -112,6 +113,12 @@ ui/
 | IMP-V-004 | Import cancel | QML/Interaction | Import controller running | Click Cancel | `cancelImport()` is called |
 | IMP-V-005 | Import cancel all | QML/Interaction | Import controller running with queued imports | Click Cancel all | `cancelAllImports()` is called |
 | IMP-V-006 | Draft page switch | QML/Interaction | Import controller has draft | Switch controller state to draft | Draft page becomes active |
+| IMP-V-007 | Import pause/resume | QML/Interaction | Import controller running | Click Pause | `togglePause()` is called and the action label reflects Resume while paused |
+| IMP-V-008 | Running action order | QML/Layout | Import controller running with queued imports | Inspect bottom-bar actions | Cancel and Cancel all stay grouped on the left, while Pause/Resume sits before the outer draft-next control |
+| IMP-V-009 | Import page draft navigation | QML/Interaction/Layout | Import page has persisted drafts and no active draft view | Click outer draft navigation buttons | Draft navigation buttons sit at the far left/right bottom-bar edges and call previous/next draft navigation |
+| IMP-V-010 | Running import draft navigation | QML/Layout | Import controller running while drafts exist | Inspect bottom-bar actions | Draft previous/next controls remain available at the far left/right edges around Cancel/Pause actions |
+| IMP-V-011 | Import page draft navigation disabled without draft logs | QML/Interaction | Workspace may contain persisted draft data but import logs expose no draft-attached row | Inspect outer draft navigation buttons | Draft previous/next controls are disabled because there is no navigable draft in the visible draft list |
+| IMP-V-012 | Draft page navigation returns to import home | QML/Interaction | Draft page is open at the outer draft-navigation edge | Click the outer next/previous draft control | The active draft clears and ImportView returns to the normal import page |
 
 ### ImportForm
 
@@ -125,6 +132,11 @@ ui/
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | IMP-S-001 | Run-log binding | QML/Interaction | Import workflow exposes persisted logs | Open the sidebar | The restored run-log rows are visible in the list |
+| IMP-S-002 | Draft run navigation | QML/Interaction | Import log row has an attached draft | Click the run row | The matching persisted draft id is opened |
+| IMP-S-003 | Finalized run navigation | QML/Interaction | Import log row has a finalized statement id | Click the run row | Booking section opens with the matching statement selected and transaction selection cleared |
+| IMP-S-004 | Legacy draft run navigation | QML/Interaction | Import log row has Draft status but no attached-draft flag | Click the run row | The row opens the persisted draft through the log-id fallback |
+| IMP-S-005 | Import log delete | QML/Interaction | Import log row is visible | Click the row delete button | The workflow receives the delete request and clears attached draft state when needed |
+| IMP-S-006 | Selected draft log highlight | QML/Visual state | Import sidebar has an active draft id and a matching run-log row | Open the sidebar | The matching draft run is outlined with the theme selection color |
 
 ### StatementDraftView
 
@@ -136,6 +148,10 @@ ui/
 | IMP-D-004 | Draft finalize failure | QML/Interaction | Draft loaded and finalize fails | Activate finalize button | Failure note is written and draft remains available |
 | IMP-D-005 | Transaction navigation | QML/Interaction | Draft with multiple transactions | Activate previous or next transaction button | Draft transaction index changes and snapshot persistence is requested |
 | IMP-D-006 | Transaction delete | QML/Interaction | Draft with more than one transaction | Activate delete transaction button | Current transaction is removed and snapshot is persisted |
+| IMP-D-007 | Transaction navigation wrap | QML/Interaction | Draft positioned at the first or last transaction | Navigate past either edge | The current transaction index wraps to the opposite edge |
+| IMP-D-008 | Draft metadata and proof rendering | QML/Rendering | Current draft transaction contains metadata and proof image data | Open the statement draft view | Metadata text and proof image source are rendered from the current draft payload |
+| IMP-D-009 | Transaction add | QML/Interaction | Draft with transactions loaded | Activate add transaction button | A transaction is inserted after the current transaction and the draft snapshot is persisted |
+| IMP-D-010 | Amount edit survives draft refresh | QML/Interaction | Draft transaction amount field contains uncommitted user text | Edit another draft field that refreshes `draft.current` | The amount input keeps the local edit and commits only when the amount field finishes editing |
 
 ## Export
 
@@ -179,7 +195,10 @@ ui/
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | ACT-V-001 | Container mount | QML | App context and theme available | Open ActorView | `ActorForm` is filled with app context and theme |
-| ACT-V-002 | Toolbar create shortcut | QML/Interaction | Actor section active and edit mode available | Click the toolbar actor create action | Actor form switches to create mode and clears selection |
+| ACT-V-002 | Toolbar actor create shortcut | QML/Interaction | Actor section active and edit mode available | Click the toolbar actor action | Actor form switches to create mode and clears selection |
+| ACT-V-003 | Bottom navigation cycles through create mode | QML/Interaction | Multiple actor rows and the last/first actor selected | Click next from the last actor or previous from the first actor, then click again | Selection clears into create mode first, then continues to the opposite edge |
+| ACT-V-004 | Bottom navigation starts from create mode | QML/Interaction | Multiple actor rows and no actor selected | Click next or previous | Next selects the first actor and previous selects the last actor |
+| ACT-V-005 | Bottom navigation supports single row | QML/Interaction | Actor form opened with only one actor row | Click previous or next | Previous/next buttons remain enabled and navigation can select the only actor |
 
 ### ActorForm
 
@@ -202,7 +221,10 @@ ui/
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | PROP-V-001 | Container mount | QML | App context and theme available | Open PropertyView | `PropertyForm` is filled with app context and theme |
-| PROP-V-002 | Toolbar create shortcut | QML/Interaction | Property section active and edit mode available | Click the toolbar property create action | Property form switches to create mode and clears selection |
+| PROP-V-002 | Toolbar property create shortcut | QML/Interaction | Property section active and edit mode available | Click the toolbar property action | Property form switches to create mode and clears selection |
+| PROP-V-003 | Bottom navigation cycles through create mode | QML/Interaction | Multiple property rows and the last/first property selected | Click next from the last property or previous from the first property, then click again | Selection clears into create mode first, then continues to the opposite edge |
+| PROP-V-004 | Bottom navigation starts from create mode | QML/Interaction | Multiple property rows and no property selected | Click next or previous | Next selects the first property and previous selects the last property |
+| PROP-V-005 | Bottom navigation supports single row | QML/Interaction | Property form opened with only one property row | Click previous or next | Previous/next buttons remain enabled and navigation can select the only property |
 
 ### PropertyForm
 
@@ -225,7 +247,10 @@ ui/
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | CON-V-001 | Container mount | QML | App context and theme available | Open ContractView | `ContractForm` is filled with app context and theme |
-| CON-V-002 | Toolbar create shortcut | QML/Interaction | Contract section active and edit mode available | Click the toolbar contract create action | Contract form switches to create mode and clears selection |
+| CON-V-002 | Toolbar contract create shortcut | QML/Interaction | Contract section active and edit mode available | Click the toolbar contract action | Contract form switches to create mode and clears selection |
+| CON-V-003 | Bottom navigation cycles through create mode | QML/Interaction | Multiple contract rows and the last/first contract selected | Click next from the last contract or previous from the first contract, then click again | Selection clears into create mode first, then continues to the opposite edge |
+| CON-V-004 | Bottom navigation starts from create mode | QML/Interaction | Multiple contract rows and no contract selected | Click next or previous | Next selects the first contract and previous selects the last contract |
+| CON-V-005 | Bottom navigation supports single row | QML/Interaction | Contract form opened with only one contract row | Click previous or next | Previous/next buttons remain enabled and navigation can select the only contract |
 
 ### ContractForm
 
@@ -249,6 +274,9 @@ ui/
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | ANN-V-001 | Container mount | QML | App context and theme available | Open AnnualView | `AnnualForm` is filled with app context and theme |
+| ANN-V-002 | Bottom navigation cycles through create mode | QML/Interaction | Multiple annual rows and the last/first annual selected | Click next from the last annual or previous from the first annual, then click again | Selection clears into create mode first, then continues to the opposite edge |
+| ANN-V-003 | Bottom navigation starts from create mode | QML/Interaction | Multiple annual rows and no annual selected | Click next or previous | Next selects the first annual and previous selects the last annual |
+| ANN-V-004 | Bottom navigation supports single row | QML/Interaction | Annual form opened with only one annual row | Click previous or next | Previous/next buttons remain enabled and navigation can select the only annual |
 
 ### AnnualForm
 
@@ -285,13 +313,20 @@ ui/
 |---|---|---|---|---|---|
 | BKG-001 | Create statement | QML/Interaction | No selected statement and valid name entered | Enter name and click Create | `addStatement()` and `addTransactions()` are called, selected statement id becomes returned id |
 | BKG-002 | Read statement state | QML/Interaction | Selected statement with transactions loaded | Open in edit mode | `transaction(txId)` resolves the live transaction payload and statement and transaction fields reflect the selected statement state |
-| BKG-003 | Update statement | QML/Interaction | Selected statement with modified name or transaction data | Change fields and click Update | `updateStatement()` and `updateTransaction()` are called for active data |
+| BKG-003 | Update statement | QML/Interaction | Selected statement with modified name or transaction data | Change fields and click Update | `updateStatement()` and `updateTransaction()` are called for active data, including actor/contract/property assignments and parsed amount values |
 | BKG-004 | Delete statement | QML/Interaction | Selected statement with valid id | Click Delete | `deleteStatement(id)` is called and selection advances deterministically |
 | BKG-005 | Create transaction in create mode | QML/Interaction | Create mode with a draft statement | Click transaction add | A new draft transaction is inserted after current one |
 | BKG-006 | Delete transaction in create mode | QML/Interaction | Create mode with multiple transactions | Click transaction delete | Current draft transaction is removed if more than one remains |
 | BKG-007 | Create mode navigation | QML/Interaction | Multiple draft transactions | Click Prev or Next transaction | Current draft transaction index changes |
-| BKG-008 | Statement navigation | QML/Interaction | Statement rows available | Click Prev page or Next page | Selected statement id moves to adjacent statement |
+| BKG-008 | Statement navigation cycles through create mode | QML/Interaction | Statement rows available | Click Prev page or Next page across list edges | Statement selection clears into create mode before continuing to the opposite edge |
 | BKG-009 | Workspace revision refresh | QML/Interaction | Booking view loaded with empty lists | Update the workspace revision and provide statement and transaction rows | Booking lists, sidebar rows, and navigation controls re-evaluate and become visible without reopening the view |
+| BKG-010 | Statement transaction memory | QML/Interaction | Multiple statements each have multiple transactions | Navigate away from and back to statements after selecting transactions | Each statement restores its last selected transaction instead of always selecting the first transaction |
+| BKG-011 | Statement navigation supports single row | QML/Interaction | Booking view opened with only one statement row | Click Prev page or Next page | Statement navigation remains enabled and can select the only statement from create mode |
+| BKG-012 | Edit transaction add order | QML/Interaction | Edit mode with multiple transactions and a current transaction selected | Click transaction add | A new transaction is inserted after the current one, selected, and initialized with the current transaction dates |
+| BKG-013 | Amount field keeps intermediate text | QML/Interaction | Booking transaction form is open | Type intermediate amount text such as `-` or `1,` | The draft keeps the typed text and does not normalize it to `0` before save/update |
+| BKG-014 | Update parses localized amount text | QML/Interaction | Edit mode transaction amount is entered as text with comma decimal separator | Click Update | `updateTransaction()` receives the parsed numeric amount instead of `0` fallback coercion |
+| BKG-016 | Update parses dot and integer amount text | QML/Interaction | Edit mode transaction amount is entered as manual text with dot decimal or integer format | Click Update | `updateTransaction()` accepts `99.5` and `100` style inputs without reverting to previous amount |
+| BKG-015 | Edit update persists text-field changes | QML/Interaction | Edit mode transaction is selected | Edit name, booking date, valuta and amount fields, then click Update | `updateTransaction()` receives the edited values for all fields |
 
 ### BookingStatementsSidebar
 
@@ -299,6 +334,10 @@ ui/
 |---|---|---|---|---|---|
 | BKG-S-001 | Transaction row click | QML/Interaction | Statement rows and transaction rows available | Click a transaction row | The matching statement remains selected and the transaction id becomes active, so the detail view follows the clicked transaction with the correct 1-based position |
 | BKG-S-002 | Statement row click | QML/Interaction | Statement rows and transaction rows available | Click a statement row | The statement remains selected and the transaction selection is cleared |
+| BKG-S-003 | Statement selection scroll positioning | QML/Interaction | Sidebar contains enough statement rows to scroll | Select a lower statement row | The selected statement row is scrolled to the top of the sidebar viewport |
+| BKG-S-004 | Transaction selection scroll positioning | QML/Interaction | Sidebar contains enough transaction rows to scroll | Select a lower transaction row | The selected transaction row is scrolled to the top of the sidebar viewport |
+| BKG-S-005 | Initial statement selection scroll positioning | QML/Interaction | Sidebar is created with a lower statement already selected | Open the sidebar | The preselected statement row is scrolled to the top of the sidebar viewport |
+| BKG-S-006 | Initial transaction selection scroll positioning | QML/Interaction | Sidebar is created with a lower transaction already selected | Open the sidebar | The preselected transaction row is scrolled to the top of the sidebar viewport |
 
 ### BookingStatementPanel
 
@@ -317,6 +356,9 @@ ui/
 | BKG-T-003 | Contract selection | QML/Interaction | Contract rows available | Select contract in transaction | Transaction contract id updates |
 | BKG-T-004 | Property selection | QML/Interaction | Property rows available | Select property in transaction | Transaction property ids update |
 | BKG-T-005 | Allocatable toggle | QML/Interaction | Transaction loaded | Toggle allocatable | Transaction allocatable flag updates |
+| BKG-T-006 | Contract selection cascades actor and property | QML/Interaction | Contract rows include linked actor and property ids | Select contract in transaction | Transaction contract id updates and actor/property ids are synchronized from the selected contract |
+| BKG-T-007 | Actor selection clears incompatible contract | QML/Interaction | Transaction has a selected contract whose actor list does not contain the chosen actor | Select a different actor in transaction | Actor id updates and contract id is reset to empty |
+| BKG-T-008 | Property selection clears incompatible contract | QML/Interaction | Transaction has a selected contract whose property list does not contain the chosen property set | Select a property outside the contract assignment | Property ids update and contract id is reset to empty |
 
 ### BookingTransactionActorPanel
 
@@ -349,6 +391,9 @@ ui/
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | ANL-V-001 | Container refresh | QML | App context and theme available | Show view with selection | `AnalysisForm.refreshFromSelection()` is called when view becomes visible |
+| ANL-V-002 | Bottom navigation cycles through create mode | QML/Interaction | Multiple analysis rows and the last/first analysis selected | Click next from the last analysis or previous from the first analysis, then click again | Selection clears into create mode first, then continues to the opposite edge |
+| ANL-V-003 | Bottom navigation starts from create mode | QML/Interaction | Multiple analysis rows and no analysis selected | Click next or previous | Next selects the first analysis and previous selects the last analysis |
+| ANL-V-004 | Bottom navigation supports single row | QML/Interaction | Analysis form opened with only one analysis row | Click previous or next | Previous/next buttons remain enabled and navigation can select the only analysis |
 
 ### AnalysisForm
 
@@ -412,6 +457,17 @@ ui/
 | FILE-007 | Accept selected file fallback | QML/Interaction | Selected file set and filename empty | Activate select button | Accepted path uses selected file |
 | FILE-008 | Cancel picker | QML/Interaction | Picker loaded | Activate cancel button | Rejected signal is emitted |
 
+## Settings
+
+### SettingsView
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| SET-V-002 | Category navigation | QML/Interaction | Settings view loaded | Click next and previous category controls | Settings category advances and returns with loaded page content |
+| SET-V-003 | Update settings | QML/Interaction | Settings view model and language service available | Click Update | Settings are saved and the selected language is applied |
+| SET-V-004 | Reset settings | QML/Interaction | Settings category is not the default | Click Default | Settings reset and category returns to General |
+| SET-V-005 | Category navigation wraps | QML/Interaction | Settings category is at either edge | Click next from the last category or previous from the first category | Category wraps to the opposite edge |
+
 ## Common Controls and Shared Components
 
 ### Button
@@ -464,6 +520,14 @@ ui/
 | CTRL-BB-001 | Content hosting | QML | BottomBar loaded | Add child controls | Child controls are laid out in a row |
 | CTRL-BB-002 | Theme binding | QML | Theme loaded | Inspect appearance | Radius, background and spacing follow theme |
 
+### Toolbar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| CTRL-TB-001 | Domain create-mode navigation | QML/Interaction | Toolbar has actor, property and contract selections | Navigate to each domain section through the toolbar | Domain selections are cleared so the target form opens in create mode |
+| CTRL-TB-002 | Booking and tool create-mode navigation | QML/Interaction | Toolbar has booking, analysis and annual selections | Navigate to those sections through the toolbar | Target selections are cleared so the target view opens in create mode |
+| CTRL-TB-003 | App menu preserves current selection | QML/Interaction | App menu has existing selections | Navigate to a section through the menu | Existing selections are preserved unless the menu action explicitly clears them |
+
 ### RunLogList
 
 | ID | Scope | Layer | Setup | Action | Expected |
@@ -471,3 +535,5 @@ ui/
 | CTRL-RL-001 | Log click | QML/Interaction | Log model available | Activate log row | Run click signal wiring is available for row interaction |
 | CTRL-RL-002 | Delete click | QML/Interaction | Log row available | Activate remove button | Delete click signal wiring is available for row interaction |
 | CTRL-RL-003 | Payload summary | QML | Log contains payload | Inspect rendered text | Summary reflects annuals, analyses and formats |
+| CTRL-RL-004 | Draft id forwarding | QML/Interaction | Clickable draft log row | Activate log row with a real mouse click | Run click signal includes the draft id |
+| CTRL-RL-005 | Delegate click geometry | QML/Layout | Log model contains rows | Open run log list | Delegate rows expose a non-zero click height |

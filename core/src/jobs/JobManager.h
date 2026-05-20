@@ -37,10 +37,13 @@ public:
     void unsubscribe(const JobId& id, SubscriptionId subId);
 
     void cancel(const JobId& id);
+    void pause(const JobId& id);
+    void resume(const JobId& id);
 
     std::optional<JobSnapshot> snapshot(const JobId& id) const;
 
     std::shared_ptr<std::atomic<bool>> cancelFlag(const JobId& id) const;
+    std::shared_ptr<std::atomic<bool>> pauseFlag(const JobId& id) const;
 
     void setStatementResult(const JobId& id, std::shared_ptr<core::domain::Statement> stmt);
     std::shared_ptr<core::domain::Statement> statementResult(const JobId& id) const;
@@ -63,6 +66,7 @@ private:
     struct JobData {
         JobSnapshot snap;
         std::shared_ptr<std::atomic<bool>> cancel;
+        std::shared_ptr<std::atomic<bool>> pause;
         std::shared_ptr<core::domain::Statement> statement;
         std::vector<core::application::importing::draft::TransactionDraft> transactions;
         std::map<std::string, std::vector<uint8_t>> artifacts;

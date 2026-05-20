@@ -57,7 +57,6 @@ TEST(TransactionTest, StatusAdvancesAndClearsRelations) {
     transaction.clearContract();
     transaction.clearActor();
     transaction.clearStatement();
-    transaction.clearValuta();
     transaction.clearProperties();
 
     EXPECT_TRUE(transaction.isStandalone());

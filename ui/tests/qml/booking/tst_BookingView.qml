@@ -35,6 +35,8 @@ TestCase {
         function emptyTransactionDraft() { return ({ id: "", name: "", bookingDate: "", valuta: "", amount: 0.0, description: "", statementId: "", status: 0, actorId: "", contractId: "", allocatable: false, propertyIds: [] }) }
         function normalizeTransactionDraft(tx) { return tx || emptyTransactionDraft() }
         function mapWithKeyValue(base, key, value) { var next = {}; var src = base || {}; for (var n in src) next[n] = src[n]; next[key] = value; return next }
+        function contractRowById(rows, contractId) { var target = String(contractId || ""); var list = rows || []; for (var i = 0; i < list.length; ++i) { if (String(list[i].id || "") === target) return list[i] } return null }
+        function transactionDraft(draft, contractRows, changes) { var next = normalizeTransactionDraft(draft || ({})); var update = changes || ({}); if (update.contractId !== undefined) { var selectedContractId = String(update.contractId || ""); var selectedRow = contractRowById(contractRows, selectedContractId); var selectedActorIds = selectedRow && selectedRow.actorIds ? selectedRow.actorIds : []; var selectedPropertyIds = selectedRow && selectedRow.propertyIds ? selectedRow.propertyIds : []; next = mapWithKeyValue(next, "contractId", selectedContractId); next = mapWithKeyValue(next, "actorId", selectedActorIds.length > 0 ? String(selectedActorIds[0] || "") : ""); next = mapWithKeyValue(next, "propertyIds", selectedPropertyIds ? selectedPropertyIds.slice() : []); } if (update.actorId !== undefined) { var selectedActorId = String(update.actorId || ""); var currentContractId = String(next.contractId || ""); var actorRow = contractRowById(contractRows, currentContractId); var allowedActorIds = actorRow && actorRow.actorIds ? actorRow.actorIds : []; var actorSupported = currentContractId.length === 0 || selectedActorId.length === 0; if (!actorSupported) { for (var i = 0; i < allowedActorIds.length; ++i) { if (String(allowedActorIds[i] || "") === selectedActorId) { actorSupported = true; break } } } next = mapWithKeyValue(next, "actorId", selectedActorId); next = mapWithKeyValue(next, "contractId", actorSupported ? currentContractId : ""); } if (update.propertyIds !== undefined) { var selectedIds = update.propertyIds ? update.propertyIds.slice() : []; var contractId = String(next.contractId || ""); var propertyRow = contractRowById(contractRows, contractId); var allowedPropertyIds = propertyRow && propertyRow.propertyIds ? propertyRow.propertyIds : []; var propertiesSupported = contractId.length === 0; if (!propertiesSupported) { propertiesSupported = true; for (var p = 0; p < selectedIds.length; ++p) { if (allowedPropertyIds.indexOf(String(selectedIds[p] || "")) === -1) { propertiesSupported = false; break } } } next = mapWithKeyValue(next, "propertyIds", selectedIds); next = mapWithKeyValue(next, "contractId", propertiesSupported ? contractId : ""); } return next }
         function addUniqueTrimmed(values, value) { var next = values ? values.slice() : []; var v = String(value || "").trim(); if (v.length === 0 || next.indexOf(v) !== -1) return next; next.push(v); return next }
         function removeString(values, value) { var next = values ? values.slice() : []; var i = next.indexOf(String(value || "")); if (i >= 0) next.splice(i, 1); return next }
         function indexOfId(rows, id) { var list = rows || []; for (var i = 0; i < list.length; ++i) { if (String(list[i].id || "") === String(id || "")) return i } return -1 }
@@ -55,6 +57,8 @@ TestCase {
         function deleteReselectionState(updatedRows, previousOrder, previousIndex, deletedId, key) { return { orderIds: [], index: -1, id: "" } }
         function navigatedId(rows, currentId, delta, fallbackIndex) { var list = rows || []; if (list.length === 0) return ""; var idx = indexOfId(list, currentId); if (idx < 0) idx = fallbackIndex; else idx = wrappedIndex(idx + delta, list.length); return String(list[idx].id || "") }
         function deleteNextSelectionId(rows, removedId, fallbackIndex, key) { var list = rows || []; var kept = []; for (var i = 0; i < list.length; ++i) { var rowId = String(list[i][key] || ""); if (rowId !== String(removedId || "")) kept.push(list[i]) } if (kept.length === 0) return ""; var idx = Math.max(0, Math.min(fallbackIndex, kept.length - 1)); return String(kept[idx][key] || "") }
+        function parseAmountString(value) { var text = String(value || "").trim(); if (text.length === 0) return null; text = text.replace(/\u00A0/g, "").replace(/\u202F/g, "").replace(/\s+/g, ""); if (text.length === 0) return null; var direct = Number(text); if (!isNaN(direct)) return direct; var decimalPos = -1; for (var i = text.length - 1; i >= 0; --i) { var ch = text.charAt(i); if (ch === "." || ch === ",") { decimalPos = i; break } } var canonical = ""; for (var j = 0; j < text.length; ++j) { var c = text.charAt(j); if (c >= "0" && c <= "9") { canonical += c; continue } if ((c === "-" || c === "+") && j === 0) { canonical += c; continue } if (c === "." || c === ",") { if (j === decimalPos) canonical += "."; continue } return null } if (canonical.length === 0 || canonical === "-" || canonical === "+") return null; var parsed = Number(canonical); return isNaN(parsed) ? null : parsed }
+        function amountForTransactionCommit(rawAmount, transactionId, fallbackAmount) { if (typeof rawAmount === "number") return rawAmount; var parsed = parseAmountString(rawAmount); return parsed !== null ? parsed : Number(fallbackAmount || 0.0) }
     }
 
     property var statementController: QtObject {
@@ -65,24 +69,78 @@ TestCase {
 
     property var transactionController: QtObject {
         function addTransactions(statementId, drafts) { return [] }
-        function addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) { return "tx-new" }
+        function addTransaction(name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) { return "tx-new" }
+        function insertTransactionAfter(afterTransactionId, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) { return "tx-new" }
         function transaction(id) { return ({}) }
-        function updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {}
+        function updateTransaction(id, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {}
         function deleteTransaction(id) {}
     }
 
     property var appContext: QtObject {
         property var session: testCase.session
+        property var sessionState: testCase.session
         property var workspaceFacade: QtObject {
+            function parseAmountString(value) {
+                var text = String(value || "").trim()
+                if (text.length === 0)
+                    return null
+                text = text.replace(/\u00A0/g, "").replace(/\u202F/g, "").replace(/\s+/g, "")
+                if (text.length === 0)
+                    return null
+                var direct = Number(text)
+                if (!isNaN(direct))
+                    return direct
+
+                var decimalPos = -1
+                for (var i = text.length - 1; i >= 0; --i) {
+                    var ch = text.charAt(i)
+                    if (ch === "." || ch === ",") {
+                        decimalPos = i
+                        break
+                    }
+                }
+
+                var canonical = ""
+                for (var j = 0; j < text.length; ++j) {
+                    var c = text.charAt(j)
+                    if (c >= "0" && c <= "9") {
+                        canonical += c
+                        continue
+                    }
+                    if ((c === "-" || c === "+") && j === 0) {
+                        canonical += c
+                        continue
+                    }
+                    if (c === "." || c === ",") {
+                        if (j === decimalPos)
+                            canonical += "."
+                        continue
+                    }
+                    return null
+                }
+                if (canonical.length === 0 || canonical === "-" || canonical === "+")
+                    return null
+                var parsed = Number(canonical)
+                return isNaN(parsed) ? null : parsed
+            }
+            function amountForTransactionCommit(rawAmount, transactionId, fallbackAmount) {
+                if (typeof rawAmount === "number")
+                    return rawAmount
+                var parsed = parseAmountString(rawAmount)
+                return parsed !== null ? parsed : Number(fallbackAmount || 0.0)
+            }
             function addStatement(name) { return testCase.statementController.addStatement(name) }
             function updateStatement(id, name) { testCase.statementController.updateStatement(id, name) }
             function deleteStatement(id) { testCase.statementController.deleteStatement(id) }
-            function addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
-                return testCase.transactionController.addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
+            function addTransaction(name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+                return testCase.transactionController.addTransaction(name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
+            }
+            function insertTransactionAfter(afterTransactionId, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+                return testCase.transactionController.insertTransactionAfter(afterTransactionId, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
             }
             function transaction(id) { return testCase.transactionController.transaction(id) }
-            function updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
-                testCase.transactionController.updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
+            function updateTransaction(id, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+                testCase.transactionController.updateTransaction(id, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
             }
             function deleteTransaction(id) { testCase.transactionController.deleteTransaction(id) }
         }

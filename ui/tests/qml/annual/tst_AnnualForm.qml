@@ -147,6 +147,7 @@ TestCase {
 
     property var appContext: QtObject {
         property var session: testCase.session
+        property var sessionState: testCase.session
         property var workspaceFacade: testCase.workspaceFacade
         property var analysisWorkflow: testCase.analysisController
         property bool isDebugBuild: false

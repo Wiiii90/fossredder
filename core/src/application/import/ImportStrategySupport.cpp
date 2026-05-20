@@ -10,10 +10,26 @@
 #include "core/jobs/Scheduler.h"
 #include "../../utils/UniqId.h"
 
+#include <chrono>
 #include <future>
 #include <nlohmann/json.hpp>
+#include <thread>
 
 namespace core::application::importing {
+
+namespace {
+
+constexpr auto kPausePollInterval = std::chrono::milliseconds(50);
+
+void waitWhilePaused(const ImportRequest& req)
+{
+    while (req.pauseFlag && req.pauseFlag->load()) {
+        if (req.cancelFlag && req.cancelFlag->load()) return;
+        std::this_thread::sleep_for(kPausePollInterval);
+    }
+}
+
+}
 
 SchedulerResources::SchedulerResources(const ImportRequest& req)
     : localScheduler(core::constants::importing::kLocalSchedulerWorkers,
@@ -40,6 +56,7 @@ internal::ProgressReporter makeProgressReporter(const ImportRequest& req,
 {
     return [&](double progress, const std::string& phase) {
         if (!req.progressCallback) return;
+        waitWhilePaused(req);
 
         try {
             req.progressCallback(progress, phase);
@@ -98,6 +115,9 @@ std::vector<internal::PageWork> collectPageWork(const ImportRequest& req,
     futures.reserve(totalPages);
 
     for (size_t pageIndex = 0; pageIndex < totalPages; ++pageIndex) {
+        waitWhilePaused(req);
+        if (req.cancelFlag && req.cancelFlag->load()) break;
+
         auto promise = std::make_shared<std::promise<internal::PageWork>>();
         futures.push_back(promise->get_future());
 

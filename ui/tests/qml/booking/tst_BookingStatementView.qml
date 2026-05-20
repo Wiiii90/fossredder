@@ -84,6 +84,70 @@ TestCase {
             return next
         }
 
+        function contractRowById(rows, contractId) {
+            var target = String(contractId || "")
+            var list = rows || []
+            for (var i = 0; i < list.length; ++i) {
+                if (String(list[i].id || "") === target)
+                    return list[i]
+            }
+            return null
+        }
+
+        function transactionDraft(draft, contractRows, changes) {
+            var next = normalizeTransactionDraft(draft || ({ }))
+            var update = changes || ({})
+
+            if (update.contractId !== undefined) {
+                var selectedContractId = String(update.contractId || "")
+                var selectedRow = contractRowById(contractRows, selectedContractId)
+                var selectedActorIds = selectedRow && selectedRow.actorIds ? selectedRow.actorIds : []
+                var selectedPropertyIds = selectedRow && selectedRow.propertyIds ? selectedRow.propertyIds : []
+                next = mapWithKeyValue(next, "contractId", selectedContractId)
+                next = mapWithKeyValue(next, "actorId", selectedActorIds.length > 0 ? String(selectedActorIds[0] || "") : "")
+                next = mapWithKeyValue(next, "propertyIds", selectedPropertyIds ? selectedPropertyIds.slice() : [])
+            }
+
+            if (update.actorId !== undefined) {
+                var selectedActorId = String(update.actorId || "")
+                var currentContractId = String(next.contractId || "")
+                var actorRow = contractRowById(contractRows, currentContractId)
+                var allowedActorIds = actorRow && actorRow.actorIds ? actorRow.actorIds : []
+                var actorSupported = currentContractId.length === 0 || selectedActorId.length === 0
+                if (!actorSupported) {
+                    for (var i = 0; i < allowedActorIds.length; ++i) {
+                        if (String(allowedActorIds[i] || "") === selectedActorId) {
+                            actorSupported = true
+                            break
+                        }
+                    }
+                }
+                next = mapWithKeyValue(next, "actorId", selectedActorId)
+                next = mapWithKeyValue(next, "contractId", actorSupported ? currentContractId : "")
+            }
+
+            if (update.propertyIds !== undefined) {
+                var selectedIds = update.propertyIds ? update.propertyIds.slice() : []
+                var contractId = String(next.contractId || "")
+                var propertyRow = contractRowById(contractRows, contractId)
+                var allowedPropertyIds = propertyRow && propertyRow.propertyIds ? propertyRow.propertyIds : []
+                var propertiesSupported = contractId.length === 0
+                if (!propertiesSupported) {
+                    propertiesSupported = true
+                    for (var p = 0; p < selectedIds.length; ++p) {
+                        if (allowedPropertyIds.indexOf(String(selectedIds[p] || "")) === -1) {
+                            propertiesSupported = false
+                            break
+                        }
+                    }
+                }
+                next = mapWithKeyValue(next, "propertyIds", selectedIds)
+                next = mapWithKeyValue(next, "contractId", propertiesSupported ? contractId : "")
+            }
+
+            return next
+        }
+
         function addUniqueTrimmed(values, value) {
             var out = values ? values.slice() : []
             var next = String(value || "").trim()
@@ -277,6 +341,61 @@ TestCase {
             var idx = Math.max(0, Math.min(fallbackIndex, kept.length - 1))
             return String(kept[idx][key] || "")
         }
+
+        function parseAmountString(value) {
+            var text = String(value || "").trim()
+            if (text.length === 0)
+                return null
+            text = text.replace(/\u00A0/g, "").replace(/\u202F/g, "").replace(/\s+/g, "")
+            if (text.length === 0)
+                return null
+            var direct = Number(text)
+            if (!isNaN(direct))
+                return direct
+
+            var decimalPos = -1
+            for (var i = text.length - 1; i >= 0; --i) {
+                var ch = text.charAt(i)
+                if (ch === "." || ch === ",") {
+                    decimalPos = i
+                    break
+                }
+            }
+
+            var canonical = ""
+            for (var j = 0; j < text.length; ++j) {
+                var c = text.charAt(j)
+                if (c >= "0" && c <= "9") {
+                    canonical += c
+                    continue
+                }
+                if ((c === "-" || c === "+") && j === 0) {
+                    canonical += c
+                    continue
+                }
+                if (c === "." || c === ",") {
+                    if (j === decimalPos)
+                        canonical += "."
+                    continue
+                }
+                return null
+            }
+            if (canonical.length === 0 || canonical === "-" || canonical === "+")
+                return null
+            var parsed = Number(canonical)
+            return isNaN(parsed) ? null : parsed
+        }
+
+        function amountForTransactionCommit(rawAmount, transactionId, fallbackAmount) {
+            if (typeof rawAmount === "number")
+                return rawAmount
+            var parsed = parseAmountString(rawAmount)
+            if (parsed !== null)
+                return parsed
+            if (transactionId && testCase.transactionsById[String(transactionId || "")] && testCase.transactionsById[String(transactionId || "")].amount !== undefined)
+                return Number(testCase.transactionsById[String(transactionId || "")].amount)
+            return Number(fallbackAmount || 0.0)
+        }
     }
 
     property var statementController: QtObject {
@@ -346,13 +465,14 @@ TestCase {
             return ids
         }
 
-        function addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+        function addTransaction(name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
             addTransactionCalls += 1
             var id = "tx-added-" + addTransactionCalls
             testCase.transactionsById[id] = {
                 id: id,
                 name: name,
                 bookingDate: bookingDate,
+                valuta: valuta,
                 amount: amount,
                 description: "",
                 statementId: statementId,
@@ -368,16 +488,44 @@ TestCase {
             return id
         }
 
+        function insertTransactionAfter(afterTransactionId, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+            addTransactionCalls += 1
+            var id = "tx-added-" + addTransactionCalls
+            testCase.transactionsById[id] = {
+                id: id,
+                name: name,
+                bookingDate: bookingDate,
+                valuta: valuta,
+                amount: amount,
+                description: "",
+                statementId: statementId,
+                status: status,
+                actorId: actorId,
+                contractId: contractId,
+                allocatable: allocatable,
+                propertyIds: propertyIds || []
+            }
+            var ids = (testCase.statementTransactions[statementId] || []).slice()
+            var at = ids.indexOf(String(afterTransactionId || ""))
+            if (at < 0)
+                ids.push(id)
+            else
+                ids.splice(at + 1, 0, id)
+            testCase.statementTransactions[statementId] = ids
+            return id
+        }
+
         function transaction(id) {
             return testCase.transactionsById[String(id || "")] || ({})
         }
 
-        function updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+        function updateTransaction(id, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
             updateCalls += 1
             lastUpdate = {
                 id: id,
                 name: name,
                 bookingDate: bookingDate,
+                valuta: valuta,
                 amount: amount,
                 statementId: statementId,
                 status: status,
@@ -405,16 +553,73 @@ TestCase {
 
     property var appContext: QtObject {
         property var session: testCase.session
+        property var sessionState: testCase.session
         property var workspaceFacade: QtObject {
+            function parseAmountString(value) {
+                var text = String(value || "").trim()
+                if (text.length === 0)
+                    return null
+                text = text.replace(/\u00A0/g, "").replace(/\u202F/g, "").replace(/\s+/g, "")
+                if (text.length === 0)
+                    return null
+                var direct = Number(text)
+                if (!isNaN(direct))
+                    return direct
+
+                var decimalPos = -1
+                for (var i = text.length - 1; i >= 0; --i) {
+                    var ch = text.charAt(i)
+                    if (ch === "." || ch === ",") {
+                        decimalPos = i
+                        break
+                    }
+                }
+
+                var canonical = ""
+                for (var j = 0; j < text.length; ++j) {
+                    var c = text.charAt(j)
+                    if (c >= "0" && c <= "9") {
+                        canonical += c
+                        continue
+                    }
+                    if ((c === "-" || c === "+") && j === 0) {
+                        canonical += c
+                        continue
+                    }
+                    if (c === "." || c === ",") {
+                        if (j === decimalPos)
+                            canonical += "."
+                        continue
+                    }
+                    return null
+                }
+                if (canonical.length === 0 || canonical === "-" || canonical === "+")
+                    return null
+                var parsed = Number(canonical)
+                return isNaN(parsed) ? null : parsed
+            }
+            function amountForTransactionCommit(rawAmount, transactionId, fallbackAmount) {
+                if (typeof rawAmount === "number")
+                    return rawAmount
+                var parsed = parseAmountString(rawAmount)
+                if (parsed !== null)
+                    return parsed
+                if (transactionId && testCase.transactionsById[String(transactionId || "")] && testCase.transactionsById[String(transactionId || "")].amount !== undefined)
+                    return Number(testCase.transactionsById[String(transactionId || "")].amount)
+                return Number(fallbackAmount || 0.0)
+            }
             function addStatement(name) { return testCase.statementController.addStatement(name) }
             function updateStatement(id, name) { testCase.statementController.updateStatement(id, name) }
             function deleteStatement(id) { testCase.statementController.deleteStatement(id) }
-            function addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
-                return testCase.transactionController.addTransaction(name, bookingDate, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
+            function addTransaction(name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+                return testCase.transactionController.addTransaction(name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
+            }
+            function insertTransactionAfter(afterTransactionId, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+                return testCase.transactionController.insertTransactionAfter(afterTransactionId, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
             }
             function transaction(id) { return testCase.transactionController.transaction(id) }
-            function updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, allocatable, propertyIds) {
-                testCase.transactionController.updateTransaction(id, name, bookingDate, amount, statementId, status, actorId, allocatable, propertyIds)
+            function updateTransaction(id, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds) {
+                testCase.transactionController.updateTransaction(id, name, bookingDate, valuta, amount, statementId, status, actorId, contractId, allocatable, propertyIds)
             }
             function deleteTransaction(id) { testCase.transactionController.deleteTransaction(id) }
         }
@@ -530,6 +735,50 @@ TestCase {
         compare(view.createTransactions.length, 1)
     }
 
+    function test_editModeTransactionAddInsertsAfterCurrentAndCarriesDates() {
+        statementsById["statement-1"] = { id: "statement-1", name: "S1" }
+        transactionsById["tx-1"] = {
+            id: "tx-1",
+            name: "Rent 1",
+            bookingDate: "2026-01-01",
+            valuta: "2026-01-03",
+            amount: 10,
+            description: "",
+            statementId: "statement-1",
+            status: 0,
+            actorId: "",
+            allocatable: false,
+            propertyIds: []
+        }
+        transactionsById["tx-2"] = {
+            id: "tx-2",
+            name: "Rent 2",
+            bookingDate: "2026-01-02",
+            valuta: "2026-01-04",
+            amount: 12,
+            description: "",
+            statementId: "statement-1",
+            status: 0,
+            actorId: "",
+            allocatable: false,
+            propertyIds: []
+        }
+        statementTransactions["statement-1"] = ["tx-1", "tx-2"]
+        session.statements = [{ id: "statement-1", name: "S1" }]
+        session.selectedStatementId = "statement-1"
+        session.selectedStatement = { id: "statement-1", name: "S1" }
+        session.selectedTransactionId = "tx-1"
+
+        var view = createView()
+        findRequired(view, "bookingStatementAddTransactionButton").clicked()
+        wait(0)
+
+        compare(statementTransactions["statement-1"].join(","), "tx-1,tx-added-1,tx-2")
+        compare(session.selectedTransactionId, "tx-added-1")
+        compare(transactionsById["tx-added-1"].bookingDate, "2026-01-01")
+        compare(transactionsById["tx-added-1"].valuta, "2026-01-03")
+    }
+
     function test_editModeUpdateAndDeleteStatement() {
         prepareEditStatement()
         var view = createView()
@@ -544,6 +793,35 @@ TestCase {
         deleteButton.clicked()
         compare(statementController.deleteCalls, 1)
         compare(statementController.lastDeleteId, "statement-1")
+    }
+
+    function test_editModeUpdatePersistsTransactionAmountAndRelations() {
+        prepareEditStatement()
+        session.actors = [{ id: "actor-1", display: "Alice" }, { id: "actor-2", display: "Bob" }]
+        session.properties = [{ id: "property-1", name: "Lot 1" }, { id: "property-2", name: "Lot 2" }]
+        session.contracts = [{
+            id: "contract-2",
+            display: "Lease 2",
+            actorIds: ["actor-2"],
+            propertyIds: ["property-2"]
+        }]
+
+        var view = createView()
+        var tx = session.mapWithKeyValue(view.editTransactionData, "amount", "12,75")
+        tx = session.mapWithKeyValue(tx, "actorId", "actor-2")
+        tx = session.mapWithKeyValue(tx, "contractId", "contract-2")
+        tx = session.mapWithKeyValue(tx, "propertyIds", ["property-2"])
+        view.editTransactionData = tx
+
+        view.updateSelectedEntity()
+
+        compare(transactionController.updateCalls, 1)
+        compare(transactionController.lastUpdate.id, "tx-1")
+        compare(transactionController.lastUpdate.actorId, "actor-2")
+        compare(transactionController.lastUpdate.contractId, "contract-2")
+        compare(transactionController.lastUpdate.propertyIds.length, 1)
+        compare(transactionController.lastUpdate.propertyIds[0], "property-2")
+        compare(transactionController.lastUpdate.amount, 12.75)
     }
 
     function test_transactionFieldsAndSelectorsUpdateEditedTransaction() {
@@ -564,6 +842,156 @@ TestCase {
         compare(view.createTransactions[0].allocatable, true)
     }
 
+    function test_amountFieldKeepsIntermediateTextInsteadOfNormalizingOnEveryKey() {
+        var view = createView()
+        var amountField = findRequired(view, "bookingTransactionAmountField")
+
+        amountField.text = "-"
+        amountField.textEdited()
+
+        compare(view.createTransactions[0].amount, "-")
+        compare(amountField.text, "-")
+
+        amountField.text = "1,"
+        amountField.textEdited()
+
+        compare(view.createTransactions[0].amount, "1,")
+        compare(amountField.text, "1,")
+    }
+
+    function test_contractSelectionAppliesActorAndPropertyFromSelectedContract() {
+        session.actors = [
+            { id: "actor-1", display: "Alice" },
+            { id: "actor-2", display: "Bob" }
+        ]
+        session.properties = [
+            { id: "property-1", name: "Lot 1" },
+            { id: "property-2", name: "Lot 2" }
+        ]
+        session.contracts = [
+            {
+                id: "contract-1",
+                display: "Lease",
+                actorIds: ["actor-1"],
+                propertyIds: ["property-1"]
+            },
+            {
+                id: "contract-2",
+                display: "Lease Plus",
+                actorIds: ["actor-2"],
+                propertyIds: ["property-2"]
+            }
+        ]
+
+        var view = createView()
+        var contractCombo = findRequired(view, "bookingTransactionContractComboBox")
+        contractCombo.activated(2)
+
+        compare(view.createTransactions[0].contractId, "contract-2")
+        compare(view.createTransactions[0].actorId, "actor-2")
+        compare(view.createTransactions[0].propertyIds.length, 1)
+        compare(view.createTransactions[0].propertyIds[0], "property-2")
+    }
+
+    function test_actorSelectionClearsIncompatibleContractAndPersistsUpdate() {
+        prepareEditStatement()
+        session.actors = [
+            { id: "actor-1", display: "Alice" },
+            { id: "actor-2", display: "Bob" }
+        ]
+        session.contracts = [{
+            id: "contract-1",
+            display: "Lease",
+            actorIds: ["actor-1"],
+            propertyIds: []
+        }]
+        transactionsById["tx-1"].contractId = "contract-1"
+        transactionsById["tx-1"].actorId = "actor-1"
+
+        var view = createView()
+        var actorCombo = findRequired(view, "bookingTransactionActorComboBox")
+        actorCombo.activated(2)
+
+        compare(view.editTransactionData.actorId, "actor-2")
+        compare(view.editTransactionData.contractId, "")
+
+        view.updateSelectedEntity()
+        compare(transactionController.lastUpdate.actorId, "actor-2")
+        compare(transactionController.lastUpdate.contractId, "")
+    }
+
+    function test_propertySelectionClearsIncompatibleContractAndPersistsUpdate() {
+        prepareEditStatement()
+        session.properties = [
+            { id: "property-1", name: "Lot 1" },
+            { id: "property-2", name: "Lot 2" }
+        ]
+        session.contracts = [{
+            id: "contract-1",
+            display: "Lease",
+            actorIds: [],
+            propertyIds: ["property-1"]
+        }]
+        transactionsById["tx-1"].contractId = "contract-1"
+        transactionsById["tx-1"].propertyIds = ["property-1"]
+
+        var view = createView()
+        view.editTransactionData = session.mapWithKeyValue(view.editTransactionData, "propertyIds", ["property-2"])
+
+        compare(view.editTransactionData.contractId, "contract-1")
+        compare(view.editTransactionData.propertyIds.length, 1)
+        compare(view.editTransactionData.propertyIds[0], "property-2")
+
+        // Apply transaction-view policy path to mimic checkbox toggle semantics.
+        var txView = findRequired(view, "bookingTransactionViewRoot")
+        txView.applyPropertySelection(["property-2"])
+
+        compare(view.editTransactionData.contractId, "")
+
+        view.updateSelectedEntity()
+        compare(transactionController.lastUpdate.contractId, "")
+        compare(transactionController.lastUpdate.propertyIds.length, 1)
+        compare(transactionController.lastUpdate.propertyIds[0], "property-2")
+    }
+
+    function test_editModeFieldEditsPersistViaUpdateButton() {
+        prepareEditStatement()
+        var view = createView()
+        var nameField = findRequired(view, "bookingTransactionNameField")
+        var bookingDateField = findRequired(view, "bookingTransactionBookingDateField")
+        var valutaField = findRequired(view, "bookingTransactionValutaField")
+        var amountField = findRequired(view, "bookingTransactionAmountField")
+
+        nameField.text = "Rent Updated"
+        nameField.textEdited()
+        bookingDateField.text = "2026-02-01"
+        bookingDateField.textEdited()
+        valutaField.text = "2026-02-03"
+        valutaField.textEdited()
+        amountField.text = "99,50"
+        amountField.textEdited()
+
+        findRequired(view, "bookingUpdateButton").clicked()
+
+        compare(transactionController.lastUpdate.name, "Rent Updated")
+        compare(transactionController.lastUpdate.bookingDate, "2026-02-01")
+        compare(transactionController.lastUpdate.valuta, "2026-02-03")
+        compare(transactionController.lastUpdate.amount, 99.5)
+    }
+
+    function test_editModeAmountUpdateAcceptsDotDecimalAndInteger() {
+        prepareEditStatement()
+        var view = createView()
+
+        view.editTransactionData = session.mapWithKeyValue(view.editTransactionData, "amount", "99.5")
+        view.updateSelectedEntity()
+        compare(transactionController.lastUpdate.amount, 99.5)
+
+        view.editTransactionData = session.mapWithKeyValue(view.editTransactionData, "amount", "100")
+        view.updateSelectedEntity()
+        compare(transactionController.lastUpdate.amount, 100)
+    }
+
     function test_statementNavigationChangesSelection() {
         session.statements = [
             { id: "statement-1", name: "S1" },
@@ -579,7 +1007,32 @@ TestCase {
         nextStatement.clicked()
         compare(session.selectedStatementId, "statement-2")
 
+        nextStatement.clicked()
+        compare(session.selectedStatementId, "")
+
+        nextStatement.clicked()
+        compare(session.selectedStatementId, "statement-1")
+
         prevStatement.clicked()
+        compare(session.selectedStatementId, "")
+
+        prevStatement.clicked()
+        compare(session.selectedStatementId, "statement-2")
+    }
+
+    function test_statementNavigationStaysEnabledWithSingleRow() {
+        session.statements = [
+            { id: "statement-1", name: "S1" }
+        ]
+
+        var view = createView()
+        var nextStatement = findRequired(view, "bookingNextStatementButton")
+        var prevStatement = findRequired(view, "bookingPreviousStatementButton")
+
+        compare(nextStatement.enabled, true)
+        compare(prevStatement.enabled, true)
+
+        nextStatement.clicked()
         compare(session.selectedStatementId, "statement-1")
     }
 
@@ -641,5 +1094,37 @@ TestCase {
         var infoLabel = findRequired(view, "bookingTransactionInfoLabel")
 
         compare(infoLabel.text, "Transaction 2 / 2")
+    }
+
+    function test_statementNavigationRemembersLastTransactionPerStatement() {
+        statementsById["statement-1"] = { id: "statement-1", name: "S1" }
+        statementsById["statement-2"] = { id: "statement-2", name: "S2" }
+        transactionsById["tx-1a"] = { id: "tx-1a", name: "S1 Tx 1", statementId: "statement-1" }
+        transactionsById["tx-1b"] = { id: "tx-1b", name: "S1 Tx 2", statementId: "statement-1" }
+        transactionsById["tx-2a"] = { id: "tx-2a", name: "S2 Tx 1", statementId: "statement-2" }
+        transactionsById["tx-2b"] = { id: "tx-2b", name: "S2 Tx 2", statementId: "statement-2" }
+        statementTransactions["statement-1"] = ["tx-1a", "tx-1b"]
+        statementTransactions["statement-2"] = ["tx-2a", "tx-2b"]
+        session.statements = [
+            { id: "statement-1", name: "S1" },
+            { id: "statement-2", name: "S2" }
+        ]
+        session.selectedStatementId = "statement-1"
+        session.selectedStatement = { id: "statement-1", name: "S1" }
+        session.selectedTransactionId = "tx-1b"
+
+        var view = createView()
+        findRequired(view, "bookingNextStatementButton").clicked()
+        compare(session.selectedStatementId, "statement-2")
+        compare(session.selectedTransactionId, "tx-2a")
+
+        session.selectedTransactionId = "tx-2b"
+        findRequired(view, "bookingPreviousStatementButton").clicked()
+        compare(session.selectedStatementId, "statement-1")
+        compare(session.selectedTransactionId, "tx-1b")
+
+        findRequired(view, "bookingNextStatementButton").clicked()
+        compare(session.selectedStatementId, "statement-2")
+        compare(session.selectedTransactionId, "tx-2b")
     }
 }
