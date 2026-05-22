@@ -36,6 +36,7 @@ struct PropertyInput {
 struct ContractInput {
     std::string name;
     std::string type;
+    std::string allocatableMode = "mixed";
     std::vector<std::string> actorIds;
     std::vector<std::string> propertyIds;
     std::vector<core::domain::Alias> aliases;

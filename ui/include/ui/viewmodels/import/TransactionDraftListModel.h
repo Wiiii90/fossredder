@@ -20,7 +20,8 @@ class TransactionDraftList : public models::RowListModel<TransactionDraft> {
     using Base = models::RowListModel<TransactionDraft>;
 public:
     enum Roles {
-        NameRole = Qt::UserRole + 1,
+        IdRole = Qt::UserRole + 1,
+        NameRole,
         BookingDateRole,
         ValutaRole,
         AmountRole,

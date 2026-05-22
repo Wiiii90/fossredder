@@ -9,6 +9,7 @@
 #include <QHash>
 #include <QString>
 #include <QStringList>
+#include <QVariantMap>
 #include <exception>
 #include <functional>
 #include <memory>
@@ -152,6 +153,11 @@ public:
                                             const QVariantMap &row);
   Q_INVOKABLE QVariantMap createActorChoiceForCurrentDraft(
       StatementDraft *draft, const QString &actorName);
+  Q_INVOKABLE QVariantMap createPropertyChoiceForCurrentDraft(
+      StatementDraft *draft, const QString &propertyName);
+  Q_INVOKABLE QVariantMap createOrSelectContractChoiceForCurrentDraft(
+      StatementDraft *draft, const QString &contractName,
+      const QString &contractType, const QString &allocatableMode);
   Q_INVOKABLE void selectCurrentContractChoice(StatementDraft *draft,
                                                const QVariantMap &row);
   Q_INVOKABLE void setCurrentPropertySelected(StatementDraft *draft,
@@ -241,6 +247,7 @@ private:
   QHash<QString, int> draftTransactionIndexByDraftId_;
   QString activeRunLogId_;
   QString activeRunDraftId_;
+  mutable QHash<QString, QVariantMap> suggestionSnapshotByTransactionKey_;
   bool activeRunTerminalHandled_ = false;
   bool hasPendingTerminalEvent_ = false;
   core::jobs::JobState pendingTerminalState_ = core::jobs::JobState::Pending;

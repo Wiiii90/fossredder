@@ -6,6 +6,7 @@
 #include "core/domain/entities/Contract.h"
 
 #include <algorithm>
+#include <cctype>
 #include <utility>
 
 namespace core::domain {
@@ -26,6 +27,18 @@ void Contract::setType(ContractType value) {
 
 void Contract::setType(std::string value) {
     setType(ContractType(std::move(value)));
+}
+
+void Contract::setAllocatableMode(std::string value) {
+    auto normalized = policies::alias::trimCopy(std::move(value));
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    if (normalized == "all")
+        normalized = "mixed";
+    if (normalized != "mixed" && normalized != "allocatable" && normalized != "non-allocatable")
+        normalized = "mixed";
+    allocatableMode_ = std::move(normalized);
 }
 
 void Contract::setActorIds(std::vector<std::string> value) {
@@ -171,6 +184,7 @@ bool Contract::isStandalone() const noexcept {
 const std::string& Contract::id() const noexcept { return id_; }
 const std::string& Contract::name() const noexcept { return name_; }
 const std::string& Contract::type() const noexcept { return type_; }
+const std::string& Contract::allocatableMode() const noexcept { return allocatableMode_; }
 const std::vector<std::string>& Contract::actorIds() const noexcept { return actorIds_; }
 const std::vector<std::string>& Contract::propertyIds() const noexcept { return propertyIds_; }
 const std::vector<Alias>& Contract::aliases() const noexcept { return aliases_; }

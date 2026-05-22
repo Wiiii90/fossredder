@@ -88,6 +88,7 @@ struct DraftChoiceRow {
     std::string name;
     std::string display;
     std::string type;
+    std::string allocatableMode;
     std::vector<std::string> aliases;
     std::vector<std::string> actorIds;
     std::vector<std::string> propertyIds;
@@ -105,7 +106,14 @@ struct DraftDerivedState {
     std::string actorDisplayText;
     std::string contractSeedText;
     std::string contractDisplayText;
+    std::string actorSuggestionSummary;
     std::string propertySuggestionSummary;
+    std::string contractSuggestionSummary;
+    std::string allocatableSuggestionSummary;
+    double actorSuggestionConfidence = 0.0;
+    double propertySuggestionConfidence = 0.0;
+    double contractSuggestionConfidence = 0.0;
+    double allocatableSuggestionConfidence = 0.0;
     bool effectiveAllocatable = false;
     int actorCurrentIndex = -1;
     int contractCurrentIndex = -1;

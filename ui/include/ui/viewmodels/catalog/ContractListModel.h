@@ -23,6 +23,7 @@ public:
         IdRole = Qt::UserRole + 1,
         NameRole,
         TypeRole,
+        AllocatableModeRole,
         ActorIdsRole,
         PropertyIdsRole
     };

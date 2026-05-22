@@ -548,6 +548,7 @@ QVariantList buildContractRows(const SessionState& session)
         row.insert(ui::payload::keys::common::kId, QString::fromStdString(contract->id()));
         row.insert(ui::payload::keys::common::kName, QString::fromStdString(contract->name()));
         row.insert(ui::payload::keys::common::kType, QString::fromStdString(contract->type()));
+        row.insert(QStringLiteral("allocatableMode"), QString::fromStdString(contract->allocatableMode()));
         row.insert(ui::payload::keys::common::kDisplay, QString::fromStdString(contract->name()));
         std::vector<std::string> aliases;
         aliases.reserve(contract->aliases().size());
@@ -639,4 +640,3 @@ QVariantList buildStatementTransactionRows(const SessionState& session, const QS
 }
 
 } // namespace ui
-

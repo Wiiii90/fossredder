@@ -32,8 +32,10 @@ Item {
     property string aliasInputText: ""
     property int aliasIndex: aliases.length > 0 ? 0 : -1
     property string contractType: ""
+    property string contractAllocatableMode: "mixed"
     property string savedName: ""
     property string savedContractType: ""
+    property string savedContractAllocatableMode: "mixed"
     property var savedSelectedActorIds: []
     property var savedSelectedPropertyIds: []
     property var savedAliases: []
@@ -42,6 +44,7 @@ Item {
         const next = state || ({})
         nameField.text = next.name || ""
         root.contractType = next.type || ""
+        root.contractAllocatableMode = next.allocatableMode || "mixed"
         root.selectedActorIds = next.selectedActorIds || []
         root.selectedPropertyIds = next.selectedPropertyIds || []
         root.aliases = next.aliases || []
@@ -58,6 +61,7 @@ Item {
     function captureSavedState() {
         root.savedName = String(nameField.text || "")
         root.savedContractType = String(root.contractType || "")
+        root.savedContractAllocatableMode = String(root.contractAllocatableMode || "mixed")
         root.savedSelectedActorIds = root.selectedActorIds ? root.selectedActorIds.slice() : []
         root.savedSelectedPropertyIds = root.selectedPropertyIds ? root.selectedPropertyIds.slice() : []
         root.savedAliases = root.aliases ? root.aliases.slice() : []
@@ -69,6 +73,7 @@ Item {
             return root.canSubmit()
         return root.savedName !== String(nameField.text || "")
                 || root.savedContractType !== String(root.contractType || "")
+                || root.savedContractAllocatableMode !== String(root.contractAllocatableMode || "mixed")
                 || root.normalizedList(root.savedSelectedActorIds) !== root.normalizedList(root.selectedActorIds)
                 || root.normalizedList(root.savedSelectedPropertyIds) !== root.normalizedList(root.selectedPropertyIds)
                 || root.normalizedList(root.savedAliases) !== root.normalizedList(root.aliases)
@@ -180,6 +185,18 @@ Item {
                                                   current && current.propertyIds ? root.toStringList(current.propertyIds) : [],
                                                   current && current.aliases ? root.toStringList(current.aliases) : [])
             : ({})
+        const rows = root.contractRows()
+        const selectedId = current && current.id ? String(current.id) : ""
+        let allocatableMode = "mixed"
+        for (let i = 0; i < rows.length; ++i) {
+            const row = rows[i]
+            if (row && String(row.id || "") === selectedId) {
+                const mode = String(row.allocatableMode || "mixed")
+                allocatableMode = mode.length > 0 ? mode : "mixed"
+                break
+            }
+        }
+        state.allocatableMode = allocatableMode
         root.applyFormState(state)
         root.captureSavedState()
     }
@@ -203,7 +220,8 @@ Item {
                                                                 root.contractType,
                                                                 actorIds,
                                                                 propertyIds,
-                                                                aliasValues)
+                                                                aliasValues,
+                                                                root.contractAllocatableMode)
         if (root.session && contractId && contractId.length > 0)
             root.session.selectedContractId = contractId
         root.captureSavedState()
@@ -402,6 +420,13 @@ Item {
                     theme: root.theme
                     typeValue: root.contractType
                     onTypeEdited: (text) => root.contractType = text
+                }
+
+                Views.ContractAllocatablePanel {
+                    Layout.fillWidth: true
+                    theme: root.theme
+                    mode: root.contractAllocatableMode
+                    onModeSelected: (mode) => root.contractAllocatableMode = mode
                 }
 
                 Views.ContractActorsPanel {

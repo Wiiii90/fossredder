@@ -77,6 +77,7 @@ inline QVariantMap toPayload(const core::domain::Contract& contract)
     payload[ui::payload::keys::common::kId] = QString::fromStdString(contract.id());
     payload[ui::payload::keys::common::kName] = QString::fromStdString(contract.name());
     payload[ui::payload::keys::common::kType] = QString::fromStdString(contract.type());
+    payload[QStringLiteral("allocatableMode")] = QString::fromStdString(contract.allocatableMode());
     payload[QStringLiteral("createdAt")] = QString::fromStdString(contract.createdAt());
     payload[QStringLiteral("updatedAt")] = QString::fromStdString(contract.updatedAt());
     payload[ui::payload::keys::contract::kActorIds] = ui::payload::mapper::toVariantStringList(contract.actorIds());

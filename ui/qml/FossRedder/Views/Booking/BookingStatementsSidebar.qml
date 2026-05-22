@@ -16,6 +16,9 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
+    readonly property real rowRadius: (root.theme && root.theme.viewSidebarRowRadius !== undefined && root.theme.viewSidebarRowRadius !== null) ? Number(root.theme.viewSidebarRowRadius) : Number(root.theme.radius || 3)
+    readonly property real rowHeight: (root.theme && root.theme.viewSidebarRowHeight !== undefined && root.theme.viewSidebarRowHeight !== null) ? Number(root.theme.viewSidebarRowHeight) : 36
+    readonly property color panelSurfaceAlt: (root.theme && root.theme.surfaceAlt !== undefined && root.theme.surfaceAlt !== null) ? root.theme.surfaceAlt : "#f5f5f5"
 
     function statementRows() {
         const _workspaceRevision = root.workspaceRevision
@@ -95,14 +98,15 @@ Item {
 
                 delegate: Rectangle {
                     id: statementEntry
+                    objectName: "bookingStatementRow_" + statementEntry.statementId
                     required property var modelData
                     width: statementColumn.width
                     property bool collapsed: false
                     property string statementId: (statementEntry.modelData.id !== undefined && statementEntry.modelData.id !== null) ? statementEntry.modelData.id : ""
                     property string statementName: (statementEntry.modelData.name !== undefined && statementEntry.modelData.name !== null) ? statementEntry.modelData.name : ""
                     readonly property bool isSelectedStatement: root.session && statementEntry.statementId === root.session.selectedStatementId
-                    color: root.theme.surfaceAlt
-                    radius: root.theme.viewSidebarRowRadius
+                    color: root.panelSurfaceAlt
+                    radius: root.rowRadius
                     border.width: root.theme.borderWidthThin
                     border.color: statementEntry.isSelectedStatement ? root.theme.selectionHighlight : root.theme.borderSoft
                     implicitHeight: statementContent.implicitHeight + (root.theme.spacingSmall * 2)
@@ -123,7 +127,7 @@ Item {
 
                         Item {
                             width: parent.width
-                            height: Math.max(root.theme.viewSidebarRowHeight - (root.theme.spacingSmall * 2),
+                            height: Math.max(root.rowHeight - (root.theme.spacingSmall * 2),
                                              statementNameText.implicitHeight + (root.theme.margins * 2),
                                              collapseButton.implicitHeight + (root.theme.margins * 2))
 
@@ -132,12 +136,13 @@ Item {
                                 anchors.fill: parent
                                 acceptedButtons: Qt.LeftButton
                                 preventStealing: true
-                                onClicked: {
+                                function triggerClick() {
                                     if (!root.session) return
                                     root.session.selectedStatementId = statementEntry.statementId
                                     root.session.selectedTransactionId = ""
                                     Qt.callLater(root.scrollSelectionToTop)
                                 }
+                                onClicked: triggerClick()
                             }
 
                             Text {
@@ -193,12 +198,13 @@ Item {
                                         anchors.fill: parent
                                         acceptedButtons: Qt.LeftButton
                                         preventStealing: true
-                                        onClicked: {
+                                        function triggerClick() {
                                             if (!root.session) return
                                             root.session.selectedStatementId = statementEntry.statementId
                                             root.session.selectedTransactionId = transactionEntry.modelData.id
                                             Qt.callLater(root.scrollSelectionToTop)
                                         }
+                                        onClicked: triggerClick()
                                     }
 
                                     RowLayout {

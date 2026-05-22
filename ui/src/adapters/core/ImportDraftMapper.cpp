@@ -87,6 +87,7 @@ std::vector<TransactionDraft> mapTransactionsToDrafts(const core::domain::catalo
         const auto& tx = transactions[i];
         const auto draftSignals = core::application::importing::draft::buildDraftTextSignals(state, tx);
         TransactionDraft draft;
+        draft.id = QString::fromStdString(tx.id);
         draft.name = QStringLiteral("Transaction %1").arg(static_cast<int>(i + 1));
         draft.bookingDate = QString::fromStdString(tx.bookingDate);
         draft.valuta = QString::fromStdString(tx.valuta);

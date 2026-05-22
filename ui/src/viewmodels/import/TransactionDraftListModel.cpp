@@ -25,6 +25,7 @@ QVariant TransactionDraftList::data(const QModelIndex& index, int role) const
     if (!t) return {};
 
     switch (role) {
+    case IdRole: return t->id;
     case NameRole: return t->name;
     case BookingDateRole: return t->bookingDate;
     case ValutaRole: return t->valuta;
@@ -51,6 +52,7 @@ QVariant TransactionDraftList::data(const QModelIndex& index, int role) const
 QHash<int, QByteArray> TransactionDraftList::roleNames() const
 {
     QHash<int, QByteArray> roles;
+    roles[IdRole] = payload::keys::common::kId.toUtf8();
     roles[NameRole] = payload::keys::common::kName.toUtf8();
     roles[BookingDateRole] = payload::keys::transaction::kBookingDate.toUtf8();
     roles[ValutaRole] = payload::keys::transaction::kValuta.toUtf8();
@@ -83,6 +85,7 @@ QVariantMap TransactionDraftList::get(int index) const
     QVariantMap m;
     const auto* t = rowPtr(index);
     if (!t) return m;
+    m[payload::keys::common::kId] = t->id;
     m[payload::keys::common::kName] = t->name;
     m[payload::keys::transaction::kBookingDate] = t->bookingDate;
     m[payload::keys::transaction::kValuta] = t->valuta;

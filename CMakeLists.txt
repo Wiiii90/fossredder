@@ -19,6 +19,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+if(MSVC)
+    # MSVC needs /FS when multiple generated sources can write the same PDB in parallel.
+    add_compile_options(/FS)
+endif()
 
 # Generate Qt Creator/QML Language Server metadata for QML editing.
 set(QT_QML_GENERATE_QMLLS_INI ON)

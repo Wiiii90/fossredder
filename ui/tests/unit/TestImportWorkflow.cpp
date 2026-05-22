@@ -496,6 +496,27 @@ TEST(ImportWorkflowTest, FinalizedRunNoteUsesExplicitDraftContextOverActiveDraft
     EXPECT_EQ(workflow.runs()->at(1).statementId, QStringLiteral("statement-2"));
 }
 
+TEST(ImportWorkflowTest, PropertySelectionClearsSelectedContract)
+{
+    auto reporter = std::make_shared<NoopErrorReporter>();
+    ImportWorkflow workflow(
+        []() { return std::shared_ptr<core::jobs::JobSystem>{}; },
+        reporter);
+
+    StatementDraft draft;
+    std::vector<TransactionDraft> rows(1);
+    rows[0].contractId = QStringLiteral("contract-1");
+    rows[0].contractSelected = true;
+    draft.setDrafts(std::move(rows));
+    draft.setCurrentIndex(0);
+
+    workflow.setCurrentPropertySelected(&draft, QStringLiteral("property-1"), true);
+
+    const auto current = draft.current();
+    EXPECT_EQ(current.value(QStringLiteral("contractId")).toString(), QString());
+    EXPECT_FALSE(current.value(QStringLiteral("contractSelected")).toBool());
+}
+
 TEST(StatementDraftViewModelTest, TransactionNavigationWrapsAtBothEdges)
 {
     StatementDraft draft;

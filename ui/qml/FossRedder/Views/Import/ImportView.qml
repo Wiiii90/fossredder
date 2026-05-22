@@ -18,6 +18,7 @@ Item {
     readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
     readonly property var actions: root.appContext ? root.appContext.actions : null
     readonly property var status: root.appContext ? root.appContext.status : null
+    readonly property var session: (root.appContext && root.appContext.session) ? root.appContext.session : null
 
     function ensureDefaultImportSelection() {
         if (!root.hasImportWorkflow || !root.settingsViewModel || root.importWorkflow.isRunning)
@@ -88,6 +89,7 @@ Item {
 
     Connections {
         target: root.session
+        ignoreUnknownSignals: true
         function onDataRevisionChanged() {
             root.ensureDefaultImportSelection()
             root.updateContentIndex()

@@ -183,6 +183,9 @@ binding the suite to QML rendering.
 | IMP-W-007 | Statement draft transaction navigation wraps | Unit | Statement draft view-model with multiple transactions | Navigate next from the last transaction and previous from the first transaction | The active transaction index wraps to the opposite edge |
 | IMP-W-008 | Reopened draft restores remembered transaction | Unit | Persisted draft is opened after selecting a non-first transaction | Clear and reopen the same draft | The draft opens with the previously selected transaction index |
 | IMP-W-009 | Persisted draft positions follow current transaction order | Unit | Statement draft contains manually reordered or inserted transactions with stale position fields | Persist the draft snapshot | Transaction draft snapshot positions are rewritten from the current list order |
+| IMP-W-010 | Actor quick-create selection helper updates current transaction state | Unit | Import workflow with a draft and actor row provider | Create/select actor for current draft via workflow helper | Current transaction actor id/text/selection flags update deterministically and draft refresh is requested |
+| IMP-W-011 | Contract selection helper clears incompatible actor and property overrides | Unit | Import workflow with selected contract and existing manual actor/property selection | Select a contract row for current transaction | Contract id is set and dependent actor/property fields are normalized for consistency |
+| IMP-W-012 | Property or actor manual selection clears incompatible contract | Unit | Import workflow with current contract selected | Select actor or property that is incompatible with selected contract | Contract selection clears to no-contract and dependent derived fields re-evaluate deterministically |
 
 ## 5. Import Interaction
 

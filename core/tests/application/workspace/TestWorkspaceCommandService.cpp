@@ -96,4 +96,59 @@ TEST(WorkspaceCommandServiceTest, InsertsTransactionAfterRequestedStatementTrans
     EXPECT_EQ((*match)->valuta(), "2026-01-06");
 }
 
+TEST(WorkspaceCommandServiceTest, TransactionAllocatableChangeForcesContractModeToMixed) {
+    auto storage = std::make_unique<core::tests::application::workspace::FakeStorageManager>();
+    auto* storagePtr = storage.get();
+    WorkspaceSession session(std::move(storage));
+    session.newFile("P:/workspace.db");
+
+    WorkspaceCommandService service(session);
+
+    core::ports::workspace::ActorCommand actor;
+    actor.name = "Actor A";
+    const auto actorId = service.addActor(actor);
+    ASSERT_FALSE(actorId.empty());
+
+    core::ports::workspace::PropertyCommand property;
+    property.name = "Property A";
+    const auto propertyId = service.addProperty(property);
+    ASSERT_FALSE(propertyId.empty());
+
+    core::ports::workspace::ContractCommand contract;
+    contract.name = "Contract A";
+    contract.type = "strom";
+    contract.allocatableMode = "allocatable";
+    contract.actorIds = {actorId};
+    contract.propertyIds = {propertyId};
+    const auto contractId = service.addContract(contract);
+    ASSERT_FALSE(contractId.empty());
+
+    core::ports::workspace::StatementCommand statement;
+    statement.name = "Statement";
+    const auto statementId = service.addStatement(statement);
+    ASSERT_FALSE(statementId.empty());
+
+    core::ports::workspace::TransactionCommand tx;
+    tx.name = "Tx";
+    tx.bookingDate = "2026-01-01";
+    tx.valuta = "2026-01-02";
+    tx.amount = 10.0;
+    tx.statementId = statementId;
+    tx.contractId = contractId;
+    tx.allocatable = true;
+    const auto txId = service.addTransaction(tx);
+    ASSERT_FALSE(txId.empty());
+
+    tx.id = txId;
+    tx.allocatable = false;
+    service.updateTransaction(tx);
+
+    ASSERT_FALSE(storagePtr->savedState_.catalog.contracts().empty());
+    const auto contractIt = std::find_if(storagePtr->savedState_.catalog.contracts().begin(),
+                                         storagePtr->savedState_.catalog.contracts().end(),
+                                         [&](const auto& c) { return c && c->id() == contractId; });
+    ASSERT_NE(contractIt, storagePtr->savedState_.catalog.contracts().end());
+    EXPECT_EQ((*contractIt)->allocatableMode(), "mixed");
+}
+
 } // namespace core::application

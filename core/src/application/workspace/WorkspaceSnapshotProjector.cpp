@@ -91,6 +91,7 @@ core::ports::workspace::WorkspaceSnapshot WorkspaceSnapshotProjector::project(
         row.id = item->id();
         row.name = item->name();
         row.type = item->type();
+        row.allocatableMode = item->allocatableMode();
         row.actorIds = item->actorIds();
         row.propertyIds = item->propertyIds();
         row.createdAt = item->createdAt();

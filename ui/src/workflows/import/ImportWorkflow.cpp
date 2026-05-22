@@ -13,6 +13,7 @@
 #include <QUuid>
 
 #include <algorithm>
+#include <cctype>
 #include <exception>
 #include <map>
 #include <stdexcept>
@@ -52,6 +53,46 @@ QString currentTimestamp() {
 
 QString generateLogId() {
   return QUuid::createUuid().toString(QUuid::WithoutBraces);
+}
+
+QString normalizedText(const QString &value) {
+  return value.trimmed().simplified().toLower();
+}
+
+QString contractBaseName() {
+  return QStringLiteral("Contract");
+}
+
+int trailingContractIndex(const QString &value) {
+  const QString simplified = value.trimmed().simplified();
+  const QString prefix = contractBaseName() + QStringLiteral(" ");
+  if (!simplified.startsWith(prefix, Qt::CaseInsensitive))
+    return -1;
+  bool ok = false;
+  const int idx = simplified.mid(prefix.size()).toInt(&ok);
+  return ok ? idx : -1;
+}
+
+QString nextGeneratedContractName(
+    const core::ports::workspace::WorkspaceSnapshot &snapshot) {
+  int maxIndex = 0;
+  for (const auto &contract : snapshot.contracts) {
+    const int idx = trailingContractIndex(QString::fromStdString(contract.name));
+    if (idx > maxIndex)
+      maxIndex = idx;
+  }
+  return QStringLiteral("%1 %2").arg(contractBaseName()).arg(maxIndex + 1);
+}
+
+bool equalsStringSet(const std::vector<std::string> &lhs,
+                     const std::vector<std::string> &rhs) {
+  if (lhs.size() != rhs.size())
+    return false;
+  std::vector<std::string> l(lhs.begin(), lhs.end());
+  std::vector<std::string> r(rhs.begin(), rhs.end());
+  std::sort(l.begin(), l.end());
+  std::sort(r.begin(), r.end());
+  return l == r;
 }
 
 std::optional<double> parseManualAmountInput(const QString &text) {
@@ -241,6 +282,7 @@ core::domain::catalog::WorkspaceCatalog toCatalog(
     entity->setId(src.id);
     entity->rename(src.name);
     entity->setType(src.type);
+    entity->setAllocatableMode(src.allocatableMode);
     entity->setActorIds(src.actorIds);
     entity->setPropertyIds(src.propertyIds);
     std::vector<core::domain::Alias> aliases;
@@ -451,66 +493,27 @@ ImportWorkflow::buildFinalizationInput(ui::StatementDraft *draft) const {
     }
     transaction.status = static_cast<core::domain::Transaction::Status>(draftTransaction.status);
 
-    QString actorId = draftTransaction.actorId;
-    if (actorId.isEmpty() &&
-        (!draftTransaction.actorText.trimmed().isEmpty() || draftTransaction.actorSelected)) {
-      actorId = QString::fromStdString(matcher->resolveActorId(
-          appState, ui::strings::toStdString(draftTransaction.actorText)));
-      if (actorId.isEmpty()) {
-        const QString actorName = draftTransaction.actorText.trimmed();
-        if (!actorName.isEmpty()) {
-          core::ports::workspace::ActorCommand command;
-          command.name = ui::strings::toStdString(actorName);
-          const auto alias = makeAlias(actorName);
-          command.aliases.push_back({alias.value(), alias.kind(), alias.source(),
-                                     alias.hitCount(), alias.lastUsedAt(),
-                                     alias.createdAt(), alias.updatedAt()});
-          actorId = QString::fromStdString(
-              this->workspaceWriter_->addActor(command));
-        }
-      }
-    }
+    const QString actorId = draftTransaction.actorId;
 
-    QString contractId = draftTransaction.contractId;
-    if (contractId.isEmpty() && draftTransaction.contractSelected) {
-      const QString contractType = draftTransaction.type.trimmed();
-      if (!contractType.isEmpty()) {
-        std::vector<std::string> actorIds;
-        if (!actorId.isEmpty()) {
-          actorIds.push_back(ui::strings::toStdString(actorId));
-        }
-        std::vector<std::string> propertyIds =
-            ui::strings::toStdList(draftTransaction.propertyIds);
-        std::vector<core::domain::Alias> aliases;
-        for (const auto &value :
-             matcher->referenceAliasesFromMetadata(
-                 ui::strings::toStdString(draftTransaction.metadata))) {
-          aliases.push_back(core::domain::Alias{value, {}, value, {}, {}});
-        }
-        core::ports::workspace::ContractCommand command;
-        command.name = {};
-        command.type = ui::strings::toStdString(contractType);
-        command.actorIds = std::move(actorIds);
-        command.propertyIds = std::move(propertyIds);
-        for (const auto &alias : aliases) {
-          command.aliases.push_back({alias.value(), alias.kind(),
-                                     alias.source(), alias.hitCount(),
-                                     alias.lastUsedAt(), alias.createdAt(),
-                                     alias.updatedAt()});
-        }
-        contractId = QString::fromStdString(
-            this->workspaceWriter_->addContract(command));
-      }
-    }
+    const QString contractId = draftTransaction.contractId;
 
     transaction.actorId = ui::strings::toStdString(actorId);
     transaction.contractId = ui::strings::toStdString(contractId);
-    transaction.allocatable =
-        draftTransaction.allocatableSelected
-            ? draftTransaction.allocatable
-             : (matcher->contractIsFullyAllocatable(
-                    appState, ui::strings::toStdString(contractId)) ||
-                draftTransaction.allocatable);
+    bool inferredAllocatable =
+        matcher->contractIsFullyAllocatable(appState, ui::strings::toStdString(contractId));
+    if (!contractId.isEmpty()) {
+      const auto contractIdStd = ui::strings::toStdString(contractId);
+      for (const auto& contract : appState.contracts()) {
+        if (!contract || contract->id() != contractIdStd) continue;
+        const auto mode = QString::fromStdString(contract->allocatableMode()).trimmed().toLower();
+        if (mode == QStringLiteral("allocatable")) inferredAllocatable = true;
+        else if (mode == QStringLiteral("non-allocatable")) inferredAllocatable = false;
+        break;
+      }
+    }
+    transaction.allocatable = draftTransaction.allocatableSelected
+                                  ? draftTransaction.allocatable
+                                  : (inferredAllocatable || draftTransaction.allocatable);
     transaction.propertyIds = ui::strings::toStdList(draftTransaction.propertyIds);
     transaction.type = ui::strings::toStdString(draftTransaction.type);
     input.transactions.push_back(std::move(transaction));
@@ -532,7 +535,10 @@ void ImportWorkflow::syncCurrentTransactionDraftImpl(ui::StatementDraft *draft) 
   bool changed = false;
 
   if (current->actorId.isEmpty()) {
+    const double actorConfidence =
+        (derived.hasActorTopSuggestion ? derived.actorTopSuggestion.confidence : 0.0);
     if (derived.actorCurrentIndex > 0 &&
+        actorConfidence >= 0.9 &&
         static_cast<std::size_t>(derived.actorCurrentIndex) <
             derived.actorChoices.size()) {
       const auto &actorRow =
@@ -553,6 +559,8 @@ void ImportWorkflow::syncCurrentTransactionDraftImpl(ui::StatementDraft *draft) 
 
   if (current->contractId.isEmpty()) {
     if (derived.contractCurrentIndex > 0 &&
+        derived.hasContractTopSuggestion &&
+        derived.contractSuggestionConfidence >= 0.9 &&
         static_cast<std::size_t>(derived.contractCurrentIndex) <
             derived.contractChoices.size()) {
       const auto &contractRow =
@@ -586,13 +594,10 @@ void ImportWorkflow::syncCurrentTransactionDraftImpl(ui::StatementDraft *draft) 
         }
         draft->transactions()->setContractSelected(index, true);
       }
-    } else if (!derived.contractSeedText.empty()) {
+    } else if (current->type.isEmpty() && !derived.contractSeedText.empty()) {
       const QString type = QString::fromStdString(derived.contractSeedText);
       changed = changed || current->type != type;
       draft->transactions()->setType(index, type);
-    } else if (!current->contractSelected) {
-      changed = changed || !current->type.isEmpty();
-      draft->transactions()->setType(index, QString());
     }
   }
 
@@ -655,9 +660,44 @@ QVariantMap ImportWorkflow::currentTransactionViewState(ui::StatementDraft *draf
       workspaceWriter_, ui::observability::origins::workflow::import::kFinalize, {}, [&]() {
         const auto *current = currentDraft(draft);
         if (!current || !importMatcherService_) return QVariantMap{};
-        return ui::importing::toViewState(importMatcherService_->buildDraftDerivedState(
+        QVariantMap viewState = ui::importing::toViewState(importMatcherService_->buildDraftDerivedState(
             matchingCatalogForDraft(draft),
             ui::importing::toCoreSelection(*current)));
+
+        const QString draftId = draft ? draft->draftId() : QString{};
+        const QString txId = current->id;
+        const QString key = draftId + QStringLiteral("::") + txId;
+        if (key.trimmed().isEmpty())
+          return viewState;
+
+        auto cached = suggestionSnapshotByTransactionKey_.value(key);
+        if (cached.isEmpty()) {
+          cached.insert(QStringLiteral("actorTopSuggestion"), viewState.value(QStringLiteral("actorTopSuggestion")));
+          cached.insert(QStringLiteral("actorSuggestionSummary"), viewState.value(QStringLiteral("actorSuggestionSummary")));
+          cached.insert(QStringLiteral("actorSuggestionConfidence"), viewState.value(QStringLiteral("actorSuggestionConfidence")));
+          cached.insert(QStringLiteral("propertyTopSuggestion"), viewState.value(QStringLiteral("propertyTopSuggestion")));
+          cached.insert(QStringLiteral("propertySuggestionSummary"), viewState.value(QStringLiteral("propertySuggestionSummary")));
+          cached.insert(QStringLiteral("propertySuggestionConfidence"), viewState.value(QStringLiteral("propertySuggestionConfidence")));
+          cached.insert(QStringLiteral("contractTopSuggestion"), viewState.value(QStringLiteral("contractTopSuggestion")));
+          cached.insert(QStringLiteral("contractSuggestionSummary"), viewState.value(QStringLiteral("contractSuggestionSummary")));
+          cached.insert(QStringLiteral("contractSuggestionConfidence"), viewState.value(QStringLiteral("contractSuggestionConfidence")));
+          cached.insert(QStringLiteral("allocatableSuggestionSummary"), viewState.value(QStringLiteral("allocatableSuggestionSummary")));
+          cached.insert(QStringLiteral("allocatableSuggestionConfidence"), viewState.value(QStringLiteral("allocatableSuggestionConfidence")));
+          suggestionSnapshotByTransactionKey_.insert(key, cached);
+        }
+
+        viewState.insert(QStringLiteral("actorTopSuggestion"), cached.value(QStringLiteral("actorTopSuggestion")));
+        viewState.insert(QStringLiteral("actorSuggestionSummary"), cached.value(QStringLiteral("actorSuggestionSummary")));
+        viewState.insert(QStringLiteral("actorSuggestionConfidence"), cached.value(QStringLiteral("actorSuggestionConfidence")));
+        viewState.insert(QStringLiteral("propertyTopSuggestion"), cached.value(QStringLiteral("propertyTopSuggestion")));
+        viewState.insert(QStringLiteral("propertySuggestionSummary"), cached.value(QStringLiteral("propertySuggestionSummary")));
+        viewState.insert(QStringLiteral("propertySuggestionConfidence"), cached.value(QStringLiteral("propertySuggestionConfidence")));
+        viewState.insert(QStringLiteral("contractTopSuggestion"), cached.value(QStringLiteral("contractTopSuggestion")));
+        viewState.insert(QStringLiteral("contractSuggestionSummary"), cached.value(QStringLiteral("contractSuggestionSummary")));
+        viewState.insert(QStringLiteral("contractSuggestionConfidence"), cached.value(QStringLiteral("contractSuggestionConfidence")));
+        viewState.insert(QStringLiteral("allocatableSuggestionSummary"), cached.value(QStringLiteral("allocatableSuggestionSummary")));
+        viewState.insert(QStringLiteral("allocatableSuggestionConfidence"), cached.value(QStringLiteral("allocatableSuggestionConfidence")));
+        return viewState;
       });
 }
 
@@ -729,13 +769,208 @@ QVariantMap ImportWorkflow::createActorChoiceForCurrentDraft(
       });
 }
 
+QVariantMap ImportWorkflow::createPropertyChoiceForCurrentDraft(
+    ui::StatementDraft *draft, const QString &propertyName) {
+  return ui::util::guard::invokeValue<QVariantMap>(
+      workspaceWriter_, ui::observability::origins::workflow::import::kFinalize,
+      {}, [&]() {
+        if (!draft || !workspaceWriter_)
+          return QVariantMap{};
+
+        const auto currentIndex = draft->currentIndex();
+        if (currentIndex < 0)
+          return QVariantMap{};
+
+        const QString trimmedName = propertyName.trimmed();
+        if (trimmedName.isEmpty())
+          return QVariantMap{};
+
+        QString propertyId;
+        QString displayName = trimmedName;
+        const auto reader =
+            dynamic_cast<const core::ports::workspace::IWorkspaceReader *>(
+                workspaceWriter_);
+        const auto snapshot =
+            reader ? reader->workspaceSnapshot()
+                   : core::ports::workspace::WorkspaceSnapshot{};
+        const QString normalizedTarget = normalizedText(trimmedName);
+        for (const auto &property : snapshot.properties) {
+          const QString existingName = QString::fromStdString(property.name);
+          if (normalizedText(existingName) == normalizedTarget) {
+            propertyId = QString::fromStdString(property.id);
+            displayName = existingName;
+            break;
+          }
+        }
+
+        if (propertyId.isEmpty()) {
+          core::ports::workspace::PropertyCommand command;
+          command.name = strings::toStdString(trimmedName);
+          propertyId =
+              QString::fromStdString(workspaceWriter_->addProperty(command));
+          if (propertyId.isEmpty())
+            return QVariantMap{};
+        }
+
+        const auto *current = currentDraft(draft);
+        if (current) {
+          QStringList propertyIds = current->propertyIds;
+          if (!propertyIds.contains(propertyId)) {
+            propertyIds.push_back(propertyId);
+            draft->transactions()->setProperties(currentIndex, propertyIds);
+          }
+          draft->transactions()->setContractId(currentIndex, QString());
+          draft->transactions()->setContractSelected(currentIndex, false);
+          draft->refresh();
+        }
+
+        QVariantMap row;
+        row.insert(QStringLiteral("id"), propertyId);
+        row.insert(QStringLiteral("name"), displayName);
+        row.insert(QStringLiteral("display"), displayName);
+        row.insert(QStringLiteral("type"), QStringLiteral("property"));
+        row.insert(QStringLiteral("aliases"), QStringList{});
+        row.insert(QStringLiteral("actorIds"), QStringList{});
+        row.insert(QStringLiteral("propertyIds"), QStringList{});
+        row.insert(QStringLiteral("synthetic"), false);
+        row.insert(QStringLiteral("confidence"), 1.0);
+        row.insert(QStringLiteral("sourceText"), displayName);
+        return row;
+      });
+}
+
+QVariantMap ImportWorkflow::createOrSelectContractChoiceForCurrentDraft(
+    ui::StatementDraft *draft, const QString &contractName,
+    const QString &contractType, const QString &allocatableMode) {
+  return ui::util::guard::invokeValue<QVariantMap>(
+      workspaceWriter_, ui::observability::origins::workflow::import::kFinalize,
+      {}, [&]() {
+        if (!draft || !workspaceWriter_)
+          return QVariantMap{};
+
+        const auto currentIndex = draft->currentIndex();
+        if (currentIndex < 0)
+          return QVariantMap{};
+
+        const auto *current = currentDraft(draft);
+        if (!current)
+          return QVariantMap{};
+
+        const auto reader =
+            dynamic_cast<const core::ports::workspace::IWorkspaceReader *>(
+                workspaceWriter_);
+        const auto snapshot =
+            reader ? reader->workspaceSnapshot()
+                   : core::ports::workspace::WorkspaceSnapshot{};
+
+        const QString trimmedType = contractType.trimmed();
+        if (trimmedType.isEmpty())
+          return QVariantMap{};
+
+        const QString effectiveName = contractName.trimmed().isEmpty()
+                                          ? nextGeneratedContractName(snapshot)
+                                          : contractName.trimmed();
+
+        std::vector<std::string> actorIds;
+        if (!current->actorId.trimmed().isEmpty())
+          actorIds.push_back(strings::toStdString(current->actorId));
+        std::vector<std::string> propertyIds =
+            strings::toStdList(current->propertyIds);
+
+        QString contractId;
+        QString displayName = effectiveName;
+        QString contractAllocatableMode = allocatableMode.trimmed().toLower();
+        if (contractAllocatableMode.isEmpty())
+          contractAllocatableMode = QStringLiteral("mixed");
+        const QString normalizedName = normalizedText(effectiveName);
+        const QString normalizedType = normalizedText(trimmedType);
+        for (const auto &contract : snapshot.contracts) {
+          if (normalizedText(QString::fromStdString(contract.name)) !=
+              normalizedName)
+            continue;
+          if (normalizedText(QString::fromStdString(contract.type)) !=
+              normalizedType)
+            continue;
+          if (!equalsStringSet(contract.actorIds, actorIds))
+            continue;
+          if (!equalsStringSet(contract.propertyIds, propertyIds))
+            continue;
+
+          contractId = QString::fromStdString(contract.id);
+          displayName = QString::fromStdString(contract.name);
+          contractAllocatableMode = QString::fromStdString(contract.allocatableMode);
+          break;
+        }
+
+        if (contractId.isEmpty()) {
+          core::ports::workspace::ContractCommand command;
+          command.name = strings::toStdString(effectiveName);
+          command.type = strings::toStdString(trimmedType);
+          command.actorIds = actorIds;
+          command.propertyIds = propertyIds;
+          command.allocatableMode = strings::toStdString(contractAllocatableMode);
+          contractId =
+              QString::fromStdString(workspaceWriter_->addContract(command));
+          if (contractId.isEmpty())
+            return QVariantMap{};
+        }
+
+        draft->transactions()->setContractId(currentIndex, contractId);
+        draft->transactions()->setContractSelected(currentIndex, true);
+        draft->refresh();
+
+        QVariantMap row;
+        row.insert(QStringLiteral("id"), contractId);
+        row.insert(QStringLiteral("name"), displayName);
+        row.insert(QStringLiteral("display"), displayName);
+        row.insert(QStringLiteral("type"), trimmedType);
+        row.insert(QStringLiteral("aliases"), QStringList{});
+        row.insert(QStringLiteral("actorIds"),
+                   ui::payload::mapper::toQStringList(actorIds));
+        row.insert(QStringLiteral("propertyIds"),
+                   ui::payload::mapper::toQStringList(propertyIds));
+        row.insert(QStringLiteral("synthetic"), false);
+        row.insert(QStringLiteral("confidence"), 1.0);
+        row.insert(QStringLiteral("sourceText"), displayName);
+        row.insert(QStringLiteral("allocatableMode"), contractAllocatableMode);
+        return row;
+      });
+}
+
 void ImportWorkflow::selectCurrentContractChoice(ui::StatementDraft *draft,
                                                 const QVariantMap &row) {
   if (!draft || row.isEmpty()) return;
   const auto currentIndex = draft->currentIndex();
   if (currentIndex < 0) return;
-  draft->transactions()->setContractId(currentIndex, row.value(QStringLiteral("id")).toString());
-  draft->transactions()->setContractSelected(currentIndex, true);
+  const QString contractId = row.value(QStringLiteral("id")).toString();
+  draft->transactions()->setContractId(currentIndex, contractId);
+  draft->transactions()->setContractSelected(currentIndex, !contractId.isEmpty());
+
+  const QString contractType = row.value(QStringLiteral("type")).toString();
+  if (!contractType.isEmpty())
+    draft->transactions()->setType(currentIndex, contractType);
+
+  const QStringList actorIds = row.value(QStringLiteral("actorIds")).toStringList();
+  if (!actorIds.isEmpty()) {
+    draft->transactions()->setActorId(currentIndex, actorIds.front());
+    draft->transactions()->setActorText(currentIndex, QString());
+    draft->transactions()->setActorSelected(currentIndex, false);
+  }
+
+  const QStringList propertyIds = row.value(QStringLiteral("propertyIds")).toStringList();
+  if (!propertyIds.isEmpty())
+    draft->transactions()->setProperties(currentIndex, propertyIds);
+
+  const QString allocatableMode =
+      row.value(QStringLiteral("allocatableMode")).toString().trimmed().toLower();
+  if (allocatableMode == QStringLiteral("allocatable")) {
+    draft->transactions()->setAllocatable(currentIndex, true);
+    draft->transactions()->setAllocatableSelected(currentIndex, false);
+  } else if (allocatableMode == QStringLiteral("non-allocatable")) {
+    draft->transactions()->setAllocatable(currentIndex, false);
+    draft->transactions()->setAllocatableSelected(currentIndex, false);
+  }
+
   draft->refresh();
 }
 
@@ -747,13 +982,18 @@ void ImportWorkflow::setCurrentPropertySelected(ui::StatementDraft *draft,
   const auto currentIndex = draft->currentIndex();
   if (currentIndex < 0) return;
   auto propertyIds = current->propertyIds;
+  const auto previousPropertyIds = propertyIds;
   if (selected) {
     if (!propertyIds.contains(propertyId))
       propertyIds.push_back(propertyId);
   } else {
     propertyIds.removeAll(propertyId);
   }
+  if (propertyIds == previousPropertyIds)
+    return;
   draft->transactions()->setProperties(currentIndex, propertyIds);
+  draft->transactions()->setContractId(currentIndex, QString());
+  draft->transactions()->setContractSelected(currentIndex, false);
   draft->refresh();
 }
 
@@ -1016,6 +1256,7 @@ void ImportWorkflow::resetStatus() {
 
 void ImportWorkflow::clearDraft() {
   rememberCurrentDraftTransactionIndex();
+  suggestionSnapshotByTransactionKey_.clear();
   const bool shouldStartNext = state_.clearDraft();
   emit stateChanged();
   if (shouldStartNext)
@@ -1060,6 +1301,7 @@ bool ImportWorkflow::openPersistedDraft(const QString &logId) {
 
 bool ImportWorkflow::restoreDraftFromState(
     const core::application::workspace::WorkspaceSessionState &snapshot) {
+  suggestionSnapshotByTransactionKey_.clear();
   if (snapshot.workflow.statementDrafts.empty()) {
     return false;
   }
@@ -1372,6 +1614,7 @@ void ImportWorkflow::startStatementImport() {
 void ImportWorkflow::startImportForFile(const QString &path) {
   if (state_.isRunning())
     return;
+  suggestionSnapshotByTransactionKey_.clear();
   if (!ensureJobBridge() || !jobBridge_ || !jobBridge_->isAvailable()) {
     rejectImportStart(ui::text::workflowErrors::importWorkflowUnavailable(),
                       "Import start rejected: workflow unavailable");
@@ -1477,4 +1720,3 @@ void ImportWorkflow::reportException(const char *origin,
 }
 
 } // namespace ui
-

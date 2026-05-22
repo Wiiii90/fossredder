@@ -35,6 +35,7 @@ BookingTransactionView 1.0 Booking/BookingTransactionView.qml
 BookingView 1.0 Booking/BookingView.qml
 ContractForm 1.0 Contract/ContractForm.qml
 ContractTypePanel 1.0 Contract/ContractTypePanel.qml
+ContractAllocatablePanel 1.0 Contract/ContractAllocatablePanel.qml
 ContractActorsPanel 1.0 Contract/ContractActorsPanel.qml
 ContractPropertiesPanel 1.0 Contract/ContractPropertiesPanel.qml
 ContractSidebar 1.0 Contract/ContractSidebar.qml
@@ -48,13 +49,13 @@ ImportSidebar 1.0 Import/ImportSidebar.qml
 ImportForm 1.0 Import/ImportForm.qml
 ImportView 1.0 Import/ImportView.qml
 StatementDraftView 1.0 Import/StatementDraftView.qml
-TransactionDraftActorPanel 1.0 Import/TransactionDraftActorPanel.qml
-TransactionDraftAllocatablePanel 1.0 Import/TransactionDraftAllocatablePanel.qml
+TransactionDraftContractActorPanel 1.0 Import/TransactionDraftContractActorPanel.qml
+TransactionDraftContractAllocatablePanel 1.0 Import/TransactionDraftContractAllocatablePanel.qml
 TransactionDraftContractPanel 1.0 Import/TransactionDraftContractPanel.qml
 TransactionDraftFieldRow 1.0 Import/TransactionDraftFieldRow.qml
 TransactionDraftMetadataPanel 1.0 Import/TransactionDraftMetadataPanel.qml
 TransactionDraftProofPanel 1.0 Import/TransactionDraftProofPanel.qml
-TransactionDraftPropertyPanel 1.0 Import/TransactionDraftPropertyPanel.qml
+TransactionDraftContractPropertyPanel 1.0 Import/TransactionDraftContractPropertyPanel.qml
 TransactionDraftView 1.0 Import/TransactionDraftView.qml
 PropertyForm 1.0 Property/PropertyForm.qml
 PropertyContractPanel 1.0 Property/PropertyContractPanel.qml

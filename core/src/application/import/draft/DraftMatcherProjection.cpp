@@ -14,6 +14,8 @@ namespace policy = core::domain::policies::matching;
 namespace {
 
 constexpr double kSyntheticConfidence = 0.35;
+constexpr double kSuggestionYellowThreshold = 0.4;
+constexpr double kSuggestionGreenThreshold = 0.9;
 
 bool containsId(const std::vector<std::string>& ids, const std::string& id)
 {
@@ -93,12 +95,31 @@ DraftChoiceRow contractRow(const std::shared_ptr<core::domain::Contract>& contra
     row.name = contract->name();
     row.display = contract->name();
     row.type = contract->type();
+    row.allocatableMode = contract->allocatableMode();
     for (const auto& alias : contract->aliases()) {
         row.aliases.push_back(alias.value());
     }
     row.actorIds = contract->actorIds();
     row.propertyIds = contract->propertyIds();
     return row;
+}
+
+bool contractAllocatableByMode(const DraftChoiceRow* contractRowPtr,
+                               const core::domain::catalog::WorkspaceCatalog& state,
+                               const std::string& contractId)
+{
+    const auto mode = policy::normalizeText(contractRowPtr ? contractRowPtr->allocatableMode : std::string{});
+    if (mode == "allocatable") return true;
+    if (mode == "non-allocatable") return false;
+    return core::application::importing::draft::contractIsFullyAllocatable(state, contractId);
+}
+
+bool hasAnyPropertyOverlap(const std::vector<std::string>& lhs, const std::vector<std::string>& rhs)
+{
+    for (const auto& id : lhs) {
+        if (containsId(rhs, id)) return true;
+    }
+    return false;
 }
 
 std::vector<DraftChoiceRow> actorRows(const core::domain::catalog::WorkspaceCatalog& state)
@@ -235,7 +256,11 @@ std::string contractSeedText(const DraftLinkSelection& selection,
 std::string propertySuggestionSummary(const DraftSuggestionBucket& bucket)
 {
     const auto* top = topSuggestion(bucket);
-    if (!top) return "No property suggestion";
+    if (!top) return "0% Confidence - No suggestion";
+    const auto pct = confidencePercent(top);
+    if (top->confidence < kSuggestionYellowThreshold) {
+        return std::to_string(pct) + "% Confidence - No suggestion";
+    }
 
     std::vector<std::string> labels;
     const auto maxCount = std::min<std::size_t>(2, bucket.candidates.size());
@@ -244,7 +269,55 @@ std::string propertySuggestionSummary(const DraftSuggestionBucket& bucket)
         if (!bucket.candidates[i].label.empty()) labels.push_back(bucket.candidates[i].label);
     }
 
-    return "Confidence: " + std::to_string(confidencePercent(top)) + "% (" + policy::joinNonEmptyLines(labels, ", ") + ")";
+    if (labels.empty()) return std::to_string(pct) + "% Confidence - No suggestion";
+    return std::to_string(pct) + "% Confidence - (" + policy::joinNonEmptyLines(labels, ", ") + ")";
+}
+
+std::string actorSuggestionSummary(const DraftSuggestionBucket& bucket)
+{
+    const auto* top = topSuggestion(bucket);
+    if (!top) return "0% Confidence - No suggestion";
+    const auto pct = confidencePercent(top);
+    if (top->confidence < kSuggestionYellowThreshold) {
+        return std::to_string(pct) + "% Confidence - No suggestion";
+    }
+    if (top->label.empty()) return std::to_string(pct) + "% Confidence - No suggestion";
+    return std::to_string(pct) + "% Confidence - " + top->label;
+}
+
+std::string contractSuggestionSummary(const DraftDerivedState& derived,
+                                      const std::vector<DraftChoiceRow>& contractChoices,
+                                      const std::string& selectedContractId)
+{
+    const auto confidence = std::clamp(derived.contractSuggestionConfidence, 0.0, 1.0);
+    const auto confidencePercent = static_cast<int>(std::round(confidence * 100.0));
+    if (confidence < kSuggestionYellowThreshold) {
+        return std::to_string(confidencePercent) + "% Confidence - No suggestion";
+    }
+
+    const DraftChoiceRow* row = nullptr;
+    if (!selectedContractId.empty()) {
+        const auto idx = rowIndexById(contractChoices, selectedContractId);
+        row = rowByIndex(contractChoices, idx);
+    }
+    if (!row && derived.hasContractTopSuggestion && !derived.contractTopSuggestion.entityId.empty()) {
+        const auto idx = rowIndexById(contractChoices, derived.contractTopSuggestion.entityId);
+        row = rowByIndex(contractChoices, idx);
+    }
+
+    std::string suggestion;
+    if (row) {
+        const auto n = !row->name.empty() ? row->name : row->display;
+        const auto t = row->type;
+        if (!n.empty() && !t.empty()) suggestion = "(" + n + ", " + t + ")";
+        else if (!n.empty()) suggestion = n;
+        else suggestion = t;
+    } else if (derived.hasContractTopSuggestion) {
+        suggestion = derived.contractTopSuggestion.label;
+    }
+
+    if (suggestion.empty()) return std::to_string(confidencePercent) + "% Confidence - No suggestion";
+    return std::to_string(confidencePercent) + "% Confidence - " + suggestion;
 }
 
 std::vector<std::string> propertyAutoSelectIds(const DraftLinkSelection& selection,
@@ -501,9 +574,6 @@ DraftDerivedState buildDraftDerivedState(const core::domain::catalog::WorkspaceC
     derived.actorSeedText = actorSeedText(effectiveSelection, derived.actorDisplayText, actorTop);
     derived.contractSeedText = contractSeedText(effectiveSelection, derived.contractDisplayText, contractTop);
     derived.propertySuggestionSummary = propertySuggestionSummary(effectiveSelection.propertySuggestions);
-    derived.effectiveAllocatable = effectiveSelection.allocatableSelected
-                                      ? effectiveSelection.allocatable
-                                      : (core::application::importing::draft::contractIsFullyAllocatable(state, effectiveSelection.contractId) || effectiveSelection.allocatable);
 
     derived.actorChoices = actors;
     DraftChoiceRow newActor;
@@ -573,6 +643,98 @@ DraftDerivedState buildDraftDerivedState(const core::domain::catalog::WorkspaceC
             selectedContractId = contractRow->id;
         }
     }
+
+    if (!derived.hasContractTopSuggestion && !scoredContracts.empty()) {
+        const auto& best = scoredContracts.front();
+        if (!best.second.id.empty()) {
+            derived.contractTopSuggestion.entityId = best.second.id;
+            derived.contractTopSuggestion.entityType = "contract";
+            derived.contractTopSuggestion.label = !best.second.display.empty()
+                ? best.second.display
+                : (!best.second.name.empty() ? best.second.name : best.second.type);
+            derived.contractTopSuggestion.sourceText = derived.contractSeedText;
+            derived.contractTopSuggestion.score = best.first;
+            derived.contractTopSuggestion.confidence = std::clamp(best.first / 220.0, 0.0, 1.0);
+            derived.contractTopSuggestion.rationale = "Derived contract score";
+            derived.hasContractTopSuggestion = true;
+        }
+    }
+
+    derived.actorSuggestionConfidence = derived.hasActorTopSuggestion
+        ? std::clamp(derived.actorTopSuggestion.confidence, 0.0, 1.0)
+        : 0.0;
+    derived.propertySuggestionConfidence = derived.hasPropertyTopSuggestion
+        ? std::clamp(derived.propertyTopSuggestion.confidence, 0.0, 1.0)
+        : 0.0;
+    derived.contractSuggestionConfidence = derived.hasContractTopSuggestion
+        ? std::clamp(derived.contractTopSuggestion.confidence, 0.0, 1.0)
+        : 0.0;
+
+    if (derived.contractCurrentIndex <= 0 && derived.hasContractTopSuggestion
+        && !derived.contractTopSuggestion.entityId.empty()
+        && derived.contractSuggestionConfidence >= kSuggestionGreenThreshold) {
+        const auto suggestedIndex = rowIndexById(derived.contractChoices, derived.contractTopSuggestion.entityId);
+        if (suggestedIndex > 0)
+            derived.contractCurrentIndex = suggestedIndex;
+    }
+
+    const std::string effectiveContractId = !selectedContractId.empty()
+        ? selectedContractId
+        : effectiveSelection.contractId;
+    if (!effectiveContractId.empty()) {
+        for (const auto& scored : scoredContracts) {
+            if (scored.second.id == effectiveContractId) {
+                const auto scoredConfidence = std::clamp(scored.first / 220.0, 0.0, 1.0);
+                derived.contractSuggestionConfidence = std::max(derived.contractSuggestionConfidence, scoredConfidence);
+                break;
+            }
+        }
+    } else if (!scoredContracts.empty()) {
+        const auto scoredConfidence = std::clamp(scoredContracts.front().first / 220.0, 0.0, 1.0);
+        derived.contractSuggestionConfidence = std::max(derived.contractSuggestionConfidence, scoredConfidence);
+    }
+
+    if (derived.hasContractTopSuggestion && !effectiveContractId.empty()) {
+        const auto suggestedIndex = rowIndexById(contracts, effectiveContractId);
+        if (const auto* suggestedRow = rowByIndex(contracts, suggestedIndex)) {
+            double boost = 0.0;
+            const auto typeText = policy::trim(effectiveSelection.type);
+            if (!typeText.empty() && policy::matchesDraftText(suggestedRow->type, typeText)) boost += 0.18;
+            if (!effectiveSelection.actorId.empty() && containsId(suggestedRow->actorIds, effectiveSelection.actorId)) boost += 0.2;
+            if (hasAnyPropertyOverlap(effectiveSelection.propertyIds, suggestedRow->propertyIds)) boost += 0.12;
+            if (boost > 0.0) {
+                derived.contractSuggestionConfidence = std::clamp(
+                    derived.contractSuggestionConfidence + boost * (1.0 - derived.contractSuggestionConfidence), 0.0, 1.0);
+            }
+        }
+    }
+    const auto effectiveContractIndex = rowIndexById(contracts, effectiveContractId);
+    const auto* effectiveContractRow = rowByIndex(contracts, effectiveContractIndex);
+    derived.effectiveAllocatable = effectiveSelection.allocatableSelected
+                                      ? effectiveSelection.allocatable
+                                      : (contractAllocatableByMode(effectiveContractRow, state, effectiveContractId)
+                                         || effectiveSelection.allocatable);
+
+    const auto mode = policy::normalizeText(effectiveContractRow ? effectiveContractRow->allocatableMode : std::string{});
+    if (mode == "allocatable" || mode == "non-allocatable") {
+        derived.allocatableSuggestionConfidence = std::clamp(derived.contractSuggestionConfidence * 0.85 + 0.15, 0.0, 1.0);
+    } else {
+        derived.allocatableSuggestionConfidence = std::clamp(derived.contractSuggestionConfidence * 0.5, 0.0, 1.0);
+    }
+    derived.actorSuggestionSummary = actorSuggestionSummary(effectiveSelection.actorSuggestions);
+    derived.propertySuggestionSummary = propertySuggestionSummary(effectiveSelection.propertySuggestions);
+    derived.contractSuggestionSummary = contractSuggestionSummary(derived, derived.contractChoices, effectiveContractId);
+    const auto allocConfidence = std::clamp(derived.allocatableSuggestionConfidence, 0.0, 1.0);
+    const auto allocPercent = static_cast<int>(std::round(allocConfidence * 100.0));
+    if (allocConfidence < kSuggestionYellowThreshold) {
+        derived.allocatableSuggestionSummary =
+            std::to_string(allocPercent) + "% Confidence - No suggestion";
+    } else {
+        derived.allocatableSuggestionSummary =
+            std::to_string(allocPercent) + "% Confidence - "
+            + (derived.effectiveAllocatable ? "Allocatable" : "Not allocatable");
+    }
+
     derived.autoPropertyIds = propertyAutoSelectIds(effectiveSelection, properties, contracts, selectedContractId);
 
     return derived;

@@ -113,19 +113,22 @@ public:
                                     const QString& type,
                                     const QStringList& actorIds = {},
                                     const QStringList& propertyIds = {},
-                                    const QStringList& aliases = {});
+                                    const QStringList& aliases = {},
+                                    const QString& allocatableMode = QStringLiteral("mixed"));
     Q_INVOKABLE void updateContract(const QString& id,
                                     const QString& name,
                                     const QString& type,
                                     const QStringList& actorIds = {},
                                     const QStringList& propertyIds = {},
-                                    const QStringList& aliases = {});
+                                    const QStringList& aliases = {},
+                                    const QString& allocatableMode = QStringLiteral("mixed"));
     Q_INVOKABLE QString saveContract(const QString& id,
                                      const QString& name,
                                      const QString& type,
                                      const QStringList& actorIds = {},
                                      const QStringList& propertyIds = {},
-                                     const QStringList& aliases = {});
+                                     const QStringList& aliases = {},
+                                     const QString& allocatableMode = QStringLiteral("mixed"));
     Q_INVOKABLE void deleteContract(const QString& id);
 
     Q_INVOKABLE QString addStatement(const QString& name);
@@ -274,4 +277,3 @@ private:
 };
 
 }
-

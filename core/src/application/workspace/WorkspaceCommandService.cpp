@@ -119,6 +119,7 @@ void applyPropertyDraft(core::domain::Property& property, const core::applicatio
 void applyContractDraft(core::domain::Contract& contract, const core::application::ContractInput& input) {
     contract.rename(input.name);
     contract.setType(input.type);
+    contract.setAllocatableMode(input.allocatableMode);
     contract.setActorIds(input.actorIds);
     contract.setPropertyIds(input.propertyIds);
     contract.setAliases(input.aliases);
@@ -511,10 +512,14 @@ public:
         }
 
         std::string previousStatementId;
+        std::string previousContractId;
+        bool previousAllocatable = false;
         auto statements = state.statements();
         auto transactions = state.transactions();
         if (const auto transaction = findById(transactions, id)) {
             previousStatementId = transaction->statementId();
+            previousContractId = transaction->contractId();
+            previousAllocatable = transaction->isAllocatable();
         }
 
         const auto updated = updateEntity(transactions, id, [&](core::domain::Transaction& tx) {
@@ -523,6 +528,23 @@ public:
 
         if (!updated) {
             return false;
+        }
+
+        if (const auto updatedTx = findById(transactions, id)) {
+            const bool allocatableChanged = updatedTx->isAllocatable() != previousAllocatable;
+            const std::string effectiveContractId = !updatedTx->contractId().empty() ? updatedTx->contractId() : previousContractId;
+            if (allocatableChanged && !effectiveContractId.empty()) {
+                auto contracts = state.contracts();
+                const bool contractModeUpdated = updateEntity(contracts, effectiveContractId, [](core::domain::Contract& contract) {
+                    if (contract.allocatableMode() != "mixed") {
+                        contract.setAllocatableMode("mixed");
+                        stampUpdated(contract);
+                    }
+                });
+                if (contractModeUpdated) {
+                    state.setContracts(std::move(contracts));
+                }
+            }
         }
 
         if (previousStatementId != input.statementId) {
@@ -691,6 +713,7 @@ std::string WorkspaceCommandService::addContract(const core::ports::workspace::C
     return WorkspaceCommandService::commitCreated(*this, catalogMutator().addContract(mutableCatalogState(), {
         command.name,
         command.type,
+        command.allocatableMode,
         command.actorIds,
         command.propertyIds,
         toAliases(command.aliases)
@@ -702,6 +725,7 @@ void WorkspaceCommandService::updateContract(const core::ports::workspace::Contr
                                                                                      command.id,
                                                                                      {command.name,
                                                                                       command.type,
+                                                                                      command.allocatableMode,
                                                                                       command.actorIds,
                                                                                       command.propertyIds,
                                                                                       toAliases(command.aliases)}));

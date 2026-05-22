@@ -74,6 +74,7 @@ QVariantMap toVariantMap(const core_importing::DraftChoiceRow& row)
     map.insert(QStringLiteral("name"), QString::fromStdString(row.name));
     map.insert(QStringLiteral("display"), QString::fromStdString(row.display));
     map.insert(QStringLiteral("type"), QString::fromStdString(row.type));
+    map.insert(QStringLiteral("allocatableMode"), QString::fromStdString(row.allocatableMode));
     map.insert(QStringLiteral("aliases"), toQStringList(row.aliases));
     map.insert(QStringLiteral("actorIds"), toQStringList(row.actorIds));
     map.insert(QStringLiteral("propertyIds"), toQStringList(row.propertyIds));
@@ -101,7 +102,14 @@ QVariantMap toViewState(const core_importing::DraftDerivedState& derived)
     map.insert(QStringLiteral("actorDisplayText"), QString::fromStdString(derived.actorDisplayText));
     map.insert(QStringLiteral("contractSeedText"), QString::fromStdString(derived.contractSeedText));
     map.insert(QStringLiteral("contractDisplayText"), QString::fromStdString(derived.contractDisplayText));
+    map.insert(QStringLiteral("actorSuggestionSummary"), QString::fromStdString(derived.actorSuggestionSummary));
     map.insert(QStringLiteral("propertySuggestionSummary"), QString::fromStdString(derived.propertySuggestionSummary));
+    map.insert(QStringLiteral("contractSuggestionSummary"), QString::fromStdString(derived.contractSuggestionSummary));
+    map.insert(QStringLiteral("allocatableSuggestionSummary"), QString::fromStdString(derived.allocatableSuggestionSummary));
+    map.insert(QStringLiteral("actorSuggestionConfidence"), derived.actorSuggestionConfidence);
+    map.insert(QStringLiteral("propertySuggestionConfidence"), derived.propertySuggestionConfidence);
+    map.insert(QStringLiteral("contractSuggestionConfidence"), derived.contractSuggestionConfidence);
+    map.insert(QStringLiteral("allocatableSuggestionConfidence"), derived.allocatableSuggestionConfidence);
     map.insert(QStringLiteral("effectiveAllocatable"), derived.effectiveAllocatable);
     map.insert(QStringLiteral("actorCurrentIndex"), derived.actorCurrentIndex);
     map.insert(QStringLiteral("contractCurrentIndex"), derived.contractCurrentIndex);

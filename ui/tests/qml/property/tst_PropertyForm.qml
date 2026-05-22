@@ -70,6 +70,16 @@ TestCase {
             return contracts || []
         }
 
+        function indexOfId(rows, id) {
+            var list = rows || []
+            var target = String(id || "")
+            for (var i = 0; i < list.length; ++i) {
+                if (String(list[i].id || "") === target)
+                    return i
+            }
+            return -1
+        }
+
         function navigatedId(rows, currentId, delta, fallbackIndex) {
             if (!rows || rows.length === 0)
                 return ""

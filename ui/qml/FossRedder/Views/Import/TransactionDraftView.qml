@@ -23,6 +23,7 @@ Item {
     property string pendingBookingDateText: ""
     property string pendingValutaText: ""
     readonly property var actorChoices: draftViewRoot.viewState && draftViewRoot.viewState.actorChoices ? draftViewRoot.viewState.actorChoices : []
+    readonly property var contractChoices: draftViewRoot.viewState && draftViewRoot.viewState.contractChoices ? draftViewRoot.viewState.contractChoices : []
     readonly property var statusOptions: [
         { label: qsTr("Neutral"), value: 0 },
         { label: qsTr("Unverified"), value: 1 },
@@ -38,6 +39,7 @@ Item {
         return draftViewRoot.currentDraftItem()
     }
 
+
     function syncAmountFieldToCurrent() {
         const tx = draftViewRoot.currentTransaction()
         const nextText = tx && tx.amount !== undefined ? String(tx.amount) : ""
@@ -51,26 +53,8 @@ Item {
         draftViewRoot.pendingValutaText = tx && tx.valuta !== undefined && tx.valuta !== null ? String(tx.valuta) : ""
     }
 
-    function suggestionBucket(kind) {
-        const tx = draftViewRoot.currentTransaction()
-        return tx && tx[kind] ? tx[kind] : ({ candidates: [] })
-    }
-
-    function topSuggestion(bucket) {
-        return bucket && bucket.candidates && bucket.candidates.length > 0 ? bucket.candidates[0] : ({})
-    }
-
     function currentStatusValue() {
         return draftViewRoot.draft && draftViewRoot.draft.current && draftViewRoot.draft.current.status !== undefined ? Number(draftViewRoot.draft.current.status) : 0
-    }
-
-    function actorTopSuggestion() { return draftViewRoot.topSuggestion(draftViewRoot.suggestionBucket("actorSuggestions")) }
-    function propertyTopSuggestion() { return draftViewRoot.topSuggestion(draftViewRoot.suggestionBucket("propertySuggestions")) }
-    function contractTopSuggestion() { return draftViewRoot.topSuggestion(draftViewRoot.suggestionBucket("contractSuggestions")) }
-
-    function suggestionConfidencePercent(s) {
-        const confidence = s && s.confidence !== undefined ? Number(s.confidence) : 0.0
-        return Math.round(confidence * 100.0)
     }
 
     function suggestionColor(s) {
@@ -92,20 +76,6 @@ Item {
         if (!draftViewRoot.draft || index < 0 || index >= draftViewRoot.statusOptions.length) return
         draftViewRoot.draft.transactions.setStatus(draftViewRoot.draft.currentIndex, draftViewRoot.statusOptions[index].value)
         if (draftViewRoot.draft.refresh) draftViewRoot.draft.refresh()
-    }
-
-    function propertySuggestionSummary() {
-        const bucket = draftViewRoot.suggestionBucket("propertySuggestions")
-        if (!bucket || !bucket.candidates || bucket.candidates.length === 0) return qsTr("No property suggestion")
-
-        const labels = []
-        const maxCount = Math.min(2, bucket.candidates.length)
-        for (let i = 0; i < maxCount; ++i) {
-            if (bucket.candidates[i] && bucket.candidates[i].label) labels.push(bucket.candidates[i].label)
-        }
-
-        const summarySuggestion = draftViewRoot.topSuggestion(bucket)
-        return qsTr("Confidence: %1% (%2)").arg(draftViewRoot.suggestionConfidencePercent(summarySuggestion)).arg(labels.join(", "))
     }
 
     function effectiveAllocatable() {
@@ -150,7 +120,6 @@ Item {
         const currentValue = tx && tx.name !== undefined && tx.name !== null ? String(tx.name) : ""
         if (nextValue !== currentValue)
             draftViewRoot.draft.transactions.setName(draftViewRoot.draft.currentIndex, nextValue)
-        draftViewRoot.refreshDerivedState()
     }
 
     function commitBookingDateText(value) {
@@ -160,7 +129,6 @@ Item {
         const currentValue = tx && tx.bookingDate !== undefined && tx.bookingDate !== null ? String(tx.bookingDate) : ""
         if (nextValue !== currentValue)
             draftViewRoot.draft.transactions.setBookingDate(draftViewRoot.draft.currentIndex, nextValue)
-        draftViewRoot.refreshDerivedState()
     }
 
     function commitValutaText(value) {
@@ -170,13 +138,11 @@ Item {
         const currentValue = tx && tx.valuta !== undefined && tx.valuta !== null ? String(tx.valuta) : ""
         if (nextValue !== currentValue)
             draftViewRoot.draft.transactions.setValuta(draftViewRoot.draft.currentIndex, nextValue)
-        draftViewRoot.refreshDerivedState()
     }
 
     function commitAmountText(value) {
         if (draftViewRoot.importWorkflow && draftViewRoot.draft && draftViewRoot.importWorkflow.updateCurrentAmount)
             draftViewRoot.importWorkflow.updateCurrentAmount(draftViewRoot.draft, value)
-        draftViewRoot.refreshDerivedState()
     }
 
     function commitPendingEdits() {
@@ -186,9 +152,9 @@ Item {
         draftViewRoot.commitAmountText(amountField.text)
         if (metadataPanel && metadataPanel.commitMetadata)
             metadataPanel.commitMetadata(metadataPanel.currentText())
-        if (actorPanel && actorPanel.commitActorText)
-            actorPanel.commitActorText(actorPanel.currentText())
-        if (contractPanel && contractPanel.commitTypeText)
+        if (contractPanel && contractPanel.commitNameText && contractPanel.currentNameText)
+            contractPanel.commitNameText(contractPanel.currentNameText())
+        if (contractPanel && contractPanel.commitTypeText && contractPanel.currentTypeText)
             contractPanel.commitTypeText(contractPanel.currentTypeText())
     }
 
@@ -204,7 +170,6 @@ Item {
 
     Connections {
         target: draftViewRoot.draft
-        function onChanged() {}
         function onCurrentIndexChanged() {
             draftViewRoot.syncPendingTextsToCurrent()
             draftViewRoot.syncAmountFieldToCurrent()
@@ -319,11 +284,7 @@ Item {
 
         TransactionDraftMetadataPanel { id: metadataPanel; txRoot: draftViewRoot }
 
-        TransactionDraftActorPanel { id: actorPanel; txRoot: draftViewRoot; appContext: draftViewRoot.appContext; theme: draftViewRoot.theme }
         TransactionDraftContractPanel { id: contractPanel; txRoot: draftViewRoot; appContext: draftViewRoot.appContext; theme: draftViewRoot.theme }
-        TransactionDraftPropertyPanel { txRoot: draftViewRoot; appContext: draftViewRoot.appContext; theme: draftViewRoot.theme }
-
-        TransactionDraftAllocatablePanel { txRoot: draftViewRoot }
     }
 
 }

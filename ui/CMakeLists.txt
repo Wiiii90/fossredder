@@ -128,6 +128,9 @@ set(UI_HEADERS
 add_library(fossredder_ui STATIC ${UI_SOURCES} ${UI_HEADERS})
 add_library(FossRedder::Ui ALIAS fossredder_ui)
 fossredder_enable_target_quality(fossredder_ui)
+if(MSVC)
+    target_compile_options(fossredder_ui PRIVATE /FS)
+endif()
 
 set_target_properties(fossredder_ui PROPERTIES EXPORT_NAME Ui)
 
@@ -203,6 +206,9 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
 
         add_library(${target_name} STATIC EXCLUDE_FROM_ALL)
         set_target_properties(${target_name} PROPERTIES AUTOMOC ON)
+        if(MSVC)
+            target_compile_options(${target_name} PRIVATE /FS)
+        endif()
         if(ARG_LINK_LIBRARIES)
             target_link_libraries(${target_name} PRIVATE ${ARG_LINK_LIBRARIES})
         endif()

@@ -14,6 +14,7 @@
 namespace ui {
 
 struct TransactionDraft {
+    QString id;
     QString name;
     QString bookingDate;
     QString valuta;

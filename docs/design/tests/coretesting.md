@@ -341,6 +341,8 @@ draft finalization, snapshot projection, and port contracts.
 | DMP-001 | Actor rows are projected deterministically | Unit | Catalog with actors | Build projection | Rows reflect names and aliases |
 | DMP-002 | Contract rows are projected deterministically | Unit | Catalog with contracts | Build projection | Rows reflect names, types, and relations |
 | DMP-003 | Missing draft data yields empty projection safely | Unit | Empty catalog or draft | Build projection | Projection does not crash and returns empty state |
+| DMP-004 | Contract top suggestion falls back to scored relation match | Unit | Catalog with actor/type-compatible contract and no direct contract candidate | Build projection | Derived state yields a stable contract top suggestion with confidence |
+| DMP-005 | Contract allocatable mode overrides inferred allocatable fallback | Unit | Contract mode set to `non-allocatable` and historical allocatable transactions | Build projection | Effective allocatable is `false` unless manually overridden |
 
 ### 4. Port contracts
 

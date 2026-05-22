@@ -92,7 +92,7 @@ TestCase {
         var view = createView()
         var txMouse = findRequired(view, "bookingTransactionMouse_tx-1")
 
-        txMouse.clicked(Qt.LeftButton)
+        txMouse.triggerClick()
 
         compare(session.selectedStatementId, "statement-1")
         compare(session.selectedTransactionId, "tx-1")
@@ -111,7 +111,7 @@ TestCase {
         var view = createView()
         var statementMouse = findRequired(view, "bookingStatementMouse_statement-1")
 
-        statementMouse.clicked(Qt.LeftButton)
+        statementMouse.triggerClick()
 
         compare(session.selectedStatementId, "statement-1")
         compare(session.selectedTransactionId, "")
@@ -124,10 +124,10 @@ TestCase {
         var view = createView()
         view.height = 120
         var flick = findRequired(view, "bookingStatementsFlick")
-        var statementMouse = findRequired(view, "bookingStatementMouse_statement-8")
         var row = findRequired(view, "bookingStatementRow_statement-8")
 
-        statementMouse.clicked(Qt.LeftButton)
+        var statementMouse = findRequired(view, "bookingStatementMouse_statement-8")
+        statementMouse.triggerClick()
         wait(0)
 
         var expectedY = row.mapToItem(flick.contentItem, 0, 0).y
@@ -182,10 +182,10 @@ TestCase {
         var view = createView()
         view.height = 120
         var flick = findRequired(view, "bookingStatementsFlick")
-        var txMouse = findRequired(view, "bookingTransactionMouse_tx-7")
         var row = findRequired(view, "bookingTransactionRow_tx-7")
 
-        txMouse.clicked(Qt.LeftButton)
+        var txMouse = findRequired(view, "bookingTransactionMouse_tx-7")
+        txMouse.triggerClick()
         wait(0)
 
         var expectedY = row.mapToItem(flick.contentItem, 0, 0).y

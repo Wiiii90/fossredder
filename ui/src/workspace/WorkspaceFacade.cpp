@@ -62,6 +62,7 @@ core::ports::workspace::PropertyCommand makePropertyCommand(const QString& id,
 core::ports::workspace::ContractCommand makeContractCommand(const QString& id,
                                                             const QString& name,
                                                             const QString& type,
+                                                            const QString& allocatableMode,
                                                             const QStringList& actorIds,
                                                             const QStringList& propertyIds,
                                                             const QStringList& aliases)
@@ -70,6 +71,7 @@ core::ports::workspace::ContractCommand makeContractCommand(const QString& id,
     command.id = strings::toStdString(id);
     command.name = strings::toStdString(name);
     command.type = strings::toStdString(type);
+    command.allocatableMode = strings::toStdString(allocatableMode);
     command.actorIds = stdStrings(actorIds);
     command.propertyIds = stdStrings(propertyIds);
     command.aliases = aliasSnapshots(aliases);
@@ -434,11 +436,12 @@ QString WorkspaceFacade::addContract(const QString& name,
                                      const QString& type,
                                      const QStringList& actorIds,
                                      const QStringList& propertyIds,
-                                     const QStringList& aliases)
+                                     const QStringList& aliases,
+                                     const QString& allocatableMode)
 {
     if (!coreFacade_) return {};
     return QString::fromStdString(coreFacade_->addContract(
-        makeContractCommand({}, name, type, actorIds, propertyIds, aliases)));
+        makeContractCommand({}, name, type, allocatableMode, actorIds, propertyIds, aliases)));
 }
 
 void WorkspaceFacade::updateContract(const QString& id,
@@ -446,10 +449,11 @@ void WorkspaceFacade::updateContract(const QString& id,
                                      const QString& type,
                                      const QStringList& actorIds,
                                      const QStringList& propertyIds,
-                                     const QStringList& aliases)
+                                     const QStringList& aliases,
+                                     const QString& allocatableMode)
 {
     if (!coreFacade_) return;
-    coreFacade_->updateContract(makeContractCommand(id, name, type, actorIds, propertyIds, aliases));
+    coreFacade_->updateContract(makeContractCommand(id, name, type, allocatableMode, actorIds, propertyIds, aliases));
 }
 
 QString WorkspaceFacade::saveContract(const QString& id,
@@ -457,11 +461,12 @@ QString WorkspaceFacade::saveContract(const QString& id,
                                       const QString& type,
                                       const QStringList& actorIds,
                                       const QStringList& propertyIds,
-                                      const QStringList& aliases)
+                                      const QStringList& aliases,
+                                      const QString& allocatableMode)
 {
     if (!coreFacade_) return {};
-    if (id.isEmpty()) return addContract(name, type, actorIds, propertyIds, aliases);
-    updateContract(id, name, type, actorIds, propertyIds, aliases);
+    if (id.isEmpty()) return addContract(name, type, actorIds, propertyIds, aliases, allocatableMode);
+    updateContract(id, name, type, actorIds, propertyIds, aliases, allocatableMode);
     return id;
 }
 
@@ -655,4 +660,3 @@ void WorkspaceFacade::setTransactionPropertyIdsImmediate(const QString& txId, co
 }
 
 }
-

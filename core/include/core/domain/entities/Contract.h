@@ -47,6 +47,7 @@ public:
      * @param value Raw contract type text.
      */
     void setType(std::string value);
+    void setAllocatableMode(std::string value);
 
     /**
      * @brief Replaces the linked actor ids with normalized values.
@@ -239,6 +240,7 @@ private:
     std::string id_;
     std::string name_;
     std::string type_;
+    std::string allocatableMode_ = "mixed";
     std::vector<std::string> actorIds_;
     std::vector<std::string> propertyIds_;
     std::vector<Alias> aliases_;
@@ -250,6 +252,7 @@ public:
     [[nodiscard]] const std::string& id() const noexcept;
     [[nodiscard]] const std::string& name() const noexcept;
     [[nodiscard]] const std::string& type() const noexcept;
+    [[nodiscard]] const std::string& allocatableMode() const noexcept;
     [[nodiscard]] const std::vector<std::string>& actorIds() const noexcept;
     [[nodiscard]] const std::vector<std::string>& propertyIds() const noexcept;
     [[nodiscard]] const std::vector<Alias>& aliases() const noexcept;

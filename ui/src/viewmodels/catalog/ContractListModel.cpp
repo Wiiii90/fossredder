@@ -29,6 +29,8 @@ QVariant ContractList::data(const QModelIndex &index, int role) const {
     return QString::fromStdString(c->name());
   case TypeRole:
     return QString::fromStdString(c->type());
+  case AllocatableModeRole:
+    return QString::fromStdString(c->allocatableMode());
   case ActorIdsRole:
     return payload::mapper::toQStringList(c->actorIds());
   case PropertyIdsRole:
@@ -45,6 +47,7 @@ QVariantMap ContractList::get(int index) const {
   m[ui::payload::keys::common::kId] = QString::fromStdString(c->id());
   m[ui::payload::keys::common::kName] = QString::fromStdString(c->name());
   m[ui::payload::keys::common::kType] = QString::fromStdString(c->type());
+  m[QStringLiteral("allocatableMode")] = QString::fromStdString(c->allocatableMode());
   m[ui::payload::keys::contract::kActorIds] = payload::mapper::toQStringList(c->actorIds());
   m[ui::payload::keys::transaction::kPropertyIds] = payload::mapper::toQStringList(c->propertyIds());
   return m;
@@ -55,6 +58,7 @@ QHash<int, QByteArray> ContractList::roleNames() const {
   roles[IdRole] = ui::payload::keys::common::kId.toUtf8();
   roles[NameRole] = ui::payload::keys::common::kName.toUtf8();
   roles[TypeRole] = ui::payload::keys::common::kType.toUtf8();
+  roles[AllocatableModeRole] = "allocatableMode";
   roles[ActorIdsRole] = ui::payload::keys::contract::kActorIds.toUtf8();
   roles[PropertyIdsRole] =
       ui::payload::keys::transaction::kPropertyIds.toUtf8();

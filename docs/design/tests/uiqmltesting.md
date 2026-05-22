@@ -152,6 +152,10 @@ ui/
 | IMP-D-008 | Draft metadata and proof rendering | QML/Rendering | Current draft transaction contains metadata and proof image data | Open the statement draft view | Metadata text and proof image source are rendered from the current draft payload |
 | IMP-D-009 | Transaction add | QML/Interaction | Draft with transactions loaded | Activate add transaction button | A transaction is inserted after the current transaction and the draft snapshot is persisted |
 | IMP-D-010 | Amount edit survives draft refresh | QML/Interaction | Draft transaction amount field contains uncommitted user text | Edit another draft field that refreshes `draft.current` | The amount input keeps the local edit and commits only when the amount field finishes editing |
+| IMP-D-011 | Amount value stays stable across transaction switches | QML/Interaction | Draft with multiple transactions and a committed amount change on the current transaction | Switch to another transaction and back | The amount field reflects each transaction value deterministically and restores the committed value when returning |
+| IMP-D-012 | Property quick-create delegates to workflow | QML/Interaction | Draft loaded and property quick-create controls visible | Enter a property name and activate `+` | `createPropertyChoiceForCurrentDraft(...)` is called with the entered name |
+| IMP-D-013 | Contract quick-create delegates to workflow | QML/Interaction | Draft loaded and contract quick-create controls visible | Enter contract name/type and activate `+` | `createOrSelectContractChoiceForCurrentDraft(...)` is called with entered values and selection updates through workflow helpers |
+| IMP-D-014 | Actor quick-create appears immediately and is selected | QML/Interaction | Draft loaded with actor quick-create controls visible | Enter actor name and activate `+` | The new actor choice appears immediately in the actor dropdown and is selected for the current transaction |
 
 ## Export
 
@@ -298,6 +302,7 @@ ui/
 | ANN-P-001 | Add annual analysis | QML | Analysis rows available | Activate add analysis button | Analysis id is added once to selection |
 | ANN-P-002 | Add export format update | QML/Interaction | Assigned analysis row visible | Change export format | `updateAnalysis()` is called with normalized export format |
 | ANN-P-003 | Remove analysis | QML/Interaction | Assigned analysis visible | Activate remove analysis button | Analysis id is removed from selection |
+| ANN-P-004 | Assigned analysis row rendering | QML/Interaction | Selected annual has `analysisIds` and matching analysis rows | Open annual form in edit mode | Assigned analysis renders as a visible panel row (not only reflected in summary counters) |
 
 ## Booking
 

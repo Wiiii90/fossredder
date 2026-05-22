@@ -158,13 +158,14 @@ void deleteContractRelations(sqlite3* db, const std::string& contractId) {
 }
 
 constexpr auto kSelectContract =
-    "SELECT id, name, type FROM contracts";
+    "SELECT id, name, type, allocatable_mode FROM contracts";
 
 std::shared_ptr<Contract> readContractRow(persistence::StmtGuard& s) {
     auto c = std::make_shared<Contract>();
     c->setId(s.columnText(0));
     c->rename(s.columnText(1));
     c->setType(s.columnText(2));
+    c->setAllocatableMode(s.columnText(3));
     return c;
 }
 
@@ -186,12 +187,13 @@ void loadContractRelations(sqlite3* db, Contract& c) {
 void SqliteContractRepository::addContract(const std::shared_ptr<Contract>& contract) {
     if (!contract || contract->id().empty()) return;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "INSERT OR IGNORE INTO contracts (id, name, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?);");
+        "INSERT OR IGNORE INTO contracts (id, name, type, allocatable_mode, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?);");
     if (!stmt) return;
     stmt.bindText(1, contract->id());    stmt.bindText(2, contract->name());
     stmt.bindText(3, contract->type());
-    stmt.bindText(4, contract->createdAt());
-    stmt.bindText(5, contract->updatedAt());
+    stmt.bindText(4, contract->allocatableMode());
+    stmt.bindText(5, contract->createdAt());
+    stmt.bindText(6, contract->updatedAt());
     if (stmt.step() == SQLITE_DONE) {
         replaceContractAliases(pimpl_->db->handle(), *contract, {});
         insertContractRelations(pimpl_->db->handle(), contract->id(), *contract);
@@ -201,12 +203,12 @@ void SqliteContractRepository::addContract(const std::shared_ptr<Contract>& cont
 std::vector<std::shared_ptr<Contract>> SqliteContractRepository::getContracts() const {
     std::vector<std::shared_ptr<Contract>> out;
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "SELECT id, name, type, created_at, updated_at FROM contracts ORDER BY id;");
+        "SELECT id, name, type, allocatable_mode, created_at, updated_at FROM contracts ORDER BY id;");
     if (!stmt) return out;
     while (stmt.step() == SQLITE_ROW) {
         auto c = readContractRow(stmt);
-        c->setCreatedAt(stmt.columnText(3));
-        c->setUpdatedAt(stmt.columnText(4));
+        c->setCreatedAt(stmt.columnText(4));
+        c->setUpdatedAt(stmt.columnText(5));
         loadContractAliases(pimpl_->db->handle(), *c);
         loadContractRelations(pimpl_->db->handle(), *c);
         out.push_back(std::move(c));
@@ -216,13 +218,13 @@ std::vector<std::shared_ptr<Contract>> SqliteContractRepository::getContracts() 
 
 std::optional<std::shared_ptr<Contract>> SqliteContractRepository::getContractById(const std::string& id) const {
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "SELECT id, name, type, created_at, updated_at FROM contracts WHERE id = ? LIMIT 1;");
+        "SELECT id, name, type, allocatable_mode, created_at, updated_at FROM contracts WHERE id = ? LIMIT 1;");
     if (!stmt) return std::nullopt;
     stmt.bindText(1, id);
     if (stmt.step() != SQLITE_ROW) return std::nullopt;
     auto c = readContractRow(stmt);
-    c->setCreatedAt(stmt.columnText(3));
-    c->setUpdatedAt(stmt.columnText(4));
+    c->setCreatedAt(stmt.columnText(4));
+    c->setUpdatedAt(stmt.columnText(5));
     loadContractAliases(pimpl_->db->handle(), *c);
     loadContractRelations(pimpl_->db->handle(), *c);
     return c;
@@ -239,13 +241,14 @@ void SqliteContractRepository::updateContract(const std::shared_ptr<Contract>& c
     if (!contract || contract->id().empty()) return;
     const auto existing = loadContractAliasStats(pimpl_->db->handle(), contract->id());
     persistence::StmtGuard stmt(pimpl_->db->handle(),
-        "UPDATE contracts SET name = ?, type = ?, created_at = COALESCE(NULLIF(created_at, ''), ?), updated_at = ? WHERE id = ?;");
+        "UPDATE contracts SET name = ?, type = ?, allocatable_mode = ?, created_at = COALESCE(NULLIF(created_at, ''), ?), updated_at = ? WHERE id = ?;");
     if (!stmt) return;
     stmt.bindText(1, contract->name());
     stmt.bindText(2, contract->type());
-    stmt.bindText(3, contract->createdAt());
-    stmt.bindText(4, contract->updatedAt());
-    stmt.bindText(5, contract->id());
+    stmt.bindText(3, contract->allocatableMode());
+    stmt.bindText(4, contract->createdAt());
+    stmt.bindText(5, contract->updatedAt());
+    stmt.bindText(6, contract->id());
     if (stmt.step() != SQLITE_DONE) return;
     deleteContractRelations(pimpl_->db->handle(), contract->id());
     insertContractRelations(pimpl_->db->handle(), contract->id(), *contract);

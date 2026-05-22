@@ -6,6 +6,7 @@
 #include "ui/viewmodels/import/StatementDraftViewModel.h"
 
 #include <QAbstractItemModel>
+#include <QUuid>
 
 namespace ui {
 
@@ -90,6 +91,7 @@ void StatementDraft::refresh()
 void StatementDraft::insertTransactionAfterCurrent()
 {
     TransactionDraft draft;
+    draft.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     draft.status = static_cast<int>(core::domain::Transaction::Status::Unverified);
 
     const int currentCount = count();

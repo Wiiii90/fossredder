@@ -95,6 +95,7 @@ void SqliteSchema::migrate(sqlite3* db)
          "id TEXT PRIMARY KEY,"
          "name TEXT NOT NULL,"
          "type TEXT NOT NULL DEFAULT '',"
+         "allocatable_mode TEXT NOT NULL DEFAULT 'mixed',"
          "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
          "updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP"
          ");"
@@ -302,7 +303,10 @@ void SqliteSchema::migrate(sqlite3* db)
          "CREATE INDEX IF NOT EXISTS idx_export_log_analyses_analysis_id ON export_log_analyses(analysis_id);"
          "COMMIT;");
 
-    if (version < 1) {
-        setUserVersion(db, 1);
+    if (version >= 1 && version < 2) {
+        exec(db, "ALTER TABLE contracts ADD COLUMN allocatable_mode TEXT NOT NULL DEFAULT 'mixed';");
+        setUserVersion(db, 2);
+    } else if (version < 1) {
+        setUserVersion(db, 2);
     }
 }

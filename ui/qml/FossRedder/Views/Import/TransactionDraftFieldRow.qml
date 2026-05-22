@@ -16,6 +16,7 @@ Item {
     property string rightLabel: ""
     property real leftWeight: 1
     property real rightWeight: 1
+    property real columnSpacing: root.themeSpacingMedium()
     property Component leftContent
     property Component rightContent
 
@@ -51,7 +52,7 @@ Item {
     RowLayout {
         id: row
         anchors.fill: parent
-        spacing: root.theme && root.theme.spacingMedium !== undefined ? root.theme.spacingMedium : 8
+        spacing: root.columnSpacing
 
         ColumnLayout {
             id: leftColumn
