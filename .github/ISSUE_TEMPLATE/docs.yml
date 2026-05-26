@@ -1,0 +1,43 @@
+name: Docs
+description: Track documentation updates, clarifications, or new written guidance
+title: "[Docs]: "
+labels:
+  - docs
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for documentation work that is not directly a feature, bug fix, refactor, chore, or release task.
+  - type: textarea
+    id: docs-goal
+    attributes:
+      label: Docs goal
+      description: What documentation outcome should this issue help complete?
+      placeholder: Describe the documentation change or result this issue is responsible for.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What exactly is included in this documentation task?
+      placeholder: List the documentation-specific steps that belong here.
+    validations:
+      required: true
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      description: List the concrete actions required to complete this docs task.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add links, examples, or implementation constraints.
+      placeholder: Optional context, references, or caveats.

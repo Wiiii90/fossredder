@@ -1,0 +1,43 @@
+name: Chore
+description: Track maintenance, tooling, dependency, or repository hygiene work
+title: "[Chore]: "
+labels:
+  - chore
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for maintenance work that is not directly a feature, bug fix, refactor, or release task.
+  - type: textarea
+    id: chore-goal
+    attributes:
+      label: Chore goal
+      description: What maintenance outcome should this issue help complete?
+      placeholder: Describe the maintenance step or result this issue is responsible for.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What exactly is included in this chore?
+      placeholder: List the maintenance-specific steps that belong here.
+    validations:
+      required: true
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      description: List the concrete actions required to complete this chore.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add links, reminders, or implementation constraints.
+      placeholder: Optional context, references, or caveats.

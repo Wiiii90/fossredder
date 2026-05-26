@@ -1,0 +1,67 @@
+name: Hotfix
+description: Track an urgent fix for a released version
+title: "[Hotfix]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for urgent fixes that must be applied to a released version and then backported to ongoing development if needed.
+  - type: textarea
+    id: affected-version
+    attributes:
+      label: Affected version
+      description: Which released version is affected?
+      placeholder: Example: v0.5.0
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is broken and why does it need a hotfix?
+      placeholder: Describe the urgent problem in one or two sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: What is the user-facing or release impact?
+      placeholder: Describe the severity or operational impact.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What exactly should be changed in the hotfix?
+      placeholder: List the minimal changes required to fix the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      description: List the concrete actions required to complete the hotfix.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: backport
+    attributes:
+      label: Backport note
+      description: Should this fix also be merged back into develop?
+      placeholder: Describe the backport or merge-back plan.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add links, release constraints, or verification notes.
+      placeholder: Optional context, references, or caveats.
