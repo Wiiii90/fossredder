@@ -1,0 +1,59 @@
+name: Refactor
+description: Propose a structural or architectural improvement without changing user-facing behavior
+title: "[Refactor]: "
+labels:
+  - refactor
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for structural changes, architecture cleanup, or codebase improvements that should not alter the intended behavior.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What part of the current structure needs improvement?
+      placeholder: Describe the technical or architectural pain point.
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be improved?
+      placeholder: Describe the target state in concrete terms.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included in this refactor and what is intentionally out of scope?
+      placeholder: List the expected boundaries of the refactor.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior-impact
+    attributes:
+      label: Behavior impact
+      description: Should the observable behavior stay the same?
+      placeholder: State whether the refactor is behavior-preserving or if any behavior change is intended.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: List the conditions that must be true for this refactor to be considered done.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add design notes, migration hints, links, or implementation constraints.
+      placeholder: Optional context, references, or constraints.

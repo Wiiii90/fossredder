@@ -28,39 +28,10 @@ While the core problem could be addressed with simple scripts or well-known LLMs
 - Platform: Windows 10+
 
 ## Project Status
-
-This application is in **Active Alpha**. The core OCR and processing engine are functional, with current development focused on specialized financial logic.
-
-* **Core Functionality:** OCR pipeline and heuristic parsing for Commerzbank statements are implemented and operational.
-* **Current Focus:** Implementing **Tax & Cost Analysis Logic** (allowing users to adjust transaction amounts by tax rates or non-recoverable cost shares) and expanding **Test Coverage**. I am currently stabilizing the UI-to-Persistence pipeline using a TDD approach.
-* **In Development:** Finalization of the Excel export module (including tax-adjusted outputs), advanced settings persistence, and UI/UX polishing.
-
-## Architecture and Design
-
-FOSSredder follows a modular N‑tier architecture designed for testability and a clear separation of concerns. The repository is organised into independent targets so core domain logic, persistence, and the UI can be developed and verified in isolation.
-
-### Overview
-- **Core (`core`):** Orchestrates the import pipeline and coordinates parsing, matching and export flows. The heavy OCR/processing work is performed by service adapters; `core` composes these steps (see `core/src/import`).
-- **Persistence (`persistence`):** SQLite-backed repositories and DB helpers; includes low‑level wrappers like `StmtGuard.h`. A schema implementation and in‑code migrations exist (`persistence/src/SqliteSchema.cpp`, uses `PRAGMA user_version`).
-- **Services (`services`):** Adapters for external libraries (Poppler, OpenCV, Tesseract). These isolate third-party library interfaces behind small adapters so the core sees a stable interface; adapters are mockable in tests (see `services/poppler`, `services/opencv`, `services/tesseract`).
-- **UI (`ui`):** QML front-end and a C++ binding layer. This layer manages presentation logic, controllers, and UI tests (see `ui/src`, `ui/qml`).
-- **Composition Root (`app`):** Central runtime bootstrap in `app/src/main.cpp` where concrete implementations and factories are wired together.
-
-## Roadmap & To-Do
-
-The following milestones highlight both completed foundations and planned refinements:
-
-- [x] **Multi-threaded Pipeline:** Core worker/scheduler system implemented for high-performance batch processing. (see `core/src/jobs/Scheduler.cpp`, `ui/src/import/ImportJobBridge.cpp`)
-- [x] **Localization (i18n):** Full infrastructure integrated via `LanguageController` for German/English runtime switching. (see `ui/src/controllers/LanguageController.cpp`, `app/i18n/`) [currently not switchable in settings]
-- [x] **Deployment Baseline:** Basic Windows installer (.exe) workflow established via Inno Setup. (see `installer/fossredder.iss`, packaging preset)
-- [ ] **Advanced Matching Logic:** Refactor the matching engine to utilize **Levenshtein distance** (fuzzy matching) for robust OCR data handling — no implementation present yet.
-- [ ] **Settings & Configuration:** `Settings` UI parts exist (e.g. `ui/qml/FossRedder/Views/Settings/SettingsExport.qml`) but persistent backend bindings and full settings view implementation are still pending.
-- [ ] **Advanced Import Parameters:** Backend adapters for Poppler/OpenCV/Tesseract exist, but UI → backend wiring for fine-grained import parameters is not implemented.
-- [ ] **Refine Export Module:** Core exporters (`CsvExporter`, `XlsxExporter`) are implemented (`core/src/export/`), however output formatting, correctness and UI-driven column mapping/template support remain unstable and require work.
-- [ ] **Tax & Financial Logic:** Ensure correct application/removal of taxes in exported outputs; decide whether to emit Excel formulas or literal values and implement accordingly. Parts of the tax-related analysis are present (`core/src/analysis/strategies/CalcAnalysisStrategy.cpp`) but export-side handling needs verification (`core/src/export/CsvExporter.cpp`, `core/src/export/XlsxExporter.cpp`).
-- [ ] **UI/UX Polishing:** Application menu structure and a dedicated Help/Onboarding flow are not implemented (current About dialog is a placeholder).
-- [ ] **Robust Packaging:** Installer skeleton exists but automatic bundling of runtime assets (for example Tesseract training data) and full zero-config packaging are not implemented.
-- [ ] **Extended Test Suite:** Unit and some QML tests exist, but end-to-end and broader UI/QML coverage need expansion.
+This application is in **Active Alpha** and has reached its first named baseline milestone. The current codebase is installable, launchable, and functional for the core Commerzbank statement workflow, while still being actively hardened and refined.
+* **Core Functionality:** Commerzbank PDF import, XLSX and CSV export, persistence, and the refactored UI/core integration are implemented and usable.
+* **Current Focus:** Stabilizing the `v0.5.0` baseline, improving the matcher and workflow configuration, and tightening the calculation and domain model.
+* **Near-term Work:** Packaging and installer hardening, GitHub Actions and Doxygen automation, contract and golden tests, and release-readiness polish.
 
 ## Getting started
 

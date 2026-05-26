@@ -1,0 +1,43 @@
+name: Release task
+description: Track release-specific work such as tagging, release notes, packaging verification, and milestone closure
+title: "[Release]: "
+labels:
+  - release
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for tasks that are part of finishing and publishing a version, not for feature work.
+  - type: textarea
+    id: release-goal
+    attributes:
+      label: Release goal
+      description: What release outcome should this task help complete?
+      placeholder: Describe the release step or release result this issue is responsible for.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What exactly is included in this release task?
+      placeholder: List the release-specific steps that belong here.
+    validations:
+      required: true
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      description: List the concrete actions required to complete this release task.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add links, reminders, or release-specific constraints.
+      placeholder: Optional context, references, or caveats.
