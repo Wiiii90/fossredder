@@ -197,7 +197,7 @@ without leaking OpenCV details into `core`.
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | XLS-001 | Writes a workbook from a simple table | Integration | Table rows and writable path | Call writer | XLSX file is created and contains the expected rows |
-| XLS-002 | Preserves sheet title and row order | Integration | Table rows with known order | Write workbook | Sheet title and row order match the input |
+| XLS-002 | Preserves sheet title and row/column orientation | Integration | Table rows with known cell layout (for example `A1=Name`, `B1=Value`, `A2=Rent`, `B2=120.50`) | Write workbook | Sheet title and exact cell layout match the input matrix orientation |
 | XLS-003 | Serializes formula cells into the OOXML sheet | Unit | Table rows containing a formula cell | Write workbook | The generated sheet XML contains a formula node |
 | XLS-004 | Rejects invalid output paths | Unit | Unwritable output path | Write workbook | Operation fails cleanly |
 

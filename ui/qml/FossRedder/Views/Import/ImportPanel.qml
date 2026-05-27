@@ -61,9 +61,8 @@ Controls.Panel {
             onTextEdited: { root.pendingFiles = [] }
         }
 
-        Controls.SecondaryButton {
+        Controls.AddButton {
             objectName: "importAddFileButton"
-            text: qsTr("Add")
             Layout.preferredHeight: parent.actionButtonHeight
             enabled: root.hasImportWorkflow && !root.importWorkflow.isRunning && root.manualPathText() && root.manualPathText().trim().length > 0
             onClicked: {

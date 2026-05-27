@@ -188,7 +188,7 @@ TestCase {
 
         compare(exportWorkflow.exportCalls, 1)
         verify(String(exportWorkflow.lastExportArgs.payload).indexOf("Annual") !== -1)
-        verify(String(exportWorkflow.lastExportArgs.path).indexOf("/export") !== -1)
+        compare(String(exportWorkflow.lastExportArgs.path), "test:///export/default")
     }
 
     function test_EXP_001_defaultDirectoryIsLoadedFromSettings() {

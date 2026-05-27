@@ -53,12 +53,27 @@ std::int32_t qmlHashString(const std::string& value)
 const std::vector<cv::Scalar>& qmlChartPalette()
 {
     static const std::vector<cv::Scalar> colors = {
-        cv::Scalar(221, 170, 119, 255), // #77aadd in OpenCV BGRA order
-        cv::Scalar(170, 204, 136, 255), // #88ccaa
-        cv::Scalar(119, 170, 221, 255), // #ddaa77
-        cv::Scalar(170, 136, 204, 255), // #cc88aa
+        cv::Scalar(199, 211, 141, 255), // #8dd3c7
+        cv::Scalar(179, 255, 255, 255), // #ffffb3
+        cv::Scalar(218, 186, 190, 255), // #bebada
+        cv::Scalar(114, 128, 251, 255), // #fb8072
+        cv::Scalar(211, 177, 128, 255), // #80b1d3
+        cv::Scalar(98, 180, 253, 255),  // #fdb462
+        cv::Scalar(105, 222, 179, 255), // #b3de69
+        cv::Scalar(229, 205, 252, 255), // #fccde5
+        cv::Scalar(217, 217, 217, 255), // #d9d9d9
+        cv::Scalar(189, 128, 188, 255), // #bc80bd
+        cv::Scalar(197, 235, 204, 255), // #ccebc5
+        cv::Scalar(111, 237, 255, 255), // #ffed6f
     };
     return colors;
+}
+
+cv::Scalar colorForIndex(std::size_t index)
+{
+    const auto& colors = qmlChartPalette();
+    if (colors.empty()) return cv::Scalar(119, 170, 221, 255);
+    return colors[index % colors.size()];
 }
 
 cv::Scalar colorForKey(const std::string& key)
@@ -66,7 +81,7 @@ cv::Scalar colorForKey(const std::string& key)
     const auto& colors = qmlChartPalette();
     if (colors.empty()) return cv::Scalar(119, 170, 221, 255);
     const auto index = static_cast<std::size_t>(qmlHashString(key)) % colors.size();
-    return colors[index];
+    return colorForIndex(index);
 }
 
 double renderScale(const cv::Mat& image)
@@ -279,7 +294,7 @@ bool drawPieChartImage(cv::Mat& image, const core::domain::AnalysisResult& resul
     double startAngle = -90.0;
     for (size_t i = 0; i < slices.size(); ++i) {
         const double angle = 360.0 * (slices[i].value / total);
-        const cv::Scalar color = colorForKey(slices[i].label);
+        const cv::Scalar color = colorForIndex(i);
         cv::ellipse(image, center, radius, 0.0, startAngle, startAngle + angle, color, cv::FILLED, cv::LINE_AA);
         startAngle += angle;
     }
@@ -288,7 +303,7 @@ bool drawPieChartImage(cv::Mat& image, const core::domain::AnalysisResult& resul
     int legendY = margin + scaled(image, 20);
     const int maxLegendRows = std::max(1, (height - margin) / scaled(image, 30));
     for (size_t i = 0; i < slices.size() && static_cast<int>(i) < maxLegendRows; ++i) {
-        const cv::Scalar color = colorForKey(slices[i].label);
+        const cv::Scalar color = colorForIndex(i);
         cv::rectangle(image, cv::Point(legendX, legendY - scaled(image, 16)), cv::Point(legendX + scaled(image, 20), legendY + scaled(image, 4)), color, cv::FILLED, cv::LINE_AA);
         std::ostringstream label;
         label << slices[i].label << "  " << std::fixed << std::setprecision(2) << slices[i].value
@@ -432,7 +447,8 @@ bool drawHistogramImage(cv::Mat& image, const core::domain::AnalysisResult& resu
                         if (contractIt == bucket.byContract.end()) continue;
                         const double segmentValue = contractTotal > 0.0 ? propertyValue * (contractIt->second / contractTotal) : 0.0;
                         const int segmentHeight = static_cast<int>(((bottom - top - 10) * segmentValue) / maxValue);
-                        cv::rectangle(image, cv::Point(px1, baseline - segmentHeight), cv::Point(px2, baseline - 1), colorForKey(category), cv::FILLED, cv::LINE_AA);
+                        const auto colorIndex = static_cast<std::size_t>(std::distance(categories.begin(), std::find(categories.begin(), categories.end(), category)));
+                        cv::rectangle(image, cv::Point(px1, baseline - segmentHeight), cv::Point(px2, baseline - 1), colorForIndex(colorIndex), cv::FILLED, cv::LINE_AA);
                         baseline -= segmentHeight;
                     }
                 }
@@ -454,7 +470,8 @@ bool drawHistogramImage(cv::Mat& image, const core::domain::AnalysisResult& resu
                 const auto it = bucket.byContract.find(category);
                 if (it == bucket.byContract.end()) continue;
                 const int segmentHeight = static_cast<int>(((bottom - top - 10) * it->second) / maxValue);
-                cv::rectangle(image, cv::Point(x1, baseline - segmentHeight), cv::Point(x1 + barWidth, baseline - 1), colorForKey(category), cv::FILLED, cv::LINE_AA);
+                const auto colorIndex = static_cast<std::size_t>(std::distance(categories.begin(), std::find(categories.begin(), categories.end(), category)));
+                cv::rectangle(image, cv::Point(x1, baseline - segmentHeight), cv::Point(x1 + barWidth, baseline - 1), colorForIndex(colorIndex), cv::FILLED, cv::LINE_AA);
                 baseline -= segmentHeight;
             }
         }
@@ -475,7 +492,7 @@ bool drawHistogramImage(cv::Mat& image, const core::domain::AnalysisResult& resu
             legendX = margin;
             legendY += scaled(image, 30);
         }
-        cv::rectangle(image, cv::Point(legendX, legendY - scaled(image, 16)), cv::Point(legendX + scaled(image, 20), legendY + scaled(image, 4)), colorForKey(category), cv::FILLED, cv::LINE_AA);
+        cv::rectangle(image, cv::Point(legendX, legendY - scaled(image, 16)), cv::Point(legendX + scaled(image, 20), legendY + scaled(image, 4)), colorForIndex(i), cv::FILLED, cv::LINE_AA);
         cv::putText(image, category, cv::Point(legendX + scaled(image, 30), legendY), chartFontFace(), scaledFont(image, 0.55), cv::Scalar(50, 50, 50, 255), std::max(1, scaled(image, 1)), cv::LINE_AA);
         legendX += itemWidth;
     }

@@ -118,7 +118,7 @@ private:
                                const QString& status,
                                const QString& message,
                                const QString& payload);
-    void finishExport(bool success);
+    void finishExport(bool success, const QString& outputPath = QString());
     std::shared_ptr<const core::application::workspace::WorkspaceSessionState> stateSnapshot() const;
 
     StateSnapshotProvider stateSnapshotProvider_;

@@ -23,6 +23,7 @@ struct ExportRequest {
   bool includeFormulas = true;
   QString locale;
   QString payload;
+  std::function<void(double, const QString&)> progressCallback;
 };
 
 using ExportResult = core::ports::presenters::ExportPresentation;

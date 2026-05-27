@@ -18,10 +18,22 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QUrl>
+#include <QMetaObject>
+#include <QPointer>
+#include <algorithm>
 #include <exception>
 #include <string>
 
 namespace ui {
+
+namespace {
+
+QString buildExportSuccessStatusMessage()
+{
+    return ui::text::exportRuns::successDetail();
+}
+
+} // namespace
 
 ExportWorkflow::ExportWorkflow(
     StateSnapshotProvider stateSnapshotProvider,
@@ -96,14 +108,19 @@ ui::exporting::ExportRequest ExportWorkflow::buildRequest(ui::qml::contracts::Ex
     return request;
 }
 
-void ExportWorkflow::finishExport(bool success)
+void ExportWorkflow::finishExport(bool success, const QString& outputPath)
 {
     completedSteps_ = totalSteps_;
     progress_ = 1.0;
     phase_ = success ? QStringLiteral("Finished") : QStringLiteral("Failed");
 
     const QString status = success ? QStringLiteral("Success") : QStringLiteral("Failed");
-    upsertRunById(activeRunLogId_, activeRunPath_, status, lastError_, QString());
+    const QString path = outputPath.isEmpty() ? activeRunPath_ : outputPath;
+    QString message = lastError_;
+    if (success && message.isEmpty()) {
+        message = buildExportSuccessStatusMessage();
+    }
+    upsertRunById(activeRunLogId_, path, status, message, pendingPayload_);
     persistRuns();
 
     isRunning_ = false;
@@ -231,12 +248,27 @@ void ExportWorkflow::exportDataWithPayload(int format,
     pendingPayload_ = payload;
     activeRunPath_ = path;
     activeRunLogId_ = generateLogId();
-    upsertRunById(activeRunLogId_, activeRunPath_, QStringLiteral("Running"), QString(), QString());
+    upsertRunById(activeRunLogId_, activeRunPath_, QStringLiteral("Running"),
+                  ui::text::exportRuns::startingDetail(), pendingPayload_);
     emit stateChanged();
 
     const auto request = buildRequest(
         static_cast<ui::qml::contracts::ExportFormat>(format), path,
         includeFormulas, locale);
+    auto requestWithProgress = request;
+    QPointer<ExportWorkflow> self(this);
+    requestWithProgress.progressCallback = [self](double progress, const QString& phaseText) {
+      if (!self) return;
+      QMetaObject::invokeMethod(self, [self, progress, phaseText]() {
+        if (!self || !self->isRunning_) return;
+        const double clamped = std::max(0.0, std::min(1.0, progress));
+        self->progress_ = clamped;
+        if (!phaseText.isEmpty()) {
+          self->phase_ = phaseText;
+        }
+        emit self->stateChanged();
+      }, Qt::QueuedConnection);
+    };
     const auto snapshot = stateSnapshot();
     if (!snapshot) {
       lastError_ = ui::text::workflowErrors::exportStateUnavailable();
@@ -246,7 +278,7 @@ void ExportWorkflow::exportDataWithPayload(int format,
           observability::origins::workflow::exportFlow::kStart,
           "Export rejected: state snapshot unavailable",
           {{observability::context::kPath, strings::toStdString(path)}});
-      upsertRunById(activeRunLogId_, activeRunPath_, QStringLiteral("Failed"), lastError_, QString());
+      upsertRunById(activeRunLogId_, activeRunPath_, QStringLiteral("Failed"), lastError_, pendingPayload_);
       persistRuns();
       emit exportFailed(lastError_);
       emit exportFinished(false);
@@ -271,7 +303,7 @@ void ExportWorkflow::exportDataWithPayload(int format,
          {observability::context::kLocale, strings::toStdString(locale)}});
 
     exportFuture_ = QtConcurrent::run(
-        [runner = runner_, snapshot, request = std::move(request)]() mutable {
+        [runner = runner_, snapshot, request = std::move(requestWithProgress)]() mutable {
           return runner->run(snapshot->catalog, request);
         });
     exportWatcher_.setFuture(exportFuture_);
@@ -394,15 +426,19 @@ void ExportWorkflow::onExportFinished() {
   if (cancelRequested_) {
     lastError_.clear();
     phase_ = QStringLiteral("Canceled");
-    finishExport(false);
+    finishExport(false, QString());
     return;
   }
 
   bool success = false;
+  QString resolvedOutputPath;
   try {
     const auto result = exportFuture_.result();
     const auto presented = exportPresenter_ ? exportPresenter_->present(result) : result;
     success = presented.success;
+    if (success) {
+      resolvedOutputPath = QString::fromStdString(presented.resolvedOutputPath);
+    }
     if (!success) {
       lastError_ = presented.message.empty()
                        ? ui::text::workflowErrors::exportFailed()
@@ -451,8 +487,7 @@ void ExportWorkflow::onExportFinished() {
     success = false;
   }
 
-  finishExport(success);
+  finishExport(success, resolvedOutputPath);
 }
 
 } // namespace ui
-

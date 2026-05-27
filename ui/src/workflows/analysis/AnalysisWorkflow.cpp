@@ -183,34 +183,6 @@ QString AnalysisWorkflow::createAnalysis(const QString& name,
         });
 }
 
-void AnalysisWorkflow::updateAnalysis(const QString& id,
-                                        const QString& name,
-                                        const QString& type,
-                                        const QString& configJson,
-                                        const QString& filterSpec,
-                                        const QString& exportFormat,
-                                        bool includeCalcAdjustments,
-                                        const QString& exportStateJson,
-                                        const QString& snapshotTransactionsJson,
-                                        const QString& adjustmentsJson)
-{
-    ui::util::guard::invokeVoid(
-        core_, observability::origins::workflow::analysis::kUpdate, [&]() {
-            core::ports::workspace::AnalysisCommand command;
-            command.id = strings::toStdString(id);
-            command.name = strings::toStdString(name);
-            command.type = strings::toStdString(type);
-            command.configJson = strings::toStdString(configJson);
-            command.filterSpec = strings::toStdString(filterSpec);
-            command.exportFormat = strings::toStdString(exportFormat);
-            command.includeCalculationAdjustments = includeCalcAdjustments;
-            command.exportStateJson = strings::toStdString(exportStateJson);
-            command.snapshotTransactionsJson = strings::toStdString(snapshotTransactionsJson);
-            command.adjustments = parseAdjustments(adjustmentsJson);
-            core_->updateAnalysis(command);
-        });
-}
-
 void AnalysisWorkflow::deleteAnalysis(const QString& id)
 {
     ui::util::guard::invokeVoid(
@@ -431,6 +403,9 @@ QVariantMap AnalysisWorkflow::computeAnalysisPreview(const QString& analysisId,
         preview.setExportStateJson(source.exportStateJson());
         preview.setSnapshotTransactionsJson(source.snapshotTransactionsJson());
         preview.setIncludeCalculationAdjustments(includeCalcAdjustments);
+        for (const auto& [key, value] : source.adjustments()) {
+            preview.setAdjustment(key, value);
+        }
         for (const auto& [key, value] : parseAdjustments(adjustmentsJson)) {
             preview.setAdjustment(key, value);
         }
@@ -631,4 +606,3 @@ std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> AnalysisWorkflow:
 }
 
 } // namespace ui
-

@@ -67,6 +67,8 @@ core/
     application/
       analysis/
         TestAnalysisService.cpp
+      annual/
+        TestAnnualService.cpp
       workspace/
         TestWorkspaceCommandService.cpp
         TestWorkspaceFacade.cpp
@@ -257,6 +259,7 @@ draft finalization, snapshot projection, and port contracts.
 |---|---|---|---|---|---|
 | WSF-001 | Snapshot projection reflects state changes | Unit | Facade with fresh storage manager | Create workspace and add/update/delete one actor | Snapshot callbacks publish the current workspace state consistently |
 | WSF-002 | Catalog commands route through the facade boundary | Unit | Facade with writable workspace session | Send add and update actor commands | Actor is created, updated, and persisted through the boundary |
+| WSF-003 | Workspace facade keeps annual derivation out of workspace reader port | Unit | Facade with annual, assigned analyses, and snapshot payloads | Query workspace snapshot through read port | Annual derivation is not exposed as a workspace reader method and remains an annual application concern |
 
 #### WorkspaceCommandService
 
@@ -314,7 +317,26 @@ draft finalization, snapshot projection, and port contracts.
 | ANS-003 | Filtered analysis only processes matching transactions | Unit | Workspace with filterable transactions | Apply restrictive request | Non-matching transactions are excluded |
 | ANS-004 | Analysis output remains stable for identical input | Unit | Same workspace and request twice | Execute twice | Output is deterministic |
 
-### 3. Draft finalization
+### 3. Annual result application
+
+#### AnnualService
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANR-001 | Snapshot parser accepts canonical array payload form only | Unit | Analysis snapshots stored as `[]` with transaction objects | Build annual result for assigned analyses | Rows are projected from canonical array payloads and legacy wrapper/object formats are not part of the contract |
+| ANR-002 | Row categorization is deterministic | Unit | Rows with exact duplicates, date-cluster amount variants, unique rows, and missing live matches | Build annual result | Rows are partitioned into `deduplicated`, `similar`, `divergent`, and `workspaceOnly` consistently |
+| ANR-003 | Result statistics derive from categorized rows and live state | Unit | Mixed-year snapshots, missing-live rows, and status variants | Build annual result | `missingFromYear`, `mixedYear`, `duplicateCount`, `missingLive`, and status counters match projection rules |
+
+### 4. Export application
+
+#### ExportService
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| AEX-001 | Multi-format analysis export | Unit | Workspace snapshot with one table analysis and one plot analysis | Export `objectRequests` with analysis objects in formats `csv`, `xlsx`, `jpg`, and `png` into one target directory | Export result is `Ok`, all four output files are created, and format-specific ports are invoked successfully |
+| AEX-002 | Export progress reports monotonic stage updates | Unit | Workspace snapshot with multiple analysis object requests and a progress callback | Execute export request and record callback values | Progress callback is invoked multiple times, values are monotonic, and reaches final completion stage |
+
+### 5. Draft finalization
 
 #### DraftFinalizer
 
@@ -344,7 +366,7 @@ draft finalization, snapshot projection, and port contracts.
 | DMP-004 | Contract top suggestion falls back to scored relation match | Unit | Catalog with actor/type-compatible contract and no direct contract candidate | Build projection | Derived state yields a stable contract top suggestion with confidence |
 | DMP-005 | Contract allocatable mode overrides inferred allocatable fallback | Unit | Contract mode set to `non-allocatable` and historical allocatable transactions | Build projection | Effective allocatable is `false` unless manually overridden |
 
-### 4. Port contracts
+### 6. Port contracts
 
 #### IWorkspaceReader
 
@@ -401,6 +423,8 @@ core/
       workspace/TestWorkspaceStateManager.cpp
       workspace/TestWorkspaceWorkflowService.cpp
       analysis/TestAnalysisService.cpp
+      annual/TestAnnualService.cpp
+      export/TestExportService.cpp
       import/draft/TestDraftMatcher.cpp
       import/draft/TestDraftMatcherProjection.cpp
       import/draft/TestDraftFinalizer.cpp
@@ -415,7 +439,7 @@ core/
 2. `WorkspaceCatalog` aggregate behavior.
 3. Workspace command and workflow application services.
 4. Snapshot projection and port contracts.
-5. Analysis application behavior.
+5. Analysis and annual result application behavior.
 
 ## Definition of Done
 

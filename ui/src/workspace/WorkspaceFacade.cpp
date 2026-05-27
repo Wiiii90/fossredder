@@ -8,10 +8,16 @@
 #include <exception>
 
 #include "core/application/workspace/WorkspaceFacade.h"
+#include "core/application/annual/AnnualService.h"
 #include "core/ports/workspace/WorkspaceCommands.h"
+#include "ui/adapters/core/AnnualRequestMapper.h"
+#include "ui/adapters/core/AnnualResultMapper.h"
 #include "ui/adapters/core/EntityPayloadMapper.h"
 #include "ui/adapters/core/WorkspaceRowProjector.h"
+#include "ui/shared/payload/PayloadMapper.h"
 #include "ui/shared/util/StringConversions.h"
+
+#include <QSet>
 
 namespace ui {
 
@@ -31,6 +37,46 @@ std::vector<core::ports::workspace::AliasSnapshot> aliasSnapshots(const QStringL
 std::vector<std::string> stdStrings(const QStringList& values)
 {
     return strings::toStdList(values);
+}
+
+QString analysisIdFromVariant(const QVariant& value)
+{
+    if (!value.isValid()) return {};
+    if (value.typeId() == QMetaType::QString) return value.toString().trimmed();
+
+    const QVariantMap map = value.toMap();
+    if (!map.isEmpty()) {
+        const QString id = map.value(QStringLiteral("id")).toString().trimmed();
+        if (!id.isEmpty()) return id;
+        return map.value(QStringLiteral("objectId")).toString().trimmed();
+    }
+    return value.toString().trimmed();
+}
+
+QVariantMap normalizeAnnualAnalysisRow(const QVariant& value)
+{
+    const QVariantMap source = value.toMap();
+    QVariantMap out;
+    const QString id = analysisIdFromVariant(value);
+    if (id.isEmpty()) return out;
+
+    const QString name = source.value(QStringLiteral("name")).toString();
+    const QString display = source.value(QStringLiteral("display")).toString();
+    const QString type = source.value(QStringLiteral("type")).toString();
+
+    out.insert(QStringLiteral("id"), id);
+    out.insert(QStringLiteral("name"), name);
+    out.insert(QStringLiteral("display"), !display.isEmpty() ? display : (!name.isEmpty() ? name : id));
+    out.insert(QStringLiteral("type"), !type.isEmpty() ? type : QStringLiteral("tab"));
+    out.insert(QStringLiteral("config"), source.value(QStringLiteral("config"), QStringLiteral("{}")));
+    out.insert(QStringLiteral("filter"), source.value(QStringLiteral("filter"), source.value(QStringLiteral("filterSpec"), QString())));
+    out.insert(QStringLiteral("exportFormat"), source.value(QStringLiteral("exportFormat"), QString()));
+    out.insert(QStringLiteral("includeCalcAdjustments"), source.value(QStringLiteral("includeCalcAdjustments"), true));
+    out.insert(QStringLiteral("exportState"), source.value(QStringLiteral("exportState"), QStringLiteral("{}")));
+    out.insert(QStringLiteral("snapshotTransactions"),
+               source.value(QStringLiteral("snapshotTransactions"),
+                            source.value(QStringLiteral("snapshotTransactionsJson"), QStringLiteral("[]"))));
+    return out;
 }
 
 core::ports::workspace::ActorCommand makeActorCommand(const QString& id,
@@ -351,6 +397,20 @@ QVariantList WorkspaceFacade::statementTransactionRows(const QString& statementI
     return buildStatementTransactionRows(*session_, statementId);
 }
 
+QVariantList WorkspaceFacade::transactionRows() const
+{
+    QVariantList out;
+    if (!session_) return out;
+
+    const auto& model = session_->models().transactions();
+    const int count = model.rowCount();
+    out.reserve(count);
+    for (int row = 0; row < count; ++row) {
+        out.push_back(model.get(row));
+    }
+    return out;
+}
+
 QVariantMap WorkspaceFacade::transaction(const QString& id) const
 {
     QVariantMap out;
@@ -379,6 +439,96 @@ QVariantMap WorkspaceFacade::annual(const QString& id) const
         return out;
     }
 
+    return out;
+}
+
+QVariantMap WorkspaceFacade::annualResultState(const QString& annualId) const
+{
+    if (!coreFacade_ || annualId.isEmpty()) return {};
+    core::application::annual::AnnualService service;
+    return ui::annual::toPayload(service.runAnnual(coreFacade_->workspaceSnapshot(), ui::annual::toRequest(annualId)));
+}
+
+QVariantMap WorkspaceFacade::annualResultStatePreview(const QString& annualId,
+                                                      const QVariant& selectedIds,
+                                                      int year) const
+{
+    if (!coreFacade_) return {};
+    const auto normalizedIds = normalizeAnalysisIds(selectedIds);
+    const QString previewId = QStringLiteral("__annual_preview__");
+    const auto snapshot = ui::annual::withPreviewAnnual(coreFacade_->workspaceSnapshot(), previewId, normalizedIds, year);
+
+    core::application::annual::AnnualService service;
+    return ui::annual::toPayload(service.runAnnual(snapshot, ui::annual::toRequest(previewId)));
+}
+
+QString WorkspaceFacade::analysisIdFromRow(const QVariant& row) const
+{
+    return analysisIdFromVariant(row);
+}
+
+QStringList WorkspaceFacade::normalizeAnalysisIds(const QVariant& values) const
+{
+    QStringList out;
+    QSet<QString> seen;
+    const QVariantList list = values.toList();
+    if (!list.isEmpty()) {
+        for (const auto& value : list) {
+            const QString id = analysisIdFromVariant(value);
+            if (id.isEmpty() || seen.contains(id)) continue;
+            seen.insert(id);
+            out.push_back(id);
+        }
+        return out;
+    }
+
+    const QString single = analysisIdFromVariant(values);
+    if (!single.isEmpty()) out.push_back(single);
+    return out;
+}
+
+QVariantList WorkspaceFacade::assignedAnnualAnalysisRows(const QVariantList& allRows, const QVariant& selectedIds) const
+{
+    QVariantList normalizedRows;
+    normalizedRows.reserve(allRows.size());
+    for (const auto& row : allRows) {
+        const QVariantMap normalized = normalizeAnnualAnalysisRow(row);
+        if (!normalized.isEmpty()) normalizedRows.push_back(normalized);
+    }
+
+    const QStringList ids = normalizeAnalysisIds(selectedIds);
+    QVariantList out;
+    out.reserve(ids.size());
+    for (const auto& id : ids) {
+        for (const auto& rowValue : normalizedRows) {
+            const QVariantMap row = rowValue.toMap();
+            if (row.value(QStringLiteral("id")).toString() == id) {
+                out.push_back(row);
+                break;
+            }
+        }
+    }
+    return out;
+}
+
+QVariantList WorkspaceFacade::availableAnnualAnalysisRows(const QVariantList& allRows, const QVariant& selectedIds) const
+{
+    QVariantList normalizedRows;
+    normalizedRows.reserve(allRows.size());
+    for (const auto& row : allRows) {
+        const QVariantMap normalized = normalizeAnnualAnalysisRow(row);
+        if (!normalized.isEmpty()) normalizedRows.push_back(normalized);
+    }
+
+    const QStringList selectedIdsList = normalizeAnalysisIds(selectedIds);
+    const QSet<QString> selected(selectedIdsList.begin(), selectedIdsList.end());
+    QVariantList out;
+    for (const auto& rowValue : normalizedRows) {
+        const QVariantMap row = rowValue.toMap();
+        const QString id = row.value(QStringLiteral("id")).toString();
+        if (id.isEmpty() || selected.contains(id)) continue;
+        out.push_back(row);
+    }
     return out;
 }
 

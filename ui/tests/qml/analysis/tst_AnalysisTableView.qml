@@ -140,4 +140,12 @@ TestCase {
         compare(view.matrixPropertyNames[0], "Readable Property")
         compare(view.propertyTotal("Readable Property"), 100.0)
     }
+
+    function test_rebuildMatrixReactsToAdjustmentMapChanges() {
+        var view = createView()
+
+        compare(view.grandTotal, 150.0)
+        view.adjustmentAmountsById = ({ "tx-1": 120.0, "tx-2": 80.0 })
+        compare(view.grandTotal, 200.0)
+    }
 }

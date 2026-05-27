@@ -56,6 +56,7 @@ ui/
       annual/
         tst_AnnualView.qml
         tst_AnnualForm.qml
+        tst_AnnualTransactionsPanel.qml
       booking/
         tst_BookingView.qml
         tst_BookingStatementView.qml
@@ -164,6 +165,7 @@ ui/
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | EXP-V-001 | Container mount | QML | App context and theme available | Open ExportView | `ExportPanel` and `ExportSidebar` are filled with app context and theme |
+| EXP-V-002 | Start export uses selected target directory directly | QML/Interaction | Export form has a target directory and at least one export item | Click Start | `exportDataWithPayload(..., path, ...)` receives the selected directory path without appending an extra `/export` segment |
 
 ### ExportForm
 
@@ -303,6 +305,13 @@ ui/
 | ANN-P-002 | Add export format update | QML/Interaction | Assigned analysis row visible | Change export format | `updateAnalysis()` is called with normalized export format |
 | ANN-P-003 | Remove analysis | QML/Interaction | Assigned analysis visible | Activate remove analysis button | Analysis id is removed from selection |
 | ANN-P-004 | Assigned analysis row rendering | QML/Interaction | Selected annual has `analysisIds` and matching analysis rows | Open annual form in edit mode | Assigned analysis renders as a visible panel row (not only reflected in summary counters) |
+| ANN-P-005 | Annual transaction snapshot mapping | QML/Interaction | Selected annual has assigned analyses with canonical snapshot payload arrays (`[]`) and live transaction rows | Switch to Annual Transactions workspace | Transactions are derived/rendered from `WorkspaceFacade::annualResultStatePreview` through the annual application service, including allocatable state and contract type when available |
+
+### AnnualTransactionsPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANN-T-001 | Category sections render deterministically | QML/Interaction | Grouped annual transaction payload contains at least one row in `deduplicated`, `similar`, `divergent`, and `workspaceOnly` | Open annual transactions panel | All four category section toggles are visible and stay independently expandable/collapsible |
 
 ## Booking
 
@@ -416,6 +425,7 @@ ui/
 | ANL-010 | Contract type filter selection | QML/Interaction | Contract types available | Change contract type selection | Preview refresh is requested and selected types update |
 | ANL-011 | Allocatable filter selection | QML/Interaction | Filter panel visible | Change allocatable mode | Preview refresh is requested and allocatable mode updates |
 | ANL-012 | Result export state | QML/Interaction | Plot analysis selected | Modify export state | Export state JSON is normalized and persisted |
+| ANL-013 | Include-calc toggle persists on update | QML/Interaction | Existing analysis in edit mode with calc adjustments enabled | Toggle `Include Calc Adjustments` and click Update | `updateAnalysis(..., includeCalcAdjustments, ...)` receives the toggled boolean and subsequent previews honor it |
 
 ### AnalysisTransactionsPanel
 
@@ -435,6 +445,8 @@ ui/
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | ANL-TV-001 | Table render | QML/Interaction | Adjustment data available | Open table view | Adjustment rows render from amount map |
+| ANL-TV-002 | Matrix uses readable property names from result transactions | QML/Interaction | Result transactions provide `propertyIds` and `propertyNames` | Open table view | Matrix row labels use `propertyNames` instead of raw ids where available |
+| ANL-TV-003 | Matrix rebuild reacts to adjustment map changes | QML/Interaction | Table view loaded with result transactions | Update `adjustmentAmountsById` at runtime | Matrix totals are recalculated immediately to reflect adjusted values |
 
 ## Components
 

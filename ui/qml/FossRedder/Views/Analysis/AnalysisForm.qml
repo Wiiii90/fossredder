@@ -19,6 +19,7 @@ Item {
 
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var analysisWorkflow: root.appContext ? root.appContext.analysisWorkflow : null
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
     readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
     readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
     Accessible.ignored: root.appContext ? root.appContext.isDebugBuild : false
@@ -497,16 +498,17 @@ Item {
             const selectedId = root.session.selectedAnalysisId ? String(root.session.selectedAnalysisId) : ""
             if (selectedId.length === 0)
                 return
-            root.analysisWorkflow.updateAnalysis(selectedId,
-                                                   nameField.text,
-                                                   strategyType,
-                                                   configJson,
-                                                   filterSpec,
-                                                   selectedExportFormat,
-                                                    root.includeCalcAdjustments,
-                                                    root.normalizeExportStateJson(root.exportStateJson),
-                                                    root.snapshotTransactionsJson,
-                                                    root.pendingAdjustmentsJson)
+            if (!root.workspaceFacade || !root.workspaceFacade.updateAnalysis)
+                return
+            root.workspaceFacade.updateAnalysis(selectedId,
+                                                nameField.text,
+                                                strategyType,
+                                                configJson,
+                                                filterSpec,
+                                                selectedExportFormat,
+                                                root.includeCalcAdjustments,
+                                                root.normalizeExportStateJson(root.exportStateJson),
+                                                root.snapshotTransactionsJson)
         }
 
         const currentId = root.session.selectedAnalysisId ? String(root.session.selectedAnalysisId) : ""
@@ -912,7 +914,7 @@ Item {
                         transactions: root.previewTransactions
                         metrics: root.previewMetrics
                         selectedTransactionIds: root.selectedAdjustmentTxIds
-                        adjustedAmountsById: root.adjustmentAmountsById
+                        adjustedAmountsById: root.includeCalcAdjustments ? root.adjustmentAmountsById : ({})
                         calcName: root.calcName
                         calcPercentText: root.calcPercentText
                         Layout.fillWidth: true

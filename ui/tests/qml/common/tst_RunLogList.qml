@@ -63,12 +63,54 @@ TestCase {
         return found
     }
 
-    function test_CTRL_RL_003_payloadSummaryParsesAnnualAndAnalysisCounts() {
+    function test_CTRL_RL_003_exportTitleFromPayloadUsesAnalysisName() {
         var control = createControl()
-        var summary = control.payloadSummary('{"items":[{"objectType":"Annual"},{"objectType":"Analysis","exportType":"XLSX"}]}')
+        var title = control.exportTitleFromPayload('{"items":[{"objectType":"Annual","objectName":"2024"},{"objectType":"Analysis","objectName":"Rent Overview","exportType":"CSV"}]}')
 
-        verify(summary.indexOf("Annuals") !== -1)
-        verify(summary.indexOf("Analyses") !== -1)
+        compare(title, "Export 'Rent Overview'")
+    }
+
+    function test_CTRL_RL_008_statusDetailUsesMessageForExportSuccess() {
+        var control = createControl()
+        var payload = '{"items":[{"objectType":"Analysis","objectName":"Rent Overview","exportType":"CSV"}]}'
+
+        compare(control.titleText("test:///exports/export", payload), "Export 'Rent Overview'")
+        compare(control.statusDetailText("Export completed successfully.", "Success", payload),
+                "Export completed successfully.")
+    }
+
+    function test_CTRL_RL_007_detailLineKeepsReservedHeightWhenMessageMissing() {
+        var control = createTemporaryObject(runLogListComponent, testCase, {
+            model: [
+                {
+                    logId: "log-empty-detail",
+                    time: "2026-01-01T10:00:00Z",
+                    status: "Success",
+                    file: "test:///exports/a.xlsx",
+                    message: "",
+                    payload: "",
+                    draftAttached: false,
+                    draftId: "",
+                    statementId: ""
+                },
+                {
+                    logId: "log-with-detail",
+                    time: "2026-01-01T10:00:00Z",
+                    status: "Success",
+                    file: "test:///exports/b.xlsx",
+                    message: "Draft was finalized into a statement.",
+                    payload: "",
+                    draftAttached: false,
+                    draftId: "",
+                    statementId: ""
+                }
+            ]
+        })
+        wait(0)
+
+        var emptyCard = findRequired(control, "runLogCard_log-empty-detail")
+        var filledCard = findRequired(control, "runLogCard_log-with-detail")
+        compare(emptyCard.height, filledCard.height)
     }
 
     function test_CTRL_RL_002_fileNameReturnsLastSegment() {

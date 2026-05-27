@@ -21,6 +21,11 @@ Controls.Panel {
     property string addMode: "annual"
     property string pendingAnnualId: ""
     property string pendingAnalysisId: ""
+    property int exportTypeColumnWidth: 110
+    property int removeColumnWidth: root.theme.viewCompactActionButtonSize
+    property int leadingColumnWidth: root.theme.viewCompactActionButtonSize
+    property int kindColumnWidth: 88
+    property int analysisNameMinWidth: 160
 
     function annualRows() {
         const _workspaceRevision = root.workspaceRevision
@@ -184,7 +189,9 @@ Controls.Panel {
 
     function analysesForAnnual(annualId, currentAnalyses) {
         const annual = annualRowById(annualId)
-        if (!annual || !annual.assignedAnalysisIds || annual.assignedAnalysisIds.length === undefined) return []
+        if (!annual) return []
+        const annualAnalysisIds = annual.analysisIds ? annual.analysisIds : annual.assignedAnalysisIds
+        if (!annualAnalysisIds || annualAnalysisIds.length === undefined) return []
 
         const currentById = {}
         const existing = currentAnalyses ? currentAnalyses : []
@@ -194,8 +201,8 @@ Controls.Panel {
         }
 
         const out = []
-        for (let j = 0; j < annual.assignedAnalysisIds.length; ++j) {
-            const analysisId = String(annual.assignedAnalysisIds[j])
+        for (let j = 0; j < annualAnalysisIds.length; ++j) {
+            const analysisId = String(annualAnalysisIds[j])
             const row = analysisRowById(analysisId)
             const type = row && row.type ? String(row.type).toLowerCase() : analysisTypeById(analysisId)
             out.push(createAnalysisEntry(
@@ -321,15 +328,14 @@ Controls.Panel {
             onActivated: function(index) { root.selectPendingRow(index) }
         }
 
-        Controls.SecondaryButton {
+        Controls.AddButton {
             objectName: "exportAddEntryButton"
-            text: "+"
-            Layout.preferredWidth: root.theme.viewCompactActionButtonSize
-            Layout.minimumWidth: root.theme.viewCompactActionButtonSize
-            Layout.maximumWidth: root.theme.viewCompactActionButtonSize
-            Layout.preferredHeight: root.theme.viewCompactActionButtonSize
-            Layout.minimumHeight: root.theme.viewCompactActionButtonSize
-            Layout.maximumHeight: root.theme.viewCompactActionButtonSize
+            Layout.preferredWidth: 72
+            Layout.minimumWidth: 72
+            Layout.maximumWidth: 72
+            Layout.preferredHeight: root.theme.controlHeight
+            Layout.minimumHeight: root.theme.controlHeight
+            Layout.maximumHeight: root.theme.controlHeight
             enabled: root.pendingObjectId().length > 0
             onClicked: root.addPendingEntry()
         }
@@ -429,161 +435,195 @@ Controls.Panel {
 
                 Rectangle {
                     width: parent.width
-                    implicitHeight: annualHeaderRow.implicitHeight + (root.theme.spacing * 2)
+                    implicitHeight: annualCardColumn.implicitHeight + (root.theme.spacing * 2)
                     height: implicitHeight
                     radius: root.theme.radius
                     color: "transparent"
                     border.width: root.theme.borderWidthThin
                     border.color: root.theme.borderSoft
 
-                    RowLayout {
-                        id: annualHeaderRow
+                    Column {
+                        id: annualCardColumn
                         anchors.fill: parent
                         anchors.margins: root.theme.spacing
                         spacing: root.theme.spacing
 
-                        Controls.SecondaryButton {
-                            text: annualEntryItem.annualData.collapsed ? "\u25B6" : "\u25BC"
-                            implicitWidth: root.theme.viewInlineIconSize
-                            textColor: root.theme.textMuted
-                            onClicked: root.updateAnnualCollapsed(annualEntryItem.entryIndex, !annualEntryItem.annualData.collapsed)
-                        }
+                        RowLayout {
+                            id: annualHeaderRow
+                            width: parent.width
+                            spacing: root.theme.spacing
 
-                        Rectangle {
-                            Layout.preferredWidth: 88
-                            Layout.preferredHeight: root.theme.controlHeight
-                            radius: root.theme.radius
-                            color: root.theme.surface
-                            border.width: root.theme.borderWidthThin
-                            border.color: root.theme.borderSoft
+                            Controls.SecondaryButton {
+                                text: annualEntryItem.annualData.collapsed ? "\u25B6" : "\u25BC"
+                                Layout.preferredWidth: root.leadingColumnWidth
+                                Layout.minimumWidth: root.leadingColumnWidth
+                                Layout.maximumWidth: root.leadingColumnWidth
+                                Layout.preferredHeight: root.theme.viewCompactActionButtonSize
+                                Layout.minimumHeight: root.theme.viewCompactActionButtonSize
+                                Layout.maximumHeight: root.theme.viewCompactActionButtonSize
+                                textColor: root.theme.textMuted
+                                onClicked: root.updateAnnualCollapsed(annualEntryItem.entryIndex, !annualEntryItem.annualData.collapsed)
+                            }
+
+                            Rectangle {
+                                Layout.preferredWidth: root.kindColumnWidth
+                                Layout.preferredHeight: root.theme.controlHeight
+                                radius: root.theme.radius
+                                color: root.theme.surface
+                                border.width: root.theme.borderWidthThin
+                                border.color: root.theme.borderSoft
+
+                                Label {
+                                    anchors.fill: parent
+                                    text: qsTr("Annual")
+                                    color: root.theme.textPrimary
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    font.bold: true
+                                }
+                            }
+
+                            Controls.DropdownMenu {
+                                Layout.fillWidth: true
+                                model: root.annualRows()
+                                textRole: "display"
+                                currentIndex: root.indexForId(root.annualRows(), annualEntryItem.annualData.objectId)
+                                onActivated: {
+                                    const row = model && currentIndex >= 0 ? model[currentIndex] : null
+                                    root.updateAnnual(annualEntryItem.entryIndex,
+                                                      row && row.id ? row.id : "",
+                                                      row && row.name ? row.name : "")
+                                }
+                            }
+
+                            Item {
+                                Layout.preferredWidth: root.exportTypeColumnWidth
+                                Layout.minimumWidth: root.exportTypeColumnWidth
+                                Layout.maximumWidth: root.exportTypeColumnWidth
+                            }
+
+                            Controls.SecondaryButton {
+                                text: "×"
+                                Layout.preferredWidth: root.removeColumnWidth
+                                Layout.minimumWidth: root.removeColumnWidth
+                                Layout.maximumWidth: root.removeColumnWidth
+                                Layout.preferredHeight: root.theme.viewCompactActionButtonSize
+                                Layout.minimumHeight: root.theme.viewCompactActionButtonSize
+                                Layout.maximumHeight: root.theme.viewCompactActionButtonSize
+                                textColor: root.theme.textMuted
+                                onClicked: root.removeEntry(annualEntryItem.entryIndex)
+                            }
+                        }
+                        Column {
+                            id: annualAnalysesColumn
+                            width: parent.width
+                            spacing: root.theme.spacing
+                            visible: !annualEntryItem.annualData.collapsed
 
                             Label {
-                                anchors.fill: parent
-                                text: qsTr("Annual")
-                                color: root.theme.textPrimary
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                font.bold: true
+                                width: parent.width
+                                visible: (!annualEntryItem.annualData.analyses || annualEntryItem.annualData.analyses.length === 0)
+                                text: qsTr("No analyses assigned")
+                                color: root.theme.textMuted
+                                wrapMode: Text.WordWrap
+                                leftPadding: root.leadingColumnWidth + root.kindColumnWidth + root.theme.spacing * 2
                             }
-                        }
 
-                        Controls.DropdownMenu {
-                            Layout.fillWidth: true
-                            model: root.annualRows()
-                            textRole: "display"
-                            currentIndex: root.indexForId(root.annualRows(), annualEntryItem.annualData.objectId)
-                            onActivated: {
-                                const row = model && currentIndex >= 0 ? model[currentIndex] : null
-                                root.updateAnnual(annualEntryItem.entryIndex,
-                                                  row && row.id ? row.id : "",
-                                                  row && row.name ? row.name : "")
-                            }
-                        }
+                            Repeater {
+                                model: annualEntryItem.annualData.analyses ? annualEntryItem.annualData.analyses : []
 
-                        Controls.SecondaryButton {
-                            text: "×"
-                            Layout.preferredWidth: root.theme.viewCompactActionButtonSize
-                            Layout.minimumWidth: root.theme.viewCompactActionButtonSize
-                            Layout.maximumWidth: root.theme.viewCompactActionButtonSize
-                            Layout.preferredHeight: root.theme.viewCompactActionButtonSize
-                            Layout.minimumHeight: root.theme.viewCompactActionButtonSize
-                            Layout.maximumHeight: root.theme.viewCompactActionButtonSize
-                            textColor: root.theme.textMuted
-                            onClicked: root.removeEntry(annualEntryItem.entryIndex)
-                        }
-                    }
-                }
-
-                Column {
-                    id: annualAnalysesColumn
-                    width: parent.width
-                    leftPadding: root.theme.spacing + root.theme.margins
-                    rightPadding: root.theme.spacing
-                    spacing: root.theme.spacing
-                    visible: !annualEntryItem.annualData.collapsed
-
-                    Label {
-                        width: parent.width
-                        visible: (!annualEntryItem.annualData.analyses || annualEntryItem.annualData.analyses.length === 0)
-                        text: qsTr("No analyses assigned")
-                        color: root.theme.textMuted
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Repeater {
-                        model: annualEntryItem.annualData.analyses ? annualEntryItem.annualData.analyses : []
-
-                        delegate: Rectangle {
-                            id: annualAnalysisEntry
-                            required property var modelData
-                            required property int index
-                            width: annualAnalysesColumn.width - annualAnalysesColumn.leftPadding - annualAnalysesColumn.rightPadding
-                            implicitHeight: annualAnalysisRow.implicitHeight + (root.theme.spacing * 2)
-                            height: implicitHeight
-                            radius: root.theme.radius
-                            color: "transparent"
-                            border.color: root.theme.borderSoft
-                            border.width: root.theme.borderWidthThin
-
-                            RowLayout {
-                                id: annualAnalysisRow
-                                anchors.fill: parent
-                                anchors.margins: root.theme.spacing
-                                spacing: root.theme.spacing
-
-                                Item { Layout.preferredWidth: root.theme.viewInlineIconSize }
-
-                                Rectangle {
-                                    Layout.preferredWidth: 88
-                                    Layout.preferredHeight: root.theme.controlHeight
+                                delegate: Rectangle {
+                                    id: annualAnalysisEntry
+                                    required property var modelData
+                                    required property int index
+                                    width: annualAnalysesColumn.width
+                                    implicitHeight: annualAnalysisRow.implicitHeight + (root.theme.spacing * 2)
+                                    height: implicitHeight
                                     radius: root.theme.radius
-                                    color: root.theme.surface
-                                    border.width: root.theme.borderWidthThin
+                                    color: "transparent"
                                     border.color: root.theme.borderSoft
-
-                                    Label {
-                                        anchors.fill: parent
-                                        text: qsTr("Analysis")
-                                        color: root.theme.textPrimary
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                        font.bold: true
-                                    }
-                                }
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: root.theme.controlHeight
-                                    radius: root.theme.radius
-                                    color: root.theme.surface
                                     border.width: root.theme.borderWidthThin
-                                    border.color: root.theme.borderSoft
 
-                                    Label {
+                                    RowLayout {
+                                        id: annualAnalysisRow
                                         anchors.fill: parent
-                                        anchors.leftMargin: root.theme.spacing
-                                        anchors.rightMargin: root.theme.spacing
-                                        text: annualAnalysisEntry.modelData.objectName && annualAnalysisEntry.modelData.objectName.length > 0
-                                              ? annualAnalysisEntry.modelData.objectName
-                                              : qsTr("(unassigned)")
-                                        color: root.theme.textPrimary
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                        elide: Text.ElideRight
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        anchors.top: parent.top
+                                        anchors.bottom: parent.bottom
+                                        anchors.topMargin: root.theme.spacing
+                                        anchors.bottomMargin: root.theme.spacing
+                                        spacing: root.theme.spacing
+
+                                        Item {
+                                            Layout.preferredWidth: root.leadingColumnWidth
+                                            Layout.minimumWidth: root.leadingColumnWidth
+                                            Layout.maximumWidth: root.leadingColumnWidth
+                                        }
+
+                                        Rectangle {
+                                            Layout.preferredWidth: root.kindColumnWidth
+                                            Layout.preferredHeight: root.theme.controlHeight
+                                            radius: root.theme.radius
+                                            color: root.theme.surface
+                                            border.width: root.theme.borderWidthThin
+                                            border.color: root.theme.borderSoft
+
+                                            Label {
+                                                anchors.fill: parent
+                                                text: qsTr("Analysis")
+                                                color: root.theme.textPrimary
+                                                horizontalAlignment: Text.AlignHCenter
+                                                verticalAlignment: Text.AlignVCenter
+                                                font.bold: true
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: root.analysisNameMinWidth
+                                            Layout.preferredHeight: root.theme.controlHeight
+                                            radius: root.theme.radius
+                                            color: root.theme.surface
+                                            border.width: root.theme.borderWidthThin
+                                            border.color: root.theme.borderSoft
+
+                                            Label {
+                                                anchors.fill: parent
+                                                anchors.leftMargin: root.theme.spacing
+                                                anchors.rightMargin: root.theme.spacing
+                                                text: annualAnalysisEntry.modelData.objectName && annualAnalysisEntry.modelData.objectName.length > 0
+                                                      ? annualAnalysisEntry.modelData.objectName
+                                                      : qsTr("(unassigned)")
+                                                color: root.theme.textPrimary
+                                                horizontalAlignment: Text.AlignLeft
+                                                verticalAlignment: Text.AlignVCenter
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+
+                                        Controls.DropdownMenu {
+                                            Layout.preferredWidth: root.exportTypeColumnWidth
+                                            Layout.minimumWidth: root.exportTypeColumnWidth
+                                            Layout.maximumWidth: root.exportTypeColumnWidth
+                                            model: root.exportOptionsForAnalysisType(annualAnalysisEntry.modelData.analysisType)
+                                            currentIndex: Math.max(0, model.indexOf(annualAnalysisEntry.modelData.exportType))
+                                            onActivated: {
+                                                const selectedExportType = model && currentIndex >= 0 ? model[currentIndex] : ""
+                                                root.updateAnnualAnalysisExportType(annualEntryItem.entryIndex, annualAnalysisEntry.index, selectedExportType)
+                                            }
+                                        }
+
+                                        Item {
+                                            Layout.preferredWidth: root.removeColumnWidth
+                                            Layout.minimumWidth: root.removeColumnWidth
+                                            Layout.maximumWidth: root.removeColumnWidth
+                                            Layout.preferredHeight: root.theme.viewCompactActionButtonSize
+                                            Layout.minimumHeight: root.theme.viewCompactActionButtonSize
+                                            Layout.maximumHeight: root.theme.viewCompactActionButtonSize
+                                        }
                                     }
                                 }
-
-                                Controls.DropdownMenu {
-                                    Layout.preferredWidth: 110
-                                    model: root.exportOptionsForAnalysisType(annualAnalysisEntry.modelData.analysisType)
-                                    currentIndex: Math.max(0, model.indexOf(annualAnalysisEntry.modelData.exportType))
-                                    onActivated: {
-                                        const selectedExportType = model && currentIndex >= 0 ? model[currentIndex] : ""
-                                        root.updateAnnualAnalysisExportType(annualEntryItem.entryIndex, annualAnalysisEntry.index, selectedExportType)
-                                    }
-                                }
-
-                                Item { Layout.preferredWidth: root.theme.viewCompactActionButtonSize }
                             }
                         }
                     }
@@ -615,8 +655,17 @@ Controls.Panel {
                 anchors.margins: root.theme.spacing
                 spacing: root.theme.spacing
 
+                Item {
+                    Layout.preferredWidth: root.leadingColumnWidth
+                    Layout.minimumWidth: root.leadingColumnWidth
+                    Layout.maximumWidth: root.leadingColumnWidth
+                    Layout.preferredHeight: root.theme.viewCompactActionButtonSize
+                    Layout.minimumHeight: root.theme.viewCompactActionButtonSize
+                    Layout.maximumHeight: root.theme.viewCompactActionButtonSize
+                }
+
                 Rectangle {
-                    Layout.preferredWidth: 88
+                    Layout.preferredWidth: root.kindColumnWidth
                     Layout.preferredHeight: root.theme.controlHeight
                     radius: root.theme.radius
                     color: root.theme.surface
@@ -635,6 +684,7 @@ Controls.Panel {
 
                 Controls.DropdownMenu {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: root.analysisNameMinWidth
                     model: root.analysisRows()
                     textRole: "name"
                     currentIndex: root.indexForId(root.analysisRows(), standaloneAnalysisEntry.modelData.objectId)
@@ -650,7 +700,9 @@ Controls.Panel {
                 }
 
                 Controls.DropdownMenu {
-                    Layout.preferredWidth: 110
+                    Layout.preferredWidth: root.exportTypeColumnWidth
+                    Layout.minimumWidth: root.exportTypeColumnWidth
+                    Layout.maximumWidth: root.exportTypeColumnWidth
                     model: root.exportOptionsForAnalysisType(standaloneAnalysisEntry.modelData.analysisType)
                     currentIndex: Math.max(0, model.indexOf(standaloneAnalysisEntry.modelData.exportType))
                     onActivated: {
@@ -665,9 +717,9 @@ Controls.Panel {
 
                 Controls.SecondaryButton {
                     text: "×"
-                    Layout.preferredWidth: root.theme.viewCompactActionButtonSize
-                    Layout.minimumWidth: root.theme.viewCompactActionButtonSize
-                    Layout.maximumWidth: root.theme.viewCompactActionButtonSize
+                    Layout.preferredWidth: root.removeColumnWidth
+                    Layout.minimumWidth: root.removeColumnWidth
+                    Layout.maximumWidth: root.removeColumnWidth
                     Layout.preferredHeight: root.theme.viewCompactActionButtonSize
                     Layout.minimumHeight: root.theme.viewCompactActionButtonSize
                     Layout.maximumHeight: root.theme.viewCompactActionButtonSize

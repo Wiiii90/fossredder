@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <string>
+#include <functional>
 #include <vector>
 
 namespace core::application::exporting {
@@ -24,6 +25,19 @@ struct AnalysisExportItem {
     std::string name;
 };
 
+enum class ExportObjectType {
+    Analysis,
+    Annual
+};
+
+struct ExportObjectRequest {
+    ExportObjectType type = ExportObjectType::Analysis;
+    std::string objectId;
+    std::string annualId;
+    AnalysisExportFormat format = AnalysisExportFormat::Csv;
+    std::string name;
+};
+
 /**
  * @brief Describes one export run.
  */
@@ -33,8 +47,9 @@ struct ExportRequest {
     bool includeFormulas = true;
     std::string locale;
     PackageFormat packageFormat = PackageFormat::None;
-    std::vector<AnalysisExportItem> analysisItems;
+    std::vector<ExportObjectRequest> objectRequests;
     std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> stateSnapshot;
+    std::function<void(double, const std::string&)> progressCallback;
 };
 
 } // namespace core::application::exporting

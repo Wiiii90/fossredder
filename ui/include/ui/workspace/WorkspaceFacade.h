@@ -238,8 +238,17 @@ public:
     Q_INVOKABLE QVariantList annualRows() const;
     Q_INVOKABLE QVariantList statementRows() const;
     Q_INVOKABLE QVariantList statementTransactionRows(const QString& statementId) const;
+    Q_INVOKABLE QVariantList transactionRows() const;
     Q_INVOKABLE QVariantMap transaction(const QString& id) const;
     Q_INVOKABLE QVariantMap annual(const QString& id) const;
+    Q_INVOKABLE QVariantMap annualResultState(const QString& annualId) const;
+    Q_INVOKABLE QVariantMap annualResultStatePreview(const QString& annualId,
+                                                    const QVariant& selectedIds,
+                                                    int year) const;
+    Q_INVOKABLE QString analysisIdFromRow(const QVariant& row) const;
+    Q_INVOKABLE QStringList normalizeAnalysisIds(const QVariant& values) const;
+    Q_INVOKABLE QVariantList assignedAnnualAnalysisRows(const QVariantList& allRows, const QVariant& selectedIds) const;
+    Q_INVOKABLE QVariantList availableAnnualAnalysisRows(const QVariantList& allRows, const QVariant& selectedIds) const;
     /** @brief Returns a live filter over transactions that belong to the given statement. */
     Q_INVOKABLE TransactionFilter* statementTransactions(const QString& statementId);
     /** @brief Returns a live filter over transactions assigned to the given property. */

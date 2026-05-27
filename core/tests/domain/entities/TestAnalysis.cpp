@@ -29,7 +29,7 @@ TEST(AnalysisTest, ConfiguresCoreFieldsAndFlags) {
     EXPECT_EQ(analysis.exportFormat(), "xlsx");
     EXPECT_FALSE(analysis.includeCalculationAdjustments());
     EXPECT_EQ(analysis.exportStateJson(), R"({"state":"ready"})");
-    EXPECT_EQ(analysis.snapshotTransactionsJson(), R"(["tx-1"])");
+    EXPECT_EQ(analysis.snapshotTransactionsJson(), R"([{"transactionId":"tx-1"}])");
     EXPECT_TRUE(analysis.hasAdjustment("rent"));
     EXPECT_EQ(analysis.adjustmentCount(), 1u);
     EXPECT_TRUE(analysis.hasType());
@@ -62,6 +62,15 @@ TEST(AnalysisTest, SupportsChartLikeOutputAndAdjustmentRemoval) {
     analysis.removeAdjustment(" alpha ");
     EXPECT_FALSE(analysis.hasAdjustments());
     EXPECT_FALSE(analysis.hasAdjustment("alpha"));
+}
+
+TEST(AnalysisTest, NormalizesLegacySnapshotTransactionListsToObjectRows) {
+    Analysis analysis;
+
+    analysis.setSnapshotTransactionsJson(R"({"transactions":["tx-a","tx-b"]})");
+
+    EXPECT_EQ(analysis.snapshotTransactionsJson(),
+              R"({"transactions":[{"transactionId":"tx-a"},{"transactionId":"tx-b"}]})");
 }
 
 } // namespace core::domain

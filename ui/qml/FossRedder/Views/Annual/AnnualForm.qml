@@ -18,20 +18,28 @@ Item {
     readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
     readonly property var session: root.appContext ? root.appContext.session : null
     readonly property var sessionState: root.appContext ? root.appContext.sessionState : null
-    readonly property int workspaceRevision: root.session ? root.session.dataRevision : 0
-    readonly property var current: root.session ? root.session.selectedAnnual : null
-    property bool isEdit: root.current && root.current.id && String(root.current.id).length > 0
+    readonly property int workspaceRevision: (root.session && root.session.dataRevision !== undefined)
+                                             ? root.session.dataRevision
+                                             : 0
+    readonly property string currentAnnualId: root.session && root.session.selectedAnnualId
+                                            ? String(root.session.selectedAnnualId)
+                                            : ""
+    property bool isEdit: root.currentAnnualId.length > 0
     property string annualNameText: ""
-    property string yearText: ""
+    property string yearText: String(new Date().getFullYear() - 1)
     property var analysisIds: []
     property var assignedAnalysisRows: []
     property int annualWorkspaceIndex: 0
     property var annualVerificationIssues: ({ missingFromYear: 0, mixedInAnnual: 0, duplicateCount: 0, missingLive: 0 })
     property var annualStatusMetrics: ({ neutral: 0, unverified: 0, verified: 0, completed: 0 })
     property var annualTransactions: []
+    property var annualTransactionGroups: ({ deduplicated: [], similar: [], divergent: [], workspaceOnly: [] })
+    property bool annualRebuildInProgress: false
+    property bool annualRebuildPending: false
     property string savedAnnualNameText: ""
     property string savedYearText: ""
     property var savedAnalysisIds: []
+    property bool analysisMetadataDirty: false
     Accessible.ignored: root.appContext ? root.appContext.isDebugBuild : false
     anchors.fill: parent
 
@@ -50,20 +58,34 @@ Item {
         return isNaN(year) ? -1 : year
     }
 
+    function defaultAnnualYearText() {
+        return String(new Date().getFullYear() - 1)
+    }
+
     function canSubmit() {
         return root.parseYear(root.yearText) > 0
     }
 
     function normalizedList(values) {
-        const list = values ? values.slice() : []
+        const list = root.toJsArray(values)
         list.sort()
         return JSON.stringify(list)
+    }
+
+    function toJsArray(values) {
+        const out = []
+        if (!values || values.length === undefined)
+            return out
+        for (let i = 0; i < values.length; ++i)
+            out.push(values[i])
+        return out
     }
 
     function captureSavedState() {
         root.savedAnnualNameText = String(root.annualNameText || "")
         root.savedYearText = String(root.yearText || "")
-        root.savedAnalysisIds = root.analysisIds ? root.analysisIds.slice() : []
+        root.savedAnalysisIds = root.toJsArray(root.analysisIds)
+        root.analysisMetadataDirty = false
     }
 
     function hasChanges() {
@@ -72,203 +94,138 @@ Item {
         return root.savedAnnualNameText !== String(root.annualNameText || "")
                 || root.savedYearText !== String(root.yearText || "")
                 || root.normalizedList(root.savedAnalysisIds) !== root.normalizedList(root.analysisIds)
+                || root.analysisMetadataDirty
     }
 
     function clearFields() {
         root.annualNameText = ""
-        root.yearText = ""
+        root.yearText = root.defaultAnnualYearText()
         root.analysisIds = []
         root.assignedAnalysisRows = []
         root.annualWorkspaceIndex = 0
         root.annualVerificationIssues = ({ missingFromYear: 0, mixedInAnnual: 0, duplicateCount: 0, missingLive: 0 })
         root.annualStatusMetrics = ({ neutral: 0, unverified: 0, verified: 0, completed: 0 })
         root.annualTransactions = []
+        root.annualTransactionGroups = ({ deduplicated: [], similar: [], divergent: [], workspaceOnly: [] })
+        root.analysisMetadataDirty = false
     }
 
-    function transactionStatusText(value) {
-        const status = Number(value)
-        if (status === 1)
-            return qsTr("Unverified")
-        if (status === 2)
-            return qsTr("Verified")
-        if (status === 3)
-            return qsTr("Completed")
-        return qsTr("Neutral")
+    function applyYearSelection(nextValue) {
+        const nextYear = String(nextValue)
+        if (root.yearText === nextYear)
+            return
+        root.yearText = nextYear
+        root.rebuildAnnualResultState()
     }
 
-    function bookingYear(bookingDate) {
-        const text = String(bookingDate || "")
-        if (text.length >= 4)
-            return parseInt(text.substring(0, 4))
-        return -1
-    }
-
-    function parseSnapshotTransactions(snapshotTransactionsJson) {
-        if (!snapshotTransactionsJson || String(snapshotTransactionsJson).length === 0)
-            return []
-        try {
-            const parsed = JSON.parse(String(snapshotTransactionsJson))
-            return Array.isArray(parsed) ? parsed : []
-        } catch (e) {
-            return []
+    function requestAnnualRebuild() {
+        if (root.annualRebuildInProgress) {
+            root.annualRebuildPending = true
+            return
         }
+        root.rebuildAnnualResultState()
     }
 
-    function rebuildAnnualDerivedState() {
-        const ids = root.analysisIds || []
-        const analyses = root.analysisRows() || []
-        const snapshotById = ({})
-        const duplicateCounter = ({})
-
-        for (let i = 0; i < ids.length; ++i) {
-            const analysisId = String(ids[i] || "")
-            if (analysisId.length === 0)
-                continue
-
-            let analysisRow = null
-            for (let j = 0; j < analyses.length; ++j) {
-                const row = analyses[j] || ({})
-                if (String(row.id || "") === analysisId) {
-                    analysisRow = row
-                    break
-                }
-            }
-            if (!analysisRow)
-                continue
-
-            const snapshotRows = root.parseSnapshotTransactions(analysisRow.snapshotTransactions)
-            for (let k = 0; k < snapshotRows.length; ++k) {
-                const snapshot = snapshotRows[k] || ({})
-                const txId = String(snapshot.id || "")
-                if (txId.length === 0)
-                    continue
-                duplicateCounter[txId] = (duplicateCounter[txId] || 0) + 1
-                if (!snapshotById[txId])
-                    snapshotById[txId] = snapshot
-            }
+    function rebuildAnnualResultState() {
+        if (root.annualRebuildInProgress) {
+            root.annualRebuildPending = true
+            return
         }
-
-        const txIds = Object.keys(snapshotById)
-        const targetYear = root.parseYear(root.yearText)
-        const issues = { missingFromYear: 0, mixedInAnnual: 0, duplicateCount: 0, missingLive: 0 }
-        const metrics = { neutral: 0, unverified: 0, verified: 0, completed: 0 }
-        const rows = []
-
-        for (let i = 0; i < txIds.length; ++i) {
-            const txId = txIds[i]
-            const snapshot = snapshotById[txId] || ({})
-            const live = root.workspaceFacade ? root.workspaceFacade.transaction(txId) : ({})
-            const hasLive = live && live.id && String(live.id).length > 0
-            const bookingDate = hasLive ? String(live.bookingDate || "") : String(snapshot.date || "")
-            const year = root.bookingYear(bookingDate)
-            const status = hasLive ? Number(live.status !== undefined ? live.status : 0) : 0
-
-            if (targetYear > 0 && year > 0 && year !== targetYear)
-                issues.mixedInAnnual += 1
-            if ((duplicateCounter[txId] || 0) > 1)
-                issues.duplicateCount += 1
-            if (!hasLive)
-                issues.missingLive += 1
-
-            if (status === 1)
-                metrics.unverified += 1
-            else if (status === 2)
-                metrics.verified += 1
-            else if (status === 3)
-                metrics.completed += 1
-            else
-                metrics.neutral += 1
-
-            rows.push({
-                id: txId,
-                name: hasLive ? String(live.name || "") : String(snapshot.transactionName || snapshot.name || ""),
-                bookingDate: bookingDate,
-                amount: hasLive ? Number(live.amount || 0.0) : Number(snapshot.amount || 0.0),
-                status: status,
-                statusText: root.transactionStatusText(status),
-                duplicateCount: duplicateCounter[txId] || 1,
-                isDuplicate: (duplicateCounter[txId] || 0) > 1,
-                isMixedYear: targetYear > 0 && year > 0 && year !== targetYear,
-                isMissingLive: !hasLive,
-                statementId: hasLive ? String(live.statementId || "") : String(snapshot.statementId || ""),
-                actorId: hasLive ? String(live.actorId || "") : "",
-                allocatable: hasLive ? !!live.allocatable : !!snapshot.allocatable,
-                description: hasLive ? String(live.description || "") : "",
-                propertyIds: hasLive && live.propertyIds ? live.propertyIds : []
-            })
+        root.annualRebuildInProgress = true
+        root.annualRebuildPending = false
+        if (!root.workspaceFacade) {
+            root.annualVerificationIssues = ({ missingFromYear: 0, mixedInAnnual: 0, duplicateCount: 0, missingLive: 0 })
+            root.annualStatusMetrics = ({ neutral: 0, unverified: 0, verified: 0, completed: 0 })
+            root.annualTransactions = []
+            root.annualTransactionGroups = ({ deduplicated: [], similar: [], divergent: [], workspaceOnly: [] })
+            root.annualRebuildInProgress = false
+            return
         }
-
-        const allTransactions = root.workspaceFacade ? (root.workspaceFacade.transactions() || []) : []
-        for (let i = 0; i < allTransactions.length; ++i) {
-            const tx = allTransactions[i] || ({})
-            const txId = String(tx.id || "")
-            if (txId.length === 0 || snapshotById[txId])
-                continue
-            const year = root.bookingYear(tx.bookingDate)
-            if (targetYear > 0 && year === targetYear)
-                issues.missingFromYear += 1
+        const result = root.workspaceFacade.annualResultStatePreview(root.currentAnnualId,
+                                                                     root.analysisIds || [],
+                                                                     root.parseYear(root.yearText))
+        const stats = result && result.stats ? result.stats : ({})
+        root.annualVerificationIssues = ({
+            missingFromYear: stats && stats.missingFromYear !== undefined ? stats.missingFromYear : 0,
+            mixedInAnnual: stats && stats.mixedYear !== undefined ? stats.mixedYear : 0,
+            duplicateCount: stats && stats.duplicateCount !== undefined ? stats.duplicateCount : 0,
+            missingLive: stats && stats.missingLive !== undefined ? stats.missingLive : 0
+        })
+        root.annualStatusMetrics = ({
+            neutral: stats && stats.neutral !== undefined ? stats.neutral : 0,
+            unverified: stats && stats.unverified !== undefined ? stats.unverified : 0,
+            verified: stats && stats.verified !== undefined ? stats.verified : 0,
+            completed: stats && stats.completed !== undefined ? stats.completed : 0
+        })
+        root.annualTransactions = result && result.transactions ? result.transactions : []
+        let groups = ({
+            deduplicated: result && result.deduplicated ? result.deduplicated : [],
+            similar: result && result.similar ? result.similar : [],
+            divergent: result && result.divergent ? result.divergent : [],
+            workspaceOnly: result && result.workspaceOnly ? result.workspaceOnly : []
+        })
+        if (root.groupedCount(groups) === 0 && root.annualTransactions.length > 0)
+            groups = root.groupsFromTransactions(root.annualTransactions)
+        root.annualTransactionGroups = groups
+        root.annualRebuildInProgress = false
+        if (root.annualRebuildPending) {
+            root.annualRebuildPending = false
+            root.rebuildAnnualResultState()
         }
-
-        root.annualVerificationIssues = issues
-        root.annualStatusMetrics = metrics
-        root.annualTransactions = rows
-    }
-
-    function normalizedAnalysisDisplay(row) {
-        const candidate = row || ({})
-        const name = candidate.name !== undefined ? String(candidate.name) : ""
-        if (name.length > 0)
-            return name
-        const id = candidate.id !== undefined ? String(candidate.id) : ""
-        return id
     }
 
     function resolveAssignedAnalyses(allAnalysisRows, ids) {
-        const rows = allAnalysisRows || []
-        const selectedIds = ids || []
-        const out = []
+        if (!root.workspaceFacade || !root.workspaceFacade.assignedAnnualAnalysisRows)
+            return []
+        return root.workspaceFacade.assignedAnnualAnalysisRows(allAnalysisRows || [], ids || [])
+    }
 
-        for (let i = 0; i < selectedIds.length; ++i) {
-            const id = String(selectedIds[i] || "")
-            if (id.length === 0)
+    function groupedCount(groups) {
+        const g = groups || ({})
+        const deduplicated = g.deduplicated && g.deduplicated.length !== undefined ? g.deduplicated.length : 0
+        const similar = g.similar && g.similar.length !== undefined ? g.similar.length : 0
+        const divergent = g.divergent && g.divergent.length !== undefined ? g.divergent.length : 0
+        const workspaceOnly = g.workspaceOnly && g.workspaceOnly.length !== undefined ? g.workspaceOnly.length : 0
+        return deduplicated + similar + divergent + workspaceOnly
+    }
+
+    function groupsFromTransactions(rows) {
+        const allRows = rows && rows.length !== undefined ? rows : []
+        const deduplicated = []
+        const similar = []
+        const divergent = []
+        const workspaceOnly = []
+
+        for (let i = 0; i < allRows.length; ++i) {
+            const row = allRows[i] || ({})
+            const key = String(row.key || "")
+            if (key.indexOf("live|") === 0) {
+                workspaceOnly.push(row)
                 continue
-
-            for (let j = 0; j < rows.length; ++j) {
-                const row = rows[j] || ({})
-                if (String(row.id || "") === id) {
-                    const normalized = ({})
-                    for (const key in row)
-                        normalized[key] = row[key]
-                    normalized.display = root.normalizedAnalysisDisplay(row)
-                    out.push(normalized)
-                    break
-                }
             }
+            if (key.indexOf("sim|") === 0 || row.isCalcVariant) {
+                similar.push(row)
+                continue
+            }
+            if (key.indexOf("div|") === 0) {
+                divergent.push(row)
+                continue
+            }
+            deduplicated.push(row)
         }
 
-        return out
+        return ({
+            deduplicated: deduplicated,
+            similar: similar,
+            divergent: divergent,
+            workspaceOnly: workspaceOnly
+        })
     }
 
     function availableAnalysisRows() {
-        const rows = root.analysisRows() || []
-        const selectedIds = root.analysisIds || []
-        const out = []
-
-        for (let i = 0; i < rows.length; ++i) {
-            const row = rows[i] || ({})
-            const id = row.id ? String(row.id) : ""
-            if (id.length === 0 || selectedIds.indexOf(id) !== -1)
-                continue
-
-            const normalized = ({})
-            for (const key in row)
-                normalized[key] = row[key]
-            normalized.id = id
-            normalized.display = root.normalizedAnalysisDisplay(row)
-            out.push(normalized)
-        }
-
-        return out
+        if (!root.workspaceFacade || !root.workspaceFacade.availableAnnualAnalysisRows)
+            return []
+        return root.workspaceFacade.availableAnnualAnalysisRows(root.analysisRows() || [], root.analysisIds || [])
     }
 
     function syncFields() {
@@ -277,17 +234,21 @@ Item {
             return
         }
 
-        if (!root.workspaceFacade || !root.current || !root.current.id) {
+        if (!root.workspaceFacade || !root.isEdit) {
             root.clearFields()
             return
         }
 
-        const payload = root.workspaceFacade.annual(root.current.id)
+        const payload = root.workspaceFacade.annual(root.currentAnnualId)
         root.annualNameText = payload && payload.name !== undefined ? String(payload.name) : ""
         root.yearText = payload && payload.year !== undefined ? String(payload.year) : ""
-        root.analysisIds = payload && payload.analysisIds ? payload.analysisIds : []
+        root.analysisIds = (root.workspaceFacade && root.workspaceFacade.normalizeAnalysisIds)
+                ? root.workspaceFacade.normalizeAnalysisIds(payload && payload.analysisIds ? payload.analysisIds : [])
+                : (payload && payload.analysisIds ? payload.analysisIds : [])
         root.assignedAnalysisRows = root.resolveAssignedAnalyses(root.analysisRows(), root.analysisIds)
-        root.rebuildAnnualDerivedState()
+        if (root.appContext && root.appContext.isDebugBuild)
+            console.log("[AnnualForm] syncFields", "analysisIds=", JSON.stringify(root.analysisIds), "assignedRows=", root.assignedAnalysisRows.length)
+        root.requestAnnualRebuild()
         root.captureSavedState()
     }
 
@@ -321,8 +282,7 @@ Item {
         if (year <= 0)
             return
 
-        const currentId = root.isEdit && root.current && root.current.id ? root.current.id : ""
-        const annualId = root.workspaceFacade.saveAnnual(currentId,
+        const annualId = root.workspaceFacade.saveAnnual(root.currentAnnualId,
                                                           root.annualNameText,
                                                           year,
                                                           root.analysisIds || [])
@@ -336,10 +296,10 @@ Item {
     }
 
     function deleteAnnual() {
-        if (!root.workspaceFacade || !root.current || !root.current.id)
+        if (!root.workspaceFacade || !root.isEdit)
             return
 
-        const removedId = root.current.id
+        const removedId = root.currentAnnualId
         root.workspaceFacade.deleteAnnual(removedId)
         if (!root.session) {
             root.clearFields()
@@ -352,11 +312,11 @@ Item {
             root.clearFields()
     }
 
-    onCurrentChanged: root.syncFields()
+    onCurrentAnnualIdChanged: root.syncFields()
     onIsEditChanged: root.syncFields()
     Connections {
         target: root.session
-        function onDataRevisionChanged() { root.syncFields() }
+        function onSelectedAnnualIdChanged() { root.syncFields() }
     }
 
     ColumnLayout {
@@ -406,13 +366,56 @@ Item {
                         Layout.preferredWidth: root.theme.formLabelWidth
                     }
 
-                    Controls.TextField {
-                        objectName: "annualYearField"
+                    RowLayout {
                         Layout.fillWidth: true
-                        text: root.yearText
-                        inputMethodHints: Qt.ImhDigitsOnly
-                        validator: IntValidator { bottom: 1900; top: 2500 }
-                        onTextEdited: root.yearText = text
+                        spacing: root.theme.spacingSmall
+
+                        Controls.SecondaryButton {
+                            objectName: "annualYearDecreaseButton"
+                            Layout.preferredWidth: root.theme.controlHeight
+                            Layout.preferredHeight: root.theme.controlHeight
+                            Layout.minimumWidth: root.theme.controlHeight
+                            Layout.maximumWidth: root.theme.controlHeight
+                            text: "\u25BC"
+                            onClicked: {
+                                const currentYear = root.parseYear(root.yearText) > 0
+                                                    ? root.parseYear(root.yearText)
+                                                    : parseInt(root.defaultAnnualYearText())
+                                root.applyYearSelection(Math.max(1900, currentYear - 1))
+                            }
+                        }
+
+                        Rectangle {
+                            objectName: "annualYearField"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: root.theme.controlHeight
+                            radius: root.theme.radius
+                            color: root.theme.surface
+                            border.color: root.theme.borderMedium
+                            border.width: root.theme.borderWidthThin
+
+                            Label {
+                                anchors.fill: parent
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                text: root.yearText
+                            }
+                        }
+
+                        Controls.SecondaryButton {
+                            objectName: "annualYearIncreaseButton"
+                            Layout.preferredWidth: root.theme.controlHeight
+                            Layout.preferredHeight: root.theme.controlHeight
+                            Layout.minimumWidth: root.theme.controlHeight
+                            Layout.maximumWidth: root.theme.controlHeight
+                            text: "\u25B2"
+                            onClicked: {
+                                const currentYear = root.parseYear(root.yearText) > 0
+                                                    ? root.parseYear(root.yearText)
+                                                    : parseInt(root.defaultAnnualYearText())
+                                root.applyYearSelection(Math.min(2500, currentYear + 1))
+                            }
+                        }
                     }
                 }
 
@@ -425,15 +428,25 @@ Item {
                     Views.AnnualAnalysesPanel {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        Layout.bottomMargin: root.theme.spacingSmall
                         appContext: root.appContext
                         theme: root.theme
                         allAnalysisRows: root.availableAnalysisRows()
                         analysisRows: root.assignedAnalysisRows
                         selectedAnalysisIds: root.analysisIds
+                        analysisMapper: root.workspaceFacade
                         onSelectionChanged: function(ids) {
-                            root.analysisIds = ids || []
+                            root.analysisIds = (root.workspaceFacade && root.workspaceFacade.normalizeAnalysisIds)
+                                    ? root.workspaceFacade.normalizeAnalysisIds(ids || [])
+                                    : (ids || [])
                             root.assignedAnalysisRows = root.resolveAssignedAnalyses(root.analysisRows(), root.analysisIds)
-                            root.rebuildAnnualDerivedState()
+                            if (root.appContext && root.appContext.isDebugBuild)
+                                console.log("[AnnualForm] onSelectionChanged", "ids=", JSON.stringify(ids), "normalized=", JSON.stringify(root.analysisIds), "assignedRows=", root.assignedAnalysisRows.length)
+                            root.requestAnnualRebuild()
+                        }
+                        onAnalysisOptionsChanged: {
+                            root.analysisMetadataDirty = true
+                            root.requestAnnualRebuild()
                         }
                     }
 
@@ -442,6 +455,7 @@ Item {
                         Layout.fillHeight: true
                         theme: root.theme
                         transactions: root.annualTransactions
+                        groupedTransactions: root.annualTransactionGroups
                     }
                 }
 

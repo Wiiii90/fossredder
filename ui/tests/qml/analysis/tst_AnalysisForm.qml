@@ -405,4 +405,30 @@ TestCase {
         verify(adjustments["tx-1"] !== undefined)
         compare(adjustments["tx-1"], 11.9)
     }
+
+    function test_updatePersistsIncludeCalcAdjustmentsToggle() {
+        session.analysesData = [{
+            id: "analysis-2",
+            name: "Old",
+            type: "plot",
+            config: "{}",
+            filter: "",
+            exportFormat: "png",
+            includeCalcAdjustments: true,
+            exportState: "{}",
+            snapshotTransactions: "[]",
+            adjustments: "{\"tx-1\":11.9}"
+        }]
+        session.selectedAnalysisId = "analysis-2"
+
+        var form = createForm()
+        var includeCheck = findRequired(form, "analysisIncludeCalcAdjustmentsCheckBox")
+        var updateButton = findRequired(form, "analysisUpdateButton")
+
+        includeCheck.clicked()
+        updateButton.clicked()
+
+        compare(analysisController.updateCalls, 1)
+        compare(analysisController.lastUpdate.includeCalcAdjustments, false)
+    }
 }

@@ -2,7 +2,9 @@ set(CORE_PUBLIC_HEADERS
     include/core/application/analysis/AnalysisFilterSpec.h
     include/core/application/analysis/AnalysisService.h
     include/core/application/analysis/AnalysisRequest.h
-    include/core/application/export/AnalysisExportService.h
+    include/core/application/annual/AnnualRequest.h
+    include/core/application/annual/AnnualResult.h
+    include/core/application/annual/AnnualService.h
     include/core/application/export/CsvExporter.h
     include/core/application/export/ExportLog.h
     include/core/application/export/ExportRequest.h
@@ -66,6 +68,7 @@ set(CORE_PUBLIC_HEADERS
     include/core/jobs/Scheduler.h
     include/core/pch.h
     include/core/ports/presenters/IAnalysisPresenter.h
+    include/core/ports/presenters/IAnnualPresenter.h
     include/core/ports/presenters/IExportPresenter.h
     include/core/ports/presenters/IImportPresenter.h
     include/core/ports/presenters/IWorkspacePresenter.h
@@ -120,11 +123,12 @@ set(CORE_PRIVATE_HEADERS
 set(CORE_SRCS
     src/application/analysis/AnalysisFilterSpec.cpp
     src/application/analysis/AnalysisService.cpp
+    src/application/annual/AnnualService.cpp
     src/application/analysis/internal/AnalysisFilter.cpp
     src/application/analysis/presentation/PlotAnalysis.cpp
     src/application/analysis/presentation/TableAnalysis.cpp
     src/application/analysis/adjustment/AdjustmentCalculation.cpp
-    src/application/export/AnalysisExportService.cpp
+    src/application/export/ObjectExportExecutor.cpp
     src/application/export/CsvExporter.cpp
     src/application/export/ExportService.cpp
     src/application/export/XlsxExporter.cpp

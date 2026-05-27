@@ -7,6 +7,8 @@
 
 #include <utility>
 
+#include <nlohmann/json.hpp>
+
 namespace core::domain {
 
 Analysis::Analysis() = default;
@@ -56,6 +58,49 @@ void Analysis::setExportStateJson(std::string value) {
 }
 
 void Analysis::setSnapshotTransactionsJson(std::string value) {
+    try {
+        auto parsed = nlohmann::json::parse(value);
+        if (parsed.is_array()) {
+            bool allStrings = true;
+            for (const auto& item : parsed) {
+                if (!item.is_string()) {
+                    allStrings = false;
+                    break;
+                }
+            }
+            if (allStrings) {
+                nlohmann::json normalized = nlohmann::json::array();
+                for (const auto& item : parsed) {
+                    nlohmann::json row;
+                    row["transactionId"] = item.get<std::string>();
+                    normalized.push_back(std::move(row));
+                }
+                value = normalized.dump();
+            }
+        } else if (parsed.is_object()) {
+            auto it = parsed.find("transactions");
+            if (it != parsed.end() && it->is_array()) {
+                bool allStrings = true;
+                for (const auto& item : *it) {
+                    if (!item.is_string()) {
+                        allStrings = false;
+                        break;
+                    }
+                }
+                if (allStrings) {
+                    nlohmann::json normalizedRows = nlohmann::json::array();
+                    for (const auto& item : *it) {
+                        nlohmann::json row;
+                        row["transactionId"] = item.get<std::string>();
+                        normalizedRows.push_back(std::move(row));
+                    }
+                    parsed["transactions"] = std::move(normalizedRows);
+                    value = parsed.dump();
+                }
+            }
+        }
+    } catch (...) {
+    }
     snapshotTransactionsJson_ = std::move(value);
 }
 

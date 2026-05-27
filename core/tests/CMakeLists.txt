@@ -2,6 +2,8 @@ find_package(GTest CONFIG REQUIRED)
 
 set(CORE_TEST_SRCS
     application/analysis/TestAnalysisService.cpp
+    application/annual/TestAnnualService.cpp
+    application/export/TestExportService.cpp
     application/workspace/TestWorkspaceCommandService.cpp
     application/workspace/TestWorkspaceFacade.cpp
     application/import/draft/TestDraftFinalizer.cpp

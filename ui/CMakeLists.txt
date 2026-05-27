@@ -18,6 +18,8 @@ set(UI_SOURCES
     src/shell/AppActions.cpp
     src/adapters/core/AnalysisRequestMapper.cpp
     src/adapters/core/AnalysisResultMapper.cpp
+    src/adapters/core/AnnualRequestMapper.cpp
+    src/adapters/core/AnnualResultMapper.cpp
     src/shell/AppContext.cpp
     src/shell/QmlRuntime.cpp
     src/workflows/analysis/AnalysisWorkflow.cpp
@@ -67,6 +69,8 @@ set(UI_HEADERS
     include/ui/shell/AppActions.h
     include/ui/adapters/core/AnalysisRequestMapper.h
     include/ui/adapters/core/AnalysisResultMapper.h
+    include/ui/adapters/core/AnnualRequestMapper.h
+    include/ui/adapters/core/AnnualResultMapper.h
     include/ui/shell/AppContext.h
     include/ui/shell/QmlContracts.h
     include/ui/shell/QmlRuntime.h

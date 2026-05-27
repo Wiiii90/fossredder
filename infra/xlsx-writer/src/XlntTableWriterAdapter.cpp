@@ -21,7 +21,7 @@ bool XlntTableWriterAdapter::writeTable(const std::filesystem::path& outputPath,
         for (size_t row = 0; row < rows.size(); ++row) {
             const auto& columns = rows[row];
             for (size_t column = 0; column < columns.size(); ++column) {
-                auto cell = worksheet.cell(static_cast<int>(row + 1), static_cast<int>(column + 1));
+                auto cell = worksheet.cell(static_cast<int>(column + 1), static_cast<int>(row + 1));
                 if (!columns[column].empty() && columns[column].front() == '=') {
                     cell.formula(columns[column].substr(1));
                 } else {

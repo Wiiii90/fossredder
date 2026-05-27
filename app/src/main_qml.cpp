@@ -162,6 +162,11 @@ executeExport(std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> sna
   exportRequest.locale = request.locale.toStdString();
   exportRequest.stateSnapshot = std::move(snapshot);
   exportRequest.format = toCoreExportFormat(request.format);
+  if (request.progressCallback) {
+    exportRequest.progressCallback = [cb = request.progressCallback](double progress, const std::string &phase) {
+      cb(progress, QString::fromStdString(phase));
+    };
+  }
 
   QJsonParseError parseError;
   const QJsonDocument payloadDoc =
@@ -188,39 +193,32 @@ executeExport(std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> sna
       if (!value.isObject())
         continue;
       const QJsonObject item = value.toObject();
-      if (item.value(QStringLiteral("objectType"))
-              .toString()
-              .compare(QStringLiteral("Analysis"), Qt::CaseInsensitive) != 0)
+      const QString objectType =
+          item.value(QStringLiteral("objectType")).toString().trimmed().toLower();
+      const QString objectId =
+          item.value(QStringLiteral("objectId")).toString();
+      if (objectId.isEmpty())
         continue;
 
-      const QString exportType =
-          item.value(QStringLiteral("exportType")).toString();
-      core::application::exporting::AnalysisExportItem analysisItem;
-      analysisItem.annualId =
-          item.value(QStringLiteral("annualId")).toString().toStdString();
-      analysisItem.analysisId =
-          item.value(QStringLiteral("objectId")).toString().toStdString();
-      analysisItem.name =
-          item.value(QStringLiteral("objectName")).toString().toStdString();
+      core::application::exporting::ExportObjectRequest objectRequest;
+      objectRequest.objectId = objectId.toStdString();
+      objectRequest.name = item.value(QStringLiteral("objectName")).toString().toStdString();
+      objectRequest.annualId = item.value(QStringLiteral("annualId")).toString().toStdString();
+      objectRequest.type = objectType == QStringLiteral("annual")
+          ? core::application::exporting::ExportObjectType::Annual
+          : core::application::exporting::ExportObjectType::Analysis;
 
-      const QString normalized = exportType.trimmed().toLower();
+      const QString normalized = item.value(QStringLiteral("exportType")).toString().trimmed().toLower();
       if (normalized == QStringLiteral("xlsx"))
-        analysisItem.format =
-            core::application::exporting::AnalysisExportFormat::Xlsx;
-      else if (normalized == QStringLiteral("jpg") ||
-               normalized == QStringLiteral("jpeg"))
-        analysisItem.format =
-            core::application::exporting::AnalysisExportFormat::Jpg;
+        objectRequest.format = core::application::exporting::AnalysisExportFormat::Xlsx;
+      else if (normalized == QStringLiteral("jpg") || normalized == QStringLiteral("jpeg"))
+        objectRequest.format = core::application::exporting::AnalysisExportFormat::Jpg;
       else if (normalized == QStringLiteral("png"))
-        analysisItem.format =
-            core::application::exporting::AnalysisExportFormat::Png;
+        objectRequest.format = core::application::exporting::AnalysisExportFormat::Png;
       else
-        analysisItem.format =
-            core::application::exporting::AnalysisExportFormat::Csv;
+        objectRequest.format = core::application::exporting::AnalysisExportFormat::Csv;
 
-      if (!analysisItem.analysisId.empty()) {
-        exportRequest.analysisItems.push_back(std::move(analysisItem));
-      }
+      exportRequest.objectRequests.push_back(std::move(objectRequest));
     }
   }
 

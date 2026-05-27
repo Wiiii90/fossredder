@@ -167,4 +167,35 @@ TEST(AnalysisWorkflowTest, AnalysisAdjustmentsJsonStoresAdjustedAmountsByTransac
     EXPECT_FALSE(parsed.contains(QStringLiteral("tx-2")));
 }
 
+TEST(AnalysisWorkflowTest, ComputeAnalysisPreviewCarriesStoredAdjustmentsForPlots)
+{
+    auto catalog = tests::support::makeWorkspaceCatalog();
+    auto analysis = std::make_shared<core::domain::Analysis>();
+    analysis->setId("analysis-plot");
+    analysis->rename("Plot With Adjustments");
+    analysis->setType("plot");
+    analysis->setConfigJson("{\"plotType\":\"pie\",\"plotMeasure\":\"totalAmount\"}");
+    analysis->setFilterSpec("");
+    analysis->setExportFormat("png");
+    analysis->setIncludeCalculationAdjustments(true);
+    analysis->setAdjustment("tx-1", 1500.0);
+    catalog.setAnalyses({analysis});
+
+    auto state = std::make_shared<const core::domain::catalog::WorkspaceCatalog>(catalog);
+    auto analysisService = std::make_shared<core::application::analysis::AnalysisService>();
+    AnalysisWorkflow workflow(nullptr, [state]() { return state; }, analysisService);
+
+    const QVariantMap withAdjustments = workflow.computeAnalysisPreview(
+        QStringLiteral("analysis-plot"), QStringLiteral(""), true, QStringLiteral("{}"));
+    const QVariantList adjustedTransactions = withAdjustments.value(QStringLiteral("transactions")).toList();
+    ASSERT_FALSE(adjustedTransactions.isEmpty());
+    EXPECT_DOUBLE_EQ(adjustedTransactions.front().toMap().value(QStringLiteral("amount")).toDouble(), 1500.0);
+
+    const QVariantMap withoutAdjustments = workflow.computeAnalysisPreview(
+        QStringLiteral("analysis-plot"), QStringLiteral(""), false, QStringLiteral("{}"));
+    const QVariantList plainTransactions = withoutAdjustments.value(QStringLiteral("transactions")).toList();
+    ASSERT_FALSE(plainTransactions.isEmpty());
+    EXPECT_DOUBLE_EQ(plainTransactions.front().toMap().value(QStringLiteral("amount")).toDouble(), 1250.0);
+}
+
 } // namespace ui

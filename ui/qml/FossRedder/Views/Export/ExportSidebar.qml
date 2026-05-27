@@ -36,6 +36,17 @@ Item {
             theme: root.theme
             Layout.fillWidth: true
             Layout.fillHeight: true
+            cardMinHeight: root.theme.viewSidebarRowHeight + root.theme.spacingSmall
+            cardRadius: root.theme.viewSidebarRowRadius
+            cardPadding: root.theme.spacingSmall
+            listTopMargin: 0
+            itemSpacing: root.theme.spacingSmall
+            baseBorderColor: root.theme.borderSoft
+            hoverBorderColor: root.theme.borderSoft
+            actionButtonSize: root.theme.viewCompactActionButtonSizeTiny
+            actionButtonTopInset: 0
+            actionButtonRightInset: 0
+            headerTopInset: root.theme.spacingSmall
             model: root.exportWorkflow ? root.exportWorkflow.runs : null
             onRunClicked: function(index, logId, draftAttached, statementId) {
                 if (!root.exportWorkflow) return

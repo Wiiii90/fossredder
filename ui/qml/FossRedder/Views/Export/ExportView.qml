@@ -146,32 +146,39 @@ Item {
             Layout.fillWidth: true
             theme: root.theme
 
-            Controls.SecondaryButton {
+            Controls.DangerButton {
                 objectName: "exportClearButton"
                 text: qsTr("Clear")
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
                 visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 0
+                enabled: root.hasExportCtrl && root.exportWorkflow.currentMode === 0
                 onClicked: root.clearForm()
             }
 
-            Controls.SecondaryButton {
+            Controls.DangerButton {
                 objectName: "exportCancelButton"
                 text: qsTr("Cancel")
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
                 visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 1
+                enabled: root.hasExportCtrl && root.exportWorkflow.currentMode === 1
                 onClicked: if (root.hasExportCtrl) root.exportWorkflow.cancelExport()
             }
 
             Item { Layout.fillWidth: true }
 
-            Controls.SecondaryButton {
+            Controls.SuccessButton {
                 objectName: "exportTogglePauseButton"
                 text: root.hasExportCtrl && root.exportWorkflow.isPaused ? qsTr("Resume") : qsTr("Pause")
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
                 visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 1
+                enabled: root.hasExportCtrl && root.exportWorkflow.currentMode === 1
                 onClicked: if (root.hasExportCtrl) root.exportWorkflow.togglePause()
             }
 
             Controls.SuccessButton {
                 objectName: "exportStartButton"
                 text: qsTr("Start")
+                Layout.preferredWidth: root.theme.viewActionButtonWidth
                 visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 0
                 enabled: {
                     const dir = formPanel ? formPanel.targetDirectory : ""
@@ -181,7 +188,7 @@ Item {
                 onClicked: {
                     if (!root.hasExportCtrl) return
                     const payload = root.buildPayload()
-                    const path = (formPanel ? formPanel.targetDirectory : "") + "/export"
+                    const path = (formPanel ? formPanel.targetDirectory : "")
                     const selectedOption = root.formatOptions[0]
                     const items = objectsPanel ? objectsPanel.exportItems() : []
                     const includeFormulas = root.settingsViewModel ? root.settingsViewModel.exportIncludeFormulas : true

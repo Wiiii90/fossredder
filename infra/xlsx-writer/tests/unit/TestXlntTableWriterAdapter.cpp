@@ -40,7 +40,10 @@ TEST(XlntTableWriterAdapterTest, WritesWorkbookWithExpectedCellValues) {
 
     EXPECT_EQ(sheet.title(), "Analysis");
     EXPECT_EQ(sheet.cell("A1").to_string(), "Name");
+    EXPECT_EQ(sheet.cell("B1").to_string(), "Value");
+    EXPECT_EQ(sheet.cell("A2").to_string(), "Rent");
     EXPECT_EQ(sheet.cell("B2").to_string(), "120.50");
+    EXPECT_EQ(sheet.cell("A3").to_string(), "Formula");
 
     int err = 0;
     zip_t* archive = zip_open(outputPath.string().c_str(), ZIP_RDONLY, &err);

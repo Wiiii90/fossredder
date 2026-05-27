@@ -35,7 +35,6 @@ public:
      * @return Matching draft snapshot when found.
      */
     [[nodiscard]] std::optional<core::ports::workspace::StatementDraftSnapshot> statementDraftSnapshot(const std::string& draftId = {}) const;
-
     /** @brief Returns current workspace file path. */
     const std::string& currentPath() const noexcept;
 

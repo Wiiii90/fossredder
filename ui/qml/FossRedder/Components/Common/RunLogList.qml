@@ -43,35 +43,67 @@ Item {
         return idx >= 0 ? s.substring(idx + 1) : s
     }
 
-    function payloadSummary(payloadText) {
+    function isExportPayload(payloadText) {
+        if (!payloadText || String(payloadText).length === 0) return false
+        try {
+            const payload = JSON.parse(String(payloadText))
+            return !!(payload && payload.items && payload.items.length !== undefined)
+        } catch (e) {
+            return false
+        }
+    }
+
+    function exportTitleFromPayload(payloadText) {
         if (!payloadText || String(payloadText).length === 0) return ""
         try {
             const payload = JSON.parse(String(payloadText))
             const items = payload && payload.items && payload.items.length !== undefined ? payload.items : []
-            if (!items || items.length === 0) return ""
+            if (!items || items.length === 0) return qsTr("Export")
 
-            let annualCount = 0
-            let analysisCount = 0
-            const exportTypes = []
+            const analysisNames = []
             for (let i = 0; i < items.length; ++i) {
                 const item = items[i]
-                if (!item || !item.objectType) continue
-                const type = String(item.objectType).toLowerCase()
-                if (type === "annual") annualCount += 1
-                if (type === "analysis") {
-                    analysisCount += 1
-                    if (item.exportType && exportTypes.indexOf(item.exportType) < 0) exportTypes.push(item.exportType)
-                }
+                if (!item || String(item.objectType).toLowerCase() !== "analysis") continue
+                const name = item.objectName ? String(item.objectName).trim() : ""
+                if (name.length > 0) analysisNames.push(name)
             }
 
-            const parts = []
-            if (annualCount > 0) parts.push(qsTr("Annuals: %1").arg(annualCount))
-            if (analysisCount > 0) parts.push(qsTr("Analyses: %1").arg(analysisCount))
-            if (exportTypes.length > 0) parts.push(qsTr("Formats: %1").arg(exportTypes.join(", ")))
-            return parts.join(" | ")
+            if (analysisNames.length === 0) return qsTr("Export")
+            if (analysisNames.length === 1) return qsTr("Export '%1'").arg(analysisNames[0])
+            const quotedNames = analysisNames.map(function(name) { return "'" + name + "'" })
+            return qsTr("Export %1").arg(quotedNames.join(", "))
         } catch (e) {
             return ""
         }
+    }
+
+    function titleText(file, payloadText) {
+        if (root.isExportPayload(payloadText)) {
+            const exportTitle = root.exportTitleFromPayload(payloadText)
+            if (exportTitle.length > 0) return exportTitle
+        }
+        return file ? root.fileName(file) : ""
+    }
+
+    function exportStatusFallback(status) {
+        const normalized = String(status || "").toLowerCase()
+        if (normalized === "success") return qsTr("Export completed successfully.")
+        if (normalized === "running") return qsTr("Starting export...")
+        return ""
+    }
+
+    function statusDetailText(message, status, payloadText) {
+        const messageText = message ? String(message).trim() : ""
+        if (messageText.length > 0) return messageText
+        if (root.isExportPayload(payloadText)) return root.exportStatusFallback(status)
+        return ""
+    }
+
+    readonly property int detailLineHeight: detailLineMetric.height
+
+    TextMetrics {
+        id: detailLineMetric
+        text: "Mg"
     }
 
     function selectionColor() {
@@ -169,26 +201,20 @@ Item {
                 }
 
                 Label {
-                    text: runEntry.file ? root.fileName(runEntry.file) : ""
+                    text: root.titleText(runEntry.file, runEntry.payload)
                     Layout.fillWidth: true
                     elide: Label.ElideRight
                 }
 
                 Label {
-                    visible: runEntry.message && runEntry.message.length > 0
-                    text: runEntry.message
-                    wrapMode: Text.WordWrap
-                    opacity: 0.8
                     Layout.fillWidth: true
-                }
-
-                Label {
-                    visible: root.payloadSummary(runEntry.payload).length > 0
-                    text: root.payloadSummary(runEntry.payload)
-                    wrapMode: Text.WordWrap
-                    opacity: 0.8
+                    Layout.preferredHeight: root.detailLineHeight
+                    Layout.minimumHeight: root.detailLineHeight
+                    text: root.statusDetailText(runEntry.message, runEntry.status, runEntry.payload)
+                    elide: Text.ElideRight
+                    verticalAlignment: Text.AlignVCenter
+                    opacity: text.length > 0 ? 0.8 : 0
                     color: root.theme.textMuted
-                    Layout.fillWidth: true
                 }
             }
 

@@ -405,5 +405,7 @@ Item {
         function onLastAnalysisResultChanged() { root.rebuildMatrix() }
     }
 
+    onAdjustmentAmountsByIdChanged: root.rebuildMatrix()
+
     Component.onCompleted: root.rebuildMatrix()
 }

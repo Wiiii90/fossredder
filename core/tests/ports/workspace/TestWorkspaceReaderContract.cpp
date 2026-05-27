@@ -23,6 +23,7 @@ public:
     std::optional<StatementDraftSnapshot> statementDraftSnapshot(const std::string& = {}) const override {
         return draft;
     }
+
 };
 
 } // namespace

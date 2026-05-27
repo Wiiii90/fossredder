@@ -69,20 +69,6 @@ public:
                                        const QString& exportStateJson, const QString& snapshotTransactionsJson,
                                        const QString& adjustmentsJson = QStringLiteral("{}"));
 
-    /** @brief Update an existing analysis from serialized inputs.
-     *  @param id Analysis identifier
-     *  @param name Analysis name
-     *  @param type Analysis type
-     *  @param configJson JSON configuration
-     *  @param filterSpec Filter specification string
-     */
-    Q_INVOKABLE void updateAnalysis(const QString& id, const QString& name,
-                                    const QString& type, const QString& configJson,
-                                    const QString& filterSpec, const QString& exportFormat,
-                                    bool includeCalcAdjustments, const QString& exportStateJson,
-                                    const QString& snapshotTransactionsJson,
-                                    const QString& adjustmentsJson = QStringLiteral("{}"));
-
     /** @brief Delete an analysis by identifier.
      *  @param id Analysis identifier
      */

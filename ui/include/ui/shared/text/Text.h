@@ -185,6 +185,17 @@ inline QString stateSnapshotUnavailable() { return detail::translate(kContext, k
 
 }
 
+namespace exportRuns {
+
+inline constexpr auto kContext = "ExportWorkflowState";
+inline constexpr auto kSuccessDetailSource = QT_TRANSLATE_NOOP("ExportWorkflowState", "Export completed successfully.");
+inline constexpr auto kStartingDetailSource = QT_TRANSLATE_NOOP("ExportWorkflowState", "Starting export...");
+
+inline QString successDetail() { return detail::translate(kContext, kSuccessDetailSource); }
+inline QString startingDetail() { return detail::translate(kContext, kStartingDetailSource); }
+
+}
+
 namespace language {
 
 inline constexpr auto kContext = "LanguageService";
