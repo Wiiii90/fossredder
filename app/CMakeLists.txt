@@ -136,33 +136,10 @@ endif()
 
 fossredder_enable_target_pch(fossredder "${CMAKE_CURRENT_SOURCE_DIR}/include/pch.h")
 
-# Visual Studio debugger environment and Qt deployment.
-if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
-    set(_qt_bin_release "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin")
-    set(_qt_bin_debug "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin")
-
-    if(MSVC)
-        set(_target_dir_macro "$(TargetDir)")
-        set(_dbg_env "$<$<CONFIG:Debug>:PATH=${_qt_bin_debug}$<SEMICOLON>QT_DEBUG_PLUGINS=1$<SEMICOLON>VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR}$<SEMICOLON>QT_QPA_PLATFORM_PLUGIN_PATH=${_target_dir_macro}platforms$<SEMICOLON>QT_PLUGIN_PATH=${_target_dir_macro}$<SEMICOLON>QML2_IMPORT_PATH=${_target_dir_macro}qml$<SEMICOLON>QML_IMPORT_PATH=${_target_dir_macro}qml>")
-        set(_rel_env "$<$<CONFIG:Release>:PATH=${_qt_bin_release}$<SEMICOLON>VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED_DIR}$<SEMICOLON>QT_QPA_PLATFORM_PLUGIN_PATH=${_target_dir_macro}platforms$<SEMICOLON>QT_PLUGIN_PATH=${_target_dir_macro}$<SEMICOLON>QML2_IMPORT_PATH=${_target_dir_macro}qml$<SEMICOLON>QML_IMPORT_PATH=${_target_dir_macro}qml>")
-
-        set_target_properties(fossredder PROPERTIES
-            VS_DEBUGGER_ENVIRONMENT "${_dbg_env}${_rel_env}"
-        )
-    endif()
-
-    add_custom_command(TARGET fossredder POST_BUILD
-        COMMAND ${CMAKE_COMMAND}
-            -DTARGET_DIR="$<TARGET_FILE_DIR:fossredder>"
-            -DVCPKG_INSTALLED_DIR="${VCPKG_INSTALLED_DIR}"
-            -DVCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET}"
-            -DAPP_QML_SOURCE_DIR="${CMAKE_SOURCE_DIR}/ui/qml/FossRedder"
-            -DAPP_QML_TOOLING_DIR="${CMAKE_BINARY_DIR}/ui/qmltooling/FossRedder"
-            -DBUILD_CONFIG="$<CONFIG>"
-            -P "${CMAKE_SOURCE_DIR}/cmake/QtDeploy.cmake"
-        VERBATIM
-    )
-endif()
+fossredder_configure_qt_runtime(fossredder
+    QML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/ui/qml/FossRedder"
+    QML_TOOLING_DIR "${CMAKE_BINARY_DIR}/ui/qmltooling/FossRedder"
+)
 
 # Install application runtime assets.
 install(TARGETS fossredder

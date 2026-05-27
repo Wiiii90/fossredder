@@ -8,6 +8,7 @@ import QtTest 1.3
 import FossRedder.Views 1.0
 
 import "../Lookup.js" as Lookup
+import "../common/TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -26,6 +27,17 @@ TestCase {
         function contractRows() { return contractRowsData || [] }
         function actorRows() { return actors || [] }
         function propertyRows() { return properties || [] }
+        function displayRowsWithEmpty(rows, emptyLabel, textKey) {
+            var out = [{ id: "", display: emptyLabel }]
+            var list = rows || []
+            for (var i = 0; i < list.length; ++i) {
+                out.push({
+                    id: String(list[i].id || ""),
+                    display: String(list[i][textKey] || "")
+                })
+            }
+            return out
+        }
         function indexOfId(rows, id) {
             var list = rows || []
             for (var i = 0; i < list.length; ++i) {
@@ -36,6 +48,9 @@ TestCase {
         }
         function contractFormState(name, type, actorIds, propertyIds, aliases) {
             return { name: name || "", type: type || "", selectedActorIds: actorIds || [], selectedPropertyIds: propertyIds || [], aliases: aliases || [], aliasInputText: "", aliasIndex: -1 }
+        }
+        function createContractObject(source) {
+            return TestSupport.createContractObject(testCase, source)
         }
     }
 
@@ -86,9 +101,7 @@ TestCase {
     }
 
     function findRequired(root, objectName) {
-        var found = Lookup.findObject(root, objectName)
-        verify(found !== null, "Missing object: " + objectName)
-        return found
+        return TestSupport.findRequired(Lookup, root, objectName)
     }
 
     function createView() {
@@ -108,7 +121,7 @@ TestCase {
         session.properties = []
     }
 
-    function test_navigationStaysEnabledWithSingleRow() {
+    function test_CON_V_001_navigationStaysEnabledWithSingleRow() {
         session.contractRowsData = [
             { id: "contract-1", name: "C1" }
         ]
@@ -123,9 +136,9 @@ TestCase {
         compare(session.selectedContractId, "contract-1")
     }
 
-    function test_navigationCyclesThroughCreateMode() {
+    function test_CON_V_002_navigationCyclesThroughCreateMode() {
         session.selectedContractId = "contract-3"
-        session.selectedContract = { id: "contract-3", name: "C3" }
+        session.selectedContract = session.createContractObject({ id: "contract-3", name: "C3" })
         var view = createView()
 
         findRequired(view, "contractNextButton").clicked()
@@ -135,7 +148,7 @@ TestCase {
         compare(session.selectedContractId, "contract-1")
 
         session.selectedContractId = "contract-1"
-        session.selectedContract = { id: "contract-1", name: "C1" }
+        session.selectedContract = session.createContractObject({ id: "contract-1", name: "C1" })
         findRequired(view, "contractPreviousButton").clicked()
         compare(session.selectedContractId, "")
 
@@ -143,7 +156,7 @@ TestCase {
         compare(session.selectedContractId, "contract-3")
     }
 
-    function test_createModeNavigationStartsAtEdges() {
+    function test_CON_V_003_createModeNavigationStartsAtEdges() {
         var view = createView()
 
         findRequired(view, "contractNextButton").clicked()

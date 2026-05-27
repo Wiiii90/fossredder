@@ -34,6 +34,11 @@ QString navigatedId(const QVariantList& rows,
                    const QString& currentId,
                    int delta,
                    int defaultIndex = 0);
+QString navigatedSelectionId(const QVariantList& rows,
+                             const QString& currentId,
+                             int delta,
+                             int defaultIndex = 0,
+                             const QString& idKey = QStringLiteral("id"));
 
 // Row projection helpers
 QVariantList displayRowsWithEmpty(const QVariantList& rows,

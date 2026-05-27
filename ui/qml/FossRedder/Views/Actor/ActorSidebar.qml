@@ -13,6 +13,7 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var actorRows: root.session ? root.session.actorRows : []
 
     ColumnLayout {
         anchors.fill: parent
@@ -20,6 +21,7 @@ Item {
         spacing: root.theme.spacingSmall
 
         Flickable {
+            objectName: "actorSidebarFlick"
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
@@ -32,23 +34,31 @@ Item {
                 spacing: root.theme.spacingSmall
 
                 Repeater {
-                    model: root.session ? root.session.actors : []
+                    model: root.actorRows
 
                     delegate: Rectangle {
                         id: actorRow
+                        objectName: "actorSidebarRow_" + actorRow.actorId
                         required property var modelData
+                        readonly property string actorId: actorRow.modelData && actorRow.modelData.id ? String(actorRow.modelData.id) : ""
+                        function selectActor() {
+                            if (root.session)
+                                root.session.selectedActorId = actorRow.actorId
+                        }
                         width: actorColumn.width
                         height: root.theme.viewSidebarRowHeight
                         radius: root.theme.viewSidebarRowRadius
-                        color: root.session && actorRow.modelData.id === root.session.selectedActorId ? root.theme.selectionHighlight : "transparent"
+                        color: root.session && actorRow.actorId === String(root.session.selectedActorId || "")
+                               ? root.theme.selectionHighlight
+                               : "transparent"
                         border.color: root.theme.borderSoft
                         border.width: root.theme.borderWidthThin
 
                         MouseArea {
+                            objectName: "actorSidebarMouse_" + actorRow.actorId
                             anchors.fill: parent
-                            onClicked: {
-                                if (root.session) root.session.selectedActorId = actorRow.modelData.id
-                            }
+                            preventStealing: true
+                            onClicked: actorRow.selectActor()
                         }
 
                         Column {
@@ -58,6 +68,7 @@ Item {
 
                             Text {
                                 id: actorNameText
+                                objectName: "actorSidebarName_" + actorRow.actorId
                                 width: parent.width
                                 text: actorRow.modelData.name ? actorRow.modelData.name : ""
                                 color: root.theme.textPrimary
@@ -71,4 +82,3 @@ Item {
         }
     }
 }
-

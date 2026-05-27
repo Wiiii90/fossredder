@@ -10,6 +10,7 @@ import QtTest 1.3
 import FossRedder.Views 1.0
 
 import "../Lookup.js" as Lookup
+import "../common/TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -131,8 +132,8 @@ TestCase {
         }
 
         function selectContractState(newId, newName, newType, newActorIds, newPropertyIds, newAliases) {
-            if (selectedContract && selectedContract.setState)
-                selectedContract.setState(newId, newName, newType, newActorIds, newPropertyIds, newAliases)
+            if (selectedContract && selectedContract["setState"])
+                selectedContract["setState"](newId, newName, newType, newActorIds, newPropertyIds, newAliases)
             selectedContractId = String(newId || "")
         }
     }
@@ -247,17 +248,11 @@ TestCase {
     }
 
     function findRequired(root, objectName) {
-        var match = Lookup.findObject(root, objectName)
-        verify(match !== null, "Missing object: " + objectName)
-        return match
+        return TestSupport.findRequired(Lookup, root, objectName)
     }
 
     function createContractObject(source) {
-        if (!source)
-            return null
-        var contractObject = Qt.createQmlObject('import QtQml 2.15; QtObject { signal changed(); property string id: ""; property string name: ""; property string type: ""; property var actorIds: []; property var propertyIds: []; property var aliases: []; function setState(newId, newName, newType, newActorIds, newPropertyIds, newAliases) { id = newId || ""; name = newName || ""; type = newType || ""; actorIds = newActorIds || []; propertyIds = newPropertyIds || []; aliases = newAliases || []; changed(); } }', testCase)
-        contractObject.setState(source.id || "", source.name || "", source.type || "", source.actorIds || [], source.propertyIds || [], source.aliases || [])
-        return contractObject
+        return TestSupport.createContractObject(testCase, source)
     }
 
     function createForm(selectedContract) {
@@ -276,7 +271,7 @@ TestCase {
         session.properties = []
     }
 
-    function test_createModeSavesContractAndSelectsNewId() {
+    function test_CON_F_001_createModeSavesContractAndSelectsNewId() {
         session.actors = [{ id: "actor-1", name: "Alice" }]
         session.properties = [{ id: "property-1", name: "Lot" }]
         var form = createForm(null)
@@ -376,7 +371,7 @@ TestCase {
         compare(form.selectedPropertyIds[0], "property-1")
     }
 
-    function test_aliasButtonsAddAndRemoveAlias() {
+    function test_CON_F_002_aliasButtonsAddAndRemoveAlias() {
         var form = createForm(null)
         var aliasInput = findRequired(form, "contractAliasInput")
         var addAliasButton = findRequired(form, "contractAddAliasButton")
@@ -391,7 +386,7 @@ TestCase {
         compare(form.aliases.length, 0)
     }
 
-    function test_editModeAliasButtonAddsAliasToFormState() {
+    function test_CON_F_003_editModeAliasButtonAddsAliasToFormState() {
         var form = createForm({ id: "contract-4", name: "Lease", type: "core", actorIds: ["actor-1"], propertyIds: [], aliases: ["Base"] })
         var aliasInput = findRequired(form, "contractAliasInput")
         var addAliasButton = findRequired(form, "contractAddAliasButton")
@@ -408,7 +403,7 @@ TestCase {
         compare(form.aliases[1], "Alias Two")
     }
 
-    function test_aliasPanelGetsLayoutSpaceForRenderedAliases() {
+    function test_CON_F_004_aliasPanelGetsLayoutSpaceForRenderedAliases() {
         var form = createForm({ id: "contract-4", name: "Lease", type: "core", actorIds: ["actor-1"], propertyIds: [], aliases: ["Base"] })
         var aliasScroll = findRequired(form, "contractAliasScroll")
 
@@ -416,7 +411,7 @@ TestCase {
         compare(aliasScroll.height > 0, true)
     }
 
-    function test_readModeLoadsSelectedContractState() {
+    function test_CON_F_005_readModeLoadsSelectedContractState() {
         var form = createForm({
             id: "contract-3",
             name: "Lease",
@@ -436,7 +431,7 @@ TestCase {
         compare(form.selectedPropertyIds.length, 1)
     }
 
-    function test_updateModeSavesCurrentContractIdWithType() {
+    function test_CON_F_006_updateModeSavesCurrentContractIdWithType() {
         var form = createForm({ id: "contract-5", name: "Old", type: "legacy", actorIds: [], propertyIds: [], aliases: [] })
         var nameField = findRequired(form, "contractNameField")
         var typeField = findRequired(form, "contractTypeField")
@@ -453,7 +448,7 @@ TestCase {
         compare(contractController.lastSave.type, "modern")
     }
 
-    function test_updateModeKeepsSelectedRelationsAndSavesThem() {
+    function test_CON_F_007_updateModeKeepsSelectedRelationsAndSavesThem() {
         session.actors = [
             { id: "actor-1", name: "Alice" }
         ]
@@ -482,8 +477,8 @@ TestCase {
         typeField.textEdited()
         contractController.saveContractOverride = function(id, name, type, actorIds, propertyIds, aliases) {
             var result = contractController.defaultSaveContract(id, name, type, actorIds, propertyIds, aliases)
-            if (session.selectedContract && session.selectedContract.setState)
-                session.selectedContract.setState(id || "contract-6", name, type, actorIds, propertyIds, aliases)
+            if (session.selectedContract && session.selectedContract["setState"])
+                session.selectedContract["setState"](id || "contract-6", name, type, actorIds, propertyIds, aliases)
             session.selectedContractId = id || "contract-6"
             session.dataRevision += 1
             return result
@@ -538,7 +533,31 @@ TestCase {
         compare(form.selectedPropertyIds[0], "property-1")
     }
 
-    function test_selectionChangedSignalRefreshesAliasesWithoutReplacingSelectionObject() {
+    function test_CON_F_008_updateModeReplacesPreviouslyAssignedActorWithNewSelection() {
+        session.actors = [
+            { id: "actor-1", name: "Alice" },
+            { id: "actor-2", name: "Bob" }
+        ]
+        var form = createForm({ id: "contract-8", name: "Old", type: "legacy", actorIds: ["actor-2"], propertyIds: [], aliases: [] })
+        var actorCombo = findRequired(form, "contractActorComboBox")
+        var updateButton = findRequired(form, "contractUpdateButton")
+
+        compare(form.selectedActorIds.length, 1)
+        compare(form.selectedActorIds[0], "actor-2")
+
+        actorCombo.currentIndex = 1
+        actorCombo.activated(1)
+        compare(form.selectedActorIds.length, 1)
+        compare(form.selectedActorIds[0], "actor-1")
+
+        updateButton.clicked()
+
+        compare(contractController.saveCalls, 1)
+        compare(contractController.lastSave.actorIds.length, 1)
+        compare(contractController.lastSave.actorIds[0], "actor-1")
+    }
+
+    function test_CON_F_009_selectionChangedSignalRefreshesAliasesWithoutReplacingSelectionObject() {
         var form = createForm({ id: "contract-6", name: "Old", type: "legacy", actorIds: [], propertyIds: [], aliases: ["Base"] })
 
         compare(form.aliases.length, 1)
@@ -560,7 +579,7 @@ TestCase {
         compare(form.aliases[1], "Alias Two")
     }
 
-    function test_dataRevisionRefreshesAliasesWhenSelectionObjectDoesNotEmitChanged() {
+    function test_CON_F_010_dataRevisionRefreshesAliasesWhenSelectionObjectDoesNotEmitChanged() {
         var form = createForm({ id: "contract-6", name: "Old", type: "legacy", actorIds: [], propertyIds: [], aliases: ["Base"] })
 
         compare(form.aliases.length, 1)
@@ -580,7 +599,7 @@ TestCase {
         compare(form.selectedPropertyIds[0], "property-1")
     }
 
-    function test_actorSelectionUpdatesSelectedActorIds() {
+    function test_CON_F_011_actorSelectionUpdatesSelectedActorIds() {
         session.actors = [
             { id: "actor-1", name: "Alice" }
         ]
@@ -594,7 +613,7 @@ TestCase {
         compare(form.selectedActorIds[0], "actor-1")
     }
 
-    function test_propertySelectionUpdatesSelectedPropertyIds() {
+    function test_CON_F_012_propertySelectionUpdatesSelectedPropertyIds() {
         session.properties = [
             { id: "property-1", name: "Lot" }
         ]
@@ -619,7 +638,7 @@ TestCase {
         compare(contractController.lastSave.propertyIds[0], "property-1")
     }
 
-    function test_createButtonStaysDisabledUntilAtLeastOneRelationIsSelected() {
+    function test_CON_F_013_createButtonStaysDisabledUntilAtLeastOneRelationIsSelected() {
         session.actors = [{ id: "actor-1", name: "Alice" }]
         session.properties = [{ id: "property-1", name: "Lot" }]
         var form = createForm(null)
@@ -636,7 +655,7 @@ TestCase {
         compare(createButton.enabled, true)
     }
 
-    function test_navigationButtonsMoveSelectionId() {
+    function test_CON_F_014_navigationButtonsMoveSelectionId() {
         session.contracts = [
             { id: "contract-1", name: "A" },
             { id: "contract-2", name: "B" }
@@ -652,7 +671,7 @@ TestCase {
         compare(session.selectedContractId, "contract-1")
     }
 
-    function test_createShortcutButtonClearsSelectionAndSwitchesToCreateMode() {
+    function test_CON_F_015_createShortcutButtonClearsSelectionAndSwitchesToCreateMode() {
         var form = createForm({ id: "contract-9", name: "Selected", type: "base", actorIds: [], propertyIds: [], aliases: [] })
         var createModeButton = findRequired(form, "contractCreateModeButton")
 
@@ -662,7 +681,7 @@ TestCase {
         compare(form.isEdit, false)
     }
 
-    function test_deleteButtonDeletesCurrentContract() {
+    function test_CON_F_016_deleteButtonDeletesCurrentContract() {
         var form = createForm({ id: "contract-7", name: "Legacy", type: "base", actorIds: [], propertyIds: [], aliases: [] })
         var deleteButton = findRequired(form, "contractDeleteButton")
 

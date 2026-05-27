@@ -113,8 +113,8 @@ TestCase {
         }
 
         function selectPropertyState(newId, newName, newAliases, newContractIds) {
-            if (selectedProperty && selectedProperty.setState)
-                selectedProperty.setState(newId, newName, newAliases, newContractIds)
+            if (selectedProperty && selectedProperty["setState"])
+                selectedProperty["setState"](newId, newName, newAliases, newContractIds)
             selectedPropertyId = String(newId || "")
         }
     }
@@ -236,7 +236,7 @@ TestCase {
         if (!source)
             return null
         var propertyObject = Qt.createQmlObject('import QtQml 2.15; QtObject { signal changed(); property string id: ""; property string name: ""; property var aliases: []; property var contractIds: []; function setState(newId, newName, newAliases, newContractIds) { id = newId || ""; name = newName || ""; aliases = newAliases || []; contractIds = newContractIds || []; changed(); } }', testCase)
-        propertyObject.setState(source.id || "", source.name || "", source.aliases || [], source.contractIds || [])
+        propertyObject["setState"](source.id || "", source.name || "", source.aliases || [], source.contractIds || [])
         return propertyObject
     }
 
@@ -405,8 +405,8 @@ TestCase {
         nameField.text = "New Property"
         propertyController.savePropertyOverride = function(id, name, aliases, contractIds) {
             var result = propertyController.defaultSaveProperty(id, name, aliases, contractIds)
-            if (session.selectedProperty && session.selectedProperty.setState)
-                session.selectedProperty.setState(id || "property-6", name, aliases, contractIds)
+            if (session.selectedProperty && session.selectedProperty["setState"])
+                session.selectedProperty["setState"](id || "property-6", name, aliases, contractIds)
             session.selectedPropertyId = id || "property-6"
             session.dataRevision += 1
             return result

@@ -67,6 +67,9 @@ TEST(WorkspaceRowProjectorTest, PreservesGenericOrderingAndSelectionContracts)
     EXPECT_EQ(wrappedIndex(-1, 3), 2);
     EXPECT_EQ(wrappedIdAt(rows, 4), QStringLiteral("b"));
     EXPECT_EQ(navigatedId(rows, QStringLiteral("b"), 1), QStringLiteral("c"));
+    EXPECT_EQ(navigatedSelectionId(rows, QStringLiteral("b"), 1, 0), QStringLiteral("c"));
+    EXPECT_EQ(navigatedSelectionId(rows, QStringLiteral("c"), 1, 0), QString());
+    EXPECT_EQ(navigatedSelectionId(rows, QString(), 1, 0), QStringLiteral("a"));
     EXPECT_EQ(displayRowsWithEmpty(rows, QStringLiteral("None")).first().toMap().value(QStringLiteral("display")).toString(), QStringLiteral("None"));
 
     const QVariantMap resolved = resolveSelectionState(rows, 1, QStringLiteral("b"));

@@ -51,6 +51,7 @@ set(UI_SOURCES
     src/viewmodels/booking/TransactionListModel.cpp
     src/state/filters/FilterState.cpp
     src/state/navigation/NavigationState.cpp
+    src/state/session/ActorState.cpp
     src/state/session/WorkspaceSessionSelection.cpp
     src/state/selection/SelectionState.cpp
     src/adapters/core/WorkspaceRowProjector.cpp
@@ -112,6 +113,7 @@ set(UI_HEADERS
     include/ui/shared/payload/PayloadMapper.h
     include/ui/state/filters/FilterState.h
     include/ui/state/navigation/NavigationState.h
+    include/ui/state/session/ActorState.h
     include/ui/state/session/WorkspaceSessionSelection.h
     include/ui/state/selection/SelectionState.h
     include/ui/state/session/WorkspaceSessionModels.h
@@ -415,30 +417,10 @@ if(BUILD_UI_TESTS)
 
     fossredder_set_runtime_output_dirs(ui_qml_tests)
     fossredder_enable_target_quality(ui_qml_tests)
-
-    if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
-        if(MSVC)
-            set(_ui_qml_test_target_dir "$(TargetDir)")
-            set(_ui_qml_dbg_env "$<$<CONFIG:Debug>:PATH=${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin$<SEMICOLON>QT_DEBUG_PLUGINS=1$<SEMICOLON>QT_QPA_PLATFORM_PLUGIN_PATH=${_ui_qml_test_target_dir}platforms$<SEMICOLON>QT_PLUGIN_PATH=${_ui_qml_test_target_dir}$<SEMICOLON>QML2_IMPORT_PATH=${_ui_qml_test_target_dir}qml$<SEMICOLON>QML_IMPORT_PATH=${_ui_qml_test_target_dir}qml>")
-            set(_ui_qml_rel_env "$<$<CONFIG:Release>:PATH=${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin$<SEMICOLON>QT_QPA_PLATFORM_PLUGIN_PATH=${_ui_qml_test_target_dir}platforms$<SEMICOLON>QT_PLUGIN_PATH=${_ui_qml_test_target_dir}$<SEMICOLON>QML2_IMPORT_PATH=${_ui_qml_test_target_dir}qml$<SEMICOLON>QML_IMPORT_PATH=${_ui_qml_test_target_dir}qml>")
-
-            set_target_properties(ui_qml_tests PROPERTIES
-                VS_DEBUGGER_ENVIRONMENT "${_ui_qml_dbg_env}${_ui_qml_rel_env}"
-            )
-        endif()
-
-        add_custom_command(TARGET ui_qml_tests POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-                -DTARGET_DIR="$<TARGET_FILE_DIR:ui_qml_tests>"
-                -DVCPKG_INSTALLED_DIR="${VCPKG_INSTALLED_DIR}"
-                -DVCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET}"
-                -DAPP_QML_SOURCE_DIR="${CMAKE_SOURCE_DIR}/ui/qml/FossRedder"
-                -DAPP_QML_TOOLING_DIR="${CMAKE_BINARY_DIR}/ui/qmltooling/FossRedder"
-                -DBUILD_CONFIG="$<CONFIG>"
-                -P "${CMAKE_SOURCE_DIR}/cmake/QtDeploy.cmake"
-            VERBATIM
-        )
-    endif()
+    fossredder_configure_qt_runtime(ui_qml_tests
+        QML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/ui/qml/FossRedder"
+        QML_TOOLING_DIR "${CMAKE_BINARY_DIR}/ui/qmltooling/FossRedder"
+    )
 
     add_test(NAME ui_qml_tests COMMAND ui_qml_tests -platform windows)
     set_tests_properties(ui_qml_tests PROPERTIES

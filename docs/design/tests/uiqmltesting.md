@@ -46,13 +46,17 @@ ui/
         tst_TextField.qml
       actor/
         tst_ActorView.qml
+        tst_ActorSidebar.qml
         tst_ActorForm.qml
+        tst_ActorBottomBar.qml
+        tst_ActorContractPanel.qml
       property/
         tst_PropertyView.qml
         tst_PropertyForm.qml
       contract/
         tst_ContractView.qml
         tst_ContractForm.qml
+        tst_ContractActorsPanel.qml
       annual/
         tst_AnnualView.qml
         tst_AnnualForm.qml
@@ -91,6 +95,7 @@ ui/
 - Test the observable QML behavior, not the C++ implementation details behind
   it.
 - Keep test ids stable so the matrix remains useful when the UI internals move.
+- Prefer matrix-prefixed QML test function names so the code stays easy to cross-reference with the table rows.
 - Use the smallest realistic QML harness or fake app context that can express
   the interaction.
 - Prefer boundary wiring tests over layout pixel tests unless layout behavior is
@@ -200,11 +205,20 @@ ui/
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ACT-V-001 | Container mount | QML | App context and theme available | Open ActorView | `ActorForm` is filled with app context and theme |
+| ACT-V-001 | Container mount | QML | App context and theme available | Open ActorView | `ActorForm` is filled with app context and theme through the `actorState` bridge |
 | ACT-V-002 | Toolbar actor create shortcut | QML/Interaction | Actor section active and edit mode available | Click the toolbar actor action | Actor form switches to create mode and clears selection |
 | ACT-V-003 | Bottom navigation cycles through create mode | QML/Interaction | Multiple actor rows and the last/first actor selected | Click next from the last actor or previous from the first actor, then click again | Selection clears into create mode first, then continues to the opposite edge |
 | ACT-V-004 | Bottom navigation starts from create mode | QML/Interaction | Multiple actor rows and no actor selected | Click next or previous | Next selects the first actor and previous selects the last actor |
 | ACT-V-005 | Bottom navigation supports single row | QML/Interaction | Actor form opened with only one actor row | Click previous or next | Previous/next buttons remain enabled and navigation can select the only actor |
+
+### ActorSidebar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ACT-S-001 | Row binding | QML/Interaction | Sidebar loaded with actor rows | Open the sidebar | The sidebar renders the actor row labels from session state |
+| ACT-S-002 | Row selection | QML/Interaction | Sidebar loaded with actor rows | Click an actor row | The matching actor id becomes selected in session state |
+| ACT-S-003 | Selected highlight | QML/Visual state | Sidebar loaded with a selected actor id | Open the sidebar | The matching actor row uses the theme selection highlight |
+| ACT-S-004 | Sidebar scrolling | QML/Layout | Sidebar has more rows than visible height | Open the sidebar | The internal flickable becomes scrollable for the full row list |
 
 ### ActorForm
 
@@ -219,6 +233,21 @@ ui/
 | ACT-007 | Contract selection | QML/Interaction | Selected actor with contract rows | Toggle contract checkboxes | Selected contract ids are updated in the form state |
 | ACT-008 | Actor navigation | QML/Interaction | Actor rows available | Click Prev or Next | Selected actor id moves to adjacent actor |
 | ACT-009 | Create-mode shortcut button | QML/Interaction | Edit mode with a selected actor | Click bottom-bar `+` button | Selection clears and form switches to create mode |
+
+### ActorBottomBar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ACT-BB-001 | Navigation buttons | QML/Interaction | Bottom bar loaded with actor rows and state hooks | Click Prev or Next | Navigation methods are called on the actor state |
+| ACT-BB-002 | Create-mode buttons | QML/Interaction | Bottom bar loaded in create mode | Click Clear or Create | Clear and submit actions are forwarded to the actor state |
+| ACT-BB-003 | Edit-mode buttons | QML/Interaction | Bottom bar loaded in edit mode with changes | Click `+`, Delete or Update | Create-mode, delete and update actions are forwarded to the actor state |
+
+### ActorContractPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ACT-CP-001 | Contract selection | QML/Interaction | Actor contract panel loaded with contract rows | Toggle a contract checkbox | The selected contract ids on actor state are updated |
+| ACT-CP-002 | Selection rendering | QML/Visual state | Actor contract panel loaded with a selected contract id | Open the panel | The matching contract checkbox reflects the selected state |
 
 ## Property
 
@@ -272,6 +301,13 @@ ui/
 | CON-008 | Property selection | QML/Interaction | Property rows available | Toggle contract property checkboxes | Selected property ids are updated in the form state |
 | CON-009 | Contract navigation | QML/Interaction | Contract rows available | Click Prev or Next | Selected contract id moves to adjacent contract |
 | CON-010 | Create-mode shortcut button | QML/Interaction | Edit mode with a selected contract | Click bottom-bar `+` button | Selection clears and form switches to create mode |
+
+### ContractActorsPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| CON-AP-001 | Actor selection | QML/Interaction | Contract actor panel loaded with actor rows | Select an actor from the dropdown | The selected actor id is forwarded as a single-item selection |
+| CON-AP-002 | Existing selection rendering | QML/Visual state | Contract actor panel loaded with a selected actor id | Open the panel | The dropdown reflects the selected actor |
 
 ## Annual
 

@@ -96,7 +96,26 @@ TEST(WorkspaceSessionStateTest, ResolvesAmountForCommitWithParserAndPersistedFal
     EXPECT_DOUBLE_EQ(store.amountForTransactionCommit(QVariant(),
                                                       QStringLiteral("missing"),
                                                       7.5),
-                     7.5);
+                    7.5);
+}
+
+TEST(WorkspaceSessionStateTest, ComparesActorStateByNormalizedCollections)
+{
+    SessionState store;
+
+    EXPECT_FALSE(store.formStateChanged(QStringLiteral("Alice"),
+                                        QVariantList{QStringLiteral("One"), QStringLiteral("Two")},
+                                        QVariantList{QStringLiteral("contract-1")},
+                                        QStringLiteral("Alice"),
+                                        QVariantList{QStringLiteral("Two"), QStringLiteral("One")},
+                                        QVariantList{QStringLiteral("contract-1")}));
+
+    EXPECT_TRUE(store.formStateChanged(QStringLiteral("Alice"),
+                                       QVariantList{QStringLiteral("One")},
+                                       QVariantList{QStringLiteral("contract-1")},
+                                       QStringLiteral("Alice"),
+                                       QVariantList{QStringLiteral("One"), QStringLiteral("Two")},
+                                       QVariantList{QStringLiteral("contract-1")}));
 }
 
 } // namespace ui

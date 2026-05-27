@@ -6,6 +6,7 @@ ActorForm 1.0 Actor/ActorForm.qml
 ActorContractPanel 1.0 Actor/ActorContractPanel.qml
 ActorSidebar 1.0 Actor/ActorSidebar.qml
 ActorView 1.0 Actor/ActorView.qml
+ActorBottomBar 1.0 Actor/ActorBottomBar.qml
 AnalysisAllocatableFilter 1.0 Analysis/AnalysisAllocatableFilter.qml
 AnalysisContractTypeFilter 1.0 Analysis/AnalysisContractTypeFilter.qml
 AnalysisDateFilter 1.0 Analysis/AnalysisDateFilter.qml
