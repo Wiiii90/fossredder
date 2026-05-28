@@ -10,7 +10,7 @@ import QtTest 1.3
 import FossRedder.Views 1.0
 
 import "../Lookup.js" as Lookup
-import "../common/TestSupport.js" as TestSupport
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -128,10 +128,14 @@ TestCase {
                     break
                 }
             }
-            if (index < 0)
+            if (index < 0) {
                 index = fallbackIndex
-            else
-                index = (index + delta + rows.length) % rows.length
+                return String(rows[index].id || "")
+            }
+            if (delta > 0)
+                return index >= rows.length - 1 ? "" : String(rows[index + 1].id || "")
+            if (delta < 0)
+                return index <= 0 ? "" : String(rows[index - 1].id || "")
             return String(rows[index].id || "")
         }
 
@@ -148,6 +152,10 @@ TestCase {
                 }
             }
             if (currentIndex < 0) {
+                if (delta > 0)
+                    return String(list[0][idKey] || "")
+                if (delta < 0)
+                    return String(list[list.length - 1][idKey] || "")
                 const fallback = Math.max(0, Math.min(fallbackIndex, list.length - 1))
                 return String(list[fallback][idKey] || "")
             }
@@ -209,8 +217,9 @@ TestCase {
         }
 
         function saveActor(id, name, aliases, contractIds) {
-            if (saveActorOverride)
-                return saveActorOverride(id, name, aliases, contractIds)
+            const override = saveActorOverride
+            if (override)
+                return override.call(null, id, name, aliases, contractIds)
             return defaultSaveActor(id, name, aliases, contractIds)
         }
 
@@ -239,10 +248,7 @@ TestCase {
                                                     name,
                                                     aliases,
                                                     selectedContractIds)
-
-        function canSubmit() {
-            return name.trim().length > 0
-        }
+        readonly property bool canSubmit: name.trim().length > 0
 
         function canAddAlias(value) {
             return String(value || "").trim().length > 0
@@ -397,8 +403,8 @@ TestCase {
     }
 
     property var workspaceFacade: QtObject {
-        property var actorRows: testCase.session.actorRows
-        property var contractRows: testCase.session.contractRows
+        property var actorRows: testCase.session.actors || []
+        property var contractRows: testCase.session.contracts || []
         property var actorState: testCase.actorState
         function saveActor(id, name, aliases, contractIds) { return testCase.actorController.saveActor(id, name, aliases, contractIds) }
         function deleteActor(id) { testCase.actorController.deleteActor(id) }
@@ -573,6 +579,17 @@ TestCase {
 
         compare(aliasScroll.width > 0, true)
         compare(aliasScroll.height > 0, true)
+    }
+
+    function test_ACT_F_004B_aliasChipClickSelectsAliasForRemoval() {
+        var form = createForm({ id: "actor-4", name: "Alice", aliases: ["Base", "Alias Two"] })
+        var aliasMouse = findRequired(form, "actorAliasMouse_1")
+        var removeAliasButton = findRequired(form, "actorRemoveAliasButton")
+
+        aliasMouse.clicked(null)
+
+        compare(form.aliasIndex, 1)
+        compare(removeAliasButton.enabled, true)
     }
 
     function test_ACT_F_005_readModeLoadsSelectedActorState() {

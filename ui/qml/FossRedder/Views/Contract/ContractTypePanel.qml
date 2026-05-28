@@ -11,8 +11,7 @@ import FossRedder.Controls 1.0 as Controls
 Controls.Panel {
     id: root
     required property var theme
-    property string typeValue: ""
-    signal typeEdited(string text)
+    required property var contractState
 
     Layout.fillWidth: true
     contentSpacing: root.theme.spacingSmall
@@ -37,8 +36,9 @@ Controls.Panel {
         Controls.TextField {
             objectName: "contractTypeField"
             Layout.fillWidth: true
-            text: root.typeValue
-            onTextEdited: root.typeEdited(text)
+            text: root.contractState ? root.contractState.type : ""
+            onTextChanged: if (root.contractState) root.contractState.type = text
+            onTextEdited: if (root.contractState) root.contractState.type = text
         }
     }
 }

@@ -6,6 +6,7 @@
 #include <QtQuickTest/quicktest.h>
 
 #include <QQmlEngine>
+#include <QObject>
 #include <QQuickStyle>
 #include <QString>
 

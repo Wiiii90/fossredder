@@ -10,7 +10,7 @@ import QtTest 1.3
 import FossRedder.Views 1.0
 
 import "../Lookup.js" as Lookup
-import "../common/TestSupport.js" as TestSupport
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -66,12 +66,18 @@ TestCase {
             return out
         }
 
-        function actorRows() {
-            return actors || []
+        function removeString(values, value) {
+            var out = values ? values.slice(0) : []
+            var target = String(value || "")
+            var index = out.indexOf(target)
+            if (index < 0)
+                return out
+            out.splice(index, 1)
+            return out
         }
 
-        function propertyRows() {
-            return properties || []
+        function actorRows() {
+            return actors || []
         }
 
         function contractRows() {
@@ -88,10 +94,14 @@ TestCase {
                     break
                 }
             }
-            if (index < 0)
-                index = fallbackIndex
-            else
-                index = (index + delta + rows.length) % rows.length
+            if (index < 0) {
+                index = delta > 0 ? 0 : (delta < 0 ? rows.length - 1 : fallbackIndex)
+                return String(rows[index].id || "")
+            }
+            if (delta > 0)
+                return index >= rows.length - 1 ? "" : String(rows[index + 1].id || "")
+            if (delta < 0)
+                return index <= 0 ? "" : String(rows[index - 1].id || "")
             return String(rows[index].id || "")
         }
 
@@ -135,6 +145,8 @@ TestCase {
             if (selectedContract && selectedContract["setState"])
                 selectedContract["setState"](newId, newName, newType, newActorIds, newPropertyIds, newAliases)
             selectedContractId = String(newId || "")
+            if (testCase.contractState && testCase.contractState["syncFromSelection"])
+                testCase.contractState["syncFromSelection"](true)
         }
     }
 
@@ -167,8 +179,9 @@ TestCase {
         }
 
         function saveContract(id, name, type, actorIds, propertyIds, aliases) {
-            if (saveContractOverride)
-                return saveContractOverride(id, name, type, actorIds, propertyIds, aliases)
+            const override = saveContractOverride
+            if (override)
+                return override.call(null, id, name, type, actorIds, propertyIds, aliases)
             return defaultSaveContract(id, name, type, actorIds, propertyIds, aliases)
         }
 
@@ -204,10 +217,182 @@ TestCase {
         }
     }
 
+    property var contractState: QtObject {
+        property string currentOwnerId: ""
+        property string name: ""
+        property string type: ""
+        property var aliases: []
+        property string aliasInputText: ""
+        property int aliasIndex: -1
+        property var selectedActorIds: []
+        property var selectedPropertyIds: []
+        property string savedName: ""
+        property string savedType: ""
+        property var savedAliases: []
+        property var savedSelectedActorIds: []
+        property var savedSelectedPropertyIds: []
+        property string allocatableMode: "mixed"
+        readonly property bool isEdit: testCase.session.selectedContractId.length > 0
+        readonly property bool hasChanges: !isEdit
+                ? name.trim().length > 0 || type.trim().length > 0 || aliases.length > 0 || selectedActorIds.length > 0 || selectedPropertyIds.length > 0
+                : savedName !== name
+                  || savedType !== type
+                  || JSON.stringify(savedAliases) !== JSON.stringify(aliases)
+                  || JSON.stringify(savedSelectedActorIds) !== JSON.stringify(selectedActorIds)
+                  || JSON.stringify(savedSelectedPropertyIds) !== JSON.stringify(selectedPropertyIds)
+        readonly property bool canSubmit: name.trim().length > 0
+                                          && type.trim().length > 0
+                                          && (selectedActorIds.length > 0 || selectedPropertyIds.length > 0)
+
+        function canAddAlias(value) { return String(value || "").trim().length > 0 }
+        function canRemoveSelectedAlias() { return aliasIndex >= 0 && aliasIndex < aliases.length }
+        function isAliasSelected(index) { return aliasIndex === index }
+
+        function clearFormState() {
+            name = ""
+            type = ""
+            aliases = []
+            aliasInputText = ""
+            aliasIndex = -1
+            selectedActorIds = []
+            selectedPropertyIds = []
+            allocatableMode = "mixed"
+        }
+
+        function captureSavedState() {
+            savedName = name
+            savedType = type
+            savedAliases = aliases.slice(0)
+            savedSelectedActorIds = selectedActorIds.slice(0)
+            savedSelectedPropertyIds = selectedPropertyIds.slice(0)
+        }
+
+        function syncFromSelection(forceReload) {
+            const currentId = testCase.session.selectedContractId || ""
+            if (!forceReload && currentOwnerId === currentId)
+                return
+            currentOwnerId = currentId
+            if (currentId.length === 0 || !testCase.session.selectedContract) {
+                clearFormState()
+                captureSavedState()
+                return
+            }
+            const current = testCase.session.selectedContract
+            const state = testCase.session.contractFormState(current.name || "",
+                                                             current.type || "",
+                                                             current.actorIds || [],
+                                                             current.propertyIds || [],
+                                                             current.aliases || [])
+            name = state.name || ""
+            type = state.type || ""
+            aliases = state.aliases || []
+            aliasInputText = state.aliasInputText || ""
+            aliasIndex = state.aliasIndex !== undefined ? state.aliasIndex : -1
+            selectedActorIds = state.selectedActorIds || []
+            selectedPropertyIds = state.selectedPropertyIds || []
+            captureSavedState()
+        }
+
+        function addAlias(value) {
+            const next = testCase.session.addUniqueTrimmed(aliases || [], value || "")
+            if (next.length === aliases.length)
+                return
+            aliases = next
+            aliasIndex = next.length - 1
+            aliasInputText = ""
+        }
+
+        function removeAlias(index) {
+            const next = testCase.session.removeAt(aliases || [], index)
+            if (next.length === aliases.length)
+                return
+            aliases = next
+            aliasIndex = next.length > 0 ? Math.min(index, next.length - 1) : -1
+        }
+
+        function selectAlias(index) { aliasIndex = index }
+        function requestRemoveSelectedAlias() { if (canRemoveSelectedAlias()) removeAlias(aliasIndex) }
+        function selectPrimaryActor(actorId) {
+            const id = String(actorId || "").trim()
+            selectedActorIds = id.length > 0 ? [id] : []
+        }
+        function setPropertySelected(propertyId, selected) {
+            const id = String(propertyId || "").trim()
+            const next = selected
+                    ? testCase.session.addUniqueTrimmed(selectedPropertyIds || [], id)
+                    : testCase.session.removeString(selectedPropertyIds || [], id)
+            selectedPropertyIds = next
+        }
+        function clear() { currentOwnerId = ""; clearFormState(); captureSavedState() }
+        function enterCreateMode() {
+            testCase.session.selectedContractId = ""
+            testCase.session.selectedContract = null
+            currentOwnerId = ""
+            clearFormState()
+            captureSavedState()
+        }
+        function previous() {
+            const rows = testCase.workspaceFacade.contractRows || []
+            if (rows.length === 0) return
+            testCase.session.selectedContractId = testCase.session.navigatedId(rows, isEdit ? testCase.session.selectedContractId : "", -1, rows.length - 1)
+            syncSelectionObject()
+            syncFromSelection(true)
+        }
+        function next() {
+            const rows = testCase.workspaceFacade.contractRows || []
+            if (rows.length === 0) return
+            testCase.session.selectedContractId = testCase.session.navigatedId(rows, isEdit ? testCase.session.selectedContractId : "", 1, 0)
+            syncSelectionObject()
+            syncFromSelection(true)
+        }
+        function syncSelectionObject() {
+            const id = testCase.session.selectedContractId || ""
+            if (id.length === 0) {
+                testCase.session.selectedContract = null
+                return
+            }
+            const rows = testCase.workspaceFacade.contractRows || []
+            for (var i = 0; i < rows.length; ++i) {
+                if (String(rows[i].id || "") === id) {
+                    testCase.session.selectedContract = testCase.createContractObject(rows[i])
+                    return
+                }
+            }
+        }
+        function submit() {
+            const id = testCase.workspaceFacade.saveContract(isEdit ? testCase.session.selectedContractId : "",
+                                                             name,
+                                                             type,
+                                                             selectedActorIds || [],
+                                                             selectedPropertyIds || [],
+                                                             aliases || [])
+            if (id && id.length > 0)
+                testCase.session.selectedContractId = id
+            captureSavedState()
+            return id
+        }
+        function deleteCurrent() {
+            const removedId = testCase.session.selectedContractId || ""
+            if (removedId.length === 0) return
+            testCase.workspaceFacade.deleteContract(removedId)
+            testCase.session.selectedContractId = testCase.session.deleteNextSelectionId(testCase.workspaceFacade.contractRows || [], removedId, 0, "id")
+        }
+    }
+
+    property var workspaceFacade: QtObject {
+        property var contractState: testCase.contractState
+        property var session: testCase.session
+        property var contractRows: testCase.session.contracts
+        property var actorRows: testCase.session.actors
+        property var propertyRows: testCase.session.properties
+        function saveContract(id, name, type, actorIds, propertyIds, aliases) { return testCase.contractController.saveContract(id, name, type, actorIds, propertyIds, aliases) }
+        function deleteContract(id) { testCase.contractController.deleteContract(id) }
+    }
+
     property var appContext: QtObject {
         property var session: testCase.session
         property var sessionState: testCase.session
-        property var workspaceFacade: testCase.contractController
+        property var workspaceFacade: testCase.workspaceFacade
     }
 
     property var theme: QtObject {
@@ -239,7 +424,7 @@ TestCase {
     Component {
         id: contractFormComponent
 
-        ContractForm {
+        ContractView {
             width: 960
             height: 640
             appContext: testCase.appContext
@@ -259,6 +444,7 @@ TestCase {
         var contractObject = createContractObject(selectedContract)
         session.selectedContract = contractObject
         session.selectedContractId = contractObject ? contractObject.id : ""
+        contractState.syncFromSelection(true)
         return createTemporaryObject(contractFormComponent, testCase)
     }
 
@@ -269,6 +455,7 @@ TestCase {
         session.contracts = []
         session.actors = []
         session.properties = []
+        contractState.clear()
     }
 
     function test_CON_F_001_createModeSavesContractAndSelectsNewId() {
@@ -409,6 +596,17 @@ TestCase {
 
         compare(aliasScroll.width > 0, true)
         compare(aliasScroll.height > 0, true)
+    }
+
+    function test_CON_F_004B_aliasChipClickSelectsAliasForRemoval() {
+        var form = createForm({ id: "contract-4", name: "Lease", type: "core", actorIds: ["actor-1"], propertyIds: [], aliases: ["Base", "Alias Two"] })
+        var aliasMouse = findRequired(form, "contractAliasMouse_1")
+        var removeAliasButton = findRequired(form, "contractRemoveAliasButton")
+
+        aliasMouse.clicked(null)
+
+        compare(form.aliasIndex, 1)
+        compare(removeAliasButton.enabled, true)
     }
 
     function test_CON_F_005_readModeLoadsSelectedContractState() {
@@ -651,7 +849,7 @@ TestCase {
         typeField.textEdited()
 
         compare(createButton.enabled, false)
-        form.selectedActorIds = ["actor-1"]
+        contractState.selectedActorIds = ["actor-1"]
         compare(createButton.enabled, true)
     }
 

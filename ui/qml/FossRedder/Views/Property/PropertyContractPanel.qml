@@ -12,9 +12,8 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
+    required property var propertyState
     property var contractRows: []
-    property var selectedContractIds: []
-    signal selectionChanged(var ids)
 
     Layout.fillWidth: true
     Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight
@@ -76,17 +75,10 @@ Controls.Panel {
                                 objectName: "propertyContractCheckBox"
                                 Layout.fillWidth: false
                                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                                checked: root.selectedContractIds.indexOf(contractRow.contractId) !== -1
-                                onToggled: {
-                                    const next = root.selectedContractIds ? root.selectedContractIds.slice(0) : []
-                                    const idx = next.indexOf(contractRow.contractId)
-                                    if (checked && idx === -1) {
-                                        next.push(contractRow.contractId)
-                                    } else if (!checked && idx !== -1) {
-                                        next.splice(idx, 1)
-                                    }
-                                    root.selectionChanged(next)
-                                }
+                                checked: root.propertyState && root.propertyState.selectedContractIds
+                                         ? root.propertyState.selectedContractIds.indexOf(contractRow.contractId) !== -1
+                                         : false
+                                onToggled: if (root.propertyState) root.propertyState.setContractSelected(contractRow.contractId, checked)
                             }
 
                             Label {

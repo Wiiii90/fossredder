@@ -18,6 +18,8 @@
 #include "ui/shared/payload/PayloadMapper.h"
 #include "ui/shared/util/StringConversions.h"
 #include "ui/state/session/ActorState.h"
+#include "ui/state/session/ContractState.h"
+#include "ui/state/session/PropertyState.h"
 
 #include <QSet>
 
@@ -191,7 +193,9 @@ makeAnnualCommand(const QString &id, const QString &name, int year,
 WorkspaceFacade::WorkspaceFacade(QObject *parent)
     : QObject(parent), session_(std::make_unique<SessionState>(this)),
       selection_(std::make_unique<SessionSelection>(session_->models(), this)),
-      actorState_(std::make_unique<ActorState>(this, this)) {
+      actorState_(std::make_unique<ActorState>(this, this)),
+      propertyState_(std::make_unique<PropertyState>(this, this)),
+      contractState_(std::make_unique<ContractState>(this, this)) {
   QObject::connect(selection_.get(), &SessionSelection::selectedActorIdChanged,
                    this, &WorkspaceFacade::selectedActorIdChanged);
   QObject::connect(selection_.get(),
@@ -227,6 +231,12 @@ SessionSelection *WorkspaceFacade::selection() noexcept {
   return selection_.get();
 }
 ActorState *WorkspaceFacade::actorState() noexcept { return actorState_.get(); }
+PropertyState *WorkspaceFacade::propertyState() noexcept {
+  return propertyState_.get();
+}
+ContractState *WorkspaceFacade::contractState() noexcept {
+  return contractState_.get();
+}
 
 void WorkspaceFacade::bumpDataRevision() {
   ++dataRevision_;

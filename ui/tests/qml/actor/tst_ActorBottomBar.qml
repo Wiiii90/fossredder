@@ -27,6 +27,7 @@ TestCase {
     property var actorState: QtObject {
         property bool isEdit: false
         property bool hasChanges: false
+        readonly property bool canSubmit: name.trim().length > 0
         property string name: ""
         property int previousCalls: 0
         property int nextCalls: 0
@@ -34,7 +35,6 @@ TestCase {
         property int submitCalls: 0
         property int enterCreateModeCalls: 0
         property int deleteCurrentCalls: 0
-        function canSubmit() { return name.trim().length > 0 }
         function previous() { previousCalls += 1 }
         function next() { nextCalls += 1 }
         function clear() { clearCalls += 1 }
@@ -79,6 +79,7 @@ TestCase {
     function test_ACT_BB_002_createModeButtonsSwitchState() {
         var bar = createBar()
         actorState.isEdit = false
+        actorState.name = "Alice"
         findRequired(bar, "actorClearButton").clicked()
         findRequired(bar, "actorCreateButton").clicked()
         compare(actorState.clearCalls, 1)
@@ -89,6 +90,7 @@ TestCase {
         var bar = createBar()
         actorState.isEdit = true
         actorState.hasChanges = true
+        actorState.name = "Alice"
         findRequired(bar, "actorCreateModeButton").clicked()
         findRequired(bar, "actorDeleteButton").clicked()
         actorState.submitCalls = 0

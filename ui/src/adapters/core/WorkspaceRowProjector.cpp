@@ -146,8 +146,31 @@ QString navigatedSelectionId(const QVariantList &rows, const QString &currentId,
                              int delta, int defaultIndex,
                              const QString &idKey) {
   const int currentIndex = selectionIndexOfId(rows, currentId, idKey);
-  const int baseIndex = currentIndex >= 0 ? currentIndex : defaultIndex;
-  return wrappedSelectionIdAt(rows, baseIndex + delta, idKey);
+  if (currentIndex < 0) {
+    if (rows.isEmpty()) {
+      return {};
+    }
+    if (delta > 0) {
+      return rowIdAt(rows, 0, idKey);
+    }
+    if (delta < 0) {
+      return rowIdAt(rows, rows.size() - 1, idKey);
+    }
+    return rowIdAt(rows, defaultIndex, idKey);
+  }
+  if (delta > 0) {
+    if (currentIndex >= rows.size() - 1) {
+      return {};
+    }
+    return rowIdAt(rows, currentIndex + 1, idKey);
+  }
+  if (delta < 0) {
+    if (currentIndex <= 0) {
+      return {};
+    }
+    return rowIdAt(rows, currentIndex - 1, idKey);
+  }
+  return rowIdAt(rows, currentIndex, idKey);
 }
 
 QVariantList selectionRowIds(const QVariantList &rows, const QString &idKey) {

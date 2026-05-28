@@ -3,12 +3,14 @@
  * @brief Provides QML tests for ActorView behavior.
  */
 
+pragma ComponentBehavior: Bound
+
 import QtQuick 2.15
 import QtTest 1.3
 import FossRedder.Views 1.0
 
 import "../Lookup.js" as Lookup
-import "../common/TestSupport.js" as TestSupport
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -128,6 +130,10 @@ TestCase {
                 }
             }
             if (currentIndex < 0) {
+                if (delta > 0)
+                    return String(list[0][idKey] || "")
+                if (delta < 0)
+                    return String(list[list.length - 1][idKey] || "")
                 const fallback = Math.max(0, Math.min(fallbackIndex, list.length - 1))
                 return String(list[fallback][idKey] || "")
             }
@@ -160,10 +166,7 @@ TestCase {
                                                     name,
                                                     aliases,
                                                     selectedContractIds)
-
-        function canSubmit() {
-            return name.trim().length > 0
-        }
+        readonly property bool canSubmit: name.trim().length > 0
 
         function canAddAlias(value) {
             return String(value || "").trim().length > 0
@@ -345,7 +348,7 @@ TestCase {
             testCase.actorState.syncFromSelection(true)
     }
 
-    function test_ACT_V_001_navigationStaysEnabledWithSingleRow() {
+    function test_ACT_V_005_navigationStaysEnabledWithSingleRow() {
         session.actorRowsData = [
             { id: "actor-1", name: "A1" }
         ]
@@ -360,7 +363,7 @@ TestCase {
         compare(session.selectedActorId, "actor-1")
     }
 
-    function test_ACT_V_002_navigationCyclesThroughCreateMode() {
+    function test_ACT_V_003_navigationCyclesThroughCreateMode() {
         session.selectedActorId = "actor-3"
         session.selectedActor = { id: "actor-3", name: "A3" }
         var view = createView()
@@ -380,7 +383,7 @@ TestCase {
         compare(session.selectedActorId, "actor-3")
     }
 
-    function test_ACT_V_003_createModeNavigationStartsAtEdges() {
+    function test_ACT_V_004_createModeNavigationStartsAtEdges() {
         var view = createView()
 
         findRequired(view, "actorNextButton").clicked()

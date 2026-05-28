@@ -52,6 +52,8 @@ set(UI_SOURCES
     src/state/filters/FilterState.cpp
     src/state/navigation/NavigationState.cpp
     src/state/session/ActorState.cpp
+    src/state/session/ContractState.cpp
+    src/state/session/PropertyState.cpp
     src/state/session/WorkspaceSessionSelection.cpp
     src/state/selection/SelectionState.cpp
     src/adapters/core/WorkspaceRowProjector.cpp
@@ -114,6 +116,8 @@ set(UI_HEADERS
     include/ui/state/filters/FilterState.h
     include/ui/state/navigation/NavigationState.h
     include/ui/state/session/ActorState.h
+    include/ui/state/session/ContractState.h
+    include/ui/state/session/PropertyState.h
     include/ui/state/session/WorkspaceSessionSelection.h
     include/ui/state/selection/SelectionState.h
     include/ui/state/session/WorkspaceSessionModels.h
@@ -210,7 +214,10 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
     function(fossredder_add_ui_qml_tooling_submodule target_name module_uri output_directory)
         cmake_parse_arguments(ARG "" "" "LINK_LIBRARIES;QML_FILES" ${ARGN})
 
-        add_library(${target_name} STATIC EXCLUDE_FROM_ALL)
+        set(_qml_tooling_anchor "${CMAKE_CURRENT_BINARY_DIR}/${target_name}_qml_tooling_anchor.cpp")
+        file(WRITE "${_qml_tooling_anchor}" "namespace { [[maybe_unused]] constexpr int qml_tooling_anchor = 0; }\n")
+
+        add_library(${target_name} STATIC EXCLUDE_FROM_ALL "${_qml_tooling_anchor}")
         set_target_properties(${target_name} PROPERTIES AUTOMOC ON)
         if(MSVC)
             target_compile_options(${target_name} PRIVATE /FS)

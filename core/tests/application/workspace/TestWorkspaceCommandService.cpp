@@ -151,4 +151,107 @@ TEST(WorkspaceCommandServiceTest, TransactionAllocatableChangeForcesContractMode
     EXPECT_EQ((*contractIt)->allocatableMode(), "mixed");
 }
 
+TEST(WorkspaceCommandServiceTest, AssigningContractToAnotherActorReplacesPreviousActor) {
+    auto storage = std::make_unique<core::tests::application::workspace::FakeStorageManager>();
+    auto* storagePtr = storage.get();
+    WorkspaceSession session(std::move(storage));
+    session.newFile("P:/workspace.db");
+
+    WorkspaceCommandService service(session);
+
+    core::ports::workspace::ActorCommand actorA;
+    actorA.name = "Actor A";
+    const auto actorAId = service.addActor(actorA);
+    ASSERT_FALSE(actorAId.empty());
+
+    core::ports::workspace::ActorCommand actorB;
+    actorB.name = "Actor B";
+    const auto actorBId = service.addActor(actorB);
+    ASSERT_FALSE(actorBId.empty());
+
+    core::ports::workspace::PropertyCommand property;
+    property.name = "Property A";
+    const auto propertyId = service.addProperty(property);
+    ASSERT_FALSE(propertyId.empty());
+
+    core::ports::workspace::ContractCommand contract;
+    contract.name = "Contract A";
+    contract.type = "strom";
+    contract.actorIds = {actorAId};
+    contract.propertyIds = {propertyId};
+    const auto contractId = service.addContract(contract);
+    ASSERT_FALSE(contractId.empty());
+
+    core::ports::workspace::ActorCommand updateB;
+    updateB.id = actorBId;
+    updateB.name = "Actor B";
+    updateB.contractIds = {contractId};
+    service.updateActor(updateB);
+
+    const auto& contracts = storagePtr->savedState_.catalog.contracts();
+    const auto contractIt = std::find_if(contracts.begin(), contracts.end(),
+                                         [&](const auto& c) { return c && c->id() == contractId; });
+    ASSERT_NE(contractIt, contracts.end());
+    ASSERT_EQ((*contractIt)->actorIds().size(), 1u);
+    EXPECT_EQ((*contractIt)->actorIds().front(), actorBId);
+
+    const auto& actors = storagePtr->savedState_.catalog.actors();
+    const auto actorAIt = std::find_if(actors.begin(), actors.end(),
+                                       [&](const auto& a) { return a && a->id() == actorAId; });
+    const auto actorBIt = std::find_if(actors.begin(), actors.end(),
+                                       [&](const auto& a) { return a && a->id() == actorBId; });
+    ASSERT_NE(actorAIt, actors.end());
+    ASSERT_NE(actorBIt, actors.end());
+    EXPECT_TRUE((*actorAIt)->contractIds().empty());
+    ASSERT_EQ((*actorBIt)->contractIds().size(), 1u);
+    EXPECT_EQ((*actorBIt)->contractIds().front(), contractId);
+}
+
+TEST(WorkspaceCommandServiceTest, ContractUpdateKeepsOnlyFirstActorId) {
+    auto storage = std::make_unique<core::tests::application::workspace::FakeStorageManager>();
+    auto* storagePtr = storage.get();
+    WorkspaceSession session(std::move(storage));
+    session.newFile("P:/workspace.db");
+
+    WorkspaceCommandService service(session);
+
+    core::ports::workspace::ActorCommand actorA;
+    actorA.name = "Actor A";
+    const auto actorAId = service.addActor(actorA);
+    ASSERT_FALSE(actorAId.empty());
+
+    core::ports::workspace::ActorCommand actorB;
+    actorB.name = "Actor B";
+    const auto actorBId = service.addActor(actorB);
+    ASSERT_FALSE(actorBId.empty());
+
+    core::ports::workspace::PropertyCommand property;
+    property.name = "Property A";
+    const auto propertyId = service.addProperty(property);
+    ASSERT_FALSE(propertyId.empty());
+
+    core::ports::workspace::ContractCommand contract;
+    contract.name = "Contract A";
+    contract.type = "strom";
+    contract.actorIds = {actorAId};
+    contract.propertyIds = {propertyId};
+    const auto contractId = service.addContract(contract);
+    ASSERT_FALSE(contractId.empty());
+
+    core::ports::workspace::ContractCommand updateContract;
+    updateContract.id = contractId;
+    updateContract.name = "Contract A";
+    updateContract.type = "strom";
+    updateContract.actorIds = {actorAId, actorBId};
+    updateContract.propertyIds = {propertyId};
+    service.updateContract(updateContract);
+
+    const auto& contracts = storagePtr->savedState_.catalog.contracts();
+    const auto contractIt = std::find_if(contracts.begin(), contracts.end(),
+                                         [&](const auto& c) { return c && c->id() == contractId; });
+    ASSERT_NE(contractIt, contracts.end());
+    ASSERT_EQ((*contractIt)->actorIds().size(), 1u);
+    EXPECT_EQ((*contractIt)->actorIds().front(), actorAId);
+}
+
 } // namespace core::application

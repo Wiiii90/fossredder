@@ -12,9 +12,8 @@ Controls.Panel {
     id: root
     required property var theme
     required property var sessionState
+    required property var contractState
     property var actorRows: []
-    property var selectedActorIds: []
-    signal selectionChanged(var ids)
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1
@@ -40,8 +39,8 @@ Controls.Panel {
         Controls.DropdownMenu {
             id: actorCombo
             objectName: "contractActorComboBox"
-            readonly property string selectedActorId: root.selectedActorIds && root.selectedActorIds.length > 0
-                                                     ? String(root.selectedActorIds[0])
+            readonly property string selectedActorId: root.contractState && root.contractState.selectedActorIds.length > 0
+                                                     ? String(root.contractState.selectedActorIds[0])
                                                      : ""
             Layout.fillWidth: true
             textRole: "display"
@@ -52,7 +51,8 @@ Controls.Panel {
             }
             onActivated: function(index) {
                 const row = model[index]
-                root.selectionChanged(row && row.id ? [String(row.id)] : [])
+                if (root.contractState)
+                    root.contractState.selectPrimaryActor(row && row.id ? String(row.id) : "")
             }
         }
     }

@@ -10,6 +10,7 @@ import QtTest 1.3
 import FossRedder.Views 1.0
 
 import "../Lookup.js" as Lookup
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -42,7 +43,14 @@ TestCase {
         { id: "actor-2", name: "Bob" }
     ]
 
-    property var selectedActorIds: []
+    property var contractState: QtObject {
+        property var selectedActorIds: []
+        function selectPrimaryActor(actorId) {
+            var id = String(actorId || "").trim()
+            selectedActorIds = id.length > 0 ? [id] : []
+        }
+    }
+
     property var theme: QtObject {
         property int spacingSmall: 6
         property int radius: 3
@@ -59,20 +67,21 @@ TestCase {
             height: 120
             theme: testCase.theme
             sessionState: testCase.sessionState
+            contractState: testCase.contractState
             actorRows: testCase.actorRows
-            selectedActorIds: testCase.selectedActorIds
-            onSelectionChanged: function(ids) { testCase.selectedActorIds = ids }
         }
     }
 
     function findRequired(root, objectName) {
-        var found = Lookup.findObject(root, objectName)
-        verify(found !== null, "Missing object: " + objectName)
-        return found
+        return TestSupport.findRequired(Lookup, root, objectName)
     }
 
     function createPanel() {
         return createTemporaryObject(panelComponent, testCase)
+    }
+
+    function init() {
+        contractState.selectedActorIds = []
     }
 
     function test_CON_AP_001_dropdownSelectionWritesSelectedActorId() {
@@ -82,12 +91,12 @@ TestCase {
         comboBox.currentIndex = 1
         comboBox.activated(1)
 
-        compare(selectedActorIds.length, 1)
-        compare(selectedActorIds[0], "actor-1")
+        compare(contractState.selectedActorIds.length, 1)
+        compare(contractState.selectedActorIds[0], "actor-1")
     }
 
     function test_CON_AP_002_existingSelectionIsRendered() {
-        selectedActorIds = ["actor-2"]
+        contractState.selectedActorIds = ["actor-2"]
         var panel = createPanel()
         var comboBox = findRequired(panel, "contractActorComboBox")
 

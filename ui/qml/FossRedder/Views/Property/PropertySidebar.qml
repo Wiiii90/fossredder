@@ -12,7 +12,9 @@ Item {
     required property var appContext
     required property var theme
 
-    readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
+    readonly property var propertyState: root.workspaceFacade ? root.workspaceFacade.propertyState : null
+    readonly property var propertyRows: root.workspaceFacade ? root.workspaceFacade.propertyRows : []
 
     ColumnLayout {
         anchors.fill: parent
@@ -20,6 +22,7 @@ Item {
         spacing: root.theme.spacingSmall
 
         Flickable {
+            objectName: "propertySidebarFlick"
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
@@ -32,22 +35,24 @@ Item {
                 spacing: root.theme.spacingSmall
 
                 Repeater {
-                    model: root.session ? root.session.properties : []
+                    model: root.propertyRows
 
-                    delegate: Rectangle { id: propertyRow
+                    delegate: Rectangle {
+                        id: propertyRow
+                        objectName: "propertySidebarRow_" + (propertyRow.modelData && propertyRow.modelData.id ? String(propertyRow.modelData.id) : "")
                         required property var modelData
+                        readonly property string propertyId: propertyRow.modelData && propertyRow.modelData.id ? String(propertyRow.modelData.id) : ""
                         width: propertyColumn.width
                         height: root.theme.viewSidebarRowHeight
                         radius: root.theme.viewSidebarRowRadius
-                        color: root.session && propertyRow.modelData.id === root.session.selectedPropertyId ? root.theme.selectionHighlight : "transparent"
+                        color: root.workspaceFacade && propertyRow.propertyId === root.workspaceFacade.selectedPropertyId ? root.theme.selectionHighlight : "transparent"
                         border.color: root.theme.borderSoft
                         border.width: root.theme.borderWidthThin
 
                         MouseArea {
+                            objectName: "propertySidebarMouse_" + propertyRow.propertyId
                             anchors.fill: parent
-                            onClicked: {
-                                if (root.session) root.session.selectedPropertyId = propertyRow.modelData.id
-                            }
+                            onClicked: if (root.propertyState) root.propertyState.selectProperty(propertyRow.propertyId)
                         }
 
                         Column {
@@ -56,6 +61,7 @@ Item {
                             spacing: root.theme.viewSidebarRowSpacing
 
                             Text {
+                                objectName: "propertySidebarName_" + propertyRow.propertyId
                                 width: parent.width
                                 text: propertyRow.modelData.name ? propertyRow.modelData.name : ""
                                 color: root.theme.textPrimary

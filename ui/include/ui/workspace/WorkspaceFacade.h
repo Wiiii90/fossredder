@@ -17,6 +17,8 @@
 #include "core/application/workspace/WorkspaceSessionState.h"
 #include "core/domain/catalog/WorkspaceCatalog.h"
 #include "ui/state/session/ActorState.h"
+#include "ui/state/session/ContractState.h"
+#include "ui/state/session/PropertyState.h"
 #include "ui/state/session/WorkspaceSessionSelection.h"
 #include "ui/state/session/WorkspaceSessionState.h"
 #include "ui/viewmodels/booking/StatementListModel.h"
@@ -48,6 +50,8 @@ class WorkspaceFacade : public QObject {
   Q_PROPERTY(AnnualList *annuals READ annuals CONSTANT)
   Q_PROPERTY(QVariantList actorRows READ actorRows NOTIFY dataRevisionChanged)
   Q_PROPERTY(
+      QVariantList propertyRows READ propertyRows NOTIFY dataRevisionChanged)
+  Q_PROPERTY(
       QVariantList contractRows READ contractRows NOTIFY dataRevisionChanged)
 
   Q_PROPERTY(QString selectedActorId READ selectedActorId WRITE
@@ -78,6 +82,8 @@ class WorkspaceFacade : public QObject {
   Q_PROPERTY(QVariant lastAnalysisResult READ lastAnalysisResult WRITE
                  setLastAnalysisResult NOTIFY lastAnalysisResultChanged)
   Q_PROPERTY(ActorState *actorState READ actorState CONSTANT)
+  Q_PROPERTY(PropertyState *propertyState READ propertyState CONSTANT)
+  Q_PROPERTY(ContractState *contractState READ contractState CONSTANT)
   Q_PROPERTY(int dataRevision READ dataRevision NOTIFY dataRevisionChanged)
 
 public:
@@ -285,6 +291,8 @@ public:
     selection_->setLastAnalysisResult(value);
   }
   ActorState *actorState() noexcept;
+  PropertyState *propertyState() noexcept;
+  ContractState *contractState() noexcept;
   int dataRevision() const noexcept { return dataRevision_; }
 
 signals:
@@ -306,6 +314,8 @@ private:
   std::unique_ptr<SessionState> session_;
   std::unique_ptr<SessionSelection> selection_;
   std::unique_ptr<ActorState> actorState_;
+  std::unique_ptr<PropertyState> propertyState_;
+  std::unique_ptr<ContractState> contractState_;
   core::application::WorkspaceFacade *coreFacade_ = nullptr;
   int dataRevision_ = 0;
 };

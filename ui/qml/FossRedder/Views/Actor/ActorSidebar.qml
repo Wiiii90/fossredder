@@ -12,8 +12,9 @@ Item {
     required property var appContext
     required property var theme
 
-    readonly property var session: root.appContext ? root.appContext.session : null
-    readonly property var actorRows: root.session ? root.session.actorRows : []
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
+    readonly property var actorState: root.workspaceFacade ? root.workspaceFacade.actorState : null
+    readonly property var actorRows: root.workspaceFacade ? root.workspaceFacade.actorRows : []
 
     ColumnLayout {
         anchors.fill: parent
@@ -41,14 +42,10 @@ Item {
                         objectName: "actorSidebarRow_" + actorRow.actorId
                         required property var modelData
                         readonly property string actorId: actorRow.modelData && actorRow.modelData.id ? String(actorRow.modelData.id) : ""
-                        function selectActor() {
-                            if (root.session)
-                                root.session.selectedActorId = actorRow.actorId
-                        }
                         width: actorColumn.width
                         height: root.theme.viewSidebarRowHeight
                         radius: root.theme.viewSidebarRowRadius
-                        color: root.session && actorRow.actorId === String(root.session.selectedActorId || "")
+                        color: root.workspaceFacade && actorRow.actorId === String(root.workspaceFacade.selectedActorId || "")
                                ? root.theme.selectionHighlight
                                : "transparent"
                         border.color: root.theme.borderSoft
@@ -58,7 +55,7 @@ Item {
                             objectName: "actorSidebarMouse_" + actorRow.actorId
                             anchors.fill: parent
                             preventStealing: true
-                            onClicked: actorRow.selectActor()
+                            onClicked: if (root.actorState) root.actorState.selectActor(actorRow.actorId)
                         }
 
                         Column {

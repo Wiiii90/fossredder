@@ -4,7 +4,6 @@
  */
 
 import QtQuick 2.15
-import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Components 1.0 as Components
 import FossRedder.Controls 1.0 as Controls
@@ -47,7 +46,7 @@ Item {
             objectName: "actorCreateButton"
             visible: root.actorState ? !root.actorState.isEdit : false
             text: qsTr("Create")
-            enabled: root.actorState ? root.actorState.canSubmit() : false
+            enabled: root.actorState ? root.actorState.canSubmit : false
             Layout.preferredWidth: root.theme.viewActionButtonWidth
             onClicked: if (root.actorState) root.actorState.submit()
         }
@@ -75,7 +74,7 @@ Item {
             objectName: "actorUpdateButton"
             visible: root.actorState ? root.actorState.isEdit : false
             text: qsTr("Update")
-            enabled: root.actorState ? (root.actorState.hasChanges && root.actorState.canSubmit()) : false
+            enabled: root.actorState ? (root.actorState.hasChanges && root.actorState.canSubmit) : false
             Layout.preferredWidth: root.theme.viewActionButtonWidth
             onClicked: if (root.actorState) root.actorState.submit()
         }

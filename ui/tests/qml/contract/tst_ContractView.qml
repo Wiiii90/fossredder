@@ -3,12 +3,14 @@
  * @brief Provides QML tests for ContractView behavior.
  */
 
+pragma ComponentBehavior: Bound
+
 import QtQuick 2.15
 import QtTest 1.3
 import FossRedder.Views 1.0
 
 import "../Lookup.js" as Lookup
-import "../common/TestSupport.js" as TestSupport
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -26,7 +28,6 @@ TestCase {
         property var properties: []
         function contractRows() { return contractRowsData || [] }
         function actorRows() { return actors || [] }
-        function propertyRows() { return properties || [] }
         function displayRowsWithEmpty(rows, emptyLabel, textKey) {
             var out = [{ id: "", display: emptyLabel }]
             var list = rows || []
@@ -46,6 +47,44 @@ TestCase {
             }
             return -1
         }
+        function addUniqueTrimmed(values, value) {
+            var out = values ? values.slice(0) : []
+            var next = String(value || "").trim()
+            if (next.length === 0 || out.indexOf(next) !== -1)
+                return out
+            out.push(next)
+            return out
+        }
+        function removeString(values, value) {
+            var out = values ? values.slice(0) : []
+            var target = String(value || "")
+            var index = out.indexOf(target)
+            if (index < 0)
+                return out
+            out.splice(index, 1)
+            return out
+        }
+        function removeAt(values, index) {
+            var out = values ? values.slice(0) : []
+            if (index < 0 || index >= out.length)
+                return out
+            out.splice(index, 1)
+            return out
+        }
+        function navigatedId(rows, currentId, delta, fallbackIndex) {
+            if (!rows || rows.length === 0)
+                return ""
+            var index = indexOfId(rows, currentId)
+            if (index < 0) {
+                index = delta > 0 ? 0 : (delta < 0 ? rows.length - 1 : fallbackIndex)
+                return String(rows[index].id || "")
+            }
+            if (delta > 0)
+                return index >= rows.length - 1 ? "" : String(rows[index + 1].id || "")
+            if (delta < 0)
+                return index <= 0 ? "" : String(rows[index - 1].id || "")
+            return String(rows[index].id || "")
+        }
         function contractFormState(name, type, actorIds, propertyIds, aliases) {
             return { name: name || "", type: type || "", selectedActorIds: actorIds || [], selectedPropertyIds: propertyIds || [], aliases: aliases || [], aliasInputText: "", aliasIndex: -1 }
         }
@@ -54,12 +93,110 @@ TestCase {
         }
     }
 
+    property var contractState: QtObject {
+        property string name: ""
+        property string type: ""
+        property string allocatableMode: "mixed"
+        property var aliases: []
+        property string aliasInputText: ""
+        property int aliasIndex: -1
+        property var selectedActorIds: []
+        property var selectedPropertyIds: []
+        readonly property bool isEdit: testCase.session.selectedContractId.length > 0
+        property bool hasChanges: false
+        readonly property bool canSubmit: name.trim().length > 0
+                                          && type.trim().length > 0
+                                          && (selectedActorIds.length > 0 || selectedPropertyIds.length > 0)
+
+        function canAddAlias(value) { return String(value || "").trim().length > 0 }
+        function canRemoveSelectedAlias() { return aliasIndex >= 0 && aliasIndex < aliases.length }
+        function isAliasSelected(index) { return aliasIndex === index }
+        function addAlias(value) {
+            aliases = testCase.session.addUniqueTrimmed(aliases, value)
+            aliasIndex = aliases.length > 0 ? aliases.length - 1 : -1
+            aliasInputText = ""
+            hasChanges = true
+        }
+        function removeAlias(index) {
+            aliases = testCase.session.removeAt(aliases, index)
+            aliasIndex = aliases.length > 0 ? Math.min(index, aliases.length - 1) : -1
+            hasChanges = true
+        }
+        function requestRemoveSelectedAlias() { if (canRemoveSelectedAlias()) removeAlias(aliasIndex) }
+        function selectPrimaryActor(actorId) {
+            const id = String(actorId || "").trim()
+            selectedActorIds = id.length > 0 ? [id] : []
+            hasChanges = true
+        }
+        function setPropertySelected(propertyId, selected) {
+            selectedPropertyIds = selected
+                    ? testCase.session.addUniqueTrimmed(selectedPropertyIds, propertyId)
+                    : testCase.session.removeString(selectedPropertyIds, propertyId)
+            hasChanges = true
+        }
+        function clear() {
+            name = ""
+            type = ""
+            aliases = []
+            aliasInputText = ""
+            aliasIndex = -1
+            selectedActorIds = []
+            selectedPropertyIds = []
+            hasChanges = false
+        }
+        function enterCreateMode() {
+            testCase.session.selectedContractId = ""
+            testCase.session.selectedContract = null
+            clear()
+        }
+        function selectContract(contractId) {
+            testCase.session.selectedContractId = String(contractId || "")
+            syncSelectionObject()
+        }
+        function previous() {
+            const rows = testCase.session.contractRows()
+            testCase.session.selectedContractId = testCase.session.navigatedId(rows, isEdit ? testCase.session.selectedContractId : "", -1, rows.length - 1)
+            syncSelectionObject()
+        }
+        function next() {
+            const rows = testCase.session.contractRows()
+            testCase.session.selectedContractId = testCase.session.navigatedId(rows, isEdit ? testCase.session.selectedContractId : "", 1, 0)
+            syncSelectionObject()
+        }
+        function submit() { return isEdit ? testCase.session.selectedContractId : "contract-new" }
+        function deleteCurrent() { enterCreateMode() }
+        function syncSelectionObject() {
+            const id = testCase.session.selectedContractId || ""
+            if (id.length === 0) {
+                testCase.session.selectedContract = null
+                clear()
+                return
+            }
+            const rows = testCase.session.contractRows()
+            for (var i = 0; i < rows.length; ++i) {
+                if (String(rows[i].id || "") === id) {
+                    testCase.session.selectedContract = testCase.session.createContractObject(rows[i])
+                    name = String(rows[i].name || "")
+                    type = String(rows[i].type || "")
+                    hasChanges = false
+                    return
+                }
+            }
+        }
+    }
+
     property var appContext: QtObject {
         property var session: testCase.session
         property var sessionState: testCase.session
         property var workspaceFacade: QtObject {
-            function addUniqueTrimmed(values, value) { return values || [] }
-            function removeAt(values, index) { return values || [] }
+            property var session: testCase.session
+            property var contractState: testCase.contractState
+            property var contractRows: testCase.session.contractRowsData
+            property var actorRows: testCase.session.actors
+            property var propertyRows: testCase.session.properties
+            property string selectedContractId: testCase.session.selectedContractId
+            function addUniqueTrimmed(values, value) { return testCase.session.addUniqueTrimmed(values, value) }
+            function removeAt(values, index) { return testCase.session.removeAt(values, index) }
             function saveContract(id, name, type, actorIds, propertyIds, aliases) { return id || "contract-new" }
             function deleteContract(id) {}
         }
@@ -119,9 +256,10 @@ TestCase {
         ]
         session.actors = []
         session.properties = []
+        contractState.enterCreateMode()
     }
 
-    function test_CON_V_001_navigationStaysEnabledWithSingleRow() {
+    function test_CON_V_005_navigationStaysEnabledWithSingleRow() {
         session.contractRowsData = [
             { id: "contract-1", name: "C1" }
         ]
@@ -136,7 +274,7 @@ TestCase {
         compare(session.selectedContractId, "contract-1")
     }
 
-    function test_CON_V_002_navigationCyclesThroughCreateMode() {
+    function test_CON_V_003_navigationCyclesThroughCreateMode() {
         session.selectedContractId = "contract-3"
         session.selectedContract = session.createContractObject({ id: "contract-3", name: "C3" })
         var view = createView()
@@ -156,7 +294,7 @@ TestCase {
         compare(session.selectedContractId, "contract-3")
     }
 
-    function test_CON_V_003_createModeNavigationStartsAtEdges() {
+    function test_CON_V_004_createModeNavigationStartsAtEdges() {
         var view = createView()
 
         findRequired(view, "contractNextButton").clicked()

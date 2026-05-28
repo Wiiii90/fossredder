@@ -10,7 +10,7 @@ import QtTest 1.3
 import FossRedder.Views 1.0
 
 import "../Lookup.js" as Lookup
-import "../common/TestSupport.js" as TestSupport
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -22,10 +22,18 @@ TestCase {
     property var session: QtObject {
         property string selectedActorId: ""
         property var actorRows: []
+        property var actorState: QtObject {
+            property string lastSelectedId: ""
+            function selectActor(id) {
+                lastSelectedId = String(id || "")
+                testCase.session.selectedActorId = lastSelectedId
+            }
+        }
     }
 
     property var appContext: QtObject {
         property var session: testCase.session
+        property var workspaceFacade: testCase.session
     }
 
     property var theme: QtObject {
@@ -63,7 +71,7 @@ TestCase {
         session.actorRows = []
     }
 
-    function test_ACT_S_001_rowsRenderFromSessionState() {
+    function test_ACT_S_001_rowsRenderFromWorkspaceFacade() {
         session.actorRows = [
             { id: "actor-1", name: "Alice" },
             { id: "actor-2", name: "Bob" }
@@ -81,11 +89,12 @@ TestCase {
         ]
 
         const sidebar = createSidebar()
-        const row = findRequired(sidebar, "actorSidebarRow_actor-2")
+        const mouseArea = findRequired(sidebar, "actorSidebarMouse_actor-2")
 
-        row.selectActor()
+        mouseArea.clicked(null)
 
         compare(session.selectedActorId, "actor-2")
+        compare(session.actorState.lastSelectedId, "actor-2")
     }
 
     function test_ACT_S_003_selectedRowUsesThemeHighlight() {
@@ -107,7 +116,7 @@ TestCase {
 
         const sidebar = createSidebar()
         const flick = findRequired(sidebar, "actorSidebarFlick")
-        wait(0)
+        wait(50)
 
         compare(flick.contentHeight > flick.height, true)
     }

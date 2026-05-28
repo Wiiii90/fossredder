@@ -19,8 +19,8 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 8
-        spacing: 8
+        anchors.margins: root.theme.pageContentMargin
+        spacing: root.theme.spacingSmall
 
         Loader {
             Layout.fillWidth: true
@@ -29,4 +29,3 @@ Item {
         }
     }
 }
-

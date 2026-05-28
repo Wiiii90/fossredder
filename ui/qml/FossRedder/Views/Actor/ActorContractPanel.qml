@@ -14,6 +14,7 @@ Controls.Panel {
     required property var theme
     required property var actorState
     property var contractRows: []
+    readonly property var selectedContractIds: root.actorState ? root.actorState.selectedContractIds : []
 
     Layout.fillWidth: true
     Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight
@@ -75,11 +76,8 @@ Controls.Panel {
                                 objectName: "actorContractCheckBox"
                                 Layout.fillWidth: false
                                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                                checked: root.actorState ? root.actorState.isContractSelected(contractRow.contractId) : false
-                                onToggled: {
-                                    if (root.actorState)
-                                        root.actorState.setContractSelected(contractRow.contractId, checked)
-                                }
+                                checked: root.selectedContractIds.indexOf(contractRow.contractId) !== -1
+                                onToggled: if (root.actorState) root.actorState.setContractSelected(contractRow.contractId, checked)
                             }
 
                             Label {

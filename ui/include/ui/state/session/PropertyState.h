@@ -1,6 +1,6 @@
 /**
- * @file ui/include/ui/state/session/ActorState.h
- * @brief Declares the UI actor state wrapper used by the Actor view.
+ * @file ui/include/ui/state/session/PropertyState.h
+ * @brief Declares the UI property state wrapper used by the Property view.
  */
 
 #pragma once
@@ -16,12 +16,12 @@ namespace ui {
 class WorkspaceFacade;
 
 /**
- * @brief Owns the editable actor UI state and its selection-aware workflow.
+ * @brief Owns the editable property UI state and its selection-aware workflow.
  */
-class ActorState : public QObject {
+class PropertyState : public QObject {
   Q_OBJECT
-  QML_NAMED_ELEMENT(ActorState)
-  QML_UNCREATABLE("ActorState is exposed by WorkspaceFacade")
+  QML_NAMED_ELEMENT(PropertyState)
+  QML_UNCREATABLE("PropertyState is exposed by WorkspaceFacade")
   Q_PROPERTY(QString currentId READ currentId NOTIFY changed)
   Q_PROPERTY(QString name READ name WRITE setName NOTIFY changed)
   Q_PROPERTY(QVariantList aliases READ aliases WRITE setAliases NOTIFY changed)
@@ -39,7 +39,7 @@ class ActorState : public QObject {
   Q_PROPERTY(bool canSubmit READ canSubmit NOTIFY changed)
 
 public:
-  explicit ActorState(WorkspaceFacade *workspace, QObject *parent = nullptr);
+  explicit PropertyState(WorkspaceFacade *workspace, QObject *parent = nullptr);
 
   QString currentId() const;
   QString name() const;
@@ -75,7 +75,7 @@ public:
   Q_INVOKABLE void addAlias(const QString &value);
   Q_INVOKABLE void removeAlias(int index);
   Q_INVOKABLE void selectAlias(int index);
-  Q_INVOKABLE void selectActor(const QString &id);
+  Q_INVOKABLE void selectProperty(const QString &id);
   Q_INVOKABLE void requestRemoveSelectedAlias();
   Q_INVOKABLE void setContractSelected(const QString &contractId,
                                        bool selected);
@@ -104,6 +104,7 @@ private:
   QString savedName_;
   QVariantList savedAliases_;
   QVariantList savedSelectedContractIds_;
+  bool dirty_ = false;
 };
 
 } // namespace ui

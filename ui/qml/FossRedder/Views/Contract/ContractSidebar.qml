@@ -13,6 +13,9 @@ Item {
     required property var theme
 
     readonly property var session: root.appContext ? root.appContext.session : null
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
+    readonly property var contractState: root.workspaceFacade ? root.workspaceFacade.contractState : null
+    readonly property var contractRows: root.workspaceFacade ? root.workspaceFacade.contractRows : []
 
     ColumnLayout {
         anchors.fill: parent
@@ -20,6 +23,7 @@ Item {
         spacing: root.theme.spacingSmall
 
         Flickable {
+            objectName: "contractSidebarFlick"
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
@@ -32,23 +36,27 @@ Item {
                 spacing: root.theme.spacingSmall
 
                 Repeater {
-                    model: root.session ? root.session.contracts : []
+                    model: root.contractRows
 
                     delegate: Rectangle {
                         id: contractRow
+                        objectName: "contractSidebarRow_" + contractRow.contractId
                         required property var modelData
+                        readonly property string contractId: contractRow.modelData && contractRow.modelData.id ? String(contractRow.modelData.id) : ""
                         width: contractColumn.width
                         height: root.theme.viewSidebarRowHeight
                         radius: root.theme.viewSidebarRowRadius
-                        color: root.session && contractRow.modelData.id === root.session.selectedContractId ? root.theme.selectionHighlight : "transparent"
+                        color: root.workspaceFacade && contractRow.contractId === String(root.workspaceFacade.selectedContractId || "")
+                               ? root.theme.selectionHighlight
+                               : "transparent"
                         border.color: root.theme.borderSoft
                         border.width: root.theme.borderWidthThin
 
                         MouseArea {
+                            objectName: "contractSidebarMouse_" + contractRow.contractId
                             anchors.fill: parent
-                            onClicked: {
-                                if (root.session) root.session.selectedContractId = contractRow.modelData.id
-                            }
+                            preventStealing: true
+                            onClicked: if (root.contractState) root.contractState.selectContract(contractRow.contractId)
                         }
 
                         Column {
@@ -57,6 +65,7 @@ Item {
                             spacing: root.theme.viewSidebarRowSpacing
 
                             Text {
+                                objectName: "contractSidebarName_" + contractRow.contractId
                                 width: parent.width
                                 text: contractRow.modelData.name ? contractRow.modelData.name : ""
                                 color: root.theme.textPrimary
@@ -69,4 +78,3 @@ Item {
         }
     }
 }
-

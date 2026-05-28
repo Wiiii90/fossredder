@@ -26,7 +26,7 @@ TestCase {
         property var contracts: []
 
         function basicFormState(name, aliases, selectedIds) {
-            var aliasValues = aliases || []
+            const aliasValues = aliases || []
             return {
                 name: name || "",
                 aliases: aliasValues,
@@ -37,17 +37,17 @@ TestCase {
         }
 
         function normalizeStrings(values) {
-            var out = []
+            const out = []
             if (!values)
                 return out
-            for (var i = 0; i < values.length; ++i)
+            for (let i = 0; i < values.length; ++i)
                 out.push(String(values[i]))
             return out
         }
 
         function addUniqueTrimmed(values, value) {
-            var out = values ? values.slice(0) : []
-            var next = String(value || "").trim()
+            const out = values ? values.slice(0) : []
+            const next = String(value || "").trim()
             if (next.length === 0 || out.indexOf(next) !== -1)
                 return out
             out.push(next)
@@ -55,15 +55,21 @@ TestCase {
         }
 
         function removeAt(values, index) {
-            var out = values ? values.slice(0) : []
+            const out = values ? values.slice(0) : []
             if (index < 0 || index >= out.length)
                 return out
             out.splice(index, 1)
             return out
         }
 
-        function propertyRows() {
-            return properties || []
+        function removeString(values, value) {
+            const out = values ? values.slice(0) : []
+            const target = String(value || "")
+            const index = out.indexOf(target)
+            if (index < 0)
+                return out
+            out.splice(index, 1)
+            return out
         }
 
         function contractRows() {
@@ -71,9 +77,9 @@ TestCase {
         }
 
         function indexOfId(rows, id) {
-            var list = rows || []
-            var target = String(id || "")
-            for (var i = 0; i < list.length; ++i) {
+            const list = rows || []
+            const target = String(id || "")
+            for (let i = 0; i < list.length; ++i) {
                 if (String(list[i].id || "") === target)
                     return i
             }
@@ -83,32 +89,36 @@ TestCase {
         function navigatedId(rows, currentId, delta, fallbackIndex) {
             if (!rows || rows.length === 0)
                 return ""
-            var index = -1
-            for (var i = 0; i < rows.length; ++i) {
+            let index = -1
+            for (let i = 0; i < rows.length; ++i) {
                 if (String(rows[i].id || "") === String(currentId || "")) {
                     index = i
                     break
                 }
             }
-            if (index < 0)
-                index = fallbackIndex
-            else
-                index = (index + delta + rows.length) % rows.length
+            if (index < 0) {
+                index = delta > 0 ? 0 : (delta < 0 ? rows.length - 1 : fallbackIndex)
+                return String(rows[index].id || "")
+            }
+            if (delta > 0)
+                return index >= rows.length - 1 ? "" : String(rows[index + 1].id || "")
+            if (delta < 0)
+                return index <= 0 ? "" : String(rows[index - 1].id || "")
             return String(rows[index].id || "")
         }
 
         function deleteNextSelectionId(rows, removedId, fallbackIndex, key) {
             if (!rows || rows.length === 0)
                 return ""
-            var kept = []
-            for (var i = 0; i < rows.length; ++i) {
-                var rowId = String(rows[i][key] || "")
+            const kept = []
+            for (let i = 0; i < rows.length; ++i) {
+                const rowId = String(rows[i][key] || "")
                 if (rowId !== String(removedId || ""))
                     kept.push(rows[i])
             }
             if (kept.length === 0)
                 return ""
-            var idx = Math.max(0, Math.min(fallbackIndex, kept.length - 1))
+            const idx = Math.max(0, Math.min(fallbackIndex, kept.length - 1))
             return String(kept[idx][key] || "")
         }
 
@@ -116,6 +126,137 @@ TestCase {
             if (selectedProperty && selectedProperty["setState"])
                 selectedProperty["setState"](newId, newName, newAliases, newContractIds)
             selectedPropertyId = String(newId || "")
+            if (testCase.propertyState && testCase.propertyState["setState"])
+                testCase.propertyState["setState"](newId, newName, newAliases, newContractIds)
+        }
+    }
+
+    property var propertyState: QtObject {
+        signal changed()
+        property string currentId: ""
+        property string name: ""
+        property var aliases: []
+        property string aliasInputText: ""
+        property int aliasIndex: -1
+        property var selectedContractIds: []
+        property string savedName: ""
+        property var savedAliases: []
+        property var savedSelectedContractIds: []
+        property bool isEdit: false
+        property bool hasChanges: false
+        readonly property bool canSubmit: String(name || "").trim().length > 0
+        function setState(newId, newName, newAliases, newContractIds) {
+            currentId = String(newId || "")
+            name = String(newName || "")
+            aliases = (newAliases || []).slice(0)
+            aliasInputText = ""
+            aliasIndex = aliases.length > 0 ? 0 : -1
+            selectedContractIds = (newContractIds || []).slice(0)
+            savedName = name
+            savedAliases = aliases.slice(0)
+            savedSelectedContractIds = selectedContractIds.slice(0)
+            isEdit = currentId.length > 0
+            hasChanges = false
+            changed()
+        }
+        function canAddAlias(value) { return String(value || "").trim().length > 0 }
+        function canRemoveSelectedAlias() { return aliasIndex >= 0 && aliasIndex < aliases.length }
+        function isAliasSelected(index) { return aliasIndex === index }
+        function isContractSelected(contractId) { return selectedContractIds.indexOf(String(contractId || "").trim()) !== -1 }
+        function clear() {
+            currentId = ""
+            name = ""
+            aliases = []
+            aliasInputText = ""
+            aliasIndex = -1
+            selectedContractIds = []
+            savedName = ""
+            savedAliases = []
+            savedSelectedContractIds = []
+            isEdit = false
+            hasChanges = false
+            changed()
+        }
+        function enterCreateMode() {
+            testCase.session.selectedPropertyId = ""
+            testCase.session.selectedProperty = null
+            clear()
+        }
+        function addAlias(value) {
+            const next = testCase.session.addUniqueTrimmed(aliases, value)
+            if (next.length === aliases.length)
+                return
+            aliases = next
+            aliasIndex = next.length - 1
+            aliasInputText = ""
+            hasChanges = true
+            changed()
+        }
+        function removeAlias(index) {
+            const next = testCase.session.removeAt(aliases, index)
+            if (next.length === aliases.length)
+                return
+            aliases = next
+            aliasIndex = next.length > 0 ? Math.min(index, next.length - 1) : -1
+            hasChanges = true
+            changed()
+        }
+        function selectAlias(index) {
+            aliasIndex = index
+            changed()
+        }
+        function requestRemoveSelectedAlias() {
+            if (!canRemoveSelectedAlias())
+                return
+            removeAlias(aliasIndex)
+        }
+        function setContractSelected(contractId, selected) {
+            const next = selected ? testCase.session.addUniqueTrimmed(selectedContractIds, contractId) : testCase.session.removeString(selectedContractIds, contractId)
+            if (next.length === selectedContractIds.length)
+                return
+            selectedContractIds = next
+            hasChanges = true
+            changed()
+        }
+        function previous() {
+            const rows = testCase.propertyController.propertyRows || []
+            if (rows.length === 0)
+                return
+            const nextId = testCase.session.navigatedId(rows, isEdit ? currentId : "", -1, rows.length - 1)
+            testCase.session.selectedPropertyId = nextId
+            setStateFromRows(nextId)
+        }
+        function next() {
+            const rows = testCase.propertyController.propertyRows || []
+            if (rows.length === 0)
+                return
+            const nextId = testCase.session.navigatedId(rows, isEdit ? currentId : "", 1, 0)
+            testCase.session.selectedPropertyId = nextId
+            setStateFromRows(nextId)
+        }
+        function setStateFromRows(id) {
+            const rows = testCase.propertyController.propertyRows || []
+            for (let i = 0; i < rows.length; ++i) {
+                if (String(rows[i].id || "") === String(id || "")) {
+                    setState(rows[i].id || "", rows[i].name || "", rows[i].aliases || [], rows[i].contractIds || [])
+                    return
+                }
+            }
+            clear()
+        }
+        function submit() {
+            const id = testCase.propertyController.saveProperty(isEdit ? currentId : "",
+                                                                name,
+                                                                aliases || [],
+                                                                selectedContractIds || [])
+            setState(id && id.length > 0 ? id : currentId, name, aliases || [], selectedContractIds || [])
+            testCase.session.selectedPropertyId = currentId
+            return currentId
+        }
+        function deleteCurrent() {
+            if (currentId.length === 0)
+                return
+            testCase.propertyController.deleteProperty(currentId)
         }
     }
 
@@ -125,6 +266,9 @@ TestCase {
         property var lastSave: ({})
         property string lastDeleteId: ""
         property var savePropertyOverride: null
+        property var propertyState: testCase.propertyState
+        property var propertyRows: []
+        property var contractRows: []
 
         function reset() {
             saveCalls = 0
@@ -146,23 +290,24 @@ TestCase {
         }
 
         function saveProperty(id, name, aliases, contractIds) {
-            if (savePropertyOverride)
-                return savePropertyOverride(id, name, aliases, contractIds)
+            const override = savePropertyOverride
+            if (override)
+                return override(id, name, aliases, contractIds)
             return defaultSaveProperty(id, name, aliases, contractIds)
         }
 
         function normalizeStrings(values) {
-            var out = []
+            const out = []
             if (!values)
                 return out
-            for (var i = 0; i < values.length; ++i)
+            for (let i = 0; i < values.length; ++i)
                 out.push(String(values[i]))
             return out
         }
 
         function addUniqueTrimmed(values, value) {
-            var out = values ? values.slice(0) : []
-            var next = String(value || "").trim()
+            const out = values ? values.slice(0) : []
+            const next = String(value || "").trim()
             if (next.length === 0 || out.indexOf(next) !== -1)
                 return out
             out.push(next)
@@ -170,7 +315,7 @@ TestCase {
         }
 
         function removeAt(values, index) {
-            var out = values ? values.slice(0) : []
+            const out = values ? values.slice(0) : []
             if (index < 0 || index >= out.length)
                 return out
             out.splice(index, 1)
@@ -218,7 +363,7 @@ TestCase {
     Component {
         id: propertyFormComponent
 
-        PropertyForm {
+        PropertyView {
             width: 960
             height: 640
             appContext: testCase.appContext
@@ -226,8 +371,28 @@ TestCase {
         }
     }
 
+    Component {
+        id: propertyObjectComponent
+
+        QtObject {
+            signal changed()
+            property string id: ""
+            property string name: ""
+            property var aliases: []
+            property var contractIds: []
+
+            function setState(newId, newName, newAliases, newContractIds) {
+                id = newId || ""
+                name = newName || ""
+                aliases = newAliases || []
+                contractIds = newContractIds || []
+                changed()
+            }
+        }
+    }
+
     function findRequired(root, objectName) {
-        var match = Lookup.findObject(root, objectName)
+        const match = Lookup.findObject(root, objectName)
         verify(match !== null, "Missing object: " + objectName)
         return match
     }
@@ -235,36 +400,44 @@ TestCase {
     function createPropertyObject(source) {
         if (!source)
             return null
-        var propertyObject = Qt.createQmlObject('import QtQml 2.15; QtObject { signal changed(); property string id: ""; property string name: ""; property var aliases: []; property var contractIds: []; function setState(newId, newName, newAliases, newContractIds) { id = newId || ""; name = newName || ""; aliases = newAliases || []; contractIds = newContractIds || []; changed(); } }', testCase)
-        propertyObject["setState"](source.id || "", source.name || "", source.aliases || [], source.contractIds || [])
+        const propertyObject = createTemporaryObject(propertyObjectComponent, testCase)
+        propertyObject.setState(source.id || "", source.name || "", source.aliases || [], source.contractIds || [])
         return propertyObject
     }
 
     function createForm(selectedProperty) {
-        var propertyObject = createPropertyObject(selectedProperty)
+        const propertyObject = createPropertyObject(selectedProperty)
         session.selectedProperty = propertyObject
         session.selectedPropertyId = propertyObject ? propertyObject.id : ""
+        propertyController.propertyRows = session.properties || []
+        propertyController.contractRows = session.contractRows()
+        propertyState["setState"](propertyObject ? propertyObject.id : "",
+                                  propertyObject ? propertyObject.name : "",
+                                  propertyObject ? propertyObject.aliases : [],
+                                  propertyObject ? propertyObject.contractIds : [])
         return createTemporaryObject(propertyFormComponent, testCase)
     }
 
     function init() {
         propertyController.reset()
+        propertyController.propertyRows = []
+        propertyController.contractRows = []
         session.selectedProperty = null
         session.selectedPropertyId = ""
         session.properties = []
         session.contracts = []
     }
 
-    function test_createModeSavesPropertyAndSelectsNewId() {
+    function test_PROP_F_001_createModeSavesPropertyAndSelectsNewId() {
         session.contracts = [
             { id: "contract-1", name: "Lease" }
         ]
-        var form = createForm(null)
-        var nameField = findRequired(form, "propertyNameField")
-        var createButton = findRequired(form, "propertyCreateButton")
-        var aliasInput = findRequired(form, "propertyAliasInput")
-        var addAliasButton = findRequired(form, "propertyAddAliasButton")
-        var checkBox = findRequired(form, "propertyContractCheckBox")
+        const form = createForm(null)
+        const nameField = findRequired(form, "propertyNameField")
+        const createButton = findRequired(form, "propertyCreateButton")
+        const aliasInput = findRequired(form, "propertyAliasInput")
+        const addAliasButton = findRequired(form, "propertyAddAliasButton")
+        const checkBox = findRequired(form, "propertyContractCheckBox")
 
         nameField.text = "Flat 12"
         aliasInput.text = "Alias One"
@@ -277,14 +450,8 @@ TestCase {
         compare(form.selectedContractIds[0], "contract-1")
 
         propertyController.savePropertyOverride = function(id, name, aliases, contractIds) {
-            var result = propertyController.defaultSaveProperty(id, name, aliases, contractIds)
-            session.selectedProperty = createPropertyObject({
-                id: result,
-                name: name,
-                aliases: aliases,
-                contractIds: contractIds
-            })
-            session.selectedPropertyId = result
+            const result = propertyController.defaultSaveProperty(id, name, aliases, contractIds)
+            session.selectPropertyState(result, name, aliases, contractIds)
             session.dataRevision += 1
             return result
         }
@@ -308,24 +475,22 @@ TestCase {
         compare(form.selectedContractIds.length, 1)
         compare(form.selectedContractIds[0], "contract-1")
 
-        session.selectedProperty = createPropertyObject({ id: "property-other", name: "Other", aliases: ["Other"], contractIds: [] })
-        session.selectedPropertyId = "property-other"
+        session.selectPropertyState("property-other", "Other", ["Other"], [])
         compare(form.aliases.length, 1)
         compare(form.aliases[0], "Other")
 
-        session.selectedProperty = createPropertyObject({ id: "property-new", name: "Flat 12", aliases: ["Alias One"], contractIds: ["contract-1"] })
-        session.selectedPropertyId = "property-new"
+        session.selectPropertyState("property-new", "Flat 12", ["Alias One"], ["contract-1"])
         compare(form.aliases.length, 1)
         compare(form.aliases[0], "Alias One")
         compare(form.selectedContractIds.length, 1)
         compare(form.selectedContractIds[0], "contract-1")
     }
 
-    function test_aliasButtonsAddAndRemoveAlias() {
-        var form = createForm(null)
-        var aliasInput = findRequired(form, "propertyAliasInput")
-        var addAliasButton = findRequired(form, "propertyAddAliasButton")
-        var removeAliasButton = findRequired(form, "propertyRemoveAliasButton")
+    function test_PROP_F_005_aliasButtonsAddAndRemoveAlias() {
+        const form = createForm(null)
+        const aliasInput = findRequired(form, "propertyAliasInput")
+        const addAliasButton = findRequired(form, "propertyAddAliasButton")
+        const removeAliasButton = findRequired(form, "propertyRemoveAliasButton")
 
         aliasInput.text = "A1"
         addAliasButton.clicked()
@@ -336,10 +501,10 @@ TestCase {
         compare(form.aliases.length, 0)
     }
 
-    function test_editModeAliasButtonAddsAliasToFormState() {
-        var form = createForm({ id: "property-4", name: "Flat", aliases: ["Base"] })
-        var aliasInput = findRequired(form, "propertyAliasInput")
-        var addAliasButton = findRequired(form, "propertyAddAliasButton")
+    function test_PROP_F_005B_editModeAliasButtonAddsAliasToFormState() {
+        const form = createForm({ id: "property-4", name: "Flat", aliases: ["Base"] })
+        const aliasInput = findRequired(form, "propertyAliasInput")
+        const addAliasButton = findRequired(form, "propertyAddAliasButton")
 
         aliasInput.text = "Alias Two"
         compare(aliasInput.text, "Alias Two")
@@ -353,17 +518,28 @@ TestCase {
         compare(form.aliases[1], "Alias Two")
     }
 
-    function test_aliasPanelGetsLayoutSpaceForRenderedAliases() {
-        var form = createForm({ id: "property-4", name: "Flat", aliases: ["Base"] })
-        var aliasScroll = findRequired(form, "propertyAliasScroll")
+    function test_PROP_F_005C_aliasPanelGetsLayoutSpaceForRenderedAliases() {
+        const form = createForm({ id: "property-4", name: "Flat", aliases: ["Base"] })
+        const aliasScroll = findRequired(form, "propertyAliasScroll")
 
         compare(aliasScroll.width > 0, true)
         compare(aliasScroll.height > 0, true)
     }
 
-    function test_readModeLoadsSelectedPropertyState() {
-        var form = createForm({ id: "property-3", name: "House", aliases: ["H1", "H2"] })
-        var nameField = findRequired(form, "propertyNameField")
+    function test_PROP_F_005D_aliasChipClickSelectsAliasForRemoval() {
+        const form = createForm({ id: "property-4", name: "Flat", aliases: ["Base", "Alias Two"] })
+        const aliasMouse = findRequired(form, "propertyAliasMouse_1")
+        const removeAliasButton = findRequired(form, "propertyRemoveAliasButton")
+
+        aliasMouse.clicked(null)
+
+        compare(form.aliasIndex, 1)
+        compare(removeAliasButton.enabled, true)
+    }
+
+    function test_PROP_F_002_readModeLoadsSelectedPropertyState() {
+        const form = createForm({ id: "property-3", name: "House", aliases: ["H1", "H2"] })
+        const nameField = findRequired(form, "propertyNameField")
 
         compare(form.isEdit, true)
         compare(nameField.text, "House")
@@ -372,10 +548,10 @@ TestCase {
         compare(form.aliases[1], "H2")
     }
 
-    function test_updateModeSavesCurrentPropertyId() {
-        var form = createForm({ id: "property-5", name: "Old", aliases: ["One"] })
-        var nameField = findRequired(form, "propertyNameField")
-        var updateButton = findRequired(form, "propertyUpdateButton")
+    function test_PROP_F_006_updateModeSavesCurrentPropertyId() {
+        const form = createForm({ id: "property-5", name: "Old", aliases: ["One"] })
+        const nameField = findRequired(form, "propertyNameField")
+        const updateButton = findRequired(form, "propertyUpdateButton")
 
         nameField.text = "New Property"
         updateButton.clicked()
@@ -385,16 +561,16 @@ TestCase {
         compare(propertyController.lastSave.name, "New Property")
     }
 
-    function test_updateModeKeepsSelectedContractsAndSavesThem() {
+    function test_PROP_F_008_updateModeKeepsSelectedContractsAndSavesThem() {
         session.contracts = [
             { id: "contract-1", name: "Lease" }
         ]
-        var form = createForm({ id: "property-6", name: "Old", aliases: ["One"], contractIds: [] })
-        var nameField = findRequired(form, "propertyNameField")
-        var updateButton = findRequired(form, "propertyUpdateButton")
-        var aliasInput = findRequired(form, "propertyAliasInput")
-        var addAliasButton = findRequired(form, "propertyAddAliasButton")
-        var checkBox = findRequired(form, "propertyContractCheckBox")
+        const form = createForm({ id: "property-6", name: "Old", aliases: ["One"], contractIds: [] })
+        const nameField = findRequired(form, "propertyNameField")
+        const updateButton = findRequired(form, "propertyUpdateButton")
+        const aliasInput = findRequired(form, "propertyAliasInput")
+        const addAliasButton = findRequired(form, "propertyAddAliasButton")
+        const checkBox = findRequired(form, "propertyContractCheckBox")
 
         checkBox.checked = true
         checkBox.toggled()
@@ -404,10 +580,8 @@ TestCase {
         compare(form.aliases[1], "Alias Two")
         nameField.text = "New Property"
         propertyController.savePropertyOverride = function(id, name, aliases, contractIds) {
-            var result = propertyController.defaultSaveProperty(id, name, aliases, contractIds)
-            if (session.selectedProperty && session.selectedProperty["setState"])
-                session.selectedProperty["setState"](id || "property-6", name, aliases, contractIds)
-            session.selectedPropertyId = id || "property-6"
+            const result = propertyController.defaultSaveProperty(id, name, aliases, contractIds)
+            session.selectPropertyState(id || "property-6", name, aliases, contractIds)
             session.dataRevision += 1
             return result
         }
@@ -429,16 +603,11 @@ TestCase {
         compare(form.aliases[0], "One")
         compare(form.aliases[1], "Alias Two")
 
-        session.selectedProperty = createPropertyObject({ id: "property-7", name: "Other", aliases: ["Other"], contractIds: [] })
+        session.selectPropertyState("property-7", "Other", ["Other"], [])
         compare(form.aliases.length, 1)
         compare(form.aliases[0], "Other")
 
-        session.selectedProperty = createPropertyObject({
-            id: "property-6",
-            name: "New Property",
-            aliases: ["Property Alias", "Property Fresh Alias"],
-            contractIds: ["contract-1"]
-        })
+        session.selectPropertyState("property-6", "New Property", ["Property Alias", "Property Fresh Alias"], ["contract-1"])
         compare(form.aliases.length, 2)
         compare(form.aliases[0], "Property Alias")
         compare(form.aliases[1], "Property Fresh Alias")
@@ -447,8 +616,8 @@ TestCase {
         compare(form.selectedContractIds[0], "contract-1")
     }
 
-    function test_selectionChangedSignalRefreshesAliasesWithoutReplacingSelectionObject() {
-        var form = createForm({ id: "property-6", name: "Old", aliases: ["One"], contractIds: [] })
+    function test_PROP_F_010_selectionChangedSignalRefreshesAliasesWithoutReplacingSelectionObject() {
+        const form = createForm({ id: "property-6", name: "Old", aliases: ["One"], contractIds: [] })
 
         compare(form.aliases.length, 1)
         compare(form.aliases[0], "One")
@@ -469,15 +638,13 @@ TestCase {
         compare(form.aliases[1], "Alias Two")
     }
 
-    function test_dataRevisionRefreshesAliasesWhenSelectionObjectDoesNotEmitChanged() {
-        var form = createForm({ id: "property-6", name: "Old", aliases: ["One"], contractIds: [] })
+    function test_PROP_F_011_selectionRefreshesAliasesWhenSelectionObjectDoesNotEmitChanged() {
+        const form = createForm({ id: "property-6", name: "Old", aliases: ["One"], contractIds: [] })
 
         compare(form.aliases.length, 1)
         compare(form.aliases[0], "One")
 
-        session.selectedProperty.aliases = ["One", "Alias Two"]
-        session.selectedProperty.contractIds = ["contract-1"]
-        session.dataRevision += 1
+        session.selectPropertyState("property-6", "Old", ["One", "Alias Two"], ["contract-1"])
 
         compare(form.aliases.length, 2)
         compare(form.aliases[0], "One")
@@ -486,35 +653,29 @@ TestCase {
         compare(form.selectedContractIds[0], "contract-1")
     }
 
-    function test_contractSelectionUpdatesSelectedIds() {
+    function test_PROP_F_007_contractSelectionUpdatesSelectedIds() {
         session.contracts = [
             { id: "contract-1", name: "Lease" }
         ]
-        var form = createForm(null)
-        var checkBox = findRequired(form, "propertyContractCheckBox")
+        const form = createForm(null)
+        const checkBox = findRequired(form, "propertyContractCheckBox")
 
         checkBox.checked = true
         checkBox.toggled()
 
         compare(form.selectedContractIds.length, 1)
         compare(form.selectedContractIds[0], "contract-1")
-
-        var updateButton = findRequired(form, "propertyUpdateButton")
-        var nameField = findRequired(form, "propertyNameField")
-        nameField.text = "Flat 12"
-        updateButton.clicked()
-        compare(propertyController.lastSave.contractIds.length, 1)
-        compare(propertyController.lastSave.contractIds[0], "contract-1")
+        compare(propertyState.hasChanges, true)
     }
 
-    function test_navigationButtonsMoveSelectionId() {
+    function test_PROP_F_012_navigationButtonsMoveSelectionId() {
         session.properties = [
             { id: "property-1", name: "A" },
             { id: "property-2", name: "B" }
         ]
-        var form = createForm({ id: "property-1", name: "A", aliases: [] })
-        var nextButton = findRequired(form, "propertyNextButton")
-        var previousButton = findRequired(form, "propertyPreviousButton")
+        const form = createForm({ id: "property-1", name: "A", aliases: [] })
+        const nextButton = findRequired(form, "propertyNextButton")
+        const previousButton = findRequired(form, "propertyPreviousButton")
 
         nextButton.clicked()
         compare(session.selectedPropertyId, "property-2")
@@ -523,9 +684,9 @@ TestCase {
         compare(session.selectedPropertyId, "property-1")
     }
 
-    function test_createShortcutButtonClearsSelectionAndSwitchesToCreateMode() {
-        var form = createForm({ id: "property-9", name: "Selected", aliases: [] })
-        var createModeButton = findRequired(form, "propertyCreateModeButton")
+    function test_PROP_F_013_createShortcutButtonClearsSelectionAndSwitchesToCreateMode() {
+        const form = createForm({ id: "property-9", name: "Selected", aliases: [] })
+        const createModeButton = findRequired(form, "propertyCreateModeButton")
 
         createModeButton.clicked()
 
@@ -533,9 +694,9 @@ TestCase {
         compare(form.isEdit, false)
     }
 
-    function test_deleteButtonDeletesCurrentProperty() {
-        var form = createForm({ id: "property-7", name: "Lot", aliases: [] })
-        var deleteButton = findRequired(form, "propertyDeleteButton")
+    function test_PROP_F_014_deleteButtonDeletesCurrentProperty() {
+        const form = createForm({ id: "property-7", name: "Lot", aliases: [] })
+        const deleteButton = findRequired(form, "propertyDeleteButton")
 
         deleteButton.clicked()
 

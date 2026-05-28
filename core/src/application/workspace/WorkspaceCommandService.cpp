@@ -117,10 +117,20 @@ void applyPropertyDraft(core::domain::Property& property, const core::applicatio
 }
 
 void applyContractDraft(core::domain::Contract& contract, const core::application::ContractInput& input) {
+    std::vector<std::string> actorIds;
+    actorIds.reserve(1);
+    for (const auto& actorId : input.actorIds) {
+        const auto normalized = core::domain::policies::alias::trimCopy(actorId);
+        if (normalized.empty()) {
+            continue;
+        }
+        actorIds.push_back(normalized);
+        break;
+    }
     contract.rename(input.name);
     contract.setType(input.type);
     contract.setAllocatableMode(input.allocatableMode);
-    contract.setActorIds(input.actorIds);
+    contract.setActorIds(actorIds);
     contract.setPropertyIds(input.propertyIds);
     contract.setAliases(input.aliases);
 }
@@ -189,10 +199,14 @@ bool syncActorRelations(core::domain::catalog::WorkspaceCatalog& state,
         }
         const bool shouldLink = desired.find(contract->id()) != desired.end();
         const bool hasLink = contract->containsActorId(actorId);
-        if (shouldLink && !hasLink) {
-            contract->addActorId(actorId);
-            stampUpdated(*contract);
-            changed = true;
+        if (shouldLink) {
+            const auto& actorIds = contract->actorIds();
+            const bool alreadySingleOwner = actorIds.size() == 1u && actorIds.front() == actorId;
+            if (!alreadySingleOwner) {
+                contract->setActorIds({actorId});
+                stampUpdated(*contract);
+                changed = true;
+            }
         } else if (!shouldLink && hasLink) {
             contract->removeActorId(actorId);
             stampUpdated(*contract);

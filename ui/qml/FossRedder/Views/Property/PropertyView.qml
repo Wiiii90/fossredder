@@ -1,16 +1,49 @@
 /**
  * @file ui/qml/FossRedder/Views/Property/PropertyView.qml
- * @brief Hosts the property form as the main property page container.
+ * @brief Provides the PropertyView component.
  */
 
 import QtQuick 2.15
+import QtQuick.Layouts 1.3
 import FossRedder.Views 1.0 as Views
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
     required property var appContext
     required property var theme
 
-    Views.PropertyForm { anchors.fill: parent; appContext: root.appContext; theme: root.theme }
-}
+    readonly property var workspaceFacade: root.appContext ? root.appContext.workspaceFacade : null
+    readonly property var propertyState: root.workspaceFacade ? root.workspaceFacade.propertyState : null
+    readonly property var propertyRows: root.workspaceFacade ? root.workspaceFacade.propertyRows : []
+    readonly property bool isEdit: root.propertyState ? root.propertyState.isEdit : false
+    readonly property bool hasChanges: root.propertyState ? root.propertyState.hasChanges : false
+    readonly property string name: root.propertyState ? root.propertyState.name : ""
+    readonly property var aliases: root.propertyState ? root.propertyState.aliases : []
+    readonly property string aliasInputText: root.propertyState ? root.propertyState.aliasInputText : ""
+    readonly property int aliasIndex: root.propertyState ? root.propertyState.aliasIndex : -1
+    readonly property var selectedContractIds: root.propertyState ? root.propertyState.selectedContractIds : []
 
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: root.theme.spacingSmall
+
+        Views.PropertyForm {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            appContext: root.appContext
+            propertyState: root.propertyState
+            theme: root.theme
+        }
+
+        Views.PropertyBottomBar {
+            Layout.fillWidth: true
+            Layout.leftMargin: root.theme.pageContentMargin
+            Layout.rightMargin: root.theme.pageContentMargin
+            Layout.bottomMargin: root.theme.pageContentMargin
+            theme: root.theme
+            propertyState: root.propertyState
+            propertyRows: root.propertyRows
+        }
+    }
+}

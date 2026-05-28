@@ -1,9 +1,9 @@
 /**
- * @file ui/src/state/session/ActorState.cpp
- * @brief Implements the selection-aware actor UI state wrapper.
+ * @file ui/src/state/session/PropertyState.cpp
+ * @brief Implements the selection-aware property UI state wrapper.
  */
 
-#include "ui/state/session/ActorState.h"
+#include "ui/state/session/PropertyState.h"
 
 #include "ui/state/session/WorkspaceSessionSelection.h"
 #include "ui/state/session/WorkspaceSessionState.h"
@@ -37,29 +37,30 @@ QVariantList toVariantList(const QStringList &values) {
 
 } // namespace
 
-ActorState::ActorState(WorkspaceFacade *workspace, QObject *parent)
+PropertyState::PropertyState(WorkspaceFacade *workspace, QObject *parent)
     : QObject(parent), workspace_(workspace) {
   bindSignals();
   reloadFromSelection(true);
 }
 
-QString ActorState::currentId() const {
-  return workspace_ ? workspace_->selectedActorId() : QString();
+QString PropertyState::currentId() const {
+  return workspace_ ? workspace_->selectedPropertyId() : QString();
 }
 
-QString ActorState::name() const { return name_; }
+QString PropertyState::name() const { return name_; }
 
-void ActorState::setName(const QString &value) {
+void PropertyState::setName(const QString &value) {
   if (name_ == value) {
     return;
   }
   name_ = value;
+  dirty_ = true;
   emit changed();
 }
 
-QVariantList ActorState::aliases() const { return aliases_; }
+QVariantList PropertyState::aliases() const { return aliases_; }
 
-void ActorState::setAliases(const QVariantList &value) {
+void PropertyState::setAliases(const QVariantList &value) {
   if (aliases_ == value) {
     return;
   }
@@ -67,12 +68,13 @@ void ActorState::setAliases(const QVariantList &value) {
   if (aliasIndex_ >= aliases_.size()) {
     aliasIndex_ = aliases_.isEmpty() ? -1 : aliases_.size() - 1;
   }
+  dirty_ = true;
   emit changed();
 }
 
-QString ActorState::aliasInputText() const { return aliasInputText_; }
+QString PropertyState::aliasInputText() const { return aliasInputText_; }
 
-void ActorState::setAliasInputText(const QString &value) {
+void PropertyState::setAliasInputText(const QString &value) {
   if (aliasInputText_ == value) {
     return;
   }
@@ -80,9 +82,9 @@ void ActorState::setAliasInputText(const QString &value) {
   emit changed();
 }
 
-int ActorState::aliasIndex() const { return aliasIndex_; }
+int PropertyState::aliasIndex() const { return aliasIndex_; }
 
-void ActorState::setAliasIndex(int value) {
+void PropertyState::setAliasIndex(int value) {
   if (aliasIndex_ == value) {
     return;
   }
@@ -90,47 +92,48 @@ void ActorState::setAliasIndex(int value) {
   emit changed();
 }
 
-QVariantList ActorState::selectedContractIds() const {
+QVariantList PropertyState::selectedContractIds() const {
   return selectedContractIds_;
 }
 
-void ActorState::setSelectedContractIds(const QVariantList &value) {
+void PropertyState::setSelectedContractIds(const QVariantList &value) {
   if (selectedContractIds_ == value) {
     return;
   }
   selectedContractIds_ = value;
+  dirty_ = true;
   emit changed();
 }
 
-bool ActorState::isEdit() const { return !currentId().isEmpty(); }
+bool PropertyState::isEdit() const { return !currentId().isEmpty(); }
 
-bool ActorState::hasChanges() const {
+bool PropertyState::hasChanges() const {
   if (!isEdit()) {
     return !name_.trimmed().isEmpty();
   }
   if (!workspace_ || !workspace_->session()) {
     return false;
   }
-  return workspace_->session()->formStateChanged(
-      savedName_, savedAliases_, savedSelectedContractIds_, name_, aliases_,
-      selectedContractIds_);
+  return dirty_ || workspace_->session()->formStateChanged(
+                        savedName_, savedAliases_, savedSelectedContractIds_,
+                        name_, aliases_, selectedContractIds_);
 }
 
-bool ActorState::canSubmit() const { return !name_.trimmed().isEmpty(); }
+bool PropertyState::canSubmit() const { return !name_.trimmed().isEmpty(); }
 
-bool ActorState::canAddAlias(const QString &value) const {
+bool PropertyState::canAddAlias(const QString &value) const {
   return !value.trimmed().isEmpty();
 }
 
-bool ActorState::canRemoveSelectedAlias() const {
+bool PropertyState::canRemoveSelectedAlias() const {
   return aliasIndex_ >= 0 && aliasIndex_ < aliases_.size();
 }
 
-bool ActorState::isAliasSelected(int index) const {
+bool PropertyState::isAliasSelected(int index) const {
   return aliasIndex_ == index;
 }
 
-bool ActorState::isContractSelected(const QString &contractId) const {
+bool PropertyState::isContractSelected(const QString &contractId) const {
   const QString nextId = contractId.trimmed();
   if (nextId.isEmpty()) {
     return false;
@@ -143,31 +146,32 @@ bool ActorState::isContractSelected(const QString &contractId) const {
   return false;
 }
 
-void ActorState::clearFormState() {
+void PropertyState::clearFormState() {
   name_.clear();
   aliases_.clear();
   aliasInputText_.clear();
   aliasIndex_ = -1;
   selectedContractIds_.clear();
+  dirty_ = false;
   emit changed();
 }
 
-void ActorState::clear() {
+void PropertyState::clear() {
   currentOwnerId_.clear();
   clearFormState();
   captureSavedState();
 }
 
-void ActorState::enterCreateMode() {
+void PropertyState::enterCreateMode() {
   if (workspace_ && workspace_->selection()) {
-    workspace_->selection()->setSelectedActorId(QString());
+    workspace_->selection()->setSelectedPropertyId(QString());
   }
   currentOwnerId_.clear();
   clearFormState();
   captureSavedState();
 }
 
-void ActorState::addAlias(const QString &value) {
+void PropertyState::addAlias(const QString &value) {
   if (!workspace_ || !workspace_->session()) {
     return;
   }
@@ -179,10 +183,11 @@ void ActorState::addAlias(const QString &value) {
   aliases_ = next;
   aliasIndex_ = aliases_.isEmpty() ? -1 : aliases_.size() - 1;
   aliasInputText_.clear();
+  dirty_ = true;
   emit changed();
 }
 
-void ActorState::removeAlias(int index) {
+void PropertyState::removeAlias(int index) {
   if (!workspace_ || !workspace_->session()) {
     return;
   }
@@ -194,25 +199,27 @@ void ActorState::removeAlias(int index) {
   aliasIndex_ = aliases_.isEmpty()
                     ? -1
                     : std::min(index, static_cast<int>(aliases_.size()) - 1);
+  dirty_ = true;
   emit changed();
 }
 
-void ActorState::selectAlias(int index) { setAliasIndex(index); }
+void PropertyState::selectAlias(int index) { setAliasIndex(index); }
 
-void ActorState::selectActor(const QString &id) {
+void PropertyState::selectProperty(const QString &id) {
   if (workspace_ && workspace_->selection()) {
-    workspace_->selection()->setSelectedActorId(id.trimmed());
+    workspace_->selection()->setSelectedPropertyId(id.trimmed());
   }
 }
 
-void ActorState::requestRemoveSelectedAlias() {
+void PropertyState::requestRemoveSelectedAlias() {
   if (!canRemoveSelectedAlias()) {
     return;
   }
   removeAlias(aliasIndex_);
 }
 
-void ActorState::setContractSelected(const QString &contractId, bool selected) {
+void PropertyState::setContractSelected(const QString &contractId,
+                                        bool selected) {
   if (!workspace_ || !workspace_->session()) {
     return;
   }
@@ -229,65 +236,66 @@ void ActorState::setContractSelected(const QString &contractId, bool selected) {
     return;
   }
   selectedContractIds_ = next;
+  dirty_ = true;
   emit changed();
 }
 
-void ActorState::previous() {
+void PropertyState::previous() {
   if (!workspace_ || !workspace_->session()) {
     return;
   }
-  const QVariantList rows = workspace_->actorRows();
+  const QVariantList rows = workspace_->propertyRows();
   if (rows.isEmpty()) {
     return;
   }
   const QString nextId = workspace_->session()->navigatedSelectionId(
       rows, isEdit() ? currentId() : QString(), -1, rows.size() - 1);
-  workspace_->selection()->setSelectedActorId(nextId);
+  workspace_->selection()->setSelectedPropertyId(nextId);
 }
 
-void ActorState::next() {
+void PropertyState::next() {
   if (!workspace_ || !workspace_->session()) {
     return;
   }
-  const QVariantList rows = workspace_->actorRows();
+  const QVariantList rows = workspace_->propertyRows();
   if (rows.isEmpty()) {
     return;
   }
   const QString nextId = workspace_->session()->navigatedSelectionId(
       rows, isEdit() ? currentId() : QString(), 1, 0);
-  workspace_->selection()->setSelectedActorId(nextId);
+  workspace_->selection()->setSelectedPropertyId(nextId);
 }
 
-QString ActorState::submit() {
+QString PropertyState::submit() {
   if (!workspace_) {
     return {};
   }
   const QStringList aliasValues = toQStringList(aliases_);
   const QStringList contractIds = toQStringList(selectedContractIds_);
-  const QString id = workspace_->saveActor(isEdit() ? currentId() : QString(),
-                                           name_, aliasValues, contractIds);
+  const QString id = workspace_->saveProperty(
+      isEdit() ? currentId() : QString(), name_, aliasValues, contractIds);
   if (workspace_->selection() && !id.isEmpty()) {
-    workspace_->selection()->setSelectedActorId(id);
+    workspace_->selection()->setSelectedPropertyId(id);
   }
   captureSavedState();
   return id;
 }
 
-void ActorState::deleteCurrent() {
+void PropertyState::deleteCurrent() {
   if (!workspace_ || currentId().isEmpty()) {
     return;
   }
   const QString removedId = currentId();
-  workspace_->deleteActor(removedId);
+  workspace_->deleteProperty(removedId);
   if (!workspace_->selection() || !workspace_->session()) {
     return;
   }
   const QString nextId = workspace_->session()->deleteNextSelectionId(
-      workspace_->actorRows(), removedId, 0, QStringLiteral("id"));
-  workspace_->selection()->setSelectedActorId(nextId);
+      workspace_->propertyRows(), removedId, 0, QStringLiteral("id"));
+  workspace_->selection()->setSelectedPropertyId(nextId);
 }
 
-void ActorState::bindSignals() {
+void PropertyState::bindSignals() {
   if (!workspace_) {
     return;
   }
@@ -295,13 +303,14 @@ void ActorState::bindSignals() {
   QObject::connect(workspace_, &WorkspaceFacade::dataRevisionChanged, this,
                    [this]() { reloadFromSelection(true); });
   QObject::connect(workspace_->selection(),
-                   &SessionSelection::selectedActorIdChanged, this,
+                   &SessionSelection::selectedPropertyIdChanged, this,
                    [this]() { reloadFromSelection(false); });
-  QObject::connect(workspace_->selectedActor(), &ActorSelection::changed, this,
+  QObject::connect(workspace_->selectedProperty(),
+                   &PropertySelection::changed, this,
                    [this]() { reloadFromSelection(true); });
 }
 
-void ActorState::applyFormState(const QVariantMap &state) {
+void PropertyState::applyFormState(const QVariantMap &state) {
   const QVariantMap next = state;
   name_ = next.value(QStringLiteral("name")).toString();
   aliases_ = next.value(QStringLiteral("aliases")).toList();
@@ -310,17 +319,19 @@ void ActorState::applyFormState(const QVariantMap &state) {
       next.value(QStringLiteral("aliasIndex"), aliases_.isEmpty() ? -1 : 0)
           .toInt();
   selectedContractIds_ = next.value(QStringLiteral("selectedIds")).toList();
+  dirty_ = false;
   emit changed();
 }
 
-void ActorState::captureSavedState() {
+void PropertyState::captureSavedState() {
   savedName_ = name_;
   savedAliases_ = aliases_;
   savedSelectedContractIds_ = selectedContractIds_;
+  dirty_ = false;
   emit changed();
 }
 
-void ActorState::reloadFromSelection(bool forceReload) {
+void PropertyState::reloadFromSelection(bool forceReload) {
   if (!workspace_ || !workspace_->session()) {
     return;
   }
@@ -337,7 +348,7 @@ void ActorState::reloadFromSelection(bool forceReload) {
     return;
   }
 
-  ActorSelection *current = workspace_->selectedActor();
+  PropertySelection *current = workspace_->selectedProperty();
   if (!current) {
     clearFormState();
     captureSavedState();

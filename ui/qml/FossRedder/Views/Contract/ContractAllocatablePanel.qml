@@ -11,8 +11,7 @@ import FossRedder.Controls 1.0 as Controls
 Controls.Panel {
     id: root
     required property var theme
-    property string mode: "mixed"
-    signal modeSelected(string mode)
+    required property var contractState
 
     Layout.fillWidth: true
     contentSpacing: root.theme.spacingSmall
@@ -39,11 +38,11 @@ Controls.Panel {
             objectName: "contractAllocatableModeCombo"
             Layout.fillWidth: true
             model: [qsTr("Mixed"), qsTr("Always allocatable"), qsTr("Never allocatable")]
-            currentIndex: root.mode === "allocatable" ? 1 : (root.mode === "non-allocatable" ? 2 : 0)
+            currentIndex: root.contractState && root.contractState.allocatableMode === "allocatable" ? 1 : (root.contractState && root.contractState.allocatableMode === "non-allocatable" ? 2 : 0)
             onActivated: function(index) {
-                root.modeSelected(index === 1 ? "allocatable" : (index === 2 ? "non-allocatable" : "mixed"))
+                if (root.contractState)
+                    root.contractState.allocatableMode = index === 1 ? "allocatable" : (index === 2 ? "non-allocatable" : "mixed")
             }
         }
     }
 }
-

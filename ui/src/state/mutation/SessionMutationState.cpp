@@ -211,11 +211,12 @@ QVariantList SessionMutationState::removeAt(const QVariantList& values, int inde
 
 QVariantList SessionMutationState::removeString(const QVariantList& values, const QString& value)
 {
+    const QString target = value.trimmed();
     QVariantList out;
     out.reserve(values.size());
     for (const auto& item : values) {
-        const QString current = stringValue(item);
-        if (current != value) {
+        const QString current = stringValue(item).trimmed();
+        if (current != target) {
             out.push_back(current);
         }
     }
@@ -432,4 +433,3 @@ QVariantMap SessionMutationState::currentDraftState(const QVariantList& drafts,
 }
 
 } // namespace ui
-

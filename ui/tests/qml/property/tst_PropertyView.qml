@@ -3,6 +3,8 @@
  * @brief Provides QML tests for PropertyView behavior.
  */
 
+pragma ComponentBehavior: Bound
+
 import QtQuick 2.15
 import QtTest 1.3
 import FossRedder.Views 1.0
@@ -22,8 +24,24 @@ TestCase {
         property var selectedProperty: null
         property var propertyRowsData: []
         property var contracts: []
-        function propertyRows() { return propertyRowsData || [] }
         function contractRows() { return contracts || [] }
+        function addUniqueTrimmed(values, value) {
+            var out = values ? values.slice(0) : []
+            var next = String(value || "").trim()
+            if (next.length === 0 || out.indexOf(next) !== -1)
+                return out
+            out.push(next)
+            return out
+        }
+        function removeString(values, value) {
+            var out = values ? values.slice(0) : []
+            var target = String(value || "")
+            var index = out.indexOf(target)
+            if (index < 0)
+                return out
+            out.splice(index, 1)
+            return out
+        }
         function indexOfId(rows, id) {
             var list = rows || []
             for (var i = 0; i < list.length; ++i) {
@@ -32,17 +50,93 @@ TestCase {
             }
             return -1
         }
+        function navigatedId(rows, currentId, delta, fallbackIndex) {
+            if (!rows || rows.length === 0)
+                return ""
+            var index = -1
+            for (var i = 0; i < rows.length; ++i) {
+                if (String(rows[i].id || "") === String(currentId || "")) {
+                    index = i
+                    break
+                }
+            }
+            if (index < 0) {
+                index = delta > 0 ? 0 : (delta < 0 ? rows.length - 1 : fallbackIndex)
+                return String(rows[index].id || "")
+            }
+            if (delta > 0)
+                return index >= rows.length - 1 ? "" : String(rows[index + 1].id || "")
+            if (delta < 0)
+                return index <= 0 ? "" : String(rows[index - 1].id || "")
+            return String(rows[index].id || "")
+        }
         function basicFormState(name, aliases, selectedIds) {
             return { name: name || "", aliases: aliases || [], selectedIds: selectedIds || [], aliasInputText: "", aliasIndex: -1 }
         }
+    }
+
+    property var propertyState: QtObject {
+        property string currentId: ""
+        property string name: ""
+        property var aliases: []
+        property string aliasInputText: ""
+        property int aliasIndex: -1
+        property var selectedContractIds: []
+        property string savedName: ""
+        property var savedAliases: []
+        property var savedSelectedContractIds: []
+        property bool isEdit: false
+        property bool hasChanges: false
+        property int previousCalls: 0
+        property int nextCalls: 0
+        property int clearCalls: 0
+        property int submitCalls: 0
+        property int enterCreateModeCalls: 0
+        property int deleteCurrentCalls: 0
+        readonly property bool canSubmit: name.trim().length > 0
+        function canAddAlias(value) { return String(value || "").trim().length > 0 }
+        function canRemoveSelectedAlias() { return aliasIndex >= 0 && aliasIndex < aliases.length }
+        function isAliasSelected(index) { return aliasIndex === index }
+        function isContractSelected(contractId) { return selectedContractIds.indexOf(String(contractId || "").trim()) !== -1 }
+        function clear() { clearCalls += 1 }
+        function enterCreateMode() { enterCreateModeCalls += 1; testCase.session.selectedPropertyId = ""; isEdit = false }
+        function addAlias(value) {}
+        function removeAlias(index) {}
+        function selectAlias(index) {}
+        function requestRemoveSelectedAlias() {}
+        function setContractSelected(contractId, selected) {
+            const id = String(contractId || "").trim()
+            const next = selected ? testCase.session.addUniqueTrimmed(selectedContractIds, id) : testCase.session.removeString(selectedContractIds, id)
+            if (next.length === selectedContractIds.length)
+                return
+            selectedContractIds = next
+            hasChanges = true
+        }
+        function previous() {
+            previousCalls += 1
+            testCase.session.selectedPropertyId = testCase.session.navigatedId(testCase.session.propertyRowsData, isEdit ? (testCase.session.selectedPropertyId || "") : "", -1, testCase.session.propertyRowsData.length - 1)
+        }
+        function next() {
+            nextCalls += 1
+            testCase.session.selectedPropertyId = testCase.session.navigatedId(testCase.session.propertyRowsData, isEdit ? (testCase.session.selectedPropertyId || "") : "", 1, 0)
+        }
+        function submit() {
+            submitCalls += 1
+            return "property-new"
+        }
+        function deleteCurrent() { deleteCurrentCalls += 1 }
     }
 
     property var appContext: QtObject {
         property var session: testCase.session
         property var sessionState: testCase.session
         property var workspaceFacade: QtObject {
+            property var propertyState: testCase.propertyState
+            property var propertyRows: testCase.session.propertyRowsData
+            property var contractRows: testCase.session.contracts
             function addUniqueTrimmed(values, value) { return values || [] }
             function removeAt(values, index) { return values || [] }
+            function removeString(values, value) { return values || [] }
             function saveProperty(id, name, aliases, contractIds) { return id || "property-new" }
             function deleteProperty(id) {}
         }
@@ -103,7 +197,7 @@ TestCase {
         session.contracts = []
     }
 
-    function test_navigationStaysEnabledWithSingleRow() {
+    function test_PROP_V_005_navigationStaysEnabledWithSingleRow() {
         session.propertyRowsData = [
             { id: "property-1", name: "P1" }
         ]
@@ -118,9 +212,10 @@ TestCase {
         compare(session.selectedPropertyId, "property-1")
     }
 
-    function test_navigationCyclesThroughCreateMode() {
+    function test_PROP_V_003_navigationCyclesThroughCreateMode() {
         session.selectedPropertyId = "property-3"
         session.selectedProperty = { id: "property-3", name: "P3" }
+        propertyState.isEdit = true
         var view = createView()
 
         findRequired(view, "propertyNextButton").clicked()
@@ -131,6 +226,7 @@ TestCase {
 
         session.selectedPropertyId = "property-1"
         session.selectedProperty = { id: "property-1", name: "P1" }
+        propertyState.isEdit = true
         findRequired(view, "propertyPreviousButton").clicked()
         compare(session.selectedPropertyId, "")
 
@@ -138,14 +234,37 @@ TestCase {
         compare(session.selectedPropertyId, "property-3")
     }
 
-    function test_createModeNavigationStartsAtEdges() {
+    function test_PROP_V_004_navigationStartsAtEdgesFromCreateMode() {
         var view = createView()
 
         findRequired(view, "propertyNextButton").clicked()
         compare(session.selectedPropertyId, "property-1")
 
         session.selectedPropertyId = ""
+        propertyState.isEdit = false
         findRequired(view, "propertyPreviousButton").clicked()
         compare(session.selectedPropertyId, "property-3")
+    }
+
+    function test_PROP_V_006_contractSelectionEnablesUpdateButtonInEditMode() {
+        session.contracts = [
+            { id: "contract-1", name: "Lease" }
+        ]
+        session.selectedPropertyId = "property-2"
+        session.selectedProperty = { id: "property-2", name: "P2" }
+        propertyState.isEdit = true
+        propertyState.name = "P2"
+        propertyState.hasChanges = false
+
+        var view = createView()
+        var checkBox = findRequired(view, "propertyContractCheckBox")
+        var updateButton = findRequired(view, "propertyUpdateButton")
+
+        compare(updateButton.enabled, false)
+        checkBox.checked = true
+        checkBox.toggled()
+
+        compare(propertyState.hasChanges, true)
+        compare(updateButton.enabled, true)
     }
 }
