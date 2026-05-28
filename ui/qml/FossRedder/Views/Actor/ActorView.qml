@@ -5,7 +5,7 @@
 
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
-import FossRedder.Views 1.0 as Views
+import FossRedder.Views.Actor 1.0 as Actor
 pragma ComponentBehavior: Bound
 
 Item {
@@ -27,7 +27,7 @@ Item {
         anchors.fill: parent
         spacing: root.theme.spacingSmall
 
-        Views.ActorForm {
+        Actor.ActorForm {
             Layout.fillWidth: true
             Layout.fillHeight: true
             appContext: root.appContext
@@ -35,7 +35,7 @@ Item {
             theme: root.theme
         }
 
-        Views.ActorBottomBar {
+        Actor.ActorBottomBar {
             Layout.fillWidth: true
             Layout.leftMargin: root.theme.pageContentMargin
             Layout.rightMargin: root.theme.pageContentMargin

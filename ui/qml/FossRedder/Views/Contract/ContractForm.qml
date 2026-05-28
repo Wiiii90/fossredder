@@ -7,7 +7,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
-import FossRedder.Views 1.0 as Views
+import FossRedder.Views.Contract 1.0 as Contract
 pragma ComponentBehavior: Bound
 
 Item {
@@ -195,19 +195,19 @@ Item {
                     }
                 }
 
-                Views.ContractTypePanel {
+                Contract.ContractTypePanel {
                     Layout.fillWidth: true
                     theme: root.theme
                     contractState: root.contractState
                 }
 
-                Views.ContractAllocatablePanel {
+                Contract.ContractAllocatablePanel {
                     Layout.fillWidth: true
                     theme: root.theme
                     contractState: root.contractState
                 }
 
-                Views.ContractActorsPanel {
+                Contract.ContractActorsPanel {
                     Layout.fillWidth: true
                     Layout.preferredHeight: implicitHeight
                     Layout.maximumHeight: implicitHeight
@@ -217,7 +217,7 @@ Item {
                     actorRows: root.actorRows()
                 }
 
-                Views.ContractPropertiesPanel {
+                Contract.ContractPropertiesPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight

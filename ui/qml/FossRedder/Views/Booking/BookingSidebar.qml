@@ -5,27 +5,153 @@
 
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
-import FossRedder.Views 1.0 as Views
+import FossRedder.Controls 1.0 as Controls
 pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    required property var appContext
     required property var theme
-    readonly property var navigation: root.appContext ? root.appContext.navigation : null
-
-    Component { id: bookingStatementsSidebarComp; Views.BookingStatementsSidebar { appContext: root.appContext; theme: root.theme } }
-    Component { id: placeholderSidebarComp; Views.PlaceholderSidebar { } }
+    required property var bookingState
+    readonly property real rowRadius: root.theme.viewSidebarRowRadius
+    readonly property real rowHeight: root.theme.viewSidebarRowHeight
+    readonly property color panelSurfaceAlt: root.theme.surfaceAlt
 
     ColumnLayout {
-        anchors.fill: parent
+        anchors.fill: root
         anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.spacingSmall
 
-        Loader {
+        Flickable {
+            objectName: "bookingStatementsFlick"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            sourceComponent: bookingStatementsSidebarComp
+            clip: true
+            contentWidth: width
+            contentHeight: statementColumn.implicitHeight
+
+            Column {
+                id: statementColumn
+                width: root.width - (root.theme.pageContentMargin * 2)
+                spacing: root.theme.spacingSmall
+
+                Repeater {
+                    model: root.bookingState.statementRows
+
+                    delegate: Rectangle {
+                        id: statementEntry
+                        objectName: "bookingStatementRow_" + statementEntry.statementId
+                        required property var modelData
+                        width: statementColumn.width
+                        property bool collapsed: false
+                        property string statementId: statementEntry.modelData.id
+                        property string statementName: statementEntry.modelData.name
+                        readonly property bool isSelectedStatement: statementEntry.statementId === root.bookingState.selectedStatementId
+                        color: root.panelSurfaceAlt
+                        radius: root.rowRadius
+                        border.width: root.theme.borderWidthThin
+                        border.color: statementEntry.isSelectedStatement ? root.theme.selectionHighlight : root.theme.borderSoft
+                        implicitHeight: statementContent.implicitHeight + (root.theme.spacingSmall * 2)
+
+                        Column {
+                            id: statementContent
+                            anchors.fill: statementEntry
+                            anchors.margins: root.theme.spacingSmall
+                            spacing: root.theme.spacingSmall
+
+                            Item {
+                                id: statementHeader
+                                width: statementContent.width
+                                height: Math.max(root.rowHeight - (root.theme.spacingSmall * 2),
+                                                 statementNameText.implicitHeight + (root.theme.margins * 2),
+                                                 collapseButton.implicitHeight + (root.theme.margins * 2))
+
+                                MouseArea {
+                                    objectName: "bookingStatementMouse_" + statementEntry.statementId
+                                    anchors.fill: statementHeader
+                                    acceptedButtons: Qt.LeftButton
+                                    preventStealing: true
+                                    onClicked: root.bookingState.selectStatement(statementEntry.statementId)
+                                }
+
+                                Text {
+                                    id: statementNameText
+                                    anchors.left: statementHeader.left
+                                    anchors.right: collapseButton.left
+                                    anchors.rightMargin: root.theme.spacingSmall
+                                    anchors.top: statementHeader.top
+                                    anchors.topMargin: root.theme.margins
+                                    text: statementEntry.statementName
+                                    color: root.theme.textPrimary
+                                    elide: Text.ElideRight
+                                }
+
+                                Controls.DisclosureButton {
+                                    id: collapseButton
+                                    anchors.right: statementHeader.right
+                                    anchors.top: statementHeader.top
+                                    anchors.topMargin: root.theme.margins
+                                    anchors.rightMargin: root.theme.margins
+                                    implicitWidth: root.theme.spacingLarge + root.theme.margins * 4
+                                    implicitHeight: root.theme.spacingLarge + root.theme.margins * 4
+                                    expanded: !statementEntry.collapsed
+                                    onClicked: statementEntry.collapsed = !statementEntry.collapsed
+                                }
+                            }
+
+                            Column {
+                                id: transactionColumn
+                                width: statementContent.width
+                                spacing: root.theme.spacingSmall
+                                visible: !statementEntry.collapsed
+
+                                Repeater {
+                                    model: statementEntry.modelData.transactions
+
+                                    delegate: Rectangle {
+                                        id: transactionEntry
+                                        objectName: "bookingTransactionRow_" + transactionEntry.transactionId
+                                        required property var modelData
+                                        property string transactionId: transactionEntry.modelData.id
+                                        width: transactionColumn.width
+                                        height: root.rowHeight
+                                        radius: root.rowRadius
+                                        color: transactionEntry.transactionId === root.bookingState.selectedTransactionId ? root.theme.selectionHighlight : "transparent"
+                                        border.color: root.theme.borderSoft
+                                        border.width: root.theme.borderWidthThin
+
+                                        MouseArea {
+                                            objectName: "bookingTransactionMouse_" + transactionEntry.transactionId
+                                            anchors.fill: transactionEntry
+                                            acceptedButtons: Qt.LeftButton
+                                            preventStealing: true
+                                            onClicked: root.bookingState.selectTransaction(statementEntry.statementId, transactionEntry.transactionId)
+                                        }
+
+                                        RowLayout {
+                                            anchors.fill: transactionEntry
+                                            anchors.margins: root.theme.spacingSmall
+                                            spacing: root.theme.spacingSmall
+
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: transactionEntry.modelData.name
+                                                color: root.theme.textPrimary
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Text {
+                                                text: transactionEntry.modelData.bookingDate
+                                                color: root.theme.textMuted
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

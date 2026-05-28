@@ -18,6 +18,7 @@
 #include "ui/shared/payload/PayloadMapper.h"
 #include "ui/shared/util/StringConversions.h"
 #include "ui/state/session/ActorState.h"
+#include "ui/state/session/BookingState.h"
 #include "ui/state/session/ContractState.h"
 #include "ui/state/session/PropertyState.h"
 
@@ -194,6 +195,7 @@ WorkspaceFacade::WorkspaceFacade(QObject *parent)
     : QObject(parent), session_(std::make_unique<SessionState>(this)),
       selection_(std::make_unique<SessionSelection>(session_->models(), this)),
       actorState_(std::make_unique<ActorState>(this, this)),
+      bookingState_(std::make_unique<BookingState>(this, this)),
       propertyState_(std::make_unique<PropertyState>(this, this)),
       contractState_(std::make_unique<ContractState>(this, this)) {
   QObject::connect(selection_.get(), &SessionSelection::selectedActorIdChanged,
@@ -231,6 +233,9 @@ SessionSelection *WorkspaceFacade::selection() noexcept {
   return selection_.get();
 }
 ActorState *WorkspaceFacade::actorState() noexcept { return actorState_.get(); }
+BookingState *WorkspaceFacade::bookingState() noexcept {
+  return bookingState_.get();
+}
 PropertyState *WorkspaceFacade::propertyState() noexcept {
   return propertyState_.get();
 }

@@ -5,7 +5,7 @@
 
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
-import FossRedder.Views 1.0 as Views
+import FossRedder.Views.Contract 1.0 as Contract
 pragma ComponentBehavior: Bound
 
 Item {
@@ -44,7 +44,7 @@ Item {
         anchors.fill: parent
         spacing: root.theme.spacingSmall
 
-        Views.ContractForm {
+        Contract.ContractForm {
             Layout.fillWidth: true
             Layout.fillHeight: true
             appContext: root.appContext
@@ -52,7 +52,7 @@ Item {
             theme: root.theme
         }
 
-        Views.ContractBottomBar {
+        Contract.ContractBottomBar {
             Layout.fillWidth: true
             Layout.leftMargin: root.theme.pageContentMargin
             Layout.rightMargin: root.theme.pageContentMargin

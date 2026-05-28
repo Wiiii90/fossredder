@@ -13,6 +13,8 @@ Item {
     required property var theme
     readonly property var navigation: sidebarLeft.appContext ? sidebarLeft.appContext.navigation : null
     readonly property var session: sidebarLeft.appContext ? sidebarLeft.appContext.session : null
+    readonly property var workspaceFacade: sidebarLeft.appContext ? sidebarLeft.appContext.workspaceFacade : null
+    readonly property var bookingState: sidebarLeft.workspaceFacade ? sidebarLeft.workspaceFacade.bookingState : null
     readonly property int navExport: 5
     readonly property int navAnalysis: 7
     readonly property int navAnnual: 8
@@ -108,7 +110,7 @@ Item {
     Component { id: actorSidebarComp; Views.ActorSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: propertySidebarComp; Views.PropertySidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: contractSidebarComp; Views.ContractSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
-    Component { id: bookingSidebarComp; Views.BookingSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: bookingSidebarComp; Views.BookingSidebar { theme: sidebarLeft.theme; bookingState: sidebarLeft.bookingState } }
     Component { id: importSidebarComp; Views.ImportSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: exportSidebarComp; Views.ExportSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: analysisSidebarComp; Views.AnalysisSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
@@ -190,4 +192,3 @@ Item {
         sidebarLeft.update()
     }
 }
-

@@ -1,34 +1,27 @@
 /**
- * @file ui/qml/FossRedder/Views/Booking/BookingStatementPanel.qml
- * @brief Provides the BookingStatementPanel component.
+ * @file ui/qml/FossRedder/Views/Booking/BookingStatementForm.qml
+ * @brief Provides the Booking statement form composition.
  */
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
+import FossRedder.Views.Booking 1.0 as Booking
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
+
     required property var theme
-    property string statementName: ""
+    required property var bookingState
     property bool readOnly: false
-    property string transactionInfoText: ""
-    property bool transactionDeleteVisible: false
-    property bool transactionDeleteEnabled: false
-    property bool transactionAddVisible: false
-    property bool transactionAddEnabled: true
-    signal statementNameEdited(string text)
-    signal transactionDeleteRequested()
-    signal transactionAddRequested()
-    default property alias content: contentLayout.data
 
     Layout.fillWidth: true
     Layout.fillHeight: true
 
     ColumnLayout {
-        id: contentColumn
-        anchors.fill: parent
+        anchors.fill: root
         spacing: root.theme.spacingSmall
 
         RowLayout {
@@ -43,19 +36,19 @@ Item {
                 objectName: "bookingStatementNameField"
                 Layout.fillWidth: true
                 readOnly: root.readOnly
-                text: root.statementName
-                onTextEdited: root.statementNameEdited(text)
+                text: root.bookingState.statementName
+                onTextEdited: root.bookingState.statementName = text
             }
         }
 
-            RowLayout {
-                Layout.fillWidth: true
+        RowLayout {
+            Layout.fillWidth: true
 
-                Label {
-                    objectName: "bookingTransactionInfoLabel"
-                    text: root.transactionInfoText
-                    color: root.theme.textMuted
-                }
+            Label {
+                objectName: "bookingTransactionInfoLabel"
+                text: root.bookingState.transactionInfoText
+                color: root.theme.textMuted
+            }
 
             Item {
                 Layout.fillWidth: true
@@ -63,26 +56,26 @@ Item {
 
             Controls.SecondaryButton {
                 objectName: "bookingStatementAddTransactionButton"
-                visible: root.transactionAddVisible
-                enabled: root.transactionAddEnabled
+                visible: root.bookingState.canAddTransaction
+                enabled: root.bookingState.canAddTransaction
                 text: qsTr("+")
                 implicitHeight: root.theme.viewCompactActionButtonSize
                 implicitWidth: root.theme.viewCompactActionButtonSize
                 textColor: root.theme.textMuted
                 focusPolicy: Qt.NoFocus
-                onClicked: root.transactionAddRequested()
+                onClicked: root.bookingState.addTransactionAfterCurrent()
             }
 
             Controls.SecondaryButton {
                 objectName: "bookingStatementRemoveTransactionButton"
-                visible: root.transactionDeleteVisible
-                enabled: root.transactionDeleteEnabled
+                visible: true
+                enabled: root.bookingState.canDeleteTransaction
                 text: qsTr("-")
                 implicitHeight: root.theme.viewCompactActionButtonSize
                 implicitWidth: root.theme.viewCompactActionButtonSize
                 textColor: root.theme.textMuted
                 focusPolicy: Qt.NoFocus
-                onClicked: root.transactionDeleteRequested()
+                onClicked: root.bookingState.deleteCurrentTransaction()
             }
         }
 
@@ -113,6 +106,12 @@ Item {
                     id: contentLayout
                     width: transactionScroll.width
                     spacing: root.theme.spacingSmall
+
+                    Booking.BookingTransactionView {
+                        Layout.fillWidth: true
+                        theme: root.theme
+                        bookingState: root.bookingState
+                    }
                 }
             }
         }

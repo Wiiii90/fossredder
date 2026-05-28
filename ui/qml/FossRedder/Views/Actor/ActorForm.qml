@@ -7,7 +7,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
-import FossRedder.Views 1.0 as Views
+import FossRedder.Views.Actor 1.0 as Actor
 
 pragma ComponentBehavior: Bound
 
@@ -189,7 +189,7 @@ Item {
                     }
                 }
 
-                Views.ActorContractPanel {
+                Actor.ActorContractPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight

@@ -12,7 +12,8 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
-    required property var txRoot
+    required property var bookingState
+    readonly property var selectedPropertyIds: root.bookingState.selectedPropertyIds
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1
@@ -26,9 +27,8 @@ Controls.Panel {
     }
 
     ColumnLayout {
-        width: parent ? parent.width : 0
-        height: parent ? parent.height : implicitHeight
         Layout.fillHeight: true
+        Layout.fillWidth: true
         spacing: root.theme.spacingSmall
 
         Label {
@@ -37,15 +37,13 @@ Controls.Panel {
         }
 
         Repeater {
-            model: root.txRoot.propertyRows || []
+            model: root.bookingState.propertyRows
 
             delegate: RowLayout {
                 id: propertyDelegate
                 required property var modelData
-                readonly property string propertyId: propertyDelegate.modelData && propertyDelegate.modelData.id ? propertyDelegate.modelData.id : ""
-                readonly property string propertyLabel: propertyDelegate.modelData && propertyDelegate.modelData.display
-                    ? propertyDelegate.modelData.display
-                    : (propertyDelegate.modelData && propertyDelegate.modelData.name ? propertyDelegate.modelData.name : "")
+                readonly property string propertyId: propertyDelegate.modelData.id
+                readonly property string propertyLabel: propertyDelegate.modelData.display
 
                 Layout.fillWidth: true
                 spacing: root.theme.spacingSmall
@@ -54,8 +52,8 @@ Controls.Panel {
                     objectName: "bookingTransactionPropertyCheckBox"
                     Layout.fillWidth: false
                     Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                    checked: root.txRoot.hasProperty(propertyDelegate.propertyId)
-                    onToggled: root.txRoot.toggleProperty(propertyDelegate.propertyId, checked)
+                    checked: root.selectedPropertyIds.indexOf(propertyDelegate.propertyId) !== -1
+                    onToggled: root.bookingState.setPropertySelected(propertyDelegate.propertyId, checked)
                 }
 
                 Label {

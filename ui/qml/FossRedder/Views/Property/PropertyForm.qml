@@ -7,7 +7,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
-import FossRedder.Views 1.0 as Views
+import FossRedder.Views.Property 1.0 as Property
 pragma ComponentBehavior: Bound
 
 Item {
@@ -190,7 +190,7 @@ Item {
                     }
                 }
 
-                Views.PropertyContractPanel {
+                Property.PropertyContractPanel {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight

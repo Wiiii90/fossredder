@@ -307,7 +307,6 @@ QVariantMap SessionMutationState::normalizeTransactionDraft(const QVariantMap& t
         out.insert(it.key(), it.value());
     }
 
-    out.insert(QStringLiteral("amount"), out.value(QStringLiteral("amount")).toDouble());
     out.insert(QStringLiteral("status"), out.value(QStringLiteral("status")).toInt());
     out.insert(QStringLiteral("propertyIds"), normalizeStrings(out.value(QStringLiteral("propertyIds")).toList()));
     out.insert(QStringLiteral("actorId"), out.value(QStringLiteral("actorId")).toString());
@@ -334,12 +333,19 @@ QVariantList SessionMutationState::normalizeTransactionDrafts(const QVariantList
 bool SessionMutationState::transactionDraftHasContent(const QVariantMap& tx)
 {
     const QVariantMap normalized = normalizeTransactionDraft(tx);
+    const QVariant amount = normalized.value(QStringLiteral("amount"));
+    const bool hasAmount = amount.userType() == QMetaType::Double
+        ? amount.toDouble() != 0.0
+        : !amount.toString().trimmed().isEmpty();
     return !normalized.value(QStringLiteral("name")).toString().isEmpty()
         || !normalized.value(QStringLiteral("bookingDate")).toString().isEmpty()
         || !normalized.value(QStringLiteral("valuta")).toString().isEmpty()
-        || normalized.value(QStringLiteral("amount")).toDouble() != 0.0
+        || hasAmount
         || !normalized.value(QStringLiteral("actorId")).toString().isEmpty()
-        || !normalized.value(QStringLiteral("propertyIds")).toList().isEmpty();
+        || !normalized.value(QStringLiteral("contractId")).toString().isEmpty()
+        || !normalized.value(QStringLiteral("propertyIds")).toList().isEmpty()
+        || normalized.value(QStringLiteral("allocatable")).toBool()
+        || normalized.value(QStringLiteral("status")).toInt() != 0;
 }
 
 QVariantMap SessionMutationState::createDraftListState(const QVariantList& drafts,

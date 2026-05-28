@@ -90,6 +90,11 @@ public:
   Q_INVOKABLE QVariantList
   rowIds(const QVariantList &rows,
          const QString &idKey = QStringLiteral("id")) const;
+  Q_INVOKABLE bool rowHasId(const QVariantList &rows, const QString &id,
+                            const QString &idKey = QStringLiteral("id")) const;
+  Q_INVOKABLE QString rememberedOrFirstRowId(
+      const QVariantList &rows, const QVariantMap &rememberedIds,
+      const QString &ownerId, const QString &idKey = QStringLiteral("id")) const;
   Q_INVOKABLE QVariantList
   orderedRowsByIds(const QVariantList &rows, const QVariantList &orderIds,
                    const QString &idKey = QStringLiteral("id")) const;
@@ -99,6 +104,11 @@ public:
   Q_INVOKABLE QVariantMap emptyTransactionDraft() const;
   Q_INVOKABLE QVariantMap
   normalizeTransactionDraft(const QVariantMap &tx) const;
+  Q_INVOKABLE QString transactionDraftSnapshot(const QVariantMap &tx) const;
+  Q_INVOKABLE bool bookingEditStateChanged(const QString &savedStatementName,
+                                           const QString &savedTransactionJson,
+                                           const QString &currentStatementName,
+                                           const QVariantMap &transaction) const;
   Q_INVOKABLE QVariantList
   normalizeTransactionDrafts(const QVariantList &values) const;
   Q_INVOKABLE bool transactionDraftHasContent(const QVariantMap &tx) const;
@@ -115,6 +125,10 @@ public:
                                           int currentIndex,
                                           const QVariantMap &draft,
                                           const QVariantMap &emptyDraft) const;
+  Q_INVOKABLE QVariantMap setCurrentRawDraft(const QVariantList &drafts,
+                                             int currentIndex,
+                                             const QVariantMap &draft,
+                                             const QVariantMap &emptyDraft) const;
   Q_INVOKABLE QVariantMap
   currentDraftState(const QVariantList &drafts, int currentIndex,
                     const QVariantMap &emptyDraft) const;

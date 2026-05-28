@@ -46,6 +46,7 @@ ui/
     unit/
       TestAnalysisPayloadMapper.cpp
       TestAnalysisWorkflow.cpp
+      TestBookingState.cpp
       TestExportWorkflow.cpp
       TestImportSuggestionService.cpp
       TestImportWorkflow.cpp
@@ -109,7 +110,9 @@ selection access, and core-boundary mutation routing.
 ## 2. Session State
 
 `SessionModels`, `SessionSelection`, `SelectionState`, `NavigationState`, and
-`SessionMutationState` keep the UI workspace state deterministic.
+`SessionMutationState` keep the UI workspace state deterministic. View-specific
+state wrappers such as `BookingState` own deterministic screen behavior that is
+too stateful for declarative QML.
 
 ### Behavioral matrix
 
@@ -125,6 +128,16 @@ selection access, and core-boundary mutation routing.
 | ST-008 | Selection state projects and clears rows consistently | Unit | Selection state with a representative workspace catalog | Set and then remove source rows | Selected rows resolve while present and clear once the source disappears |
 | ST-009 | Navigation state stores the current section and settings category | Unit | Fresh navigation state | Change section and settings category values | Section and category values stay in sync with the enum representation |
 | ST-010 | Mutation helpers normalize string and draft state families | Unit | Mixed string collections and draft payloads | Normalize, insert, remove, and current-state helpers | String collections, transaction drafts, and draft-list helpers stay deterministic |
+| BKG-ST-001 | Booking create commit | Unit | Fresh workspace and BookingState draft | Fill statement and transaction fields and submit | A statement and transaction are created, selection moves to the created statement, and amount/status/allocatable values persist |
+| BKG-ST-002 | Booking empty default transaction | Unit | Fresh workspace and BookingState draft with only statement name | Submit the statement | The statement is created without committing the empty default transaction draft |
+| BKG-ST-003 | Booking incomplete transaction guard | Unit | Fresh workspace and BookingState draft with a statement name and incomplete transaction content | Attempt submit | Create remains disabled and no statement or transaction is committed |
+| BKG-ST-004 | Booking multiple transaction drafts | Unit | Fresh workspace and BookingState draft with two complete transaction drafts | Submit the statement | Both transaction drafts are committed in order under the new statement |
+| BKG-ST-005 | Booking amount text editing | Unit | Fresh workspace and BookingState draft | Edit a decimal amount text value | The draft preserves the decimal separator text while editing |
+| BKG-ST-006 | Booking decimal amount commit | Unit | Fresh workspace and BookingState draft with decimal amount text | Submit the statement | The committed transaction amount keeps the decimal value instead of collapsing digits |
+| BKG-ST-007 | Booking contract cascade | Unit | BookingState with actor, property, and contract rows | Select a contract row | The draft receives the contract id plus related actor and property ids |
+| BKG-ST-008 | Booking incompatible actor cleanup | Unit | BookingState draft with a contract selected | Select an actor outside the selected contract | The actor id changes and the incompatible contract id is cleared |
+| BKG-ST-009 | Booking incompatible property cleanup | Unit | BookingState draft with a contract selected | Select a property outside the selected contract | The property selection changes and the incompatible contract id is cleared |
+| BKG-ST-010 | Booking edit update | Unit | Loaded statement and transaction selected | Change statement name and transaction fields, then update | Statement and transaction mutations persist and dirty state clears |
 
 ### Boundary checks
 

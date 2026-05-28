@@ -7,11 +7,12 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Controls 1.0 as Controls
+pragma ComponentBehavior: Bound
 
 Controls.Panel {
     id: root
     required property var theme
-    required property var txRoot
+    required property var bookingState
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1
@@ -25,8 +26,7 @@ Controls.Panel {
     }
 
     ColumnLayout {
-        width: parent ? parent.width : 0
-        height: parent ? parent.height : implicitHeight
+        Layout.fillWidth: true
         spacing: root.theme.spacingSmall
 
         Label {
@@ -39,12 +39,9 @@ Controls.Panel {
             objectName: "bookingTransactionContractComboBox"
             Layout.fillWidth: true
             textRole: "display"
-            model: root.txRoot.contractDisplayModel()
-            currentIndex: root.txRoot.selectedIndexFor(model, root.txRoot.contractIdValue())
-            onActivated: function(index) {
-                const row = model[index]
-                root.txRoot.applyContractSelection(row && row.id ? row.id : "")
-            }
+            model: root.bookingState.contractDisplayRows
+            currentIndex: root.bookingState.selectedContractIndex
+            onActivated: function(index) { root.bookingState.selectContractIndex(index) }
         }
     }
 }

@@ -24,13 +24,13 @@ AnnualVerificationPanel 1.0 Annual/AnnualVerificationPanel.qml
 AnnualSidebar 1.0 Annual/AnnualSidebar.qml
 AnnualView 1.0 Annual/AnnualView.qml
 BookingSidebar 1.0 Booking/BookingSidebar.qml
-BookingStatementsSidebar 1.0 Booking/BookingStatementsSidebar.qml
-BookingStatementPanel 1.0 Booking/BookingStatementPanel.qml
+BookingBottomBar 1.0 Booking/BookingBottomBar.qml
+BookingStatementForm 1.0 Booking/BookingStatementForm.qml
 BookingStatementView 1.0 Booking/BookingStatementView.qml
 BookingTransactionAllocatablePanel 1.0 Booking/BookingTransactionAllocatablePanel.qml
 BookingTransactionActorPanel 1.0 Booking/BookingTransactionActorPanel.qml
 BookingTransactionContractPanel 1.0 Booking/BookingTransactionContractPanel.qml
-BookingTransactionFieldRow 1.0 Booking/BookingTransactionFieldRow.qml
+BookingTransactionForm 1.0 Booking/BookingTransactionForm.qml
 BookingTransactionPropertyPanel 1.0 Booking/BookingTransactionPropertyPanel.qml
 BookingTransactionView 1.0 Booking/BookingTransactionView.qml
 BookingView 1.0 Booking/BookingView.qml

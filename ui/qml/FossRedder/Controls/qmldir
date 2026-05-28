@@ -5,6 +5,7 @@ Button 1.0 Button.qml
 CheckBox 1.0 CheckBox.qml
 DangerButton 1.0 DangerButton.qml
 DropdownMenu 1.0 DropdownMenu.qml
+DisclosureButton 1.0 DisclosureButton.qml
 DropZone 1.0 DropZone.qml
 FilePicker 1.0 FilePicker.qml
 IconButton 1.0 IconButton.qml

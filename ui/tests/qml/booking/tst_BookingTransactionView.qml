@@ -1,6 +1,6 @@
 /**
- * @file ui/tests/qml/booking/tst_BookingStatementView.qml
- * @brief Provides QML wiring tests for BookingStatementView.
+ * @file ui/tests/qml/booking/tst_BookingTransactionView.qml
+ * @brief Provides QML composition tests for BookingTransactionView.
  */
 
 pragma ComponentBehavior: Bound
@@ -13,20 +13,16 @@ import "../Lookup.js" as Lookup
 
 TestCase {
     id: testCase
-    name: "BookingStatementViewTests"
+    name: "BookingTransactionViewTests"
     when: windowShown
-    width: 760
-    height: 420
+    width: 720
+    height: 520
 
     property var theme: QtObject {
         property int spacingSmall: 6
         property int spacingMedium: 10
-        property int spacingLarge: 16
-        property int margins: 4
         property int radius: 3
-        property int formLabelWidth: 110
         property int controlHeight: 40
-        property int viewCompactActionButtonSize: 26
         property int borderWidthThin: 1
         property string fontFamily: "Arial"
         property int fontSize: 10
@@ -35,7 +31,6 @@ TestCase {
         property color border: "#cccccc"
         property color borderSoft: "#dddddd"
         property color textPrimary: "#111111"
-        property color textMuted: "#777777"
         property color button: "#eeeeee"
         property color buttonHover: "#dddddd"
         property color buttonPressed: "#cccccc"
@@ -43,10 +38,6 @@ TestCase {
     }
 
     property var bookingState: QtObject {
-        property string statementName: "Statement"
-        property string transactionInfoText: "Transaction 1 / 1"
-        property bool canDeleteTransaction: true
-        property bool canAddTransaction: true
         property string transactionName: "Rent"
         property string transactionBookingDate: ""
         property string transactionValuta: ""
@@ -61,14 +52,10 @@ TestCase {
         property bool transactionAllocatable: false
         property var actorDisplayRows: [{ id: "", display: "No actor" }]
         property var contractDisplayRows: [{ id: "", display: "No contract" }]
-        property var propertyRows: []
+        property var propertyRows: [{ id: "property-1", display: "Flat 1" }]
         property var selectedPropertyIds: []
         property int selectedActorIndex: 0
         property int selectedContractIndex: 0
-        property int addCalls: 0
-        property int deleteCalls: 0
-        function addTransactionAfterCurrent() { addCalls += 1 }
-        function deleteCurrentTransaction() { deleteCalls += 1 }
         function selectActorIndex(index) {}
         function selectContractIndex(index) {}
         function isPropertySelected(propertyId) { return selectedPropertyIds.indexOf(propertyId) !== -1 }
@@ -78,9 +65,8 @@ TestCase {
     Component {
         id: viewComponent
 
-        Booking.BookingStatementView {
+        Booking.BookingTransactionView {
             width: testCase.width
-            height: testCase.height
             theme: testCase.theme
             bookingState: testCase.bookingState
         }
@@ -92,34 +78,13 @@ TestCase {
         return found
     }
 
-    function createView() {
-        return createTemporaryObject(viewComponent, testCase)
-    }
+    function test_BKG_TV_001_composesTransactionFormAndPanels() {
+        const view = createTemporaryObject(viewComponent, testCase)
 
-    function init() {
-        bookingState.statementName = "Statement"
-        bookingState.transactionName = "Rent"
-        bookingState.addCalls = 0
-        bookingState.deleteCalls = 0
-    }
-
-    function test_BKG_SV_001_statementNameFieldWritesToBookingState() {
-        const view = createView()
-        const field = findRequired(view, "bookingStatementNameField")
-
-        field.text = "Updated Statement"
-        field.textEdited()
-
-        compare(bookingState.statementName, "Updated Statement")
-    }
-
-    function test_BKG_SV_002_transactionButtonsCallBookingState() {
-        const view = createView()
-
-        findRequired(view, "bookingStatementAddTransactionButton").clicked()
-        findRequired(view, "bookingStatementRemoveTransactionButton").clicked()
-
-        compare(bookingState.addCalls, 1)
-        compare(bookingState.deleteCalls, 1)
+        verify(findRequired(view, "bookingTransactionNameField") !== null)
+        verify(findRequired(view, "bookingTransactionActorComboBox") !== null)
+        verify(findRequired(view, "bookingTransactionContractComboBox") !== null)
+        verify(findRequired(view, "bookingTransactionPropertyCheckBox") !== null)
+        verify(findRequired(view, "bookingTransactionAllocatableToggle") !== null)
     }
 }

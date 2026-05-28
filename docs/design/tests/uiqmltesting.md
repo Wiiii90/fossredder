@@ -72,7 +72,15 @@ ui/
       booking/
         tst_BookingView.qml
         tst_BookingStatementView.qml
-        tst_BookingStatementsSidebar.qml
+        tst_BookingStatementForm.qml
+        tst_BookingSidebar.qml
+        tst_BookingBottomBar.qml
+        tst_BookingTransactionView.qml
+        tst_BookingTransactionForm.qml
+        tst_BookingTransactionActorPanel.qml
+        tst_BookingTransactionContractPanel.qml
+        tst_BookingTransactionPropertyPanel.qml
+        tst_BookingTransactionAllocatablePanel.qml
       analysis/
         tst_AnalysisView.qml
         tst_AnalysisTransactionsPanel.qml
@@ -438,84 +446,79 @@ ui/
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| BKG-V-001 | Container mount | QML | App context and theme available | Open BookingView | `BookingStatementView` is filled with app context and theme |
+| BKG-V-001 | Create-mode container mount | QML | App context and theme available with no selected statement | Open BookingView | `BookingStatementView` is filled with app context and theme in create mode |
+| BKG-V-002 | Edit-mode container mount | QML | App context and theme available with BookingState in edit mode | Open BookingView and click Update | The update command is forwarded to `BookingState.updateCurrent()` |
+
+### BookingBottomBar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| BKG-BB-001 | Navigation requests | QML/Interaction | Bottom bar has statement and transaction navigation enabled | Click previous/next statement and transaction buttons | The matching navigation methods are called on `BookingState` |
+| BKG-BB-002 | Create mode commands | QML/Interaction | Bottom bar is in create mode and create is enabled | Click Clear and Create | `BookingState.resetCreateState()` and `submit()` are called |
+| BKG-BB-003 | Edit mode commands | QML/Interaction | Bottom bar is in edit mode and update is enabled | Click Delete and Update | `BookingState.deleteCurrentStatement()` and `updateCurrent()` are called |
 
 ### BookingStatementView
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| BKG-001 | Create statement | QML/Interaction | No selected statement and valid name entered | Enter name and click Create | `addStatement()` and `addTransactions()` are called, selected statement id becomes returned id |
-| BKG-002 | Read statement state | QML/Interaction | Selected statement with transactions loaded | Open in edit mode | `transaction(txId)` resolves the live transaction payload and statement and transaction fields reflect the selected statement state |
-| BKG-003 | Update statement | QML/Interaction | Selected statement with modified name or transaction data | Change fields and click Update | `updateStatement()` and `updateTransaction()` are called for active data, including actor/contract/property assignments and parsed amount values |
-| BKG-004 | Delete statement | QML/Interaction | Selected statement with valid id | Click Delete | `deleteStatement(id)` is called and selection advances deterministically |
-| BKG-005 | Create transaction in create mode | QML/Interaction | Create mode with a draft statement | Click transaction add | A new draft transaction is inserted after current one |
-| BKG-006 | Delete transaction in create mode | QML/Interaction | Create mode with multiple transactions | Click transaction delete | Current draft transaction is removed if more than one remains |
-| BKG-007 | Create mode navigation | QML/Interaction | Multiple draft transactions | Click Prev or Next transaction | Current draft transaction index changes |
-| BKG-008 | Statement navigation cycles through create mode | QML/Interaction | Statement rows available | Click Prev page or Next page across list edges | Statement selection clears into create mode before continuing to the opposite edge |
-| BKG-009 | Workspace revision refresh | QML/Interaction | Booking view loaded with empty lists | Update the workspace revision and provide statement and transaction rows | Booking lists, sidebar rows, and navigation controls re-evaluate and become visible without reopening the view |
-| BKG-010 | Statement transaction memory | QML/Interaction | Multiple statements each have multiple transactions | Navigate away from and back to statements after selecting transactions | Each statement restores its last selected transaction instead of always selecting the first transaction |
-| BKG-011 | Statement navigation supports single row | QML/Interaction | Booking view opened with only one statement row | Click Prev page or Next page | Statement navigation remains enabled and can select the only statement from create mode |
-| BKG-012 | Edit transaction add order | QML/Interaction | Edit mode with multiple transactions and a current transaction selected | Click transaction add | A new transaction is inserted after the current one, selected, and initialized with the current transaction dates |
-| BKG-013 | Amount field keeps intermediate text | QML/Interaction | Booking transaction form is open | Type intermediate amount text such as `-` or `1,` | The draft keeps the typed text and does not normalize it to `0` before save/update |
-| BKG-014 | Update parses localized amount text | QML/Interaction | Edit mode transaction amount is entered as text with comma decimal separator | Click Update | `updateTransaction()` receives the parsed numeric amount instead of `0` fallback coercion |
-| BKG-016 | Update parses dot and integer amount text | QML/Interaction | Edit mode transaction amount is entered as manual text with dot decimal or integer format | Click Update | `updateTransaction()` accepts `99.5` and `100` style inputs without reverting to previous amount |
-| BKG-015 | Edit update persists text-field changes | QML/Interaction | Edit mode transaction is selected | Edit name, booking date, valuta and amount fields, then click Update | `updateTransaction()` receives the edited values for all fields |
+| BKG-SV-001 | Statement name state binding | QML/Interaction | BookingStatementView receives a BookingState object | Edit statement name field | `BookingState.statementName` receives the edited text |
+| BKG-SV-002 | Transaction add/delete state commands | QML/Interaction | BookingStatementView receives a BookingState object with transaction commands | Click add and delete transaction buttons | `BookingState.addTransactionAfterCurrent()` and `deleteCurrentTransaction()` are called |
 
-### BookingStatementsSidebar
+### BookingStatementForm
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| BKG-S-001 | Transaction row click | QML/Interaction | Statement rows and transaction rows available | Click a transaction row | The matching statement remains selected and the transaction id becomes active, so the detail view follows the clicked transaction with the correct 1-based position |
+| BKG-SF-001 | Statement name state binding | QML/Interaction | Form loaded with BookingState | Edit statement name field | `BookingState.statementName` is updated directly |
+| BKG-SF-002 | Transaction command binding | QML/Interaction | Form loaded with transaction add/delete buttons enabled | Click add and delete transaction buttons | Transaction commands are called on `BookingState` |
+| BKG-SF-003 | Transaction view composition | QML | Form loaded with BookingState | Open the form | `BookingTransactionView` is mounted inside the statement panel and receives the same state |
+
+### BookingSidebar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| BKG-S-001 | Transaction row click | QML/Interaction | Statement rows and transaction rows available | Click a transaction row | The matching statement and transaction ids become active |
 | BKG-S-002 | Statement row click | QML/Interaction | Statement rows and transaction rows available | Click a statement row | The statement remains selected and the transaction selection is cleared |
-| BKG-S-003 | Statement selection scroll positioning | QML/Interaction | Sidebar contains enough statement rows to scroll | Select a lower statement row | The selected statement row is scrolled to the top of the sidebar viewport |
-| BKG-S-004 | Transaction selection scroll positioning | QML/Interaction | Sidebar contains enough transaction rows to scroll | Select a lower transaction row | The selected transaction row is scrolled to the top of the sidebar viewport |
-| BKG-S-005 | Initial statement selection scroll positioning | QML/Interaction | Sidebar is created with a lower statement already selected | Open the sidebar | The preselected statement row is scrolled to the top of the sidebar viewport |
-| BKG-S-006 | Initial transaction selection scroll positioning | QML/Interaction | Sidebar is created with a lower transaction already selected | Open the sidebar | The preselected transaction row is scrolled to the top of the sidebar viewport |
-
-### BookingStatementPanel
-
-| ID | Scope | Layer | Setup | Action | Expected |
-|---|---|---|---|---|---|
-| BKG-P-001 | Statement name edit | QML/Interaction | Panel loaded | Edit statement name | Parent view receives updated name |
-| BKG-P-002 | Transaction add request | QML/Interaction | Panel loaded | Activate add transaction button | Add request is forwarded |
-| BKG-P-003 | Transaction delete request | QML/Interaction | Panel loaded with removable transaction | Activate remove transaction button | Delete request is forwarded |
+| BKG-S-003 | Statement row refresh | QML/Interaction | Statement rows and transaction rows available | Replace the statement row model | Removed transaction rows disappear from the sidebar |
 
 ### BookingTransactionView
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| BKG-T-001 | Transaction field edit | QML/Interaction | Transaction data loaded | Edit transaction fields | Transaction draft updates in parent view |
-| BKG-T-002 | Actor selection | QML/Interaction | Actor rows available | Select actor in transaction | Transaction actor id updates |
-| BKG-T-003 | Contract selection | QML/Interaction | Contract rows available | Select contract in transaction | Transaction contract id updates |
-| BKG-T-004 | Property selection | QML/Interaction | Property rows available | Select property in transaction | Transaction property ids update |
-| BKG-T-005 | Allocatable toggle | QML/Interaction | Transaction loaded | Toggle allocatable | Transaction allocatable flag updates |
-| BKG-T-006 | Contract selection cascades actor and property | QML/Interaction | Contract rows include linked actor and property ids | Select contract in transaction | Transaction contract id updates and actor/property ids are synchronized from the selected contract |
-| BKG-T-007 | Actor selection clears incompatible contract | QML/Interaction | Transaction has a selected contract whose actor list does not contain the chosen actor | Select a different actor in transaction | Actor id updates and contract id is reset to empty |
-| BKG-T-008 | Property selection clears incompatible contract | QML/Interaction | Transaction has a selected contract whose property list does not contain the chosen property set | Select a property outside the contract assignment | Property ids update and contract id is reset to empty |
+| BKG-TV-001 | Transaction view composition | QML | BookingState loaded | Open the transaction view | Transaction form, actor, contract, property, and allocatable panels are mounted with the same state |
+| BKG-T-006 | Contract selection cascade | Unit | Covered by `BKG-ST-007` in the UI source matrix | Select contract in transaction | BookingState synchronizes related actor/property ids |
+| BKG-T-007 | Actor incompatibility cleanup | Unit | Covered by `BKG-ST-008` in the UI source matrix | Select incompatible actor | BookingState clears incompatible contract id |
+| BKG-T-008 | Property incompatibility cleanup | Unit | Covered by `BKG-ST-009` in the UI source matrix | Select incompatible property set | BookingState clears incompatible contract id |
+
+### BookingTransactionForm
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| BKG-TF-001 | Transaction field edit | QML/Interaction | BookingState loaded | Edit name, status, booking date, valuta, and amount fields | Matching BookingState transaction properties update |
 
 ### BookingTransactionActorPanel
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| BKG-TA-001 | Actor selection list | QML | Actor rows available | Select an actor | Selected actor id is forwarded |
+| BKG-TA-001 | Actor selection list | QML | BookingState actor display rows available | Select an actor | Selected actor index is forwarded to BookingState |
 
 ### BookingTransactionContractPanel
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| BKG-TC-001 | Contract selection list | QML | Contract rows available | Select a contract | Selected contract id is forwarded |
+| BKG-TC-001 | Contract selection list | QML | BookingState contract display rows available | Select a contract | Selected contract index is forwarded to BookingState |
 
 ### BookingTransactionPropertyPanel
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| BKG-TP-001 | Property selection list | QML | Property rows available | Select a property | Selected property ids are forwarded |
+| BKG-TP-001 | Property selection list | QML | BookingState property rows available | Select a property | Property selection is forwarded to BookingState |
+| BKG-TP-002 | Property selection refresh | QML | BookingState selected property ids change | Refresh the selected property ids | The checkbox checked state is derived from BookingState |
 
 ### BookingTransactionAllocatablePanel
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| BKG-TA-002 | Allocatable mode | QML | Transaction loaded | Change allocatable mode | Mode is forwarded to transaction draft |
+| BKG-TA-002 | Allocatable mode | QML | BookingState loaded | Change allocatable mode | Mode is written to BookingState |
 
 ## Analysis
 

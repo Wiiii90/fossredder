@@ -52,6 +52,7 @@ set(UI_SOURCES
     src/state/filters/FilterState.cpp
     src/state/navigation/NavigationState.cpp
     src/state/session/ActorState.cpp
+    src/state/session/BookingState.cpp
     src/state/session/ContractState.cpp
     src/state/session/PropertyState.cpp
     src/state/session/WorkspaceSessionSelection.cpp
@@ -116,6 +117,7 @@ set(UI_HEADERS
     include/ui/state/filters/FilterState.h
     include/ui/state/navigation/NavigationState.h
     include/ui/state/session/ActorState.h
+    include/ui/state/session/BookingState.h
     include/ui/state/session/ContractState.h
     include/ui/state/session/PropertyState.h
     include/ui/state/session/WorkspaceSessionSelection.h
@@ -358,6 +360,7 @@ if(BUILD_UI_TESTS)
     set(UI_UNIT_TEST_SRCS
         tests/unit/TestAnalysisPayloadMapper.cpp
         tests/unit/TestAnalysisWorkflow.cpp
+        tests/unit/TestBookingState.cpp
         tests/unit/TestExportWorkflow.cpp
         tests/unit/TestImportWorkflow.cpp
         tests/unit/TestImportSuggestionService.cpp

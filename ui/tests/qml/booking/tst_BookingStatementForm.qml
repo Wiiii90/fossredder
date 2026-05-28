@@ -1,6 +1,6 @@
 /**
- * @file ui/tests/qml/booking/tst_BookingStatementView.qml
- * @brief Provides QML wiring tests for BookingStatementView.
+ * @file ui/tests/qml/booking/tst_BookingStatementForm.qml
+ * @brief Provides QML wiring tests for BookingStatementForm.
  */
 
 pragma ComponentBehavior: Bound
@@ -13,9 +13,9 @@ import "../Lookup.js" as Lookup
 
 TestCase {
     id: testCase
-    name: "BookingStatementViewTests"
+    name: "BookingStatementFormTests"
     when: windowShown
-    width: 760
+    width: 720
     height: 420
 
     property var theme: QtObject {
@@ -76,9 +76,9 @@ TestCase {
     }
 
     Component {
-        id: viewComponent
+        id: formComponent
 
-        Booking.BookingStatementView {
+        Booking.BookingStatementForm {
             width: testCase.width
             height: testCase.height
             theme: testCase.theme
@@ -92,34 +92,44 @@ TestCase {
         return found
     }
 
-    function createView() {
-        return createTemporaryObject(viewComponent, testCase)
+    function createForm() {
+        return createTemporaryObject(formComponent, testCase)
     }
 
     function init() {
         bookingState.statementName = "Statement"
+        bookingState.transactionInfoText = "Transaction 1 / 1"
+        bookingState.canAddTransaction = true
+        bookingState.canDeleteTransaction = true
         bookingState.transactionName = "Rent"
         bookingState.addCalls = 0
         bookingState.deleteCalls = 0
     }
 
-    function test_BKG_SV_001_statementNameFieldWritesToBookingState() {
-        const view = createView()
-        const field = findRequired(view, "bookingStatementNameField")
+    function test_BKG_SF_001_statementNameWritesDirectlyToBookingState() {
+        const form = createForm()
+        const nameField = findRequired(form, "bookingStatementNameField")
 
-        field.text = "Updated Statement"
-        field.textEdited()
+        nameField.text = "Statement Updated"
+        nameField.textEdited()
 
-        compare(bookingState.statementName, "Updated Statement")
+        compare(bookingState.statementName, "Statement Updated")
     }
 
-    function test_BKG_SV_002_transactionButtonsCallBookingState() {
-        const view = createView()
+    function test_BKG_SF_002_transactionCommandButtonsCallBookingState() {
+        const form = createForm()
 
-        findRequired(view, "bookingStatementAddTransactionButton").clicked()
-        findRequired(view, "bookingStatementRemoveTransactionButton").clicked()
+        findRequired(form, "bookingStatementAddTransactionButton").clicked()
+        findRequired(form, "bookingStatementRemoveTransactionButton").clicked()
 
         compare(bookingState.addCalls, 1)
         compare(bookingState.deleteCalls, 1)
+    }
+
+    function test_BKG_SF_003_transactionViewIsComposedInsideStatementPanel() {
+        const form = createForm()
+
+        verify(findRequired(form, "bookingTransactionViewRoot") !== null)
+        compare(findRequired(form, "bookingTransactionNameField").text, "Rent")
     }
 }

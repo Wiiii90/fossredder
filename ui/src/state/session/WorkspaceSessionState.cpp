@@ -242,6 +242,37 @@ QVariantList SessionState::rowIds(const QVariantList &rows,
   return ui::rowIds(rows, idKey);
 }
 
+bool SessionState::rowHasId(const QVariantList &rows, const QString &id,
+                            const QString &idKey) const {
+  const QString target = id.trimmed();
+  if (target.isEmpty()) {
+    return false;
+  }
+
+  for (const QVariant &rowValue : rows) {
+    const QVariantMap row = rowValue.toMap();
+    if (row.value(idKey).toString() == target) {
+      return true;
+    }
+  }
+  return false;
+}
+
+QString SessionState::rememberedOrFirstRowId(const QVariantList &rows,
+                                             const QVariantMap &rememberedIds,
+                                             const QString &ownerId,
+                                             const QString &idKey) const {
+  const QString remembered =
+      rememberedIds.value(ownerId.trimmed()).toString().trimmed();
+  if (rowHasId(rows, remembered, idKey)) {
+    return remembered;
+  }
+  if (rows.isEmpty()) {
+    return QString();
+  }
+  return rows.first().toMap().value(idKey).toString();
+}
+
 QVariantList SessionState::orderedRowsByIds(const QVariantList &rows,
                                             const QVariantList &orderIds,
                                             const QString &idKey) const {
@@ -261,6 +292,19 @@ QVariantMap SessionState::emptyTransactionDraft() const {
 QVariantMap
 SessionState::normalizeTransactionDraft(const QVariantMap &tx) const {
   return SessionMutationState::normalizeTransactionDraft(tx);
+}
+
+QString SessionState::transactionDraftSnapshot(const QVariantMap &tx) const {
+  const QVariantMap normalized = SessionMutationState::normalizeTransactionDraft(tx);
+  return QString::fromUtf8(
+      QJsonDocument::fromVariant(normalized).toJson(QJsonDocument::Compact));
+}
+
+bool SessionState::bookingEditStateChanged(
+    const QString &savedStatementName, const QString &savedTransactionJson,
+    const QString &currentStatementName, const QVariantMap &transaction) const {
+  return savedStatementName != currentStatementName ||
+         savedTransactionJson != transactionDraftSnapshot(transaction);
 }
 
 QVariantList
@@ -299,6 +343,22 @@ QVariantMap SessionState::setCurrentDraft(const QVariantList &drafts,
                                           const QVariantMap &emptyDraft) const {
   return SessionMutationState::setCurrentDraft(drafts, currentIndex, draft,
                                                emptyDraft);
+}
+
+QVariantMap SessionState::setCurrentRawDraft(const QVariantList &drafts,
+                                             int currentIndex,
+                                             const QVariantMap &draft,
+                                             const QVariantMap &emptyDraft) const {
+  QVariantMap state =
+      SessionMutationState::currentDraftState(drafts, currentIndex, emptyDraft);
+  QVariantList nextDrafts = state.value(QStringLiteral("drafts")).toList();
+  const int index = state.value(QStringLiteral("index")).toInt();
+  if (index >= 0 && index < nextDrafts.size()) {
+    nextDrafts[index] = draft;
+  }
+  state.insert(QStringLiteral("drafts"), nextDrafts);
+  state.insert(QStringLiteral("draft"), draft);
+  return state;
 }
 
 QVariantMap
@@ -383,15 +443,15 @@ double SessionState::amountForTransactionCommit(const QVariant &rawAmount,
     }
   }
 
+  if (const auto flexible = parseFlexibleAmount(rawAmount.toString())) {
+    return *flexible;
+  }
+
   const auto parsed =
       core::application::importing::transaction::parseAmountString(
           rawAmount.toString().toStdString());
   if (parsed && std::isfinite(*parsed)) {
     return *parsed;
-  }
-
-  if (const auto flexible = parseFlexibleAmount(rawAmount.toString())) {
-    return *flexible;
   }
 
   if (!transactionId.isEmpty()) {

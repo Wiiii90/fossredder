@@ -4,17 +4,34 @@
  */
 
 import QtQuick 2.15
-import FossRedder.Views 1.0 as Views
+import QtQuick.Layouts 1.3
+import FossRedder.Views.Booking 1.0 as Booking
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
     required property var appContext
     required property var theme
+    readonly property var workspaceFacade: root.appContext.workspaceFacade
+    readonly property var bookingState: root.workspaceFacade.bookingState
 
-    Views.BookingStatementView {
-        anchors.fill: parent
-        appContext: root.appContext
-        theme: root.theme
+    ColumnLayout {
+        anchors.fill: root
+        anchors.margins: root.theme.pageContentMargin
+        spacing: root.theme.spacingSmall
+
+        Booking.BookingStatementView {
+            id: statementView
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            theme: root.theme
+            bookingState: root.bookingState
+        }
+
+        Booking.BookingBottomBar {
+            Layout.fillWidth: true
+            theme: root.theme
+            bookingState: root.bookingState
+        }
     }
 }
-
