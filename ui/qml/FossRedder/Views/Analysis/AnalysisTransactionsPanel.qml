@@ -12,17 +12,20 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
-    required property var transactions
-    required property var metrics
-    property var selectedTransactionIds: []
-    property var adjustedAmountsById: ({})
-    property string calcName: ""
-    property string calcPercentText: ""
-
-    signal selectionChanged(var ids)
-    signal calcNameEdited(string name)
-    signal calcPercentEdited(string percent)
-    signal applyCalcRequested()
+    required property var analysisState
+    readonly property var txTheme: root.theme.analysis.transactions
+    readonly property int txTableMinimumWidth: root.txTheme.applyColumnWidth
+                                               + root.txTheme.statementColumnWidth
+                                               + root.txTheme.transactionColumnWidth
+                                               + root.txTheme.dateColumnWidth
+                                               + root.txTheme.dateColumnWidth
+                                               + root.txTheme.actorColumnWidth
+                                               + root.txTheme.contractColumnWidth
+                                               + root.txTheme.typeColumnWidth
+                                               + root.txTheme.propertiesColumnWidth
+                                               + root.txTheme.amountColumnWidth
+                                               + root.theme.spacingSmall * root.txTheme.columnSpacingCount
+                                               + root.theme.spacingSmall * root.txTheme.horizontalPaddingCount
 
     Layout.fillWidth: true
     Layout.fillHeight: true
@@ -44,22 +47,22 @@ Controls.Panel {
                 objectName: "analysisCalcNameField"
                 Layout.preferredWidth: root.theme.formFieldWidth
                 placeholderText: qsTr("e.g. VAT")
-                text: root.calcName
-                onTextChanged: root.calcNameEdited(text)
+                text: root.analysisState.calcName
+                onTextChanged: root.analysisState.calcName = text
             }
             Label { text: qsTr("Calc %") }
             Controls.TextField {
                 id: calcPercentField
                 objectName: "analysisCalcPercentField"
-                Layout.preferredWidth: 90
+                Layout.preferredWidth: root.txTheme.calcPercentFieldWidth
                 placeholderText: qsTr("0")
-                text: root.calcPercentText
-                onTextChanged: root.calcPercentEdited(text)
+                text: root.analysisState.calcPercentText
+                onTextChanged: root.analysisState.calcPercentText = text
             }
             Controls.Button {
                 objectName: "analysisApplyCalcButton"
                 text: qsTr("Apply to selected")
-                onClicked: root.applyCalcRequested()
+                onClicked: root.analysisState.applySelectedCalc()
             }
         }
 
@@ -78,18 +81,15 @@ Controls.Panel {
 
             Item {
                 id: txTable
-                width: Math.max(txViewport.width,
-                                44 + 130 + 150 + 110 + 110 + 120 + 120 + 90 + 220 + 160
-                                + root.theme.spacingSmall * 9
-                                + root.theme.spacingSmall * 2)
+                width: Math.max(txViewport.width, root.txTableMinimumWidth)
                 implicitHeight: headerRect.height + txList.contentHeight
 
                 Rectangle {
                     id: headerRect
                     width: txTable.width
-                    height: 32
+                    height: root.txTheme.headerHeight
                     color: root.theme.surfaceAlt
-                    border.width: 1
+                    border.width: root.theme.borderWidthThin
                     border.color: root.theme.border
 
                     RowLayout {
@@ -97,16 +97,16 @@ Controls.Panel {
                         anchors.leftMargin: root.theme.spacingSmall
                         anchors.rightMargin: root.theme.spacingSmall
                         spacing: root.theme.spacingSmall
-                        Label { text: qsTr("Apply"); Layout.preferredWidth: 44 }
-                        Label { text: qsTr("Statement"); Layout.preferredWidth: 130 }
-                        Label { text: qsTr("Transaction"); Layout.preferredWidth: 150 }
-                        Label { text: qsTr("Booking Date"); Layout.preferredWidth: 110 }
-                        Label { text: qsTr("Valuta"); Layout.preferredWidth: 110 }
-                        Label { text: qsTr("Actor"); Layout.preferredWidth: 120 }
-                        Label { text: qsTr("Contract"); Layout.preferredWidth: 120 }
-                        Label { text: qsTr("Type"); Layout.preferredWidth: 90 }
-                        Label { text: qsTr("Properties"); Layout.preferredWidth: 220; elide: Text.ElideRight }
-                        Label { text: qsTr("Amount"); Layout.preferredWidth: 160; horizontalAlignment: Text.AlignRight }
+                        Label { text: qsTr("Apply"); Layout.preferredWidth: root.txTheme.applyColumnWidth }
+                        Label { text: qsTr("Statement"); Layout.preferredWidth: root.txTheme.statementColumnWidth }
+                        Label { text: qsTr("Transaction"); Layout.preferredWidth: root.txTheme.transactionColumnWidth }
+                        Label { text: qsTr("Booking Date"); Layout.preferredWidth: root.txTheme.dateColumnWidth }
+                        Label { text: qsTr("Valuta"); Layout.preferredWidth: root.txTheme.dateColumnWidth }
+                        Label { text: qsTr("Actor"); Layout.preferredWidth: root.txTheme.actorColumnWidth }
+                        Label { text: qsTr("Contract"); Layout.preferredWidth: root.txTheme.contractColumnWidth }
+                        Label { text: qsTr("Type"); Layout.preferredWidth: root.txTheme.typeColumnWidth }
+                        Label { text: qsTr("Properties"); Layout.preferredWidth: root.txTheme.propertiesColumnWidth; elide: Text.ElideRight }
+                        Label { text: qsTr("Amount"); Layout.preferredWidth: root.txTheme.amountColumnWidth; horizontalAlignment: Text.AlignRight }
                     }
                 }
 
@@ -117,18 +117,14 @@ Controls.Panel {
                     anchors.top: headerRect.bottom
                     height: Math.max(0, txViewport.height - headerRect.height)
                     clip: true
-                    model: root.transactions
+                    model: root.analysisState.previewTransactionRows
                     delegate: Rectangle {
                         id: txRow
                         required property var modelData
                         required property int index
                         width: txTable.width
-                        height: 30
+                        height: root.txTheme.rowHeight
                         color: index % 2 === 0 ? root.theme.surface : root.theme.surfaceAlt
-                        property string txId: modelData && modelData.id ? modelData.id : ""
-                        property double amountValue: modelData && modelData.amount !== undefined ? Number(modelData.amount) : 0.0
-                        property bool hasAdjusted: root.adjustedAmountsById && root.adjustedAmountsById[txId] !== undefined
-                        property double adjustedValue: hasAdjusted ? Number(root.adjustedAmountsById[txId]) : amountValue
 
                         RowLayout {
                             anchors.fill: parent
@@ -138,35 +134,26 @@ Controls.Panel {
 
                             Controls.CheckBox {
                                 objectName: "analysisTransactionSelectionCheckBox"
-                                Layout.preferredWidth: 44
+                                Layout.preferredWidth: root.txTheme.applyColumnWidth
                                 Layout.fillWidth: false
                                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                                checked: root.selectedTransactionIds.indexOf(txRow.txId) !== -1
-                                onClicked: {
-                                    const next = root.selectedTransactionIds ? root.selectedTransactionIds.slice() : []
-                                    const idx = next.indexOf(txRow.txId)
-                                    if (checked && idx === -1)
-                                        next.push(txRow.txId)
-                                    if (!checked && idx !== -1)
-                                        next.splice(idx, 1)
-                                    root.selectionChanged(next)
-                                }
+                                checked: root.analysisState.selectedAdjustmentTxIds.indexOf(txRow.modelData.id) !== -1
+                                onToggled: root.analysisState.setAdjustmentTransactionSelected(txRow.modelData.id,
+                                                                                                checked)
                             }
 
-                            Label { text: txRow.modelData && txRow.modelData.statementName ? txRow.modelData.statementName : ""; Layout.preferredWidth: 130; elide: Text.ElideRight }
-                            Label { text: txRow.modelData && txRow.modelData.transactionName ? txRow.modelData.transactionName : ""; Layout.preferredWidth: 150; elide: Text.ElideRight }
-                            Label { text: txRow.modelData && txRow.modelData.date ? txRow.modelData.date : ""; Layout.preferredWidth: 110; elide: Text.ElideRight }
-                            Label { text: txRow.modelData && txRow.modelData.valuta ? txRow.modelData.valuta : ""; Layout.preferredWidth: 110; elide: Text.ElideRight }
-                            Label { text: txRow.modelData && txRow.modelData.actorName ? txRow.modelData.actorName : ""; Layout.preferredWidth: 120; elide: Text.ElideRight }
-                            Label { text: txRow.modelData && txRow.modelData.contractName ? txRow.modelData.contractName : ""; Layout.preferredWidth: 120; elide: Text.ElideRight }
-                            Label { text: txRow.modelData && txRow.modelData.contractType ? txRow.modelData.contractType : qsTr("Unassigned"); Layout.preferredWidth: 90; elide: Text.ElideRight }
-                            Label { text: txRow.modelData && txRow.modelData.propertiesLabel ? txRow.modelData.propertiesLabel : ""; Layout.preferredWidth: 220; elide: Text.ElideRight }
+                            Label { text: txRow.modelData.statementName; Layout.preferredWidth: root.txTheme.statementColumnWidth; elide: Text.ElideRight }
+                            Label { text: txRow.modelData.transactionName; Layout.preferredWidth: root.txTheme.transactionColumnWidth; elide: Text.ElideRight }
+                            Label { text: txRow.modelData.date; Layout.preferredWidth: root.txTheme.dateColumnWidth; elide: Text.ElideRight }
+                            Label { text: txRow.modelData.valuta; Layout.preferredWidth: root.txTheme.dateColumnWidth; elide: Text.ElideRight }
+                            Label { text: txRow.modelData.actorName; Layout.preferredWidth: root.txTheme.actorColumnWidth; elide: Text.ElideRight }
+                            Label { text: txRow.modelData.contractName; Layout.preferredWidth: root.txTheme.contractColumnWidth; elide: Text.ElideRight }
+                            Label { text: txRow.modelData.contractType; Layout.preferredWidth: root.txTheme.typeColumnWidth; elide: Text.ElideRight }
+                            Label { text: txRow.modelData.propertiesLabel; Layout.preferredWidth: root.txTheme.propertiesColumnWidth; elide: Text.ElideRight }
                             Label {
-                                Layout.preferredWidth: 160
+                                Layout.preferredWidth: root.txTheme.amountColumnWidth
                                 horizontalAlignment: Text.AlignRight
-                                text: txRow.hasAdjusted
-                                      ? (txRow.amountValue.toFixed(2) + " (" + txRow.adjustedValue.toFixed(2) + " " + qsTr("plus") + " " + (root.calcName.length > 0 ? root.calcName : qsTr("calc")) + ")")
-                                      : txRow.amountValue.toFixed(2)
+                                text: txRow.modelData.amountText
                             }
                         }
                     }
@@ -176,16 +163,16 @@ Controls.Panel {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 1
+            Layout.preferredHeight: root.theme.borderWidthThin
             color: root.theme.border
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Label { text: qsTr("Statements: %1").arg(root.metrics && root.metrics.statementCount !== undefined ? root.metrics.statementCount : 0); Layout.preferredWidth: 160 }
-            Label { text: qsTr("Transactions: %1").arg(root.metrics && root.metrics.transactionCount !== undefined ? root.metrics.transactionCount : 0); Layout.preferredWidth: 170 }
+            Label { text: root.analysisState.previewStatementCountText; Layout.preferredWidth: root.txTheme.metricsStatementWidth }
+            Label { text: root.analysisState.previewTransactionCountText; Layout.preferredWidth: root.txTheme.metricsTransactionWidth }
             Item { Layout.fillWidth: true }
-            Label { text: qsTr("Amount sum: %1").arg(Number(root.metrics && root.metrics.amountSum !== undefined ? root.metrics.amountSum : 0).toFixed(2)); Layout.preferredWidth: 180; horizontalAlignment: Text.AlignRight }
+            Label { text: root.analysisState.previewAmountSumText; Layout.preferredWidth: root.txTheme.metricsAmountWidth; horizontalAlignment: Text.AlignRight }
         }
     }
 }

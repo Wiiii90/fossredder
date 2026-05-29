@@ -144,4 +144,76 @@ TEST(AnalysisServiceTest, IncludesCalculationAdjustmentsInPlotResultsWhenEnabled
     EXPECT_DOUBLE_EQ(result.transactions.front().amount, 119.0);
 }
 
+TEST(AnalysisServiceTest, AppliesCalculationAdjustmentsToTransactionIdSnapshots) {
+    core::domain::catalog::WorkspaceCatalog state;
+
+    auto analysis = std::make_shared<core::domain::Analysis>();
+    analysis->setId("analysis-1");
+    analysis->rename("Adjusted Snapshot Analysis");
+    analysis->setType("plot");
+    analysis->setExportFormat("png");
+    analysis->setConfigJson(R"({"plotType":"pie","plotMeasure":"totalAmount"})");
+    analysis->setSnapshotTransactionsJson(R"([
+        {
+            "transactionId":"tx-1",
+            "name":"Rent",
+            "date":"2026-01-31",
+            "amount":100.0,
+            "contractId":"contract-1",
+            "contractName":"Contract",
+            "contractType":"rent"
+        }
+    ])");
+    analysis->setIncludeCalculationAdjustments(true);
+    analysis->setAdjustment("tx-1", 119.0);
+    state.setAnalyses({analysis});
+
+    AnalysisService service;
+    const auto result = service.runAnalysisById(state, "analysis-1");
+
+    ASSERT_TRUE(result.found);
+    ASSERT_EQ(result.table.size(), 1u);
+    EXPECT_EQ(result.table.front().front(), "rent");
+    EXPECT_DOUBLE_EQ(std::stod(result.table.front().at(1)), 119.0);
+    ASSERT_EQ(result.transactions.size(), 1u);
+    EXPECT_EQ(result.transactions.front().id, "tx-1");
+    EXPECT_DOUBLE_EQ(result.transactions.front().amount, 119.0);
+}
+
+TEST(AnalysisServiceTest, AppliesCalculationAdjustmentsToTransactionObjectSnapshots) {
+    core::domain::catalog::WorkspaceCatalog state;
+
+    auto analysis = std::make_shared<core::domain::Analysis>();
+    analysis->setId("analysis-1");
+    analysis->rename("Adjusted Object Snapshot Analysis");
+    analysis->setType("plot");
+    analysis->setExportFormat("png");
+    analysis->setConfigJson(R"({"plotType":"pie","plotMeasure":"totalAmount"})");
+    analysis->setSnapshotTransactionsJson(R"({
+        "transactions": [
+            {
+                "transactionId":"tx-1",
+                "name":"Rent",
+                "date":"2026-01-31",
+                "amount":100.0,
+                "contractId":"contract-1",
+                "contractName":"Contract",
+                "contractType":"rent"
+            }
+        ]
+    })");
+    analysis->setIncludeCalculationAdjustments(true);
+    analysis->setAdjustment("tx-1", 119.0);
+    state.setAnalyses({analysis});
+
+    AnalysisService service;
+    const auto result = service.runAnalysisById(state, "analysis-1");
+
+    ASSERT_TRUE(result.found);
+    ASSERT_EQ(result.table.size(), 1u);
+    EXPECT_DOUBLE_EQ(std::stod(result.table.front().at(1)), 119.0);
+    ASSERT_EQ(result.transactions.size(), 1u);
+    EXPECT_EQ(result.transactions.front().id, "tx-1");
+}
+
 } // namespace core::application::analysis

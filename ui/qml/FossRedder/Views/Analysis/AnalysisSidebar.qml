@@ -1,6 +1,6 @@
 /**
  * @file ui/qml/FossRedder/Views/Analysis/AnalysisSidebar.qml
- * @brief Provides the AnalysisSidebar component.
+ * @brief Provides the Analysis sidebar list.
  */
 
 import QtQuick 2.15
@@ -9,10 +9,9 @@ pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    required property var appContext
     required property var theme
-    width: 240
-    readonly property var session: root.appContext ? root.appContext.session : null
+    required property var analysisState
+    width: root.theme.shellSidebarPreferredWidth
 
     ColumnLayout {
         anchors.fill: parent
@@ -32,41 +31,42 @@ Item {
                 spacing: root.theme.spacingSmall
 
                 Repeater {
-                    model: root.session ? root.session.analyses : null
+                    model: root.analysisState.analysisRows
 
-                    delegate: Rectangle { id: analysisRow
-                        required property string id
-                        required property string name
-                        required property string type
+                    delegate: Rectangle {
+                        id: analysisRow
+                        objectName: "analysisSidebarRow"
+                        required property var modelData
                         width: analysisColumn.width
-                        height: 44
-                        radius: 6
-                        color: root.session && analysisRow.id === root.session.selectedAnalysisId ? root.theme.selectionHighlight : "transparent"
+                        height: root.theme.viewSidebarRowHeight
+                        radius: root.theme.viewSidebarRowRadius
+                        color: analysisRow.modelData.id === root.analysisState.selectedAnalysisId
+                               ? root.theme.selectionHighlight
+                               : "transparent"
                         border.color: root.theme.borderSoft
                         border.width: root.theme.borderWidthThin
 
                         MouseArea {
+                            objectName: "analysisSidebarRowMouseArea"
                             anchors.fill: parent
-                            onClicked: {
-                                if (root.session) root.session.selectedAnalysisId = analysisRow.id
-                            }
+                            onClicked: root.analysisState.selectAnalysis(analysisRow.modelData.id)
                         }
 
                         Column {
                             anchors.fill: parent
                             anchors.margins: root.theme.spacingSmall
-                            spacing: 2
+                            spacing: root.theme.viewSidebarRowSpacing
 
                             Text {
                                 width: parent.width
-                                text: analysisRow.name ? analysisRow.name : ""
+                                text: analysisRow.modelData.name
                                 color: root.theme.textPrimary
                                 elide: Text.ElideRight
                             }
 
                             Text {
                                 width: parent.width
-                                text: analysisRow.type ? analysisRow.type : ""
+                                text: analysisRow.modelData.type
                                 color: root.theme.textMuted
                                 elide: Text.ElideRight
                                 visible: text.length > 0
@@ -78,4 +78,3 @@ Item {
         }
     }
 }
-

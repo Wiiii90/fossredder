@@ -12,16 +12,11 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
-    property int dateFieldIndex: 0
-    property int dateModeIndex: 0
-    property string yearValue: ""
-    property string dateFromValue: ""
-    property string dateToValue: ""
-    property bool suppressFilterChanged: false
+    required property var analysisState
+    property bool initialized: false
     readonly property real modeFieldWidth: root.theme.formFieldWidth
     readonly property real valueFieldWidth: root.theme.formFieldWidth
     readonly property real yearFieldWidth: (root.theme.formFieldWidth * 2) + root.theme.spacingSmall + implicitFromLabel.implicitWidth + implicitToLabel.implicitWidth
-    signal filterChanged()
 
     Layout.fillWidth: true
     contentSpacing: root.theme.spacingSmall
@@ -35,11 +30,10 @@ Controls.Panel {
             objectName: "analysisDateFieldComboBox"
             Layout.preferredWidth: root.theme.formFieldWidth
             model: [ qsTr("Booking Date"), qsTr("Valuta") ]
-            currentIndex: root.dateFieldIndex
+            currentIndex: root.analysisState.dateFieldIndex
             onCurrentIndexChanged: {
-                root.dateFieldIndex = currentIndex
-                if (!root.suppressFilterChanged)
-                    root.filterChanged()
+                if (root.initialized)
+                    root.analysisState.dateFieldIndex = currentIndex
             }
         }
 
@@ -48,65 +42,61 @@ Controls.Panel {
             objectName: "analysisDateModeComboBox"
             Layout.preferredWidth: root.theme.formFieldWidth
             model: [ qsTr("Year"), qsTr("Date Range") ]
-            currentIndex: root.dateModeIndex
+            currentIndex: root.analysisState.dateModeIndex
             onCurrentIndexChanged: {
-                root.dateModeIndex = currentIndex
-                if (!root.suppressFilterChanged)
-                    root.filterChanged()
+                if (root.initialized)
+                    root.analysisState.dateModeIndex = currentIndex
             }
         }
 
         Label {
             id: implicitFromLabel
-            visible: root.dateModeIndex === 1
+            visible: root.analysisState.dateModeIndex === 1
             text: qsTr("From")
         }
 
         Controls.TextField {
             id: dateFromField
             objectName: "analysisDateFromField"
-            visible: root.dateModeIndex === 1
+            visible: root.analysisState.dateModeIndex === 1
             Layout.preferredWidth: root.theme.formFieldWidth
             placeholderText: qsTr("YYYY-MM-DD")
-            text: root.dateFromValue
+            text: root.analysisState.dateFromValue
             onTextChanged: {
-                root.dateFromValue = text
-                if (!root.suppressFilterChanged)
-                    root.filterChanged()
+                if (root.initialized)
+                    root.analysisState.dateFromValue = text
             }
         }
 
         Label {
             id: implicitToLabel
-            visible: root.dateModeIndex === 1
+            visible: root.analysisState.dateModeIndex === 1
             text: qsTr("To")
         }
 
         Controls.TextField {
             id: dateToField
             objectName: "analysisDateToField"
-            visible: root.dateModeIndex === 1
+            visible: root.analysisState.dateModeIndex === 1
             Layout.preferredWidth: root.theme.formFieldWidth
             placeholderText: qsTr("YYYY-MM-DD")
-            text: root.dateToValue
+            text: root.analysisState.dateToValue
             onTextChanged: {
-                root.dateToValue = text
-                if (!root.suppressFilterChanged)
-                    root.filterChanged()
+                if (root.initialized)
+                    root.analysisState.dateToValue = text
             }
         }
 
         Controls.TextField {
             id: yearField
             objectName: "analysisYearField"
-            visible: root.dateModeIndex === 0
+            visible: root.analysisState.dateModeIndex === 0
             Layout.preferredWidth: root.yearFieldWidth
             placeholderText: qsTr("YYYY")
-            text: root.yearValue
+            text: root.analysisState.yearValue
             onTextChanged: {
-                root.yearValue = text
-                if (!root.suppressFilterChanged)
-                    root.filterChanged()
+                if (root.initialized)
+                    root.analysisState.yearValue = text
             }
         }
 
@@ -114,4 +104,6 @@ Controls.Panel {
             Layout.fillWidth: true
         }
     }
+
+    Component.onCompleted: root.initialized = true
 }

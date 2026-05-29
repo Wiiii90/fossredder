@@ -5,6 +5,7 @@
 
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
+import FossRedder 1.0 as App
 
 GridLayout {
     id: layoutRoot
@@ -14,6 +15,13 @@ GridLayout {
     columns: 1
     columnSpacing: 0
     rowSpacing: 0
+
+    App.AnalysisState {
+        id: analysisState
+        workspace: layoutRoot.appContext ? layoutRoot.appContext.workspaceFacade : null
+        analysisWorkflow: layoutRoot.appContext ? layoutRoot.appContext.analysisWorkflow : null
+        settingsViewModel: layoutRoot.appContext ? layoutRoot.appContext.settingsViewModel : null
+    }
 
     AppMenu {
         id: appMenu
@@ -55,6 +63,7 @@ GridLayout {
             SidebarRouter {
                 anchors.fill: parent
                 appContext: layoutRoot.appContext
+                analysisState: analysisState
                 theme: layoutRoot.theme
             }
         }
@@ -68,6 +77,7 @@ GridLayout {
             ContentRouter {
                 anchors.fill: parent
                 appContext: layoutRoot.appContext
+                analysisState: analysisState
                 theme: layoutRoot.theme
             }
         }

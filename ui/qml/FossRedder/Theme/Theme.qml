@@ -145,6 +145,25 @@ QtObject {
             taxFieldWidth: 80,
             transactionListHeight: 220,
             nameColumnWidth: 200
+        },
+        transactions: {
+            applyColumnWidth: 44,
+            statementColumnWidth: 130,
+            transactionColumnWidth: 150,
+            dateColumnWidth: 110,
+            actorColumnWidth: 120,
+            contractColumnWidth: 120,
+            typeColumnWidth: 90,
+            propertiesColumnWidth: 220,
+            amountColumnWidth: 160,
+            columnSpacingCount: 9,
+            horizontalPaddingCount: 2,
+            headerHeight: 32,
+            rowHeight: 30,
+            calcPercentFieldWidth: 90,
+            metricsStatementWidth: 160,
+            metricsTransactionWidth: 170,
+            metricsAmountWidth: 180
         }
     })
 

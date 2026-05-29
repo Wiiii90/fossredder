@@ -1,47 +1,42 @@
 /**
  * @file ui/qml/FossRedder/Views/Analysis/AnalysisView.qml
- * @brief Provides the AnalysisView component.
+ * @brief Provides the AnalysisView composition.
  */
 
 import QtQuick 2.15
-import FossRedder.Views 1.0 as Views
+import QtQuick.Layouts 1.3
+import FossRedder.Views.Analysis 1.0 as Analysis
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
     required property var appContext
+    required property var analysisState
     required property var theme
 
-    readonly property var session: root.appContext ? root.appContext.session : null
-
-    function scheduleRefresh() {
-        Qt.callLater(function() {
-            if (analysisForm)
-                analysisForm.refreshFromSelection()
-        })
-    }
-
     onVisibleChanged: {
-        if (visible && analysisForm)
-            root.scheduleRefresh()
+        if (visible)
+            root.analysisState.refreshFromSelection()
     }
 
-    Connections {
-        target: root.session
-        function onSelectedAnalysisIdChanged() {
-            if (analysisForm)
-                root.scheduleRefresh()
+    ColumnLayout {
+        anchors.fill: root
+        anchors.margins: root.theme.pageContentMargin
+        spacing: root.theme.spacingSmall
+
+        Analysis.AnalysisForm {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            theme: root.theme
+            analysisState: root.analysisState
         }
-        function onDataRevisionChanged() {
-            if (analysisForm)
-                root.scheduleRefresh()
+
+        Analysis.AnalysisBottomBar {
+            Layout.fillWidth: true
+            theme: root.theme
+            analysisState: root.analysisState
         }
     }
 
-    Views.AnalysisForm {
-        id: analysisForm
-        anchors.fill: parent
-        appContext: root.appContext
-        theme: root.theme
-        Component.onCompleted: root.scheduleRefresh()
-    }
+    Component.onCompleted: root.analysisState.refreshFromSelection()
 }

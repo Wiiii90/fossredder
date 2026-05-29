@@ -23,6 +23,8 @@
 #include "ui/state/session/PropertyState.h"
 
 #include <QSet>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 namespace ui {
 
@@ -163,7 +165,8 @@ core::ports::workspace::AnalysisCommand makeAnalysisCommand(
     const QString &id, const QString &name, const QString &type,
     const QString &configJson, const QString &filterSpec,
     const QString &exportFormat, bool includeCalculationAdjustments,
-    const QString &exportStateJson, const QString &snapshotTransactionsJson) {
+    const QString &exportStateJson, const QString &snapshotTransactionsJson,
+    std::vector<std::pair<std::string, double>> adjustments = {}) {
   core::ports::workspace::AnalysisCommand command;
   command.id = strings::toStdString(id);
   command.name = strings::toStdString(name);
@@ -175,7 +178,26 @@ core::ports::workspace::AnalysisCommand makeAnalysisCommand(
   command.exportStateJson = strings::toStdString(exportStateJson);
   command.snapshotTransactionsJson =
       strings::toStdString(snapshotTransactionsJson);
+  command.adjustments = std::move(adjustments);
   return command;
+}
+
+std::vector<std::pair<std::string, double>>
+analysisAdjustmentsFromJson(const QString &adjustmentsJson) {
+  std::vector<std::pair<std::string, double>> out;
+  const QJsonDocument document = QJsonDocument::fromJson(adjustmentsJson.toUtf8());
+  if (!document.isObject()) {
+    return out;
+  }
+  const QJsonObject object = document.object();
+  out.reserve(static_cast<size_t>(object.size()));
+  for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
+    if (!it.value().isDouble()) {
+      continue;
+    }
+    out.emplace_back(strings::toStdString(it.key()), it.value().toDouble());
+  }
+  return out;
 }
 
 core::ports::workspace::AnnualCommand
@@ -828,10 +850,33 @@ void WorkspaceFacade::updateAnalysis(
     const QString &exportStateJson, const QString &snapshotTransactionsJson) {
   if (!coreFacade_)
     return;
+  std::vector<std::pair<std::string, double>> adjustments;
+  const std::string targetId = strings::toStdString(id);
+  for (const auto &analysis : coreFacade_->workspaceSnapshot().analyses) {
+    if (analysis.id == targetId) {
+      adjustments = analysis.adjustments;
+      break;
+    }
+  }
   coreFacade_->updateAnalysis(
       makeAnalysisCommand(id, name, type, configJson, filterSpec, exportFormat,
                           includeCalculationAdjustments, exportStateJson,
-                          snapshotTransactionsJson));
+                          snapshotTransactionsJson, std::move(adjustments)));
+}
+
+void WorkspaceFacade::updateAnalysis(
+    const QString &id, const QString &name, const QString &type,
+    const QString &configJson, const QString &filterSpec,
+    const QString &exportFormat, bool includeCalculationAdjustments,
+    const QString &exportStateJson, const QString &snapshotTransactionsJson,
+    const QString &adjustmentsJson) {
+  if (!coreFacade_)
+    return;
+  coreFacade_->updateAnalysis(
+      makeAnalysisCommand(id, name, type, configJson, filterSpec, exportFormat,
+                          includeCalculationAdjustments, exportStateJson,
+                          snapshotTransactionsJson,
+                          analysisAdjustmentsFromJson(adjustmentsJson)));
 }
 
 void WorkspaceFacade::deleteAnalysis(const QString &id) {

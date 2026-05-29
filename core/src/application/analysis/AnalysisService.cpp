@@ -192,6 +192,10 @@ std::shared_ptr<core::domain::catalog::WorkspaceCatalog> catalogFromAnalysisSnap
     } catch (...) {
         return {};
     }
+    if (rows.is_object()) {
+        const auto transactions = rows.find("transactions");
+        rows = transactions != rows.end() ? *transactions : nlohmann::json{};
+    }
     if (!rows.is_array()) {
         return {};
     }
@@ -209,9 +213,13 @@ std::shared_ptr<core::domain::catalog::WorkspaceCatalog> catalogFromAnalysisSnap
             continue;
         }
 
-        const std::string id = jsonString(row, "id").empty()
-            ? "snapshot-transaction-" + std::to_string(index)
-            : jsonString(row, "id");
+        const std::string explicitId = jsonString(row, "id");
+        const std::string transactionId = jsonString(row, "transactionId");
+        const std::string id = !explicitId.empty()
+            ? explicitId
+            : (!transactionId.empty()
+                   ? transactionId
+                   : "snapshot-transaction-" + std::to_string(index));
         const std::string name = jsonString(row, "name").empty()
             ? jsonString(row, "transactionName")
             : jsonString(row, "name");

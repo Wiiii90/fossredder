@@ -12,22 +12,11 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
-    required property var contractTypes
-    property var selectedTypes: []
-    signal selectionChanged(var selected)
-    readonly property real actionButtonSize: root.theme.viewCompactActionButtonSize || root.theme.controlHeight || 32
-    readonly property real actionButtonWidth: Math.max(root.actionButtonSize, 56)
+    required property var analysisState
+    readonly property var selectedTypes: root.analysisState.selectedContractTypes
 
-    function allTypes() {
-        const out = []
-        const rows = root.contractTypes || []
-        for (let i = 0; i < rows.length; ++i) {
-            const value = String(rows[i] || "")
-            if (value.length > 0)
-                out.push(value)
-        }
-        return out
-    }
+    readonly property real actionButtonSize: root.theme.viewCompactActionButtonSize || root.theme.controlHeight || 32
+    readonly property real actionButtonWidth: Math.max(root.actionButtonSize, 96)
 
     Layout.fillWidth: true
     Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight
@@ -37,7 +26,7 @@ Controls.Panel {
     background: Rectangle {
         radius: root.theme.radius
         color: root.theme.surfaceAlt
-        border.width: 1
+        border.width: root.theme.borderWidthThin
         border.color: root.theme.border
     }
 
@@ -59,15 +48,15 @@ Controls.Panel {
                 text: qsTr("All")
                 Layout.preferredWidth: root.actionButtonWidth
                 Layout.preferredHeight: root.actionButtonSize
-                onClicked: root.selectionChanged(root.allTypes())
+                onClicked: root.analysisState.selectAllContractTypes()
             }
 
             Controls.SecondaryButton {
-                objectName: "analysisContractTypeFilterNoneButton"
-                text: qsTr("None")
+                objectName: "analysisContractTypeFilterUnassignedButton"
+                text: qsTr("Unassigned")
                 Layout.preferredWidth: root.actionButtonWidth
                 Layout.preferredHeight: root.actionButtonSize
-                onClicked: root.selectionChanged([])
+                onClicked: root.analysisState.selectUnassignedContractTypes()
             }
         }
 
@@ -79,7 +68,7 @@ Controls.Panel {
                 anchors.fill: parent
                 radius: root.theme.radius
                 color: root.theme.surface
-                border.width: 1
+                border.width: root.theme.borderWidthThin
                 border.color: root.theme.border
             }
 
@@ -91,9 +80,7 @@ Controls.Panel {
                 contentWidth: width
                 contentHeight: contractTypeColumn.implicitHeight
 
-                ScrollBar.vertical: ScrollBar {
-                    policy: ScrollBar.AsNeeded
-                }
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
                 Column {
                     id: contractTypeColumn
@@ -101,7 +88,8 @@ Controls.Panel {
                     spacing: root.theme.spacingSmall
 
                     Repeater {
-                        model: root.contractTypes
+                        model: root.analysisState.contractTypeRows
+
                         delegate: RowLayout {
                             id: ctRow
                             required property var modelData
@@ -112,29 +100,18 @@ Controls.Panel {
                                 objectName: "analysisContractTypeFilterCheckBox"
                                 Layout.fillWidth: false
                                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                                checked: root.selectedTypes.indexOf(String(ctRow.modelData)) !== -1
-                                onClicked: {
-                                    const value = String(ctRow.modelData)
-                                    const next = root.selectedTypes ? root.selectedTypes.slice() : []
-                                    const idx = next.indexOf(value)
-                                    if (checked && idx === -1)
-                                        next.push(value)
-                                    if (!checked && idx !== -1)
-                                        next.splice(idx, 1)
-                                    root.selectionChanged(next)
-                                }
+                                checked: root.selectedTypes.indexOf(String(ctRow.modelData.value)) !== -1
+                                onClicked: root.analysisState.setContractTypeSelected(String(ctRow.modelData.value), checked)
                             }
 
                             Label {
                                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                                text: String(ctRow.modelData)
+                                text: String(ctRow.modelData.label)
                                 elide: Text.ElideRight
                                 verticalAlignment: Text.AlignVCenter
                             }
 
-                            Item {
-                                Layout.fillWidth: true
-                            }
+                            Item { Layout.fillWidth: true }
                         }
                     }
                 }

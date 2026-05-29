@@ -162,6 +162,50 @@ TEST(WorkspaceFacadeTest, RoutesMutationsThroughTheCoreBoundaryAndRefreshesUIRow
     EXPECT_EQ(facade.contracts()->rowCount(), 0);
 }
 
+TEST(WorkspaceFacadeTest, AnalysisUpdatePreservesOrReplacesCalculationAdjustments)
+{
+    auto storage = std::make_unique<tests::support::FakeStorageManager>();
+    auto* storagePtr = storage.get();
+    auto coreFacade = std::make_unique<core::application::WorkspaceFacade>(std::move(storage));
+    WorkspaceFacade facade(coreFacade.get());
+    storagePtr->loadedState_.catalog = tests::support::makeWorkspaceCatalog();
+    coreFacade->openFile("workspace-analysis.fr");
+
+    facade.updateAnalysis(QStringLiteral("analysis-1"),
+                          QStringLiteral("Monthly Analysis Updated"),
+                          QStringLiteral("tabular"),
+                          QStringLiteral("{\"groupBy\":\"month\"}"),
+                          QStringLiteral("{}"),
+                          QStringLiteral("csv"),
+                          true,
+                          QStringLiteral("{}"),
+                          QStringLiteral("[\"tx-1\"]"));
+
+    auto snapshot = coreFacade->workspaceSnapshot();
+    ASSERT_EQ(snapshot.analyses.size(), 1U);
+    ASSERT_EQ(snapshot.analyses.front().adjustments.size(), 1U);
+    EXPECT_EQ(snapshot.analyses.front().adjustments.front().first, std::string("actor-1"));
+    EXPECT_DOUBLE_EQ(snapshot.analyses.front().adjustments.front().second, 19.25);
+
+    facade.updateAnalysis(QStringLiteral("analysis-1"),
+                          QStringLiteral("Monthly Analysis Updated"),
+                          QStringLiteral("tabular"),
+                          QStringLiteral("{\"groupBy\":\"month\"}"),
+                          QStringLiteral("{}"),
+                          QStringLiteral("csv"),
+                          false,
+                          QStringLiteral("{}"),
+                          QStringLiteral("[\"tx-1\"]"),
+                          QStringLiteral("{\"tx-1\":1500.0}"));
+
+    snapshot = coreFacade->workspaceSnapshot();
+    ASSERT_EQ(snapshot.analyses.size(), 1U);
+    ASSERT_EQ(snapshot.analyses.front().adjustments.size(), 1U);
+    EXPECT_EQ(snapshot.analyses.front().adjustments.front().first, std::string("tx-1"));
+    EXPECT_DOUBLE_EQ(snapshot.analyses.front().adjustments.front().second, 1500.0);
+    EXPECT_FALSE(snapshot.analyses.front().includeCalculationAdjustments);
+}
+
 TEST(WorkspaceFacadeTest, PersistsActorAliasesAcrossSelectionChanges)
 {
     auto storage = std::make_unique<tests::support::FakeStorageManager>();

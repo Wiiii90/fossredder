@@ -99,6 +99,7 @@ selection access, and core-boundary mutation routing.
 | WSP-005 | Mutations route through the core boundary and refresh rows | Unit | Facade wired to a writable core boundary | Add and delete actors | The actor row model updates deterministically after each mutation |
 | WSP-006 | Workspace revision changes rebind derived row projections | Unit | Facade with a representative workspace catalog and a visible derived row consumer | Mutate the workspace and bump the revision | Statement, transaction, and other derived collection bindings re-evaluate deterministically |
 | WSP-007 | Startup rehydrates persisted workspace families into UI models | Unit | Facade attached to a loaded workspace session state with workflow logs | Open the workspace and refresh the facade state | Booking, analysis, import, and export rows are restored from persisted state without dropping relations |
+| WSP-008 | Analysis update preserves calc adjustments | Unit | Facade attached to a workspace with an analysis containing calculation adjustments | Update analysis metadata with and without an explicit adjustments payload | Existing adjustments survive metadata-only updates, and explicit adjustment payloads replace the core analysis adjustments |
 
 ### Boundary checks
 
@@ -138,6 +139,10 @@ too stateful for declarative QML.
 | BKG-ST-008 | Booking incompatible actor cleanup | Unit | BookingState draft with a contract selected | Select an actor outside the selected contract | The actor id changes and the incompatible contract id is cleared |
 | BKG-ST-009 | Booking incompatible property cleanup | Unit | BookingState draft with a contract selected | Select a property outside the selected contract | The property selection changes and the incompatible contract id is cleared |
 | BKG-ST-010 | Booking edit update | Unit | Loaded statement and transaction selected | Change statement name and transaction fields, then update | Statement and transaction mutations persist and dirty state clears |
+| ANL-ST-001 | Analysis include-calc preview refresh | Unit | AnalysisState loaded with a selected analysis containing calculation adjustments | Toggle include-calc off | Visible preview totals rebuild from the unadjusted analysis result |
+| ANL-ST-002 | Analysis create with calc adjustments | Unit | AnalysisState in create mode with preview transactions and all filters selected | Select an adjustment transaction, enter a localized percent value, apply calc, and create | The new analysis persists adjustments, stores all-selection config filters as unfiltered, and the initial preview render uses the adjusted values |
+| ANL-ST-003 | Analysis update preserves stored calc amounts | Unit | AnalysisState loaded with an existing analysis containing stored calculation adjustments | Update analysis metadata in edit mode | Existing adjustment amounts remain unchanged in the core snapshot and pending UI state |
+| ANL-ST-004 | Analysis filter unassigned options | Unit | AnalysisState in create mode with workspace choices loaded | Inspect property and contract-type filter choices, then trigger the unassigned-only shortcuts | Both filter lists expose explicit unassigned choices and the shortcut selections keep the UI state deterministic |
 
 ### Boundary checks
 

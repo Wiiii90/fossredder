@@ -12,22 +12,11 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
-    required property var propertyRows
-    property var selectedIds: []
-    signal selectionChanged(var ids)
-    readonly property real actionButtonSize: root.theme.viewCompactActionButtonSize || root.theme.controlHeight || 32
-    readonly property real actionButtonWidth: Math.max(root.actionButtonSize, 56)
+    required property var analysisState
+    readonly property var selectedIds: root.analysisState.selectedPropertyIds
 
-    function allIds() {
-        const ids = []
-        const rows = root.propertyRows || []
-        for (let i = 0; i < rows.length; ++i) {
-            const id = rows[i] && rows[i].id ? String(rows[i].id) : ""
-            if (id.length > 0)
-                ids.push(id)
-        }
-        return ids
-    }
+    readonly property real actionButtonSize: root.theme.viewCompactActionButtonSize || root.theme.controlHeight || 32
+    readonly property real actionButtonWidth: Math.max(root.actionButtonSize, 96)
 
     Layout.fillWidth: true
     Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight
@@ -37,7 +26,7 @@ Controls.Panel {
     background: Rectangle {
         radius: root.theme.radius
         color: root.theme.surfaceAlt
-        border.width: 1
+        border.width: root.theme.borderWidthThin
         border.color: root.theme.border
     }
 
@@ -59,15 +48,15 @@ Controls.Panel {
                 text: qsTr("All")
                 Layout.preferredWidth: root.actionButtonWidth
                 Layout.preferredHeight: root.actionButtonSize
-                onClicked: root.selectionChanged(root.allIds())
+                onClicked: root.analysisState.selectAllProperties()
             }
 
             Controls.SecondaryButton {
-                objectName: "analysisPropertyFilterNoneButton"
-                text: qsTr("None")
+                objectName: "analysisPropertyFilterUnassignedButton"
+                text: qsTr("Unassigned")
                 Layout.preferredWidth: root.actionButtonWidth
                 Layout.preferredHeight: root.actionButtonSize
-                onClicked: root.selectionChanged([])
+                onClicked: root.analysisState.selectUnassignedProperties()
             }
         }
 
@@ -79,7 +68,7 @@ Controls.Panel {
                 anchors.fill: parent
                 radius: root.theme.radius
                 color: root.theme.surface
-                border.width: 1
+                border.width: root.theme.borderWidthThin
                 border.color: root.theme.border
             }
 
@@ -91,9 +80,7 @@ Controls.Panel {
                 contentWidth: width
                 contentHeight: propertyColumn.implicitHeight
 
-                ScrollBar.vertical: ScrollBar {
-                    policy: ScrollBar.AsNeeded
-                }
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
                 Column {
                     id: propertyColumn
@@ -101,7 +88,8 @@ Controls.Panel {
                     spacing: root.theme.spacingSmall
 
                     Repeater {
-                        model: root.propertyRows
+                        model: root.analysisState.propertyFilterRows
+
                         delegate: RowLayout {
                             id: rowRoot
                             required property var modelData
@@ -113,27 +101,17 @@ Controls.Panel {
                                 Layout.fillWidth: false
                                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                                 checked: root.selectedIds.indexOf(rowRoot.modelData.id) !== -1
-                                onClicked: {
-                                    const next = root.selectedIds ? root.selectedIds.slice() : []
-                                    const idx = next.indexOf(rowRoot.modelData.id)
-                                    if (checked && idx === -1)
-                                        next.push(rowRoot.modelData.id)
-                                    if (!checked && idx !== -1)
-                                        next.splice(idx, 1)
-                                    root.selectionChanged(next)
-                                }
+                                onClicked: root.analysisState.setPropertySelected(rowRoot.modelData.id, checked)
                             }
 
                             Label {
                                 Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-                                text: rowRoot.modelData && rowRoot.modelData.name ? rowRoot.modelData.name : ""
+                                text: rowRoot.modelData.name
                                 elide: Text.ElideRight
                                 verticalAlignment: Text.AlignVCenter
                             }
 
-                            Item {
-                                Layout.fillWidth: true
-                            }
+                            Item { Layout.fillWidth: true }
                         }
                     }
                 }

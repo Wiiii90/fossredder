@@ -7,7 +7,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick 2.15
 import QtTest 1.3
-import FossRedder.Views 1.0
+import FossRedder.Views.Analysis 1.0 as Analysis
 
 import "../Lookup.js" as Lookup
 
@@ -18,23 +18,9 @@ TestCase {
     width: 960
     height: 640
 
-    property string exportState: "{}"
-    property string emittedExportState: ""
     readonly property string previewImageDataUrl: "data:image/svg+xml,%3Csvg width='1' height='1' viewBox='0 0 1 1'%3E%3Crect width='1' height='1' fill='red'/%3E%3C/svg%3E"
-
-    property var session: QtObject {
-        property var lastAnalysisResult: ({
-            table: [
-                ["Lease", "100.0"],
-                ["Service", "50.0"]
-            ]
-        })
-        function propertyName(id) { return id }
-    }
-
-    property var appContext: QtObject {
-        property var session: testCase.session
-        property bool isDebugBuild: false
+    property var analysisState: QtObject {
+        property string renderedPreviewSource: testCase.previewImageDataUrl
     }
 
     property var theme: QtObject {
@@ -77,13 +63,11 @@ TestCase {
 
     Component {
         id: plotViewComponent
-        AnalysisPlotView {
+        Analysis.AnalysisPlotView {
             width: 960
             height: 640
-            appContext: testCase.appContext
             theme: testCase.theme
-            exportStateJson: testCase.exportState
-            onExportStateChanged: (stateJson) => testCase.emittedExportState = stateJson
+            analysisState: testCase.analysisState
         }
     }
 
@@ -98,21 +82,12 @@ TestCase {
     }
 
     function init() {
-        exportState = "{}"
-        emittedExportState = ""
+        analysisState.renderedPreviewSource = previewImageDataUrl
     }
 
-    function test_renderedArtifactImageTakesOverPreview() {
-        session.lastAnalysisResult = ({
-            type: "pie",
-            artifacts: [previewImageDataUrl],
-            table: [
-                ["Lease", "100.0"]
-            ]
-        })
-
-        var view = createView()
-        var image = findRequired(view, "analysisPreviewImage")
+    function test_ANL_PV_001_renderedArtifactImageTakesOverPreview() {
+        const view = createView()
+        const image = findRequired(view, "analysisPreviewImage")
 
         compare(String(image.source), previewImageDataUrl)
         tryCompare(image, "status", Image.Ready)

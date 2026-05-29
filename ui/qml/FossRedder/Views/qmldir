@@ -8,6 +8,7 @@ ActorSidebar 1.0 Actor/ActorSidebar.qml
 ActorView 1.0 Actor/ActorView.qml
 ActorBottomBar 1.0 Actor/ActorBottomBar.qml
 AnalysisAllocatableFilter 1.0 Analysis/AnalysisAllocatableFilter.qml
+AnalysisBottomBar 1.0 Analysis/AnalysisBottomBar.qml
 AnalysisContractTypeFilter 1.0 Analysis/AnalysisContractTypeFilter.qml
 AnalysisDateFilter 1.0 Analysis/AnalysisDateFilter.qml
 AnalysisForm 1.0 Analysis/AnalysisForm.qml

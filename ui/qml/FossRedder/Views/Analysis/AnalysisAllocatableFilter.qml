@@ -12,9 +12,9 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
+    required property var analysisState
     property string mode: "all"
     property bool initialized: false
-    signal modeSelected(string mode)
 
     Layout.fillWidth: true
     contentSpacing: root.theme.spacingSmall
@@ -37,8 +37,7 @@ Controls.Panel {
             onCurrentIndexChanged: {
                 if (!root.initialized)
                     return
-                const next = currentIndex === 1 ? "allocatable" : (currentIndex === 2 ? "non-allocatable" : "all")
-                root.modeSelected(next)
+                root.analysisState.setAllocatableModeIndex(currentIndex)
             }
         }
 

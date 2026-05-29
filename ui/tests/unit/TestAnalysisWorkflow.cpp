@@ -190,12 +190,20 @@ TEST(AnalysisWorkflowTest, ComputeAnalysisPreviewCarriesStoredAdjustmentsForPlot
     const QVariantList adjustedTransactions = withAdjustments.value(QStringLiteral("transactions")).toList();
     ASSERT_FALSE(adjustedTransactions.isEmpty());
     EXPECT_DOUBLE_EQ(adjustedTransactions.front().toMap().value(QStringLiteral("amount")).toDouble(), 1500.0);
+    const QVariantList adjustedTable = withAdjustments.value(QStringLiteral("table")).toList();
+    ASSERT_FALSE(adjustedTable.isEmpty());
+    const double adjustedVisibleAmount = adjustedTable.front().toList().value(1).toString().toDouble();
 
     const QVariantMap withoutAdjustments = workflow.computeAnalysisPreview(
         QStringLiteral("analysis-plot"), QStringLiteral(""), false, QStringLiteral("{}"));
     const QVariantList plainTransactions = withoutAdjustments.value(QStringLiteral("transactions")).toList();
     ASSERT_FALSE(plainTransactions.isEmpty());
     EXPECT_DOUBLE_EQ(plainTransactions.front().toMap().value(QStringLiteral("amount")).toDouble(), 1250.0);
+    const QVariantList plainTable = withoutAdjustments.value(QStringLiteral("table")).toList();
+    ASSERT_FALSE(plainTable.isEmpty());
+    const double plainVisibleAmount = plainTable.front().toList().value(1).toString().toDouble();
+
+    EXPECT_NE(adjustedVisibleAmount, plainVisibleAmount);
 }
 
 } // namespace ui

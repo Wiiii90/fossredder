@@ -83,7 +83,13 @@ ui/
         tst_BookingTransactionPropertyPanel.qml
         tst_BookingTransactionAllocatablePanel.qml
       analysis/
+        tst_AnalysisAllocatableFilter.qml
+        tst_AnalysisBottomBar.qml
+        tst_AnalysisContractTypeFilter.qml
+        tst_AnalysisDateFilter.qml
         tst_AnalysisView.qml
+        tst_AnalysisPropertyFilter.qml
+        tst_AnalysisSidebar.qml
         tst_AnalysisTransactionsPanel.qml
         tst_AnalysisTableView.qml
         tst_AnalysisPlotView.qml
@@ -620,49 +626,74 @@ ui/
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ANL-V-001 | Container refresh | QML | App context and theme available | Show view with selection | `AnalysisForm.refreshFromSelection()` is called when view becomes visible |
-| ANL-V-002 | Bottom navigation cycles through create mode | QML/Interaction | Multiple analysis rows and the last/first analysis selected | Click next from the last analysis or previous from the first analysis, then click again | Selection clears into create mode first, then continues to the opposite edge |
-| ANL-V-003 | Bottom navigation starts from create mode | QML/Interaction | Multiple analysis rows and no analysis selected | Click next or previous | Next selects the first analysis and previous selects the last analysis |
-| ANL-V-004 | Bottom navigation supports single row | QML/Interaction | Analysis form opened with only one analysis row | Click previous or next | Previous/next buttons remain enabled and navigation can select the only analysis |
+| ANL-V-001 | Container refresh | QML/Composition | Analysis state and theme available | Open AnalysisView | `AnalysisState.refreshFromSelection()` is called and the form/bottom bar receive the same state |
+| ANL-V-002 | Bottom bar wiring | QML/Interaction | AnalysisView receives an injected analysis state | Click Create through the mounted bottom bar | The command reaches the same AnalysisState instance used by the form |
+
+### AnalysisBottomBar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANL-BB-001 | Create mode actions | QML/Interaction | Bottom bar receives a create-mode AnalysisState with submit enabled | Click Reset, Create, previous, next, and filter workspace toggle | The matching AnalysisState commands are called |
+| ANL-BB-002 | Edit mode actions | QML/Interaction | Bottom bar receives an edit-mode AnalysisState with submit enabled | Click Delete, Update, previous, and next | The matching AnalysisState commands are called |
+
+### AnalysisSidebar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANL-SB-001 | Sidebar row selection | QML/Interaction | Sidebar receives analysis rows and selected id state | Click a rendered analysis row | `AnalysisState.selectAnalysis()` receives the row id |
 
 ### AnalysisForm
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ANL-001 | Create analysis | QML/Interaction | No selected analysis and valid name entered | Enter name and click Create | `createAnalysis()` is called and selected analysis id becomes returned id |
-| ANL-002 | Read analysis state | QML/Interaction | Selected analysis loaded | Open form in edit mode | Name, type, filters, export options and result panels reflect selected analysis |
-| ANL-003 | Update analysis | QML/Interaction | Selected analysis with modified configuration | Change fields and click Update | `updateAnalysis()` is called with normalized config and filter state |
-| ANL-004 | Delete analysis | QML/Interaction | Selected analysis with valid id | Click Delete | `deleteAnalysis(id)` is called and selection advances deterministically |
-| ANL-005 | Navigate analysis | QML/Interaction | Analysis rows available | Click Prev or Next | Selected analysis id moves to adjacent analysis |
-| ANL-006 | Reset filters | QML/Interaction | Filter edit mode with changes | Click Reset | Filters and adjustments are reset |
-| ANL-007 | Toggle filter workspace | QML/Interaction | Create mode with filter workspace visible | Click toggle workspace | Filter workspace index switches deterministically |
-| ANL-008 | Export format normalization | QML/Interaction | Table or plot analysis selected | Select invalid export format | Export format falls back to valid option for active type |
-| ANL-009 | Property filter selection | QML/Interaction | Property rows available | Change property selection | Preview refresh is requested and selected ids update |
-| ANL-010 | Contract type filter selection | QML/Interaction | Contract types available | Change contract type selection | Preview refresh is requested and selected types update |
-| ANL-011 | Allocatable filter selection | QML/Interaction | Filter panel visible | Change allocatable mode | Preview refresh is requested and allocatable mode updates |
-| ANL-012 | Result export state | QML/Interaction | Plot analysis selected | Modify export state | Export state JSON is normalized and persisted |
-| ANL-013 | Include-calc toggle persists on update | QML/Interaction | Existing analysis in edit mode with calc adjustments enabled | Toggle `Include Calc Adjustments` and click Update | `updateAnalysis(..., includeCalcAdjustments, ...)` receives the toggled boolean and subsequent previews honor it |
+| ANL-F-001 | Name state binding | QML/Interaction | Form receives AnalysisState | Edit the name field | `AnalysisState.name` receives the edited text |
+| ANL-F-002 | Filter panel forwarding | QML/Interaction | Form receives AnalysisState with property and contract filters | Toggle property, contract type, and allocatable filter controls | Filter changes are delegated to AnalysisState |
+| ANL-F-003 | Edit result panel | QML/Composition | Form receives edit-mode AnalysisState with rendered result data | Open the form | The result preview panel is mounted from state |
+| ANL-F-004 | Include-calc toggle | QML/Interaction | Form receives edit-mode AnalysisState with calc adjustments enabled | Toggle Include Calc Adjustments | `AnalysisState.includeCalcAdjustments` receives the checkbox value |
+
+### AnalysisDateFilter
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANL-DF-001 | Date controls write state | QML/Interaction | Date filter receives AnalysisState with initial year mode values | Change date field, mode, and range values | Date filter changes are delegated to AnalysisState |
+| ANL-DF-002 | Year field state binding | QML/Interaction | Date filter receives AnalysisState with a year value | Edit the year field | `AnalysisState.yearValue` receives the edited value |
+
+### AnalysisPropertyFilter
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANL-PF-001 | Property filter actions | QML/Interaction | Property filter receives AnalysisState with property rows and selected ids | Click All, Unassigned, and one row checkbox | Selection commands are delegated to AnalysisState |
+
+### AnalysisContractTypeFilter
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANL-CTF-001 | Contract type filter actions | QML/Interaction | Contract type filter receives AnalysisState with available types and selected types | Click All, Unassigned, and one row checkbox | Selection commands are delegated to AnalysisState |
+
+### AnalysisAllocatableFilter
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANL-AF-001 | Allocatable mode selection | QML/Interaction | Allocatable filter receives AnalysisState and mode | Change the allocatable dropdown index | The selected mode index is delegated to AnalysisState |
 
 ### AnalysisTransactionsPanel
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ANL-P-001 | Transaction selection | QML | Preview transactions available | Select transactions | Selected transaction ids are forwarded |
-| ANL-P-002 | Calculation application | QML/Interaction | Transactions selected and percent entered | Apply calculation | Pending adjustments JSON is produced |
+| ANL-TP-001 | Transaction selection and calc commands | QML/Interaction | Panel receives AnalysisState with preview transactions | Select transactions and apply calculation | Selection and calculation requests are delegated to AnalysisState |
 
 ### AnalysisPlotView
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ANL-PV-001 | Export state roundtrip | QML/Interaction | Plot view loaded | Change plot export state | Export state JSON is forwarded back to parent |
+| ANL-PV-001 | Rendered artifact preview | QML | Plot view receives AnalysisState with rendered preview source | Open plot view | The preview image uses the state-provided rendered artifact |
 
 ### AnalysisTableView
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ANL-TV-001 | Table render | QML/Interaction | Adjustment data available | Open table view | Adjustment rows render from amount map |
-| ANL-TV-002 | Matrix uses readable property names from result transactions | QML/Interaction | Result transactions provide `propertyIds` and `propertyNames` | Open table view | Matrix row labels use `propertyNames` instead of raw ids where available |
-| ANL-TV-003 | Matrix rebuild reacts to adjustment map changes | QML/Interaction | Table view loaded with result transactions | Update `adjustmentAmountsById` at runtime | Matrix totals are recalculated immediately to reflect adjusted values |
+| ANL-TV-001 | Table render uses state matrix | QML | Table view receives contract columns, property rows, and grand total | Open table view | Rows, contract columns, and totals render from AnalysisState |
+| ANL-TV-002 | Table preview geometry | QML/Layout | Table view receives a non-empty state matrix | Open table view | Table content exposes renderable geometry for rows and totals |
 
 ## Components
 

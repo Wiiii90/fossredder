@@ -210,6 +210,12 @@ public:
       const QString &configJson, const QString &filterSpec,
       const QString &exportFormat, bool includeCalculationAdjustments,
       const QString &exportStateJson, const QString &snapshotTransactionsJson);
+  Q_INVOKABLE void updateAnalysis(
+      const QString &id, const QString &name, const QString &type,
+      const QString &configJson, const QString &filterSpec,
+      const QString &exportFormat, bool includeCalculationAdjustments,
+      const QString &exportStateJson, const QString &snapshotTransactionsJson,
+      const QString &adjustmentsJson);
   Q_INVOKABLE void deleteAnalysis(const QString &id);
 
   Q_INVOKABLE QString addAnnual(const QString &name, int year,
