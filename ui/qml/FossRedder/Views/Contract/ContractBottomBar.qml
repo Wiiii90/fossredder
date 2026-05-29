@@ -51,14 +51,9 @@ Item {
             onClicked: if (root.contractState) root.contractState.submit()
         }
 
-        Controls.SecondaryButton {
+        Controls.CompactAddButton {
             objectName: "contractCreateModeButton"
             visible: root.contractState ? root.contractState.isEdit : false
-            text: qsTr("+")
-            Layout.preferredWidth: root.theme.viewCompactActionButtonSize
-            Layout.minimumWidth: root.theme.viewCompactActionButtonSize
-            Layout.maximumWidth: root.theme.viewCompactActionButtonSize
-            textColor: root.theme.textMuted
             onClicked: if (root.contractState) root.contractState.enterCreateMode()
         }
 

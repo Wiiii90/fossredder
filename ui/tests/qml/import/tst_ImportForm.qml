@@ -7,9 +7,10 @@ pragma ComponentBehavior: Bound
 
 import QtQuick 2.15
 import QtTest 1.3
-import FossRedder.Views 1.0
+import FossRedder.Views.Import 1.0 as Import
 
 import "../Lookup.js" as Lookup
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -26,16 +27,14 @@ TestCase {
     Component {
         id: importFormComponent
 
-        ImportForm {
+        Import.ImportForm {
             width: 600
             theme: testCase.theme
         }
     }
 
     function findRequired(root, objectName) {
-        var match = Lookup.findObject(root, objectName)
-        verify(match !== null, "Missing object: " + objectName)
-        return match
+        return TestSupport.findRequired(Lookup, root, objectName)
     }
 
     function createForm() {

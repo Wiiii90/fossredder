@@ -16,35 +16,9 @@ Item {
     property string rightLabel: ""
     property real leftWeight: 1
     property real rightWeight: 1
-    property real columnSpacing: root.themeSpacingMedium()
+    property real columnSpacing: root.theme.spacingMedium
     property Component leftContent
     property Component rightContent
-
-    function loaderItem(loader) {
-        return loader ? loader["item"] : null
-    }
-
-    function loaderPreferredHeight(loader) {
-        const loadedItem = root.loaderItem(loader)
-        return loadedItem ? Math.max(40, loadedItem.implicitHeight || 0) : 40
-    }
-
-    function syncLoaderWidth(loader) {
-        const loadedItem = root.loaderItem(loader)
-        if (loadedItem && loadedItem.hasOwnProperty("width")) loadedItem.width = loader.width
-    }
-
-    function themeSpacingMedium() {
-        return root.theme && root.theme.spacingMedium !== undefined ? root.theme.spacingMedium : 8
-    }
-
-    function themeSpacingSmall() {
-        return root.theme && root.theme.spacingSmall !== undefined ? root.theme.spacingSmall : 6
-    }
-
-    function onLoaderWidthChanged(loader) {
-        root.syncLoaderWidth(loader)
-    }
 
     implicitWidth: row.implicitWidth
     implicitHeight: Math.max(leftColumn.implicitHeight, rightColumn.implicitHeight)
@@ -59,18 +33,18 @@ Item {
             Layout.fillWidth: true
             Layout.preferredWidth: root.leftWeight
             Layout.alignment: Qt.AlignTop
-            spacing: root.themeSpacingSmall()
+            spacing: root.theme.spacingSmall
 
             Label { text: root.leftLabel; Layout.fillWidth: true }
 
             Loader {
                 id: leftLoader
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.loaderPreferredHeight(leftLoader)
+                Layout.preferredHeight: item ? Math.max(root.theme.controlHeight, item.implicitHeight || 0) : root.theme.controlHeight
                 Layout.alignment: Qt.AlignTop
                 sourceComponent: root.leftContent
-                onLoaded: root.syncLoaderWidth(leftLoader)
-                onWidthChanged: root.onLoaderWidthChanged(leftLoader)
+                onLoaded: if (item && item.hasOwnProperty("width")) item.width = width
+                onWidthChanged: if (item && item.hasOwnProperty("width")) item.width = width
             }
         }
 
@@ -79,18 +53,18 @@ Item {
             Layout.fillWidth: true
             Layout.preferredWidth: root.rightWeight
             Layout.alignment: Qt.AlignTop
-            spacing: root.themeSpacingSmall()
+            spacing: root.theme.spacingSmall
 
             Label { text: root.rightLabel; Layout.fillWidth: true }
 
             Loader {
                 id: rightLoader
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.loaderPreferredHeight(rightLoader)
+                Layout.preferredHeight: item ? Math.max(root.theme.controlHeight, item.implicitHeight || 0) : root.theme.controlHeight
                 Layout.alignment: Qt.AlignTop
                 sourceComponent: root.rightContent
-                onLoaded: root.syncLoaderWidth(rightLoader)
-                onWidthChanged: root.onLoaderWidthChanged(rightLoader)
+                onLoaded: if (item && item.hasOwnProperty("width")) item.width = width
+                onWidthChanged: if (item && item.hasOwnProperty("width")) item.width = width
             }
         }
     }

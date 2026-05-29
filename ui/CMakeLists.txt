@@ -50,6 +50,9 @@ set(UI_SOURCES
     src/viewmodels/booking/TransactionFilterModel.cpp
     src/viewmodels/booking/TransactionListModel.cpp
     src/state/filters/FilterState.cpp
+    src/state/import/ImportState.cpp
+    src/state/import/StatementDraftState.cpp
+    src/state/import/TransactionDraftState.cpp
     src/state/navigation/NavigationState.cpp
     src/state/session/ActorState.cpp
     src/state/session/BookingState.cpp
@@ -115,6 +118,9 @@ set(UI_HEADERS
     include/ui/shared/payload/PayloadKeys.h
     include/ui/shared/payload/PayloadMapper.h
     include/ui/state/filters/FilterState.h
+    include/ui/state/import/ImportState.h
+    include/ui/state/import/StatementDraftState.h
+    include/ui/state/import/TransactionDraftState.h
     include/ui/state/navigation/NavigationState.h
     include/ui/state/session/ActorState.h
     include/ui/state/session/BookingState.h
@@ -175,6 +181,7 @@ target_include_directories(fossredder_ui PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/shell/window
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state/filters
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state/import
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state/mutation
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state/navigation
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state/selection
@@ -214,7 +221,7 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
     set(UI_QML_TOOLING_QUICK_LIBRARIES Qt6::Quick Qt6::Qml Qt6::QuickControls2)
 
     function(fossredder_add_ui_qml_tooling_submodule target_name module_uri output_directory)
-        cmake_parse_arguments(ARG "" "" "LINK_LIBRARIES;QML_FILES" ${ARGN})
+        cmake_parse_arguments(ARG "" "" "DEPENDENCIES;LINK_LIBRARIES;QML_FILES" ${ARGN})
 
         set(_qml_tooling_anchor "${CMAKE_CURRENT_BINARY_DIR}/${target_name}_qml_tooling_anchor.cpp")
         file(WRITE "${_qml_tooling_anchor}" "namespace { [[maybe_unused]] constexpr int qml_tooling_anchor = 0; }\n")
@@ -233,7 +240,11 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
             VERSION ${UI_QML_MODULE_VERSION}
             OUTPUT_DIRECTORY "${output_directory}"
             RESOURCE_PREFIX /qml
-            IMPORT_PATH "${UI_QML_IMPORT_ROOT}"
+            IMPORT_PATH
+                "${UI_QML_TOOLING_OUTPUT_ROOT}"
+                "${UI_QML_IMPORT_ROOT}"
+            IMPORTS ${UI_QML_ROOT_URI}
+            DEPENDENCIES ${ARG_DEPENDENCIES}
             NO_PLUGIN
             QML_FILES ${ARG_QML_FILES}
         )
@@ -279,6 +290,7 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
         fossredder_ui_qml_controls
         "${UI_QML_ROOT_URI}.Controls"
         "${UI_QML_TOOLING_OUTPUT_ROOT}/FossRedder/Controls"
+        DEPENDENCIES QtQuick
         LINK_LIBRARIES ${UI_QML_TOOLING_QUICK_LIBRARIES}
         QML_FILES ${UI_QML_CONTROLS_FILES}
     )
@@ -287,6 +299,7 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
         fossredder_ui_qml_components
         "${UI_QML_ROOT_URI}.Components"
         "${UI_QML_TOOLING_OUTPUT_ROOT}/FossRedder/Components"
+        DEPENDENCIES QtQuick QtQuick.Controls
         LINK_LIBRARIES ${UI_QML_TOOLING_QUICK_LIBRARIES}
         QML_FILES ${UI_QML_COMPONENTS_FILES}
     )
@@ -295,6 +308,7 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
         fossredder_ui_qml_views
         "${UI_QML_ROOT_URI}.Views"
         "${UI_QML_TOOLING_OUTPUT_ROOT}/FossRedder/Views"
+        DEPENDENCIES QtQuick QtQuick.Controls QtQuick.Layouts
         LINK_LIBRARIES ${UI_QML_TOOLING_QUICK_LIBRARIES}
         QML_FILES ${UI_QML_VIEWS_FILES}
     )
@@ -305,12 +319,19 @@ if(TARGET Qt6::Quick AND TARGET Qt6::Qml)
         fossredder_ui_qml_views
     )
 
-    add_custom_target(fossredder_ui_qml_tooling ALL
-        DEPENDS
+    set(UI_QML_TOOLING_DEPS)
+    foreach(_qml_tooling_target
             fossredder_ui_generate_qmlls_ini_file
             fossredder_ui_qml_controls_generate_qmlls_ini_file
             fossredder_ui_qml_components_generate_qmlls_ini_file
-            fossredder_ui_qml_views_generate_qmlls_ini_file
+            fossredder_ui_qml_views_generate_qmlls_ini_file)
+        if(TARGET ${_qml_tooling_target})
+            list(APPEND UI_QML_TOOLING_DEPS ${_qml_tooling_target})
+        endif()
+    endforeach()
+
+    add_custom_target(fossredder_ui_qml_tooling ALL
+        DEPENDS ${UI_QML_TOOLING_DEPS}
     )
 else()
     message(STATUS "Qt6 Quick/Qml not found; QML features disabled in fossredder_ui")

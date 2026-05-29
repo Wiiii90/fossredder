@@ -31,9 +31,10 @@ Out of scope:
 ```text
 ui/
   tests/
-    qml/
+      qml/
       qmltests.cpp
       Lookup.js
+      TestSupport.js
       common/
         tst_Button.qml
         tst_BottomBar.qml
@@ -88,10 +89,25 @@ ui/
         tst_AnalysisPlotView.qml
         tst_AnalysisForm.qml
       import/
+        tst_ImportBottomBar.qml
+        tst_ImportForm.qml
+        tst_ImportHomeView.qml
+        tst_ImportPanel.qml
+        tst_ImportProgressBar.qml
         tst_ImportSidebar.qml
         tst_ImportView.qml
-        tst_ImportForm.qml
+        tst_StatementDraftBottomBar.qml
+        tst_StatementDraftForm.qml
         tst_StatementDraftView.qml
+        tst_TransactionDraftContractActorPanel.qml
+        tst_TransactionDraftContractAllocatablePanel.qml
+        tst_TransactionDraftContractPanel.qml
+        tst_TransactionDraftContractPropertyPanel.qml
+        tst_TransactionDraftFieldRow.qml
+        tst_TransactionDraftForm.qml
+        tst_TransactionDraftMetadataPanel.qml
+        tst_TransactionDraftProofPanel.qml
+        tst_TransactionDraftView.qml
       export/
         tst_ExportSidebar.qml
         tst_ExportForm.qml
@@ -129,18 +145,35 @@ ui/
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| IMP-V-001 | Default import selection | QML/Interaction | No selected file, default path configured | Open ImportView | Import controller receives default path when no file is selected and import is idle |
-| IMP-V-002 | Import start | QML/Interaction | Selected file or queued files present | Click Start | `startStatementImport()` is called |
-| IMP-V-003 | Import clear | QML/Interaction | Import controller idle with current selection | Click Clear | `resetStatus()` is called |
-| IMP-V-004 | Import cancel | QML/Interaction | Import controller running | Click Cancel | `cancelImport()` is called |
-| IMP-V-005 | Import cancel all | QML/Interaction | Import controller running with queued imports | Click Cancel all | `cancelAllImports()` is called |
-| IMP-V-006 | Draft page switch | QML/Interaction | Import controller has draft | Switch controller state to draft | Draft page becomes active |
-| IMP-V-007 | Import pause/resume | QML/Interaction | Import controller running | Click Pause | `togglePause()` is called and the action label reflects Resume while paused |
-| IMP-V-008 | Running action order | QML/Layout | Import controller running with queued imports | Inspect bottom-bar actions | Cancel and Cancel all stay grouped on the left, while Pause/Resume sits before the outer draft-next control |
-| IMP-V-009 | Import page draft navigation | QML/Interaction/Layout | Import page has persisted drafts and no active draft view | Click outer draft navigation buttons | Draft navigation buttons sit at the far left/right bottom-bar edges and call previous/next draft navigation |
-| IMP-V-010 | Running import draft navigation | QML/Layout | Import controller running while drafts exist | Inspect bottom-bar actions | Draft previous/next controls remain available at the far left/right edges around Cancel/Pause actions |
-| IMP-V-011 | Import page draft navigation disabled without draft logs | QML/Interaction | Workspace may contain persisted draft data but import logs expose no draft-attached row | Inspect outer draft navigation buttons | Draft previous/next controls are disabled because there is no navigable draft in the visible draft list |
-| IMP-V-012 | Draft page navigation returns to import home | QML/Interaction | Draft page is open at the outer draft-navigation edge | Click the outer next/previous draft control | The active draft clears and ImportView returns to the normal import page |
+| IMP-V-001 | Import stack composition | QML/Composition | App context and theme available | Open ImportView | The import content stack is mounted |
+
+### ImportHomeView
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-H-001 | Overview composition | QML/Composition | ImportState and theme available | Open ImportHomeView | Form, file panel, progress bar, and bottom bar are mounted with the same state |
+
+### ImportBottomBar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-V-002 | Import start | QML/Interaction | Bottom bar receives state with `canStart` | Click Start | `ImportState.startImport()` is called |
+| IMP-V-003 | Import clear | QML/Interaction | Bottom bar receives state with `canClear` | Click Clear | `ImportState.resetStatus()` is called |
+| IMP-V-004 | Running actions | QML/Interaction | Bottom bar receives running state | Click Cancel, Cancel all, Pause | The matching ImportState actions are called once |
+| IMP-V-009 | Import draft navigation | QML/Interaction/Layout | Bottom bar receives navigable draft state | Click outer draft navigation buttons | Previous/next draft actions delegate to ImportState |
+
+### ImportPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-P-001 | Manual import path | QML/Interaction | Import panel receives editable state | Edit manual path and activate `+` | State text updates and `commitManualImportFiles()` is called |
+| IMP-P-002 | Browse import file | QML/Interaction | Import panel receives editable state | Click Browse | `browseImportPdf()` is called |
+
+### ImportProgressBar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-PB-001 | Progress binding | QML | Import progress state is populated | Open progress component | Progress value follows `ImportState.progressValue` |
 
 ### ImportForm
 
@@ -153,31 +186,92 @@ ui/
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| IMP-S-001 | Run-log binding | QML/Interaction | Import workflow exposes persisted logs | Open the sidebar | The restored run-log rows are visible in the list |
-| IMP-S-002 | Draft run navigation | QML/Interaction | Import log row has an attached draft | Click the run row | The matching persisted draft id is opened |
-| IMP-S-003 | Finalized run navigation | QML/Interaction | Import log row has a finalized statement id | Click the run row | Booking section opens with the matching statement selected and transaction selection cleared |
-| IMP-S-004 | Legacy draft run navigation | QML/Interaction | Import log row has Draft status but no attached-draft flag | Click the run row | The row opens the persisted draft through the log-id fallback |
-| IMP-S-005 | Import log delete | QML/Interaction | Import log row is visible | Click the row delete button | The workflow receives the delete request and clears attached draft state when needed |
+| IMP-S-001 | Run-log binding | QML/Interaction | ImportState exposes persisted logs | Open the sidebar | The restored run-log rows are visible and workspace refresh is requested |
+| IMP-S-002 | Draft run navigation | QML/Interaction | Import log row has an attached draft | Click the run row | The row payload is delegated to `ImportState.activateRun(...)` |
+| IMP-S-003 | Finalized run navigation | QML/Interaction | Import log row has a finalized statement id | Click the run row | The statement payload is delegated to `ImportState.activateRun(...)` |
+| IMP-S-005 | Import log delete | QML/Interaction | Import log row is visible | Click the row delete button | The row payload is delegated to `ImportState.deleteRun(...)` |
 | IMP-S-006 | Selected draft log highlight | QML/Visual state | Import sidebar has an active draft id and a matching run-log row | Open the sidebar | The matching draft run is outlined with the theme selection color |
+
+### StatementDraftBottomBar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-001 | Draft return | QML/Interaction | Statement draft bottom bar receives draft state | Activate return button | `StatementDraftState.returnToImport()` is called |
+| IMP-D-002 | Draft discard | QML/Interaction | Statement draft bottom bar receives draft state | Activate discard button | `StatementDraftState.discardDraft()` is called |
+| IMP-D-003 | Draft finalize | QML/Interaction | Statement draft bottom bar receives draft state | Activate finalize button | `StatementDraftState.finalizeDraft()` is called |
+| IMP-D-004 | Draft action availability | QML/State | Statement draft state has no draft | Inspect lifecycle actions | Return, discard, and finalize are disabled |
+| IMP-D-005 | Transaction and draft navigation | QML/Interaction | Statement draft bottom bar receives navigable state | Activate previous/next buttons | Navigation actions delegate to StatementDraftState |
+| IMP-D-007 | Navigation availability | QML/State | Statement draft state marks navigation unavailable | Inspect navigation buttons | Previous/next transaction and draft buttons are disabled |
+
+### StatementDraftForm
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-006 | Transaction delete | QML/Interaction | Statement draft form receives deletable state | Activate delete transaction button | `deleteCurrentTransaction()` is called |
+| IMP-D-009 | Statement name and transaction add | QML/Interaction | Statement draft form receives draft state | Edit statement name and activate add transaction | State name updates and `addTransactionAfterCurrent()` is called |
 
 ### StatementDraftView
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| IMP-D-001 | Draft return | QML/Interaction | Draft loaded | Activate return button | Draft note is written, draft is cleared, navigation moves to booking section |
-| IMP-D-002 | Draft discard | QML/Interaction | Draft loaded | Activate discard button | Persisted draft is cleared, discard note is written, navigation moves to booking section |
-| IMP-D-003 | Draft finalize | QML/Interaction | Draft loaded and finalize succeeds | Activate finalize button | Draft is finalized, persisted draft is cleared, finalize note is written, navigation moves to booking section |
-| IMP-D-004 | Draft finalize failure | QML/Interaction | Draft loaded and finalize fails | Activate finalize button | Failure note is written and draft remains available |
-| IMP-D-005 | Transaction navigation | QML/Interaction | Draft with multiple transactions | Activate previous or next transaction button | Draft transaction index changes and snapshot persistence is requested |
-| IMP-D-006 | Transaction delete | QML/Interaction | Draft with more than one transaction | Activate delete transaction button | Current transaction is removed and snapshot is persisted |
-| IMP-D-007 | Transaction navigation wrap | QML/Interaction | Draft positioned at the first or last transaction | Navigate past either edge | The current transaction index wraps to the opposite edge |
-| IMP-D-008 | Draft metadata and proof rendering | QML/Rendering | Current draft transaction contains metadata and proof image data | Open the statement draft view | Metadata text and proof image source are rendered from the current draft payload |
-| IMP-D-009 | Transaction add | QML/Interaction | Draft with transactions loaded | Activate add transaction button | A transaction is inserted after the current transaction and the draft snapshot is persisted |
-| IMP-D-010 | Amount edit survives draft refresh | QML/Interaction | Draft transaction amount field contains uncommitted user text | Edit another draft field that refreshes `draft.current` | The amount input keeps the local edit and commits only when the amount field finishes editing |
-| IMP-D-011 | Amount value stays stable across transaction switches | QML/Interaction | Draft with multiple transactions and a committed amount change on the current transaction | Switch to another transaction and back | The amount field reflects each transaction value deterministically and restores the committed value when returning |
-| IMP-D-012 | Property quick-create delegates to workflow | QML/Interaction | Draft loaded and property quick-create controls visible | Enter a property name and activate `+` | `createPropertyChoiceForCurrentDraft(...)` is called with the entered name |
-| IMP-D-013 | Contract quick-create delegates to workflow | QML/Interaction | Draft loaded and contract quick-create controls visible | Enter contract name/type and activate `+` | `createOrSelectContractChoiceForCurrentDraft(...)` is called with entered values and selection updates through workflow helpers |
-| IMP-D-014 | Actor quick-create appears immediately and is selected | QML/Interaction | Draft loaded with actor quick-create controls visible | Enter actor name and activate `+` | The new actor choice appears immediately in the actor dropdown and is selected for the current transaction |
+| IMP-D-015 | Empty draft state | QML/Composition | StatementDraftView receives no draft | Open StatementDraftView | The internal StatementDraftState reports no draft and the empty-state label is visible |
+
+### TransactionDraftForm
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-010 | Amount edit commit boundary | QML/Interaction | Transaction form receives amount state | Edit amount text without finishing, then finish editing | Local state updates immediately; commit runs only on editing finished |
+| IMP-D-011 | Amount value binding | QML/State | Transaction form receives committed amount state | Change `TransactionDraftState.amountText` | Amount field follows the committed state value |
+| IMP-D-016 | Basic field binding | QML/Interaction | Transaction form receives editable state | Edit name, date, status, valuta, and amount | Matching TransactionDraftState properties and commit methods are used |
+
+### TransactionDraftMetadataPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-008A | Draft metadata rendering | QML/Rendering | TransactionDraftState contains metadata | Open metadata panel | Metadata text is rendered from TransactionDraftState |
+
+### TransactionDraftProofPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-008B | Draft proof rendering | QML/Rendering | TransactionDraftState contains a proof image source | Open proof panel | Proof image source is rendered from TransactionDraftState |
+
+### TransactionDraftContractPropertyPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-012 | Property selection and quick-create | QML/Interaction | Property panel receives rows and quick-create state | Toggle a property and activate `+` | Property selection and creation delegate to TransactionDraftState |
+
+### TransactionDraftContractPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-013 | Contract quick-create | QML/Interaction | Contract panel receives quick-create state | Enter contract name/type and activate `+` | Contract fields update and creation delegates to TransactionDraftState |
+
+### TransactionDraftContractActorPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-014 | Actor quick-create | QML/Interaction | Actor panel receives quick-create state | Enter actor name and activate `+` | Actor text updates and creation delegates to TransactionDraftState |
+| IMP-D-020 | Actor suggestion label refresh | QML/State sync | Actor panel starts with `0%` suggestion state | Update suggestion confidence and summary on TransactionDraftState | The label text and color rebind to the matcher suggestion values |
+
+### TransactionDraftContractAllocatablePanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-017 | Allocatable toggle | QML/Interaction | Allocatable panel receives transaction state | Toggle allocatable state | The allocatable change delegates to TransactionDraftState |
+
+### TransactionDraftFieldRow
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-018 | Field row content loading | QML/Layout | Left and right content components are supplied | Open field row | Both content components are loaded into the two-column row |
+
+### TransactionDraftView
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| IMP-D-019 | Transaction draft composition | QML/Composition | TransactionDraftState and theme available | Open TransactionDraftView | Transaction form and all transaction panels are mounted with the same state |
 
 ## Export
 

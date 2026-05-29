@@ -6,44 +6,39 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder 1.0
 import FossRedder.Controls 1.0 as Controls
+pragma ComponentBehavior: Bound
 
 Controls.Panel {
     id: root
-
-    property var txRoot
-
-    function currentText() {
-        return metadataField.text
-    }
+    required property var theme
+    required property var transactionState
 
     Layout.fillWidth: true
     Layout.preferredWidth: 1
-    contentSpacing: Theme.spacingSmall
+    contentSpacing: root.theme.spacingSmall
 
     background: Rectangle {
-        radius: Theme.radius
-        color: Theme.surfaceAlt
+        radius: root.theme.radius
+        color: root.theme.surfaceAlt
         border.width: 1
-        border.color: Theme.border
+        border.color: root.theme.border
     }
 
     ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        spacing: Theme.spacingSmall
+        spacing: root.theme.spacingSmall
 
         Label { text: qsTr("Metadata"); Layout.fillWidth: true }
         Controls.TextArea {
-            id: metadataField
             objectName: "transactionDraftMetadataTextArea"
             Layout.fillWidth: true
             Layout.preferredHeight: implicitHeight
             Layout.minimumHeight: 0
             readOnly: true
             placeholderText: qsTr("Extracted metadata")
-            text: root.txRoot && root.txRoot.draft && root.txRoot.draft.current ? (root.txRoot.draft.current.metadata || "") : ""
+            text: root.transactionState.metadataText
         }
     }
 }

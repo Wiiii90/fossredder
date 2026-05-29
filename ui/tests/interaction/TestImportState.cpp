@@ -10,6 +10,8 @@
 #include "core/application/import/ImportLog.h"
 #include "core/application/workspace/WorkspaceSessionState.h"
 #include "core/errors/IErrorReporter.h"
+#include "ui/state/import/ImportState.h"
+#include "ui/viewmodels/system/SettingsViewModel.h"
 #include "ui/workflows/import/ImportWorkflow.h"
 #include "ui/workflows/import/ImportWorkflowState.h"
 
@@ -26,6 +28,36 @@ public:
 
 TEST(ImportStateTest, HeaderIsUsable) {
     SUCCEED();
+}
+
+TEST(ImportStateTest, OverviewStateAppliesDefaultPathAndFiltersManualFiles)
+{
+    ImportWorkflow workflow(
+        []() { return std::shared_ptr<core::jobs::JobSystem>{}; },
+        std::make_shared<NoopErrorReporter>());
+    SettingsViewModel settings;
+    ImportState state;
+
+    settings.setImportDefaultPath(QStringLiteral("P:/imports/default.pdf"));
+    state.setSettingsViewModel(&settings);
+    state.setImportWorkflow(&workflow);
+
+    EXPECT_EQ(workflow.selectedFile(), QStringLiteral("P:/imports/default.pdf"));
+    EXPECT_TRUE(state.canStart());
+
+    settings.setImportDefaultPath({});
+    workflow.setSelectedFile({});
+    state.setManualPathText(QStringLiteral("P:/imports/readme.txt"));
+    state.commitManualImportFiles();
+
+    EXPECT_TRUE(workflow.selectedFile().isEmpty());
+    EXPECT_TRUE(workflow.queuedFiles().isEmpty());
+
+    state.setManualPathText(QStringLiteral("P:/imports/statement.PDF"));
+    state.commitManualImportFiles();
+
+    EXPECT_EQ(workflow.selectedFile(), QStringLiteral("P:/imports/statement.PDF"));
+    EXPECT_TRUE(state.manualPathText().isEmpty());
 }
 
 TEST(ImportStateTest, TogglePauseGatesProgressUpdates)

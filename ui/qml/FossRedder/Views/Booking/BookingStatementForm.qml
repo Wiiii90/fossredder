@@ -54,27 +54,17 @@ Item {
                 Layout.fillWidth: true
             }
 
-            Controls.SecondaryButton {
+            Controls.CompactAddButton {
                 objectName: "bookingStatementAddTransactionButton"
                 visible: root.bookingState.canAddTransaction
                 enabled: root.bookingState.canAddTransaction
-                text: qsTr("+")
-                implicitHeight: root.theme.viewCompactActionButtonSize
-                implicitWidth: root.theme.viewCompactActionButtonSize
-                textColor: root.theme.textMuted
-                focusPolicy: Qt.NoFocus
                 onClicked: root.bookingState.addTransactionAfterCurrent()
             }
 
-            Controls.SecondaryButton {
+            Controls.CompactRemoveButton {
                 objectName: "bookingStatementRemoveTransactionButton"
                 visible: true
                 enabled: root.bookingState.canDeleteTransaction
-                text: qsTr("-")
-                implicitHeight: root.theme.viewCompactActionButtonSize
-                implicitWidth: root.theme.viewCompactActionButtonSize
-                textColor: root.theme.textMuted
-                focusPolicy: Qt.NoFocus
                 onClicked: root.bookingState.deleteCurrentTransaction()
             }
         }

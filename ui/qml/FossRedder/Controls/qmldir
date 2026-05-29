@@ -3,6 +3,8 @@ depends QtQuick
 AddButton 1.0 AddButton.qml
 Button 1.0 Button.qml
 CheckBox 1.0 CheckBox.qml
+CompactAddButton 1.0 CompactAddButton.qml
+CompactRemoveButton 1.0 CompactRemoveButton.qml
 DangerButton 1.0 DangerButton.qml
 DropdownMenu 1.0 DropdownMenu.qml
 DisclosureButton 1.0 DisclosureButton.qml
@@ -16,6 +18,7 @@ PrimaryButton 1.0 PrimaryButton.qml
 PrevButton 1.0 PrevButton.qml
 PrevPageButton 1.0 PrevPageButton.qml
 ProgressBar 1.0 ProgressBar.qml
+ReturnButton 1.0 ReturnButton.qml
 SecondaryButton 1.0 SecondaryButton.qml
 SuccessButton 1.0 SuccessButton.qml
 TextArea 1.0 TextArea.qml

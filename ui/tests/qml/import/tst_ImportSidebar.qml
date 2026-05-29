@@ -7,9 +7,10 @@ pragma ComponentBehavior: Bound
 
 import QtQuick 2.15
 import QtTest 1.3
-import FossRedder.Views 1.0
+import FossRedder.Views.Import 1.0 as Import
 
 import "../Lookup.js" as Lookup
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -20,35 +21,27 @@ TestCase {
 
     property var importWorkflow: QtObject {
         property var runs: []
-        property int activateCalls: 0
-        property int openDraftCalls: 0
-        property string lastOpenedDraftId: ""
-        property int removeCalls: 0
-        property int clearDraftCalls: 0
         property var draft: null
-        function activateRunAt(index) { activateCalls += 1 }
-        function openPersistedDraft(logId) { openDraftCalls += 1; lastOpenedDraftId = logId }
-        function removeRunAt(index) { removeCalls += 1 }
-        function clearPersistedStatementDraft(draftId) { clearDraftCalls += 1 }
-        function clearDraft() {}
     }
 
-    property var navigation: QtObject {
-        property int sectionValue: 0
-        property int bookingViewValue: 0
-        function setSectionValue(value) { sectionValue = value }
-        function setBookingViewValue(value) { bookingViewValue = value }
-    }
-
-    property var session: QtObject {
-        property string selectedStatementId: ""
-        property string selectedTransactionId: ""
-    }
-
-    property var appContext: QtObject {
+    property var importState: QtObject {
         property var importWorkflow: testCase.importWorkflow
-        property var navigation: testCase.navigation
-        property var session: testCase.session
+        property var runModel: testCase.importWorkflow.runs
+        property string selectedRunLogId: testCase.importWorkflow.draft ? testCase.importWorkflow.draft.draftId : ""
+        property int refreshCalls: 0
+        property int activateCalls: 0
+        property int deleteCalls: 0
+        property var lastActivate: ({})
+        property var lastDelete: ({})
+        function refreshFromWorkspace() { refreshCalls += 1 }
+        function activateRun(index, logId, draftAttached, statementId, draftId) {
+            activateCalls += 1
+            lastActivate = { index: index, logId: logId, draftAttached: draftAttached, statementId: statementId, draftId: draftId }
+        }
+        function deleteRun(index, draftAttached, draftId) {
+            deleteCalls += 1
+            lastDelete = { index: index, draftAttached: draftAttached, draftId: draftId }
+        }
     }
 
     property var theme: QtObject {
@@ -56,10 +49,14 @@ TestCase {
         property int spacingSmall: 6
         property int borderWidthThin: 1
         property int radius: 3
+        property int viewSidebarRowHeight: 64
+        property int viewSidebarRowRadius: 3
         property int viewCompactActionButtonSize: 28
+        property int viewCompactActionButtonSizeTiny: 24
         property color accent: "#3366ff"
         property color selectionHighlight: "#aaccee"
         property color border: "#cccccc"
+        property color borderSoft: "#cccccc"
         property color success: "#008800"
         property color warning: "#aa8800"
         property color danger: "#aa0000"
@@ -68,119 +65,87 @@ TestCase {
 
     Component {
         id: importSidebarComponent
-        ImportSidebar {
+        Import.ImportSidebar {
             width: 960
             height: 640
-            appContext: testCase.appContext
+            importState: testCase.importState
             theme: testCase.theme
         }
     }
 
     function findRequired(root, objectName) {
-        var found = Lookup.findObject(root, objectName)
-        verify(found !== null, "Missing object: " + objectName)
-        return found
+        return TestSupport.findRequired(Lookup, root, objectName)
     }
 
-    function createView() {
+    function createSidebar() {
         return createTemporaryObject(importSidebarComponent, testCase)
     }
 
     function init() {
         importWorkflow.runs = [
-            { logId: "import-1", time: "2026-05-16 10:00:00", status: "Success", file: "/tmp/import.pdf", message: "done", payload: "{\"items\":[]}", draftAttached: false, draftId: "", statementId: "statement-1" }
+            { logId: "import-1", time: "2026-05-16 10:00:00", status: "Success", file: "/tmp/import.pdf", message: "done", payload: "", draftAttached: false, draftId: "", statementId: "statement-1" }
         ]
-        importWorkflow.activateCalls = 0
-        importWorkflow.openDraftCalls = 0
-        importWorkflow.removeCalls = 0
-        importWorkflow.clearDraftCalls = 0
-        importWorkflow.lastOpenedDraftId = ""
         importWorkflow.draft = null
-        session.selectedStatementId = ""
-        session.selectedTransactionId = ""
-        navigation.sectionValue = 0
-        navigation.bookingViewValue = 0
+        importState.refreshCalls = 0
+        importState.activateCalls = 0
+        importState.deleteCalls = 0
+        importState.lastActivate = ({})
+        importState.lastDelete = ({})
     }
 
-    function test_runListIsBoundToImportedRuns() {
-        var view = createView()
-        var runList = findRequired(view, "runLogList")
+    function test_IMP_S_001_runLogBindingShowsImportedRuns() {
+        const sidebar = createSidebar()
 
-        compare(runList.count, 1)
+        compare(findRequired(sidebar, "runLogList").count, 1)
+        compare(importState.refreshCalls, 1)
     }
 
-    function test_draftRunClickOpensPersistedDraftByDraftId() {
-        importWorkflow.runs = [
-            { logId: "import-1", time: "2026-05-16 10:00:00", status: "Draft", file: "/tmp/import.pdf", message: "draft", payload: "", draftAttached: true, draftId: "draft-1", statementId: "" }
-        ]
-
-        var view = createView()
-        var runMouse = findRequired(view, "runLogRow_import-1")
-
-        verify(runMouse.enabled)
-        runMouse.activateRun()
-
-        compare(importWorkflow.activateCalls, 1)
-        compare(importWorkflow.openDraftCalls, 1)
-        compare(importWorkflow.lastOpenedDraftId, "draft-1")
-    }
-
-    function test_draftStatusRunClickFallsBackToLogIdWhenDraftFlagIsMissing() {
-        importWorkflow.runs = [
-            { logId: "import-legacy", time: "2026-05-16 10:00:00", status: "Draft", file: "/tmp/import.pdf", message: "draft", payload: "", draftAttached: false, draftId: "", statementId: "" }
-        ]
-
-        var view = createView()
-        var runMouse = findRequired(view, "runLogRow_import-legacy")
-
-        verify(runMouse.enabled)
-        runMouse.activateRun()
-
-        compare(importWorkflow.activateCalls, 1)
-        compare(importWorkflow.openDraftCalls, 1)
-        compare(importWorkflow.lastOpenedDraftId, "import-legacy")
-    }
-
-    function test_finalizedRunClickNavigatesToBookingStatement() {
-        importWorkflow.runs = [
-            { logId: "import-2", time: "2026-05-16 10:00:00", status: "Finalized", file: "/tmp/import.pdf", message: "done", payload: "", draftAttached: false, draftId: "", statementId: "statement-2" }
-        ]
-
-        var view = createView()
-        var runMouse = findRequired(view, "runLogRow_import-2")
-
-        verify(runMouse.enabled)
-        runMouse.activateRun()
-        wait(0)
-
-        compare(session.selectedStatementId, "statement-2")
-        compare(session.selectedTransactionId, "")
-        compare(navigation.sectionValue, 3)
-        compare(navigation.bookingViewValue, 0)
-    }
-
-    function test_deleteButtonRemovesRun() {
-        importWorkflow.runs = [
-            { logId: "import-3", time: "2026-05-16 10:00:00", status: "Draft", file: "/tmp/import.pdf", message: "draft", payload: "", draftAttached: true, draftId: "draft-3", statementId: "" }
-        ]
-
-        var view = createView()
-        var deleteButton = findRequired(view, "runLogDelete_import-3")
-
-        deleteButton.clicked()
-
-        compare(importWorkflow.clearDraftCalls, 1)
-        compare(importWorkflow.removeCalls, 1)
-    }
-
-    function test_selectedDraftRunIsHighlighted() {
+    function test_IMP_S_002_draftRunClickDelegatesRowPayload() {
         importWorkflow.runs = [
             { logId: "import-2", time: "2026-05-16 10:00:00", status: "Draft", file: "/tmp/import.pdf", message: "draft", payload: "", draftAttached: true, draftId: "draft-2", statementId: "" }
         ]
-        importWorkflow.draft = ({ draftId: "draft-2" })
+        const sidebar = createSidebar()
 
-        var view = createView()
-        var selectedCard = findRequired(view, "runLogCard_import-2")
+        findRequired(sidebar, "runLogRow_import-2").activateRun()
+
+        compare(importState.activateCalls, 1)
+        compare(importState.lastActivate.logId, "import-2")
+        compare(importState.lastActivate.draftId, "draft-2")
+        compare(importState.lastActivate.draftAttached, true)
+    }
+
+    function test_IMP_S_003_finalizedRunClickDelegatesStatementPayload() {
+        importWorkflow.runs = [
+            { logId: "import-3", time: "2026-05-16 10:00:00", status: "Finalized", file: "/tmp/import.pdf", message: "done", payload: "", draftAttached: false, draftId: "", statementId: "statement-3" }
+        ]
+        const sidebar = createSidebar()
+
+        findRequired(sidebar, "runLogRow_import-3").activateRun()
+
+        compare(importState.activateCalls, 1)
+        compare(importState.lastActivate.statementId, "statement-3")
+    }
+
+    function test_IMP_S_005_deleteDelegatesRowPayload() {
+        importWorkflow.runs = [
+            { logId: "import-4", time: "2026-05-16 10:00:00", status: "Draft", file: "/tmp/import.pdf", message: "draft", payload: "", draftAttached: true, draftId: "draft-4", statementId: "" }
+        ]
+        const sidebar = createSidebar()
+
+        findRequired(sidebar, "runLogDelete_import-4").clicked()
+
+        compare(importState.deleteCalls, 1)
+        compare(importState.lastDelete.draftId, "draft-4")
+    }
+
+    function test_IMP_S_006_selectedDraftRunIsHighlighted() {
+        importWorkflow.runs = [
+            { logId: "import-5", time: "2026-05-16 10:00:00", status: "Draft", file: "/tmp/import.pdf", message: "draft", payload: "", draftAttached: true, draftId: "draft-5", statementId: "" }
+        ]
+        importWorkflow.draft = ({ draftId: "draft-5" })
+
+        const sidebar = createSidebar()
+        const selectedCard = findRequired(sidebar, "runLogCard_import-5")
 
         compare(selectedCard.border.color, theme.selectionHighlight)
     }

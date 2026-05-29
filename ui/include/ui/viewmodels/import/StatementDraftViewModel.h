@@ -25,7 +25,7 @@ class StatementDraft : public QObject {
     Q_PROPERTY(int count READ count NOTIFY changed)
 
     Q_PROPERTY(QVariantMap current READ current NOTIFY changed)
-    Q_PROPERTY(TransactionDraftList* transactions READ transactions CONSTANT)
+    Q_PROPERTY(ui::TransactionDraftList* transactions READ transactions CONSTANT)
 
 public:
     explicit StatementDraft(QObject* parent = nullptr);

@@ -51,14 +51,9 @@ Item {
             onClicked: if (root.propertyState) root.propertyState.submit()
         }
 
-        Controls.SecondaryButton {
+        Controls.CompactAddButton {
             objectName: "propertyCreateModeButton"
             visible: root.propertyState ? root.propertyState.isEdit : false
-            text: qsTr("+")
-            Layout.preferredWidth: root.theme.viewCompactActionButtonSize
-            Layout.minimumWidth: root.theme.viewCompactActionButtonSize
-            Layout.maximumWidth: root.theme.viewCompactActionButtonSize
-            textColor: root.theme.textMuted
             onClicked: if (root.propertyState) root.propertyState.enterCreateMode()
         }
 

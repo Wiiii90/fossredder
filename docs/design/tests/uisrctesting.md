@@ -210,6 +210,7 @@ binding the suite to QML rendering.
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | IMP-001 | Import workflow header remains usable | Interaction | Import workflow state header available | Include the workflow state header | The import workflow boundary remains buildable and accessible from the UI source layer |
+| IMP-002 | Import overview state selection | Interaction | ImportState with ImportWorkflow and SettingsViewModel | Apply default path, then commit manual non-PDF and PDF paths | Default path is selected, non-PDF input is ignored by the workflow, and PDF input becomes the selected import file |
 
 ### Boundary checks
 

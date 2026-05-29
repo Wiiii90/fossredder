@@ -4,6 +4,7 @@
  */
 
 import QtQuick 2.15
+import FossRedder 1.0 as App
 import FossRedder.Views 1.0 as Views
 pragma ComponentBehavior: Bound
 
@@ -26,6 +27,13 @@ Item {
     readonly property int sectionContracts: 2
     readonly property int sectionBooking: 3
     readonly property int sectionImport: 4
+
+    App.ImportState {
+        id: importState
+        importWorkflow: sidebarLeft.appContext.importWorkflow
+        navigation: sidebarLeft.appContext.navigation
+        workspace: sidebarLeft.appContext.workspaceFacade
+    }
 
     property int resolvedSection: -1
     property bool actorLoaded: false
@@ -111,7 +119,7 @@ Item {
     Component { id: propertySidebarComp; Views.PropertySidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: contractSidebarComp; Views.ContractSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: bookingSidebarComp; Views.BookingSidebar { theme: sidebarLeft.theme; bookingState: sidebarLeft.bookingState } }
-    Component { id: importSidebarComp; Views.ImportSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: importSidebarComp; Views.ImportSidebar { importState: importState; theme: sidebarLeft.theme } }
     Component { id: exportSidebarComp; Views.ExportSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: analysisSidebarComp; Views.AnalysisSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: annualSidebarComp; Views.AnnualSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }

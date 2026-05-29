@@ -141,6 +141,7 @@ void MainWindow::setupActionRouting() {
 
 void MainWindow::setupQmlRuntime() {
   auto *engine = m_quickView ? m_quickView->engine() : nullptr;
+  ui::bootstrap::registerTypes();
   ui::bootstrap::configureRuntime(engine);
 }
 

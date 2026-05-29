@@ -74,7 +74,6 @@ Item {
                     RowLayout {
                         id: aliasControlsRow
                         Layout.fillWidth: true
-                        readonly property real aliasControlSize: root.theme.viewCompactActionButtonSize
 
                         Label {
                             text: qsTr("Aliases")
@@ -91,30 +90,14 @@ Item {
                             onTextEdited: if (root.propertyState) root.propertyState.aliasInputText = text
                         }
 
-                        Controls.SecondaryButton {
+                        Controls.CompactAddButton {
                             objectName: "propertyAddAliasButton"
-                            text: qsTr("+")
-                            Layout.preferredWidth: aliasControlsRow.aliasControlSize
-                            Layout.minimumWidth: aliasControlsRow.aliasControlSize
-                            Layout.maximumWidth: aliasControlsRow.aliasControlSize
-                            Layout.preferredHeight: aliasControlsRow.aliasControlSize
-                            Layout.minimumHeight: aliasControlsRow.aliasControlSize
-                            Layout.maximumHeight: aliasControlsRow.aliasControlSize
-                            textColor: root.theme.textMuted
                             enabled: root.propertyState ? root.propertyState.canAddAlias(propertyAliasInput.text) : false
                             onClicked: if (root.propertyState) root.propertyState.addAlias(propertyAliasInput.text)
                         }
 
-                        Controls.SecondaryButton {
+                        Controls.CompactRemoveButton {
                             objectName: "propertyRemoveAliasButton"
-                            text: qsTr("-")
-                            Layout.preferredWidth: aliasControlsRow.aliasControlSize
-                            Layout.minimumWidth: aliasControlsRow.aliasControlSize
-                            Layout.maximumWidth: aliasControlsRow.aliasControlSize
-                            Layout.preferredHeight: aliasControlsRow.aliasControlSize
-                            Layout.minimumHeight: aliasControlsRow.aliasControlSize
-                            Layout.maximumHeight: aliasControlsRow.aliasControlSize
-                            textColor: root.theme.textMuted
                             enabled: root.aliasIndex >= 0 && root.aliasIndex < root.aliases.length
                             onClicked: if (root.propertyState) root.propertyState.requestRemoveSelectedAlias()
                         }

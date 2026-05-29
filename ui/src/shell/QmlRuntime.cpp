@@ -13,6 +13,9 @@
 
 #include "ui/shell/QmlContracts.h"
 #include "ui/shared/config/Defaults.h"
+#include "ui/state/import/ImportState.h"
+#include "ui/state/import/StatementDraftState.h"
+#include "ui/state/import/TransactionDraftState.h"
 #include "ui/state/navigation/NavigationState.h"
 
 namespace ui::bootstrap {
@@ -34,6 +37,18 @@ void registerTypes()
                                      ui::qml::contracts::module::kMinorVersion,
                                      ui::qml::contracts::module::kQmlContractsTypeName,
                                      ui::qml::contracts::module::kQmlContractsTypeDescription);
+    qmlRegisterType<ui::ImportState>(ui::qml::contracts::module::kName,
+                                     ui::qml::contracts::module::kMajorVersion,
+                                     ui::qml::contracts::module::kMinorVersion,
+                                     "ImportState");
+    qmlRegisterType<ui::StatementDraftState>(ui::qml::contracts::module::kName,
+                                             ui::qml::contracts::module::kMajorVersion,
+                                             ui::qml::contracts::module::kMinorVersion,
+                                             "StatementDraftState");
+    qmlRegisterType<ui::TransactionDraftState>(ui::qml::contracts::module::kName,
+                                               ui::qml::contracts::module::kMajorVersion,
+                                               ui::qml::contracts::module::kMinorVersion,
+                                               "TransactionDraftState");
     registered = true;
 }
 
