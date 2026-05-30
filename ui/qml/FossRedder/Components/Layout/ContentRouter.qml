@@ -12,6 +12,7 @@ Item {
     id: contentRouter
     required property var appContext
     required property var analysisState
+    required property var annualState
     required property var theme
     readonly property var navigation: contentRouter.appContext ? contentRouter.appContext.navigation : null
     readonly property var session: contentRouter.appContext ? contentRouter.appContext.session : null
@@ -47,7 +48,7 @@ Item {
     Component { id: exportViewComp; Views.ExportView { appContext: contentRouter.appContext; theme: contentRouter.theme } }
     Component { id: settingsViewComp; Views.SettingsView { appContext: contentRouter.appContext; theme: contentRouter.theme } }
     Component { id: analysisViewComp; Views.AnalysisView { appContext: contentRouter.appContext; analysisState: contentRouter.analysisState; theme: contentRouter.theme } }
-    Component { id: annualViewComp; Views.AnnualView { appContext: contentRouter.appContext; theme: contentRouter.theme } }
+    Component { id: annualViewComp; Views.AnnualView { annualState: contentRouter.annualState; theme: contentRouter.theme } }
     Component { id: placeholderViewComp; Views.PlaceholderView { } }
 
     function rememberSection(section) {

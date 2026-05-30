@@ -167,6 +167,17 @@ QtObject {
         }
     })
 
+    property var annual: ({
+        transactions: {
+            tableMinWidth: 720,
+            dateColumnWidth: 110,
+            amountColumnWidth: 90,
+            allocatableColumnWidth: 130,
+            typeColumnWidth: 120,
+            statusColumnWidth: 100
+        }
+    })
+
     property string fontFamily: "Segoe UI"
 
     property int fontSizeSmall: 11

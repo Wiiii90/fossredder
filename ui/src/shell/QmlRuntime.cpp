@@ -14,6 +14,7 @@
 #include "ui/shell/QmlContracts.h"
 #include "ui/shared/config/Defaults.h"
 #include "ui/state/session/AnalysisState.h"
+#include "ui/state/session/AnnualState.h"
 #include "ui/state/import/ImportState.h"
 #include "ui/state/import/StatementDraftState.h"
 #include "ui/state/import/TransactionDraftState.h"
@@ -46,6 +47,10 @@ void registerTypes()
                                        ui::qml::contracts::module::kMajorVersion,
                                        ui::qml::contracts::module::kMinorVersion,
                                        "AnalysisState");
+    qmlRegisterType<ui::AnnualState>(ui::qml::contracts::module::kName,
+                                     ui::qml::contracts::module::kMajorVersion,
+                                     ui::qml::contracts::module::kMinorVersion,
+                                     "AnnualState");
     qmlRegisterType<ui::StatementDraftState>(ui::qml::contracts::module::kName,
                                              ui::qml::contracts::module::kMajorVersion,
                                              ui::qml::contracts::module::kMinorVersion,

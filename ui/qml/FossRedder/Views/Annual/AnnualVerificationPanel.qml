@@ -1,6 +1,6 @@
 /**
  * @file ui/qml/FossRedder/Views/Annual/AnnualVerificationPanel.qml
- * @brief Provides the AnnualVerificationPanel component.
+ * @brief Provides the Annual verification summary panel.
  */
 
 import QtQuick 2.15
@@ -11,14 +11,13 @@ pragma ComponentBehavior: Bound
 
 Controls.Panel {
     id: root
+    objectName: "annualVerificationPanel"
     required property var theme
-    property int assignedAnalysisCount: 0
-    property int transactionCount: 0
-    property var issues: ({ missingFromYear: 0, mixedInAnnual: 0, duplicateCount: 0, missingLive: 0 })
-    property var statusMetrics: ({ neutral: 0, unverified: 0, verified: 0, completed: 0 })
+    required property var annualState
 
     Layout.fillWidth: true
     contentSpacing: root.theme.spacingSmall
+
     ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -36,7 +35,7 @@ Controls.Panel {
             background: Rectangle {
                 radius: root.theme.radius
                 color: root.theme.surfaceAlt
-                border.width: 1
+                border.width: root.theme.borderWidthThin
                 border.color: root.theme.border
             }
 
@@ -44,111 +43,36 @@ Controls.Panel {
                 Layout.fillWidth: true
                 spacing: root.theme.spacingSmall
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: root.theme.spacingSmall
+                Repeater {
+                    model: root.annualState.verificationRows
 
-                    Label {
-                        text: qsTr("Included transactions")
+                    delegate: RowLayout {
+                        id: verificationRow
+                        required property var modelData
                         Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                    }
+                        spacing: root.theme.spacingSmall
 
-                    Label {
-                        Layout.minimumWidth: root.theme.formLabelWidth / 2
-                        horizontalAlignment: Text.AlignRight
-                        text: String(root.transactionCount)
-                    }
-                }
+                        Label {
+                            text: verificationRow.modelData.label
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            color: verificationRow.modelData.tone === "success"
+                                   ? root.theme.success
+                                   : verificationRow.modelData.tone === "danger"
+                                     ? root.theme.danger
+                                     : root.theme.textPrimary
+                        }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: root.theme.spacingSmall
-
-                    Label {
-                        text: qsTr("Duplicate entries")
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Label {
-                        Layout.minimumWidth: root.theme.formLabelWidth / 2
-                        horizontalAlignment: Text.AlignRight
-                        text: String(root.issues && root.issues.duplicateCount !== undefined ? root.issues.duplicateCount : 0)
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: root.theme.spacingSmall
-
-                    Label {
-                        text: qsTr("Missing live transactions from selected year")
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Label {
-                        Layout.minimumWidth: root.theme.formLabelWidth / 2
-                        horizontalAlignment: Text.AlignRight
-                        text: String(root.issues && root.issues.missingFromYear !== undefined ? root.issues.missingFromYear : 0)
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: root.theme.spacingSmall
-
-                    Label {
-                        text: qsTr("Included deleted transactions")
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Label {
-                        Layout.minimumWidth: root.theme.formLabelWidth / 2
-                        horizontalAlignment: Text.AlignRight
-                        text: String(root.issues && root.issues.missingLive !== undefined ? root.issues.missingLive : 0)
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: root.theme.spacingSmall
-
-                    Label {
-                        text: qsTr("Transactions from a different year than selected")
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                        color: (root.issues && root.issues.mixedInAnnual !== undefined && root.issues.mixedInAnnual === 0)
-                               ? root.theme.success
-                               : root.theme.danger
-                    }
-
-                    Label {
-                        Layout.minimumWidth: root.theme.formLabelWidth / 2
-                        horizontalAlignment: Text.AlignRight
-                        text: String(root.issues && root.issues.mixedInAnnual !== undefined ? root.issues.mixedInAnnual : 0)
-                        color: (root.issues && root.issues.mixedInAnnual !== undefined && root.issues.mixedInAnnual === 0)
-                               ? root.theme.success
-                               : root.theme.danger
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: root.theme.spacingSmall
-
-                    Label {
-                        text: qsTr("Assigned analyses")
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Label {
-                        Layout.minimumWidth: root.theme.formLabelWidth / 2
-                        horizontalAlignment: Text.AlignRight
-                        text: String(root.assignedAnalysisCount)
+                        Label {
+                            Layout.minimumWidth: root.theme.formLabelWidth / 2
+                            horizontalAlignment: Text.AlignRight
+                            text: String(verificationRow.modelData.value)
+                            color: verificationRow.modelData.tone === "success"
+                                   ? root.theme.success
+                                   : verificationRow.modelData.tone === "danger"
+                                     ? root.theme.danger
+                                     : root.theme.textPrimary
+                        }
                     }
                 }
 
@@ -163,15 +87,8 @@ Controls.Panel {
                     }
 
                     Label {
-                        text: qsTr("Neutral: %1, Unverified: %2, Verified: %3, Completed: %4")
-                              .arg(root.statusMetrics && root.statusMetrics.neutral !== undefined
-                                   ? root.statusMetrics.neutral : 0)
-                              .arg(root.statusMetrics && root.statusMetrics.unverified !== undefined
-                                   ? root.statusMetrics.unverified : 0)
-                              .arg(root.statusMetrics && root.statusMetrics.verified !== undefined
-                                   ? root.statusMetrics.verified : 0)
-                              .arg(root.statusMetrics && root.statusMetrics.completed !== undefined
-                                   ? root.statusMetrics.completed : 0)
+                        objectName: "annualStatusSummaryLabel"
+                        text: root.annualState.statusSummaryText
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignRight
                         wrapMode: Text.WordWrap
@@ -179,6 +96,5 @@ Controls.Panel {
                 }
             }
         }
-
     }
 }

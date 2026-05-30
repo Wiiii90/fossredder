@@ -23,6 +23,12 @@ GridLayout {
         settingsViewModel: layoutRoot.appContext ? layoutRoot.appContext.settingsViewModel : null
     }
 
+    App.AnnualState {
+        id: annualState
+        workspace: layoutRoot.appContext ? layoutRoot.appContext.workspaceFacade : null
+        annualWorkflow: layoutRoot.appContext ? layoutRoot.appContext.annualWorkflow : null
+    }
+
     AppMenu {
         id: appMenu
         Layout.row: 0
@@ -64,6 +70,7 @@ GridLayout {
                 anchors.fill: parent
                 appContext: layoutRoot.appContext
                 analysisState: analysisState
+                annualState: annualState
                 theme: layoutRoot.theme
             }
         }
@@ -78,6 +85,7 @@ GridLayout {
                 anchors.fill: parent
                 appContext: layoutRoot.appContext
                 analysisState: analysisState
+                annualState: annualState
                 theme: layoutRoot.theme
             }
         }

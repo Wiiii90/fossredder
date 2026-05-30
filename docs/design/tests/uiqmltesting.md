@@ -69,7 +69,11 @@ ui/
       annual/
         tst_AnnualView.qml
         tst_AnnualForm.qml
+        tst_AnnualBottomBar.qml
+        tst_AnnualSidebar.qml
+        tst_AnnualAnalysesPanel.qml
         tst_AnnualTransactionsPanel.qml
+        tst_AnnualVerificationPanel.qml
       booking/
         tst_BookingView.qml
         tst_BookingStatementView.qml
@@ -506,39 +510,49 @@ ui/
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ANN-V-001 | Container mount | QML | App context and theme available | Open AnnualView | `AnnualForm` is filled with app context and theme |
-| ANN-V-002 | Bottom navigation cycles through create mode | QML/Interaction | Multiple annual rows and the last/first annual selected | Click next from the last annual or previous from the first annual, then click again | Selection clears into create mode first, then continues to the opposite edge |
-| ANN-V-003 | Bottom navigation starts from create mode | QML/Interaction | Multiple annual rows and no annual selected | Click next or previous | Next selects the first annual and previous selects the last annual |
-| ANN-V-004 | Bottom navigation supports single row | QML/Interaction | Annual form opened with only one annual row | Click previous or next | Previous/next buttons remain enabled and navigation can select the only annual |
+| ANN-V-001 | Container mount | QML | AnnualState and theme available | Open AnnualView | `AnnualForm` and `AnnualBottomBar` mount against the injected AnnualState |
+| ANN-V-002 | Bottom-bar command delegation | QML/Interaction | AnnualView mounted in create mode | Click Create in the bottom bar | The command is forwarded to AnnualState |
+
+### AnnualBottomBar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANN-BB-001 | Create-mode actions | QML/Interaction | AnnualBottomBar mounted with create-mode AnnualState | Click previous, workspace, clear, create, and next | The matching AnnualState methods are called |
+| ANN-BB-002 | Edit-mode actions | QML/Interaction | AnnualBottomBar mounted with edit-mode AnnualState | Click delete and update | Delete and update are forwarded to AnnualState |
+
+### AnnualSidebar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANN-SB-001 | Row selection | QML/Interaction | Annual rows available in AnnualState | Click a sidebar row | AnnualState receives the selected annual id |
 
 ### AnnualForm
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ANN-001 | Create annual | QML/Interaction | No selected annual, valid year entered | Enter annual name and year, click Create | `saveAnnual("", ...)` is called, selected annual id becomes returned id |
-| ANN-002 | Read annual state | QML/Interaction | Selected annual with loaded analyses and transactions | Open form in edit mode | `annual(id)` resolves the live annual payload and the form fields plus derived panels reflect selected annual state |
-| ANN-003 | Update annual | QML/Interaction | Selected annual with modified fields or analyses | Change name, year or analyses and click Update | `saveAnnual(current.id, ...)` is called and saved state is refreshed |
-| ANN-004 | Delete annual | QML/Interaction | Selected annual with valid id | Click Delete | `deleteAnnual(id)` is called and selection advances deterministically |
-| ANN-005 | Year validation | QML/Interaction | Create mode with invalid year text | Enter invalid year | Submit remains disabled |
-| ANN-006 | Analysis assignment | QML/Interaction | Analysis rows available | Select analyses in panel | Assigned analysis ids are updated |
-| ANN-007 | Analysis removal | QML/Interaction | Selected analyses present | Remove assigned analysis | Assigned analysis ids shrink deterministically |
-| ANN-008 | Annual navigation | QML/Interaction | Annual rows available | Click Prev or Next | Selected annual id moves to adjacent annual |
+| ANN-F-001 | Name and year binding | QML/Interaction | AnnualForm mounted with AnnualState | Edit name and year controls | AnnualState receives the new values |
+| ANN-F-002 | Workspace stack binding | QML/Interaction | AnnualForm mounted with analysis and transaction workspaces | Change AnnualState workspace index | The form switches from analysis assignment to annual transactions |
 
 ### AnnualAnalysesPanel
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | ANN-P-001 | Add annual analysis | QML | Analysis rows available | Activate add analysis button | Analysis id is added once to selection |
-| ANN-P-002 | Add export format update | QML/Interaction | Assigned analysis row visible | Change export format | `updateAnalysis()` is called with normalized export format |
+| ANN-P-002 | Export format update | QML/Interaction | Assigned analysis row visible | Change export format | AnnualState receives the target analysis id and export format |
 | ANN-P-003 | Remove analysis | QML/Interaction | Assigned analysis visible | Activate remove analysis button | Analysis id is removed from selection |
-| ANN-P-004 | Assigned analysis row rendering | QML/Interaction | Selected annual has `analysisIds` and matching analysis rows | Open annual form in edit mode | Assigned analysis renders as a visible panel row (not only reflected in summary counters) |
-| ANN-P-005 | Annual transaction snapshot mapping | QML/Interaction | Selected annual has assigned analyses with canonical snapshot payload arrays (`[]`) and live transaction rows | Switch to Annual Transactions workspace | Transactions are derived/rendered from `WorkspaceFacade::annualResultStatePreview` through the annual application service, including allocatable state and contract type when available |
 
 ### AnnualTransactionsPanel
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| ANN-T-001 | Category sections render deterministically | QML/Interaction | Grouped annual transaction payload contains at least one row in `deduplicated`, `similar`, `divergent`, and `workspaceOnly` | Open annual transactions panel | All four category section toggles are visible and stay independently expandable/collapsible |
+| ANN-T-001 | Category sections render deterministically | QML/Interaction | Grouped annual transaction payload contains visible section rows | Open annual transactions panel | All annual transaction category section toggles are visible |
+| ANN-T-002 | Section toggle delegation | QML/Interaction | Annual transaction section visible | Click a section toggle | AnnualState receives the section key |
+
+### AnnualVerificationPanel
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANN-VP-001 | Verification summary rendering | QML | AnnualState exposes verification rows and status summary | Open AnnualVerificationPanel | The status summary and verification panel mount from AnnualState |
 
 ## Booking
 

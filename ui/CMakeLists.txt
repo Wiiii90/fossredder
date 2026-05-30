@@ -23,6 +23,7 @@ set(UI_SOURCES
     src/shell/AppContext.cpp
     src/shell/QmlRuntime.cpp
     src/workflows/analysis/AnalysisWorkflow.cpp
+    src/workflows/annual/AnnualWorkflow.cpp
     src/workflows/export/ExportWorkflow.cpp
     src/platform/filesystem/FileSystemBrowser.cpp
     src/workflows/import/ImportWorkflow.cpp
@@ -55,6 +56,7 @@ set(UI_SOURCES
     src/state/import/TransactionDraftState.cpp
     src/state/navigation/NavigationState.cpp
     src/state/session/AnalysisState.cpp
+    src/state/session/AnnualState.cpp
     src/state/session/ActorState.cpp
     src/state/session/BookingState.cpp
     src/state/session/ContractState.cpp
@@ -84,6 +86,7 @@ set(UI_HEADERS
     include/ui/shell/QmlRuntime.h
     include/ui/shared/config/Defaults.h
     include/ui/workflows/analysis/AnalysisWorkflow.h
+    include/ui/workflows/annual/AnnualWorkflow.h
     include/ui/workflows/export/ExportWorkflow.h
     include/ui/platform/filesystem/FileSystemBrowser.h
     include/ui/workflows/import/ImportWorkflow.h
@@ -124,6 +127,7 @@ set(UI_HEADERS
     include/ui/state/import/TransactionDraftState.h
     include/ui/state/navigation/NavigationState.h
     include/ui/state/session/AnalysisState.h
+    include/ui/state/session/AnnualState.h
     include/ui/state/session/ActorState.h
     include/ui/state/session/BookingState.h
     include/ui/state/session/ContractState.h
@@ -199,6 +203,7 @@ target_include_directories(fossredder_ui PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/viewmodels/system
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/workflows
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/workflows/analysis
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/workflows/annual
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/workflows/export
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/workflows/import
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/workspace
@@ -384,6 +389,8 @@ if(BUILD_UI_TESTS)
         tests/unit/TestAnalysisPayloadMapper.cpp
         tests/unit/TestAnalysisState.cpp
         tests/unit/TestAnalysisWorkflow.cpp
+        tests/unit/TestAnnualState.cpp
+        tests/unit/TestAnnualWorkflow.cpp
         tests/unit/TestBookingState.cpp
         tests/unit/TestExportWorkflow.cpp
         tests/unit/TestImportWorkflow.cpp

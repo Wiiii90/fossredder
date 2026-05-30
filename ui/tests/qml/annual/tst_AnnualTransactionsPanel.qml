@@ -7,9 +7,10 @@ pragma ComponentBehavior: Bound
 
 import QtQuick 2.15
 import QtTest 1.3
-import FossRedder.Views 1.0
+import FossRedder.Views.Annual 1.0 as Annual
 
 import "../Lookup.js" as Lookup
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -18,9 +19,42 @@ TestCase {
     width: 960
     height: 640
 
+    property var annualState: QtObject {
+        property var annualTransactions: [{ id: "d-1" }]
+        property var transactionSections: [
+            { key: "deduplicated", title: "Included entries (exact matches)", expanded: true, visible: true, rows: [row("d-1", "Dedup", 0)] },
+            { key: "similar", title: "Included entries (possible variants)", expanded: true, visible: true, rows: [row("s-1", "Similar", 1)] },
+            { key: "divergent", title: "Included entries (unique)", expanded: true, visible: true, rows: [row("v-1", "Divergent", 2)] },
+            { key: "workspaceOnly", title: "Missing live transactions from selected year", expanded: true, visible: true, rows: [row("w-1", "WorkspaceOnly", 3)] },
+            { key: "missingLive", title: "Included deleted transactions", expanded: true, visible: true, rows: [row("m-1", "MissingLive", 0)] }
+        ]
+        property string toggledKey: ""
+        function row(id, name, status) {
+            return {
+                id: id,
+                name: name,
+                sourceNamesText: "",
+                bookingDate: "2026-01-01",
+                amountText: "10.00",
+                allocatableText: "Allocatable",
+                allocatable: true,
+                contractType: "rent",
+                contractTypeLabel: "rent",
+                status: status,
+                statusText: "Neutral",
+                statusTone: "primary",
+                isMixedYear: false
+            }
+        }
+        function toggleTransactionSection(key) { toggledKey = key }
+    }
+
     property var theme: QtObject {
         property int spacingSmall: 6
         property int spacing: 8
+        property int controlHeight: 32
+        property int viewNavigationButtonWidth: 42
+        property int viewCompactActionButtonSizeSmall: 32
         property int radius: 3
         property int borderWidthThin: 1
         property color surfaceAlt: "#f5f5f5"
@@ -32,20 +66,25 @@ TestCase {
         property color warning: "#a86d00"
         property color danger: "#b0302f"
         property color info: "#1a73b8"
+        property var annual: ({
+            transactions: {
+                tableMinWidth: 720,
+                dateColumnWidth: 110,
+                amountColumnWidth: 90,
+                allocatableColumnWidth: 130,
+                typeColumnWidth: 120,
+                statusColumnWidth: 100
+            }
+        })
     }
 
     Component {
         id: panelComponent
-        AnnualTransactionsPanel {
+        Annual.AnnualTransactionsPanel {
             width: 960
             height: 640
             theme: testCase.theme
-            groupedTransactions: ({
-                deduplicated: [{ id: "d-1", name: "Dedup", bookingDate: "2026-01-01", amount: 10.0, status: 0, allocatable: true }],
-                similar: [{ id: "s-1", name: "Similar", bookingDate: "2026-01-02", amount: 11.0, status: 1, allocatable: true }],
-                divergent: [{ id: "v-1", name: "Divergent", bookingDate: "2026-01-03", amount: 12.0, status: 2, allocatable: false, isMissingLive: true }],
-                workspaceOnly: [{ id: "w-1", name: "WorkspaceOnly", bookingDate: "2026-01-04", amount: 13.0, status: 3, allocatable: true }]
-            })
+            annualState: testCase.annualState
         }
     }
 
@@ -53,20 +92,20 @@ TestCase {
         return createTemporaryObject(panelComponent, testCase)
     }
 
-    function findRequired(root, objectName) {
-        var match = Lookup.findObject(root, objectName)
-        verify(match !== null, "Missing object: " + objectName)
-        return match
-    }
-
     function test_ANN_T_001_rendersAllCategoryTogglesWhenRowsExist() {
-        var panel = createPanel()
+        const panel = createPanel()
         wait(0)
 
-        verify(findRequired(panel, "annualTransactionsSectionToggle_deduplicated") !== null)
-        verify(findRequired(panel, "annualTransactionsSectionToggle_similar") !== null)
-        verify(findRequired(panel, "annualTransactionsSectionToggle_divergent") !== null)
-        verify(findRequired(panel, "annualTransactionsSectionToggle_workspaceOnly") !== null)
-        verify(findRequired(panel, "annualTransactionsSectionToggle_missingLive") !== null)
+        verify(TestSupport.findRequired(Lookup, panel, "annualTransactionsSectionToggle_deduplicated") !== null)
+        verify(TestSupport.findRequired(Lookup, panel, "annualTransactionsSectionToggle_similar") !== null)
+        verify(TestSupport.findRequired(Lookup, panel, "annualTransactionsSectionToggle_divergent") !== null)
+        verify(TestSupport.findRequired(Lookup, panel, "annualTransactionsSectionToggle_workspaceOnly") !== null)
+        verify(TestSupport.findRequired(Lookup, panel, "annualTransactionsSectionToggle_missingLive") !== null)
+    }
+
+    function test_ANN_T_002_sectionToggleDelegatesToAnnualState() {
+        const panel = createPanel()
+        TestSupport.findRequired(Lookup, panel, "annualTransactionsSectionMouseArea_similar").clicked(null)
+        compare(annualState.toggledKey, "similar")
     }
 }

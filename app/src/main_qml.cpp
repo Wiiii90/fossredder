@@ -6,6 +6,7 @@
 #ifdef USE_QML
 #include "MainWindow.h"
 #include "core/application/analysis/AnalysisService.h"
+#include "core/application/annual/AnnualService.h"
 #include "core/application/export/ExportLog.h"
 #include "core/application/export/ExportRequest.h"
 #include "core/application/export/ExportResult.h"
@@ -47,6 +48,7 @@ using core::domain::DeletionImpact;
 #include "ui/shared/observability/Origins.h"
 #include "ui/shared/observability/Trace.h"
 #include "ui/workflows/analysis/AnalysisWorkflow.h"
+#include "ui/workflows/annual/AnnualWorkflow.h"
 #include "ui/workflows/export/ExportWorkflow.h"
 #include "ui/workflows/import/ImportWorkflow.h"
 #include <QApplication>
@@ -230,10 +232,12 @@ executeExport(std::shared_ptr<const core::domain::catalog::WorkspaceCatalog> sna
 
 struct UiServices {
   ui::AnalysisWorkflow *analysisWorkflow = nullptr;
+  ui::AnnualWorkflow *annualWorkflow = nullptr;
   ui::ExportWorkflow *exportWorkflow = nullptr;
   ui::ImportWorkflow *importWorkflow = nullptr;
   ui::LanguageService *languageService = nullptr;
   std::shared_ptr<core::application::analysis::AnalysisService> analysisService;
+  std::shared_ptr<core::application::annual::AnnualService> annualService;
 };
 
 struct AnalysisPresenterAdapter final
@@ -339,6 +343,10 @@ UiServices setupUiServices(
     return std::make_shared<const core::domain::catalog::WorkspaceCatalog>(appStateFacade.catalogState());
   };
 
+  const auto annualSnapshotProvider = [&appStateFacade]() {
+    return appStateFacade.workspaceSnapshot();
+  };
+
   const auto exportSnapshotProvider = [&appStateFacade]() {
     return std::make_shared<const core::application::workspace::WorkspaceSessionState>(appStateFacade.state());
   };
@@ -357,6 +365,15 @@ UiServices setupUiServices(
                           ui.analysisWorkflow);
   if (auto *appContext = w.appContext())
     appContext->setAnalysisWorkflow(ui.analysisWorkflow);
+
+  ui.annualService =
+      std::make_shared<core::application::annual::AnnualService>();
+  ui.annualWorkflow =
+      new ui::AnnualWorkflow(annualSnapshotProvider, ui.annualService, &w);
+  w.setQmlContextProperty(ui::qml::contracts::context::kAnnualWorkflow,
+                          ui.annualWorkflow);
+  if (auto *appContext = w.appContext())
+    appContext->setAnnualWorkflow(ui.annualWorkflow);
 
   auto exportRunner =
       std::make_shared<ui::exporting::ExportRunner>(executeExport);

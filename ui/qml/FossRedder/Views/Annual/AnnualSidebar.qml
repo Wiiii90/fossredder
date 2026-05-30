@@ -1,6 +1,6 @@
 /**
  * @file ui/qml/FossRedder/Views/Annual/AnnualSidebar.qml
- * @brief Provides the AnnualSidebar component.
+ * @brief Provides the Annual sidebar list.
  */
 
 import QtQuick 2.15
@@ -9,12 +9,12 @@ pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    required property var appContext
+    required property var annualState
     required property var theme
-    readonly property var session: root.appContext ? root.appContext.session : null
+    width: root.theme.shellSidebarPreferredWidth
 
     ColumnLayout {
-        anchors.fill: parent
+        anchors.fill: root
         anchors.margins: root.theme.spacingMedium
         spacing: root.theme.spacingSmall
 
@@ -31,49 +31,45 @@ Item {
                 spacing: root.theme.spacingSmall
 
                 Repeater {
-                    model: root.session ? root.session.annuals : null
+                    model: root.annualState.annualRows
 
                     delegate: Rectangle {
                         id: annualRow
-                        required property string id
-                        required property string name
-                        required property int year
+                        objectName: "annualSidebarRow"
+                        required property var modelData
                         width: annualColumn.width
-                        height: 44
-                        radius: 6
-                        color: root.session && annualRow.id === root.session.selectedAnnualId
+                        height: root.theme.viewSidebarRowHeight
+                        radius: root.theme.viewSidebarRowRadius
+                        color: annualRow.modelData.id === root.annualState.selectedAnnualId
                                ? root.theme.selectionHighlight
                                : "transparent"
                         border.color: root.theme.borderSoft
                         border.width: root.theme.borderWidthThin
 
                         MouseArea {
+                            objectName: "annualSidebarRowMouseArea"
                             anchors.fill: parent
-                            onClicked: {
-                                if (root.session)
-                                    root.session.selectedAnnualId = annualRow.id
-                            }
+                            onClicked: root.annualState.selectAnnual(annualRow.modelData.id)
                         }
 
                         Column {
                             anchors.fill: parent
                             anchors.margins: root.theme.spacingSmall
-                            spacing: 2
+                            spacing: root.theme.viewSidebarRowSpacing
 
                             Text {
                                 width: parent.width
-                                text: annualRow.name.length > 0
-                                      ? annualRow.name
-                                      : String(annualRow.year)
+                                text: annualRow.modelData.display
                                 color: root.theme.textPrimary
                                 elide: Text.ElideRight
                             }
 
                             Text {
                                 width: parent.width
-                                text: annualRow.year > 0 ? String(annualRow.year) : ""
+                                text: String(annualRow.modelData.year)
                                 color: root.theme.textMuted
                                 elide: Text.ElideRight
+                                visible: text.length > 0
                             }
                         }
                     }
@@ -82,4 +78,3 @@ Item {
         }
     }
 }
-

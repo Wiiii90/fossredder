@@ -7,6 +7,7 @@
 #include "ui/platform/filesystem/FileSystemBrowser.h"
 #include "ui/workflows/import/ImportWorkflow.h"
 #include "ui/workflows/analysis/AnalysisWorkflow.h"
+#include "ui/workflows/annual/AnnualWorkflow.h"
 #include "ui/workflows/export/ExportWorkflow.h"
 #include "ui/platform/localization/LanguageService.h"
 #include "ui/viewmodels/system/SettingsViewModel.h"
@@ -30,6 +31,7 @@ class AppContext : public QObject {
     Q_PROPERTY(ui::FileSystemBrowser* fileSystemBrowser READ fileSystemBrowser WRITE setFileSystemBrowser NOTIFY fileSystemBrowserChanged)
     Q_PROPERTY(ui::StatusState* status READ status WRITE setStatus NOTIFY statusChanged)
     Q_PROPERTY(ui::AnalysisWorkflow* analysisWorkflow READ analysisWorkflow WRITE setAnalysisWorkflow NOTIFY analysisWorkflowChanged)
+    Q_PROPERTY(ui::AnnualWorkflow* annualWorkflow READ annualWorkflow WRITE setAnnualWorkflow NOTIFY annualWorkflowChanged)
     Q_PROPERTY(ui::ExportWorkflow* exportWorkflow READ exportWorkflow WRITE setExportWorkflow NOTIFY exportWorkflowChanged)
     Q_PROPERTY(ui::ImportWorkflow* importWorkflow READ importWorkflow WRITE setImportWorkflow NOTIFY importWorkflowChanged)
     Q_PROPERTY(ui::LanguageService* languageService READ languageService WRITE setLanguageService NOTIFY languageServiceChanged)
@@ -48,6 +50,7 @@ public:
     ui::FileSystemBrowser* fileSystemBrowser() const noexcept { return fileSystemBrowser_; }
     ui::StatusState* status() const noexcept { return status_; }
     ui::AnalysisWorkflow* analysisWorkflow() const noexcept { return analysisWorkflow_; }
+    ui::AnnualWorkflow* annualWorkflow() const noexcept { return annualWorkflow_; }
     ui::ExportWorkflow* exportWorkflow() const noexcept { return exportWorkflow_; }
     ui::ImportWorkflow* importWorkflow() const noexcept { return importWorkflow_; }
     ui::LanguageService* languageService() const noexcept { return languageService_; }
@@ -62,6 +65,7 @@ public:
     void setFileSystemBrowser(ui::FileSystemBrowser* value);
     void setStatus(ui::StatusState* value);
     void setAnalysisWorkflow(ui::AnalysisWorkflow* value);
+    void setAnnualWorkflow(ui::AnnualWorkflow* value);
     void setExportWorkflow(ui::ExportWorkflow* value);
     void setImportWorkflow(ui::ImportWorkflow* value);
     void setLanguageService(ui::LanguageService* value);
@@ -78,6 +82,7 @@ signals:
     void fileSystemBrowserChanged();
     void statusChanged();
     void analysisWorkflowChanged();
+    void annualWorkflowChanged();
     void exportWorkflowChanged();
     void importWorkflowChanged();
     void languageServiceChanged();
@@ -92,6 +97,7 @@ private:
     ui::FileSystemBrowser* fileSystemBrowser_ = nullptr;
     ui::StatusState* status_ = nullptr;
     ui::AnalysisWorkflow* analysisWorkflow_ = nullptr;
+    ui::AnnualWorkflow* annualWorkflow_ = nullptr;
     ui::ExportWorkflow* exportWorkflow_ = nullptr;
     ui::ImportWorkflow* importWorkflow_ = nullptr;
     ui::LanguageService* languageService_ = nullptr;

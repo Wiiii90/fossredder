@@ -1,15 +1,16 @@
 /**
  * @file ui/tests/qml/annual/tst_AnnualView.qml
- * @brief Provides QML tests for AnnualView behavior.
+ * @brief Provides QML composition tests for AnnualView.
  */
 
 pragma ComponentBehavior: Bound
 
 import QtQuick 2.15
 import QtTest 1.3
-import FossRedder.Views 1.0
+import FossRedder.Views.Annual 1.0 as Annual
 
 import "../Lookup.js" as Lookup
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -18,74 +19,52 @@ TestCase {
     width: 960
     height: 640
 
-    property var session: QtObject {
-        property var selectedAnnual: null
+    property var annualState: QtObject {
+        property bool isEdit: false
+        property bool canSubmit: true
+        property bool hasRows: true
+        property bool hasChanges: true
+        property string name: ""
+        property int year: 2026
+        property int workspaceIndex: 0
+        property var annualRows: []
         property string selectedAnnualId: ""
-        property var annuals: []
-        property var analysesData: []
-
-        function annualRows() { return annuals || [] }
-        function analysisRows() { return analysesData || [] }
-        function indexOfId(rows, id) {
-            var list = rows || []
-            for (var i = 0; i < list.length; ++i) {
-                if (String(list[i].id || "") === String(id || ""))
-                    return i
-            }
-            return -1
-        }
-        function navigatedId(rows, currentId, delta, fallbackIndex) {
-            var list = rows || []
-            if (list.length === 0)
-                return ""
-            var idx = 0
-            for (var i = 0; i < list.length; ++i) {
-                if (String(list[i].id || "") === String(currentId || "")) {
-                    idx = i
-                    break
-                }
-            }
-            idx = (idx + delta + list.length) % list.length
-            return String(list[idx].id || "")
-        }
-        function deleteNextSelectionId(rows, removedId, fallbackIndex, key) { return "" }
-    }
-
-    property var annualController: QtObject {
-        function annual(id) { return ({ id: "", name: "", year: 0, transactionIds: [], assignedAnalysisIds: [] }) }
-        function saveAnnual(id, name, year, assignedAnalysisIds) { return id && id.length > 0 ? id : "annual-new" }
-        function deleteAnnual(id) {}
-    }
-
-    property var analysisController: QtObject {
-        function updateAnalysis(id, name, type, config, filter, exportFormat, includeCalcAdjustments, exportState, snapshotTransactions) {}
-    }
-
-    property var transactionController: QtObject {
-        function transaction(id) { return ({}) }
-        function transactions() { return [] }
-    }
-
-    property var appContext: QtObject {
-        property var session: testCase.session
-        property var sessionState: testCase.session
-        property var annualController: testCase.annualController
-        property var analysisController: testCase.analysisController
-        property var transactionController: testCase.transactionController
-        property bool isDebugBuild: false
+        property var availableAnalysisRows: []
+        property var assignedAnalysisRows: []
+        property var annualTransactions: []
+        property var transactionSections: []
+        property var verificationRows: []
+        property string statusSummaryText: "Neutral: 0, Unverified: 0, Verified: 0, Completed: 0"
+        property int refreshCalls: 0
+        property int createCalls: 0
+        function refreshFromSelection() { refreshCalls += 1 }
+        function submitCreate() { createCalls += 1 }
+        function resetCreateState() {}
+        function submitUpdate() {}
+        function deleteCurrent() {}
+        function navigate(delta) {}
+        function toggleWorkspace() {}
+        function addAvailableAnalysisAtIndex(index) {}
+        function removeAnalysis(id) {}
+        function setAnalysisExportFormat(id, exportFormat) {}
+        function toggleTransactionSection(key) {}
+        function stepYear(delta) { year += delta }
     }
 
     property var theme: QtObject {
         property int pageContentMargin: 8
         property int viewFormSpacing: 8
         property int formLabelWidth: 120
+        property int formFieldWidth: 200
         property int spacingSmall: 6
         property int spacing: 8
         property int viewSelectionPanelMinHeight: 160
         property int viewSelectionPanelPreferredHeight: 220
         property int controlHeight: 32
         property int viewCompactActionButtonSize: 28
+        property int viewCompactActionButtonSizeSmall: 32
         property int viewActionButtonWidth: 120
+        property int viewNavigationButtonWidth: 42
         property int radius: 3
         property int borderWidthThin: 1
         property color borderSoft: "#cccccc"
@@ -94,22 +73,30 @@ TestCase {
         property color border: "#cccccc"
         property color textPrimary: "#000000"
         property color textMuted: "#666666"
+        property color danger: "#b0302f"
+        property color success: "#0a7f2e"
+        property color warning: "#a86d00"
+        property color info: "#1a73b8"
+        property var annual: ({
+            transactions: {
+                tableMinWidth: 720,
+                dateColumnWidth: 110,
+                amountColumnWidth: 90,
+                allocatableColumnWidth: 130,
+                typeColumnWidth: 120,
+                statusColumnWidth: 100
+            }
+        })
     }
 
     Component {
         id: annualViewComponent
-        AnnualView {
+        Annual.AnnualView {
             width: 960
             height: 640
-            appContext: testCase.appContext
+            annualState: testCase.annualState
             theme: testCase.theme
         }
-    }
-
-    function findRequired(root, objectName) {
-        var match = Lookup.findObject(root, objectName)
-        verify(match !== null, "Missing object: " + objectName)
-        return match
     }
 
     function createView() {
@@ -117,81 +104,19 @@ TestCase {
     }
 
     function init() {
-        session.selectedAnnualId = ""
-        session.selectedAnnual = null
-        session.annuals = []
-        session.analysesData = []
+        annualState.refreshCalls = 0
+        annualState.createCalls = 0
     }
 
-    function test_mountsAnnualFormCreateMode() {
-        var view = createView()
-        var nameField = findRequired(view, "annualNameField")
-        verify(nameField !== null)
+    function test_ANN_V_001_mountsFormAndBottomBarWithAnnualState() {
+        const view = createView()
+        verify(TestSupport.findRequired(Lookup, view, "annualNameField") !== null)
+        verify(TestSupport.findRequired(Lookup, view, "annualCreateButton") !== null)
     }
 
-    function test_mountsAnnualFormEditMode() {
-        session.selectedAnnualId = "annual-1"
-        session.selectedAnnual = Qt.createQmlObject('import QtQml 2.15; QtObject { property string id: "annual-1" }', testCase)
-
-        var view = createView()
-        var updateButton = findRequired(view, "annualUpdateButton")
-        verify(updateButton !== null)
-    }
-
-    function test_navigationCyclesThroughCreateMode() {
-        session.annuals = [
-            { id: "annual-1", name: "A1" },
-            { id: "annual-2", name: "A2" },
-            { id: "annual-3", name: "A3" }
-        ]
-        session.selectedAnnualId = "annual-3"
-        session.selectedAnnual = Qt.createQmlObject('import QtQml 2.15; QtObject { property string id: "annual-3" }', testCase)
-
-        var view = createView()
-        findRequired(view, "annualNextButton").clicked()
-        compare(session.selectedAnnualId, "")
-
-        findRequired(view, "annualNextButton").clicked()
-        compare(session.selectedAnnualId, "annual-1")
-
-        session.selectedAnnualId = "annual-1"
-        session.selectedAnnual = Qt.createQmlObject('import QtQml 2.15; QtObject { property string id: "annual-1" }', testCase)
-        findRequired(view, "annualPreviousButton").clicked()
-        compare(session.selectedAnnualId, "")
-
-        findRequired(view, "annualPreviousButton").clicked()
-        compare(session.selectedAnnualId, "annual-3")
-    }
-
-    function test_navigationStaysEnabledWithSingleRow() {
-        session.annuals = [
-            { id: "annual-1", name: "A1" }
-        ]
-
-        var view = createView()
-        var nextButton = findRequired(view, "annualNextButton")
-        var previousButton = findRequired(view, "annualPreviousButton")
-
-        compare(nextButton.enabled, true)
-        compare(previousButton.enabled, true)
-
-        nextButton.clicked()
-        compare(session.selectedAnnualId, "annual-1")
-    }
-
-    function test_createModeNavigationStartsAtEdges() {
-        session.annuals = [
-            { id: "annual-1", name: "A1" },
-            { id: "annual-2", name: "A2" },
-            { id: "annual-3", name: "A3" }
-        ]
-
-        var view = createView()
-        findRequired(view, "annualNextButton").clicked()
-        compare(session.selectedAnnualId, "annual-1")
-
-        session.selectedAnnualId = ""
-        findRequired(view, "annualPreviousButton").clicked()
-        compare(session.selectedAnnualId, "annual-3")
+    function test_ANN_V_002_bottomBarCommandUsesInjectedAnnualState() {
+        const view = createView()
+        TestSupport.findRequired(Lookup, view, "annualCreateButton").clicked()
+        compare(annualState.createCalls, 1)
     }
 }

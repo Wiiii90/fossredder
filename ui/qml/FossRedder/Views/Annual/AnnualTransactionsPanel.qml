@@ -1,6 +1,6 @@
 /**
  * @file ui/qml/FossRedder/Views/Annual/AnnualTransactionsPanel.qml
- * @brief Provides the AnnualTransactionsPanel component.
+ * @brief Provides the Annual transactions panel.
  */
 
 import QtQuick 2.15
@@ -12,94 +12,7 @@ pragma ComponentBehavior: Bound
 Controls.Panel {
     id: root
     required property var theme
-    property var transactions: []
-    property var groupedTransactions: ({ deduplicated: [], similar: [], divergent: [], workspaceOnly: [] })
-    property int minTableWidth: 720
-
-    function amountText(value) {
-        const amount = Number(value)
-        if (isNaN(amount))
-            return "0.00"
-        return amount.toFixed(2)
-    }
-
-    function asArray(value) {
-        return value && value.length !== undefined ? value : []
-    }
-
-    function sourceNames(row) {
-        if (!row || !row.sourceAnalysisNames || row.sourceAnalysisNames.length === 0)
-            return ""
-        return String(row.sourceAnalysisNames.join(", "))
-    }
-
-    function statusColor(status) {
-        const s = Number(status || 0)
-        if (s === 3)
-            return root.theme.success ? root.theme.success : root.theme.textPrimary
-        if (s === 2)
-            return root.theme.info ? root.theme.info : root.theme.textPrimary
-        if (s === 1)
-            return root.theme.warning ? root.theme.warning : root.theme.textPrimary
-        return root.theme.textPrimary
-    }
-
-    property var sectionExpanded: ({
-        deduplicated: true,
-        similar: true,
-        divergent: true,
-        workspaceOnly: true,
-        missingLive: true
-    })
-
-    function isExpanded(key) {
-        return !!(root.sectionExpanded && root.sectionExpanded[key])
-    }
-
-    function toggleExpanded(key) {
-        var next = {
-            deduplicated: root.isExpanded("deduplicated"),
-            similar: root.isExpanded("similar"),
-            divergent: root.isExpanded("divergent"),
-            workspaceOnly: root.isExpanded("workspaceOnly"),
-            missingLive: root.isExpanded("missingLive")
-        }
-        next[key] = !next[key]
-        root.sectionExpanded = next
-    }
-
-    function missingLiveRows() {
-        const groups = root.groupedTransactions || ({})
-        const merged = []
-        const seen = ({})
-        const buckets = [
-            root.asArray(groups.deduplicated),
-            root.asArray(groups.similar),
-            root.asArray(groups.divergent)
-        ]
-        for (let b = 0; b < buckets.length; ++b) {
-            const rows = buckets[b]
-            for (let i = 0; i < rows.length; ++i) {
-                const row = rows[i] || ({})
-                if (!row.isMissingLive)
-                    continue
-                const key = String(row.key || row.id || ("missingLive-" + b + "-" + i))
-                if (seen[key])
-                    continue
-                seen[key] = true
-                merged.push(row)
-            }
-        }
-        return merged
-    }
-
-    function groupedCount() {
-        const groups = root.groupedTransactions || ({})
-        return root.asArray(groups.deduplicated).length
-                + root.asArray(groups.similar).length
-                + root.asArray(groups.divergent).length
-                + root.asArray(groups.workspaceOnly).length
-    }
+    required property var annualState
 
     Layout.fillWidth: true
     Layout.fillHeight: true
@@ -120,7 +33,7 @@ Controls.Panel {
             Layout.fillHeight: true
             radius: root.theme.radius
             color: root.theme.surfaceAlt
-            border.width: 1
+            border.width: root.theme.borderWidthThin
             border.color: root.theme.border
 
             Flickable {
@@ -136,31 +49,26 @@ Controls.Panel {
 
                 Column {
                     id: txRows
-                    width: Math.max(txScroll.width, root.minTableWidth)
+                    width: Math.max(txScroll.width, root.theme.annual.transactions.tableMinWidth)
                     spacing: root.theme.spacingSmall
 
                     Repeater {
-                        model: [
-                            { key: "deduplicated", title: qsTr("Included entries (exact matches)"), rows: root.asArray(root.groupedTransactions ? root.groupedTransactions.deduplicated : []) },
-                            { key: "similar", title: qsTr("Included entries (possible variants)"), rows: root.asArray(root.groupedTransactions ? root.groupedTransactions.similar : []) },
-                            { key: "divergent", title: qsTr("Included entries (unique)"), rows: root.asArray(root.groupedTransactions ? root.groupedTransactions.divergent : []) },
-                            { key: "workspaceOnly", title: qsTr("Missing live transactions from selected year"), rows: root.asArray(root.groupedTransactions ? root.groupedTransactions.workspaceOnly : []) },
-                            { key: "missingLive", title: qsTr("Included deleted transactions"), rows: root.missingLiveRows() }
-                        ]
+                        model: root.annualState.transactionSections
 
                         delegate: Column {
+                            id: sectionColumn
                             required property var modelData
                             width: txRows.width
                             spacing: root.theme.spacingSmall
-                            visible: modelData.rows.length > 0
+                            visible: sectionColumn.modelData.visible
 
                             Rectangle {
-                                objectName: "annualTransactionsSectionToggle_" + String(modelData.key)
-                                width: parent.width
+                                objectName: "annualTransactionsSectionToggle_" + String(sectionColumn.modelData.key)
+                                width: sectionColumn.width
                                 height: root.theme.controlHeight
                                 radius: root.theme.radius
                                 color: root.theme.surface
-                                border.width: 1
+                                border.width: root.theme.borderWidthThin
                                 border.color: root.theme.border
 
                                 Label {
@@ -169,41 +77,39 @@ Controls.Panel {
                                     anchors.rightMargin: root.theme.spacingSmall
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
-                                    text: (root.isExpanded(modelData.key) ? "▾ " : "▸ ")
-                                          + modelData.title + " (" + modelData.rows.length + ")"
+                                    text: (sectionColumn.modelData.expanded ? "\u25BE " : "\u25B8 ")
+                                          + sectionColumn.modelData.title + " (" + sectionColumn.modelData.rows.length + ")"
                                     color: root.theme.textPrimary
                                     elide: Text.ElideRight
                                 }
 
                                 MouseArea {
+                                    objectName: "annualTransactionsSectionMouseArea_" + String(sectionColumn.modelData.key)
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.toggleExpanded(modelData.key)
+                                    onClicked: root.annualState.toggleTransactionSection(sectionColumn.modelData.key)
                                 }
                             }
 
                             Repeater {
-                                model: root.isExpanded(modelData.key) ? modelData.rows : []
+                                model: sectionColumn.modelData.expanded ? sectionColumn.modelData.rows : []
 
                                 delegate: Rectangle {
                                     id: txRow
                                     required property var modelData
-                                    width: parent ? parent.width : txRows.width
+                                    width: sectionColumn.width
                                     implicitHeight: rowLayout.implicitHeight + (root.theme.spacingSmall * 2)
                                     radius: root.theme.radius
                                     color: root.theme.surface
-                                    border.width: 1
-                                    border.color: txRow.modelData && txRow.modelData.isMixedYear
+                                    border.width: root.theme.borderWidthThin
+                                    border.color: txRow.modelData.isMixedYear
                                                   ? root.theme.danger
                                                   : root.theme.border
 
                                     RowLayout {
                                         id: rowLayout
                                         anchors.fill: parent
-                                        anchors.leftMargin: root.theme.spacingSmall
-                                        anchors.rightMargin: root.theme.spacingSmall
-                                        anchors.topMargin: root.theme.spacingSmall
-                                        anchors.bottomMargin: root.theme.spacingSmall
+                                        anchors.margins: root.theme.spacingSmall
                                         spacing: root.theme.spacingSmall
 
                                         ColumnLayout {
@@ -211,13 +117,14 @@ Controls.Panel {
                                             spacing: root.theme.spacingSmall
 
                                             Label {
-                                                text: txRow.modelData && txRow.modelData.name ? txRow.modelData.name : ""
+                                                text: txRow.modelData.name
                                                 Layout.fillWidth: true
                                                 elide: Text.ElideRight
                                             }
+
                                             Label {
-                                                visible: root.sourceNames(txRow.modelData).length > 0
-                                                text: qsTr("From: %1").arg(root.sourceNames(txRow.modelData))
+                                                visible: txRow.modelData.sourceNamesText.length > 0
+                                                text: qsTr("From: %1").arg(txRow.modelData.sourceNamesText)
                                                 Layout.fillWidth: true
                                                 elide: Text.ElideRight
                                                 color: root.theme.textMuted
@@ -225,42 +132,48 @@ Controls.Panel {
                                         }
 
                                         Label {
-                                            text: txRow.modelData && txRow.modelData.bookingDate ? txRow.modelData.bookingDate : ""
-                                            Layout.preferredWidth: 110
+                                            text: txRow.modelData.bookingDate
+                                            Layout.preferredWidth: root.theme.annual.transactions.dateColumnWidth
                                             horizontalAlignment: Text.AlignRight
                                             elide: Text.ElideRight
                                         }
 
                                         Label {
-                                            text: root.amountText(txRow.modelData && txRow.modelData.amount !== undefined ? txRow.modelData.amount : 0)
-                                            Layout.preferredWidth: 90
+                                            text: txRow.modelData.amountText
+                                            Layout.preferredWidth: root.theme.annual.transactions.amountColumnWidth
                                             horizontalAlignment: Text.AlignRight
                                         }
 
                                         Label {
-                                            text: txRow.modelData && txRow.modelData.allocatable ? qsTr("Allocatable") : qsTr("Non-allocatable")
-                                            Layout.preferredWidth: 110
+                                            text: txRow.modelData.allocatableText
+                                            Layout.preferredWidth: root.theme.annual.transactions.allocatableColumnWidth
                                             horizontalAlignment: Text.AlignRight
-                                            color: txRow.modelData && txRow.modelData.allocatable ? root.theme.success : root.theme.danger
+                                            color: txRow.modelData.allocatable ? root.theme.success : root.theme.danger
+                                            elide: Text.ElideRight
                                         }
 
                                         Label {
-                                            text: txRow.modelData && txRow.modelData.contractType && String(txRow.modelData.contractType).length > 0
-                                                  ? String(txRow.modelData.contractType)
-                                                  : qsTr("No type assigned")
-                                            Layout.preferredWidth: 100
+                                            text: txRow.modelData.contractTypeLabel
+                                            Layout.preferredWidth: root.theme.annual.transactions.typeColumnWidth
                                             horizontalAlignment: Text.AlignRight
                                             elide: Text.ElideRight
-                                            color: txRow.modelData && txRow.modelData.contractType && String(txRow.modelData.contractType).length > 0
+                                            color: txRow.modelData.contractType.length > 0
                                                    ? root.theme.textPrimary
                                                    : root.theme.textMuted
                                         }
 
                                         Label {
-                                            text: txRow.modelData && txRow.modelData.statusText ? txRow.modelData.statusText : qsTr("Neutral")
-                                            Layout.preferredWidth: 90
+                                            text: txRow.modelData.statusText
+                                            Layout.preferredWidth: root.theme.annual.transactions.statusColumnWidth
                                             horizontalAlignment: Text.AlignRight
-                                            color: root.statusColor(txRow.modelData ? txRow.modelData.status : 0)
+                                            color: txRow.modelData.statusTone === "success"
+                                                   ? root.theme.success
+                                                   : txRow.modelData.statusTone === "info"
+                                                     ? root.theme.info
+                                                     : txRow.modelData.statusTone === "warning"
+                                                       ? root.theme.warning
+                                                       : root.theme.textPrimary
+                                            elide: Text.ElideRight
                                         }
                                     }
                                 }
@@ -269,7 +182,7 @@ Controls.Panel {
                     }
 
                     Label {
-                        visible: root.groupedCount() === 0
+                        visible: root.annualState.annualTransactions.length === 0
                         text: qsTr("No annual transactions")
                         color: root.theme.textMuted
                         width: txRows.width

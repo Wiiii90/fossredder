@@ -36,6 +36,7 @@ inline const auto kWorkspaceFacade = QStringLiteral("workspaceFacade");
 inline const auto kFileSystemBrowser = QStringLiteral("fileSystemBrowser");
 inline const auto kStatus = QStringLiteral("status");
 inline const auto kAnalysisWorkflow = QStringLiteral("analysisWorkflow");
+inline const auto kAnnualWorkflow = QStringLiteral("annualWorkflow");
 inline const auto kExportWorkflow = QStringLiteral("exportWorkflow");
 inline const auto kImportWorkflow = QStringLiteral("importWorkflow");
 inline const auto kLanguageService = QStringLiteral("languageService");

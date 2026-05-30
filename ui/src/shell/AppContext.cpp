@@ -70,6 +70,11 @@ void AppContext::setAnalysisWorkflow(ui::AnalysisWorkflow* value)
     assignIfChanged(analysisWorkflow_, value, this, &AppContext::analysisWorkflowChanged);
 }
 
+void AppContext::setAnnualWorkflow(ui::AnnualWorkflow* value)
+{
+    assignIfChanged(annualWorkflow_, value, this, &AppContext::annualWorkflowChanged);
+}
+
 void AppContext::setExportWorkflow(ui::ExportWorkflow* value)
 {
     assignIfChanged(exportWorkflow_, value, this, &AppContext::exportWorkflowChanged);
@@ -98,4 +103,3 @@ void AppContext::setIsDebugBuild(bool value)
 }
 
 } // namespace ui::bootstrap
-

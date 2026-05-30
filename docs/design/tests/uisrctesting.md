@@ -45,6 +45,8 @@ ui/
       WorkspaceTestData.h
     unit/
       TestAnalysisPayloadMapper.cpp
+      TestAnnualState.cpp
+      TestAnnualWorkflow.cpp
       TestAnalysisWorkflow.cpp
       TestBookingState.cpp
       TestExportWorkflow.cpp
@@ -143,6 +145,10 @@ too stateful for declarative QML.
 | ANL-ST-002 | Analysis create with calc adjustments | Unit | AnalysisState in create mode with preview transactions and all filters selected | Select an adjustment transaction, enter a localized percent value, apply calc, and create | The new analysis persists adjustments, stores all-selection config filters as unfiltered, and the initial preview render uses the adjusted values |
 | ANL-ST-003 | Analysis update preserves stored calc amounts | Unit | AnalysisState loaded with an existing analysis containing stored calculation adjustments | Update analysis metadata in edit mode | Existing adjustment amounts remain unchanged in the core snapshot and pending UI state |
 | ANL-ST-004 | Analysis filter unassigned options | Unit | AnalysisState in create mode with workspace choices loaded | Inspect property and contract-type filter choices, then trigger the unassigned-only shortcuts | Both filter lists expose explicit unassigned choices and the shortcut selections keep the UI state deterministic |
+| ANN-ST-001 | Annual state loads selected annual | Unit | AnnualState loaded with a selected annual and analysis rows | Refresh from selection | Form fields, assigned/available analysis rows, and derived transaction sections reflect the annual |
+| ANN-ST-002 | Annual assignment preview and update | Unit | AnnualState loaded with one assigned and one available analysis | Add the available analysis and submit update | The preview updates, dirty state is set, and the annual persists both analysis ids |
+| ANN-ST-003 | Annual create commit | Unit | AnnualState in create mode with analysis rows | Enter name/year, assign an analysis, and create | A new annual is persisted and selected through the workspace facade |
+| ANN-ST-004 | Annual export format routing | Unit | AnnualState with an assigned plot analysis | Change the export format | The analysis update is routed through the workspace facade and dirty state reflects the annual metadata change |
 
 ### Boundary checks
 
@@ -205,6 +211,13 @@ binding the suite to QML rendering.
 | IMP-W-011 | Contract selection helper clears incompatible actor and property overrides | Unit | Import workflow with selected contract and existing manual actor/property selection | Select a contract row for current transaction | Contract id is set and dependent actor/property fields are normalized for consistency |
 | IMP-W-012 | Property or actor manual selection clears incompatible contract | Unit | Import workflow with current contract selected | Select actor or property that is incompatible with selected contract | Contract selection clears to no-contract and dependent derived fields re-evaluate deterministically |
 
+### AnnualWorkflow
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| ANN-W-001 | Stored annual computation | Unit | Annual workflow with a representative workspace snapshot | Compute an existing annual | Stored annual assignments are passed to the annual application service and category payloads are returned |
+| ANN-W-002 | Annual preview computation | Unit | Annual workflow with a representative workspace snapshot | Compute a preview with injected analysis ids and year | The preview uses the injected annual selection without mutating the workspace source |
+
 ## 5. Import Interaction
 
 The interaction smoke test keeps the import workflow boundary usable without
@@ -236,6 +249,8 @@ ui/
     unit/
       TestAnalysisPayloadMapper.cpp
       TestAnalysisWorkflow.cpp
+      TestAnnualState.cpp
+      TestAnnualWorkflow.cpp
       TestExportWorkflow.cpp
       TestImportSuggestionService.cpp
       TestImportWorkflow.cpp

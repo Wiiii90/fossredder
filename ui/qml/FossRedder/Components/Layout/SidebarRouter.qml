@@ -12,6 +12,7 @@ Item {
     id: sidebarLeft
     required property var appContext
     required property var analysisState
+    required property var annualState
     required property var theme
     readonly property var navigation: sidebarLeft.appContext ? sidebarLeft.appContext.navigation : null
     readonly property var session: sidebarLeft.appContext ? sidebarLeft.appContext.session : null
@@ -123,7 +124,7 @@ Item {
     Component { id: importSidebarComp; Views.ImportSidebar { importState: importState; theme: sidebarLeft.theme } }
     Component { id: exportSidebarComp; Views.ExportSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: analysisSidebarComp; Views.AnalysisSidebar { analysisState: sidebarLeft.analysisState; theme: sidebarLeft.theme } }
-    Component { id: annualSidebarComp; Views.AnnualSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
+    Component { id: annualSidebarComp; Views.AnnualSidebar { annualState: sidebarLeft.annualState; theme: sidebarLeft.theme } }
     Component { id: settingsSidebarComp; Views.SettingsSidebar { appContext: sidebarLeft.appContext; theme: sidebarLeft.theme } }
     Component { id: placeholderSidebarComp; Views.PlaceholderSidebar { } }
 
