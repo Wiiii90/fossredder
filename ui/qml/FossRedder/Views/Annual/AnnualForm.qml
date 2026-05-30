@@ -17,7 +17,9 @@ Item {
 
     ColumnLayout {
         anchors.fill: root
-        spacing: root.theme.viewFormSpacing
+        anchors.margins: root.theme.pageContentMargin
+        anchors.bottomMargin: 0
+        spacing: root.theme.spacingSmall
 
         Flickable {
             id: annualFormScroll
@@ -36,7 +38,7 @@ Item {
                 id: annualWorkspaceContent
                 width: annualFormScroll.width
                 height: Math.max(implicitHeight, annualFormScroll.height)
-                spacing: root.theme.viewFormSpacing
+                spacing: root.theme.spacingSmall
 
                 RowLayout {
                     Layout.fillWidth: true

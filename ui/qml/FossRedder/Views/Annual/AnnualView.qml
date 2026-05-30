@@ -20,7 +20,6 @@ Item {
 
     ColumnLayout {
         anchors.fill: root
-        anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.spacingSmall
 
         Annual.AnnualForm {
@@ -32,6 +31,9 @@ Item {
 
         Annual.AnnualBottomBar {
             Layout.fillWidth: true
+            Layout.leftMargin: root.theme.pageContentMargin
+            Layout.rightMargin: root.theme.pageContentMargin
+            Layout.bottomMargin: root.theme.pageContentMargin
             theme: root.theme
             annualState: root.annualState
         }

@@ -1,93 +1,23 @@
 /**
  * @file ui/qml/FossRedder/Views/Export/ExportView.qml
- * @brief Provides the ExportView component.
+ * @brief Provides the Export view composition.
  */
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.3
-import FossRedder.Constants 1.0 as Constants
-import FossRedder.Components 1.0 as Components
-import FossRedder.Controls 1.0 as Controls
+import FossRedder.Views.Export 1.0 as Export
 pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    required property var appContext
+    required property var exportState
     required property var theme
-    readonly property var exportWorkflow: root.appContext ? root.appContext.exportWorkflow : null
-    readonly property var actions: root.appContext ? root.appContext.actions : null
-    readonly property var fileSystemBrowser: root.appContext ? root.appContext.fileSystemBrowser : null
-    readonly property var settingsViewModel: root.appContext ? root.appContext.settingsViewModel : null
-    readonly property bool hasExportCtrl: root.exportWorkflow !== null
-    readonly property string readyText: qsTr("Ready")
-    readonly property int csvContractValue: 0
-    readonly property int xlsxContractValue: 1
-    readonly property string defaultLocale: Qt.locale().name.replace("_", "-")
-    readonly property var formatOptions: [
-        {
-            contract: csvContractValue,
-            extension: Constants.FileFormats.exportFormats.csv.extension,
-            label: Constants.FileFormats.exportFormats.csv.label
-        },
-        {
-            contract: xlsxContractValue,
-            extension: Constants.FileFormats.exportFormats.xlsx.extension,
-            label: Constants.FileFormats.exportFormats.xlsx.label
-        }
-    ]
-    Layout.fillWidth: true
-    Layout.fillHeight: true
-    anchors.fill: parent
-
-    function buildPayload() {
-        const targetDirectory = formPanel ? formPanel.targetDirectory : ""
-        const packageFormatIndex = formPanel ? formPanel.packageFormatIndex : 0
-        const items = objectsPanel ? objectsPanel.exportItems() : []
-        const payload = {
-            targetDirectory: targetDirectory,
-            packageFormatIndex: packageFormatIndex,
-            items: items
-        }
-        return JSON.stringify(payload)
-    }
-
-    function defaultTargetDirectory() {
-        if (root.settingsViewModel && root.settingsViewModel.exportDefaultDirectory && root.settingsViewModel.exportDefaultDirectory.length > 0)
-            return String(root.settingsViewModel.exportDefaultDirectory)
-        if (root.fileSystemBrowser && root.fileSystemBrowser.appDir) {
-            const appPath = root.fileSystemBrowser.appDir()
-            if (appPath && String(appPath).length > 0) return String(appPath)
-        }
-        return Qt.resolvedUrl(".").toString().replace("file:///", "")
-    }
-
-    function clearForm() {
-        if (formPanel) {
-            formPanel.targetDirectory = root.defaultTargetDirectory()
-            formPanel.packageFormatIndex = root.settingsViewModel ? root.settingsViewModel.exportArchiveFormat : 0
-        }
-        if (objectsPanel) objectsPanel.clearAll()
-        if (root.hasExportCtrl) root.exportWorkflow.clearActiveRun()
-    }
-
-    Connections {
-        target: root.appContext ? root.appContext.session : null
-        function onDataRevisionChanged() {
-            if (formPanel) {
-                if (!formPanel.targetDirectory || formPanel.targetDirectory.length === 0)
-                    formPanel.targetDirectory = root.defaultTargetDirectory()
-                formPanel.packageFormatIndex = root.settingsViewModel ? root.settingsViewModel.exportArchiveFormat : 0
-            }
-            if (objectsPanel && objectsPanel.syncWithWorkspaceRevision)
-                objectsPanel.syncWithWorkspaceRevision()
-        }
-    }
 
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: root.theme.pageContentMargin
-        spacing: root.theme.spacing
+        spacing: root.theme.spacingSmall
 
         Flickable {
             id: exportScroll
@@ -105,122 +35,38 @@ Item {
                 id: exportContent
                 width: exportScroll.width
                 height: Math.max(implicitHeight, exportScroll.height)
-                spacing: root.theme.spacing
+                spacing: root.theme.spacingSmall
 
-                ExportForm {
-                    id: formPanel
+                Export.ExportForm {
                     objectName: "exportFormPanel"
                     Layout.fillWidth: true
                     theme: root.theme
-                    Component.onCompleted: {
-                        if (!targetDirectory || targetDirectory.length === 0)
-                            targetDirectory = root.defaultTargetDirectory()
-                        packageFormatIndex = root.settingsViewModel ? root.settingsViewModel.exportArchiveFormat : 0
-                    }
-                    onBrowseRequested: {
-                        if (root.actions) root.actions.browseExportDirectory()
-                    }
+                    exportState: root.exportState
                 }
 
-                ExportPanel {
-                    id: objectsPanel
+                Export.ExportPanel {
                     objectName: "exportObjectsPanel"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.minimumHeight: 320
-                    appContext: root.appContext
+                    Layout.minimumHeight: root.theme.exportView.panel.panelMinHeight
                     theme: root.theme
+                    exportState: root.exportState
                 }
             }
         }
 
-        ExportProgressBar {
+        Export.ExportProgressBar {
             Layout.fillWidth: true
             theme: root.theme
-            exportWorkflow: root.exportWorkflow
-            hasExportCtrl: root.hasExportCtrl
-            readyText: root.readyText
+            exportState: root.exportState
         }
 
-        Components.BottomBar {
+        Export.ExportBottomBar {
             Layout.fillWidth: true
             theme: root.theme
-
-            Controls.DangerButton {
-                objectName: "exportClearButton"
-                text: qsTr("Clear")
-                Layout.preferredWidth: root.theme.viewActionButtonWidth
-                visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 0
-                enabled: root.hasExportCtrl && root.exportWorkflow.currentMode === 0
-                onClicked: root.clearForm()
-            }
-
-            Controls.DangerButton {
-                objectName: "exportCancelButton"
-                text: qsTr("Cancel")
-                Layout.preferredWidth: root.theme.viewActionButtonWidth
-                visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 1
-                enabled: root.hasExportCtrl && root.exportWorkflow.currentMode === 1
-                onClicked: if (root.hasExportCtrl) root.exportWorkflow.cancelExport()
-            }
-
-            Item { Layout.fillWidth: true }
-
-            Controls.SuccessButton {
-                objectName: "exportTogglePauseButton"
-                text: root.hasExportCtrl && root.exportWorkflow.isPaused ? qsTr("Resume") : qsTr("Pause")
-                Layout.preferredWidth: root.theme.viewActionButtonWidth
-                visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 1
-                enabled: root.hasExportCtrl && root.exportWorkflow.currentMode === 1
-                onClicked: if (root.hasExportCtrl) root.exportWorkflow.togglePause()
-            }
-
-            Controls.SuccessButton {
-                objectName: "exportStartButton"
-                text: qsTr("Start")
-                Layout.preferredWidth: root.theme.viewActionButtonWidth
-                visible: root.hasExportCtrl && root.exportWorkflow.currentMode === 0
-                enabled: {
-                    const dir = formPanel ? formPanel.targetDirectory : ""
-                    const items = objectsPanel ? objectsPanel.exportItems() : []
-                    return dir.length > 0 && items.length > 0
-                }
-                onClicked: {
-                    if (!root.hasExportCtrl) return
-                    const payload = root.buildPayload()
-                    const path = (formPanel ? formPanel.targetDirectory : "")
-                    const selectedOption = root.formatOptions[0]
-                    const items = objectsPanel ? objectsPanel.exportItems() : []
-                    const includeFormulas = root.settingsViewModel ? root.settingsViewModel.exportIncludeFormulas : true
-                    root.exportWorkflow.exportDataWithPayload(selectedOption.contract, path, includeFormulas, root.defaultLocale, payload, Math.max(1, items.length))
-                }
-            }
+            exportState: root.exportState
         }
-
-        Connections {
-            target: root.actions
-            function onExportDirectorySelected(path) {
-                if (!path)
-                    return
-                if (formPanel)
-                    formPanel.targetDirectory = path
-            }
-        }
-
-        Connections {
-            target: root.settingsViewModel
-            function onExportDefaultDirectoryChanged() {
-                if (!formPanel)
-                    return
-                if (!formPanel.targetDirectory || formPanel.targetDirectory.length === 0)
-                    formPanel.targetDirectory = root.defaultTargetDirectory()
-            }
-            function onExportArchiveFormatChanged() {
-                if (!formPanel)
-                    return
-                formPanel.packageFormatIndex = root.settingsViewModel.exportArchiveFormat
-            }
-        }
-
     }
+
+    Component.onCompleted: root.exportState.refreshFromWorkspace()
 }

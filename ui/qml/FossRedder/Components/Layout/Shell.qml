@@ -29,6 +29,15 @@ GridLayout {
         annualWorkflow: layoutRoot.appContext ? layoutRoot.appContext.annualWorkflow : null
     }
 
+    App.ExportState {
+        id: exportState
+        workspace: layoutRoot.appContext ? layoutRoot.appContext.workspaceFacade : null
+        exportWorkflow: layoutRoot.appContext ? layoutRoot.appContext.exportWorkflow : null
+        actions: layoutRoot.appContext ? layoutRoot.appContext.actions : null
+        fileSystemBrowser: layoutRoot.appContext ? layoutRoot.appContext.fileSystemBrowser : null
+        settings: layoutRoot.appContext ? layoutRoot.appContext.settingsViewModel : null
+    }
+
     AppMenu {
         id: appMenu
         Layout.row: 0
@@ -71,6 +80,7 @@ GridLayout {
                 appContext: layoutRoot.appContext
                 analysisState: analysisState
                 annualState: annualState
+                exportState: exportState
                 theme: layoutRoot.theme
             }
         }
@@ -86,6 +96,7 @@ GridLayout {
                 appContext: layoutRoot.appContext
                 analysisState: analysisState
                 annualState: annualState
+                exportState: exportState
                 theme: layoutRoot.theme
             }
         }

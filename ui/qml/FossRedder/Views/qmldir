@@ -45,6 +45,7 @@ ContractPropertiesPanel 1.0 Contract/ContractPropertiesPanel.qml
 ContractSidebar 1.0 Contract/ContractSidebar.qml
 ContractView 1.0 Contract/ContractView.qml
 ExportSidebar 1.0 Export/ExportSidebar.qml
+ExportBottomBar 1.0 Export/ExportBottomBar.qml
 ExportForm 1.0 Export/ExportForm.qml
 ExportPanel 1.0 Export/ExportPanel.qml
 ExportProgressBar 1.0 Export/ExportProgressBar.qml

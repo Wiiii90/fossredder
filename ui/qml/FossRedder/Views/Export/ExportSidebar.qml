@@ -1,31 +1,17 @@
 /**
  * @file ui/qml/FossRedder/Views/Export/ExportSidebar.qml
- * @brief Provides the ExportSidebar component.
+ * @brief Provides the Export sidebar.
  */
 
 import QtQuick 2.15
 import QtQuick.Layouts 1.3
 import FossRedder.Components 1.0 as Components
+pragma ComponentBehavior: Bound
 
 Item {
     id: root
-    required property var appContext
+    required property var exportState
     required property var theme
-
-    readonly property var exportWorkflow: root.appContext ? root.appContext.exportWorkflow : null
-
-    Connections {
-        target: root.appContext ? root.appContext.session : null
-        function onDataRevisionChanged() {
-            if (root.exportWorkflow && root.exportWorkflow.refreshFromStateSnapshot)
-                root.exportWorkflow.refreshFromStateSnapshot()
-        }
-    }
-
-    Component.onCompleted: {
-        if (root.exportWorkflow && root.exportWorkflow.refreshFromStateSnapshot)
-            root.exportWorkflow.refreshFromStateSnapshot()
-    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -47,15 +33,15 @@ Item {
             actionButtonTopInset: 0
             actionButtonRightInset: 0
             headerTopInset: root.theme.spacingSmall
-            model: root.exportWorkflow ? root.exportWorkflow.runs : null
+            model: root.exportState.runs
             onRunClicked: function(index, logId, draftAttached, statementId) {
-                if (!root.exportWorkflow) return
-                root.exportWorkflow.openRunLocationAt(index)
+                root.exportState.openRunLocationAt(index)
             }
             onDeleteClicked: function(index, draftAttached, draftId) {
-                if (!root.exportWorkflow || !root.exportWorkflow.runs) return
-                root.exportWorkflow.removeRunAt(index)
+                root.exportState.removeRunAt(index)
             }
         }
     }
+
+    Component.onCompleted: root.exportState.refreshRuns()
 }

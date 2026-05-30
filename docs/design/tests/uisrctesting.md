@@ -49,6 +49,7 @@ ui/
       TestAnnualWorkflow.cpp
       TestAnalysisWorkflow.cpp
       TestBookingState.cpp
+      TestExportState.cpp
       TestExportWorkflow.cpp
       TestImportSuggestionService.cpp
       TestImportWorkflow.cpp
@@ -149,6 +150,10 @@ too stateful for declarative QML.
 | ANN-ST-002 | Annual assignment preview and update | Unit | AnnualState loaded with one assigned and one available analysis | Add the available analysis and submit update | The preview updates, dirty state is set, and the annual persists both analysis ids |
 | ANN-ST-003 | Annual create commit | Unit | AnnualState in create mode with analysis rows | Enter name/year, assign an analysis, and create | A new annual is persisted and selected through the workspace facade |
 | ANN-ST-004 | Annual export format routing | Unit | AnnualState with an assigned plot analysis | Change the export format | The analysis update is routed through the workspace facade and dirty state reflects the annual metadata change |
+| EXP-ST-001 | Export state loads workspace rows | Unit | ExportState with a representative workspace | Refresh state | Annual and analysis rows are available and the pending annual selection is deterministic |
+| EXP-ST-002 | Export annual item projection | Unit | ExportState in annual mode | Add pending annual entry | Export items contain the annual plus assigned analysis items with default export formats |
+| EXP-ST-003 | Export standalone analysis projection | Unit | ExportState in analysis mode with a plot analysis selected | Add pending analysis entry | The standalone analysis entry uses image export options and the default plot format |
+| EXP-ST-004 | Export item restoration | Unit | ExportState receives persisted annual and analysis export items | Load items | Annual entries are rebuilt without duplicate assigned analyses and preserve explicit export formats |
 
 ### Boundary checks
 
@@ -251,6 +256,7 @@ ui/
       TestAnalysisWorkflow.cpp
       TestAnnualState.cpp
       TestAnnualWorkflow.cpp
+      TestExportState.cpp
       TestExportWorkflow.cpp
       TestImportSuggestionService.cpp
       TestImportWorkflow.cpp

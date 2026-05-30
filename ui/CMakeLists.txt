@@ -51,6 +51,7 @@ set(UI_SOURCES
     src/viewmodels/booking/TransactionFilterModel.cpp
     src/viewmodels/booking/TransactionListModel.cpp
     src/state/filters/FilterState.cpp
+    src/state/export/ExportState.cpp
     src/state/import/ImportState.cpp
     src/state/import/StatementDraftState.cpp
     src/state/import/TransactionDraftState.cpp
@@ -122,6 +123,7 @@ set(UI_HEADERS
     include/ui/shared/payload/PayloadKeys.h
     include/ui/shared/payload/PayloadMapper.h
     include/ui/state/filters/FilterState.h
+    include/ui/state/export/ExportState.h
     include/ui/state/import/ImportState.h
     include/ui/state/import/StatementDraftState.h
     include/ui/state/import/TransactionDraftState.h
@@ -186,6 +188,7 @@ target_include_directories(fossredder_ui PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/shell
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/shell/window
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state/export
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state/filters
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state/import
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ui/state/mutation
@@ -392,6 +395,7 @@ if(BUILD_UI_TESTS)
         tests/unit/TestAnnualState.cpp
         tests/unit/TestAnnualWorkflow.cpp
         tests/unit/TestBookingState.cpp
+        tests/unit/TestExportState.cpp
         tests/unit/TestExportWorkflow.cpp
         tests/unit/TestImportWorkflow.cpp
         tests/unit/TestImportSuggestionService.cpp

@@ -178,6 +178,18 @@ QtObject {
         }
     })
 
+    property var exportView: ({
+        panel: {
+            addModeButtonWidth: 88,
+            addButtonWidth: 72,
+            panelMinHeight: 320,
+            objectListMinHeight: 180,
+            exportTypeColumnWidth: 110,
+            kindColumnWidth: 88,
+            analysisNameMinWidth: 160
+        }
+    })
+
     property string fontFamily: "Segoe UI"
 
     property int fontSizeSmall: 11

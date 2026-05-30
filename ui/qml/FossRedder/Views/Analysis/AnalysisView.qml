@@ -21,7 +21,6 @@ Item {
 
     ColumnLayout {
         anchors.fill: root
-        anchors.margins: root.theme.pageContentMargin
         spacing: root.theme.spacingSmall
 
         Analysis.AnalysisForm {
@@ -33,6 +32,9 @@ Item {
 
         Analysis.AnalysisBottomBar {
             Layout.fillWidth: true
+            Layout.leftMargin: root.theme.pageContentMargin
+            Layout.rightMargin: root.theme.pageContentMargin
+            Layout.bottomMargin: root.theme.pageContentMargin
             theme: root.theme
             analysisState: root.analysisState
         }

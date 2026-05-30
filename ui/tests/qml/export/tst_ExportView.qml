@@ -7,9 +7,10 @@ pragma ComponentBehavior: Bound
 
 import QtQuick 2.15
 import QtTest 1.3
-import FossRedder.Views 1.0
+import FossRedder.Views.Export 1.0 as Export
 
 import "../Lookup.js" as Lookup
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -18,68 +19,42 @@ TestCase {
     width: 960
     height: 640
 
-    property var actions: QtObject {
+    property var exportState: QtObject {
+        property string targetDirectory: "test:///export/default"
+        property int packageFormatIndex: 0
+        property string addMode: "annual"
+        property var annualRows: [{ id: "annual-1", name: "Annual 1", display: "Annual 1" }]
+        property var analysisRows: [{ id: "analysis-1", name: "Analysis 1", type: "tab" }]
+        property var addRows: annualRows
+        property string addTextRole: "display"
+        property int pendingIndex: 0
+        property bool canAddEntry: true
+        property var exportEntries: []
+        property bool canStart: true
+        property bool showClear: true
+        property bool showCancel: false
+        property bool showPause: false
+        property string pauseText: "Pause"
+        property real progress: 0.0
+        property string statusText: "Ready"
+        property bool hasError: false
+        property int refreshCalls: 0
+        property int startCalls: 0
         property int browseCalls: 0
-        signal exportDirectorySelected(string path)
-        function browseExportDirectory() { browseCalls += 1 }
-    }
-
-    property var fileSystemBrowser: QtObject {
-        function appDir() { return "test:///runtime/app" }
-    }
-
-    property var settingsViewModel: QtObject {
-        property string exportDefaultDirectory: "test:///export/default"
-        property int exportArchiveFormat: 0
-        property bool exportIncludeFormulas: true
-    }
-
-    property var session: QtObject {
-        property var annualsData: [
-            { id: "annual-1", name: "Annual 1", display: "Annual 1", assignedAnalysisIds: ["analysis-1"] }
-        ]
-        property var analysesData: [
-            { id: "analysis-1", name: "Analysis 1", type: "tab", exportFormat: "CSV" }
-        ]
-        function annualRows() { return annualsData || [] }
-        function analysisRows() { return analysesData || [] }
-    }
-
-    property var exportWorkflow: QtObject {
-        property int currentMode: 0
-        property bool isPaused: false
-        property real progress: 0
-        property string phase: ""
-        property string error: ""
-
-        property int clearCalls: 0
-        property int cancelCalls: 0
-        property int togglePauseCalls: 0
-        property int exportCalls: 0
-        property var lastExportArgs: ({})
-
-        function clearActiveRun() { clearCalls += 1 }
-        function cancelExport() { cancelCalls += 1 }
-        function togglePause() { togglePauseCalls += 1; isPaused = !isPaused }
-        function exportDataWithPayload(contract, path, includeFormulas, locale, payload, count) {
-            exportCalls += 1
-            lastExportArgs = {
-                contract: contract,
-                path: path,
-                includeFormulas: includeFormulas,
-                locale: locale,
-                payload: payload,
-                count: count
-            }
-        }
-    }
-
-    property var appContext: QtObject {
-        property var exportWorkflow: testCase.exportWorkflow
-        property var actions: testCase.actions
-        property var fileSystemBrowser: testCase.fileSystemBrowser
-        property var settingsViewModel: testCase.settingsViewModel
-        property var session: testCase.session
+        function refreshFromWorkspace() { refreshCalls += 1 }
+        function browseDirectory() { browseCalls += 1 }
+        function clearForm() {}
+        function startExport() { startCalls += 1 }
+        function cancelExport() {}
+        function togglePause() {}
+        function selectPendingRow(index) { pendingIndex = index }
+        function addPendingEntry() {}
+        function removeEntry(index) {}
+        function updateAnnualEntryAtIndex(entryIndex, annualIndex) {}
+        function updateAnnualCollapsed(entryIndex, collapsed) {}
+        function updateStandaloneAnalysisAtIndex(entryIndex, analysisIndex) {}
+        function updateStandaloneAnalysisExportType(entryIndex, exportType) {}
+        function updateAnnualAnalysisExportType(entryIndex, analysisIndex, exportType) {}
     }
 
     property var theme: QtObject {
@@ -93,9 +68,21 @@ TestCase {
         property int viewCompactActionButtonSize: 28
         property int viewInlineIconSize: 28
         property int viewSectionIconSize: 42
+        property int viewNavigationButtonWidth: 42
         property int borderWidthThin: 1
         property int radius: 3
         property int margins: 8
+        property var exportView: ({
+            panel: {
+                addModeButtonWidth: 88,
+                addButtonWidth: 72,
+                panelMinHeight: 320,
+                objectListMinHeight: 180,
+                exportTypeColumnWidth: 110,
+                kindColumnWidth: 88,
+                analysisNameMinWidth: 160
+            }
+        })
         property color subtlePrimaryFill: "#eef3ff"
         property color surface: "#ffffff"
         property color surfaceAlt: "#f5f5f5"
@@ -112,18 +99,12 @@ TestCase {
 
     Component {
         id: exportViewComponent
-        ExportView {
+        Export.ExportView {
             width: 960
             height: 640
-            appContext: testCase.appContext
+            exportState: testCase.exportState
             theme: testCase.theme
         }
-    }
-
-    function findRequired(root, objectName) {
-        var found = Lookup.findObject(root, objectName)
-        verify(found !== null, "Missing object: " + objectName)
-        return found
     }
 
     function createView() {
@@ -131,98 +112,26 @@ TestCase {
     }
 
     function init() {
-        actions.browseCalls = 0
-
-        settingsViewModel.exportDefaultDirectory = "test:///export/default"
-        settingsViewModel.exportArchiveFormat = 0
-        settingsViewModel.exportIncludeFormulas = true
-
-        exportWorkflow.currentMode = 0
-        exportWorkflow.isPaused = false
-        exportWorkflow.progress = 0
-        exportWorkflow.phase = ""
-        exportWorkflow.error = ""
-        exportWorkflow.clearCalls = 0
-        exportWorkflow.cancelCalls = 0
-        exportWorkflow.togglePauseCalls = 0
-        exportWorkflow.exportCalls = 0
-        exportWorkflow.lastExportArgs = ({})
+        exportState.refreshCalls = 0
+        exportState.startCalls = 0
+        exportState.browseCalls = 0
     }
 
-    function test_EXP_002_clearButtonResetsExportState() {
-        var view = createView()
-        var clearButton = findRequired(view, "exportClearButton")
+    function test_EXP_V_001_mountsExportCompositionWithExportState() {
+        const view = createView()
 
-        clearButton.clicked()
-
-        compare(exportWorkflow.clearCalls, 1)
+        verify(TestSupport.findRequired(Lookup, view, "exportFormPanel") !== null)
+        verify(TestSupport.findRequired(Lookup, view, "exportObjectsPanel") !== null)
+        compare(exportState.refreshCalls, 1)
     }
 
-    function test_EXP_003_cancelButtonCallsController() {
-        exportWorkflow.currentMode = 1
-        var view = createView()
-        var cancelButton = findRequired(view, "exportCancelButton")
+    function test_EXP_V_002_commandsFlowThroughInjectedExportState() {
+        const view = createView()
 
-        cancelButton.clicked()
+        TestSupport.findRequired(Lookup, view, "exportBrowseDirectoryButton").clicked()
+        TestSupport.findRequired(Lookup, view, "exportStartButton").clicked()
 
-        compare(exportWorkflow.cancelCalls, 1)
-    }
-
-    function test_EXP_004_pauseButtonCallsController() {
-        exportWorkflow.currentMode = 1
-        var view = createView()
-        var pauseButton = findRequired(view, "exportTogglePauseButton")
-
-        pauseButton.clicked()
-
-        compare(exportWorkflow.togglePauseCalls, 1)
-    }
-
-    function test_EXP_005_startBuildsPayloadAndStartsExport() {
-        var view = createView()
-        var addButton = findRequired(view, "exportAddEntryButton")
-        var startButton = findRequired(view, "exportStartButton")
-
-        addButton.clicked()
-        startButton.clicked()
-
-        compare(exportWorkflow.exportCalls, 1)
-        verify(String(exportWorkflow.lastExportArgs.payload).indexOf("Annual") !== -1)
-        compare(String(exportWorkflow.lastExportArgs.path), "test:///export/default")
-    }
-
-    function test_EXP_001_defaultDirectoryIsLoadedFromSettings() {
-        settingsViewModel.exportDefaultDirectory = "test:///export/from-settings"
-        var view = createView()
-        var formPanel = findRequired(view, "exportFormPanel")
-
-        compare(formPanel.targetDirectory, "test:///export/from-settings")
-    }
-
-    function test_EXP_006_browseDirectoryRoutesToActions() {
-        var view = createView()
-        var browseButton = findRequired(view, "exportBrowseDirectoryButton")
-
-        browseButton.clicked()
-
-        compare(actions.browseCalls, 1)
-    }
-
-    function test_EXP_007_selectedDirectoryUpdatesFormTarget() {
-        var view = createView()
-        var formPanel = findRequired(view, "exportFormPanel")
-
-        actions.exportDirectorySelected("test:///export/selected")
-
-        compare(formPanel.targetDirectory, "test:///export/selected")
-    }
-
-    function test_EXP_008_settingsSyncUpdatesArchiveFormat() {
-        var view = createView()
-        var formPanel = findRequired(view, "exportFormPanel")
-
-        settingsViewModel.exportArchiveFormat = 1
-
-        compare(formPanel.packageFormatIndex, 1)
+        compare(exportState.browseCalls, 1)
+        compare(exportState.startCalls, 1)
     }
 }

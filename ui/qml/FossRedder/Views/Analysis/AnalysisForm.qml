@@ -24,7 +24,9 @@ Item {
 
     ColumnLayout {
         anchors.fill: root
-        spacing: root.theme.viewFormSpacing
+        anchors.margins: root.theme.pageContentMargin
+        anchors.bottomMargin: 0
+        spacing: root.theme.spacingSmall
 
         Flickable {
             id: analysisScroll
@@ -43,7 +45,7 @@ Item {
                 id: analysisContent
                 width: analysisScroll.width
                 height: root.analysisState.isEdit ? analysisScroll.height : implicitHeight
-                spacing: root.theme.viewFormSpacing
+                spacing: root.theme.spacingSmall
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -202,7 +204,7 @@ Item {
             visible: !root.analysisState.isEdit && root.analysisState.filterEditMode
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight + root.theme.controlHeight + root.theme.viewFormSpacing * 3
+            Layout.minimumHeight: root.theme.viewSelectionPanelMinHeight + root.theme.controlHeight + root.theme.spacingSmall * 3
 
             StackLayout {
                 Layout.fillWidth: true

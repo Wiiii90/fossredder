@@ -7,9 +7,10 @@ pragma ComponentBehavior: Bound
 
 import QtQuick 2.15
 import QtTest 1.3
-import FossRedder.Views 1.0
+import FossRedder.Views.Export 1.0 as Export
 
 import "../Lookup.js" as Lookup
+import "../TestSupport.js" as TestSupport
 
 TestCase {
     id: testCase
@@ -27,28 +28,19 @@ TestCase {
         property int radius: 3
     }
 
-    property var exportWorkflow: QtObject {
-        property int currentMode: 0
+    property var exportState: QtObject {
         property real progress: 0.0
-        property string phase: ""
-        property string error: ""
+        property string statusText: "Ready"
+        property bool hasError: false
     }
 
     Component {
         id: exportProgressBarComponent
-        ExportProgressBar {
+        Export.ExportProgressBar {
             width: 700
             theme: testCase.theme
-            exportWorkflow: testCase.exportWorkflow
-            hasExportCtrl: true
-            readyText: "Ready"
+            exportState: testCase.exportState
         }
-    }
-
-    function findRequired(root, objectName) {
-        var found = Lookup.findObject(root, objectName)
-        verify(found !== null, "Missing object: " + objectName)
-        return found
     }
 
     function createView() {
@@ -56,41 +48,31 @@ TestCase {
     }
 
     function init() {
-        exportWorkflow.currentMode = 0
-        exportWorkflow.progress = 0.0
-        exportWorkflow.phase = ""
-        exportWorkflow.error = ""
+        exportState.progress = 0.0
+        exportState.statusText = "Ready"
+        exportState.hasError = false
     }
 
-    function test_EXP_004_progressUsesControllerWhenRunning() {
-        exportWorkflow.currentMode = 1
-        exportWorkflow.progress = 0.65
+    function test_EXP_PB_001_progressAndStatusFollowExportState() {
+        exportState.progress = 0.65
+        exportState.statusText = "Exporting"
 
-        var view = createView()
-        var bar = findRequired(view, "exportProgressBar")
+        const view = createView()
+        const bar = TestSupport.findRequired(Lookup, view, "exportProgressBar")
+        const statusLabel = TestSupport.findRequired(Lookup, view, "exportProgressStatusLabel")
 
         compare(bar.value, 0.65)
-    }
-
-    function test_EXP_005_statusShowsPhaseBeforeReady() {
-        exportWorkflow.currentMode = 1
-        exportWorkflow.phase = "Exporting"
-
-        var view = createView()
-        var statusLabel = findRequired(view, "exportProgressStatusLabel")
-
         compare(statusLabel.text, "Exporting")
     }
 
-    function test_EXP_003_statusShowsErrorWhenPresent() {
-        exportWorkflow.currentMode = 1
-        exportWorkflow.phase = "Exporting"
-        exportWorkflow.error = "Disk full"
+    function test_EXP_PB_002_errorStateUsesDangerColor() {
+        exportState.statusText = "Disk full"
+        exportState.hasError = true
 
-        var view = createView()
-        var statusLabel = findRequired(view, "exportProgressStatusLabel")
+        const view = createView()
+        const statusLabel = TestSupport.findRequired(Lookup, view, "exportProgressStatusLabel")
 
         compare(statusLabel.text, "Disk full")
+        compare(statusLabel.color, theme.danger)
     }
-
 }

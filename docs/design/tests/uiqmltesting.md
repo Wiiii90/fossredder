@@ -119,6 +119,7 @@ ui/
         tst_TransactionDraftProofPanel.qml
         tst_TransactionDraftView.qml
       export/
+        tst_ExportBottomBar.qml
         tst_ExportSidebar.qml
         tst_ExportForm.qml
         tst_ExportPanel.qml
@@ -289,16 +290,16 @@ ui/
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| EXP-V-001 | Container mount | QML | App context and theme available | Open ExportView | `ExportPanel` and `ExportSidebar` are filled with app context and theme |
-| EXP-V-002 | Start export uses selected target directory directly | QML/Interaction | Export form has a target directory and at least one export item | Click Start | `exportDataWithPayload(..., path, ...)` receives the selected directory path without appending an extra `/export` segment |
+| EXP-V-001 | Container mount | QML | ExportState and theme available | Open ExportView | Export form, panel, progress bar, and bottom bar mount with the injected ExportState |
+| EXP-V-002 | Command wiring | QML/Interaction | ExportState exposes browse and start commands | Click Browse and Start | Commands are delegated to ExportState without duplicating export logic in QML |
 
 ### ExportForm
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| EXP-F-001 | Target directory | QML | Form loaded | Edit target directory | Export settings update deterministically |
-| EXP-F-002 | Archive format | QML | Form loaded | Select archive format | Selected format updates deterministically |
-| EXP-F-003 | Browse action | QML | Form loaded | Activate browse button | Browse request is emitted |
+| EXP-F-001 | Target directory | QML | Form loaded with ExportState | Edit target directory | ExportState target directory updates deterministically |
+| EXP-F-002 | Archive format | QML | Form loaded with ExportState | Select archive format | ExportState package format updates deterministically |
+| EXP-F-003 | Browse action | QML | Form loaded with ExportState | Activate browse button | Browse command is delegated to ExportState |
 
 ### ExportPanel
 
@@ -306,18 +307,29 @@ ui/
 |---|---|---|---|---|---|
 | EXP-P-001 | Annual export binding | QML/Interaction | Annual and analysis rows available | Open panel in annual mode | Annual entries are shown and add/remove actions stay deterministic |
 | EXP-P-002 | Analysis export binding | QML/Interaction | Analysis rows available | Switch to analysis mode | Analysis entries are shown and add/remove actions stay deterministic |
+| EXP-P-003 | Remove entry command | QML/Interaction | Panel has an export entry | Click the compact remove button | Remove is delegated to ExportState |
+| EXP-P-004 | Annual disclosure command | QML/Interaction | Panel has an expanded annual entry | Click the disclosure button | Collapse state is delegated to ExportState |
+| EXP-P-005 | Export type command | QML/Interaction | Panel has a standalone analysis entry | Change export type | Export type selection is delegated to ExportState |
+
+### ExportBottomBar
+
+| ID | Scope | Layer | Setup | Action | Expected |
+|---|---|---|---|---|---|
+| EXP-BB-001 | Create-mode commands | QML/Interaction | ExportState in create mode | Click Clear and Start | Clear and start commands are delegated to ExportState |
+| EXP-BB-002 | Progress-mode commands | QML/Interaction | ExportState in progress mode | Click Cancel and Pause | Cancel and pause commands are delegated to ExportState |
 
 ### ExportProgressBar
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | EXP-PB-001 | Progress binding | QML | Export workflow running | Inspect the progress bar | Progress value and status text follow the workflow state |
+| EXP-PB-002 | Error binding | QML | ExportState exposes an error status | Inspect the progress status | Error text uses the danger color |
 
 ### ExportSidebar
 
 | ID | Scope | Layer | Setup | Action | Expected |
 |---|---|---|---|---|---|
-| EXP-S-001 | Run-log binding | QML/Interaction | Export workflow exposes persisted logs | Open the sidebar | The restored run-log rows are visible in the list |
+| EXP-S-001 | Run-log binding | QML/Interaction | ExportState exposes persisted logs | Open the sidebar | The restored run-log rows are visible in the list and refresh is delegated |
 
 ## Actor
 
